@@ -15,6 +15,12 @@ const { chromium } = require('playwright');
     await page.evaluate(() => { __g.running = false; __g.renderer.render = () => { const u = __g.units[0]; if (u) u.group.parent.updateMatrixWorld(); }; document.getElementById('start').click(); __g.running = false; for (const u of __g.units) { u.frozen = true; u.alive = false; u.downT = 0; } });
     const stats = await page.evaluate(() => ({ weapons: __g.WEAPONS, parts: __g.PARTS, armory: __g.ARMORY }));
     if (process.argv[4]) { const before = JSON.parse(fs.readFileSync(process.argv[4])); assert.deepEqual(stats, before.stats || before, '武器・パーツ・選択肢の性能とキーを維持'); }
+    const hiddenVersion=await page.evaluate(()=>{const g=__g,u=g.player;for(const a of g.units){a.respawnT=1000;a.group.visible=false;}g.running=true;return u.rig.meshes[3].mesh.geometry.attributes.position.version;});
+    await page.waitForTimeout(120);
+    assert.equal(await page.evaluate(()=>__g.player.rig.meshes[3].mesh.geometry.attributes.position.version),hiddenVersion,'非表示機の頂点を更新しない');
+    const pausedVersion=await page.evaluate(()=>{__g.running=false;__g.player.group.visible=true;return __g.player.rig.meshes[3].mesh.geometry.attributes.position.version;});
+    await page.waitForTimeout(120);
+    assert.equal(await page.evaluate(()=>__g.player.rig.meshes[3].mesh.geometry.attributes.position.version),pausedVersion,'試合停止中は頂点を更新しない');
     const result = await page.evaluate(() => {
       const g = __g, T = g.T, log = [], yes = (v, text) => { if (!v) throw new Error(text); }, vector = a => new T.Vector3(...a);
       const configs = ['light', 'standard', 'heavy', 'harrier', 'prism', 'bastion'].map(k => Object.fromEntries(['head', 'body', 'arms', 'legs'].map(s => [s, k])));
@@ -24,7 +30,10 @@ const { chromium } = require('playwright');
       const pose = (u, dt = 1/60) => { u.group.position.copy(u.pos); u.group.rotation.set(0, u.yaw, 0); g.weaponLook(u, dt); u.group.updateMatrixWorld(true); };
       const handError = (u, s, target) => u.rig.bones['hand' + s].node.getWorldPosition(new T.Vector3()).distanceTo(target);
       const finite = u => u.rig.meshes.every(({ mesh }) => mesh.geometry.attributes.position.array.every(Number.isFinite) && mesh.geometry.attributes.normal.array.every(Number.isFinite));
-      let weaponPoses = 0, meleeFrames = 0, rayHits = 0, maxVertices = 0, maxGripError = 0;
+      // 骨ではなく、描画/被弾に使う脚メッシュ全頂点の最下点を測る。
+      const legFloor = u => { const mesh = u.rig.meshes.find(m => m.mesh.userData.armorSlot === 'legs').mesh, p = mesh.geometry.attributes.position, v = new T.Vector3(); let min = Infinity; for (let i=0;i<p.count;i++) min=Math.min(min,v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld).y-u.pos.y); return min; };
+      let weaponPoses = 0, meleeFrames = 0, rayHits = 0, maxVertices = 0, maxGripError = 0, floorChecks = 0, minLegY = Infinity, idleBlades = 0;
+      const floor = (u, label) => { const min=legFloor(u); minLegY=Math.min(minLegY,min);floorChecks++;yes(min>=-.01,label+' 脚の装甲が地面に埋まる: '+min);yes(min<=.03,label+' 両足が地面から浮く: '+min); };
       const originalHits = g.hittables.slice();
       for (const cfg of configs) {
         const u = fixture(cfg), label = JSON.stringify(cfg);
@@ -46,6 +55,7 @@ const { chromium } = require('playwright');
               if (w.dual) yes(u.gun2.localToWorld(vector([0, 0, u.gun2.geometry.boundingBox.min.z])).distanceTo(g.muzzle(u, true)) < 1e-5, key + ' 左の銃口');
             } else {
               yes(!u.gun.visible && !u.gun2.visible, key + ' 近接中は銃を格納');
+              for(const b of [u.blade,u.blade2])if(b?.visible){yes(b.scale.x<=1&&b.scale.y<=1&&b.scale.z<=1,key+' 待機中は元の寸法以下');idleBlades++;}
               for (const strong of [false, true]) {
                 const a = strong ? w.strong : w.normal;
                 const times = new Set([0, a.windup*.5, a.windup, a.windup+a.sweep*.5, a.windup+a.sweep, a.time*.99]);
@@ -60,6 +70,7 @@ const { chromium } = require('playwright');
                   meleeFrames++;
                 }
               }
+              u.swing=null;pose(u);for(const b of [u.blade,u.blade2])if(b?.visible)yes(b.scale.z<=1,key+' 攻撃終了後も元の寸法へ戻す');
             }
             weaponPoses++;
           }
@@ -68,9 +79,20 @@ const { chromium } = require('playwright');
           const feet = ['L','R'].map(s => u.rig.bones['foot'+s].node.getWorldPosition(new T.Vector3()).y);
           const hip = u.rig.bones.hip.node.getWorldPosition(new T.Vector3()).y;
           g.land(u, 36); for (let i=0;i<6;i++) pose(u,.025);
+          floor(u,label+' 着地');
           yes(u.rig.bones.hip.node.getWorldPosition(new T.Vector3()).y < hip-.35, label + ' 着地で腰を沈める');
           for (const [i,s] of ['L','R'].entries()) yes(Math.abs(u.rig.bones['foot'+s].node.getWorldPosition(new T.Vector3()).y-feet[i]) < .002, label + ' 着地で足裏が埋まらない');
           yes(u.stun === 'land' && u.stunT >= .5, '既存の着地硬直を維持');
+          for(const state of ['planted','transfer','repairing']){
+            equip(u);u[state]=true;for(let i=0;i<60;i++){pose(u);floor(u,label+' '+state);}
+            if(state!=='repairing'){g.land(u,36);for(let i=0;i<20;i++){pose(u,.015);floor(u,label+' '+state+' 着地');}}
+            u[state]=false;
+          }
+          for(const [vx,vz,dash]of [[0,-13,false],[13,0,false],[0,-25,true]]){
+            equip(u);u.dashState=dash?'short':'';u.vel.set(vx,0,vz);
+            for(let i=0;i<72;i++){u.pos.x+=vx/60;u.pos.z+=vz/60;pose(u);floor(u,label+' 歩行/横移動/ダッシュ');}
+            u.dashState='';
+          }
           equip(u); pose(u); u.vel.set(0,0,-13);
           for (let i=0;i<12;i++) { u.pos.z-=.08; pose(u,1/60); }
           const phase = u.rig.phase;
@@ -80,7 +102,7 @@ const { chromium } = require('playwright');
           u.dashState='short'; u.pos.z-=.2; pose(u); yes(u.rig.phase === phase, 'ダッシュ中は走り足を回さない');
           u.dashState='';u.onGround=false;u.pos.z-=.2;pose(u);yes(u.rig.phase === phase, '空中で足踏みしない');
           u.onGround=true;u.alive=false;u.pos.z-=.2;pose(u);yes(u.rig.phase === phase, '撃破後は歩かない');
-          g.resetMechPose(u);yes(u.rig.phase===0&&!u.rig.landT&&!u.rig.last,'再出撃で状態を初期化');u.alive=true;
+          g.resetMechPose(u);yes(u.rig.phase===0&&!u.rig.landT&&!u.rig.hasLast,'再出撃で状態を初期化');u.alive=true;
           equip(u);pose(u);u.vel.set(6,0,-6);for(let i=0;i<8;i++){u.pos.x+=.06;u.pos.z-=.06;pose(u);}
           // 動いた各部位の表面へ実際にレイを飛ばす。旧位置を使う代理の判定を置かない。
           const target = g.units.find(q=>q.team==='R'), backup={alive:target.alive,hp:target.hp,maxHp:target.maxHp,invulT:target.invulT,partArmor:target.partArmor,weakT:target.weakT};
@@ -109,7 +131,7 @@ const { chromium } = require('playwright');
       const crowd=Array.from({length:20},(_,i)=>{const u=fixture(configs[i%configs.length]);equip(u);return u;});
       const start=performance.now();for(let f=0;f<30;f++)for(const u of crowd){u.vel.set(0,0,-13);u.pos.z-=.08;pose(u);}const ms=(performance.now()-start)/30;
       for(const u of crowd)g.disposeMech(u.group);
-      return {weaponPoses,meleeFrames,rayHits,maxVertices,maxGripError,cpuMsFor20:ms,checks:log};
+      return {weaponPoses,meleeFrames,rayHits,maxVertices,maxGripError,floorChecks,minLegY,idleBlades,cpuMsFor20:ms,checks:log};
     });
     console.log(JSON.stringify(result, null, 2));
     assert.equal(result.weaponPoses, 7*285); assert.equal(result.rayHits, 7*4);

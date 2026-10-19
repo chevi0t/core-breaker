@@ -2629,12 +2629,20 @@ function buildMech(color, cfg = MECH_DEFAULT) {
       if (geo !== b) geo.dispose(); b.dispose();
     };
     for (const [w, h, d, c, x, y, z, tilt, pitch] of boxes[slot]) {
-      const b = new T.BoxGeometry(w, h, d); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z);
       const side = x < 0 ? 'L' : 'R';
       const bone = slot === 'head' ? 'head' : slot === 'body' ? y < 2.15 ? 'hip' : 'chest'
         : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
         : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side;
-      merge(b, c, bone);
+      const box = (height, offset, name) => {
+        const b = new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
+      };
+      // 下端を含むブーツは足首側に残す。元の箱を同じ面で割るので、直立時の外形は変わらない。
+      if (bone === 'shin' + side) {
+        const cut = (.95 - y) / (Math.cos(pitch) * Math.cos(tilt));
+        if (cut >= h / 2) box(h, 0, 'foot' + side);
+        else if (cut > -h / 2) { box(cut + h / 2, (cut - h / 2) / 2, 'foot' + side); box(h / 2 - cut, (cut + h / 2) / 2, bone); }
+        else box(h, 0, bone);
+      } else box(h, 0, bone);
     }
     // 六角の軸受も同じ部位へ統合する。関節を増やしても装甲の描画は4メッシュ。
     for (const [name, bone] of Object.entries(rig.bones)) {
@@ -2644,10 +2652,12 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     }
     const geo = new T.BufferGeometry();
     geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 3));
-    geo.computeBoundingSphere();
+    // 関節の届く範囲を包含する。毎フレーム全頂点を走査して球を作り直さない。
+    geo.boundingSphere = new T.Sphere(new T.Vector3(0, 2, 0), 8);
     const m = new T.Mesh(geo, skin); m.castShadow = true; Object.assign(m.userData, { armorSlot: slot, own: true }); g.add(m);
     geo.attributes.position.setUsage(T.DynamicDrawUsage); geo.attributes.normal.setUsage(T.DynamicDrawUsage);
-    rig.meshes.push({ mesh: m, pos: new Float32Array(pos), nor: new Float32Array(nor), ranges });
+    if (slot === 'head') m.matrixAutoUpdate = false;
+    rig.meshes.push({ mesh: m, pos: new Float32Array(pos), nor: new Float32Array(nor), ranges, rigid: slot === 'head' });
   }
   // 武器（v0.11.1）：右手の武器、左手の二丁目、左腕のソード、背中の装置（加速装置・光学迷彩・リペアフィールド・重砲）と重砲の基部
   const wmat = new T.MeshLambertMaterial({ vertexColors: true });
@@ -2669,7 +2679,7 @@ function makeMechRig() {
   const add = (name, parent, p, slot, joint = 0) => {
     const node = new T.Object3D(), rest = new T.Vector3(...p), up = parent && bones[parent];
     node.position.copy(rest).sub(up ? up.rest : new T.Vector3()); (up ? up.node : root).add(node);
-    bones[name] = { node, rest, home: node.position.clone(), slot, joint, bind: null, matrix: new T.Matrix4(), normal: new T.Matrix3() };
+    bones[name] = { node, rest, home: node.position.clone(), axis: node.position.clone().normalize(), length: node.position.length(), slot, joint, bind: null, matrix: new T.Matrix4(), previous: new Float64Array(16), changed: true };
   };
   add('hip', null, [0, 1.85, 0], 'body'); add('chest', 'hip', [0, 2.15, 0], 'body'); add('head', 'chest', [0, 3.3, .05], 'head');
   for (const [side, sd] of [['L', -1], ['R', 1]]) {
@@ -2682,55 +2692,73 @@ function makeMechRig() {
   }
   root.updateMatrixWorld(true);
   for (const b of Object.values(bones)) b.bind = b.node.matrixWorld.clone().invert();
-  return { root, bones, list: Object.values(bones), meshes, phase: 0, move: 0, crouch: 0, landT: 0, landTime: .3, landPower: 0, last: null };
+  return { root, bones, list: Object.values(bones), meshes, phase: 0, move: 0, crouch: 0, landT: 0, landTime: .3, landPower: 0, last: new T.Vector3(), hasLast: false };
 }
+// 関節計算は直列で行う。作業用のベクトル・回転・行列は全機で再利用する。
+const poseZero = new T.Vector3(), poseTarget = new T.Vector3(), poseDir = new T.Vector3(), poseAcross = new T.Vector3(), poseElbow = new T.Vector3(), poseLocal = new T.Vector3();
+const poseParentQ = new T.Quaternion(), poseInverseQ = new T.Quaternion(), poseChestQ = new T.Quaternion(), poseAimQ = new T.Quaternion(), poseEuler = new T.Euler(), poseChest = new T.Matrix4();
+const poseHands = [new T.Vector3(), new T.Vector3()], poseFoot = new T.Vector3(), poseKnee = new T.Vector3(0, 0, -1), posePole = new T.Vector3();
+const poseSides = ['L', 'R'], gunRightGrip = [0, -.28, .2], gunLeftGrip = [-.3, -.22, -.15], gunHeavyGrip = [-.4, -.2, -.15];
+function posePoint(out, x, y, z) { return out.set(x, y, z).applyMatrix4(poseChest); }
+function poseGrip(out, mesh, grip) { return out.fromArray(grip).applyQuaternion(mesh.quaternion).add(mesh.position); }
+function poseAttachment(mesh) { mesh.position.applyMatrix4(poseChest); mesh.quaternion.premultiply(poseChestQ); }
 // 2本の骨で手足を目標へ向ける。pole は肘・膝を曲げる側。足裏と掌の向きは呼び出し側で決める。
 function limbPose(rig, a, b, end, target, pole) {
-  const A = rig.bones[a].node, B = rig.bones[b].node, E = rig.bones[end].node;
-  const start = A.getWorldPosition(new T.Vector3()), delta = target.clone().sub(start), distance = delta.length();
-  const l1 = B.position.length(), l2 = E.position.length(), d = Math.max(.02, Math.min(l1 + l2 - .001, distance));
-  const dir = distance > .0001 ? delta.multiplyScalar(1 / distance) : new T.Vector3(0, -1, 0);
+  const A = rig.bones[a].node, B = rig.bones[b], E = rig.bones[end];
+  poseParentQ.setFromRotationMatrix(A.parent.matrixWorld); poseInverseQ.copy(poseParentQ).invert();
+  poseLocal.setFromMatrixPosition(A.parent.matrixWorld);
+  poseTarget.copy(target).sub(poseLocal).applyQuaternion(poseInverseQ);
+  const start = A.position, dir = poseDir.copy(poseTarget).sub(start), distance = dir.length();
+  const l1 = B.length, l2 = E.length, d = Math.max(.02, Math.min(l1 + l2 - .001, distance));
+  if (distance > .0001) dir.multiplyScalar(1 / distance); else dir.set(0, -1, 0);
   const along = (l1 * l1 - l2 * l2 + d * d) / (2 * d), bend = Math.sqrt(Math.max(0, l1 * l1 - along * along));
-  const across = pole.clone().addScaledVector(dir, -pole.dot(dir));
+  const across = poseAcross.copy(pole).applyQuaternion(poseInverseQ); across.addScaledVector(dir, -across.dot(dir));
   if (across.lengthSq() < .0001) across.set(0, 0, 1).addScaledVector(dir, -dir.z);
   across.normalize();
-  const elbow = start.clone().addScaledVector(dir, along).addScaledVector(across, bend);
-  const localDir = (node, v) => v.applyQuaternion(node.parent.getWorldQuaternion(new T.Quaternion()).invert()).normalize();
-  A.quaternion.setFromUnitVectors(B.position.clone().normalize(), localDir(A, elbow.clone().sub(start)));
-  B.quaternion.setFromUnitVectors(E.position.clone().normalize(), localDir(B, target.clone().sub(elbow)));
+  const elbow = poseElbow.copy(start).addScaledVector(dir, along).addScaledVector(across, bend);
+  A.quaternion.setFromUnitVectors(B.axis, poseLocal.copy(elbow).sub(start).normalize());
+  poseInverseQ.copy(A.quaternion).invert();
+  B.node.quaternion.setFromUnitVectors(E.axis, poseLocal.copy(poseTarget).sub(elbow).applyQuaternion(poseInverseQ).normalize());
   // 掌と足裏は上流の回転を打ち消しておく。
-  E.quaternion.copy(E.parent.getWorldQuaternion(new T.Quaternion()).invert());
+  E.node.quaternion.copy(poseParentQ).multiply(A.quaternion).multiply(B.node.quaternion).invert();
 }
 function skinMech(rig) {
   rig.root.updateMatrixWorld(true);
   for (const b of rig.list) {
-    b.matrix.multiplyMatrices(b.node.matrixWorld, b.bind); b.normal.getNormalMatrix(b.matrix);
+    b.matrix.multiplyMatrices(b.node.matrixWorld, b.bind);
+    const e = b.matrix.elements; b.changed = false;
+    for (let i = 0; i < 16; i++) { if (Math.abs(e[i] - b.previous[i]) > 1e-10) b.changed = true; b.previous[i] = e[i]; }
   }
-  for (const { mesh, pos, nor, ranges } of rig.meshes) {
+  for (const { mesh, pos, nor, ranges, rigid } of rig.meshes) {
+    if (rigid) { mesh.matrix.copy(ranges[0].bone.matrix); continue; }
     const p = mesh.geometry.attributes.position, n = mesh.geometry.attributes.normal;
+    let changed = false;
     for (const range of ranges) {
-      const e = range.bone.matrix.elements, m = range.bone.normal.elements;
+      if (!range.bone.changed) continue;
+      changed = true;
+      // 骨には拡大縮小がないため、法線も回転の3×3をそのまま使える。
+      const e = range.bone.matrix.elements;
       for (let i = range.start; i < range.end; i += 3) {
         const x = pos[i], y = pos[i + 1], z = pos[i + 2], nx = nor[i], ny = nor[i + 1], nz = nor[i + 2];
         p.array[i] = e[0]*x + e[4]*y + e[8]*z + e[12]; p.array[i+1] = e[1]*x + e[5]*y + e[9]*z + e[13]; p.array[i+2] = e[2]*x + e[6]*y + e[10]*z + e[14];
-        n.array[i] = m[0]*nx + m[3]*ny + m[6]*nz; n.array[i+1] = m[1]*nx + m[4]*ny + m[7]*nz; n.array[i+2] = m[2]*nx + m[5]*ny + m[8]*nz;
+        n.array[i] = e[0]*nx + e[4]*ny + e[8]*nz; n.array[i+1] = e[1]*nx + e[5]*ny + e[9]*nz; n.array[i+2] = e[2]*nx + e[6]*ny + e[10]*nz;
       }
     }
-    p.needsUpdate = n.needsUpdate = true; mesh.geometry.boundingBox = null; mesh.geometry.computeBoundingSphere();
+    if (changed) { p.needsUpdate = n.needsUpdate = true; mesh.geometry.boundingBox = null; }
   }
 }
 function resetMechPose(u) {
-  if (u.rig) Object.assign(u.rig, { phase: 0, move: 0, crouch: 0, landT: 0, last: null, lastPose: false });
+  if (u.rig) Object.assign(u.rig, { phase: 0, move: 0, crouch: 0, landT: 0, hasLast: false, lastPose: false });
 }
 // 歩幅は実際に進んだ距離から取る。停止・空中・ブースト移動では足踏みせず、着地は腰と膝で受ける。
 function mechPose(u, dt) {
   const r = u.rig; if (!r) return;
-  const B = r.bones, node = k => B[k].node, alive = u.alive !== false && !(u.downT > 0);
+  const B = r.bones, alive = u.alive !== false && !(u.downT > 0);
   for (const b of r.list) { b.node.position.copy(b.home); b.node.quaternion.identity(); }
   const grounded = u.onGround !== false, blocked = !alive || !!u.stun || u.planted || u.transfer || u.repairing || u.recoverT > 0;
-  const dash = !!u.dashState || u.lungeT > 0, p = u.pos || new T.Vector3(), velocity = u.vel || new T.Vector3();
-  const distance = r.last ? Math.hypot(p.x - r.last.x, p.z - r.last.z) : 0;
-  if (!r.last) r.last = p.clone(); else r.last.copy(p);
+  const dash = !!u.dashState || u.lungeT > 0, p = u.pos || poseZero, velocity = u.vel || poseZero;
+  const distance = r.hasLast ? Math.hypot(p.x - r.last.x, p.z - r.last.z) : 0;
+  r.last.copy(p); r.hasLast = true;
   const walking = grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
   r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
   if (walking) r.phase += Math.min(distance, dt * 9) / 3.6 * Math.PI * 2;
@@ -2741,47 +2769,47 @@ function mechPose(u, dt) {
   const low = u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
   r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20));
   if (dt === 0 && !r.lastPose) r.crouch = low;
-  const melee = u.meleePose || { twist: 0, lean: 0, sink: 0 };
+  const melee = u.meleePose;
   const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
-  node('hip').position.y -= r.crouch + .22 * impact + melee.sink - bob;
-  node('hip').rotation.y = .055 * Math.sin(r.phase) * r.move;
-  node('chest').rotation.set((dash ? -.12 : 0) + melee.lean, melee.twist - node('hip').rotation.y * .6, -side * r.move * .025);
-  node('head').rotation.y = -node('chest').rotation.y * .6;
-  node('head').rotation.x = Math.max(-.15, Math.min(.15, (u.pitch || 0) * .25));
+  // 深い屈みと着地が重なっても脛を床へ押し込まない。歩幅分の腰下げで接地脚の伸び切りも防ぐ。
+  B.hip.node.position.y -= Math.min(.64, r.crouch + .22 * impact + melee.sink + .15 * r.move + (dash && grounded ? .065 : 0) - bob);
+  B.hip.node.rotation.y = .055 * Math.sin(r.phase) * r.move;
+  B.chest.node.rotation.set((dash ? -.12 : 0) + melee.lean, melee.twist - B.hip.node.rotation.y * .6, -side * r.move * .025);
+  B.head.node.rotation.y = -B.chest.node.rotation.y * .6;
+  B.head.node.rotation.x = Math.max(-.15, Math.min(.15, (u.pitch || 0) * .25));
   r.root.updateMatrixWorld(true);
-  const chest = B.chest.matrix.copy(node('chest').matrixWorld).multiply(B.chest.bind);
-  const point = p => new T.Vector3(...p).applyMatrix4(chest);
+  poseChest.multiplyMatrices(B.chest.node.matrixWorld, B.chest.bind);
   // 射撃の銃口も同じ武器メッシュの位置・回転を使う。構えによる揺れで照準を補正しない。
-  const cur = u.slots[u.weapon].w, hw = ['sword','cannon','artillery'].includes(cur.type) ? u.slots.main.w : cur;
+  const cur = u.slots[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' ? u.slots.main.w : cur;
   const pitch = (u.isPlayer ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
-  const dual = !!hw.dual, gunAt = dual ? [1.35, 2.5, -.8] : heavy ? [.45, 2.35, -.8] : [.25, hw.scope ? 2.78 : 2.6, -.85];
-  const q = node('chest').getWorldQuaternion(new T.Quaternion()), aim = new T.Quaternion().setFromEuler(new T.Euler(pitch, 0, 0));
-  u.gun.position.copy(point(gunAt)); u.gun.quaternion.copy(q).multiply(aim);
-  u.gun2.position.copy(point([-1.35, 2.5, -.8])); u.gun2.quaternion.copy(q).multiply(aim);
-  const grip = (mesh, p) => new T.Vector3(...p).applyEuler(mesh.rotation).add(mesh.position);
-  u.gun.userData.rightGrip = [0, -.28, .2]; u.gun.userData.leftGrip = heavy ? [-.4, -.2, -.15] : [-.3, -.22, -.15];
-  let hands = { R: grip(u.gun, u.gun.userData.rightGrip), L: dual ? grip(u.gun2, [0, -.28, .2]) : grip(u.gun, u.gun.userData.leftGrip) };
+  const dual = !!hw.dual;
+  poseChestQ.setFromRotationMatrix(B.chest.node.matrixWorld); poseAimQ.setFromEuler(poseEuler.set(pitch, 0, 0));
+  posePoint(u.gun.position, dual ? 1.35 : heavy ? .45 : .25, heavy ? 2.35 : hw.scope ? 2.78 : 2.6, dual || heavy ? -.8 : -.85);
+  u.gun.quaternion.copy(poseChestQ).multiply(poseAimQ);
+  posePoint(u.gun2.position, -1.35, 2.5, -.8); u.gun2.quaternion.copy(u.gun.quaternion);
+  u.gun.userData.rightGrip = gunRightGrip; u.gun.userData.leftGrip = heavy ? gunHeavyGrip : gunLeftGrip;
+  poseGrip(poseHands[1], u.gun, gunRightGrip);
+  poseGrip(poseHands[0], dual ? u.gun2 : u.gun, dual ? gunRightGrip : u.gun.userData.leftGrip);
   if (cur.type === 'sword') {
-    if (u.blade.visible) hands.R = u.blade.userData.grip.clone();
-    hands.L = u.blade2?.visible ? u.blade2.userData.grip.clone() : point([-.85, 2.35, -.5]);
-    if ((MODEL_OF[cur.key] || [])[0] === 'spear') hands.L = hands.R.clone().add(new T.Vector3(-.45, 0, -.4));
+    if (u.blade.visible) poseHands[1].copy(u.blade.userData.grip);
+    if (u.blade2?.visible) poseHands[0].copy(u.blade2.userData.grip); else posePoint(poseHands[0], -.85, 2.35, -.5);
+    if (MODEL_OF[cur.key]?.[0] === 'spear') { poseHands[0].copy(poseHands[1]); poseHands[0].x -= .45; poseHands[0].z -= .4; }
   }
-  for (const [s, sd] of [['L', -1], ['R', 1]]) {
+  for (let i = 0; i < 2; i++) {
+    const s = poseSides[i], sd = i === 0 ? -1 : 1;
     const phase = r.phase + (sd === 1 ? Math.PI : 0), stride = Math.cos(phase) * .5 * r.move;
-    const foot = new T.Vector3(sd * .62 + side * stride * .6, .3, .04 - forward * stride);
+    const foot = poseFoot.set(sd * .62 + side * stride * .6, .3, .04 - forward * stride);
     if (grounded) foot.y += Math.max(0, Math.sin(phase)) * .24 * r.move;
     else { foot.y += sd === 1 ? .27 : .06; foot.z += sd === 1 ? .25 : .5; }
     if (dash && grounded) { foot.z += sd === 1 ? .42 : -.3; foot.y += sd === 1 ? .08 : 0; }
     if (cur.type === 'sword' && grounded) { foot.z += sd === 1 ? -.32 : .28; foot.x += sd * .08; }
-    limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, new T.Vector3(0, 0, -1));
-    limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, hands[s], new T.Vector3(sd, -.3, .8));
+    limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, poseKnee);
+    limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, poseHands[i], posePole.set(sd, -.3, .8));
     const held = cur.type === 'sword' && (s === 'R' ? u.blade : u.blade2);
-    if (held?.visible) node('hand' + s).quaternion.copy(node('hand' + s).parent.getWorldQuaternion(new T.Quaternion()).invert()).multiply(held.quaternion);
+    if (held?.visible) B['hand' + s].node.quaternion.multiply(held.quaternion);
   }
-  for (const mesh of [u.pack, u.mount, u.flame]) {
-    mesh.position.applyMatrix4(chest); mesh.quaternion.premultiply(q);
-  }
-  if (cur.type !== 'sword') for (const b of [u.blade, u.blade2]) if (b?.visible) { b.position.applyMatrix4(chest); b.quaternion.premultiply(q); }
+  poseAttachment(u.pack); poseAttachment(u.mount); poseAttachment(u.flame);
+  if (cur.type !== 'sword') { if (u.blade.visible) poseAttachment(u.blade); if (u.blade2?.visible) poseAttachment(u.blade2); }
   skinMech(r); r.lastPose = true;
 }
 // 機体の形を捨てる（試合の入れ替え、プレビューの作り直し）。武器の形は共有なので捨てない
@@ -5536,7 +5564,7 @@ function setWeaponGeo(m, id, part = 'whole') {
   m.geometry = weaponGeo(id, part); m.userData.weaponId = id; m.userData.weaponPart = part;
 }
 function weaponLook(u, dt) {
-  const S = u.slots, cur = S[u.weapon].w, hw = ['sword','cannon','artillery'].includes(cur.type) ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
+  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
   setWeaponGeo(u.gun, hw.key); u.gun.rotation.x = pitch;
   u.gun2.visible = !!hw.dual;
   if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.x = pitch; }
@@ -5569,48 +5597,55 @@ function weaponLook(u, dt) {
 }
 // 公開動画の予備動作→踏み込み→振り抜き→戻しを参考にしたオリジナルの手付け。
 // 実際の攻撃時刻・角度は swing の値に合わせ、判定・威力・硬直は変えない。出典は research/animation/README.md。
+const bladeHeld = new T.Vector3(), bladeHand = new T.Vector3(), bladeOffset = new T.Vector3();
 function bladePose(u) {
   const w = u.slots.aux.w, selected = u.weapon === 'aux' && w.type === 'sword', sw = selected ? u.swing : null;
-  const family = (MODEL_OF[w.key] || [])[0], thrust = family === 'spear' || family === 'pike', dual = !!w.meleeDual;
-  u.meleePose = { twist: 0, lean: 0, sink: 0 };
+  const family = MODEL_OF[w.key]?.[0], thrust = family === 'spear' || family === 'pike', dual = !!w.meleeDual;
+  const melee = u.meleePose ||= { twist: 0, lean: 0, sink: 0 }; melee.twist = melee.lean = melee.sink = 0;
   if (w.type !== 'sword') return;
   let twist = -.25, lean = -.035, power = 0;
-  for (const [b, sd] of [[u.blade, 1], [u.blade2, -1]]) {
+  for (let hand = 0; hand < 2; hand++) {
+    const b = hand === 0 ? u.blade : u.blade2, sd = hand === 0 ? 1 : -1;
     if (!b?.visible) continue;
     const bb = b.geometry.boundingBox, gripZ = family === 'sword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
-    const held = new T.Vector3(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
+    const held = bladeHeld.set(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
     let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'claw' ? .15 : .62;
-    let scale = family === 'claw' || family === 'pike' ? 1 : (w.normal.reach - .55) / (gripZ - bb.min.z);
+    let scale = 1; // 構え中は#13の形の寸法。間合いへの伸長は攻撃中だけ。
     if (!selected) { held.set(sd * 1.1, 3.15, .8); angle = sd * -.15; pitch = -1.22; scale = Math.min(1, 2.9 / (gripZ - bb.min.z)); }
     if (sw) {
-      const a = sw.a, all = a.strikes || [{ from: a.from, to: a.to, at: 0, sweep: a.sweep }];
-      const strikes = all.filter((s, i) => !dual || (s.side ? Math.sign(s.side) : i % 2 ? -1 : 1) === sd);
-      const strike = strikes.filter(s => sw.t >= a.windup + s.at).pop() || strikes[0];
+      const a = sw.a;
+      let strike = null, first = null, next = false;
+      if (a.strikes) for (let i = 0; i < a.strikes.length; i++) {
+        const s = a.strikes[i]; if (dual && (s.side ? Math.sign(s.side) : i % 2 ? -1 : 1) !== sd) continue;
+        first ||= s;
+        if (sw.t >= a.windup + s.at) strike = s; else next = true;
+      }
+      else strike = a;
+      strike ||= first;
       if (strike) {
-        const start = a.windup + strike.at, end = start + strike.sweep;
+        const start = a.windup + (strike.at || 0), end = start + strike.sweep;
         const cut = Math.max(0, Math.min(1, (sw.t - start) / strike.sweep));
         const prep = start > 0 ? Math.max(0, Math.min(1, sw.t / start)) : 1;
-        const next = strikes.find(s => a.windup + s.at > sw.t);
         const back = sw.t > end && !next ? Math.max(0, Math.min(1, (sw.t - end) / Math.max(.01, a.time - end))) : 0;
         const blend = prep * (1 - back * back * (3 - 2 * back));
         let rel = (strike.from + (strike.to - strike.from) * cut) * DEG;
         if (a.spin) { (u.group || u.g).rotation.y = sw.yaw0 + swingRel(sw) - a.from * DEG; rel = a.from * DEG; }
         else if (sw.aimed) (u.group || u.g).rotation.y = sw.yaw0;
-        const hand = thrust ? new T.Vector3(sd * (.65 - .4 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
-          : family === 'claw' ? new T.Vector3(sd * (.95 - .45 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
-          : new T.Vector3(-Math.sin(rel) * .55, a.height, -Math.cos(rel) * .55);
-        held.lerp(hand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
+        const strikeHand = thrust ? bladeHand.set(sd * (.65 - .4 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
+          : family === 'claw' ? bladeHand.set(sd * (.95 - .45 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
+          : bladeHand.set(-Math.sin(rel) * .55, a.height, -Math.cos(rel) * .55);
+        held.lerp(strikeHand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
         pitch *= 1 - blend;
-        scale = thrust || family === 'claw' ? scale : (a.reach - .55) / (gripZ - bb.min.z);
+        scale = family === 'pike' || family === 'claw' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
         if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1; }
       }
     }
     if (selected && w.meleeCharge && !sw) { const charge = Math.min(1, (u.slots.aux.chargeT || 0) / w.chargeTime); held.z += charge * .22; twist -= charge * .2; }
     b.scale.set(1, 1, scale); b.rotation.set(pitch, angle, 0, 'YXZ');
-    b.position.copy(held).sub(new T.Vector3(0, 0, gripZ * scale).applyEuler(b.rotation));
-    b.userData.grip = held;
+    b.position.copy(held).sub(bladeOffset.set(0, 0, gripZ * scale).applyQuaternion(b.quaternion));
+    (b.userData.grip ||= new T.Vector3()).copy(held);
   }
-  if (selected) u.meleePose = { twist, lean, sink: .07 + power * .08 };
+  if (selected) { melee.twist = twist; melee.lean = lean; melee.sink = .07 + power * .08; }
 }
 // リペアユニット：左クリックで照準の近くの味方機と自軍の防衛砲台、右クリックで自分を回復。
 // 使うとゲージが減り、使い切ると満タンに戻るまで使えない。壊れた砲台も修理すれば再始動する
@@ -7320,7 +7355,7 @@ function loop(now) {
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
     cloakLook(u, now / 1000);
-    weaponLook(u, running ? dt : 0);
+    if (running && u.group.visible) weaponLook(u, dt);
     u.flame.visible = u.alive && !!u.dashState;
     u.barrierMesh.visible = barrierReady(u);
     if (u.barrierMesh.visible) {
