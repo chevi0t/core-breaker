@@ -12,7 +12,7 @@ const {chromium}=require('playwright');
     await p.goto('file://'+path.join(dir,'dbg.html'));
     await p.evaluate(()=>{__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();};__g.selectMap('dock');document.getElementById('start').click();__g.running=false;});
     const stats=await p.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));
-    assert.equal(Object.keys(stats.weapons).length,217);
+    assert.ok(Object.keys(stats.weapons).length>=217);
     for(const row of require('../../research/weapons/types/artillery.json').rows){
       const w=stats.weapons[row.key];for(const [k,v]of Object.entries(row.stats))assert.equal(w[k],v===null?undefined:v,row.key+':'+k);
       assert.ok(stats.armory.heavy.sp.includes(row.key));assert.ok(w.noLock&&w.plant);

@@ -28,7 +28,9 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       g.player.isPlayer = false;
       g.spawn(g.player, 'base'); // Botとしてランダムな武器で出直す
       window.__st = { kills: 0, spawns: 0, used: {}, placed: {}, fieldT: 0, sentryShots: 0, remoteBoom: 0, maxShells: 0, stuck: 0, revives: 0, xfers: 0, barrierT: 0, escortT: 0, specialTypes: {}, artilleryShots: 0, maxBarrages: 0 };
-      const was = new Map(), seen = new Set();
+      const was = new Map(), seen = new Set(), subAmmo = new Map();
+      const secondarySeries = new Set(['flare','chain','dart','charge','zoom','blastSniper','lightSniper','jumpMine','delayMine','detonator'].map(k=>g.WEAPONS[k]?.series).filter(Boolean));
+      __st.secondaryShots = {};
       const f = () => {
         const s = __st;
         for (const u of g.units) {
@@ -41,6 +43,9 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
             for (const k of g.SLOTS) { const n = u.slots[k].w.name; s.used[n] = (s.used[n] || 0) + 1; }
           }
           was.set(u, u.alive);
+          const sub=u.slots.sub, count=sub.ammo+sub.reserve, prev=subAmmo.get(sub);
+          if (secondarySeries.has(sub.w.series) && prev!=null && count<prev) s.secondaryShots[sub.w.key]=(s.secondaryShots[sub.w.key]||0)+prev-count;
+          subAmmo.set(sub,count);
           if (u.artilleryFired > (u.__artWas || 0)) s.artilleryShots += u.artilleryFired - (u.__artWas || 0);
           u.__artWas = u.artilleryFired;
           if (u.fieldOn) s.fieldT += 0.05;
@@ -59,6 +64,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
     // 低速な環境で指定時間に届かず成功扱いにならないよう、実時間上限と進行を両方確かめる。
     while (Date.now() - t0 < 1200000) {
       await p.waitForTimeout(3000);
+      if (errs.length) throw new Error(errs.join('\n'));
       res = await E(() => ({ t: Math.round(__g.MATCH - __g.timeLeft), ended: !document.getElementById('overlay').hidden }));
       if (res.t >= nextProgress) { console.log(id + ': ' + res.t + '秒まで進行'); nextProgress += 30; }
       if (res.t >= secs || res.ended) break;
@@ -67,7 +73,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       const g = __g, s = __st;
       // どの武器が何回撃破を取ったかは数えない。武器の種類ごとの使われ方と、試合の進み
       return { t: Math.round(g.MATCH - g.timeLeft), core: [Math.round(g.cores.B.hp), Math.round(g.cores.R.hp)], kills: s.kills, spawns: s.spawns, kinds: Object.keys(s.used).length,
-        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers, barrierT: Math.round(s.barrierT), escortT: Math.round(s.escortT), specialTypes: Object.keys(s.specialTypes), artilleryShots: s.artilleryShots, maxBarrages: s.maxBarrages,
+        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers, barrierT: Math.round(s.barrierT), escortT: Math.round(s.escortT), specialTypes: Object.keys(s.specialTypes), artilleryShots: s.artilleryShots, maxBarrages: s.maxBarrages, secondaryShots: s.secondaryShots,
         mechTypes: [...new Set(g.units.flatMap(u => ['head','body','arms','legs'].map(k => u.mech[k])))],
         score: g.units.map(u => `${u.team}${u.idx}:${u.cls[0]}${u.sc.kills}/${u.sc.deaths}`).join(' ') };
     });
@@ -77,6 +83,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
     console.log('  機体の型', st.mechTypes.join(','));
     console.log('  追加特別装備', st.specialTypes.join(','), 'バリア作動' + st.barrierT + '秒、自動銃作動' + st.escortT + '秒');
     console.log('  榴弾砲', st.artilleryShots + '発、飛翔中の最大' + st.maxBarrages + '発');
+    console.log('  追加副武器の発射', JSON.stringify(st.secondaryShots));
     console.log('  設置', JSON.stringify(st.placed));
     console.log('  ', st.score);
     console.log('  エラー', errs.length ? errs.slice(0, 5) : 'なし');
