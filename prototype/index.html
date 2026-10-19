@@ -1796,6 +1796,7 @@ const MODEL_OF = {
   sensor: ['sensor', 0], airsensor: ['sensor', 2], fansensor: ['sensor', 1], repair: ['repair', 0], repairG: ['repair', 2], field: ['field', 0],
   carbine: ['carbine', 0], gale: ['compactShot', 1], vulcan: ['energyMG', 0], margay: ['dualSemi', 1], gemini: ['dualEnergy', 0], haggard: ['magnum', 0], aurora: ['energyShot', 0], // v0.14。型は WEAPON_TYPES から足す
   wave: ['wave', 0], lec: ['chargeCannon', 0], explo: ['explosive', 1], wide: ['dualSpread', 0], glint: ['dualCharge', 0], cls: ['focusShot', 0], omni: ['omni', 0], // v0.15
+  rail: ['railRifle', 0], pulse: ['pulseRifle', 0], coil: ['coilCannon', 0], // アーケード版の3系統。形はオリジナル
 };
 const palette = [0x5bc9ee, 0xf3bf60, 0xf28479]; // 型ごとの差し色（青緑・黄・赤）
 function buildWeaponGeo(id, part) {
@@ -1818,16 +1819,41 @@ function buildWeaponGeo(id, part) {
     box(.19,.52,.3,dark,0,-.38,.2,-.12); box(.15,.07,.45,accent,0,.39,-.1);
   };
   const barrel = (r=.12,len=1,z=-.85,x=0,y=0) => { cyl(r,len,steel,x,y,z); cyl(r*1.2,.16,black,x,y,z-len/2); };
-  const primaryShapes = ['carbine','burst','marksman','compactShot','wave','autocannon','explosive','energyMG','chargeCannon','dualSemi','dualSMG','dualEnergy','dualSpread','dualCharge','autoShot','nail','energyShot','focusShot'];
+  const primaryShapes = ['carbine','burst','marksman','compactShot','wave','autocannon','explosive','energyMG','chargeCannon','dualSemi','dualSMG','dualEnergy','dualSpread','dualCharge','autoShot','nail','energyShot','focusShot','railRifle','pulseRifle','coilCannon'];
   if (primaryShapes.includes(f)) {
-    const dual = f.startsWith('dual'), heavy = ['autocannon','explosive','chargeCannon'].includes(f);
+    const dual = f.startsWith('dual'), heavy = ['autocannon','explosive','chargeCannon','coilCannon'].includes(f);
     const length = (dual ? .72 : heavy ? 1.4 : 1.15) * [1,1.08,1.2][v], width = dual ? .34 : heavy ? .72 : .5;
     receiver(width, dual ? .32 : .48, length);
-    const energy = ['wave','energyMG','chargeCannon','dualEnergy','dualCharge','energyShot','focusShot'].includes(f), light = energy ? 0x7cfbd1 : accent;
+    const energy = ['wave','energyMG','chargeCannon','dualEnergy','dualCharge','energyShot','focusShot','railRifle','pulseRifle','coilCannon'].includes(f), light = energy ? 0x7cfbd1 : accent;
     if (!dual) box(.3,.34,.65,dark,0,.02,length/2+.22);
     box(width*.55,[.42,.72,.5][v],v===1?.5:.28,dark,0,-.42,.12);
     box(width*.57,.1,v===1?.53:.31,light,0,v===1?-.79:-.59,.12);
-    if (f === 'carbine') {
+    if (f === 'railRifle') {
+      // 細い上下のレールと角形の先端。公式モデルの形は使わない。
+      for (const side of [-1,1]) {
+        box(.16,.18,1.4,steel,0,side*.22,-1.07);
+        box(.08,.08,1.1,light,side*.22,0,-1.02);
+      }
+      box(.52,.56,.16,dark,0,0,-1.76);
+      box(.22,.18,.18,light,0,0,-1.86);
+      box(.18,.42,.55,accent,.34,-.08,.25);
+    } else if (f === 'pulseRifle') {
+      barrel(.14,.95,-.94);
+      for (let i=0;i<3;i++) {
+        box(.64,.1,.12,steel,0,.24,-.45-i*.25);
+        box(.08,.22,.14,light,.3,.03,-.45-i*.25);
+      }
+      box(.58,.3,.22,dark,0,0,-1.42);
+      box(.2,.18,.1,light,0,0,-1.58);
+    } else if (f === 'coilCannon') {
+      barrel(.19,1.35,-1.08);
+      for (let i=0;i<4;i++) {
+        cyl(.31,.1,accent,0,0,-.55-i*.29);
+        box(.08,.12,.16,light,.31,0,-.55-i*.29);
+      }
+      box(.46,.5,.65,dark,.52,-.12,.1);
+      box(.3,.08,.5,light,.52,-.41,.1);
+    } else if (f === 'carbine') {
       barrel(.11,1.1,-1); box(.3,.6,.4,shell,0,-.28,.55);
       for(let i=0;i<5;i++) box(.52,.06,.06,steel,0,.28,-.35-i*.15);
       box(.08,.5,.42,accent,.3,0,.1);
@@ -2084,7 +2110,8 @@ const PAINTS = [
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
 const WEAPON_KG = { ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
-  wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
+  wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
+  rail: 280, pulse: 190, coil: 410 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
 const MECH_KEY = 'coreBreakerMech', MECH_DEFAULT = { head: 'standard', body: 'standard', arms: 'standard', legs: 'standard', color: 'team' };
 function normMech(v) {
   const o = v && typeof v === 'object' ? v : {};
@@ -3427,6 +3454,15 @@ function clearGadgets() {
 // 数値は仮置き。wiki（BORDER BREAK PS4版）の各系統の初期武器の値を基準にした。
 // rpm：毎分の発射数、mag：1マガジンの弾数、mags：マガジン数、reload：秒、spread：ばらつき、look：銃身の見た目の拡大率、sfx：発射音（SFX の名前）
 const WEAPONS = {
+  // アーケード版の現行表（2026-10-19取得）。research/arcade/weapons/ と types/arcade.json。
+  // 精度は従来のE+＝0.01radを基準に1段0.88倍で換算。縦反動は表の度をラジアンにする。
+  // 電磁加速砲・壱式 https://w.atwiki.jp/borderbreak/pages/101.html ：1250、270発/分、14×13、2.2秒、280kg、精度A-、反動0.3/0.3度、射程350m。
+  rail: { name: 'レールライフル', type: 'gun', dmg: 1250, rpm: 270, mag: 14, mags: 13, reload: 2.2, spread: 0.0028, recoil: 0.3 * Math.PI / 180, range: 350, energy: true, desc: '一発が重く精度の高い全自動銃。弾倉は小さく重め' },
+  // VOLT-01 https://w.atwiki.jp/borderbreak/pages/101.html ：580、480発/分（3点射）、39×8、2.0秒、190kg、精度B+、反動0.2/0.25度、射程300m。
+  // 1射0.375秒（個別ページ336）。3発×60/480に等しいため、追加の射撃間隔gapは0。
+  pulse: { name: 'パルスバーストライフル', type: 'gun', dmg: 580, rpm: 480, burst: 3, gap: 0, mag: 39, mags: 8, reload: 2, spread: 0.0032, recoil: 0.2 * Math.PI / 180, range: 300, energy: true, desc: '3発ずつ撃つ軽い光学銃。反動が小さく弾数も多い' },
+  // LAC-グローム https://w.atwiki.jp/borderbreak/pages/105.html ：1580、180発/分、22×11、2.5秒、410kg、精度B+、反動0.4/0.5度、射程300m。
+  coil: { name: 'コイル機関砲', type: 'gun', dmg: 1580, rpm: 180, mag: 22, mags: 11, reload: 2.5, spread: 0.0032, recoil: 0.4 * Math.PI / 180, range: 300, energy: true, desc: '大きな光弾を連射する。熱制限はなく、発射間隔が長い' },
   // M90サブマシンガン相当：340、780発/分、62×15、リロード1.4秒
   ar: { sfx: 'ar', name: 'アサルトライフル', type: 'gun', dmg: 340, rpm: 780, mag: 62, mags: 15, reload: 1.4, spread: 0.01 },
   // デュエルソード相当（通常4500、ダッシュ中の特殊攻撃6000）は近づく危険に見合わないので強化：通常6000（2回で撃破）、回転斬り10000（満タンから一撃）。コアには当たらない。
@@ -3647,8 +3683,8 @@ const CLASSES = {
 const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
-  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave'], sub: ['grenade', 'timed', 'gl'], aux: ['sword', 'blade', 'spear'], sp: ['charger', 'chargerD', 'chargerS', 'omni'] },
-  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo'], sub: ['rocket', 'scrum', 'plasma'], aux: ['weaken', 'impactb', 'hsg'], sp: ['cannon', 'cannonH', 'cannonM'] },
+  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl'], aux: ['sword', 'blade', 'spear'], sp: ['charger', 'chargerD', 'chargerS', 'omni'] },
+  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma'], aux: ['weaken', 'impactb', 'hsg'], sp: ['cannon', 'cannonH', 'cannonM'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper'], aux: ['drone', 'sonar', 'sentry'], sp: ['camo', 'camoD', 'camoH'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote'], aux: ['sensor', 'airsensor', 'fansensor'], sp: ['repair', 'repairG', 'field'] },
 };
@@ -3656,6 +3692,7 @@ const ARMORY = {
 // 射撃音（v0.11.3、ユーザー指定「射撃音のバリエーションを増やす」）：同じ音を使う武器は、音の種類と高さ（sfxRate）を変えて聞き分けられるようにする。
 // 音の素材は同じ13個（sounds/CREDITS.md）。マグナムは Codex 版の音の設定
 const SFX_TUNE = {
+  rail: ['sniper', 1.1], pulse: ['pistol', 1.5], coil: ['magnum', 0.9],
   burst: ['ar', 0.9], mg: ['ar', 0.82], marks: ['magnum', 1.15], acannon: ['magnum', 0.8], battle: ['sniper', 1.2], lzsniper: ['sniper', 0.75],
   nail: ['pistol', 1.3], dualmg: ['pistol', 1.12], coyote: ['pistol', 0.9], autosg: ['shotgun', 1.15], hsg: ['shotgun', 0.85],
   scrum: ['rocket', 1.25], gl: ['rocket', 1.4], plasma: ['heavy', 1.35], cannonH: ['heavy', 1.2], cannonM: ['heavy', 0.85],
@@ -3667,6 +3704,7 @@ for (const [k, w] of Object.entries(WEAPONS)) { w.key = k; w.kg = WEAPON_KG[k] |
 // 武器のシリーズ（v0.13、ユーザー決定）：撃ち方と形が同じ武器のまとまり。types は [武器のキー, 型番]。型の違いは数値だけ。
 // 名前は「型番＋武器の名前」（例：SR-7 アサルトライフル）。型番とメーカーはオリジナル。今の48種のうち、特別装備の同じ仕組みの物（加速装置・重砲・光学迷彩・リペアユニット）は1つのシリーズの型
 const SERIES = {
+  lr: { maker: 'lumina', types: [['rail', 'LR-12']] }, lb: { maker: 'lumina', types: [['pulse', 'LB-3']] }, lx: { maker: 'lumina', types: [['coil', 'LX-18']] },
   // 強襲
   sr: { maker: 'sylph', types: [['ar', 'SR-7']] }, sb: { maker: 'sylph', types: [['burst', 'SB-3']] }, gr: { maker: 'gard', types: [['marks', 'GR-11']] },
   vg: { maker: 'volca', types: [['grenade', 'VG-1']] }, vt: { maker: 'volca', types: [['timed', 'VT-2']] }, vl: { maker: 'volca', types: [['gl', 'VL-3']] },
@@ -3702,6 +3740,19 @@ const SERIES = {
 // 近接の威力は wiki では連撃の合計なので比の平方根を掛け、横なぎは9600まで（どの型でも2回は要る）、ダッシュ斬りは20000まで。
 // 近接は重いほど振りが遅く（重さの比の0.35乗）、踏み込みが短く（0.3乗で割る）、間合いが少し長い（0.12乗）。値の決め方は仮（Claude の判断）
 const WEAPON_TYPES = {
+  rail: { w0: {"kg": 280, "dmg": 1250, "mag": 14, "mags": 13, "rpm": 270, "acc": "A-", "reload": 2.2, "recoilV": 0.3}, types: [ // 電磁加速砲・壱式（AC現行表、https://w.atwiki.jp/borderbreak/pages/101.html）
+    ["大容量型", {"kg": 310, "dmg": 860, "mag": 25, "mags": 15, "rpm": 360, "acc": "A", "reload": 2.4, "recoilV": 0.2}, "弾倉が大きいがリロードが遅い"], // 電磁加速砲・特式。横反動0.3度は記録のみ
+    ["連射型", {"kg": 340, "dmg": 730, "mag": 16, "mags": 15, "rpm": 540, "acc": "A-", "reload": 1.7, "recoilV": 0.2}, "連射が速いが一発の威力が低い"], // 電磁加速砲・速式。横反動0.2度は記録のみ
+  ] },
+  pulse: { w0: {"kg": 190, "dmg": 580, "mag": 39, "mags": 8, "rpm": 480, "acc": "B+", "reload": 2.0, "recoilV": 0.2}, types: [ // VOLT-01（AC現行表、https://w.atwiki.jp/borderbreak/pages/101.html）
+    ["大容量型", {"kg": 180, "dmg": 540, "mag": 51, "mags": 7, "rpm": 480, "acc": "A", "reload": 2.2, "recoilV": 0.1}, "弾倉が大きいがリロードが遅い"], // VOLT-02。横反動0.15度は記録のみ
+    ["強装型", {"kg": 230, "dmg": 800, "mag": 30, "mags": 8, "rpm": 420, "acc": "B+", "reload": 2.2, "recoilV": 0.3}, "一発が重いが弾倉が小さい"], // VOLT-X。横反動0.35度は記録のみ
+  ] },
+  coil: { w0: {"kg": 410, "dmg": 1580, "mag": 22, "mags": 11, "rpm": 180, "acc": "B+", "reload": 2.5, "recoilV": 0.4}, types: [ // LAC-グローム（AC現行表、https://w.atwiki.jp/borderbreak/pages/105.html）
+    ["精密型", {"kg": 430, "dmg": 1440, "mag": 30, "mags": 10, "rpm": 180, "acc": "A+", "reload": 2.5, "recoilV": 0.2}, "精度が高いが一発の威力が低い"], // LAC-グロームβ。横反動0.3度は記録のみ
+    ["連射型", {"kg": 510, "dmg": 1000, "mag": 36, "mags": 10, "rpm": 320, "acc": "B-", "reload": 3.6, "recoilV": 0.4}, "連射が速いが一発の威力が低い"], // LAC-グロームγ。横反動0.5度は記録のみ
+    ["持続型", {"kg": 540, "dmg": 950, "mag": 46, "mags": 8, "rpm": 320, "acc": "A-", "reload": 3.6, "recoilV": 0.3}, "弾倉が大きいが重く一発の威力が低い"], // LAC-タルナダ。横反動0.4度は記録のみ
+  ] },
   ar: { w0: { dmg: 340, rpm: 780, mag: 62, mags: 15, reload: 1.4, kg: 140, acc: 'E+', recoil: 'A-' }, types: [ // M90サブマシンガン（サブマシンガン系統）
     ['強装型', { dmg: 420, rpm: 740, mag: 47, mags: 17, reload: 1.6, kg: 200, acc: 'D+', recoil: 'C+' }, '一発が重いが反動が大きい'], // XM94パイソン
     ['大容量型', { dmg: 330, rpm: 850, mag: 80, mags: 14, reload: 1.8, kg: 150, acc: 'E', recoil: 'B+' }, '装弾数と連射が増すがリロードが遅い'], // M91サブマシンガン
@@ -3997,6 +4048,8 @@ function makeType(base, w0, t) {
   }
   if (steps('acc')) { const k = 0.88 ** steps('acc'); gun.spread = +(gun.spread * k).toPrecision(2); if (w.sway) w.sway = +(w.sway * k).toPrecision(2); }
   if (steps('recoil')) w.recoil = +(baseKick(base) * 0.88 ** steps('recoil')).toPrecision(2);
+  // AC表で実数の縦反動（度）が分かる新系統。既存のランク換算は変えない。0度も扱う。
+  if (Number.isFinite(t.recoilV)) w.recoil = t.recoilV * Math.PI / 180;
   if (w.sfx && has('dmg')) w.sfxRate = snap((base.sfxRate || 1) * f('dmg') ** -0.12, 0.01); // 重い弾ほど少し低い音
   return w;
 }
