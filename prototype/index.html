@@ -107,7 +107,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 /* 被索敵の警告（v0.11.2、ユーザー指定）：ミニマップの下に、索敵している物と残りの秒数 */
 #bigMap { left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(8, 14, 20, .82); border: 1px solid rgba(255,255,255,.18); padding: 8px; z-index: 5; } /* 照準などより上、再出撃の画面とアナウンスより下 */
 #bigMap .bmh { display: flex; justify-content: space-between; gap: 24px; font-family: var(--display); font-size: 13px; letter-spacing: .12em; padding: 0 2px 6px; color: #dfe7ec; }
-#bigMap .bmh span + span { color: #9aa7b0; }
+#bigMap .bmh span { white-space: nowrap; }
+#bigMap .bmh span + span { color: #9aa7b0; font-size: 11px; letter-spacing: .06em; }
 #bigMapC { display: block; }
 #spotAlert { left: max(16px, env(safe-area-inset-left, 0px)); top: calc(216px + env(safe-area-inset-top, 0px)); width: 108px; box-sizing: border-box; padding: 3px 6px; font-size: 12px; letter-spacing: .1em; color: #ffd34d; background: var(--panel); border: 1px solid #ffd34d; text-align: center; animation: spotPulse 1.2s infinite; }
 #spotAlert small { display: block; font-size: 10px; letter-spacing: 0; color: #ffe9a8; line-height: 1.4; }
@@ -130,8 +131,9 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .pl span { display: block; height: 3px; margin: 2px 6px 0; background: rgba(255, 255, 255, .12); }
 .pl span i { display: block; height: 100%; }
 #respawn { position: fixed; z-index: 6; left: 50%; top: 34%; transition: top .3s, transform .3s; transform: translate(-50%, -50%); background: var(--panel); padding: 12px 14px; display: grid; gap: 8px; font-family: var(--display); max-width: calc(100vw - 32px); }
-#respawn[hidden] { display: none; }
+#respawn[hidden], #respawn [hidden] { display: none; }
 #respawn .rt { font-size: 13px; letter-spacing: .1em; color: var(--dim); }
+#rtXf { font-size: 18px; letter-spacing: .1em; color: #9fd8ff; text-align: center; } /* エリア移動の待機（v0.17） */
 #rlist, .cls { display: flex; flex-wrap: wrap; gap: 8px; }
 #rlist button, .cls button { font: inherit; font-size: 15px; padding: 6px 12px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
 #rlist button.sel, .cls button.sel { border-color: var(--blue); background: rgba(62, 166, 255, .22); }
@@ -143,6 +145,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .pop b { display: block; font-family: var(--impact); font-weight: 400; font-size: 84px; line-height: 1; color: var(--kill); letter-spacing: .04em; text-shadow: 0 0 4px #300, 0 0 28px rgba(255, 58, 46, .75); } /* v0.9.2で2倍（ユーザー指定） */
 .pop small { display: inline-block; margin-top: 6px; font-size: 18px; color: #fff; background: rgba(10, 18, 26, .6); padding: 1px 8px; text-shadow: 0 0 3px #000; }
 .pop small i { font-style: normal; color: var(--kill); margin-right: 4px; }
+.pop.good b { color: #7dffb0; text-shadow: 0 0 4px #031, 0 0 28px rgba(80, 255, 160, .7); } /* 蘇生（v0.17） */
+.pop.good small i { color: #7dffb0; }
 /* 自分が得たスコア：照準の右下に出て3秒で消える */
 #scorePop { left: calc(50% + 96px); top: calc(50% + 46px); display: grid; gap: 2px; justify-items: start; font-size: 15px; letter-spacing: .06em; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 #scorePop div { white-space: nowrap; animation: spop 3s ease-out forwards; }
@@ -210,7 +214,17 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #wsel .opt small { display: block; font-size: 11px; color: var(--dim); font-family: var(--body); }
 #wsel .mid { display: flex; gap: 72px; margin: 10px 0; }
 #wsel .hint { margin-top: 6px; font-size: 11px; letter-spacing: .1em; color: var(--hud); background: var(--panel); padding: 2px 8px; }
-#center { left: 50%; top: 62%; transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; }
+/* 指示出し（v0.17）：G を押している間の円形メニュー。8方向に置き、マウスを動かした向きで選ぶ */
+#qchat { left: 50%; top: 50%; width: 0; height: 0; }
+#qchat[hidden] { display: none; }
+#qchat .opt { position: absolute; transform: translate(-50%, -50%); min-width: 128px; padding: 5px 12px; background: rgba(8, 14, 20, .82); border: 1px solid rgba(255, 255, 255, .22); text-align: center; font-size: 15px; color: var(--dim); white-space: nowrap; }
+#qchat .opt.sel { color: #fff; border-color: var(--blue); background: rgba(62, 166, 255, .3); box-shadow: 0 0 12px rgba(62, 166, 255, .35); }
+#qchat .opt small { display: block; font-size: 11px; color: var(--dim); font-family: var(--body); }
+#qchat .hint { position: absolute; left: 0; top: 176px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .1em; color: var(--hud); background: var(--panel); padding: 2px 8px; }
+#feed .chat { border-left: 3px solid var(--blue); }
+.ping { position: absolute; left: 0; top: 0; font-size: 12px; color: #ffd34d; background: var(--panel); padding: 1px 6px; white-space: nowrap; text-shadow: 0 0 4px #000; will-change: transform; }
+#bigMapC { pointer-events: auto; cursor: crosshair; } /* マウスの固定が外れているときは、地図を直接クリックできる */
+#center { left: 50%; top: 62%; transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; white-space: pre-line; }
 #overlay[hidden] { display: none; }
 #overlay { position: fixed; inset: 0; display: flex; overflow-y: auto; padding-block: 24px; background: rgba(5, 9, 13, .82); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .card { margin: auto; max-width: 560px; display: grid; gap: 16px; }
@@ -356,7 +370,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 </div>
 <div class="hud" id="plantBar"></div>
 <canvas class="hud" id="mini" width="108" height="192"></canvas>
-<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>M で閉じる</span></div><canvas id="bigMapC"></canvas></div>
+<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる</span></div><canvas id="bigMapC"></canvas></div>
 <div class="hud" id="feed"></div>
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
@@ -367,6 +381,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 <div class="hud" id="headTxt">HEADSHOT</div>
 <div class="hud" id="scorePop"></div>
 <div class="hud" id="scope" hidden></div>
+<div class="hud" id="qchat" hidden></div>
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-sp"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-aux"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
 <div class="hud" id="announce" role="status" aria-live="polite"></div>
@@ -375,7 +390,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 <div class="hud" id="baseAlert" hidden></div>
 <div class="hud" id="spotAlert" role="status" hidden><b>被索敵</b><small id="spotAlertInfo"></small></div>
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
-<div id="respawn" hidden><div id="killcam" hidden><small>あなたを撃破した相手</small><b></b><span></span></div><div class="rt">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
+<div id="respawn" hidden><div id="rtXf" hidden></div><div id="killcam" hidden><small>あなたを撃破した相手</small><b></b><span></span></div><div class="rt" id="rtCls">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt" id="rtPt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
 <div class="hud" id="status">
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
   <div class="row"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
@@ -414,7 +429,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <kbd>左クリック</kbd><span>選んでいる武器を使う（押しっぱなしで連射）</span>
         <kbd>右クリック</kbd><span>狙撃銃は押している間スコープ（覗かずに撃つと弾が大きくばらつき、動きながらだとさらに散る。覗いて止まっていると2.5秒で照準が収束し、撃つと乱れる）、リペアユニットは押している間自分を回復、重砲は構えをやめる、遠隔爆弾は置いた物を全部起爆</span>
         <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると1秒動けない。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
-        <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動）。ゲージを使い切ると満タンに戻るまで使えません</span>
+        <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動。倒れて行動不能の味方は約3秒当てると蘇生）。ゲージを使い切ると満タンに戻るまで使えません</span>
         <kbd>R</kbd><span>選んでいる武器のリロード</span>
         <kbd>SP</kbd><span>特別装備はSPゲージを使います。使わない間に戻り、使い切ると満タンになるまで使えません</span>
         <kbd>強襲</kbd><span>アサルトライフル、グレネード（当たると爆発）、ソード、加速装置（選ぶと作動し、持っている武器はそのまま。作動中は画面の特別装備の名前とSPゲージが緑に光って点滅。作動中はShift長押しでブーストの代わりにSPを使って前へ高速移動し、そのまま撃てる。短押しのショートダッシュはそのまま。もう一度選ぶと止まる）</span>
@@ -427,7 +442,9 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
         <kbd>Q</kbd><span>ロック対象を切り替え</span>
         <kbd>照準の弧</kbd><span>照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
-        <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）</span>
+        <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
+        <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
+        <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
         <kbd>N</kbd><span>効果音と音声アナウンスのオン・オフ（戦闘中BGMと音声アナウンスはメニューのスイッチでも切り替え）</span>
         <kbd>Tab</kbd><span>押している間、両軍のスコア表（戦闘・占拠・貢献の点と合計、撃破・撃破支援・大破の数）を表示。試合の結果画面にも出ます</span>
         <kbd>よろけ・ダウン</kbd><span>1回に3500以上（格闘は3000以上）のダメージを受けるとよろけて少し押され、7000以上（格闘は6000以上）だと吹き飛んで倒れます。吹き飛んでいる間に Space と Shift を同時に押すと、ブーストを32使って受け身</span>
@@ -445,6 +462,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <kbd>コスト制</kbd><span>コスト制のマップにはコア・プラント・防衛砲台・レーダーがありません。上のゲージは両軍の戦力（例：6000）で、1機撃破されるたびにその陣営の戦力が減り（例：2000）、0になった側の負け。時間切れなら戦力の残りが多い側の勝ち。再出撃はいつも自軍の出撃地点からで、戦力の残りが1機分より少ないと、耐久がその割合に減って出ます（コストオーバー）</span>
         <kbd>コアの傘</kbd><span>コアの上の半透明の屋根は弾を止めます。高所からの撃ち下ろしは防がれますが、横から屋根の下を通す弾はコアに届きます</span>
         <kbd>バリケード</kbd><span>黄色い縞の壁は撃ち続けると壊れて通り道が開きます（耐久30000、復活しません）</span>
+        <kbd>蘇生</kbd><span>耐久が0になると、その場に倒れて10秒間「行動不能」になり、過ぎると大破します。その間に味方の支援がリペアユニットを約3秒当てると、耐久3割で起き上がります（3秒無敵）。7000以上の一撃で撃破されたときと自爆は、倒れずにすぐ大破。撃破のスコアは倒れたとき、コアは大破したときに減ります。倒れている間に F を押すと、すぐ大破して再出撃へ進めます。支援のBotも起こしに来ます。あなたが支援なら、近くで倒れた味方が「救援をたのむ」と呼び、黄色い印が付きます</span>
         <kbd>表彰</kbd><span>試合が終わると結果画面で、撃破・連続撃破・ヘッドショット撃破・撃破支援・コア攻撃・占拠・回復のそれぞれ1位と、スコア1位の MVP を表彰します（両軍あわせて）</span>
         <kbd>スコア</kbd><span>行動ごとに点が入り、自分の点は照準の右下に出ます。戦闘：撃破5（同じ相手からは8回まで）、連続撃破+1〜2、ヘッドショットで撃破+2、敵の1位を撃破+2、前線より先で撃破+2、修理中の敵を撃破+1、撃破支援（2500以上与えた敵がほかの機体に撃破された）2〜4。占拠：中立化・占拠2（連続+1〜3、敵プラントを飛び越えて占拠+2ずつ）、ゲージを35%動かすごとに1か2、50秒後から60秒ごとに占拠数に応じて陣営全員に1〜5。貢献：コアに5000ごと4（20%以上負けていれば+5）、コアへの初攻撃4、陣営の先制攻撃で全員4、敵ベース侵入4（出て30秒たてば再び、6回まで）、敵ベースの中にいる6秒ごと1、自軍ベース・プラントでの撃破や撃破支援+4・+2、レーダー破壊8、防衛砲台破壊2、地雷1・センサー2の破壊（敵陣なら+1、5個まで）、味方を4000回復ごと2（1機につき8回まで）、施設を5000修理ごと2（24点まで）、施設の再始動2、センサーと偵察機が敵を見つけるごと2（同じ敵は10回まで）、自陣のセンサーが60秒動くごと3</span>
         <kbd>防衛砲台</kbd><span>ベース前の自動砲台。動きを予測して遅い榴弾を3発ずつ撃ちます。撃たれてから切り返せば避けられます。耐久14000でロックオンでき、撃ち続けるかロケットで壊せます。壊れた砲台は支援のリペアユニットで直すと再始動します</span>
@@ -546,6 +564,7 @@ const SFX = {
   annGood: { file: 'beep', vol: 0.45, rate: 1.25, ui: true, gap: 0.6 }, // 戦況アナウンス（v0.15）：味方に良い知らせ
   annBad: { file: 'beep', vol: 0.55, rate: 0.5, ui: true, gap: 0.6 }, // 悪い知らせ
   annInfo: { file: 'beep', vol: 0.45, rate: 0.9, ui: true, gap: 0.6 }, // 残り時間など
+  chat: { file: 'beep', vol: 0.35, rate: 1.5, ui: true, gap: 0.2 }, // 指示出し（v0.17）
 };
 const MASTER_VOL = 0.8, MAX_VOICES = 32;
 let audio = null, muted = false, voices = 0;
@@ -1459,7 +1478,7 @@ function blast(sh, at, ref) {
     noteDmg(u, sh.owner, real);
     cloakHit(u, fall(d));
     if (u.isPlayer) flashDamage();
-    if (u.hp <= 0) kill(u, sh.owner, false);
+    if (u.hp <= 0) kill(u, sh.owner, false, real);
     else jolt(u, at, real, false); // 爆風は1つずつ判定（wiki）
   }
   if (!S.dmg) { if (hitAny && sh.owner.isPlayer) hitMark(false); return; }
@@ -2307,7 +2326,7 @@ function makeUnit(team, isPlayer, idx) {
 // at: 'base' かプラントのID。自軍のものでなければベースに出る
 // プラントから出るときの、プラントの中心からの距離（m）。出撃してから無敵の秒数（ユーザー指定、v0.9.2）
 const SPAWN_BACK = [46, 52], SPAWN_INVUL = 2;
-function spawn(u, at = 'base') {
+function spawnPos(u, at) {
   const t = TEAM[u.team];
   const pl = plants.find(p => p.id === at && p.owner === u.team);
   if (pl) {
@@ -2318,7 +2337,11 @@ function spawn(u, at = 'base') {
   } else u.pos.set((Math.random() - 0.5) * 36, 0, t.baseZ + t.dir * (14 + Math.random() * 10));
   resolve(u);
   u.pos.y = terrainH(u.pos.x, u.pos.z);
-  Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
+}
+function spawn(u, at = 'base') {
+  const t = TEAM[u.team];
+  spawnPos(u, at);
+  Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
   u.yaw = t.dir > 0 ? Math.PI : 0;
   u.pitch = 0;
@@ -2331,6 +2354,47 @@ function spawn(u, at = 'base') {
   if (VS && cores[u.team].hp < VS.death) u.hp = Math.max(1, Math.round(u.maxHp * Math.max(0, cores[u.team].hp) / VS.death)); // コストオーバー
   u.nextCls = null; u.repairing = false;
   u.group.visible = true;
+}
+
+// エリア移動（v0.17、ユーザー指定）：H で待機し（もう一度 H で取り消し）、待ち終わるとベースか自軍プラントへ移る。待っている間は動けず、撃てない。
+// 待ち時間は機体と武器の重さで決める：AREA_KG0 kg までは AREA_T0 秒、超えた分は1kgごとに AREA_SLOPE 秒、最長 AREA_MAX 秒
+// （標準のパーツと初期装備で、強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。ユーザーに示した「重火力7秒・ほか2.5秒」に合わせた）。
+// 自軍ベースの中なら半分の時間で、兵装も変えられる（変えたら武器は全量、耐久はそのまま）。耐久・弾・SPは持ち越し。撃破ではなく、コアも減らない。
+// 移った先では出撃と同じく2秒無敵。ダウンすると取り消し。Botは1度使うと AREA_CD 秒は使わない。コスト制のマップ（ベースもプラントも無い）では使えない
+const AREA_T0 = 2.5, AREA_KG0 = 4700, AREA_SLOPE = 4.5 / 730, AREA_MAX = 10, AREA_FAR = 150, AREA_CD = 40;
+function areaTime(u) { return Math.min(AREA_MAX, AREA_T0 + Math.max(0, u.stats.weight - AREA_KG0) * AREA_SLOPE); }
+function inOwnBase(u) { return !VS && u.pos.z * TEAM[u.team].dir < -BASE_LINE; }
+function startTransfer(u, at) {
+  if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
+  const base = inOwnBase(u);
+  u.transfer = { t: areaTime(u) * (base ? 0.5 : 1), base, at };
+  u.dashT = 0; u.longDash = false; u.dashState = ''; u.scoped = false;
+  if (u.isPlayer) { u.spawnChoice = base ? null : 'base'; u.nextCls = null; } // 最初の移動先：ベースの外ならベース、ベースの中なら最前線のプラント
+  u.xferCd = clock() + AREA_CD;
+  return true;
+}
+function cancelTransfer(u) { u.transfer = null; if (u.isPlayer) u.nextCls = null; }
+function doTransfer(u) {
+  const x = u.transfer;
+  u.transfer = null;
+  spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
+  Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
+  u.vel.set(0, 0, 0);
+  u.yaw = TEAM[u.team].dir > 0 ? Math.PI : 0; u.pitch = 0;
+  u.invulT = SPAWN_INVUL;
+  if (x.base && u.nextCls && u.nextCls !== u.cls) { const hp = u.hp; equip(u, u.nextCls); u.hp = Math.min(hp, u.maxHp); }
+  u.nextCls = null;
+  if (u.isPlayer) { releaseLock(); feed('エリア移動しました'); }
+  sfx('catapult', u.pos, u);
+}
+// Botのエリア移動（v0.17）：守り役は、自軍ベースのレーダーが敵機を見つけていて自分が遠ければベースへ。
+// 占拠役・守り役は、敵が入ってゲージが動いている自軍のプラントから自分が遠ければそこへ。敵を狙っていないときだけ（botUpdate の判断の所から）
+function botTransfer(u) {
+  if (VS || u.role === 'attack' || (u.xferCd || 0) > clock() || u.waypoint || u.order || u.healing || u.downT > 0) return;
+  const t = TEAM[u.team], rd = radars.find(r => r.team === u.team);
+  if (u.role === 'defend' && rd && rd.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) { startTransfer(u, 'base'); return; }
+  const pl = plants.find(p => p.owner === u.team && p.capturing && Math.abs(p.gauge) < 100 && p.pos.distanceTo(u.pos) > AREA_FAR && units.some(e => e.alive && e.team !== u.team && inPlant(e, p)));
+  if (pl) startTransfer(u, pl.id);
 }
 
 function botSpawn(u, first) {
@@ -2755,17 +2819,17 @@ function damage(r, by, dmg, head = false, melee = false, slot = null) {
   noteDmg(r, by, real);
   cloakHit(r, dmg);
   if (r.isPlayer) flashDamage();
-  if (r.hp <= 0) kill(r, by, head);
+  if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0)); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
   else jolt(r, by.pos, real, melee);
   return head ? 'head' : true;
 }
 // 自分が撃破・破壊した対象の頭上に大きく表示する
 const pops = [];
-function popup(at, label, sub) {
+function popup(at, label, sub, good = false) {
   const el = document.createElement('div');
-  el.className = 'pop';
-  el.innerHTML = `<b>${label}</b><small><i>⊗</i>${sub}</small>`;
+  el.className = good ? 'pop good' : 'pop';
+  el.innerHTML = `<b>${label}</b><small><i>${good ? '✚' : '⊗'}</i>${sub}</small>`;
   document.getElementById('popups').appendChild(el);
   pops.push({ el, at: at.clone(), t: 0 });
 }
@@ -2786,18 +2850,60 @@ function popUpdate(dt) {
 // KC_DIST：相手からカメラまで（間に壁や地面があればその手前）。KC_UP：見下ろす傾き。KC_LOOK：相手を画面の中心より上に置くため、距離×これだけ下を向く
 const KILLCAM = 0.5, KC_DIST = 12, KC_UP = 0.35, KC_LOOK = 0.29;
 let killcam = null; // { by：倒した相手, at：撃破された場所, end：映すのをやめる再出撃までの残り秒 }
-function kill(v, by, head) {
+// 蘇生（v0.17、ユーザー指定）：耐久が0になった機体はその場に倒れて「行動不能」になり、REVIVE_WAIT 秒たつと大破する。
+// その間に味方のリペアユニットで REVIVE_NEED だけ修理されると、耐久 REVIVE_HP の割合で起き上がり、REVIVE_INVUL 秒無敵（修理量3000・無敵3秒は wiki の再始動。耐久3割はユーザーに示した値）。
+// 撃破の一撃（散弾は1回の射撃の合計）が REVIVE_BIG（ダウンと同じ7000）以上か、自爆なら、倒れずにすぐ大破。
+// 撃破のスコアは倒れたとき、コアの1/160（コスト制では戦力）は大破したときに減る。行動不能の機体には弾も爆風も当たらない。
+// プレイヤーは F ですぐ大破して再出撃へ進める。Botは REVIVE_CALL m 以内に起こせる味方（リペアユニットを持ち、ゲージの残っている機体）がいなければ1秒で大破する
+const REVIVE_WAIT = 10, REVIVE_NEED = 3000, REVIVE_HP = 0.3, REVIVE_INVUL = 3, REVIVE_BIG = DOWN_DMG, REVIVE_CALL = 120;
+function kill(v, by, head, hit = Infinity) {
   scoreKill(v, by, head);
   if (by.isPlayer && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
-  v.alive = false; v.hp = 0; v.respawnT = 5; v.group.visible = false;
-  if (v.isPlayer) killcam = by && by !== v && by.pos ? { by, at: v.pos.clone(), end: v.respawnT * (1 - KILLCAM) } : null; // 自爆は映さない
-  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : KILL_CORE)); // コスト制では戦力ゲージが vs.death 減る
-  v.cloak = v.chargerOn = v.fieldOn = false; v.stun = '';
+  v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null;
+  v.cloak = v.chargerOn = v.fieldOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null;
   if (v.isPlayer) aimMark.visible = false;
   if (v.isPlayer || v === lock.target) releaseLock();
-  if (v.isPlayer) v.spawnChoice = null; // 再出撃画面で最前線のプラントを初期選択。マウスの固定は外さない（v0.15、ユーザー指摘。兵装はキー、地点はキーかホイール）
   feed(by === v ? `<span style="color:${TEAM[v.team].css}">${v.name}</span> が自爆` : `<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
+  if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
+  v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
+  v.downT = !v.isPlayer && !reviverNear(v) ? 1 : REVIVE_WAIT;
+  // 起こせるのがプレイヤーなら、倒れた味方が呼ぶ（印は REVIVE_WAIT 秒で消える）
+  if (!v.isPlayer && player && player.alive && v.team === player.team && v.downT > 1 && canRevive(player) && player.pos.distanceTo(v.pos) < REVIVE_CALL) {
+    chatLine(v, '救援をたのむ');
+    addPing(v.team, v.pos, `行動不能 ${v.name}`);
+    v.downPing = pings[pings.length - 1];
+  }
+}
+// 大破：機体が消え、再出撃までの5秒を数え始める。コア（コスト制は戦力）が減る
+function wreck(v) {
+  v.downT = 0; v.respawnT = 5; v.group.visible = false;
+  if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
+  const by = v.downBy;
+  if (v.isPlayer) killcam = by && by !== v && by.pos ? { by, at: v.pos.clone(), end: v.respawnT * (1 - KILLCAM) } : null; // 自爆は映さない
+  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : KILL_CORE)); // コスト制では戦力ゲージが vs.death 減る
+  if (v.isPlayer) v.spawnChoice = null; // 再出撃画面で最前線のプラントを初期選択。マウスの固定は外さない（v0.15、ユーザー指摘。兵装はキー、地点はキーかホイール）
   boom(v.pos);
+}
+// 行動不能の間（毎フレーム）。時間切れか、プレイヤーが F を押すと大破。Botは起こせる味方が近くにいなくなれば1秒で大破
+function downTick(u, dt) {
+  if (u.isPlayer && pressed.KeyF) u.downT = 0;
+  else if (!u.isPlayer && u.downT > 1 && !reviverNear(u)) u.downT = 1;
+  if ((u.downT -= dt) <= 0) wreck(u);
+}
+// 起こせる機体：リペアユニットを持ち、ゲージが残っている
+function canRevive(e) { const sp = e.slots && e.slots.sp; return !!sp && sp.w.type === 'repair' && !sp.overheat; }
+function reviverNear(v) { return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
+// 起き上がる（リペアユニットで REVIVE_NEED 修理されたとき）
+function revive(v, by) {
+  if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
+  Object.assign(v, { alive: true, downT: 0, hp: v.maxHp * REVIVE_HP, invulT: REVIVE_INVUL, stun: '', yaw: v.downYaw, dashT: 0, longDash: false, dashState: '', target: null, aimTarget: null, waypoint: null, navPath: null, navW: null, navVia: null, navRc: 0, healing: false });
+  v.vel.set(0, 0, 0);
+  v.group.visible = true;
+  scoreRevive(by, v);
+  feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を蘇生`);
+  if (by.isPlayer) popup(v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
+  if (v.isPlayer) announce('蘇生されました', 'good');
+  sfx('pod', v.pos, v);
 }
 // ---- スコア ----
 // wiki（BORDER BREAK PS4版のスコア表）の点数。戦闘（battle）・占拠（plant）・貢献（support）に分けて足す（v0.9.5、ユーザー指定）。
@@ -2820,11 +2926,12 @@ const SC = {
   baseDef: 4, plantDef: 2, // 自軍ベース・自軍プラントの中にいた敵を撃破か撃破支援
   radar: 8, turret: 2, mine: 1, sensor: 2, gadgetEnemy: 1, gadgetCap: 5, // 施設と設置物の破壊
   heal: 2, healStep: 4000, healCap: 8, // 味方を4000回復ごと（1機につき8回まで）
+  revive: 1, reviveCap: 8, // 味方を蘇生（wiki の「味方機を再始動」。同じ味方からは8回まで。v0.17）
   fac: 2, facStep: 5000, facCap: 24, restart: 2, // 施設を5000修理ごと（24点まで）、施設の再始動
   spot: 2, spotCap: 10, rear: 3, rearGap: 60, // 索敵成功（同じ敵は10回まで）、自陣のセンサーが60秒動くごと
 };
 function scoreState() {
-  return { killsOn: new Map(), streak: 0, capStreak: 0, coreAcc: 0, firstCore: false, healOn: new Map(), facAcc: 0, facPts: 0, outT: SC.intrudeGap, intrN: 0, inBase: false, raidT: 0, gadgetN: { mine: 0, sensor: 0 }, spotOn: new Map(), capPl: null, capAcc: 0 };
+  return { killsOn: new Map(), streak: 0, capStreak: 0, coreAcc: 0, firstCore: false, healOn: new Map(), reviveOn: new Map(), facAcc: 0, facPts: 0, outT: SC.intrudeGap, intrN: 0, inBase: false, raidT: 0, gadgetN: { mine: 0, sensor: 0 }, spotOn: new Map(), capPl: null, capAcc: 0 };
 }
 let firstStrike = null, holdNext = SC.holdFirst;
 function addScore(u, cat, pt, label) {
@@ -2913,6 +3020,12 @@ function scoreHeal(u, ally, h) {
   u.sc.heal += h;
   r.acc += h;
   while (r.acc >= SC.healStep && r.n < SC.healCap) { r.acc -= SC.healStep; r.n++; addScore(u, 'support', SC.heal, '味方を回復'); }
+}
+function scoreRevive(u, ally) {
+  if (!u || u.kind !== 'unit') return;
+  const n = (u.sx.reviveOn.get(ally) || 0) + 1;
+  u.sx.reviveOn.set(ally, n);
+  if (n <= SC.reviveCap) addScore(u, 'support', SC.revive, '味方を蘇生');
 }
 function scoreFac(u, h) {
   const x = u.sx;
@@ -3041,6 +3154,7 @@ function canSee(u, target, tp) {
   return hit && hit.ref === target;
 }
 function botUpdate(u, dt) {
+  if (u.transfer) { physics(u, new T.Vector3(), false, false, dt); return; } // エリア移動の待機中は止まっている（v0.17）
   const t = TEAM[u.team];
   const enemyCore = cores[u.team === 'B' ? 'R' : 'B'];
   const ownCore = cores[u.team];
@@ -3055,6 +3169,8 @@ function botUpdate(u, dt) {
     if (sentry && (!u.target || sentry.pos.distanceTo(u.pos) < u.target.pos.distanceTo(u.pos))) u.target = sentry;
     // 敵機が見えなければ近くの防衛砲台、無ければ設置物を狙う
     if (!u.target) u.target = turrets.find(tu => tu.alive && tu.team !== u.team && tu.pos.distanceTo(u.pos) < 55 && canSee(u, tu, targetPoint(tu))) || botGadget(u, false);
+    if (!u.target && u.onGround && !u.flying) botTransfer(u);
+    if (u.transfer) return;
   }
   // 目標地点
   let goal, hold = 4;
@@ -3063,9 +3179,14 @@ function botUpdate(u, dt) {
   const pod = u.healing && nearestPod(u);
   if (pod) {
     goal = pod.pos; hold = 1; // 損傷したらリペアポッドへ下がる
+  } else if (canRevive(u) && downedAlly(u, REVIVE_CALL)) {
+    goal = downedAlly(u, REVIVE_CALL).pos; hold = 10; // 行動不能の味方を起こしに行く（v0.17）。カタパルトへ向かう途中でも先に
   } else if (u.waypoint) {
     goal = u.waypoint; hold = 0.5;
     if (u.pos.distanceTo(goal) > 110) u.waypoint = null;
+  } else if (botOrder(u)) {
+    const o = u.order; // 味方からの指示（v0.17）
+    goal = o.kind === 'cover' ? o.by.pos : o.pos; hold = QC_HOLD[o.kind];
   } else if (u.cls === 'support' && !u.target && hurtAlly(u, 60)) {
     goal = hurtAlly(u, 60).pos; hold = 8; // 支援は傷ついた味方のそばへ
   } else if (VS) {
@@ -3139,7 +3260,7 @@ function botUpdate(u, dt) {
   const tracking = u.target && u.target.alive;
   const locked = trackAim(u, dt, muzzle(u));
   const healer = u.slots.sp.w.type === 'repair' ? u.slots.sp : null;
-  const ally = !tracking && healer ? hurtAlly(u, healer.w.range) : null;
+  const ally = !tracking && healer ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null;
   const selfHeal = !!healer && !tracking && !ally && u.hp < u.maxHp * 0.6;
   // 装備を使う行動（投げる、置く、打ち上げる、構えて撃つ）。botAct が決め、done か時間切れで終わる
   u.actCd -= dt;
@@ -3202,6 +3323,18 @@ function botGadget(u, attacking) {
     if (d > (g.onCore ? 60 : GADGET_SEEK[g.kind] || 0) || s >= bs || !canSee(u, g, targetPoint(g))) continue;
     bs = s; best = g;
   }
+  return best;
+}
+// 味方からの指示（v0.17）：時間切れか、援護を頼んだ機体が撃破されたら終わる
+function botOrder(u) {
+  const o = u.order;
+  if (o && (clock() > o.until || (o.kind === 'cover' && !o.by.alive))) u.order = null;
+  return !!u.order;
+}
+// 近くで行動不能になっている味方機（起こしに行く）
+function downedAlly(u, range) {
+  let best = null, bd = range;
+  for (const e of units) if (e.team === u.team && e !== u && e.downT > 0.5) { const d = e.pos.distanceTo(u.pos); if (d < bd) { bd = d; best = e; } }
   return best;
 }
 // 支援Botが回復しに行く、近くの傷ついた味方機か、傷ついたか壊れた自軍の砲台
@@ -4455,6 +4588,7 @@ function repairTick(u, sl, dt, trigger, aim, self) {
   const selfHeal = !best && self && !sl.overheat && u.hp < u.maxHp;
   if (!best && !selfHeal) { spRegen(sl, dt); return false; }
   if (selfHeal) u.hp = Math.min(u.maxHp, u.hp + w.heal * dt);
+  else if (best.kind === 'unit' && !best.alive) { const h = w.heal * dt; scoreHeal(u, best, h); if ((best.reviveAcc += h) >= REVIVE_NEED) revive(best, u); } // 行動不能の味方（1.2倍にならない。wiki）
   else if (best.kind === 'unit') { const h = Math.min(best.maxHp - best.hp, w.heal * 1.2 * dt); best.hp += h; scoreHeal(u, best, h); }
   else if (best.alive) { const h = Math.min(best.maxHp - best.hp, w.heal * 0.7 * dt); best.hp += h; scoreFac(u, h); }
   else {
@@ -4472,7 +4606,7 @@ function repairTarget(u, w, aim) {
   let best = null, ba = 0.3;
   for (const e of [...units, ...turrets, ...radars]) {
     if (e.team !== u.team || e === u) continue;
-    if (e.kind === 'unit' ? !e.alive || e.hp >= e.maxHp : e.alive && e.hp >= e.maxHp) continue;
+    if (e.kind === 'unit' ? (e.alive ? e.hp >= e.maxHp : !(e.downT > 0)) : e.alive && e.hp >= e.maxHp) continue; // 行動不能の味方も起こせる（v0.17）
     const tp = targetPoint(e);
     if (tp.distanceTo(from) > w.range) continue;
     const ang = tp.clone().sub(from).angleTo(dir);
@@ -4590,6 +4724,8 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { keys.Tab = false; });
 canvas.addEventListener('mousedown', e => {
+  // 全体マップを開いている間は、クリックでマップのカーソルの地点を指す（左：ここへ向かえ、右：ここを守れ。撃たない）
+  if (running && mapOpen && player && player.alive && document.pointerLockElement === canvas && (e.button === 0 || e.button === 2)) { qchatSend(player, e.button === 0 ? QC_GO : QC_DEF, mapPoint()); return; }
   if (e.button === 0) mouseDown = true;
   if (e.button === 2) rightDown = true;
   if (running && document.pointerLockElement !== canvas) grabPointer();
@@ -4617,6 +4753,20 @@ addEventListener('mousemove', e => {
   if (document.pointerLockElement !== canvas && !mouseDown) return;
   // ポインタロック直後などに来る異常な移動量は捨てる
   if (Math.abs(e.movementX) > 250 || Math.abs(e.movementY) > 250) return;
+  if (qc.open) {
+    // 指示出しのメニュー中も視点を動かさない。真ん中から22より離れたら、その向き（上から右回りに8方向）を選ぶ
+    qc.x = Math.max(-60, Math.min(60, qc.x + e.movementX));
+    qc.y = Math.max(-60, Math.min(60, qc.y + e.movementY));
+    if (Math.hypot(qc.x, qc.y) > 22) qc.pick = (Math.round(Math.atan2(qc.x, -qc.y) / (Math.PI / 4)) + 8) % 8;
+    return;
+  }
+  if (mapOpen) {
+    // 全体マップを開いている間は、マウスでマップの上のカーソルを動かす（画面の1pxがマップの1px）
+    const k = MAP_Z * 2 / (bigPx.h || 400);
+    mapCur.x = Math.max(-MAP_X, Math.min(MAP_X, mapCur.x + e.movementX * k));
+    mapCur.z = Math.max(-MAP_Z, Math.min(MAP_Z, mapCur.z + e.movementY * k));
+    return;
+  }
   if (wsel.open) {
     // 武器選択中はマウスで視点を動かさない
     wsel.x = Math.max(-60, Math.min(60, wsel.x + e.movementX));
@@ -4629,6 +4779,100 @@ addEventListener('mousemove', e => {
   player.pitch = Math.max(-0.9, Math.min(0.7, player.pitch - e.movementY * sens));
 });
 function grabPointer() { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
+// 指示出し（v0.17、ユーザー指定「G 長押しの円形メニュー（マウスの向きで選び、離すと送る）と、全体マップをクリックして地点を指す」）。
+// G を押している間メニューを出し、G を離すと選んだ言葉を味方に送る（真ん中のまま離すと取り消し）。言葉・Bot の数・秒は Claude が決めた。
+// ping のある物は照準の先（全体マップを開いているときはマップのカーソル）に印を出し、order のある物は近くの味方のBotが n 機従う：
+// go はその地点へ向かう、hold はその地点の周りを守る、cover は送った機体のそばへ来る。t 秒で終わる。敵の言葉はこちらには出ない
+const QCHAT = [
+  { text: 'ここへ向かえ', note: '照準の先へ味方3機', order: 'go', n: 3, t: 40, ping: true },
+  { text: '敵を発見', note: '照準の先に印、味方1機', order: 'go', n: 1, t: 20, ping: true },
+  { text: '援護をたのむ', note: '近くの味方2機が来る', order: 'cover', n: 2, t: 30 },
+  { text: 'ありがとう' },
+  { text: '後退する' },
+  { text: 'ごめん' },
+  { text: 'ここを守れ', note: '照準の先を味方2機で', order: 'hold', n: 2, t: 45, ping: true },
+  { text: '了解' },
+];
+const QC_GO = 0, QC_DEF = 6; // 全体マップの左クリック・右クリック
+const QC_HOLD = { go: 6, hold: 10, cover: 12 }; // 指示の地点からこの距離まで来たら止まる（守り・援護は周りで戦う）
+const COVER_RANGE = 200; // 援護に来る味方を探す距離
+const qc = { open: false, x: 0, y: 0, pick: -1 };
+const mapCur = { x: 0, z: 0 }, bigPx = { w: 0, h: 0 };
+const pings = [], chatQ = [];
+const PING_TIME = 10, PING_MAX = 3; // 印が消えるまでの秒、1陣営の印の数
+const pingGeo = new T.CylinderGeometry(0.5, 0.5, 60, 8, 1, true), pingMat = new T.MeshBasicMaterial({ ...glow(0xffd34d), opacity: 0.4, side: T.DoubleSide });
+const clock = () => MATCH - timeLeft; // 試合が始まってからの秒
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyG' || e.repeat || !running || !player || !player.alive || wsel.open) return;
+  Object.assign(qc, { open: true, x: 0, y: 0, pick: -1 });
+});
+addEventListener('keyup', e => {
+  if (e.code !== 'KeyG' || !qc.open) return;
+  qc.open = false;
+  if (qc.pick >= 0 && running && player && player.alive) qchatSend(player, qc.pick, QCHAT[qc.pick].ping ? (mapOpen ? mapPoint() : aimPoint(player)) : null);
+});
+// 照準の先の地点（当たった所の足元。機体や施設に当たったらその足元、何にも当たらなければ300m先）
+function aimPoint(u) {
+  const dir = new T.Vector3(); camera.getWorldDirection(dir);
+  const from = camera.position.clone().addScaledVector(dir, CAM.back - 1);
+  const hit = castFrom(from, dir, u, 300);
+  const p = hit ? (hit.ref && hit.ref.pos ? hit.ref.pos.clone() : hit.point.clone()) : from.addScaledVector(dir, 300);
+  p.y = groundAt(p.x, p.z, p.y + 0.5);
+  return p;
+}
+function mapPoint() { return new T.Vector3(mapCur.x, terrainH(mapCur.x, mapCur.z), mapCur.z); }
+function qchatSend(u, i, at) {
+  const q = QCHAT[i];
+  chatLine(u, q.text);
+  if (q.ping && at) addPing(u.team, at, q.text);
+  if (!q.order) return;
+  const ref = q.order === 'cover' ? u.pos : at;
+  if (!ref) return;
+  const bots = units.filter(b => b.alive && !b.isPlayer && b.team === u.team && (q.order !== 'cover' || b.pos.distanceTo(ref) < COVER_RANGE))
+    .sort((a, b) => a.pos.distanceTo(ref) - b.pos.distanceTo(ref)).slice(0, q.n);
+  bots.forEach((b, k) => {
+    b.order = { kind: q.order, pos: at ? at.clone() : null, by: u, until: clock() + q.t };
+    b.waypoint = null; // カタパルトへ向かっていても指示を優先
+    if (k === 0) chatQ.push({ t: 0.6 + Math.random() * 0.6, u: b, text: '了解' });
+  });
+  if (!bots.length && u.isPlayer) feed('指示に従える味方がいません', 'chat');
+}
+// 味方の言葉を右の欄に出す（敵の言葉は出さない）
+function chatLine(u, text) {
+  if (!player || u.team !== player.team) return;
+  feed(`<span style="color:${TEAM[u.team].css}">${u.name}</span>：${text}`, 'chat');
+  sfx('chat');
+}
+// 地点の印：同じ陣営の味方にだけ、光の柱と、画面・ミニマップ・全体マップの印で見える。PING_TIME 秒で消え、1陣営 PING_MAX 個まで（古い物から消す）
+function addPing(team, at, text) {
+  const p = { team, pos: at.clone(), text, t: PING_TIME, mesh: null, el: null };
+  if (player && team === player.team) {
+    p.mesh = new T.Mesh(pingGeo, pingMat); p.mesh.position.set(at.x, at.y + 30, at.z); scene.add(p.mesh);
+    p.el = document.createElement('div'); p.el.className = 'ping'; document.getElementById('popups').appendChild(p.el);
+  }
+  pings.push(p);
+  const same = pings.filter(q => q.team === team);
+  if (same.length > PING_MAX) dropPing(same[0]);
+}
+function dropPing(p) { if (p.mesh) scene.remove(p.mesh); if (p.el) p.el.remove(); pings.splice(pings.indexOf(p), 1); }
+function clearPings() { while (pings.length) dropPing(pings[0]); chatQ.length = 0; qc.open = false; }
+function qchatTick(dt) {
+  for (let i = chatQ.length - 1; i >= 0; i--) { const c = chatQ[i]; if ((c.t -= dt) <= 0) { chatQ.splice(i, 1); if (c.u.alive) chatLine(c.u, c.text); } }
+  for (let i = pings.length - 1; i >= 0; i--) if ((pings[i].t -= dt) <= 0) dropPing(pings[i]);
+}
+// 画面の印（hud から毎フレーム）：言葉と距離
+function pingHud(p) {
+  const dir = camera.getWorldDirection(new T.Vector3());
+  for (const g of pings) {
+    if (!g.el) continue;
+    const w = g.pos.clone().setY(g.pos.y + 5), front = w.clone().sub(camera.position).dot(dir) > 0;
+    w.project(camera);
+    g.el.style.display = front ? '' : 'none';
+    g.el.style.transform = `translate(${(w.x + 1) / 2 * innerWidth}px, ${(1 - w.y) / 2 * innerHeight}px) translate(-50%, -100%)`;
+    const t = `${g.text}　${Math.round(g.pos.distanceTo(p.pos))}m`;
+    if (g.el.textContent !== t) g.el.textContent = t;
+  }
+}
 
 let player;
 function playerUpdate(u, dt) {
@@ -4642,14 +4886,16 @@ function playerUpdate(u, dt) {
   const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
   const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
   if (wish.lengthSq() > 0) wish.normalize();
-  // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）
-  const busy = u.repairing;
+  // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）。エリア移動の待機中も（v0.17。動けもしない、H で取り消し）
+  if (pressed.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
+  if (u.transfer) wish.set(0, 0, 0);
+  const busy = u.repairing || !!u.transfer;
   u.moveInput = wish.lengthSq() > 0.01;
   const boostHeld = !busy && (keys.ShiftLeft || keys.ShiftRight);
   if (!busy && (pressed.ShiftLeft || pressed.ShiftRight)) shortDash(u, wish);
   physics(u, wish, boostHeld, !busy && pressed.Space, dt, !busy && keys.Space);
-  SLOTS.forEach((k, i) => { if (pressed['Digit' + (i + 1)]) selectWeapon(u, k); });
-  if (wheelDir) {
+  if (!u.transfer) SLOTS.forEach((k, i) => { if (pressed['Digit' + (i + 1)]) selectWeapon(u, k); }); // エリア移動の待機中は、数字キーとホイールで移動先を選ぶ
+  if (wheelDir && !u.transfer) {
     const next = SLOTS[(SLOTS.indexOf(u.wheelSp ? 'sp' : u.weapon) + (wheelDir > 0 ? 1 : 3)) % 4];
     selectWeapon(u, next);
     if (next === 'sp' && TOGGLE_SP.includes(u.slots.sp.w.type)) u.wheelSp = true; // 光学迷彩・加速装置は持ち替えないので、次はSPの隣へ
@@ -4690,7 +4936,7 @@ function playerUpdate(u, dt) {
     aimMark.position.set(at.x, at.y + 0.3, at.z);
     aimMark.scale.setScalar(P.blast || 2);
   }
-  const healOk = !busy || cur.w.type === 'repair'; // ポッドの上でもリペアユニットは使える
+  const healOk = !u.transfer && (!busy || cur.w.type === 'repair'); // ポッドの上でもリペアユニットは使える
   const res = weaponsTick(u, dt, mouseDown && healOk, aim, spread, healOk && rightDown);
   if (res) hitMark(res === 'head');
 }
@@ -4730,7 +4976,7 @@ const LOCK_ZOOM = 1.3;
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
 const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
 const proj = new T.Vector3();
-function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : 2.4), e.pos.z); } // 設置物は形の高さ（v0.11.2）
+function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 行動不能で倒れた機体は低い所 // 設置物は形の高さ（v0.11.2）
 function screenOf(e) {
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
@@ -4898,8 +5144,8 @@ function annTick() {
   ann.intr = n;
 }
 const feedEl = $('feed'), crossEl = $('cross'), centerEl = $('center');
-function feed(html) {
-  const d = document.createElement('div'); d.innerHTML = html; feedEl.prepend(d);
+function feed(html, cls = '') {
+  const d = document.createElement('div'); d.innerHTML = html; if (cls) d.className = cls; feedEl.prepend(d);
   setTimeout(() => d.remove(), 6000);
   while (feedEl.children.length > 6) feedEl.lastChild.remove();
 }
@@ -4921,7 +5167,7 @@ $('rlist').addEventListener('click', e => {
 // 兵装の選択：出撃前の画面と、撃破後の再出撃画面
 function pickClass(k) {
   chosenCls = k;
-  if (player && !player.alive) player.nextCls = k;
+  if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
@@ -5240,18 +5486,24 @@ function selectMap(id) {
   renderMapList();
 }
 function respawnPanel(p) {
-  const rs = $('respawn');
-  rs.hidden = p.alive || !running;
+  const rs = $('respawn'), xfer = !!p.transfer && p.alive; // エリア移動の待機中も、移動先を選ぶのに使う（v0.17）
+  rs.hidden = !(xfer || (!p.alive && !(p.downT > 0))) || !running; // 行動不能の間は出さない
   if (rs.hidden) { rs.dataset.key = ''; return; }
-  CLASS_KEYS.forEach((k, i) => { if (pressed[CLASS_HOTKEYS[i]]) pickClass(k); });
+  $('rtXf').hidden = !xfer;
+  if (xfer) $('rtXf').textContent = `エリア移動の待機中　あと${Math.max(0, p.transfer.t).toFixed(1)}秒${p.transfer.base ? '（ベースの中なので半分）' : ''}`;
+  const clsOk = !xfer || p.transfer.base;
+  if (clsOk) CLASS_KEYS.forEach((k, i) => { if (pressed[CLASS_HOTKEYS[i]]) pickClass(k); });
   const opts = spawnPoints(p.team);
   if (!opts.some(o => o.id === p.spawnChoice)) p.spawnChoice = opts[opts.length - 1].id;
   opts.forEach((o, i) => { if (pressed['Digit' + (i + 1)]) p.spawnChoice = o.id; });
   // ホイール：下で次（前線寄り）、上で前（v0.15）
   if (wheelDir) { const i = opts.findIndex(o => o.id === p.spawnChoice); p.spawnChoice = opts[(i + wheelDir + opts.length) % opts.length].id; wheelDir = 0; }
-  const key = opts.map(o => o.id).join() + '|' + p.spawnChoice;
+  const key = opts.map(o => o.id).join() + '|' + p.spawnChoice + '|' + xfer + clsOk;
   if (rs.dataset.key === key) return;
   rs.dataset.key = key;
+  $('rtCls').hidden = $('rcls').hidden = !clsOk;
+  $('rtCls').textContent = xfer ? '兵装を変える（Z・X・C・V。ベースの中だけ）' : '兵装を選択（Z・X・C・V）';
+  $('rtPt').textContent = xfer ? '移動先を選択（数字キーかホイール）　H で取り消し' : '再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃';
   $('rlist').innerHTML = opts.map((o, i) => `<button type="button" data-id="${o.id}" class="${o.id === p.spawnChoice ? 'sel' : ''}">${i + 1}　${o.label}</button>`).join('');
 }
 const mini = $('mini').getContext('2d');
@@ -5280,7 +5532,23 @@ function drawMini() {
 }
 // 全体マップ（M で開く・閉じる。v0.15、本家から移植）：ミニマップと同じ物を画面の高さの8割で。地形はミニマップの3倍の細かさ
 let mapOpen = false;
-addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && running) mapOpen = !mapOpen; });
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyM' || e.repeat || !running) return;
+  mapOpen = !mapOpen;
+  if (mapOpen && player) { mapCur.x = player.pos.x; mapCur.z = player.pos.z; } // 指示出しのカーソルは自機の所から
+});
+// マウスの固定が外れているときは、全体マップを直接クリックして地点を指す（v0.17）
+$('bigMapC').addEventListener('mousedown', e => {
+  if (!running || !player || !player.alive || (e.button !== 0 && e.button !== 2) || document.pointerLockElement === canvas) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  mapCur.x = ((e.clientX - r.left) / r.width * 2 - 1) * MAP_X; mapCur.z = ((e.clientY - r.top) / r.height * 2 - 1) * MAP_Z;
+  qchatSend(player, e.button === 0 ? QC_GO : QC_DEF, mapPoint());
+  e.preventDefault();
+});
+$('bigMapC').addEventListener('contextmenu', e => e.preventDefault());
+// 指示出しのメニュー（上から右回りに8つ）
+$('qchat').innerHTML = QCHAT.map((q, i) => { const a = i * Math.PI / 4; return `<div class="opt" id="qc${i}" style="left:${Math.round(Math.sin(a) * 175)}px;top:${Math.round(-Math.cos(a) * 142)}px">${q.text}${q.note ? `<small>${q.note}</small>` : ''}</div>`; }).join('')
+  + '<div class="hint">マウスを動かして選び、G を離して送る（真ん中で離すと取り消し）</div>';
 function drawBigMap() {
   const box = $('bigMap');
   box.hidden = !mapOpen || !running;
@@ -5289,6 +5557,7 @@ function drawBigMap() {
   const H = Math.round(Math.min(innerHeight * 0.8 - 40, (innerWidth - 40) * MAP_Z / MAP_X)), W = Math.round(H * MAP_X / MAP_Z);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
   if (!bigBg) bigBg = makeMiniBg(MINI_W * 3, miniH() * 3);
+  bigPx.w = W; bigPx.h = H;
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawMapOn(g, W, H, bigBg, W / MINI_W * 0.55, true);
@@ -5329,7 +5598,10 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
     }
   }
   for (const u of units) {
-    if (!u.alive) continue;
+    if (!u.alive) {
+      if (u.downT > 0 && player && u.team === player.team) { mini.strokeStyle = TEAM[u.team].css; mini.lineWidth = 1.2 * k; mini.beginPath(); mini.arc(sx(u.pos.x), sz(u.pos.z), 3 * k, 0, 7); mini.stroke(); } // 行動不能の味方は輪
+      continue;
+    }
     const enemy = player && u.team !== player.team;
     const near = !enemy || (u.pos.distanceTo(player.pos) <= 80 && !u.cloak); // 敵は近くだけ映る（光学迷彩中はセンサーなどで見つけたときだけ）
     if (!near && !spotted[player.team].has(u)) continue;
@@ -5342,6 +5614,21 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
       mini.strokeStyle = '#ffffff'; mini.lineWidth = 1.2 * k; mini.beginPath();
       mini.moveTo(sx(u.pos.x), sz(u.pos.z)); mini.lineTo(sx(u.pos.x - Math.sin(u.yaw) * 14 * MAP_X / 120), sz(u.pos.z - Math.cos(u.yaw) * 14 * MAP_X / 120)); mini.stroke();
     }
+  }
+  // 指示出しの印（v0.17）と、全体マップのカーソル
+  if (!player) return;
+  mini.strokeStyle = mini.fillStyle = '#ffd34d'; mini.lineWidth = 1.5 * k;
+  mini.font = `bold ${Math.round(6 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle';
+  for (const g of pings) {
+    if (g.team !== player.team) continue;
+    mini.beginPath(); mini.arc(sx(g.pos.x), sz(g.pos.z), 5 * k, 0, 7); mini.stroke();
+    if (big) mini.fillText(g.text, sx(g.pos.x), sz(g.pos.z) - 9 * k);
+  }
+  if (big && mapOpen && document.pointerLockElement === canvas) {
+    const x = sx(mapCur.x), y = sz(mapCur.z), r = 6 * k;
+    mini.strokeStyle = '#ffffff'; mini.lineWidth = 1.2 * k;
+    mini.beginPath(); mini.arc(x, y, r, 0, 7); mini.moveTo(x - r * 1.8, y); mini.lineTo(x - r * 0.5, y); mini.moveTo(x + r * 0.5, y); mini.lineTo(x + r * 1.8, y);
+    mini.moveTo(x, y - r * 1.8); mini.lineTo(x, y - r * 0.5); mini.moveTo(x, y + r * 0.5); mini.lineTo(x, y + r * 1.8); mini.stroke();
   }
 }
 function fmt(t) { t = Math.max(0, Math.ceil(t)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
@@ -5434,7 +5721,10 @@ function hud(timeLeft, dt) {
   if (p.cloak) small += ' · 光学迷彩 作動中';
   if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を回復）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
-  if (!p.alive) wsel.open = false;
+  if (!p.alive) wsel.open = qc.open = false;
+  $('qchat').hidden = !qc.open;
+  if (qc.open) QCHAT.forEach((q, i) => $('qc' + i).classList.toggle('sel', qc.pick === i));
+  pingHud(p);
   $('wsel').hidden = !wsel.open;
   if (wsel.open) {
     SLOTS.forEach((k, i) => {
@@ -5499,14 +5789,19 @@ function hud(timeLeft, dt) {
   }
   const kcOn = killcamOn(), kc = $('killcam');
   kc.hidden = !kcOn;
-  $('respawn').classList.toggle('kc', kcOn);
+  $('respawn').classList.toggle('kc', kcOn || (!!p.transfer && p.alive)); // キルカメラとエリア移動の待機中は画面の下に
   if (kcOn) {
     const e = killcam.by, nm = kc.querySelector('b'), dist = Math.round(e.pos.distanceTo(killcam.at)) + 'm';
     nm.textContent = e.name; nm.style.color = TEAM[e.team].css;
     kc.querySelector('span').textContent = e.kind === 'unit' ? `${CLASSES[e.cls].name}　${e.alive ? '残り耐久 ' + Math.max(0, Math.round(e.hp / e.maxHp * 100)) + '%' : '大破'}　${dist}` : dist;
     kc.querySelector('small').textContent = `あなたを撃破した相手　（${Math.ceil(p.respawnT)}秒後に再出撃）`;
   }
-  if (!p.alive) centerEl.textContent = kcOn ? '' : `撃破されました　${Math.ceil(p.respawnT)}秒後に自動で再出撃`; // キルカメラ中は再出撃の画面に出す
+  if (p.downT > 0) {
+    const rv = reviverNear(p), hp = p.reviveAcc > 0 ? `　蘇生 ${Math.min(99, Math.floor(p.reviveAcc / REVIVE_NEED * 100))}%` : '';
+    centerEl.textContent = `行動不能　あと${Math.ceil(p.downT)}秒で大破${hp}\n${rv ? `${rv.name}（${Math.round(rv.pos.distanceTo(p.pos))}m）が起こせます` : '近くに起こせる味方がいません'}　F ですぐ再出撃へ`;
+  }
+  else if (!p.alive) centerEl.textContent = kcOn ? '' : `撃破されました　${Math.ceil(p.respawnT)}秒後に自動で再出撃`; // キルカメラ中は再出撃の画面に出す
+  else if (p.transfer) centerEl.textContent = ''; // 残り時間は移動先の画面に出す
   else if (p.stun === 'down') centerEl.textContent = p.onGround ? 'ダウン' : 'ダウン：Space と Shift の同時押しで受け身';
   else if (p.stun === 'roll') centerEl.textContent = '受け身';
   else if (p.stun === 'stagger') centerEl.textContent = 'よろけ';
@@ -5552,6 +5847,7 @@ function setup() {
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
   firstStrike = null; holdNext = SC.holdFirst; killcam = null;
+  clearPings();
   releaseLock();
   feedEl.innerHTML = '';
   $('scorePop').innerHTML = $('ovBoard').innerHTML = '';
@@ -5613,15 +5909,18 @@ function loop(now) {
     timeLeft -= dt;
     for (const u of units) {
       if (!u.alive) {
+        if (u.downT > 0) { downTick(u, dt); continue; }
         u.respawnT -= dt;
         if (u.respawnT <= 0) { if (u.isPlayer) spawn(u, u.spawnChoice); else botSpawn(u); }
         continue;
       }
       if (u.invulT > 0) u.invulT -= dt;
+      if (u.transfer) { if (u.stun === 'down') cancelTransfer(u); else if ((u.transfer.t -= dt) <= 0) doTransfer(u); } // エリア移動の待機（v0.17）
       if (u.isPlayer) playerUpdate(u, dt); else botUpdate(u, dt);
     }
     for (const pl of plants) plantUpdate(pl, dt);
     annTick();
+    qchatTick(dt);
     scoreTick(dt);
     for (const tu of turrets) turretUpdate(tu, dt);
     for (const rd of radars) radarUpdate(rd, dt);
@@ -5634,13 +5933,16 @@ function loop(now) {
   }
   for (const u of units) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
+    const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま、ときどき煙
     u.group.position.copy(u.pos);
-    if (u.planted || u.stun === 'land') u.group.position.y -= 0.6; // 構えている間と着地硬直は屈む
-    const tilt = u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
+    if (u.planted || u.stun === 'land' || u.transfer) u.group.position.y -= 0.6; // 構えている間と着地硬直、エリア移動の待機中は屈む
+    if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
+    const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
     u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
     u.group.rotation.x = u.tilt; // よろけでのけぞり、ダウンで後ろへ倒れる
-    u.group.rotation.y = u.yaw;
-    u.armorMat.emissive.setHex(u.weakT > 0 ? 0x4a1c78 : 0); // 弱化グレネードを浴びている間は紫に光る
+    u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
+    u.armorMat.emissive.setHex(down ? (Math.floor(now / 350) % 2 ? 0x3a0c0c : 0) : u.weakT > 0 ? 0x4a1c78 : 0); // 弱化グレネードを浴びている間は紫に光る。行動不能は赤く点滅
+    if (down && running && Math.random() < 0.12) flash(u.pos.clone().setY(u.pos.y + 1), 0x8a8f96, 2.4, 0.5);
     cloakLook(u, now / 1000);
     weaponLook(u, dt);
     u.flame.visible = u.alive && !!u.dashState;
