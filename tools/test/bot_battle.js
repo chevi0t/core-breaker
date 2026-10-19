@@ -27,7 +27,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       const g = __g; { const sc = g.units[0].group.parent; g.renderer.render = () => sc.updateMatrixWorld(); }
       g.player.isPlayer = false;
       g.spawn(g.player, 'base'); // Botとしてランダムな武器で出直す
-      window.__st = { kills: 0, spawns: 0, used: {}, placed: {}, fieldT: 0, sentryShots: 0, remoteBoom: 0, maxShells: 0, stuck: 0, revives: 0, xfers: 0 };
+      window.__st = { kills: 0, spawns: 0, used: {}, placed: {}, fieldT: 0, sentryShots: 0, remoteBoom: 0, maxShells: 0, stuck: 0, revives: 0, xfers: 0, barrierT: 0, escortT: 0, specialTypes: {} };
       const was = new Map(), seen = new Set();
       const f = () => {
         const s = __st;
@@ -42,6 +42,9 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
           }
           was.set(u, u.alive);
           if (u.fieldOn) s.fieldT += 0.05;
+          if (u.barrierOn) s.barrierT += 0.05;
+          if (u.escortOn) s.escortT += 0.05;
+          if (['barrier','escort','repairPost'].includes(u.slots.sp.w.type)) s.specialTypes[u.slots.sp.w.key] = true;
         }
         for (const gd of g.gadgets) if (!gd.__seen) { gd.__seen = true; s.placed[gd.name] = (s.placed[gd.name] || 0) + 1; }
         s.maxShells = Math.max(s.maxShells, g.shells.length);
@@ -62,7 +65,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       const g = __g, s = __st;
       // どの武器が何回撃破を取ったかは数えない。武器の種類ごとの使われ方と、試合の進み
       return { t: Math.round(g.MATCH - g.timeLeft), core: [Math.round(g.cores.B.hp), Math.round(g.cores.R.hp)], kills: s.kills, spawns: s.spawns, kinds: Object.keys(s.used).length,
-        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers,
+        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers, barrierT: Math.round(s.barrierT), escortT: Math.round(s.escortT), specialTypes: Object.keys(s.specialTypes),
         mechTypes: [...new Set(g.units.flatMap(u => ['head','body','arms','legs'].map(k => u.mech[k])))],
         score: g.units.map(u => `${u.team}${u.idx}:${u.cls[0]}${u.sc.kills}/${u.sc.deaths}`).join(' ') };
     });
@@ -70,6 +73,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
     if (st.t < secs && !res.ended) throw new Error(id + ': 指定したゲーム内時間に未到達');
     if (errs.length) throw new Error(errs.join('\n'));
     console.log('  機体の型', st.mechTypes.join(','));
+    console.log('  追加特別装備', st.specialTypes.join(','), 'バリア作動' + st.barrierT + '秒、自動銃作動' + st.escortT + '秒');
     console.log('  設置', JSON.stringify(st.placed));
     console.log('  ', st.score);
     console.log('  エラー', errs.length ? errs.slice(0, 5) : 'なし');
