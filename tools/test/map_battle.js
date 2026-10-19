@@ -1,5 +1,6 @@
 // 描画を省き、元のゲームの loop を固定時間で呼ぶ対戦検査。勝率の推定値は作らない。
-// node tools/test/map_battle.js dbg circulation,circulation-v2,circulation-v3 150 出力.json
+// node tools/test/map_battle.js dbg circulation,circulation-v2,circulation-v3 301 出力.json
+// マップIDを繰り返すと初期乱数を変えて再戦する。制限時間以上を指定すると終局まで検査する。
 const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require('playwright');
@@ -46,13 +47,15 @@ if(process.argv[2]!=='dbg' || !(seconds>0 && Number.isFinite(seconds))) throw ne
         }
         const result=await page.evaluate(()=>{
           const g=__g,s=__battle;
-          return {map:g.mapId,seconds:Math.round((g.MATCH-g.timeLeft)*10)/10,ended:g.ended,core:[Math.round(g.cores.B.hp),Math.round(g.cores.R.hp)],kills:{B:g.units.filter(u=>u.team==='B').reduce((a,u)=>a+u.sc.kills,0),R:g.units.filter(u=>u.team==='R').reduce((a,u)=>a+u.sc.kills,0)},captures:s.captures,captureEvents:s.events,occupancy:s.occupancy,layers:s.layers,layerSampling:'1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45',stalls:s.stalls,seed:20261019};
+          const b=g.cores.B.hp,r=g.cores.R.hp;
+          return {map:g.mapId,seconds:Math.round((g.MATCH-g.timeLeft)*10)/10,matchDuration:g.MATCH,ended:g.ended,winner:g.ended?(b===r?'draw':r<=0 || (b>0 && b>r)?'B':'R'):null,endedBy:g.ended?(b<=0 || r<=0?'core':'time'):null,core:[Math.round(b),Math.round(r)],kills:{B:g.units.filter(u=>u.team==='B').reduce((a,u)=>a+u.sc.kills,0),R:g.units.filter(u=>u.team==='R').reduce((a,u)=>a+u.sc.kills,0)},captures:s.captures,captureEvents:s.events,occupancy:s.occupancy,layers:s.layers,layerSampling:'1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45',stalls:s.stalls,seed:20261019};
         });
         result.seed=20261019+index;result.errors=errors;
-        result.balance='勝率未確定（単一シードの短時間動作確認）';
+        result.balance=result.ended?'勝率未確定（終局までの観測1試合）':'勝率未確定（短時間動作確認）';
         results.push(result);
         fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(results,null,2)+'\n');
-        console.log(`${id}: ${result.seconds}秒 撃破 B=${result.kills.B}/R=${result.kills.R} 占拠変化${result.captures} エラー${errors.length}`);
+        console.log(`${index+1}/${maps.length} ${id} seed=${result.seed}: ${result.seconds}秒 勝者=${result.winner || '未終了'} コア B=${result.core[0]}/R=${result.core[1]} 撃破 B=${result.kills.B}/R=${result.kills.R} 占拠変化${result.captures} エラー${errors.length}`);
+        if(seconds>=result.matchDuration && !result.ended) throw new Error(`${id}: 制限時間を過ぎても試合が終了しませんでした`);
         if(errors.length || !result.kills.B || !result.kills.R) throw new Error(`${id}: 対戦検査に失敗しました`);
         if(id.startsWith('circulation') && !result.captures) throw new Error(`${id}: プラントの所有者が変わりませんでした`);
       } finally {await page.close();}
