@@ -2093,36 +2093,36 @@ const PARTS = {
 // SP容量と巡航速度はAC表に無いので本作Ⅰ型を継承する。DEF・加速時間から値を作らない。
 const PART_VARIANTS = {
   head: {
-    light2: ['light', { weight: 470/450, armor: 1.32/1.32, aim: 1/1, lock: 60/85 }], // シュライクII型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    light3: ['light', { weight: 450/450, armor: 1.32/1.32, aim: 1.16/1, lock: 100/85 }], // シュライクV型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    standard2: ['standard', { weight: 620/600, armor: 1/1, aim: 1/1, lock: 60/80 }], // クーガーII / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    standard3: ['standard', { weight: 630/600, armor: 1/1, aim: 1.25/1, lock: 100/80 }], // クーガーS / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    heavy2: ['heavy', { weight: 850/800, armor: 0.71/0.78, aim: 0.8/0.76, lock: 100/80 }], // ヘヴィガードIII型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
-    heavy3: ['heavy', { weight: 800/800, armor: 0.78/0.78, aim: 0.84/0.76, lock: 70/80 }], // ヘヴィガードIV型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
+    light2: ['light', { weight: 470/450, armor: 1.32/1.32, aim: 1/1, lock: 60/85 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    light3: ['light', { weight: 450/450, armor: 1.32/1.32, aim: 1.16/1, lock: 100/85 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    standard2: ['standard', { weight: 620/600, armor: 1/1, aim: 1/1, lock: 60/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    standard3: ['standard', { weight: 630/600, armor: 1/1, aim: 1.25/1, lock: 100/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    heavy2: ['heavy', { weight: 850/800, armor: 0.71/0.78, aim: 0.8/0.76, lock: 100/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
+    heavy3: ['heavy', { weight: 800/800, armor: 0.78/0.78, aim: 0.84/0.76, lock: 70/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   body: {
-    light2: ['light', { weight: 1030/1000, armor: 1.32/1.32, boost: 115/95, supply: 0.5/0.9 }], // シュライクII型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    light3: ['light', { weight: 1070/1000, armor: 1.25/1.32, boost: 90/95, supply: 1.2/0.9 }], // シュライクV型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    standard2: ['standard', { weight: 1300/1250, armor: 1/1, boost: 110/100, supply: 1/1 }], // クーガーII / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    standard3: ['standard', { weight: 1320/1250, armor: 0.9/1, boost: 100/100, supply: 1.35/1 }], // クーガーS / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    heavy2: ['heavy', { weight: 1550/1430, armor: 0.71/0.78, boost: 110/100, supply: 1/1.2 }], // ヘヴィガードIII型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
-    heavy3: ['heavy', { weight: 1500/1430, armor: 0.78/0.78, boost: 120/100, supply: 1/1.2 }], // ヘヴィガードIV型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
+    light2: ['light', { weight: 1030/1000, armor: 1.32/1.32, boost: 115/95, supply: 0.5/0.9 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    light3: ['light', { weight: 1070/1000, armor: 1.25/1.32, boost: 90/95, supply: 1.2/0.9 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    standard2: ['standard', { weight: 1300/1250, armor: 1/1, boost: 110/100, supply: 1/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    standard3: ['standard', { weight: 1320/1250, armor: 0.9/1, boost: 100/100, supply: 1.35/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    heavy2: ['heavy', { weight: 1550/1430, armor: 0.71/0.78, boost: 110/100, supply: 1/1.2 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
+    heavy3: ['heavy', { weight: 1500/1430, armor: 0.78/0.78, boost: 120/100, supply: 1/1.2 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   arms: {
-    light2: ['light', { weight: 620/660, armor: 1.32/1.25, recoil: 0.75/0.9, reload: 0.82/0.91, swap: 1.4/1.2, ammo: 1/1 }], // シュライクII型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    light3: ['light', { weight: 700/660, armor: 1.25/1.25, recoil: 1/0.9, reload: 0.86/0.91, swap: 1.1/1.2, ammo: 1.18/1 }], // シュライクV型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    standard2: ['standard', { weight: 860/850, armor: 1/1, recoil: 1.2/1, reload: 1.09/1, swap: 1/1, ammo: 1.32/1 }], // クーガーII / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    standard3: ['standard', { weight: 900/850, armor: 0.9/1, recoil: 1.25/1, reload: 1/1, swap: 1/1, ammo: 1.45/1 }], // クーガーS / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    heavy2: ['heavy', { weight: 1120/1000, armor: 0.71/0.78, recoil: 1.45/1.25, reload: 1.23/1.18, swap: 0.7/0.8, ammo: 1.63/1.5 }], // ヘヴィガードIII型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
-    heavy3: ['heavy', { weight: 1050/1000, armor: 0.78/0.78, recoil: 1.2/1.25, reload: 1.04/1.18, swap: 0.95/0.8, ammo: 1.59/1.5 }], // ヘヴィガードIV型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
+    light2: ['light', { weight: 620/660, armor: 1.32/1.25, recoil: 0.75/0.9, reload: 0.82/0.91, swap: 1.4/1.2, ammo: 1/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    light3: ['light', { weight: 700/660, armor: 1.25/1.25, recoil: 1/0.9, reload: 0.86/0.91, swap: 1.1/1.2, ammo: 1.18/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    standard2: ['standard', { weight: 860/850, armor: 1/1, recoil: 1.2/1, reload: 1.09/1, swap: 1/1, ammo: 1.32/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    standard3: ['standard', { weight: 900/850, armor: 0.9/1, recoil: 1.25/1, reload: 1/1, swap: 1/1, ammo: 1.45/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    heavy2: ['heavy', { weight: 1120/1000, armor: 0.71/0.78, recoil: 1.45/1.25, reload: 1.23/1.18, swap: 0.7/0.8, ammo: 1.63/1.5 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
+    heavy3: ['heavy', { weight: 1050/1000, armor: 0.78/0.78, recoil: 1.2/1.25, reload: 1.04/1.18, swap: 0.95/0.8, ammo: 1.59/1.5 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   legs: {
-    light2: ['light', { weight: 700/750, armor: 1.32/1.25, walk: 9.76/8.73, dash: 24.9/24.9, cap: 3800/3800 }], // シュライクII型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    light3: ['light', { weight: 770/750, armor: 1.25/1.25, walk: 7.65/8.73, dash: 27/24.9, cap: 3800/3800 }], // シュライクV型 / シュライクI型。https://w.atwiki.jp/borderbreak/pages/315.html
-    standard2: ['standard', { weight: 920/900, armor: 1.05/1, walk: 7.65/6.3, dash: 22.5/21.9, cap: 4550/4550 }], // クーガーII / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    standard3: ['standard', { weight: 1000/900, armor: 1/1, walk: 6.3/6.3, dash: 24.3/21.9, cap: 5150/4550 }], // クーガーS / クーガーI。https://w.atwiki.jp/borderbreak/pages/308.html
-    heavy2: ['heavy', { weight: 1330/1300, armor: 0.71/0.78, walk: 4.68/5.21, dash: 18.9/19.8, cap: 6800/6550 }], // ヘヴィガードIII型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
-    heavy3: ['heavy', { weight: 1320/1300, armor: 0.78/0.78, walk: 4.68/5.21, dash: 20.7/19.8, cap: 6550/6550 }], // ヘヴィガードIV型 / ヘヴィガードI型。https://w.atwiki.jp/borderbreak/pages/313.html
+    light2: ['light', { weight: 700/750, armor: 1.32/1.25, walk: 9.76/8.73, dash: 24.9/24.9, cap: 3800/3800 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    light3: ['light', { weight: 770/750, armor: 1.25/1.25, walk: 7.65/8.73, dash: 27/24.9, cap: 3800/3800 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
+    standard2: ['standard', { weight: 920/900, armor: 1.05/1, walk: 7.65/6.3, dash: 22.5/21.9, cap: 4550/4550 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    standard3: ['standard', { weight: 1000/900, armor: 1/1, walk: 6.3/6.3, dash: 24.3/21.9, cap: 5150/4550 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
+    heavy2: ['heavy', { weight: 1330/1300, armor: 0.71/0.78, walk: 4.68/5.21, dash: 18.9/19.8, cap: 6800/6550 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
+    heavy3: ['heavy', { weight: 1320/1300, armor: 0.78/0.78, walk: 4.68/5.21, dash: 20.7/19.8, cap: 6550/6550 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
 };
 for (const [slot, variants] of Object.entries(PART_VARIANTS)) for (const [key, [base, ratios]] of Object.entries(variants)) {
