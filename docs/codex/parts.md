@@ -17,15 +17,21 @@
 | `buildMech` | 機体の形。今は型のキー（light・heavy）を見て太さと飾りを変えている |
 | `renderSeries` など | 機体カスタマイズの3列目（シリーズの中の型を並べ、▲▼で数値を比べる） |
 
-元の値は PS4版 wiki（スウィフト＝シュライクⅠ、ハウンド＝クーガーⅠ、ブルワーク＝ヘヴィガードⅠ）。調べた値は `research/parts/*.md`。
+今のⅠ型の値は PS4版 wiki（スウィフト＝シュライクⅠ、ハウンド＝クーガーⅠ、ブルワーク＝ヘヴィガードⅠ）の物で、写した表は `research/parts/*.md`。
+
+**これから足す型の数値の出典はアーケード版 wiki（BORDER BREAK @ ウィキ https://w.atwiki.jp/borderbreak/ ）**（オーナーの指定 2026-10-19：PS4版は終盤に性能のインフレが大きかったので、アーケード版に合わせて移植する。PS4版の扱いはその後でオーナーが決める）。`research/parts/*.md` の値は足す型に使わない。今のⅠ型の値は変えない。セットボーナスはもともとアーケード版の表の値（`research/parts/setbonus.md`、`docs/DESIGN.md`）。
 
 ## 1. 調べる
 
-`research/parts/types/{head,body,arms,legs}.json` と `research/parts/types/README.md` に、各シリーズに足すⅡ型・Ⅲ型を書く。形は武器の型（`research/weapons/types/README.md`）に合わせる：`base`（本作の型のキー）、`series`（wiki の系統）、`baseRow`（元にした wiki の型の値）、`types`（足す型。`label`、`trait` は一言の説明、値）、`skipped`（使わなかった物と理由）。元にする系統は本作のⅠ型と同じ系統のⅡ・Ⅲ（無ければ近い系統）。
+1. アーケード版 wiki から、シュライク・クーガー・ヘヴィガードの各部位（頭・胴・腕・脚）の表を `research/arcade/parts/<部位>.md` に写す。書き方は `research/parts/*.md` に合わせ、出典の URL と取得日を書く。数値は wiki の今の値。Ⅰ型の行も写す（下の比の元になる）。
+2. `research/parts/types/{head,body,arms,legs}.json` と `research/parts/types/README.md` に、各シリーズに足すⅡ型・Ⅲ型を書く。形は武器の型（`research/weapons/types/README.md`）に合わせる：`base`（本作の型のキー）、`series`（wiki の系統）、`baseRow`（元にしたアーケード版のⅠ型の値）、`types`（足す型。`label`、`trait` は一言の説明、値）、`skipped`（使わなかった物と理由）。元にする系統は本作のⅠ型と同じ系統のⅡ・Ⅲ（アーケード版に無ければ近い系統）。
+3. README に、本作のⅠ型（PS4版の値）とアーケード版のⅠ型の値の差の表を付ける。調べるだけで、Ⅰ型の値は変えない（オーナーが後で決める）。
+
+読めなかった所は「不明」と書き、推測で埋めない。wiki につながらないときは、そこで止めてそう報告する（PS4版の表や覚えている値で埋めない）。
 
 ## 2. ゲームに入れる
 
-- 本作の値は「本作のⅠ型の値 × wiki の型の値 ÷ wiki のⅠ型の値」で決める（武器の `makeType` と同じ考え方）。ランクで書かれた性能は `research/parts/*.md` のランクと実数の表で数にする。
+- 本作の値は「本作のⅠ型の値 × アーケード版の型の値 ÷ アーケード版のⅠ型の値」で決める（武器の `makeType` と同じ考え方）。ランクで書かれた性能は、wiki に書かれた実数（ランクの横の数値や対応表）で数にする。本作に無い性能（DEF 耐久など）は使わない。
 - 型のキーを足す（例 `light2`・`light3`。名前は自由）。`PARTS` の4部位すべてに足し、`PART_SERIES[シリーズ].types` に並べる。
 - 型のキーが light・standard・heavy の3つだと決め打ちしている所を直す：`PART_TYPES` を使う所、`normMech`、`botMech`（`Math.random() * 3`）、`buildMech`（`t === 'light'` など）。形はシリーズ（`PARTS[部位][型].series`）か重さの区分で決めるようにし、同じシリーズの型どうしは同じ系統の形にする（細部を少し変えるのはよい。形の作り分けは Issue #4）。
 - 前に保存した機体と構成がそのまま読めること（今のキーは残す）。

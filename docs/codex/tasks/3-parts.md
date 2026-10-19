@@ -4,11 +4,13 @@
 
 手順は `docs/codex/parts.md` に沿う。オーナーの指定（2026-10-19）：**調べるだけでなく、性能まで作り込んでゲームに入れてよい**。
 
-1. **調べる**：本作のパーツは3シリーズ（スウィフト＝軽量、ハウンド＝標準、ブルワーク＝重装）で、どれもⅠ型だけ。各シリーズ・各部位（頭・胴・腕・脚）に足すⅡ型・Ⅲ型を、PS4版 wiki の同じ系統（シュライク・クーガー・ヘヴィガードのⅡ・Ⅲ、無ければ近い系統）から選び、`research/parts/types/{head,body,arms,legs}.json` と `README.md` に書く。調べた値の多くは `research/parts/*.md` にある。
-2. **入れる**：本作の値を「本作のⅠ型の値 × wiki の型の値 ÷ wiki のⅠ型の値」で決め、`PARTS` と `PART_SERIES[シリーズ].types` に足す。型のキーを light・standard・heavy の3つと決め打ちしている所（`normMech`、`botMech`、`buildMech`）を直す。
+1. **調べる**：本作のパーツは3シリーズ（スウィフト＝軽量、ハウンド＝標準、ブルワーク＝重装）で、どれもⅠ型だけ。各シリーズ・各部位（頭・胴・腕・脚）に足すⅡ型・Ⅲ型を、アーケード版 wiki（BORDER BREAK @ ウィキ https://w.atwiki.jp/borderbreak/ ）の同じ系統（シュライク・クーガー・ヘヴィガードのⅡ・Ⅲ、無ければ近い系統）から選び、`research/parts/types/{head,body,arms,legs}.json` と `README.md` に書く。写した表は `research/arcade/parts/` に置く。`research/parts/*.md` は PS4版の表なので使わない。
+2. **入れる**：本作の値を「本作のⅠ型の値 × アーケード版の型の値 ÷ アーケード版のⅠ型の値」で決め、`PARTS` と `PART_SERIES[シリーズ].types` に足す。型のキーを light・standard・heavy の3つと決め打ちしている所（`normMech`、`botMech`、`buildMech`）を直す。
 
 ## 守ること
 
+- 数値はアーケード版 wiki の値（オーナーの指定 2026-10-19：PS4版は終盤に性能のインフレが大きかったので、アーケード版に合わせて移植する。PS4版の扱いはその後でオーナーが決める）。読めなかった所は「不明」と書き、推測で埋めない。wiki につながらないときは、そこで止めてそう報告する（PS4版の表や覚えている値で埋めない）。
+- 今のⅠ型の値（PS4版の値）は変えず、アーケード版のⅠ型との差を `research/parts/types/README.md` に表にする。
 - 前に保存した機体と構成（`localStorage` の `coreBreakerMech`・`coreBreakerBuilds`）がそのまま読める。今の型の値は変えない。
 - セットボーナスはシリーズで決まる（型が違っても揃えば付く）。
 - 画面の名前はⅡ型・Ⅲ型。wiki の名前は JSON と README にだけ。

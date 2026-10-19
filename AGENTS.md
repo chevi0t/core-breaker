@@ -20,7 +20,7 @@
 | `prototype/maps/<id>.js` | マップのデータ（書き方 `prototype/maps/README.md`、決まり `prototype/maps/RULES.md`） |
 | `prototype/maps.js` | `python3 tools/build_maps.py` が `maps/` から作る。手で書き換えない |
 | `prototype/sounds.js`・`music.js` | `tools/build_sounds.py` が `sounds/` から作る |
-| `research/` | wiki から調べた数値（`weapons/*.md`、`weapons/types/*.json`、`parts/*.md`） |
+| `research/` | wiki から調べた数値。`weapons/*.md`、`weapons/types/*.json`、`parts/*.md` は PS4版 wiki の表（本作の今の数値の元）。アーケード版 wiki の表は `arcade/` に置く |
 | `mapdesign/` | マップの設計メモと俯瞰図（`map_top.py`） |
 | `tools/` | `build_maps.py`、`gen_rough.py`（地面の起伏）、`build_sounds.py`、`build_zip.py`、`repo_sync.py`、`test/` |
 | `plan.md` | 計画と残タスク |
@@ -36,6 +36,7 @@
 5. Bot もプレイヤーと同じルールで動く。
 6. 公式の素材（画像・モデル・音・ロゴ）を使わない。画面に出す名前に公式の名称（武器名・マップ名・地名・メーカー名）を使わない。wiki の名前は出典としてコードのコメントや `research/` にだけ書く。
 7. 外部の素材を足すなら CC0 か CC BY だけ。出典を `sounds/CREDITS.md` のような CREDITS に書き、作者への礼を丁寧に書く（オーナーの希望）。
+8. 数値の出典はアーケード版 wiki（BORDER BREAK @ ウィキ https://w.atwiki.jp/borderbreak/ 。オーナーの指定 2026-10-19：PS4版は終盤に性能のインフレが大きかったので、アーケード版に合わせて移植する）。PS4版 wiki の値は新しく足す物に使わない（PS4版の扱いはその後でオーナーが決める）。本作に今入っている数値の多くは PS4版の値で、Issue で頼まれない限り変えない。
 
 ## 確かめ方
 

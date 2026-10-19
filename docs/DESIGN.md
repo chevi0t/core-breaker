@@ -162,7 +162,7 @@
 
 ## 4. ルールと数値
 
-数値の出典は [BORDER BREAK (PS4) @ ウィキ](https://w.atwiki.jp/ps4borderbreak/) と [BORDER BREAK @ ウィキ](https://w.atwiki.jp/borderbreak/)（AC版）。距離はマップが小さいぶん縮めているものがある。
+数値の出典は [BORDER BREAK (PS4) @ ウィキ](https://w.atwiki.jp/ps4borderbreak/) と [BORDER BREAK @ ウィキ](https://w.atwiki.jp/borderbreak/)（AC版）。距離はマップが小さいぶん縮めているものがある。2026-10-19 から、新しく足す武器とパーツの型はアーケード版の値に合わせる（ユーザー指定：PS4版は終盤に性能のインフレが大きかった。PS4版の扱いはその後で決める）。今入っている数値の多くは PS4版のまま。
 
 ### 移動（`physics`）
 
