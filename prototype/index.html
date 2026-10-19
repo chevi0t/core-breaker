@@ -2129,7 +2129,7 @@ const PARTS = {
     standard: { weight: 610, armor: 1, lock: 50, aim: 1 },
     heavy: { weight: 830, armor: 0.77, lock: 40, aim: 0.8 },
   },
-  body: { // boost：ブースト容量、sp：SP容量、supply：SPの戻る速さ
+  body: { // boost：ブースト容量、sp：SP回復性能（100基準）、supply：追加の回復倍率
     light: { weight: 1010, armor: 1.24, boost: 120, sp: 80, supply: 1 },
     standard: { weight: 1300, armor: 1, boost: 100, sp: 100, supply: 1 },
     heavy: { weight: 1480, armor: 0.81, boost: 80, sp: 120, supply: 1.1 },
@@ -4515,7 +4515,7 @@ function equip(u, cls) {
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: 'main', prevWeapon: 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
-  Object.assign(u.slots.sp, { cap: P.body.sp, supply: P.body.supply }); // SP容量と戻る速さ（胴部）
+  Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
   weaponLook(u, 0);
 }
 // 光学迷彩と加速装置は、選んだ時点で作動し、もう一度選ぶと止まる。持っている武器はそのまま（v0.9.5、ユーザー指定）。リペアフィールドも同じ（v0.11）
@@ -4879,14 +4879,14 @@ function repairTarget(u, w, aim) {
 }
 // ---- 特別装備 ----
 // SPゲージ（slot.heat、0〜100）：使っていない間は戻る。使い切ると満タンまで使えない（charge 秒。使い切らなければ chargeKeep 秒で満タン）
-// heat は残りの百分率。cap（SP容量、胴部）が大きいほど同じ量を使っても減り方が小さく、満タンまでも長い。supply は戻る速さ
+// heat は共通100%の残量。消費は胴によらない割合。supply は胴SP性能×供給の回復速度倍率（ユーザー指定）。
 function spRegen(sl, dt) {
   const w = sl.w;
-  sl.heat = Math.min(100, sl.heat + 100 / (sl.overheat ? w.charge : w.chargeKeep || w.charge) * dt * sl.supply * 100 / sl.cap);
+  sl.heat = Math.min(100, sl.heat + 100 / (sl.overheat ? w.charge : w.chargeKeep || w.charge) * dt * sl.supply);
   if (sl.overheat && sl.heat >= 100) sl.overheat = false;
 }
 function spUse(sl, amount) {
-  sl.heat -= amount * 100 / sl.cap;
+  sl.heat -= amount;
   if (sl.heat <= 0.01) { sl.heat = 0; sl.overheat = true; }
 }
 // ---- AC由来の追加特別装備 ----
@@ -5022,7 +5022,7 @@ const artilleryShellGeo = new T.ConeGeometry(.28,1.2,8);
 const artilleryWarnGeo = new T.CylinderGeometry(.18,.5,4,8,1,true);
 const artilleryWarnMat = new T.MeshBasicMaterial({color:0xffa33f,transparent:true,opacity:.6,depthWrite:false,side:T.DoubleSide});
 function isArtilleryMode(u) { return !!u && u.alive && u.weapon==='sp' && !!u.slots && u.slots.sp.w.type==='artillery'; }
-function artilleryCost(sl) { return Math.min(100 / sl.w.shots * 100 / sl.cap, 100); }
+function artilleryCost(sl) { return 100 / sl.w.shots; }
 function artilleryInRange(u,p) { return !!p && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.hypot(p.x-u.pos.x,p.z-u.pos.z)<=u.slots.sp.w.range+.001; }
 function stopArtillery(u) {
   if (!isArtilleryMode(u)) return;
@@ -5050,7 +5050,7 @@ function artilleryTick(u,sl,dt,trigger,aim,on,cancel) {
   const from=muzzle(u),mesh=new T.Mesh(artilleryShellGeo,shellMat[u.team]); mesh.position.copy(from);scene.add(mesh);
   barrages.push({owner:u,team:u.team,age:0,flight:w.flight,from,target,mesh,warn:null,warned:false,sparkT:0,spec:{dmg:w.dmg,blast:w.blast,core:true,linear:true,occluded:true}});
   u.artilleryFired++;sl.cd=w.interval||0;
-  spUse(sl,cost*sl.cap/100);sfx(w.sfx,u.pos,u,w.sfxRate);flash(from,0xffbd69,2,.15);
+  spUse(sl,cost);sfx(w.sfx,u.pos,u,w.sfxRate);flash(from,0xffbd69,2,.15);
   if (sl.overheat || sl.heat<cost-.01) stopArtillery(u);
 }
 // 高い屋根・傘から地面へ向けて調べる。機体と設置物は着地点の地形にしない。
@@ -5104,7 +5104,7 @@ function cannonTick(u, sl, dt, trigger, aim, on, cancel) {
   sl.cd -= dt;
   if (u.weapon !== 'sp') { spRegen(sl, dt); return; }
   if (!on) return;
-  if (cancel || sl.heat < cost * 100 / sl.cap - 0.01) { if (sl.cd <= 0) selectWeapon(u, u.prevWeapon); return; }
+  if (cancel || sl.heat < cost - 0.01) { if (sl.cd <= 0) selectWeapon(u, u.prevWeapon); return; }
   if (!trigger || sl.cd > 0) return;
   sl.cd = 60 / w.rpm;
   const from = muzzle(u), v = lobTo(from, aim, w.proj.speed, w.proj.grav).vel;
@@ -5761,7 +5761,7 @@ function wStats(w) {
     if (w.blast) st.push(`当たると爆発 半径${w.blast}m`);
   } else if (w.type === 'sword') st.push(`横なぎ ${w.normal.dmg}`, `${w.strong.spin ? '回転斬り' : '突進突き'} ${w.strong.dmg}`, `間合い ${w.normal.reach}m`, `踏み込み ${w.normal.step}m／ダッシュ中${w.strong.lunge}m`);
   else if (w.type === 'cannon') st.push(`威力 ${w.proj.dmg}×${w.shots}発`, `爆発半径 ${w.proj.blast}m`, `弾速 ${w.proj.speed}m/s`);
-  else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発（標準胴）`, `現在の胴で満タン${Math.floor(100/artilleryCost({w,cap:PARTS.body[mechCfg.body].sp})+.01)}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
+  else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
   else if (w.type === 'barrier') st.push(`防御 ${w.arc}度・LV${w.level}`, `耐久 ${w.shieldHp}`, `連続 ${w.use}秒`);
   else if (w.type === 'escort') st.push(`威力 ${w.dmg}`, `射程 ${w.range}m・射角${w.arc}度`, `弾倉 ${w.mag}発×無制限`, `連射 ${w.rpm}発/分`, `再装填 ${w.reload}秒`, `連続 ${w.use}秒`);
   else if (w.type === 'repairPost') st.push(`回復 毎秒${w.heal}`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒`);
@@ -5796,7 +5796,7 @@ function itemNums(sl, key) {
   if (isPart(sl)) {
     r.push(['被ダメージ', x.armor, pct, false]);
     if (sl === 'head') r.push(['ロック距離', x.lock, u('m'), true], ['弾のばらつき', 1 / x.aim, pct, false]);
-    if (sl === 'body') r.push(['ブースト', x.boost, n0, true], ['SP', x.sp, n0, true], ['SPの戻り', x.supply, pct, true]);
+    if (sl === 'body') r.push(['ブースト', x.boost, n0, true], ['SP回復', x.sp/100*x.supply, pct, true]);
     if (sl === 'arms') r.push(['リロード時間', x.reload, pct, false], ['持ち替え', SWITCH_TIME / x.swap, v => v.toFixed(2) + '秒', false], ['反動', 1 / x.recoil, pct, false], ['主・副武器の弾', x.ammo, pct, true]);
     if (sl === 'legs') r.push(['歩行', x.walk, u('m/s'), true], ['ダッシュ', x.dash, u('m/s'), true], ['巡航', x.cruise, u('m/s'), true], ['重量耐性', x.cap, u('kg'), true]);
     r.push(['重量', x.weight, u('kg'), false]);
@@ -5918,7 +5918,7 @@ $('cuSeries').addEventListener('keydown', e => {
 function partStats(slot, p) {
   const a = [`重量 ${p.weight}kg`, `被ダメージ ${pct(p.armor)}`];
   if (slot === 'head') a.push(`ロック距離 ${p.lock}m`, `弾のばらつき ${pct(1 / p.aim)}`);
-  if (slot === 'body') a.push(`ブースト ${p.boost}`, `SP ${p.sp}`, `SPの戻り ${pct(p.supply)}`);
+  if (slot === 'body') a.push(`ブースト ${p.boost}`, `SP回復 ${pct(p.sp/100*p.supply)}`);
   if (slot === 'arms') a.push(`リロード時間 ${pct(p.reload)}`, `持ち替え ${(SWITCH_TIME / p.swap).toFixed(2)}秒`, `反動 ${pct(1 / p.recoil)}`, `主・副武器の弾 ${pct(p.ammo)}`);
   if (slot === 'legs') a.push(`歩行 ${pct(p.walk / 6)}`, `ダッシュ ${pct(p.dash / 21.8)}`, `巡航 ${pct(p.cruise / 19.7)}`, `重量耐性 ${p.cap}kg`);
   return a;
@@ -6234,7 +6234,7 @@ function hud(timeLeft, dt) {
   $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = Math.round(p.boost);
   $('boost').classList.toggle('oh', p.overheat);
   const sps = p.slots.sp;
-  $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat * sps.cap / 100);
+  $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat);
   $('sp').classList.toggle('oh', sps.overheat);
   $('sp').classList.toggle('hit', spHitT > 0);
   const spOn = p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
