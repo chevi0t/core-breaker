@@ -53,9 +53,13 @@ const {chromium}=require('playwright');
         for(const sh of launches)yes(Math.hypot(sh.target.x-target().x,sh.target.z-target().z)<=w.scatter+1e-6,key+' 各弾の着弾誤差上限');
         step(w.charge+.1);yes(sl.heat===100&&!sl.overheat,key+' 再充填完了');
       }
-      for(const [body,counts]of [['light',[4,9,4,1]],['standard',[6,12,5,1]],['heavy',[7,14,6,1]]])for(const [i,key]of ['artillery','artilleryR','artilleryF','artilleryH'].entries()){
+      for(const [body,counts]of [['light',[6,12,5,1]],['standard',[6,12,5,1]],['heavy',[6,12,5,1]]])for(const [i,key]of ['artillery','artilleryR','artilleryF','artilleryH'].entries()){
         const sl=reset(key,body);g.artilleryConfirm(u,target());step(14);yes(u.artilleryFired===counts[i],key+' '+body+'胴の満タン発数 '+counts[i]);yes(!g.isArtilleryMode(u),key+' '+body+'胴でも弾数分で終了');
         if(key==='artilleryH')yes(sl.heat===0||sl.heat>0&&u.weapon!=='sp',body+'胴でも単発榴弾砲を発射可能');
+      }
+      for(const [body,rate]of [['light',.8],['standard',1],['heavy',1.32]]){
+        const sl=reset('artilleryH',body);g.artilleryConfirm(u,target());step(.01);yes(sl.heat===0&&sl.overheat,body+'胴でも単発は100%消費');step(1);yes(eq(sl.heat,100/62*rate),body+'胴SPは回復速度 '+rate+'倍');
+        reset('artillery',body);g.loadout.heavy.sp='barrier';g.equip(u,'heavy');u.barrierOn=true;const heat=u.slots.sp.heat;g.barrierAbsorb(u,1000,u.pos.clone().add(new T.Vector3(0,2,-4)));yes(eq(heat-u.slots.sp.heat,9.6),body+'胴でもバリアの割合消費は同じ');
       }
       {const sl=reset();u.switchT=.4;g.stopArtillery(u);yes(u.weapon==='sub'&&sl.heat===100,'発射前の右クリック中断はSPを消費しない');}
       {const sl=reset();g.artilleryConfirm(u,target());step(.01);const count=u.artilleryFired,heat=sl.heat;g.stopArtillery(u);yes(g.barrages.length===1&&heat>0&&!sl.overheat,'途中中断は残SPを保ち発射済みの弾を残す');step(1);yes(u.artilleryFired===count&&eq(sl.heat,heat+100/44),'途中中断後は新たに撃たず44秒基準の早いSP回復');}
