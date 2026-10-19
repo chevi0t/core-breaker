@@ -10,7 +10,7 @@ const dir = process.argv[2];
   const p = await b.newPage({ viewport: { width: 640, height: 400 } });
   const errs = [];
   p.on('pageerror', e => { errs.push(e.message); console.log('ERR', e.message); });
-  p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  p.on('console', m => { if (m.type() === 'error' && !/net::ERR_FAILED/.test(m.text())) errs.push(m.text()); });
   await p.route('**fonts.g*/**', r => r.abort());
   await p.goto('file://' + path.resolve(dir, 'dbg.html'));
   await p.evaluate(() => { __g.renderer.render = () => { const u=__g.units[0]; if(u)u.group.parent.updateMatrixWorld(); }; });
@@ -54,6 +54,7 @@ const dir = process.argv[2];
       const g = __g, T = g.T, { sh, tg, al } = __T, w = g.WEAPONS[key];
       // 装備（Botは本来ランダムなので、プレイヤー扱いにして loadout から）
       g.loadout[cls][slot] = key;
+      Object.assign(sh.mech, g.MECH_DEFAULT); // 発数・携行弾数を標準パーツに固定する
       sh.isPlayer = true; g.equip(sh, cls); sh.isPlayer = false;
       const P = w.proj || {};
       const near = w.type === 'artillery' ? 60 : w.type === 'sword' ? (key === 'spear' ? 6 : 4) : w.pellets ? 10 : P.kind === 'sentry' ? 20 : w.type === 'cannon' ? 40 : 18;
