@@ -65,6 +65,10 @@ const dir = process.argv[2];
       sh.pos.set(spot[0], y, spot[1]); sh.vel.set(0, 0, 0);
       Object.assign(tg, { alive: true, hp: 1e6, maxHp: 1e6, stun: '', invulT: 0, cloak: false, weakT: 0, jamT:0, electricT:0, stunT:0, swing: null, vis: 1 });
       tg.pos.set(spot[0], y, spot[1] - near); tg.vel.set(0, 0, 0); tg.group.visible = true;
+      // 直前の武器で倒れた姿勢と古い行列を初弾へ持ち越さない。描画上の構えも選択した武器へ同期する。
+      tg.tilt = 0; sh.group.rotation.set(0, sh.yaw, 0); tg.group.rotation.set(0, tg.yaw, 0);
+      sh.group.position.copy(sh.pos); tg.group.position.copy(tg.pos);
+      g.weaponLook(sh, 0); g.weaponLook(tg, 0); sh.group.parent.updateMatrixWorld(true);
       Object.assign(al, { alive: true, hp: 3000, maxHp: 10000, stun: '', invulT: 0 });
       al.pos.set(spot[0] + 5, y, spot[1] + 1); al.group.visible = true;
       for (const gd of g.gadgets.slice()) g.removeGadget(gd); // 前の試しの設置物を除去（破壊不可の補給箱も含む）
@@ -73,7 +77,8 @@ const dir = process.argv[2];
       const tp = () => new T.Vector3(tg.pos.x, tg.pos.y + 2.4, tg.pos.z);
       // 狙う点：設置物は的の手前の地面、ほかは的の胴体。回復は味方
       const ground = new T.Vector3(spot[0], y, spot[1] - (P.kind === 'sentry' ? 6 : P.hover ? 30 : near - 1));
-      const aimAt = () => w.type === 'artillery' ? new T.Vector3(tg.pos.x,g.terrainH(tg.pos.x,tg.pos.z),tg.pos.z) : w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || P.kind === 'ammo' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
+      // 連鎖ボムは接地して前進する装備。胴を狙うと機体の面で反射するので、手前の地面を狙う。
+      const aimAt = () => w.type === 'artillery' ? new T.Vector3(tg.pos.x,g.terrainH(tg.pos.x,tg.pos.z),tg.pos.z) : w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.chainCount || P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || P.kind === 'ammo' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
       const sp0 = sh.slots.sp.heat, sl = sh.slots[slot], ammo0 = sl.ammo + sl.reserve;
       let shots = 0, maxStun = '', fired = 0;
       if (['charger', 'camo', 'field', 'barrier', 'escort'].includes(w.type)) g.toggleSp(sh);
@@ -95,11 +100,12 @@ const dir = process.argv[2];
         if (tg.stun && !maxStun) maxStun = tg.stun;maxJam=Math.max(maxJam,tg.jamT||0);maxElectric=Math.max(maxElectric,tg.electricT||0);
       }
       const dmg = Math.round(1e6 - tg.hp);
-      return { key, name: w.name, type: w.type, fired: w.type === 'artillery' ? sh.artilleryFired : fired, ammoUsed: ammo0 - (sl.ammo + sl.reserve), dmg, jam:maxJam, electric:maxElectric, supplied:supplied && sh.slots.main.ammo===sh.slots.main.w.mag, stun: maxStun, weak: tg.weakT > 0,
+      return { key, name: w.name, type: w.type, chain: !!P.chainCount, fired: w.type === 'artillery' ? sh.artilleryFired : fired, ammoUsed: ammo0 - (sl.ammo + sl.reserve), dmg, jam:maxJam, electric:maxElectric, supplied:supplied && sh.slots.main.ammo===sh.slots.main.w.mag, stun: maxStun, weak: tg.weakT > 0,
         gadgets: g.gadgets.map(x => x.name + (x.pos.y - y > 1 ? `@${Math.round(x.pos.y - y)}m` : '') + (dbgPos ? `(${(x.pos.x - sh.pos.x).toFixed(1)},${(x.pos.z - sh.pos.z).toFixed(1)}) tg(${(tg.pos.x - sh.pos.x).toFixed(1)},${(tg.pos.z - sh.pos.z).toFixed(1)})` : '')).join(','), spotted: g.spotted.B.has(tg), drones: g.drones.length,
         sp: Math.round(sp0) + '→' + Math.round(sh.slots.sp.heat), on: [sh.chargerOn && 'charger', sh.cloak && 'cloak', sh.fieldOn && 'field', sh.barrierOn && 'barrier', sh.escortOn && 'escort'].filter(Boolean).join(''), allyHp: Math.round(al.hp) };
     }, [cls, slot, key, spot, !!process.env.ONLY]);
     results.push(r);
+    if (r.chain && r.dmg <= 0) throw new Error(key + ': 接地した連鎖ボムの実ダメージなし');
     console.log(`${cls}/${slot} ${r.key} ${r.name}: 発射${r.fired} 弾減${r.ammoUsed} ダメ${r.dmg}${r.stun ? ' 崩れ=' + r.stun : ''}${r.weak ? ' 弱化' : ''}${r.jam ? ' 妨害='+r.jam.toFixed(1)+'秒' : ''}${r.electric ? ' 硬直='+r.electric.toFixed(1)+'秒' : ''}${r.supplied ? ' 補給完了' : ''}${r.gadgets ? ' 設置=' + r.gadgets : ''}${r.spotted ? ' 索敵' : ''}${r.drones ? ' 偵察機' + r.drones : ''} SP${r.sp}${r.on ? ' 作動=' + r.on : ''} 味方HP${r.allyHp}`);
   }
   console.log('エラー', errs);
