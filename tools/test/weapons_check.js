@@ -10,7 +10,7 @@ const dir = process.argv[2];
   const p = await b.newPage({ viewport: { width: 640, height: 400 } });
   const errs = [];
   p.on('pageerror', e => { errs.push(e.message); console.log('ERR', e.message); });
-  p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  p.on('console', m => { if (m.type() === 'error' && !/net::ERR_FAILED/.test(m.text())) errs.push(m.text()); });
   await p.route('**fonts.g*/**', r => r.abort());
   await p.goto('file://' + path.resolve(dir, 'dbg.html'));
   await p.evaluate(() => { __g.renderer.render = () => { const u=__g.units[0]; if(u)u.group.parent.updateMatrixWorld(); }; });
