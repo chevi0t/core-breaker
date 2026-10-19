@@ -6,7 +6,8 @@ const {chromium}=require('playwright'),source=require('../../research/weapons/ty
  const dir=path.resolve(process.argv[2]||'dbg/auxiliary'),out=path.resolve(process.argv[3]||path.join(dir,'auxiliary'));fs.mkdirSync(out,{recursive:true});
  const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
  try{
-  const p=await b.newPage({viewport:{width:1360,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  const p=await b.newPage({viewport:{width:1360,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/net::ERR_FAILED/.test(m.text()))errors.push(m.text());});
+  await p.route('**fonts.g*/**',r=>r.abort());
   await p.goto('file://'+path.join(dir,'dbg.html'));
   await p.evaluate(()=>{__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();};__g.selectMap('dock');document.getElementById('start').click();__g.running=false;});
   const stats=await p.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));assert.equal(Object.keys(stats.weapons).length,285);const keys=[];
