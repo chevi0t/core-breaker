@@ -1,0 +1,143 @@
+[
+  {
+    "base": "light",
+    "series": "シュライク",
+    "source": "https://w.atwiki.jp/borderbreak/pages/315.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "シュライクI型",
+      "weight": 660.0,
+      "armor": 1.25,
+      "recoil": 0.9,
+      "reload": 0.91,
+      "swap": 1.2,
+      "ammo": 1.0
+    },
+    "types": [
+      {
+        "name": "シュライクII型",
+        "weight": 620.0,
+        "armor": 1.32,
+        "recoil": 0.75,
+        "reload": 0.82,
+        "swap": 1.4,
+        "ammo": 1.0,
+        "key": "light2",
+        "label": "Ⅱ型",
+        "trait": "軽く持ち替えとリロードが速いが装甲と反動吸収が下がる"
+      },
+      {
+        "name": "シュライクV型",
+        "weight": 700.0,
+        "armor": 1.25,
+        "recoil": 1.0,
+        "reload": 0.86,
+        "swap": 1.1,
+        "ammo": 1.18,
+        "key": "light3",
+        "label": "Ⅲ型",
+        "trait": "リロードと反動吸収と携行弾数が上がるが重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "シュライクW型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "standard",
+    "series": "クーガー",
+    "source": "https://w.atwiki.jp/borderbreak/pages/308.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "クーガーI",
+      "weight": 850.0,
+      "armor": 1.0,
+      "recoil": 1.0,
+      "reload": 1.0,
+      "swap": 1.0,
+      "ammo": 1.0
+    },
+    "types": [
+      {
+        "name": "クーガーII",
+        "weight": 860.0,
+        "armor": 1.0,
+        "recoil": 1.2,
+        "reload": 1.09,
+        "swap": 1.0,
+        "ammo": 1.32,
+        "key": "standard2",
+        "label": "Ⅱ型",
+        "trait": "反動吸収と携行弾数が上がるがリロードが遅い"
+      },
+      {
+        "name": "クーガーS",
+        "weight": 900.0,
+        "armor": 0.9,
+        "recoil": 1.25,
+        "reload": 1.0,
+        "swap": 1.0,
+        "ammo": 1.45,
+        "key": "standard3",
+        "label": "Ⅲ型",
+        "trait": "装甲と反動吸収と携行弾数が上がるが重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "クーガーNX",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "heavy",
+    "series": "ヘヴィガード",
+    "source": "https://w.atwiki.jp/borderbreak/pages/313.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "ヘヴィガードI型",
+      "weight": 1000.0,
+      "armor": 0.78,
+      "recoil": 1.25,
+      "reload": 1.18,
+      "swap": 0.8,
+      "ammo": 1.5
+    },
+    "types": [
+      {
+        "name": "ヘヴィガードIII型",
+        "weight": 1120.0,
+        "armor": 0.71,
+        "recoil": 1.45,
+        "reload": 1.23,
+        "swap": 0.7,
+        "ammo": 1.63,
+        "key": "heavy2",
+        "label": "Ⅱ型",
+        "trait": "装甲と反動吸収と携行弾数が上がるが遅く重い"
+      },
+      {
+        "name": "ヘヴィガードIV型",
+        "weight": 1050.0,
+        "armor": 0.78,
+        "recoil": 1.2,
+        "reload": 1.04,
+        "swap": 0.95,
+        "ammo": 1.59,
+        "key": "heavy3",
+        "label": "Ⅲ型",
+        "trait": "リロードと持ち替えと携行弾数が上がるが反動吸収が下がる"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "ヘヴィガードG型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  }
+]
