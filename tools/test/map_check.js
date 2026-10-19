@@ -55,10 +55,11 @@ const quick = flag === '--quick';
   // 2. プラントのリペアポッドの上の機体が、敵陣側（ポッドより敵ベース寄り）のどこから見えるか。15m格子の目の高さ4.6mから胴と頭を狙う
   console.log('\n2. プラントのポッドが敵陣側から見えるか（自軍側の半分のポッド。15m格子、そのプラントの中心より敵ベース寄りで180m以内）\n' + await E(() => {
     const g = __g, T = g.T, e = __dummy, out = [], [mx, mz] = g.curMap.size;
-    for (const pod of g.pods.filter(pd => pd.plant && pd.pos.z > 0)) {
+    for (const pod of g.pods.filter(pd => pd.plant && (g.curMap.asym || pd.pos.z > 0))) {
       e.pos.set(pod.pos.x, g.terrainH(pod.pos.x, pod.pos.z), pod.pos.z); e.group.position.copy(e.pos); e.group.updateMatrixWorld(true);
       let n = 0; const seen = [];
-      for (let x = -mx + 5; x <= mx - 5; x += 15) for (let z = pod.plant.pos.z; z >= -mz + 5; z -= 15) {
+      const side = pod.plant.pos.z >= 0 ? 1 : -1;
+      for (let x = -mx + 5; x <= mx - 5; x += 15) for (let z = pod.plant.pos.z; side * z >= -mz + 5; z -= 15 * side) {
         if (Math.hypot(x - pod.pos.x, z - pod.pos.z) > 180) continue;
         n++;
         const eye = new T.Vector3(x, g.terrainH(x, z) + 4.6, z);
@@ -90,7 +91,7 @@ const quick = flag === '--quick';
     // 4. カタパルト（自軍側の半分の台）：乗って、着地した所と目標の差
     console.log('\n4. カタパルト（自軍側の台。目標はマップに書いた着地点。ゲームと同じ1/60秒刻みで、描画を止めて測る）');
     await E(() => { window.__render = __g.renderer.render; __g.renderer.render = () => {}; window.__dt = 1 / 60; });
-    const cats = await E(() => __g.catapults.filter(c => c.pos.z > 0).map(c => ({ x: c.pos.x, z: c.pos.z, plant: c.plant ? c.plant.id : null, tx: c.land.x, tz: c.land.z })));
+    const cats = await E(() => __g.catapults.filter(c => __g.curMap.asym || c.pos.z > 0).map(c => ({ x: c.pos.x, z: c.pos.z, plant: c.plant ? c.plant.id : null, tx: c.land.x, tz: c.land.z })));
     for (const c of cats) {
       // 台の真ん中に置き、着地したコマで止めて位置を取る（前のコマとの間を高さの比で補間する。着地の後に滑った分は数えない）
       const { fl, r } = await E(([c]) => new Promise(res => {

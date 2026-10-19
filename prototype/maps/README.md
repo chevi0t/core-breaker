@@ -53,6 +53,12 @@
 - 施設・ポッド・カタパルトは置いた場所の地面（`terrainH`）に乗るので、高さは書かない。斜面に置いた障害物は低い側の地面まで埋まり、高い側の地面から「高さ」ぶん出る。
 - マップの外周には壁が自動で付く。
 
+### 非対称の生成マップ（`asym: true`）
+
+`tools/generate_map.js` の出力は `asym: true` を持つ。この場合、`terrain`・`layout`・`bridges`・`water`・`barricades`・`nav` は**両陣営を含む全域**を書き、点対称に増やさない。nav の節点は高さを持てるが、`~番号` は使わない。プラントとプラントのポッドは従来どおり全部書く。ベースの `turrets`・`radar`・`basePods`・`catapults` には従来どおり自軍側を書き、両軍へ展開する。`asym` を省略した既存マップは従来と同じ。
+
+生成地形は `--seed`、施設配置は `--placement-seed` で分離して再現する。起伏は `tools/gen_rough.py`、施設検査は `map_check.js` を使い、地形・配置・実走行の検査に通った開発候補を保存する。現在の候補は**勝率未確定**で、完全自律生成の統計的な最終合格を意味しない。手順と検証結果は `mapdesign/circulation/README.md`。
+
 ### 地形の種類（`terrain` の `type`）
 
 | 種類 | 項目 | 形 |

@@ -663,7 +663,9 @@ function mirrored(f) {
   if (f.type === 'trench') return { ...f, x: -f.x, z0: -f.z1, z1: -f.z0 };
   return { ...f, x: -f.x, z: -f.z };
 }
-const featuresOf = terrain => terrain.flatMap(f => f.x === 0 && f.z === 0 ? [f] : [f, mirrored(f)]);
+// asym の地形・障害物・橋・水面・通り道は両側を明記する。ベースの施設は従来どおり。
+const placementSigns = (x, z, asym = curMap?.asym) => asym || !(x || z) ? [1] : [1, -1];
+const featuresOf = (terrain, asym = curMap?.asym) => asym ? terrain : terrain.flatMap(f => f.x === 0 && f.z === 0 ? [f] : [f, mirrored(f)]);
 let features = [];
 function featureH(f, x, z) {
   if (f.type === 'mesa') return f.h * (1 - smooth((Math.hypot(x - f.x, z - f.z) - f.r) / f.slope));
@@ -831,7 +833,7 @@ function addParapet(x, z, w, d, top, mat) {
 const wallMat = new T.MeshLambertMaterial({ color: 0x6c6a63 });
 function buildBoxes(layout) {
   const roofs = {};
-  for (const [x, z, w, d, h, kind] of layout) for (const s of x || z ? [1, -1] : [1]) {
+  for (const [x, z, w, d, h, kind] of layout) for (const s of placementSigns(x, z)) {
     if (!KINDS.includes(kind)) { addBox(x * s, z * s, w, d, h); continue; }
     // 色は自軍側の座標で決める（敵軍側の点対称の建物も同じ色）
     const color = kind === 'house' ? WALL_COLORS[Math.floor(hash01(x * 1.7 + 3, z * 2.3) * WALL_COLORS.length)] : STONE[kind];
@@ -858,7 +860,7 @@ const waterMat = new T.MeshLambertMaterial({ color: 0x3d7fae, transparent: true,
 let waters = []; // ミニマップ用の [x0, z0, x1, z1]
 function buildWater(list = []) {
   waters = [];
-  for (const [x, z, hx, hz, y] of list) for (const s of x || z ? [1, -1] : [1]) {
+  for (const [x, z, hx, hz, y] of list) for (const s of placementSigns(x, z)) {
     const m = new T.Mesh(new T.PlaneGeometry(hx * 2, hz * 2), waterMat);
     m.rotation.x = -Math.PI / 2; m.position.set(x * s, y, z * s); m.receiveShadow = true;
     mapRoot.add(m);
@@ -871,7 +873,7 @@ const bridgeMat = new T.MeshLambertMaterial({ color: 0xa39d90 });
 let bridges = [];
 function buildBridges(list = []) {
   bridges = [];
-  for (const [x, z, w, d, y, th] of list) for (const s of x || z ? [1, -1] : [1]) {
+  for (const [x, z, w, d, y, th] of list) for (const s of placementSigns(x, z)) {
     const m = new T.Mesh(new T.BoxGeometry(w, th, d), bridgeMat);
     m.position.set(x * s, y - th / 2, z * s);
     m.castShadow = m.receiveShadow = true;
@@ -892,13 +894,13 @@ function buildNav(nav) {
   NAV = null;
   if (!nav || !nav.nodes || !nav.nodes.length) return;
   const n = nav.nodes.length, pts = nav.nodes.map(([x, z, y]) => ({ x, z, y: y ?? terrainH(x, z) })), flip = [];
-  nav.nodes.forEach(([x, z], i) => { if (x === 0 && z === 0) flip[i] = i; else { flip[i] = pts.length; flip[pts.length] = i; pts.push({ x: -x, z: -z, y: pts[i].y }); } });
+  nav.nodes.forEach(([x, z], i) => { if (curMap.asym || x === 0 && z === 0) flip[i] = i; else { flip[i] = pts.length; flip[pts.length] = i; pts.push({ x: -x, z: -z, y: pts[i].y }); } });
   const at = r => typeof r === 'string' && r[0] === '~' ? flip[+r.slice(1)] : r;
   const links = [], seen = new Set();
   for (const [r0, r1] of nav.links || []) {
     const a = at(r0), b = at(r1);
     if (!(a >= 0 && a < pts.length && b >= 0 && b < pts.length)) { console.warn(`nav のリンク [${r0}, ${r1}] の節点が無い`); continue; }
-    for (const [p, q] of [[a, b], [flip[a], flip[b]]]) {
+    for (const [p, q] of curMap.asym ? [[a, b]] : [[a, b], [flip[a], flip[b]]]) {
       const key = Math.min(p, q) + ',' + Math.max(p, q);
       if (p === q || seen.has(key)) continue;
       seen.add(key);
@@ -1690,7 +1692,7 @@ function stripeTexture() {
 const stripes = stripeTexture();
 const barricades = [];
 function buildBarricades(list) {
-for (const [x, z, w, d, h] of list) for (const s of [1, -1]) {
+for (const [x, z, w, d, h] of list) for (const s of curMap.asym ? [1] : [1, -1]) {
   const mat = new T.MeshLambertMaterial({ map: stripes, color: 0xffffff });
   const mesh = new T.Mesh(new T.BoxGeometry(w, h, d), mat);
   const base = terrainH(x * s, z * s);
@@ -5091,7 +5093,7 @@ function mechPreview(dt) {
 const mapInfo = d => `${d.team}対${d.team}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
-  const [mx, mz] = d.size, W = cv.width, H = cv.height, g = cv.getContext('2d'), fs = featuresOf(d.terrain);
+  const [mx, mz] = d.size, W = cv.width, H = cv.height, g = cv.getContext('2d'), fs = featuresOf(d.terrain, !!d.asym);
   const img = g.createImageData(W, H);
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
     const h = terrainShape(-mx + (i + 0.5) / W * mx * 2, -mz + (j + 0.5) / H * mz * 2, fs, d.baseLine), k = (j * W + i) * 4;
@@ -5101,9 +5103,9 @@ function drawMapPreview(cv, d) {
   g.putImageData(img, 0, 0);
   const sx = x => (x + mx) / (mx * 2) * W, sz = z => (z + mz) / (mz * 2) * H;
   g.fillStyle = 'rgba(255,255,255,.3)';
-  for (const [x, z, w, dd] of d.layout) for (const k of (x || z ? [1, -1] : [1])) g.fillRect(sx(x * k - w / 2), sz(z * k - dd / 2), Math.max(1, w / mx / 2 * W), Math.max(1, dd / mz / 2 * H));
+  for (const [x, z, w, dd] of d.layout) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - w / 2), sz(z * k - dd / 2), Math.max(1, w / mx / 2 * W), Math.max(1, dd / mz / 2 * H));
   g.fillStyle = 'rgba(70, 150, 220, .7)';
-  for (const [x, z, hx, hz] of d.water || []) for (const k of (x || z ? [1, -1] : [1])) g.fillRect(sx(x * k - hx), sz(z * k - hz), Math.max(1, hx / mx * W), Math.max(1, hz / mz * H));
+  for (const [x, z, hx, hz] of d.water || []) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - hx), sz(z * k - hz), Math.max(1, hx / mx * W), Math.max(1, hz / mz * H));
   for (const k of ['B', 'R']) { g.fillStyle = TEAM[k].css; g.beginPath(); g.arc(sx(0), sz(k === 'B' ? d.baseZ : -d.baseZ), 4, 0, 7); g.fill(); }
   g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const [id, x, z, start] of d.plants) {

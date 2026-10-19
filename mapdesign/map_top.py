@@ -10,16 +10,18 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
 mid = sys.argv[1]
+base_id, _, variant_id = mid.partition("-")
 out = sys.argv[2] if len(sys.argv) > 2 else f"map_{mid}_top.png"
-js = f"global.window={{}};eval(require('fs').readFileSync('{ROOT}/prototype/maps/{mid}.js','utf8'));console.log(JSON.stringify(window.MAP_DATA['{mid}']))"
+js = f"global.window={{}};eval(require('fs').readFileSync('{ROOT}/prototype/maps/{base_id}.js','utf8'));console.log(JSON.stringify(window.MAP_DATA['{base_id}']))"
 d = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+if variant_id: d = {**d, **d["variants"][variant_id]}
 
 def smooth(t): return 0 if t <= 0 else 1 if t >= 1 else t * t * (3 - 2 * t)
 def mirrored(f):
     if f["type"] == "ramp": return {**f, "x0": -f["x1"], "x1": -f["x0"], "z0": -f["z0"], "z1": -f["z1"]}
     if f["type"] == "trench": return {**f, "x": -f["x"], "z0": -f["z1"], "z1": -f["z0"]}
     return {**f, "x": -f["x"], "z": -f["z"]}
-fs = [g for f in d["terrain"] for g in ([f] if f.get("x") == 0 and f.get("z") == 0 else [f, mirrored(f)])]
+fs = d["terrain"] if d.get("asym") else [g for f in d["terrain"] for g in ([f] if f.get("x") == 0 and f.get("z") == 0 else [f, mirrored(f)])]
 def featureH(f, x, z):
     t = f["type"]
     if t == "mesa": return f["h"] * (1 - smooth((math.hypot(x - f["x"], z - f["z"]) - f["r"]) / f["slope"]))
@@ -44,7 +46,7 @@ def H(x, z):
         else: down += h
     return (up + down) * (1 - smooth((abs(z) - d["baseLine"]) / 25))
 
-wrs = [r for w in d.get("water", []) for r in (w, [-w[0], -w[1]] + w[2:])]
+wrs = d.get("water", []) if d.get("asym") else [r for w in d.get("water", []) for r in (w, [-w[0], -w[1]] + w[2:])]
 def in_water(x, z): return any(abs(x - w[0]) <= w[2] and abs(z - w[1]) <= w[3] for w in wrs)
 mx, mz = d["size"]; S = 2  # 1m = 2px
 W, Hh = mx * 2 * S, mz * 2 * S
@@ -61,7 +63,7 @@ for j in range(Hh):
         px[i, j] = c
 dr = ImageDraw.Draw(img, "RGBA")
 P = lambda x, z: ((x + mx) * S, (z + mz) * S)
-def both(x, z): return [(x, z)] + ([] if x == 0 and z == 0 else [(-x, -z)])
+def both(x, z, geometry=True): return [(x, z)] + ([] if x == 0 and z == 0 or geometry and d.get("asym") else [(-x, -z)])
 for x, z, w, dd, h, *_ in d["layout"] + d["barricades"]:
     for X, Z in both(x, z):
         a, b = P(X - w / 2, Z - dd / 2), P(X + w / 2, Z + dd / 2)
@@ -70,14 +72,15 @@ for x, z, w, dd, top, th in d.get("bridges", []):  # 橋の板（茶色の枠）
     for X, Z in both(x, z):
         dr.rectangle([P(X - w / 2, Z - dd / 2), P(X + w / 2, Z + dd / 2)], fill=(150, 110, 60, 120), outline=(120, 80, 30), width=2)
 nv = d.get("nav")
-if nv:  # Botの通り道（水色の線と点）
+if nv and '--no-nav' not in sys.argv:  # Botの通り道（水色の線と点）。密な自動生成経路は別図にできる
     def node(r):
-        if isinstance(r, str): x, z = nv["nodes"][int(r[1:])]; return (-x, -z)
-        return tuple(nv["nodes"][r])
+        if isinstance(r, str): x, z = nv["nodes"][int(r[1:])][:2]; return (-x, -z)
+        return tuple(nv["nodes"][r][:2])
     for a, b in nv["links"]:
         A, B = node(a), node(b)
-        for k in (1, -1): dr.line([P(A[0] * k, A[1] * k), P(B[0] * k, B[1] * k)], fill=(0, 220, 255, 170), width=2)
-    for i, (x, z) in enumerate(nv["nodes"]):
+        for k in ((1,) if d.get("asym") else (1, -1)): dr.line([P(A[0] * k, A[1] * k), P(B[0] * k, B[1] * k)], fill=(0, 220, 255, 170), width=2)
+    for i, point in enumerate(nv["nodes"]):
+        x, z = point[:2]
         for X, Z in both(x, z): dr.ellipse([P(X - 2, Z - 2), P(X + 2, Z + 2)], fill=(0, 220, 255))
         dr.text(P(x + 2, z + 2), str(i), fill=(0, 90, 120))
 for x, z in [(0, d["baseZ"]), (0, -d["baseZ"])]:
@@ -91,10 +94,10 @@ for pid, x, z, own in d["plants"]:
         dr.line([(X - 5, Z - 5), (X + 5, Z + 5)], fill=(255, 255, 0), width=2); dr.line([(X - 5, Z + 5), (X + 5, Z - 5)], fill=(255, 255, 0), width=2)
 for _, x, z in d["plantPods"]: dr.ellipse([P(x - 3, z - 3), P(x + 3, z + 3)], fill=(60, 200, 90))
 for x, z in d["basePods"]:
-    for X, Z in both(x, z): dr.ellipse([P(X - 3, Z - 3), P(X + 3, Z + 3)], fill=(60, 200, 90))
+    for X, Z in both(x, z, False): dr.ellipse([P(X - 3, Z - 3), P(X + 3, Z + 3)], fill=(60, 200, 90))
 for x, z in d["turrets"]:
-    for X, Z in both(x, z): dr.rectangle([P(X - 2, Z - 2), P(X + 2, Z + 2)], fill=(255, 120, 0))
-for X, Z in both(*d["radar"]): dr.ellipse([P(X - 4, Z - 4), P(X + 4, Z + 4)], fill=(170, 80, 220))
+    for X, Z in both(x, z, False): dr.rectangle([P(X - 2, Z - 2), P(X + 2, Z + 2)], fill=(255, 120, 0))
+for X, Z in both(*d["radar"], False): dr.ellipse([P(X - 4, Z - 4), P(X + 4, Z + 4)], fill=(170, 80, 220))
 for c in d["catapults"]:
     for k in (1, -1):
         a, b = P(c[0] * k, c[1] * k), P(c[2] * k, c[3] * k)

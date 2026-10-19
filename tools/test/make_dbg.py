@@ -17,9 +17,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 P = ROOT / "prototype"
 CDN_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
 EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, cores, plants, turrets, pods, catapults, shells, barricades, fx, WEAPONS, CLASSES,
-  equip, selectWeapon, pickClass, destroyTurret, kill, spawn, obstacles, TEAM, terrainH, terrainHit, castFrom, gadgets, drones, spotted, SLOTS,
+  equip, selectWeapon, pickClass, destroyTurret, kill, spawn, setup, loop, get ended() { return ended; }, obstacles, TEAM, terrainH, terrainHit, castFrom, gadgets, drones, spotted, SLOTS,
   physics, damage, radars, SC, impact, keys, blast, shoot, shot, repairTick, MAPS, buildMap, selectMap, showPage, PLANT_R, resetPlants,
-  navPath, navNear, clearPath, renderer, get NAV() { return NAV; }, get bridges() { return bridges; }, get waters() { return waters; },
+  navPath, navNear, clearPath, buildNav, groundAt, botUpdate, launch, renderer, get pathEndH() { return pathEndH; }, get NAV() { return NAV; }, get bridges() { return bridges; }, get waters() { return waters; },
   get curMap() { return curMap; }, get mapId() { return mapId; }, get MATCH() { return MATCH; },
   get timeLeft() { return timeLeft; }, set timeLeft(v) { timeLeft = v; },
   get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
