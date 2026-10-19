@@ -1,0 +1,248 @@
+{
+  "map": "circulation-v3",
+  "mapAndEngineSourceCommit": "51a6b74ab7db9a10f1ade1b4c3249b826aae59dc",
+  "engineSha256": "758b35e0cab611656ba353489c2eaa25f72c614c9cee61c7a7be3d30240c14ae",
+  "mapSourceSha256": "7e83425507d47648b8ab9b0de90792a02cc230e55d1ad34f40032f4c2aad7156",
+  "battleRunnerSha256": "5bc9ee1a2611f274cb1c5cf237326c6a937b070104ca19d9f4da2f99a9cb200e",
+  "command": "node tools/test/map_battle.js dbg circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3,circulation-v3 301 mapdesign/circulation/battles-v3-extra-10.json 20261029",
+  "conditions": "前回と同じ地形・配置・本体、5対5の既存兵装・役割構成。プレイヤー機もBot化し、描画を省いて本体のゲームループを0.05秒刻みで進めた。",
+  "seeds": [
+    20261029,
+    20261030,
+    20261031,
+    20261032,
+    20261033,
+    20261034,
+    20261035,
+    20261036,
+    20261037,
+    20261038
+  ],
+  "additional": {
+    "matches": 10,
+    "completed": 10,
+    "simulatedSeconds": 3000,
+    "wins": {
+      "B": 2,
+      "R": 7,
+      "draw": 1
+    },
+    "endedBy": {
+      "time": 10
+    },
+    "meanFinalCore": {
+      "B": 4288.3,
+      "R": 5484.4
+    },
+    "meanOrangeCoreLead": 1196.1,
+    "kills": {
+      "B": 466,
+      "R": 484
+    },
+    "captureChanges": 93,
+    "plantOccupancy": [
+      {
+        "plant": "A",
+        "seconds": {
+          "B": 2947.8,
+          "R": 4.0,
+          "neutral": 48.2
+        },
+        "meanSecondsPerMatch": {
+          "B": 294.78,
+          "R": 0.4,
+          "neutral": 4.82
+        }
+      },
+      {
+        "plant": "B",
+        "seconds": {
+          "B": 2649.25,
+          "R": 88.2,
+          "neutral": 262.55
+        },
+        "meanSecondsPerMatch": {
+          "B": 264.93,
+          "R": 8.82,
+          "neutral": 26.26
+        }
+      },
+      {
+        "plant": "C",
+        "seconds": {
+          "B": 2389.1,
+          "R": 80.6,
+          "neutral": 530.3
+        },
+        "meanSecondsPerMatch": {
+          "B": 238.91,
+          "R": 8.06,
+          "neutral": 53.03
+        }
+      },
+      {
+        "plant": "D",
+        "seconds": {
+          "B": 547.1,
+          "R": 1813.6,
+          "neutral": 639.3
+        },
+        "meanSecondsPerMatch": {
+          "B": 54.71,
+          "R": 181.36,
+          "neutral": 63.93
+        }
+      },
+      {
+        "plant": "E",
+        "seconds": {
+          "B": 433.05,
+          "R": 2176.95,
+          "neutral": 390.0
+        },
+        "meanSecondsPerMatch": {
+          "B": 43.3,
+          "R": 217.69,
+          "neutral": 39.0
+        }
+      }
+    ],
+    "layers": {
+      "upper": 777,
+      "west": 3794,
+      "center": 17839,
+      "east": 1357
+    },
+    "stallCandidateSamples": 156,
+    "errors": 0,
+    "orangeWinFraction": 0.7,
+    "orangeWinFractionWilson95": [
+      0.39677814746114537,
+      0.8922087325936989
+    ]
+  },
+  "cumulative": {
+    "matches": 13,
+    "completed": 13,
+    "simulatedSeconds": 3900,
+    "wins": {
+      "B": 2,
+      "R": 10,
+      "draw": 1
+    },
+    "endedBy": {
+      "time": 13
+    },
+    "meanFinalCore": {
+      "B": 4371.69,
+      "R": 5602.31
+    },
+    "meanOrangeCoreLead": 1230.62,
+    "kills": {
+      "B": 599,
+      "R": 629
+    },
+    "captureChanges": 129,
+    "plantOccupancy": [
+      {
+        "plant": "A",
+        "seconds": {
+          "B": 3800.95,
+          "R": 4.0,
+          "neutral": 95.05
+        },
+        "meanSecondsPerMatch": {
+          "B": 292.38,
+          "R": 0.31,
+          "neutral": 7.31
+        }
+      },
+      {
+        "plant": "B",
+        "seconds": {
+          "B": 3397.55,
+          "R": 129.1,
+          "neutral": 373.35
+        },
+        "meanSecondsPerMatch": {
+          "B": 261.35,
+          "R": 9.93,
+          "neutral": 28.72
+        }
+      },
+      {
+        "plant": "C",
+        "seconds": {
+          "B": 2856.7,
+          "R": 336.5,
+          "neutral": 706.8
+        },
+        "meanSecondsPerMatch": {
+          "B": 219.75,
+          "R": 25.88,
+          "neutral": 54.37
+        }
+      },
+      {
+        "plant": "D",
+        "seconds": {
+          "B": 669.55,
+          "R": 2383.75,
+          "neutral": 846.7
+        },
+        "meanSecondsPerMatch": {
+          "B": 51.5,
+          "R": 183.37,
+          "neutral": 65.13
+        }
+      },
+      {
+        "plant": "E",
+        "seconds": {
+          "B": 472.35,
+          "R": 2934.75,
+          "neutral": 492.9
+        },
+        "meanSecondsPerMatch": {
+          "B": 36.33,
+          "R": 225.75,
+          "neutral": 37.92
+        }
+      }
+    ],
+    "layers": {
+      "upper": 1126,
+      "west": 4891,
+      "center": 23171,
+      "east": 1775
+    },
+    "stallCandidateSamples": 208,
+    "errors": 0,
+    "orangeWinFraction": 0.7692307692307693,
+    "orangeWinFractionWilson95": [
+      0.49743624053272495,
+      0.9182047128150143
+    ]
+  },
+  "cumulativeInputs": [
+    {
+      "path": "battles-10.json",
+      "filter": {
+        "map": "circulation-v3"
+      },
+      "matches": 3
+    },
+    {
+      "path": "battles-v3-extra-10.json",
+      "matches": 10
+    }
+  ],
+  "balance": "勝率未確定。今回のBot構成では橙の勝利が多いが、地形・配置・Bot構成の影響は切り分けていない。陣営を入れ替えた構成比較も未実施。",
+  "samplingNotes": [
+    "橙勝利の割合は引き分けも分母に含める。Wilson区間は各試合を独立な試行と仮定した参考値であり、統計的合格を意味しない。",
+    "コア残量の平均は各試合の整数に丸めた記録を集計した値。",
+    "初期乱数は記録するが、ブラウザ対戦の完全な再現性は未検証。",
+    "layers は生存機を1秒ごとに数えた標本。upper は地上高5m超の面に接地中。",
+    "stallCandidateSamples は移動入力あり・交戦目標なし・非飛行で前標本からの移動が0.5m未満の件数。連続停滞時間や経路探索失敗の確定件数ではない。"
+  ]
+}
