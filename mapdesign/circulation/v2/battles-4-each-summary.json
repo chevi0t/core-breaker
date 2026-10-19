@@ -1,0 +1,141 @@
+{
+  "testedCommit": "9b66b4ca02d9ced1874b17500ba815cef4beef7f",
+  "sha256": {
+    "prototype/index.html": "425b03aff1bdf4addc7eb1e2324ad77ff8056bbf2043934e2185b85e143e5a1a",
+    "prototype/maps/circulation.js": "66cc268e145f22a5d1ffcbd7147846df6d521e24e410f38b465065bb2a14032b",
+    "prototype/maps.js": "f9f1e745cd2b1c0229f11c1151c79e34dcc206b03839ad3d9336730d3370223d",
+    "tools/test/make_dbg.py": "49af035a5c5d7aa9a3fa0ef9e91343e2fbc1ad2f2f1e3d2de955a42184141ea6",
+    "tools/test/map_battle.js": "daa7545ae7e76c327b4b05dbab1d5d64290e8159a5b767c51b200d986548c639",
+    "tools/test/mobility_observer.js": "7ffe7e3c7604b7462ede6c6e442c53847239faa502b86ceb4e09d422dc8d894d"
+  },
+  "command": "node tools/test/map_battle.js dbg circulation,circulation-v2,circulation-v3,circulation,circulation-v2,circulation-v3,circulation,circulation-v2,circulation-v3,circulation,circulation-v2,circulation-v3 301 mapdesign/circulation/v2/battles-4-each.json 20261071",
+  "protocol": "新しく各4試合。5対5、全機Bot、現行の役割・兵装・機体割当を使用。地形とゲーム本体は9b66b4cのまま、初期乱数のみ変更。構成の陣営入替なし。",
+  "winRateDefinition": "勝利数÷全4試合×100。引き分けも分母に含め、引き分け率を別記。勝者は表示用に丸める前のコア残量に対する本体の判定。",
+  "uncertainty": "Wilson 95%区間は、独立な試行を仮定した参考値。各4試合では陣営バランスの合否を判定しない。",
+  "balance": "勝率未確定",
+  "totalMatches": 12,
+  "totalGameSeconds": 3600,
+  "errors": 0,
+  "maps": [
+    {
+      "id": "circulation",
+      "name": "昇降交差",
+      "matches": 4,
+      "seeds": [
+        20261071,
+        20261074,
+        20261077,
+        20261080
+      ],
+      "wins": {
+        "B": 1,
+        "R": 3
+      },
+      "draws": 0,
+      "winPercent": {
+        "B": 25.0,
+        "R": 75.0
+      },
+      "drawPercent": 0.0,
+      "wilson95WinPercent": {
+        "B": [
+          4.56,
+          69.94
+        ],
+        "R": [
+          30.06,
+          95.44
+        ]
+      },
+      "averageCoreRemaining": {
+        "B": 6473.25,
+        "R": 6838.5
+      },
+      "kills": {
+        "B": 153,
+        "R": 162
+      },
+      "captureChanges": 33
+    },
+    {
+      "id": "circulation-v2",
+      "name": "高架縦断",
+      "matches": 4,
+      "seeds": [
+        20261072,
+        20261075,
+        20261078,
+        20261081
+      ],
+      "wins": {
+        "B": 2,
+        "R": 2
+      },
+      "draws": 0,
+      "winPercent": {
+        "B": 50.0,
+        "R": 50.0
+      },
+      "drawPercent": 0.0,
+      "wilson95WinPercent": {
+        "B": [
+          15.0,
+          85.0
+        ],
+        "R": [
+          15.0,
+          85.0
+        ]
+      },
+      "averageCoreRemaining": {
+        "B": 5982.75,
+        "R": 6649.5
+      },
+      "kills": {
+        "B": 148,
+        "R": 141
+      },
+      "captureChanges": 44
+    },
+    {
+      "id": "circulation-v3",
+      "name": "片翼争奪",
+      "matches": 4,
+      "seeds": [
+        20261073,
+        20261076,
+        20261079,
+        20261082
+      ],
+      "wins": {
+        "B": 1,
+        "R": 3
+      },
+      "draws": 0,
+      "winPercent": {
+        "B": 25.0,
+        "R": 75.0
+      },
+      "drawPercent": 0.0,
+      "wilson95WinPercent": {
+        "B": [
+          4.56,
+          69.94
+        ],
+        "R": [
+          30.06,
+          95.44
+        ]
+      },
+      "averageCoreRemaining": {
+        "B": 6618.75,
+        "R": 6997.5
+      },
+      "kills": {
+        "B": 130,
+        "R": 146
+      },
+      "captureChanges": 34
+    }
+  ]
+}
