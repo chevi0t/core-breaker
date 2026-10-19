@@ -24,7 +24,7 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
       const g = __g, T = g.T, slots = ['head', 'body', 'arms', 'legs'];
       const keys=Object.keys(g.PARTS.head), types=keys.filter((k,i)=>keys.findIndex(x=>g.PARTS.head[x].series===g.PARTS.head[k].series)===i);
       const legacyTypes=['light','standard','heavy'];
-      // 旧3系統は従来の1.5倍制限を保つ。追加系統を含む混成機は60箱以内。
+      // 装甲は従来の予算。関節10個（各24三角形）と分割フレーム・掌4箱を別に数える。
       const original = { head: [5, 4, 6], body: [7, 7, 10], arms: [6, 6, 8], legs: [12, 10, 12] };
       const anchors = { gun: [1.55, 2.5, -0.7], gun2: [-1.6, 2.6, -0.7], blade: [-1.6, 2.6, -1.6], pack: [0, 2.7, 1.45], mount: [0, 2.75, 1.25] };
       const check = (ok, message) => { if (!ok) throw new Error(message); };
@@ -45,7 +45,8 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             check(armor.length === 4, label + ': 装甲は4部位のメッシュ');
             const boxes = armor.reduce((sum, m) => sum + m.geometry.attributes.position.count / 36, 0);
             const legacy=slots.every(slot=>legacyTypes.includes(cfg[slot]));
-            const budget = legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60;
+            const joints = model.rig ? 10 * 2 + 4 : 0;
+            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60) + joints;
             check(boxes <= budget, label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);
             if (slots.every(slot => cfg[slot] === head)) counts[head] = boxes;

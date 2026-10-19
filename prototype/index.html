@@ -2464,7 +2464,8 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   const lw = W('legs'), bw = W('body'), hw = W('head'), aw = W('arms');
   // 接続する骨格と足裏は共通。薄い斜めの装甲、標準の面構成、厚い箱型の装甲で見分ける。
   for (const sd of [-1, 1]) {
-    part('legs', 0.42, 1.7, 0.52, 'frame', sd * 0.58, 1.05, 0.04);
+    part('legs', 0.42, 0.72, 0.52, 'frame', sd * 0.58, 1.43, 0.04);
+    part('legs', 0.36, 0.65, 0.46, 'frame', sd * 0.62, 0.65, 0.04);
     part('legs', 0.82 * lw, 0.3, 1.22, 'frame', sd * 0.62, 0.15, -0.2);
     if (series.legs === 'harrier') {
       // ハリアー：前傾の膝、後ろへ伸びる踵、細い二枚の脛装甲。
@@ -2587,7 +2588,8 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   }
   part('head', 0.32, 0.05, 0.1, 'trim', 0, 3.55, -0.5);
   for (const sd of [-1, 1]) {
-    part('arms', 0.35, 0.72, 0.52, 'frame', sd * 1.48, 2.24, -0.18);
+    part('arms', 0.35, 0.9, 0.46, 'frame', sd * 1.48, 1.65, -0.12);
+    part('arms', 0.4, 0.28, 0.42, 'metal', sd * 1.48, 1.15, -0.12);
     if (series.arms === 'harrier') {
       part('arms', .5, .76, .72, 'armor', sd*1.34, 2.81, .01, sd*-.16);
       part('arms', .18, .62, .5, 'metal', sd*1.61, 2.85, .16, sd*-.1);
@@ -2615,20 +2617,36 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     }
     part('arms', 0.32, 0.13, 0.12, 'trim', sd * 1.35, 2.93, -0.48 * aw);
   }
-  const skin = new T.MeshLambertMaterial({ vertexColors: true });
+  const rig = makeMechRig(), skin = new T.MeshLambertMaterial({ vertexColors: true });
   for (const slot of PART_SLOTS) {
-    const pos = [], nor = [], col = [];
-    for (const [w, h, d, c, x, y, z, tilt, pitch] of boxes[slot]) {
-      const b = new T.BoxGeometry(w, h, d); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z);
-      const geo = b.toNonIndexed(), cc = new T.Color(c);
+    const pos = [], nor = [], col = [], ranges = [];
+    const merge = (b, c, bone) => {
+      const geo = b.index ? b.toNonIndexed() : b, cc = new T.Color(c), start = pos.length;
       pos.push(...geo.attributes.position.array); nor.push(...geo.attributes.normal.array);
       for (let k = 0; k < geo.attributes.position.count; k++) col.push(cc.r, cc.g, cc.b);
-      b.dispose(); geo.dispose();
+      ranges.push({ start, end: pos.length, bone: rig.bones[bone] });
+      if (geo !== b) geo.dispose(); b.dispose();
+    };
+    for (const [w, h, d, c, x, y, z, tilt, pitch] of boxes[slot]) {
+      const b = new T.BoxGeometry(w, h, d); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z);
+      const side = x < 0 ? 'L' : 'R';
+      const bone = slot === 'head' ? 'head' : slot === 'body' ? y < 2.15 ? 'hip' : 'chest'
+        : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
+        : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side;
+      merge(b, c, bone);
+    }
+    // 六角の軸受も同じ部位へ統合する。関節を増やしても装甲の描画は4メッシュ。
+    for (const [name, bone] of Object.entries(rig.bones)) {
+      if (bone.slot !== slot || !bone.joint) continue;
+      const p = bone.rest, b = new T.CylinderGeometry(bone.joint, bone.joint, .3, 6);
+      b.rotateZ(Math.PI / 2); b.translate(p.x, p.y, p.z); merge(b, C.metal, name);
     }
     const geo = new T.BufferGeometry();
     geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     geo.computeBoundingSphere();
     const m = new T.Mesh(geo, skin); m.castShadow = true; Object.assign(m.userData, { armorSlot: slot, own: true }); g.add(m);
+    geo.attributes.position.setUsage(T.DynamicDrawUsage); geo.attributes.normal.setUsage(T.DynamicDrawUsage);
+    rig.meshes.push({ mesh: m, pos: new Float32Array(pos), nor: new Float32Array(nor), ranges });
   }
   // 武器（v0.11.1）：右手の武器、左手の二丁目、左腕のソード、背中の装置（加速装置・光学迷彩・リペアフィールド・重砲）と重砲の基部
   const wmat = new T.MeshLambertMaterial({ vertexColors: true });
@@ -2642,7 +2660,128 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   flame.position.set(0, 2.9, 2.3);
   flame.visible = false; flame.userData.own = true;
   g.add(flame);
-  return { g, gun, gun2, flame, blade, pack, mount, armor: skin };
+  return { g, gun, gun2, flame, blade, pack, mount, armor: skin, rig };
+}
+// 関節はモデル内の座標で計算し、箱ごとに同じ行列を掛ける。描画と射撃のレイが同じ頂点を見る。
+function makeMechRig() {
+  const root = new T.Group(), bones = {}, meshes = [];
+  const add = (name, parent, p, slot, joint = 0) => {
+    const node = new T.Object3D(), rest = new T.Vector3(...p), up = parent && bones[parent];
+    node.position.copy(rest).sub(up ? up.rest : new T.Vector3()); (up ? up.node : root).add(node);
+    bones[name] = { node, rest, home: node.position.clone(), slot, joint, bind: null, matrix: new T.Matrix4(), normal: new T.Matrix3() };
+  };
+  add('hip', null, [0, 1.85, 0], 'body'); add('chest', 'hip', [0, 2.15, 0], 'body'); add('head', 'chest', [0, 3.3, .05], 'head');
+  for (const [side, sd] of [['L', -1], ['R', 1]]) {
+    add('thigh' + side, 'hip', [sd * .58, 1.8, .04], 'legs', .2);
+    add('shin' + side, 'thigh' + side, [sd * .62, .98, .04], 'legs', .2);
+    add('foot' + side, 'shin' + side, [sd * .62, .3, .04], 'legs', .17);
+    add('arm' + side, 'chest', [sd * 1.28, 3.05, 0], 'arms', .22);
+    add('forearm' + side, 'arm' + side, [sd * 1.48, 2.12, -.1], 'arms', .18);
+    add('hand' + side, 'forearm' + side, [sd * 1.48, 1.15, -.12], 'arms');
+  }
+  root.updateMatrixWorld(true);
+  for (const b of Object.values(bones)) b.bind = b.node.matrixWorld.clone().invert();
+  return { root, bones, list: Object.values(bones), meshes, phase: 0, move: 0, crouch: 0, landT: 0, landTime: .3, landPower: 0, last: null };
+}
+// 2本の骨で手足を目標へ向ける。pole は肘・膝を曲げる側。足裏と掌の向きは呼び出し側で決める。
+function limbPose(rig, a, b, end, target, pole) {
+  const A = rig.bones[a].node, B = rig.bones[b].node, E = rig.bones[end].node;
+  const start = A.getWorldPosition(new T.Vector3()), delta = target.clone().sub(start), distance = delta.length();
+  const l1 = B.position.length(), l2 = E.position.length(), d = Math.max(.02, Math.min(l1 + l2 - .001, distance));
+  const dir = distance > .0001 ? delta.multiplyScalar(1 / distance) : new T.Vector3(0, -1, 0);
+  const along = (l1 * l1 - l2 * l2 + d * d) / (2 * d), bend = Math.sqrt(Math.max(0, l1 * l1 - along * along));
+  const across = pole.clone().addScaledVector(dir, -pole.dot(dir));
+  if (across.lengthSq() < .0001) across.set(0, 0, 1).addScaledVector(dir, -dir.z);
+  across.normalize();
+  const elbow = start.clone().addScaledVector(dir, along).addScaledVector(across, bend);
+  const localDir = (node, v) => v.applyQuaternion(node.parent.getWorldQuaternion(new T.Quaternion()).invert()).normalize();
+  A.quaternion.setFromUnitVectors(B.position.clone().normalize(), localDir(A, elbow.clone().sub(start)));
+  B.quaternion.setFromUnitVectors(E.position.clone().normalize(), localDir(B, target.clone().sub(elbow)));
+  // 掌と足裏は上流の回転を打ち消しておく。
+  E.quaternion.copy(E.parent.getWorldQuaternion(new T.Quaternion()).invert());
+}
+function skinMech(rig) {
+  rig.root.updateMatrixWorld(true);
+  for (const b of rig.list) {
+    b.matrix.multiplyMatrices(b.node.matrixWorld, b.bind); b.normal.getNormalMatrix(b.matrix);
+  }
+  for (const { mesh, pos, nor, ranges } of rig.meshes) {
+    const p = mesh.geometry.attributes.position, n = mesh.geometry.attributes.normal;
+    for (const range of ranges) {
+      const e = range.bone.matrix.elements, m = range.bone.normal.elements;
+      for (let i = range.start; i < range.end; i += 3) {
+        const x = pos[i], y = pos[i + 1], z = pos[i + 2], nx = nor[i], ny = nor[i + 1], nz = nor[i + 2];
+        p.array[i] = e[0]*x + e[4]*y + e[8]*z + e[12]; p.array[i+1] = e[1]*x + e[5]*y + e[9]*z + e[13]; p.array[i+2] = e[2]*x + e[6]*y + e[10]*z + e[14];
+        n.array[i] = m[0]*nx + m[3]*ny + m[6]*nz; n.array[i+1] = m[1]*nx + m[4]*ny + m[7]*nz; n.array[i+2] = m[2]*nx + m[5]*ny + m[8]*nz;
+      }
+    }
+    p.needsUpdate = n.needsUpdate = true; mesh.geometry.boundingBox = null; mesh.geometry.computeBoundingSphere();
+  }
+}
+function resetMechPose(u) {
+  if (u.rig) Object.assign(u.rig, { phase: 0, move: 0, crouch: 0, landT: 0, last: null, lastPose: false });
+}
+// 歩幅は実際に進んだ距離から取る。停止・空中・ブースト移動では足踏みせず、着地は腰と膝で受ける。
+function mechPose(u, dt) {
+  const r = u.rig; if (!r) return;
+  const B = r.bones, node = k => B[k].node, alive = u.alive !== false && !(u.downT > 0);
+  for (const b of r.list) { b.node.position.copy(b.home); b.node.quaternion.identity(); }
+  const grounded = u.onGround !== false, blocked = !alive || !!u.stun || u.planted || u.transfer || u.repairing || u.recoverT > 0;
+  const dash = !!u.dashState || u.lungeT > 0, p = u.pos || new T.Vector3(), velocity = u.vel || new T.Vector3();
+  const distance = r.last ? Math.hypot(p.x - r.last.x, p.z - r.last.z) : 0;
+  if (!r.last) r.last = p.clone(); else r.last.copy(p);
+  const walking = grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
+  r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
+  if (walking) r.phase += Math.min(distance, dt * 9) / 3.6 * Math.PI * 2;
+  const yaw = u.yaw || 0, cs = Math.cos(yaw), sn = Math.sin(yaw), speed = Math.max(1, Math.hypot(velocity.x, velocity.z));
+  const forward = (-velocity.x * sn - velocity.z * cs) / speed, side = (velocity.x * cs - velocity.z * sn) / speed;
+  r.landT = Math.max(0, r.landT - dt);
+  const impact = r.landT > 0 ? Math.sin(Math.PI * (1 - r.landT / r.landTime)) * r.landPower : 0;
+  const low = u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
+  r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20));
+  if (dt === 0 && !r.lastPose) r.crouch = low;
+  const melee = u.meleePose || { twist: 0, lean: 0, sink: 0 };
+  const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
+  node('hip').position.y -= r.crouch + .22 * impact + melee.sink - bob;
+  node('hip').rotation.y = .055 * Math.sin(r.phase) * r.move;
+  node('chest').rotation.set((dash ? -.12 : 0) + melee.lean, melee.twist - node('hip').rotation.y * .6, -side * r.move * .025);
+  node('head').rotation.y = -node('chest').rotation.y * .6;
+  node('head').rotation.x = Math.max(-.15, Math.min(.15, (u.pitch || 0) * .25));
+  r.root.updateMatrixWorld(true);
+  const chest = B.chest.matrix.copy(node('chest').matrixWorld).multiply(B.chest.bind);
+  const point = p => new T.Vector3(...p).applyMatrix4(chest);
+  // 射撃の銃口も同じ武器メッシュの位置・回転を使う。構えによる揺れで照準を補正しない。
+  const cur = u.slots[u.weapon].w, hw = ['sword','cannon','artillery'].includes(cur.type) ? u.slots.main.w : cur;
+  const pitch = (u.isPlayer ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
+  const dual = !!hw.dual, gunAt = dual ? [1.35, 2.5, -.8] : heavy ? [.45, 2.35, -.8] : [.25, hw.scope ? 2.78 : 2.6, -.85];
+  const q = node('chest').getWorldQuaternion(new T.Quaternion()), aim = new T.Quaternion().setFromEuler(new T.Euler(pitch, 0, 0));
+  u.gun.position.copy(point(gunAt)); u.gun.quaternion.copy(q).multiply(aim);
+  u.gun2.position.copy(point([-1.35, 2.5, -.8])); u.gun2.quaternion.copy(q).multiply(aim);
+  const grip = (mesh, p) => new T.Vector3(...p).applyEuler(mesh.rotation).add(mesh.position);
+  u.gun.userData.rightGrip = [0, -.28, .2]; u.gun.userData.leftGrip = heavy ? [-.4, -.2, -.15] : [-.3, -.22, -.15];
+  let hands = { R: grip(u.gun, u.gun.userData.rightGrip), L: dual ? grip(u.gun2, [0, -.28, .2]) : grip(u.gun, u.gun.userData.leftGrip) };
+  if (cur.type === 'sword') {
+    if (u.blade.visible) hands.R = u.blade.userData.grip.clone();
+    hands.L = u.blade2?.visible ? u.blade2.userData.grip.clone() : point([-.85, 2.35, -.5]);
+    if ((MODEL_OF[cur.key] || [])[0] === 'spear') hands.L = hands.R.clone().add(new T.Vector3(-.45, 0, -.4));
+  }
+  for (const [s, sd] of [['L', -1], ['R', 1]]) {
+    const phase = r.phase + (sd === 1 ? Math.PI : 0), stride = Math.cos(phase) * .5 * r.move;
+    const foot = new T.Vector3(sd * .62 + side * stride * .6, .3, .04 - forward * stride);
+    if (grounded) foot.y += Math.max(0, Math.sin(phase)) * .24 * r.move;
+    else { foot.y += sd === 1 ? .27 : .06; foot.z += sd === 1 ? .25 : .5; }
+    if (dash && grounded) { foot.z += sd === 1 ? .42 : -.3; foot.y += sd === 1 ? .08 : 0; }
+    if (cur.type === 'sword' && grounded) { foot.z += sd === 1 ? -.32 : .28; foot.x += sd * .08; }
+    limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, new T.Vector3(0, 0, -1));
+    limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, hands[s], new T.Vector3(sd, -.3, .8));
+    const held = cur.type === 'sword' && (s === 'R' ? u.blade : u.blade2);
+    if (held?.visible) node('hand' + s).quaternion.copy(node('hand' + s).parent.getWorldQuaternion(new T.Quaternion()).invert()).multiply(held.quaternion);
+  }
+  for (const mesh of [u.pack, u.mount, u.flame]) {
+    mesh.position.applyMatrix4(chest); mesh.quaternion.premultiply(q);
+  }
+  if (cur.type !== 'sword') for (const b of [u.blade, u.blade2]) if (b?.visible) { b.position.applyMatrix4(chest); b.quaternion.premultiply(q); }
+  skinMech(r); r.lastPose = true;
 }
 // 機体の形を捨てる（試合の入れ替え、プレビューの作り直し）。武器の形は共有なので捨てない
 function disposeMech(g) {
@@ -2659,7 +2798,7 @@ function makeUnit(team, isPlayer, idx) {
   const u = {
     kind: 'unit', team, isPlayer, idx, mech,
     name: isPlayer ? 'あなた' : `${team === 'B' ? '味方' : '敵'}${idx + 1}`,
-    group: m.g, gun: m.gun, gun2: m.gun2, flame: m.flame, blade: m.blade, pack: m.pack, mount: m.mount, armorMat: m.armor, cannonDeploy: 0,
+    group: m.g, gun: m.gun, gun2: m.gun2, flame: m.flame, blade: m.blade, pack: m.pack, mount: m.mount, armorMat: m.armor, rig: m.rig, cannonDeploy: 0,
     pos: new T.Vector3(), vel: new T.Vector3(), yaw: 0, pitch: 0,
     hp: 10000, maxHp: 10000, alive: true, respawnT: 0,
     boost: 100, maxBoost: 100, overheat: false, boostIdle: 0, onGround: true, walkV: WALK, dashV: BURST, cruiseV: DASH, recoil: 0,
@@ -2967,6 +3106,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
 }
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
 function land(u, v) {
+  if (u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
   if (u.stun === 'down') { sfx('land', u.pos, u); return; }
   if (v < LAND_SPEED || u.stun || u.jumpBuf > 0) return;
   u.stun = 'land'; u.stunT = Math.min(LAND_TIME[1], LAND_TIME[0] + (v - LAND_SPEED) * 0.05);
@@ -3232,10 +3372,9 @@ function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
 const CANNON_TIP = { cannon: [-0.325, 0.18, -1.7], cannonH: [-0.31, 0, -1.7], cannonM: [0, 0.18, -1.7] };
 function muzzle(u, left = false) {
   const w = u.slots && u.slots[u.weapon].w;
-  if (!left && w && w.type === 'artillery') return new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos).add(new T.Vector3(0,u.planted ? -.6 : 0,0));
+  if (!left && w && w.type === 'artillery') return new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
   if (!left && w && w.type === 'cannon') {
     const p = new T.Vector3(...(CANNON_TIP[w.key] || CANNON_TIP.cannon)).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP, u.yaw).add(u.pos);
-    if (u.planted) p.y -= 0.6; // 構えて屈んだ分
     return p;
   }
   const g = left ? u.gun2 : u.gun;
@@ -3377,6 +3516,7 @@ function revive(v, by) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
   Object.assign(v, { alive: true, downT: 0, hp: v.maxHp * REVIVE_HP, invulT: REVIVE_INVUL, stun: '', yaw: v.downYaw, dashT: 0, longDash: false, dashState: '', target: null, aimTarget: null, waypoint: null, navPath: null, navW: null, navVia: null, navRc: 0, healing: false });
   v.vel.set(0, 0, 0);
+  resetMechPose(v);
   v.group.visible = true;
   scoreRevive(by, v);
   feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を蘇生`);
@@ -5065,7 +5205,7 @@ function equip(u, cls) {
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
   Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
-  weaponLook(u, 0);
+  resetMechPose(u); weaponLook(u, 0);
 }
 // 光学迷彩と加速装置は、選んだ時点で作動し、もう一度選ぶと止まる。持っている武器はそのまま（v0.9.5、ユーザー指定）。リペアフィールドも同じ（v0.11）
 const TOGGLE_SP = ['charger', 'camo', 'field', 'barrier', 'escort'];
@@ -5378,8 +5518,8 @@ function bladeSweep(u, sw, phi0, phi1) {
   // ソードはコアには当たらない（wiki）
   if (res && u.isPlayer) hitMark(false);
 }
-// 武器の見た目（v0.11.1）：右手に今の武器（ソードか重砲を選んでいる間は主武器）、二丁の武器は左手にも。
-// ソードは左腕、加速装置・光学迷彩・リペアフィールドは背中。重砲は背中に畳んであり、選ぶと右肩へ起こす（CANNON_DEPLOY 秒）
+// 右手に今の銃、二丁の武器は左手にも。近接を選ぶと銃を格納して右手（二刀は両手）で構える。
+// 背部装備は胸に追従。重砲は背中に畳んであり、選ぶと右肩へ起こす（CANNON_DEPLOY 秒）
 const CANNON_DEPLOY = 0.65;
 function setWeaponGeo(m, id, part = 'whole') {
   if (m.userData.weaponId === id && m.userData.weaponPart === part) return;
@@ -5392,38 +5532,75 @@ function weaponLook(u, dt) {
   if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.x = pitch; }
   u.blade.visible = S.aux.w.type === 'sword';
   if (u.blade.visible) setWeaponGeo(u.blade, S.aux.w.key);
-  bladePose(u);
-  if(S.aux.w.meleeDual && !u.blade2){u.blade2=new T.Mesh(u.blade.geometry,u.blade.material);u.blade2.userData.weaponModel=true;u.blade2.userData.armorSlot='arms';u.group.add(u.blade2);hittables.push(u.blade2);}
-  if(u.blade2){
-    u.blade2.visible=!!S.aux.w.meleeDual;
-    if(u.blade2.visible){setWeaponGeo(u.blade2,S.aux.w.key);u.blade2.position.copy(u.blade.position);u.blade2.position.x*=-1;u.blade2.rotation.copy(u.blade.rotation);u.blade2.rotation.y*=-1;u.blade2.scale.copy(u.blade.scale);}
+  if (S.aux.w.meleeDual && !u.blade2) {
+    u.blade2 = new T.Mesh(u.blade.geometry, u.blade.material);
+    Object.assign(u.blade2.userData, { weaponModel: true, armorSlot: 'arms', ref: u.kind === 'unit' ? u : undefined });
+    (u.group || u.g).add(u.blade2); if (u.kind === 'unit') hittables.push(u.blade2);
   }
+  if (u.blade2) { u.blade2.visible = !!S.aux.w.meleeDual; if (u.blade2.visible) setWeaponGeo(u.blade2, S.aux.w.key); }
+  bladePose(u);
+  u.gun.visible = cur.type !== 'sword'; u.gun2.visible &&= cur.type !== 'sword';
   const sp = S.sp.w, cannon = sp.type === 'cannon';
   u.pack.visible = cannon || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
-  if (!u.pack.visible) return;
-  setWeaponGeo(u.pack, sp.key);
-  u.pack.rotation.y = sp.type === 'escort' && u.escortOn && u.escortAim ? Math.atan2(-(u.escortAim.x-u.pos.x),-(u.escortAim.z-u.pos.z))-u.yaw : 0;
-  if (!cannon) { u.pack.position.set(0, 2.7, sp.type === 'escort' ? 0.2 : 1.45); u.pack.rotation.x = 0; return; }
-  setWeaponGeo(u.mount, sp.key, 'mount');
-  const d = u.cannonDeploy, goal = u.weapon === 'sp' ? 1 : 0;
-  u.cannonDeploy = goal > d ? Math.min(1, d + dt / CANNON_DEPLOY) : Math.max(0, d - dt / CANNON_DEPLOY);
-  const t = u.cannonDeploy * u.cannonDeploy * (3 - 2 * u.cannonDeploy);
-  u.pack.position.set(1.35 * t, 2.4 + 1.1 * t + Math.sin(t * Math.PI) * 0.45, 1.65 - 1.8 * t);
-  u.pack.rotation.x = -Math.PI / 2 * (1 - t) + pitch * t;
+  u.mount.position.set(0, 2.75, 1.25); u.mount.rotation.set(0, 0, 0);
+  u.flame.position.set(0, 2.9, 2.3); u.flame.rotation.set(Math.PI / 2, 0, 0);
+  u.pack.rotation.set(0, sp.type === 'escort' && u.escortOn && u.escortAim ? Math.atan2(-(u.escortAim.x-u.pos.x),-(u.escortAim.z-u.pos.z))-u.yaw : 0, 0);
+  u.pack.position.set(0, 2.7, sp.type === 'escort' ? .2 : 1.45);
+  if (u.pack.visible) setWeaponGeo(u.pack, sp.key);
+  if (cannon) {
+    setWeaponGeo(u.mount, sp.key, 'mount');
+    const d = u.cannonDeploy, goal = u.weapon === 'sp' ? 1 : 0;
+    u.cannonDeploy = goal > d ? Math.min(1, d + dt / CANNON_DEPLOY) : Math.max(0, d - dt / CANNON_DEPLOY);
+    const t = u.cannonDeploy * u.cannonDeploy * (3 - 2 * u.cannonDeploy);
+    u.pack.position.set(1.35 * t, 2.4 + 1.1 * t + Math.sin(t * Math.PI) * .45, 1.65 - 1.8 * t);
+    u.pack.rotation.x = -Math.PI / 2 * (1 - t) + pitch * t;
+  }
+  mechPose(u, dt);
 }
-// ソードの見た目：振っている間は刃を機体の中心から振りの角度へ伸ばす。回転斬りは腕を横に伸ばしたまま機体ごと回る
-// 構えている間は左腕の前に、柄の端を腕の後ろ（z=0.4）にそろえる。振っている間は根元 BLADE_IN から間合いまでの長さに伸ばす
+// 公開動画の予備動作→踏み込み→振り抜き→戻しを参考にしたオリジナルの手付け。
+// 実際の攻撃時刻・角度は swing の値に合わせ、判定・威力・硬直は変えない。出典は research/animation/README.md。
 function bladePose(u) {
-  const sw = u.swing, b = u.blade, bb = b.geometry.boundingBox, len = bb.max.z - bb.min.z, mid = (bb.max.z + bb.min.z) / 2;
-  const k = sw ? (sw.a.reach - BLADE_IN) / len : 1;
-  b.scale.set(1, 1, k);
-  if (!sw || sw.a.from === undefined) { b.position.set(-1.6, 2.6, 0.4 - bb.max.z); b.rotation.y = 0; return; }
-  let rel = swingRel(sw);
-  if (sw.a.spin) { u.group.rotation.y = sw.yaw0 + rel - sw.a.from * DEG; rel = sw.a.from * DEG; }
-  else if (sw.aimed) u.group.rotation.y = sw.yaw0; // 敵へ誘導している振りは機体もその敵を向く
-  const rm = (BLADE_IN + sw.a.reach) / 2 + mid * k; // 形の中心が根元と間合いの真ん中に来るように
-  b.position.set(-Math.sin(rel) * rm, sw.a.height, -Math.cos(rel) * rm);
-  b.rotation.y = rel;
+  const w = u.slots.aux.w, selected = u.weapon === 'aux' && w.type === 'sword', sw = selected ? u.swing : null;
+  const family = (MODEL_OF[w.key] || [])[0], thrust = family === 'spear' || family === 'pike', dual = !!w.meleeDual;
+  u.meleePose = { twist: 0, lean: 0, sink: 0 };
+  if (w.type !== 'sword') return;
+  let twist = -.25, lean = -.035, power = 0;
+  for (const [b, sd] of [[u.blade, 1], [u.blade2, -1]]) {
+    if (!b?.visible) continue;
+    const bb = b.geometry.boundingBox, gripZ = family === 'sword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
+    const held = new T.Vector3(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
+    let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'claw' ? .15 : .62;
+    let scale = family === 'claw' || family === 'pike' ? 1 : (w.normal.reach - .55) / (gripZ - bb.min.z);
+    if (!selected) { held.set(sd * 1.1, 3.15, .8); angle = sd * -.15; pitch = -1.22; scale = Math.min(1, 2.9 / (gripZ - bb.min.z)); }
+    if (sw) {
+      const a = sw.a, all = a.strikes || [{ from: a.from, to: a.to, at: 0, sweep: a.sweep }];
+      const strikes = all.filter((s, i) => !dual || (s.side ? Math.sign(s.side) : i % 2 ? -1 : 1) === sd);
+      const strike = strikes.filter(s => sw.t >= a.windup + s.at).pop() || strikes[0];
+      if (strike) {
+        const start = a.windup + strike.at, end = start + strike.sweep;
+        const cut = Math.max(0, Math.min(1, (sw.t - start) / strike.sweep));
+        const prep = start > 0 ? Math.max(0, Math.min(1, sw.t / start)) : 1;
+        const next = strikes.find(s => a.windup + s.at > sw.t);
+        const back = sw.t > end && !next ? Math.max(0, Math.min(1, (sw.t - end) / Math.max(.01, a.time - end))) : 0;
+        const blend = prep * (1 - back * back * (3 - 2 * back));
+        let rel = (strike.from + (strike.to - strike.from) * cut) * DEG;
+        if (a.spin) { (u.group || u.g).rotation.y = sw.yaw0 + swingRel(sw) - a.from * DEG; rel = a.from * DEG; }
+        else if (sw.aimed) (u.group || u.g).rotation.y = sw.yaw0;
+        const hand = thrust ? new T.Vector3(sd * (.65 - .4 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
+          : family === 'claw' ? new T.Vector3(sd * (.95 - .45 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
+          : new T.Vector3(-Math.sin(rel) * .55, a.height, -Math.cos(rel) * .55);
+        held.lerp(hand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
+        pitch *= 1 - blend;
+        scale = thrust || family === 'claw' ? scale : (a.reach - .55) / (gripZ - bb.min.z);
+        if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1; }
+      }
+    }
+    if (selected && w.meleeCharge && !sw) { const charge = Math.min(1, (u.slots.aux.chargeT || 0) / w.chargeTime); held.z += charge * .22; twist -= charge * .2; }
+    b.scale.set(1, 1, scale); b.rotation.set(pitch, angle, 0, 'YXZ');
+    b.position.copy(held).sub(new T.Vector3(0, 0, gripZ * scale).applyEuler(b.rotation));
+    b.userData.grip = held;
+  }
+  if (selected) u.meleePose = { twist, lean, sink: .07 + power * .08 };
 }
 // リペアユニット：左クリックで照準の近くの味方機と自軍の防衛砲台、右クリックで自分を回復。
 // 使うとゲージが減り、使い切ると満タンに戻るまで使えない。壊れた砲台も修理すれば再始動する
@@ -6572,9 +6749,15 @@ function mechPreview(dt) {
       r.m = buildMech(TEAM.B.color, cfg);
       weaponLook({ ...r.m, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(ld[k])])), weapon: wsel, isPlayer: false, recoil: 0, cannonDeploy: 0, swing: null }, 0);
       r.sc.add(r.m.g);
+      r.m.g.updateMatrixWorld(true); r.bounds = new T.Box3();
+      r.m.g.traverse(m => { if (m.isMesh && m.visible) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); r.bounds.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } });
+      r.center = r.bounds.getCenter(new T.Vector3()); r.distance = r.bounds.getSize(new T.Vector3()).length() * .56 / Math.sin(r.cam.fov * Math.PI / 360);
     }
     if (r.drag === null) r.yaw += dt * 0.5;
     r.m.g.rotation.y = r.yaw;
+    r.m.g.updateMatrixWorld(true);
+    const center = r.center.clone().applyMatrix4(r.m.g.matrixWorld);
+    r.cam.position.copy(center).add(new T.Vector3(0, 1.6, -r.distance)); r.cam.lookAt(center);
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
@@ -7113,7 +7296,6 @@ function loop(now) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
-    if (u.planted || u.stun === 'land' || u.transfer) u.group.position.y -= 0.6; // 構えている間と着地硬直、エリア移動の待機中は屈む
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
     u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
@@ -7121,7 +7303,7 @@ function loop(now) {
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
     cloakLook(u, now / 1000);
-    weaponLook(u, dt);
+    weaponLook(u, running ? dt : 0);
     u.flame.visible = u.alive && !!u.dashState;
     u.barrierMesh.visible = barrierReady(u);
     if (u.barrierMesh.visible) {
