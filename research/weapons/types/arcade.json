@@ -1,0 +1,189 @@
+[
+  {
+    "base": "rail",
+    "series": "電磁加速砲系統",
+    "source": "https://w.atwiki.jp/borderbreak/pages/335.html",
+    "tableSource": "https://w.atwiki.jp/borderbreak/pages/101.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "電磁加速砲・壱式",
+      "kg": 280,
+      "dmg": 1250,
+      "mag": 14,
+      "mags": 13,
+      "rpm": 270,
+      "acc": "A-",
+      "reload": 2.2,
+      "recoilV": 0.3,
+      "recoilH": 0.3
+    },
+    "types": [
+      {
+        "name": "電磁加速砲・特式",
+        "kg": 310,
+        "dmg": 860,
+        "mag": 25,
+        "mags": 15,
+        "rpm": 360,
+        "acc": "A",
+        "reload": 2.4,
+        "recoilV": 0.2,
+        "recoilH": 0.3,
+        "label": "大容量型",
+        "trait": "弾倉が大きいがリロードが遅い"
+      },
+      {
+        "name": "電磁加速砲・速式",
+        "kg": 340,
+        "dmg": 730,
+        "mag": 16,
+        "mags": 15,
+        "rpm": 540,
+        "acc": "A-",
+        "reload": 1.7,
+        "recoilV": 0.2,
+        "recoilH": 0.2,
+        "label": "連射型",
+        "trait": "連射が速いが一発の威力が低い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "電磁加速砲・弐式",
+        "why": "3点射／単射への撃ち方変更"
+      },
+      {
+        "name": "電磁加速砲・紫電",
+        "why": "3点射／単射への撃ち方変更"
+      }
+    ]
+  },
+  {
+    "base": "pulse",
+    "series": "VOLT系統",
+    "source": "https://w.atwiki.jp/borderbreak/pages/336.html",
+    "tableSource": "https://w.atwiki.jp/borderbreak/pages/101.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "VOLT-01",
+      "kg": 190,
+      "dmg": 580,
+      "mag": 39,
+      "mags": 8,
+      "rpm": 480,
+      "acc": "B+",
+      "reload": 2.0,
+      "recoilV": 0.2,
+      "recoilH": 0.25
+    },
+    "types": [
+      {
+        "name": "VOLT-02",
+        "kg": 180,
+        "dmg": 540,
+        "mag": 51,
+        "mags": 7,
+        "rpm": 480,
+        "acc": "A",
+        "reload": 2.2,
+        "recoilV": 0.1,
+        "recoilH": 0.15,
+        "label": "大容量型",
+        "trait": "弾倉が大きいがリロードが遅い"
+      },
+      {
+        "name": "VOLT-X",
+        "kg": 230,
+        "dmg": 800,
+        "mag": 30,
+        "mags": 8,
+        "rpm": 420,
+        "acc": "B+",
+        "reload": 2.2,
+        "recoilV": 0.3,
+        "recoilH": 0.35,
+        "label": "強装型",
+        "trait": "一発が重いが弾倉が小さい"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "VOLT-R",
+        "why": "全自動への撃ち方変更"
+      },
+      {
+        "name": "VOLT-RX",
+        "why": "全自動への撃ち方変更"
+      }
+    ]
+  },
+  {
+    "base": "coil",
+    "series": "グローム系統",
+    "source": "https://w.atwiki.jp/borderbreak/pages/463.html",
+    "tableSource": "https://w.atwiki.jp/borderbreak/pages/105.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "LAC-グローム",
+      "kg": 410,
+      "dmg": 1580,
+      "mag": 22,
+      "mags": 11,
+      "rpm": 180,
+      "acc": "B+",
+      "reload": 2.5,
+      "recoilV": 0.4,
+      "recoilH": 0.5
+    },
+    "types": [
+      {
+        "name": "LAC-グロームβ",
+        "kg": 430,
+        "dmg": 1440,
+        "mag": 30,
+        "mags": 10,
+        "rpm": 180,
+        "acc": "A+",
+        "reload": 2.5,
+        "recoilV": 0.2,
+        "recoilH": 0.3,
+        "label": "精密型",
+        "trait": "精度が高いが一発の威力が低い"
+      },
+      {
+        "name": "LAC-グロームγ",
+        "kg": 510,
+        "dmg": 1000,
+        "mag": 36,
+        "mags": 10,
+        "rpm": 320,
+        "acc": "B-",
+        "reload": 3.6,
+        "recoilV": 0.4,
+        "recoilH": 0.5,
+        "label": "連射型",
+        "trait": "連射が速いが一発の威力が低い"
+      },
+      {
+        "name": "LAC-タルナダ",
+        "kg": 540,
+        "dmg": 950,
+        "mag": 46,
+        "mags": 8,
+        "rpm": 320,
+        "acc": "A-",
+        "reload": 3.6,
+        "recoilV": 0.3,
+        "recoilH": 0.4,
+        "label": "持続型",
+        "trait": "弾倉が大きいが重く一発の威力が低い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "LAC-ウラガーン",
+        "why": "1系統4型の上限。反動の値も不明"
+      }
+    ]
+  }
+]
