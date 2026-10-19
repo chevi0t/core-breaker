@@ -41,6 +41,8 @@
 
 Python 3、Node.js、Playwright（Chromium）を使う。ヘッドレスでは WebGL に `--use-gl=swiftshader` が要る（テストの中で指定済み）。
 
+環境の準備（Codex の環境の setup script など）：`npm install && npx playwright install --with-deps chromium`。Python のライブラリは要らない。`npm test` で dbg の作成・全武器の確認・4マップの Bot 戦をまとめて回せる（Bot 戦は時間がかかる）。
+
 ```sh
 python3 tools/test/make_dbg.py dbg                     # 動作確認用の dbg/dbg.html を作る（__g で中の状態を読める）
 node tools/test/weapons_check.js dbg                   # 全武器を撃ってエラーが無いか
@@ -53,7 +55,7 @@ node tools/test/map_check.js dbg <マップID>            # 施設の置き場�
 
 ## 作業ごとの手引き
 
-詳しい手順は `docs/codex/` にある。作業を始める前に、その作業の手順書を最後まで読む。
+頼まれる作業は `docs/codex/tasks/` に1ファイルずつある（GitHub の Issue と同じ中身）。詳しい手順は `docs/codex/` にある。作業を始める前に、その作業の手順書を最後まで読む。
 
 | 作業 | 手順書 | 任せる範囲（オーナーの指定 2026-10-19） |
 |---|---|---|
