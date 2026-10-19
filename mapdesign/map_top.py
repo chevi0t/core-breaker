@@ -90,7 +90,10 @@ for pid, x, z, own in d["plants"]:
     dr.ellipse([P(x - 16, z - 16), P(x + 16, z + 16)], outline=col, width=3)
     dr.text(P(x - 2, z - 3), pid, fill=col)
     for sz in (1, -1):  # 自軍・敵軍が持った時の再出撃位置
-        X, Z = P(x, z + 48 * sz)
+        # spawn と同じく各ベースへの方向を使う。横へ離れたプラントも z だけにずらさない。
+        dx, dz = -x, d["baseZ"] * sz - z
+        length = math.hypot(dx, dz) or 1
+        X, Z = P(x + dx / length * 48, z + dz / length * 48)
         dr.line([(X - 5, Z - 5), (X + 5, Z + 5)], fill=(255, 255, 0), width=2); dr.line([(X - 5, Z + 5), (X + 5, Z - 5)], fill=(255, 255, 0), width=2)
 for _, x, z in d["plantPods"]: dr.ellipse([P(x - 3, z - 3), P(x + 3, z + 3)], fill=(60, 200, 90))
 for x, z in d["basePods"]:

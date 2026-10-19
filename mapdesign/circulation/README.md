@@ -33,7 +33,7 @@ Issue #1 の自動生成設計に沿って、地形の生成と施設配置の�
 
 ## 再生成する
 
-リポジトリのルートで実行する。Node.js、Python 3、Playwright/Chromium を使う。このクラウド環境では新しいシェルごとに `/workspace/.cloud-setup/core-breaker/env.sh` を読み込み、導入済み Chromium と HTTP 配信を使用する。
+リポジトリのルートで実行する。Node.js、Python 3、Playwright/Chromium を使い、俯瞰図には Pillow を使う。このクラウド環境では新しいシェルごとに `/workspace/.cloud-setup/core-breaker/env.sh` を読み込み、導入済み Chromium と HTTP 配信を使用する。
 
 ```sh
 node tools/generate_map.js --seed 20261019 --placement-seed 20280950 --terrain-attempts 1 --placement-attempts 64 --variants 3
@@ -59,15 +59,17 @@ npm test
 
 | 戦場 | 拠点数 | 主な配置の違い | 撃破 青/橙 | 所有者の変化 | エラー |
 |---|---:|---|---:|---:|---:|
-| circulation：中央冷却路 | 3 | 中央の1拠点を争う | 28 / 22 | 2 | 0 |
-| circulation-v2：高架縦断 | 6 | 高架の両端と東側へ戦力を分ける | 26 / 23 | 10 | 0 |
-| circulation-v3：片翼争奪 | 5 | 高所を片側に含め、中央の連絡を争う | 25 / 29 | 7 | 0 |
+| circulation：中央冷却路 | 3 | 中央の1拠点を争う | 26 / 20 | 1 | 0 |
+| circulation-v2：高架縦断 | 6 | 高架の両端と東側へ戦力を分ける | 20 / 20 | 4 | 0 |
+| circulation-v3：片翼争奪 | 5 | 高所を片側に含め、中央の連絡を争う | 18 / 26 | 8 | 0 |
 
-上の撃破と所有者の変化は保存した各1回の観測値。階層の標本では、`upper` は地上高5m超の面に**接地している**生存機を1秒ごとに数え、カタパルト飛行やジャンプは高架利用として数えない。
+上の撃破と所有者の変化は v0.17 を取り込んだ状態で保存した各1回の観測値。階層の標本では、`upper` は地上高5m超の面に**接地している**生存機を1秒ごとに数え、カタパルト飛行やジャンプは高架利用として数えない。
 
 3戦場とも `map_check` の★は0、両側の隠れたポッドは各173か所の格子から0か所、カタパルト8基の着地誤差は最大0.7m、ページエラー0。[中央冷却路](map-check-circulation.log)・[高架縦断](map-check-circulation-v2.log)・[片翼争奪](map-check-circulation-v3.log)に全出力を置く。
 
-既存4マップは標準の `npm test` で再検証した。全194武器のエラーは0、Bot戦は city 155秒・wide 158秒・mesa 163秒・dock 23秒でエラーなし。dock はコスト制の戦力が0になり、規定どおり正常に試合終了した。既存マップの元データは変更していない。
+既存4マップは標準の `npm test` で再検証した。全194武器のエラーは0、Bot戦は city 155秒・wide 153秒・mesa 156秒・dock 18秒でエラーなし。dock はコスト制の戦力が0になり、規定どおり正常に試合終了した。既存マップの元データは変更していない。
+
+標準の `bot_battle.js` でも新3戦場を153秒・152秒・152秒まで回し、すべてエラーなし。[全出力](standard-battles.log)と、v0.17 の[回帰テスト出力](regression-npm.log)、[検証概要](validation-summary.json)を保存した。
 
 ## 図と画面
 
@@ -81,4 +83,4 @@ npm test
 
 ![中央の地上路](view-circulation.png)
 ![高架へ上がる坂](view-circulation-v2.png)
-![片翼争奪の出撃位置](view-circulation-v3.png)
+![片翼争奪の前線](view-circulation-v3.png)

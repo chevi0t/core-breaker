@@ -1,0 +1,244 @@
+
+> test
+> npm run dbg && npm run test:weapons && npm run test:bots
+
+
+> dbg
+> python3 tools/test/make_dbg.py dbg
+
+書き出し: dbg/dbg.html
+
+> test:weapons
+> node tools/test/weapons_check.js dbg
+
+場所 [ -50, -48 ]
+assault/main ar アサルトライフル: 発射53 弾減53 ダメ17680 SP100→100 味方HP3000
+assault/main arH アサルトライフル・強装型: 発射47 弾減47 ダメ19753 SP100→100 味方HP3000
+assault/main arX アサルトライフル・大容量型: 発射58 弾減58 ダメ19148 SP100→100 味方HP3000
+assault/main arP アサルトライフル・精密型: 発射53 弾減53 ダメ19089 SP100→100 味方HP3000
+assault/main burst バーストライフル: 発射33 弾減33 ダメ14520 SP100→100 味方HP3000
+assault/main burstX バーストライフル・大容量型: 発射33 弾減33 ダメ14190 SP100→100 味方HP3000
+assault/main burstP バーストライフル・精密型: 発射33 弾減33 ダメ15180 SP100→100 味方HP3000
+assault/main burstH バーストライフル・強装型: 発射33 弾減33 ダメ16170 SP100→100 味方HP3000
+assault/main marks マークスマンライフル: 発射18 弾減18 ダメ20520 SP100→100 味方HP3000
+assault/main marksX マークスマンライフル・大容量型: 発射28 弾減28 ダメ24080 SP100→100 味方HP3000
+assault/main marksP マークスマンライフル・精密型: 発射19 弾減19 ダメ18430 SP100→100 味方HP3000
+assault/main marksH マークスマンライフル・強装型: 発射14 弾減14 ダメ19180 SP100→100 味方HP3000
+assault/main carbine カービン: 発射57 弾減57 ダメ19965 SP100→100 味方HP3000
+assault/main carbineP カービン・精密型: 発射57 弾減57 ダメ19387 SP100→100 味方HP3000
+assault/main carbineX カービン・大容量型: 発射61 弾減61 ダメ20147 SP100→100 味方HP3000
+assault/main carbineH カービン・強装型: 発射48 弾減48 ダメ22577 SP100→100 味方HP3000
+assault/main gale 軽量散弾銃: 発射12 弾減12 ダメ22762 SP100→100 味方HP3000
+assault/main galeS 軽量散弾銃・瞬発型: 発射6 弾減6 ダメ18600 SP100→100 味方HP3000
+assault/main galeH 軽量散弾銃・強装型: 発射8 弾減8 ダメ24960 SP100→100 味方HP3000
+assault/main wave 波動ライフル: 発射2 弾減2 ダメ3240 SP100→100 味方HP3000
+assault/main waveW 波動ライフル・広域型: 発射3 弾減3 ダメ3360 SP100→100 味方HP3000
+assault/main waveH 波動ライフル・強装型: 発射2 弾減2 ダメ4074 SP100→100 味方HP3000
+assault/sub grenade グレネード: 発射4 弾減4 ダメ27385 崩れ=stagger SP100→100 味方HP3000
+assault/sub grenadeS グレネード・瞬発型: 発射4 弾減4 ダメ24175 崩れ=stagger SP100→100 味方HP3000
+assault/sub grenadeW グレネード・広域型: 発射1 弾減1 ダメ7282 崩れ=down SP100→100 味方HP3000
+assault/sub grenadeH グレネード・強装型: 発射5 弾減5 ダメ33008 崩れ=down SP100→100 味方HP3000
+assault/sub timed 時限グレネード: 発射4 弾減4 ダメ15424 崩れ=down SP100→100 味方HP3000
+assault/sub timedL 時限グレネード・軽量型: 発射5 弾減5 ダメ13736 崩れ=stagger SP100→100 味方HP3000
+assault/sub timedW 時限グレネード・広域型: 発射3 弾減3 ダメ11061 崩れ=down SP100→100 味方HP3000
+assault/sub timedH 時限グレネード・強装型: 発射3 弾減3 ダメ13542 崩れ=down SP100→100 味方HP3000
+assault/sub gl グレネードランチャー: 発射5 弾減5 ダメ19542 崩れ=stagger SP100→100 味方HP3000
+assault/sub glR グレネードランチャー・連射型: 発射9 弾減9 ダメ21684 SP100→100 味方HP3000
+assault/sub glW グレネードランチャー・広域型: 発射6 弾減6 ダメ18053 SP100→100 味方HP3000
+assault/sub glH グレネードランチャー・強装型: 発射6 弾減6 ダメ34385 崩れ=stagger SP100→100 味方HP3000
+assault/aux sword ソード: 発射0 弾減0 ダメ5655 崩れ=stagger SP100→100 味方HP3000
+assault/aux blade ソード・大剣: 発射0 弾減0 ダメ7540 崩れ=down SP100→100 味方HP3000
+assault/aux swordM ソード・重装型: 発射0 弾減0 ダメ8200 崩れ=down SP100→100 味方HP3000
+assault/aux swordG ソード・高出力型: 発射0 弾減0 ダメ9048 崩れ=down SP100→100 味方HP3000
+assault/aux spear スピア: 発射0 弾減0 ダメ5090 崩れ=stagger SP100→100 味方HP3000
+assault/aux spearH スピア・強装型: 発射0 弾減0 ダメ5372 崩れ=stagger SP100→100 味方HP3000
+assault/aux spearM スピア・重装型: 発射0 弾減0 ダメ7446 崩れ=down SP100→100 味方HP3000
+assault/sp charger 加速装置: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp chargerD 加速装置・持続型: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp chargerS 加速装置・瞬発型: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp chargerC 加速装置・巡航型: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp omni 全方向加速装置: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp omniG 全方向加速装置・高出力型: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+assault/sp omniD 全方向加速装置・持続型: 発射0 弾減0 ダメ0 SP100→100 作動=charger 味方HP3000
+heavy/main gatling ガトリング: 発射89 弾減89 ダメ17800 SP100→100 味方HP3000
+heavy/main gatlingH ガトリング・強装型: 発射48 弾減48 ダメ20160 SP100→100 味方HP3000
+heavy/main gatlingD ガトリング・持続型: 発射89 弾減89 ダメ20470 SP100→100 味方HP3000
+heavy/main gatlingG ガトリング・高出力型: 発射72 弾減72 ダメ24480 SP100→100 味方HP3000
+heavy/main mg 機関銃: 発射45 弾減45 ダメ20250 SP100→100 味方HP3000
+heavy/main mgR 機関銃・連射型: 発射48 弾減48 ダメ22080 SP100→100 味方HP3000
+heavy/main mgP 機関銃・精密型: 発射45 弾減45 ダメ22500 SP100→100 味方HP3000
+heavy/main mgX 機関銃・大容量型: 発射48 弾減48 ダメ23040 SP100→100 味方HP3000
+heavy/main acannon 機関砲: 発射15 弾減15 ダメ22800 SP100→100 味方HP3000
+heavy/main acannonP 機関砲・精密型: 発射15 弾減15 ダメ23700 SP100→100 味方HP3000
+heavy/main acannonX 機関砲・大容量型: 発射18 弾減18 ダメ23040 SP100→100 味方HP3000
+heavy/main acannonR 機関砲・連射型: 発射24 弾減24 ダメ17520 SP100→100 味方HP3000
+heavy/main vulcan エナジー機銃: 発射33 弾減33 ダメ21120 SP100→100 味方HP3000
+heavy/main vulcanR エナジー機銃・連射型: 発射41 弾減41 ダメ20500 SP100→100 味方HP3000
+heavy/main vulcanH エナジー機銃・強装型: 発射29 弾減29 ダメ21460 SP100→100 味方HP3000
+heavy/main vulcanP エナジー機銃・精密型: 発射33 弾減33 ダメ21780 SP100→100 味方HP3000
+heavy/main lec 蓄積エナジー砲: 発射2 弾減2 ダメ4894 SP100→100 味方HP3000
+heavy/main lecS 蓄積エナジー砲・瞬発型: 発射3 弾減3 ダメ5085 SP100→100 味方HP3000
+heavy/main lecH 蓄積エナジー砲・強装型: 発射1 弾減1 ダメ3347 SP100→100 味方HP3000
+heavy/main explo 炸裂機関砲: 発射14 弾減14 ダメ16542 SP100→100 味方HP3000
+heavy/main exploX 炸裂機関砲・大容量型: 発射13 弾減13 ダメ17608 SP100→100 味方HP3000
+heavy/main exploH 炸裂機関砲・強装型: 発射11 弾減11 ダメ19329 SP100→100 味方HP3000
+heavy/sub rocket ロケットランチャー: 発射2 弾減2 ダメ14987 崩れ=down SP100→100 味方HP3000
+heavy/sub rocketW ロケットランチャー・広域型: 発射2 弾減2 ダメ15245 崩れ=down SP100→100 味方HP3000
+heavy/sub rocketH ロケットランチャー・強装型: 発射1 弾減1 ダメ14243 崩れ=down SP100→100 味方HP3000
+heavy/sub rocketR ロケットランチャー・連射型: 発射3 弾減3 ダメ18219 崩れ=stagger SP100→100 味方HP3000
+heavy/sub scrum 連射ロケット: 発射6 弾減6 ダメ15614 SP100→100 味方HP3000
+heavy/sub scrumR 連射ロケット・連射型: 発射8 弾減8 ダメ15212 SP100→100 味方HP3000
+heavy/sub scrumH 連射ロケット・強装型: 発射4 弾減4 ダメ16282 崩れ=stagger SP100→100 味方HP3000
+heavy/sub scrumW 連射ロケット・広域型: 発射7 弾減7 ダメ16406 SP100→100 味方HP3000
+heavy/sub plasma プラズマ砲: 発射4 弾減4 ダメ21221 崩れ=stagger SP100→100 味方HP3000
+heavy/sub plasmaH プラズマ砲・強装型: 発射2 弾減2 ダメ29613 崩れ=down SP100→100 味方HP3000
+heavy/sub plasmaR プラズマ砲・連射型: 発射3 弾減3 ダメ17293 崩れ=stagger SP100→100 味方HP3000
+heavy/sub plasmaQ プラズマ砲・速装型: 発射4 弾減4 ダメ19061 崩れ=stagger SP100→100 味方HP3000
+heavy/aux weaken 弱化グレネード: 発射4 弾減4 ダメ0 弱化 SP100→100 味方HP3000
+heavy/aux weakenW 弱化グレネード・広域型: 発射4 弾減4 ダメ0 弱化 SP100→100 味方HP3000
+heavy/aux weakenD 弱化グレネード・持続型: 発射3 弾減3 ダメ0 弱化 SP100→100 味方HP3000
+heavy/aux weakenL 弱化グレネード・軽量型: 発射3 弾減3 ダメ0 弱化 SP100→100 味方HP3000
+heavy/aux impactb 衝撃グレネード: 発射3 弾減3 ダメ0 崩れ=down SP100→100 味方HP3000
+heavy/aux impactbS 衝撃グレネード・瞬発型: 発射3 弾減3 ダメ0 崩れ=down SP100→100 味方HP3000
+heavy/aux impactbW 衝撃グレネード・広域型: 発射3 弾減3 ダメ0 崩れ=down SP100→100 味方HP3000
+heavy/aux impactbL 衝撃グレネード・軽量型: 発射2 弾減2 ダメ0 崩れ=down SP100→100 味方HP3000
+heavy/aux hsg 衝撃散弾銃: 発射4 弾減4 ダメ7768 崩れ=down SP100→100 味方HP3000
+heavy/aux hsgX 衝撃散弾銃・大容量型: 発射4 弾減4 ダメ6727 崩れ=stagger SP100→100 味方HP3000
+heavy/aux hsgW 衝撃散弾銃・広域型: 発射3 弾減3 ダメ7991 崩れ=down SP100→100 味方HP3000
+heavy/aux hsgH 衝撃散弾銃・強装型: 発射2 弾減2 ダメ9029 崩れ=down SP100→100 味方HP3000
+heavy/sp cannon 重砲: 発射0 弾減0 ダメ34873 崩れ=stagger SP100→0 味方HP3000
+heavy/sp cannonH 重砲・速射型: 発射0 弾減0 ダメ66118 崩れ=stagger SP100→14 味方HP3000
+heavy/sp cannonM 重砲・単発型: 発射0 弾減0 ダメ40589 崩れ=down SP100→20 味方HP3000
+heavy/sp cannonX 重砲・大容量型: 発射0 弾減0 ダメ43572 崩れ=stagger SP100→30 味方HP3000
+raid/main pistols 二丁拳銃: 発射26 弾減26 ダメ17680 SP100→100 味方HP3000
+raid/main pistolsX 二丁拳銃・大容量型: 発射34 弾減34 ダメ18360 SP100→100 味方HP3000
+raid/main pistolsR 二丁拳銃・連射型: 発射32 弾減32 ダメ17280 SP100→100 味方HP3000
+raid/main pistolsH 二丁拳銃・強装型: 発射16 弾減16 ダメ15680 SP100→100 味方HP3000
+raid/main dualmg 二丁マシンガン: 発射38 弾減38 ダメ20524 SP100→100 味方HP3000
+raid/main dualmgP 二丁マシンガン・精密型: 発射38 弾減38 ダメ19760 SP100→100 味方HP3000
+raid/main dualmgH 二丁マシンガン・強装型: 発射34 弾減34 ダメ21769 SP100→100 味方HP3000
+raid/main dualmgR 二丁マシンガン・連射型: 発射36 弾減36 ダメ18574 SP100→100 味方HP3000
+raid/main coyote 二丁バーストピストル: 発射15 弾減15 ダメ15000 SP100→100 味方HP3000
+raid/main coyoteH 二丁バーストピストル・強装型: 発射15 弾減15 ダメ16500 SP100→100 味方HP3000
+raid/main coyoteR 二丁バーストピストル・連射型: 発射23 弾減23 ダメ17020 SP100→100 味方HP3000
+raid/main coyoteS 二丁バーストピストル・瞬発型: 発射15 弾減15 ダメ15600 SP100→100 味方HP3000
+raid/main margay 単射二丁拳銃: 発射18 弾減18 ダメ16200 SP100→100 味方HP3000
+raid/main margayX 単射二丁拳銃・大容量型: 発射22 弾減22 ダメ18920 SP100→100 味方HP3000
+raid/main margayH 単射二丁拳銃・強装型: 発射9 弾減9 ダメ17640 SP100→100 味方HP3000
+raid/main margayP 単射二丁拳銃・精密型: 発射18 弾減18 ダメ20520 SP100→100 味方HP3000
+raid/main gemini 二丁エナジー銃: 発射18 弾減18 ダメ14400 SP100→100 味方HP3000
+raid/main geminiX 二丁エナジー銃・大容量型: 発射23 弾減23 ダメ15640 SP100→100 味方HP3000
+raid/main geminiH 二丁エナジー銃・強装型: 発射14 弾減14 ダメ15120 SP100→100 味方HP3000
+raid/main geminiP 二丁エナジー銃・精密型: 発射18 弾減18 ダメ17640 SP100→100 味方HP3000
+raid/main wide 二丁拡散銃: 発射23 弾減23 ダメ17759 SP100→100 味方HP3000
+raid/main wideP 二丁拡散銃・精密型: 発射22 弾減22 ダメ17160 SP100→100 味方HP3000
+raid/main glint 二丁蓄積銃: 発射2 弾減2 ダメ8644 SP100→100 味方HP3000
+raid/main glintS 二丁蓄積銃・瞬発型: 発射3 弾減3 ダメ10269 SP100→100 味方HP3000
+raid/main glintH 二丁蓄積銃・強装型: 発射1 弾減1 ダメ6663 SP100→100 味方HP3000
+raid/main glintM 二丁蓄積銃・重装型: 発射1 弾減1 ダメ5405 SP100→100 味方HP3000
+raid/sub sniper 狙撃銃: 発射4 弾減4 ダメ3600 崩れ=stagger SP100→100 味方HP3000
+raid/sub sniperH 狙撃銃・強装型: 発射4 弾減4 ダメ0 SP100→100 味方HP3000
+raid/sub sniperG 狙撃銃・高出力型: 発射2 弾減2 ダメ7800 崩れ=down SP100→100 味方HP3000
+raid/sub sniperM 狙撃銃・重装型: 発射1 弾減1 ダメ0 SP100→100 味方HP3000
+raid/sub battle 速射狙撃銃: 発射10 弾減10 ダメ20553 SP100→100 味方HP3000
+raid/sub battleH 速射狙撃銃・強装型: 発射7 弾減7 ダメ18900 SP100→100 味方HP3000
+raid/sub lzsniper 大型狙撃銃: 発射1 弾減1 ダメ0 SP100→100 味方HP3000
+raid/sub lzsniperP 大型狙撃銃・精密型: 発射1 弾減1 ダメ0 SP100→100 味方HP3000
+raid/sub lzsniperH 大型狙撃銃・強装型: 発射1 弾減1 ダメ0 SP100→100 味方HP3000
+raid/sub lzsniperM 大型狙撃銃・重装型: 発射1 弾減1 ダメ0 SP100→100 味方HP3000
+raid/aux drone 偵察機: 発射1 弾減1 ダメ0 索敵 偵察機1 SP100→100 味方HP3000
+raid/aux droneS 偵察機・瞬発型: 発射1 弾減1 ダメ0 索敵 偵察機1 SP100→100 味方HP3000
+raid/aux droneD 偵察機・持続型: 発射1 弾減1 ダメ0 索敵 偵察機1 SP100→100 味方HP3000
+raid/aux droneW 偵察機・広域型: 発射1 弾減1 ダメ0 索敵 偵察機2 SP100→100 味方HP3000
+raid/aux sonar 索敵ソナー: 発射5 弾減5 ダメ0 索敵 偵察機1 SP100→100 味方HP3000
+raid/aux sonarS 索敵ソナー・瞬発型: 発射5 弾減5 ダメ0 索敵 SP100→100 味方HP3000
+raid/aux sonarW 索敵ソナー・広域型: 発射4 弾減4 ダメ0 索敵 SP100→100 味方HP3000
+raid/aux sentry 自動砲台: 発射1 弾減1 ダメ4730 設置=自動砲台 SP100→100 味方HP3000
+raid/aux sentryH 自動砲台・強装型: 発射1 弾減1 ダメ4340 設置=自動砲台 SP100→100 味方HP3000
+raid/aux sentryW 自動砲台・広域型: 発射1 弾減1 ダメ12181 設置=自動砲台 SP100→100 味方HP3000
+raid/aux sentryG 自動砲台・高出力型: 発射1 弾減1 ダメ5680 設置=自動砲台 SP100→100 味方HP3000
+raid/sp camo 光学迷彩: 発射0 弾減0 ダメ0 SP100→73 作動=cloak 味方HP3000
+raid/sp camoD 光学迷彩・耐久型: 発射0 弾減0 ダメ0 SP100→86 作動=cloak 味方HP3000
+raid/sp camoH 光学迷彩・高出力型: 発射0 弾減0 ダメ0 SP100→63 作動=cloak 味方HP3000
+raid/sp camoQ 光学迷彩・即応型: 発射0 弾減0 ダメ0 SP100→69 作動=cloak 味方HP3000
+support/main shotgun ショットガン: 発射5 弾減5 ダメ27507 崩れ=stagger SP100→100 味方HP3000
+support/main shotgunW ショットガン・広域型: 発射5 弾減5 ダメ33328 崩れ=down SP100→100 味方HP3000
+support/main shotgunH ショットガン・強装型: 発射3 弾減3 ダメ20807 崩れ=down SP100→100 味方HP3000
+support/main shotgunQ ショットガン・速装型: 発射5 弾減5 ダメ33648 崩れ=stagger SP100→100 味方HP3000
+support/main autosg オートショットガン: 発射7 弾減7 ダメ31161 崩れ=stagger SP100→100 味方HP3000
+support/main autosgR オートショットガン・連射型: 発射11 弾減11 ダメ36300 SP100→100 味方HP3000
+support/main nail ネイルガン: 発射25 弾減25 ダメ17250 SP100→100 味方HP3000
+support/main nailR ネイルガン・連射型: 発射28 弾減28 ダメ15962 SP100→100 味方HP3000
+support/main nailX ネイルガン・大容量型: 発射30 弾減30 ダメ17400 SP100→100 味方HP3000
+support/main haggard マグナム: 発射7 弾減7 ダメ15050 SP100→100 味方HP3000
+support/main haggardX マグナム・大容量型: 発射9 弾減9 ダメ16470 SP100→100 味方HP3000
+support/main haggardH マグナム・強装型: 発射6 弾減6 ダメ16320 SP100→100 味方HP3000
+support/main aurora エナジー散弾銃: 発射3 弾減3 ダメ12880 崩れ=stagger SP100→100 味方HP3000
+support/main auroraW エナジー散弾銃・広域型: 発射3 弾減3 ダメ16500 崩れ=stagger SP100→100 味方HP3000
+support/main auroraP エナジー散弾銃・精密型: 発射3 弾減3 ダメ16380 崩れ=stagger SP100→100 味方HP3000
+support/main auroraH エナジー散弾銃・強装型: 発射3 弾減3 ダメ19710 崩れ=stagger SP100→100 味方HP3000
+support/main cls 収束散弾銃: 発射2 弾減2 ダメ9000 崩れ=stagger SP100→100 味方HP3000
+support/main clsX 収束散弾銃・大容量型: 発射3 弾減3 ダメ11280 崩れ=stagger SP100→100 味方HP3000
+support/main clsS 収束散弾銃・瞬発型: 発射1 弾減1 ダメ6360 崩れ=stagger SP100→100 味方HP3000
+support/main clsH 収束散弾銃・強装型: 発射2 弾減2 ダメ11520 崩れ=stagger SP100→100 味方HP3000
+support/sub mine 地雷: 発射1 弾減1 ダメ0 設置=地雷 SP100→100 味方HP3000
+support/sub mineW 地雷・広域型: 発射1 弾減1 ダメ0 設置=地雷 SP100→100 味方HP3000
+support/sub mineH 地雷・強装型: 発射1 弾減1 ダメ0 設置=地雷 SP100→100 味方HP3000
+support/sub fmine 浮遊機雷: 発射1 弾減1 ダメ6793 崩れ=stagger SP100→100 味方HP3000
+support/sub fmineW 浮遊機雷・広域型: 発射1 弾減1 ダメ6028 崩れ=stagger SP100→100 味方HP3000
+support/sub fmineH 浮遊機雷・強装型: 発射1 弾減1 ダメ8308 崩れ=down SP100→100 味方HP3000
+support/sub remote 遠隔爆弾: 発射2 弾減2 ダメ18484 崩れ=down SP100→100 味方HP3000
+support/aux sensor 索敵センサー: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux sensorX 索敵センサー・大容量型: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux sensorW 索敵センサー・広域型: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux sensorG 索敵センサー・高出力型: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux airsensor 滞空センサー: 発射1 弾減1 ダメ0 設置=索敵センサー@20m 索敵 SP100→100 味方HP3000
+support/aux airsensorL 滞空センサー・軽量型: 発射1 弾減1 ダメ0 設置=索敵センサー@20m 索敵 SP100→100 味方HP3000
+support/aux airsensorW 滞空センサー・広域型: 発射1 弾減1 ダメ0 設置=索敵センサー@20m 索敵 SP100→100 味方HP3000
+support/aux airsensorG 滞空センサー・高出力型: 発射1 弾減1 ダメ0 設置=索敵センサー@20m 索敵 SP100→100 味方HP3000
+support/aux fansensor 扇形センサー: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux fansensorX 扇形センサー・大容量型: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/aux fansensorW 扇形センサー・広域型: 発射1 弾減1 ダメ0 設置=索敵センサー 索敵 SP100→100 味方HP3000
+support/sp repair リペアユニット: 発射0 弾減0 ダメ0 SP100→60 味方HP8346
+support/sp repairG リペアユニット・高出力型: 発射0 弾減0 ダメ0 SP100→46 味方HP10000
+support/sp repairW リペアユニット・広域型: 発射0 弾減0 ダメ0 SP100→49 味方HP8346
+support/sp repairD リペアユニット・持続型: 発射0 弾減0 ダメ0 SP100→72 味方HP10000
+support/sp field リペアフィールド: 発射0 弾減0 ダメ0 SP100→88 作動=field 味方HP7050
+support/sp fieldW リペアフィールド・広域型: 発射0 弾減0 ダメ0 SP100→86 作動=field 味方HP7050
+support/sp fieldG リペアフィールド・高出力型: 発射0 弾減0 ダメ0 SP100→85 作動=field 味方HP8265
+エラー []
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+> test:bots
+> node tools/test/bot_battle.js dbg city,wide,mesa,dock 150
+
+== city 155秒 コア/戦力 6694,6638 撃破86 蘇生2 エリア移動16 出撃100 使われた武器143種 フィールド作動46秒 弾の最大7
+  設置 {"自動砲台":4,"索敵センサー":4,"遠隔爆弾":2}
+   B0:a4/6 B1:s3/5 B2:h2/0 B3:a6/5 B4:r2/4 B5:h3/3 B6:s5/5 B7:r1/2 B8:a5/8 B9:h9/6 R0:a5/7 R1:s4/4 R2:h4/1 R3:a3/6 R4:r6/4 R5:h4/4 R6:s1/5 R7:r3/1 R8:a3/5 R9:h7/5
+  エラー なし
+== wide 153秒 コア/戦力 6525,5906 撃破102 蘇生2 エリア移動8 出撃115 使われた武器157種 フィールド作動38秒 弾の最大5
+  設置 {"自動砲台":5,"索敵センサー":7,"遠隔爆弾":1,"浮遊機雷":1}
+   B0:a4/7 B1:s4/7 B2:h0/0 B3:a5/8 B4:r9/5 B5:h6/5 B6:s8/4 B7:r4/0 B8:a9/4 B9:h6/6 R0:a4/8 R1:s6/8 R2:h1/0 R3:a9/8 R4:r5/3 R5:h4/8 R6:s3/7 R7:r3/0 R8:a5/7 R9:h5/7
+  エラー なし
+== mesa 156秒 コア/戦力 7369,7650 撃破53 蘇生0 エリア移動0 出撃62 使われた武器116種 フィールド作動30秒 弾の最大5
+  設置 {"索敵センサー":3}
+   B0:a8/7 B1:s3/3 B2:h1/2 B3:a7/9 B4:r3/8 R0:a10/7 R1:s5/5 R2:h2/0 R3:a4/7 R4:r8/5
+  エラー なし
+== dock 18秒 コア/戦力 0,4000 撃破4 蘇生0 エリア移動0 出撃6 使われた武器22種 フィールド作動5秒 弾の最大1
+  設置 {}
+   B0:a1/2 B1:s0/1 R0:a2/1 R1:s1/0
+  エラー なし
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
