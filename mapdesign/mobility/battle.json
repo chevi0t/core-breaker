@@ -1,0 +1,71 @@
+[
+  {
+    "map": "mobility",
+    "seconds": 300,
+    "matchDuration": 300,
+    "ended": true,
+    "winner": "R",
+    "endedBy": "time",
+    "core": [
+      7053,
+      7256
+    ],
+    "kills": {
+      "B": 26,
+      "R": 35
+    },
+    "captures": 5,
+    "captureEvents": [
+      {
+        "t": 47.9,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 88.1,
+        "id": "B",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 98.1,
+        "id": "B",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 134.1,
+        "id": "A",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 153.3,
+        "id": "A",
+        "from": null,
+        "to": "R"
+      }
+    ],
+    "occupancy": {
+      "A:B": 134.04999999999623,
+      "B:neutral": 57.84999999999885,
+      "C:R": 300.00000000003394,
+      "B:B": 40.14999999999986,
+      "B:R": 202.00000000001168,
+      "A:neutral": 19.200000000000138,
+      "A:R": 146.74999999999912
+    },
+    "layers": {
+      "upper": 25,
+      "west": 104,
+      "center": 2325,
+      "east": 109
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 60,
+    "seed": 20261052,
+    "errors": [],
+    "balance": "勝率未確定（終局までの観測1試合）"
+  }
+]

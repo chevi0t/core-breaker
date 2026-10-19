@@ -1636,6 +1636,124 @@ function catapultUpdate(dt) {
   }
 }
 
+// 昇降施設（任意）。座標は nav と同じ [x, z, 海抜y]。asym でなければ点対称に足す。
+// 数値は本作の仮置き。全陣営・プレイヤー・Bot が同じ接触判定と物理を使う。
+const jumpPads = [], lifts = [];
+const mobilitySteel = new T.MeshLambertMaterial({ color: 0x536775 });
+const mobilityGlow = new T.MeshLambertMaterial({ color: 0x80e7c0, emissive: 0x174735 });
+const mobilityRail = new T.MeshLambertMaterial({ color: 0xc5a45a });
+const mobilityPoint = (p, s = 1) => new T.Vector3(p[0] * s, p[2], p[1] * s);
+function mobilityBox(w, h, d, mat, pos) {
+  const m = new T.Mesh(new T.BoxGeometry(w, h, d), mat);
+  m.position.copy(pos); m.castShadow = m.receiveShadow = true; mapRoot.add(m); return m;
+}
+function buildMobility(def) {
+  for (const d of def.jumpPads || []) for (const s of placementSigns(d.at[0], d.at[1])) {
+    const pos = mobilityPoint(d.at, s), exit = mobilityPoint(d.exit, s), radius = d.radius ?? 3;
+    const mesh = new T.Mesh(new T.CylinderGeometry(radius, radius + 0.4, 0.3, 16), mobilitySteel);
+    mesh.position.copy(pos).add(new T.Vector3(0, 0.05, 0)); mapRoot.add(mesh);
+    const ring = new T.Mesh(new T.TorusGeometry(radius * 0.73, 0.16, 6, 24), mobilityGlow);
+    ring.rotation.x = -Math.PI / 2; ring.position.copy(pos).add(new T.Vector3(0, 0.24, 0)); mapRoot.add(ring);
+    for (const dx of [-0.6, 0.6]) {
+      const arrow = mobilityBox(0.18, 1.8, 0.18, mobilityGlow, pos.clone().add(new T.Vector3(dx, 1, 0)));
+      arrow.rotation.z = dx < 0 ? -0.6 : 0.6;
+    }
+    jumpPads.push({ pos, exit, radius, rise: d.rise, ring, flash: 0 });
+  }
+  for (const d of def.lifts || []) for (const s of placementSigns(d.from[0], d.from[1])) {
+    const from = mobilityPoint(d.from, s), to = mobilityPoint(d.to, s), [w, depth] = d.size || [6, 6];
+    const mesh = mobilityBox(w, 0.6, depth, mobilitySteel, from.clone().add(new T.Vector3(0, -0.3, 0)));
+    hittables.push(mesh);
+    const ob = { minX: from.x - w / 2, maxX: from.x + w / 2, minZ: from.z - depth / 2, maxZ: from.z + depth / 2, top: from.y, bottom: from.y - 0.6 };
+    obstacles.push(ob); bridges.push(ob);
+    const l = { from, to, pos: from.clone(), w, depth, speed: d.speed ?? 5, wait: d.wait ?? 2, waitT: d.wait ?? 2, direction: 1, mesh, ob, blocked: false };
+    for (const end of [from, to]) {
+      const ring = new T.Mesh(new T.TorusGeometry(Math.min(w, depth) * 0.4, 0.12, 6, 16), mobilityRail);
+      ring.rotation.x = -Math.PI / 2; ring.position.copy(end).add(new T.Vector3(0, 0.08, 0)); mapRoot.add(ring);
+    }
+    const rail = new T.Mesh(new T.CylinderGeometry(0.14, 0.14, from.distanceTo(to), 6), mobilityRail);
+    rail.position.copy(from).lerp(to, 0.5).add(new T.Vector3(w / 2 + 0.5, 2.5, 0));
+    rail.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), to.clone().sub(from).normalize()); mapRoot.add(rail);
+    lifts.push(l);
+  }
+}
+function setLiftPosition(l, p) {
+  l.pos.copy(p); l.mesh.position.copy(p).y -= 0.3;
+  Object.assign(l.ob, { minX: p.x - l.w / 2, maxX: p.x + l.w / 2, minZ: p.z - l.depth / 2, maxZ: p.z + l.depth / 2, top: p.y, bottom: p.y - 0.6 });
+}
+function resetMobility() {
+  for (const l of lifts) { setLiftPosition(l, l.from); l.direction = 1; l.waitT = l.wait; l.blocked = false; }
+  for (const p of jumpPads) p.flash = 0;
+}
+function liftContains(l, u, at = l.pos) { return Math.abs(u.pos.x - at.x) < l.w / 2 - R * 0.25 && Math.abs(u.pos.z - at.z) < l.depth / 2 - R * 0.25; }
+function liftClear(l, next, riders) {
+  const delta = next.clone().sub(l.pos), steps = Math.max(1, Math.ceil(delta.length() / 0.4));
+  for (let i = 1; i <= steps; i++) {
+    const p = l.pos.clone().addScaledVector(delta, i / steps);
+    for (const u of riders) {
+      const q = u.pos.clone().addScaledVector(delta, i / steps);
+      if (terrainH(q.x, q.z) > q.y + 0.2) return false;
+      for (const o of obstacles) if (o !== l.ob && q.x > o.minX - R && q.x < o.maxX + R && q.z > o.minZ - R && q.z < o.maxZ + R && q.y < o.top - 0.01 && q.y + UNIT_H > (o.bottom ?? -Infinity) - 0.01) return false;
+    }
+    // 台の下にいる機体も押し潰さない。道が空けば運転を再開する。
+    for (const u of units) if (u.alive && !riders.includes(u) && Math.abs(u.pos.x - p.x) < l.w / 2 + R && Math.abs(u.pos.z - p.z) < l.depth / 2 + R && u.pos.y < p.y - 0.05 && u.pos.y + UNIT_H > p.y - 0.6) return false;
+  }
+  return true;
+}
+function liftUpdate(dt) {
+  if (!lifts.length) return;
+  for (const u of units) u.lift = null;
+  for (const l of lifts) {
+    const riders = units.filter(u => u.alive && u.onGround && !u.flying && Math.abs(u.pos.y - l.pos.y) < 0.35 && liftContains(l, u));
+    for (const u of riders) u.lift = l;
+    l.blocked = false;
+    if (l.waitT > 0) { l.waitT -= dt; continue; }
+    const target = l.direction > 0 ? l.to : l.from, dist = l.pos.distanceTo(target);
+    const next = l.pos.clone().lerp(target, Math.min(1, l.speed * dt / Math.max(dist, 1e-6)));
+    if (!liftClear(l, next, riders)) { l.blocked = true; continue; }
+    const delta = next.clone().sub(l.pos);
+    for (const u of riders) { u.pos.add(delta); u.vel.y = 0; }
+    setLiftPosition(l, next);
+    if (next.distanceTo(target) < 0.001) { l.direction *= -1; l.waitT = l.wait; }
+  }
+}
+function jumpPadUpdate(dt) {
+  for (const p of jumpPads) {
+    p.flash = Math.max(0, p.flash - dt * 2); p.ring.scale.setScalar(1 + p.flash * 0.12);
+    for (const u of units) if (u.alive && u.onGround && !u.flying && !u.transfer && !u.repairing && !u.stun && u.catCd <= 0 && Math.abs(u.pos.y - p.pos.y) < 0.5 && Math.hypot(u.pos.x - p.pos.x, u.pos.z - p.pos.z) < p.radius) {
+      // 水平の初速は加えない。射出後の空中操作は通常の physics を使う。
+      u.vel.set(0, Math.sqrt(2 * GRAV * p.rise), 0);
+      Object.assign(u, { flying: true, onGround: false, ctrlLockT: 0, flightSpeed: u.cruiseV, dashT: 0, longDash: false, catCd: 3, jumpPad: p });
+      p.flash = 1; sfx('catapult', u.pos, u);
+    }
+  }
+}
+function botMobilityGoal(u, goal) {
+  if (u.jumpPad && u.flying) return u.pos.y < u.jumpPad.exit.y + 0.5 && u.vel.y > 0 ? u.jumpPad.pos : u.jumpPad.exit;
+  if (u.mobilityRoute?.kind === 'lift' && u.lift === u.mobilityRoute.facility && u.lift.pos.distanceTo(u.mobilityRoute.to) > 0.1) return u.pos;
+  const height = Math.max(goal.y, terrainH(goal.x, goal.z));
+  if (height <= u.pos.y + 4.5 || u.healing || u.transfer) { u.mobilityRoute = null; return goal; }
+  if (u.mobilityRoute && u.mobilityRoute.goal.distanceTo(goal) > 20) u.mobilityRoute = null;
+  if (!u.mobilityRoute) {
+    const options = [
+      ...jumpPads.map(p => ({ kind: 'pad', facility: p, from: p.pos, to: p.exit })),
+      ...lifts.flatMap(l => [{ kind: 'lift', facility: l, from: l.from, to: l.to }, { kind: 'lift', facility: l, from: l.to, to: l.from }]),
+    ].filter(p => Math.abs(p.from.y - u.pos.y) < 3 && p.to.y >= height - 0.5 && Math.hypot(p.to.x - goal.x, p.to.z - goal.z) < 80);
+    options.sort((a, b) => u.pos.distanceTo(a.from) + a.to.distanceTo(goal) - u.pos.distanceTo(b.from) - b.to.distanceTo(goal));
+    if (options.length) u.mobilityRoute = { ...options[0], goal: goal.clone() };
+  }
+  const route = u.mobilityRoute;
+  if (!route) return goal;
+  if (route.kind === 'lift' && u.lift === route.facility) return u.pos;
+  if (route.kind === 'lift' && route.facility.pos.distanceTo(route.from) > 0.2) {
+    // 下で待つ機体が下降する台を塞がないよう、乗り場の横で待つ。
+    const away = route.from.clone().sub(route.to).setY(0);
+    if (away.lengthSq() < 0.1) away.set(1, 0, 0);
+    return route.from.clone().add(away.normalize().multiplyScalar(route.facility.w / 2 + R + 2));
+  }
+  return route.from;
+}
+
 // リペアポッド：毎秒1200回復。入った瞬間に撃ちかけのマガジンを満たし、1秒ごとに1マガジン、10秒で全量を補給。
 // 使えるのは自軍ベースのものと、自軍が占拠しているプラントに付いているものだけ
 const POD_R = 3, POD_HEAL = 1200;
@@ -1774,7 +1892,7 @@ function buildMap(id) {
   curMap = def; mapId = MAPS[id] ? id : FIRST_MAP;
   for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
   obstacles.length = 0; hittables.length = 0;
-  for (const a of [plants, turrets, radars, catapults, pods, barricades]) a.length = 0;
+  for (const a of [plants, turrets, radars, catapults, jumpPads, lifts, pods, barricades]) a.length = 0;
   [MAP_X, MAP_Z] = def.size;
   BASE_LINE = def.baseLine;
   VS = def.vs || null; coreMax = VS ? VS.cost : CORE_MAX;
@@ -1789,6 +1907,7 @@ function buildMap(id) {
   buildPlants(def.plants);
   if (!VS) { buildTurrets(def.turrets); buildRadars(def.radar); }
   buildCatapults(def.catapults);
+  buildMobility(def);
   buildPods(def.basePods, def.plantPods);
   buildBarricades(def.barricades);
   if (!VS) buildUmbrellas();
@@ -2271,6 +2390,7 @@ function spawn(u, at = 'base') {
   spawnPos(u, at);
   Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
+  u.jumpPad = u.mobilityRoute = u.lift = null;
   u.yaw = t.dir > 0 ? Math.PI : 0;
   u.pitch = 0;
   u.hp = u.maxHp; u.alive = true; u.overheat = false; // ブーストは equip で満タン
@@ -2303,6 +2423,7 @@ function startTransfer(u, at) {
 }
 function cancelTransfer(u) { u.transfer = null; if (u.isPlayer) u.nextCls = null; }
 function doTransfer(u) {
+  u.jumpPad = u.mobilityRoute = u.lift = null;
   const x = u.transfer;
   u.transfer = null;
   spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
@@ -2521,7 +2642,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false;
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.jumpPad = null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
@@ -3132,6 +3253,10 @@ function botUpdate(u, dt) {
     const pl = cand[Math.min(cand.length - 1, plants.length > 3 ? u.idx % 2 : 0)];
     goal = pl ? pl.pos.clone().add(new T.Vector3(u.idx % 2 ? 4 : -4, 0, 3))
       : new T.Vector3(enemyCore.pos.x + (u.idx % 5 - 2) * 5, 0, enemyCore.pos.z - t.dir * 12); // 傘の下、コアの前12m（結晶の張り出した下面を撃つ）
+  }
+  if (jumpPads.length || lifts.length) {
+    goal = botMobilityGoal(u, goal);
+    if (u.mobilityRoute && !u.lift && !u.flying) hold = 0.5;
   }
   const gd = Math.hypot(goal.x - u.pos.x, goal.z - u.pos.z);
   const to = navSteer(u, goal, gd, dt); // 通り道のあるマップでは次の節点へ
@@ -5479,6 +5604,10 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
   mini.setLineDash([2 * k, 2 * k]); mini.strokeStyle = 'rgba(255,255,255,.35)'; mini.lineWidth = k;
   for (const c of catapults) { mini.beginPath(); mini.moveTo(sx(c.pos.x), sz(c.pos.z)); mini.lineTo(sx(c.land.x), sz(c.land.z)); mini.stroke(); }
   mini.setLineDash([]);
+  mini.fillStyle = '#80e7c0'; mini.font = `bold ${Math.round(10 * k)}px sans-serif`; mini.textAlign = 'center';
+  for (const p of jumpPads) mini.fillText('↑', sx(p.pos.x), sz(p.pos.z));
+  mini.strokeStyle = '#e2c16f'; mini.lineWidth = 2 * k;
+  for (const l of lifts) { mini.beginPath(); mini.moveTo(sx(l.from.x), sz(l.from.z)); mini.lineTo(sx(l.to.x), sz(l.to.z)); mini.stroke(); mini.strokeRect(sx(l.pos.x) - 3 * k, sz(l.pos.z) - 3 * k, 6 * k, 6 * k); }
   mini.font = `bold ${Math.round(9 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle';
   for (const pl of plants) {
     const c = pl.owner ? TEAM[pl.owner].css : '#b9c2c9';
@@ -5711,7 +5840,8 @@ function hud(timeLeft, dt) {
   else if (p.overheat) centerEl.textContent = 'オーバーヒート';
   else if (document.pointerLockElement !== canvas && !mouseDown) centerEl.textContent = '画面をクリックで操作に戻る'; // Esc などでマウスの固定が外れたとき
   else if (p.invulT > 0) centerEl.textContent = '出撃直後：無敵';
-  else if (p.flying) centerEl.textContent = p.ctrlLockT > 0 ? 'カタパルト射出' : '空中：Shiftで空中ダッシュ／Space長押しで降下を緩める';
+  else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
+  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出' : '空中：Shiftで空中ダッシュ／Space長押しで降下を緩める';
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? 'リペア中：リペアユニットは使えます（移動キーで中断）' : 'リペア中：撃てません（移動キーで中断）';
   else if (p.planted) centerEl.textContent = `${p.slots[p.weapon].w.name}を構えています（動けません）`;
   else if (p.cloak) centerEl.textContent = `光学迷彩　見えやすさ ${Math.round(p.vis * 100)}%`;
@@ -5730,6 +5860,7 @@ function hud(timeLeft, dt) {
 let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
 function setup() {
+  resetMobility();
   for (const u of units) { scene.remove(u.group, u.beam, u.fieldMesh); disposeMech(u.group); u.beam.material.dispose(); }
   units.length = 0;
   for (let i = hittables.length - 1; i >= 0; i--) if (refOf(hittables[i])?.kind === 'unit') hittables.splice(i, 1);
@@ -5809,6 +5940,7 @@ function loop(now) {
   bgmTick();
   if (running) {
     timeLeft -= dt;
+    liftUpdate(dt);
     for (const u of units) {
       if (!u.alive) {
         if (u.downT > 0) { downTick(u, dt); continue; }
@@ -5831,6 +5963,7 @@ function loop(now) {
     for (const u of units) { if (!u.repairing) u.podT = u.podN = 0; u.repairing = false; }
     for (const pd of pods) podUpdate(pd, dt);
     catapultUpdate(dt);
+    jumpPadUpdate(dt);
     if (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0) finish();
   }
   for (const u of units) {

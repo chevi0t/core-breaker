@@ -1,0 +1,177 @@
+{
+  "note": "新しく実行した対戦の観測記録。過去13試合の再生ではない。位置は0.25秒刻み、被害・出撃・侵入・所有者変更は0.05秒刻みで観測。攻撃機の位置は命中時の現在位置であり発射地点や弾道ではない。",
+  "sourceCommit": "869f384ced668f206c1ca1d0d60746d5a2ef8e85",
+  "matches": [
+    {
+      "seed": 20261039,
+      "winner": "R",
+      "seconds": 300,
+      "losses": {
+        "B": {
+          "direct": 1636,
+          "wreck": 2812.5
+        },
+        "R": {
+          "direct": 807,
+          "wreck": 2587.5
+        }
+      },
+      "firstHits": [
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "R",
+          "unit": "B1",
+          "pos": [
+            -21.02,
+            0,
+            -175.53
+          ],
+          "amount": 42,
+          "raw": 420,
+          "t": 80.1,
+          "segment": 2
+        },
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "B",
+          "unit": "R4",
+          "pos": [
+            24.23,
+            0,
+            177.25
+          ],
+          "amount": 44,
+          "raw": 440,
+          "t": 95.5,
+          "segment": 3
+        }
+      ],
+      "invasions": {
+        "B": 8,
+        "R": 12
+      },
+      "captures": 15,
+      "kills": {
+        "B": 44,
+        "R": 48
+      },
+      "errors": []
+    },
+    {
+      "seed": 20261040,
+      "winner": "R",
+      "seconds": 300,
+      "losses": {
+        "B": {
+          "direct": 2810.47534082064,
+          "wreck": 3150
+        },
+        "R": {
+          "direct": 129,
+          "wreck": 2531.25
+        }
+      },
+      "firstHits": [
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "R",
+          "unit": "B1",
+          "pos": [
+            -26.66,
+            0,
+            -179.97
+          ],
+          "amount": 43,
+          "raw": 430,
+          "t": 229.25,
+          "segment": 11
+        },
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "B",
+          "unit": "R1",
+          "pos": [
+            -26.1,
+            0,
+            193.7
+          ],
+          "amount": 44,
+          "raw": 440,
+          "t": 34.45,
+          "segment": 1
+        }
+      ],
+      "invasions": {
+        "B": 8,
+        "R": 16
+      },
+      "captures": 9,
+      "kills": {
+        "B": 43,
+        "R": 52
+      },
+      "errors": []
+    },
+    {
+      "seed": 20261041,
+      "winner": "R",
+      "seconds": 300,
+      "losses": {
+        "B": {
+          "direct": 942,
+          "wreck": 2475
+        },
+        "R": {
+          "direct": 228,
+          "wreck": 2981.25
+        }
+      },
+      "firstHits": [
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "R",
+          "unit": "B1",
+          "pos": [
+            -20.34,
+            0,
+            -175.52
+          ],
+          "amount": 114,
+          "raw": 1140,
+          "t": 148.1,
+          "segment": 4
+        },
+        {
+          "type": "coreHit",
+          "via": "blast",
+          "team": "B",
+          "unit": "R4",
+          "pos": [
+            10.32,
+            0,
+            185.86
+          ],
+          "amount": 330,
+          "raw": 3300,
+          "t": 44.2,
+          "segment": 1
+        }
+      ],
+      "invasions": {
+        "B": 8,
+        "R": 16
+      },
+      "captures": 9,
+      "kills": {
+        "B": 52,
+        "R": 43
+      },
+      "errors": []
+    }
+  ]
+}

@@ -105,5 +105,15 @@ for c in d["catapults"]:
     for k in (1, -1):
         a, b = P(c[0] * k, c[1] * k), P(c[2] * k, c[3] * k)
         dr.line([a, b], fill=(255, 220, 0, 160), width=2); dr.ellipse([b[0] - 4, b[1] - 4, b[0] + 4, b[1] + 4], outline=(255, 220, 0), width=2)
+for p in d.get('jumpPads', []):
+    x, z, y = p['at']
+    for X, Z in both(x, z):
+        dr.ellipse([P(X - 3, Z - 3), P(X + 3, Z + 3)], fill=(100, 245, 185))
+        dr.text(P(X + 4, Z), 'J', fill=(100, 245, 185))
+for lift in d.get('lifts', []):
+    for s in ([1] if d.get('asym') else [1, -1]):
+        x, z, y = lift['from']; ex, ez, ey = lift['to']
+        dr.line([P(x*s,z*s),P(ex*s,ez*s)], fill=(240,200,100),width=4)
+        dr.text(P(x*s+4,z*s), 'L', fill=(240,200,100))
 img.save(out)
 print(out, img.size, "最高", round(max(map(max, hs)), 1), "最低", round(min(map(min, hs)), 1))

@@ -50,6 +50,11 @@ const quick = flag === '--quick';
     for (const c of g.catapults) out.push(line(`カタパルト ${c.plant ? 'プラント' + c.plant.id : 'ベース'}`, c.pos.x, c.pos.z));
     for (const t of g.turrets) out.push(line('防衛砲台', t.pos.x, t.pos.z));
     for (const r of g.radars) out.push(line('レーダー', r.pos.x, r.pos.z));
+    for (const p of g.curMap.jumpPads ? g.jumpPads : []) {
+      const floor = g.groundAt(p.pos.x, p.pos.z, p.pos.y);
+      out.push(`  ジャンプパッド (${p.pos.x}, ${p.pos.z}, 高さ${p.pos.y}) 射出高${p.rise}m${Math.abs(floor-p.pos.y)>.5 ? '　★踏める床の高さと違う' : ''}`);
+    }
+    for (const l of g.curMap.lifts ? g.lifts : []) out.push(`  リフト (${l.from.x}, ${l.from.z}, 高さ${l.from.y}) → (${l.to.x}, ${l.to.z}, 高さ${l.to.y})　実走検査は mobility_check.js`);
     return out.join('\n');
   }));
   // 2. プラントのリペアポッドの上の機体が、敵陣側（ポッドより敵ベース寄り）のどこから見えるか。15m格子の目の高さ4.6mから胴と頭を狙う
