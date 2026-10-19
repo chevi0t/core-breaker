@@ -58,6 +58,7 @@ const dir = process.argv[2];
       Object.assign(sh.mech, g.MECH_DEFAULT); // 発数・携行弾数を標準パーツに固定する
       sh.isPlayer = true; g.equip(sh, cls); sh.isPlayer = false;
       const P = w.proj || {};
+      if(P.kind==='ammo') for(const u of g.units) for(const k of ['main','sub']){const x=u.slots[k];x.ammo=x.w.mag||0;x.reserve=x.resMax;} // 補給の対象を、後で弾を減らす射手だけに固定する
       const near = w.type === 'artillery' ? 60 : w.type === 'sword' ? (key === 'spear' ? 6 : 4) : w.pellets ? 10 : P.kind === 'sentry' ? 20 : w.type === 'cannon' ? 40 : 18;
       const y = g.terrainH(spot[0], spot[1]);
       Object.assign(sh, { alive: true, hp: sh.maxHp, stun: '', invulT: 0, cloak: false, chargerOn: false, fieldOn: false, swing: null, weapon: slot, switchT: 0, planted: !!w.plant, scoped: !!w.scope, jamT:0, electricT:0, stunT:0, yaw: 0 });
@@ -66,25 +67,25 @@ const dir = process.argv[2];
       tg.pos.set(spot[0], y, spot[1] - near); tg.vel.set(0, 0, 0); tg.group.visible = true;
       Object.assign(al, { alive: true, hp: 3000, maxHp: 10000, stun: '', invulT: 0 });
       al.pos.set(spot[0] + 5, y, spot[1] + 1); al.group.visible = true;
-      for (const gd of g.gadgets.slice()) g.removeGadget(gd); // 前の試しの設置物を壊す
+      for (const gd of g.gadgets.slice()) g.removeGadget(gd); // 前の試しの設置物を除去（破壊不可の補給箱も含む）
       g.spotted.R.clear(); g.spotted.B.clear();
       for (const sh2 of g.shells.slice()) { sh2.mesh.parent && sh2.mesh.parent.remove(sh2.mesh); } g.shells.length = 0;
       const tp = () => new T.Vector3(tg.pos.x, tg.pos.y + 2.4, tg.pos.z);
       // 狙う点：設置物は的の手前の地面、ほかは的の胴体。回復は味方
       const ground = new T.Vector3(spot[0], y, spot[1] - (P.kind === 'sentry' ? 6 : P.hover ? 30 : near - 1));
-      const aimAt = () => w.type === 'artillery' ? new T.Vector3(tg.pos.x,g.terrainH(tg.pos.x,tg.pos.z),tg.pos.z) : w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || P.kind === 'ammoBox' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
+      const aimAt = () => w.type === 'artillery' ? new T.Vector3(tg.pos.x,g.terrainH(tg.pos.x,tg.pos.z),tg.pos.z) : w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || P.kind === 'ammo' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
       const sp0 = sh.slots.sp.heat, sl = sh.slots[slot], ammo0 = sl.ammo + sl.reserve;
       let shots = 0, maxStun = '', fired = 0;
       if (['charger', 'camo', 'field', 'barrier', 'escort'].includes(w.type)) g.toggleSp(sh);
-      const dt = 0.05, T0 = w.type === 'artillery' ? w.flight+(w.shots-1)*(w.interval||0)+2 : w.type === 'cannon' ? 8 : w.chargeStages || w.acMelee && w.chargeTime ? w.chargeTime+1.5 : P.kind === 'sentry' ? 6 : 4;
+      const dt = 0.05, T0 = w.type === 'artillery' ? w.flight+(w.shots-1)*(w.interval||0)+2 : w.type === 'cannon' ? 8 : w.chargeStages || w.acMelee && w.chargeTime ? w.chargeTime+1.5 : P.kind === 'sentry' || P.kind === 'ammo' ? 6 : P.stunSeconds || P.jamSeconds ? Math.max(4,P.fuse+1.5) : 4;
       let det = false, maxJam=0, maxElectric=0, supplied=false;
       for (let t = 0; t < T0; t += dt) {
         // 遠隔爆弾は2.5秒で起爆
         if (P.kind === 'remote' && t > 2.5 && !det) { det = true; g.detonateRemotes(sh); }
         // チャージ撃ち（v0.15）は満タンまで引いて離すのを繰り返す
-        const trig = w.type === 'sword' ? t < (w.chargeTime ? w.chargeTime+.05 : .1) : P.kind === 'sentry' ? t < 0.3 : w.chargeTime ? t % (w.chargeTime + 0.25) < w.chargeTime + 0.1 : !(P.kind === 'remote' && t > 2) && !(['mine', 'sensor'].includes(P.kind) && t > 0.5);
+        const trig = w.type === 'sword' ? t < (w.chargeTime ? w.chargeTime+.05 : .1) : P.kind === 'sentry' ? t < 0.3 : w.chargeTime ? t % (w.chargeTime + 0.25) < w.chargeTime + 0.1 : !(P.kind === 'remote' && t > 2) && !(['mine', 'sensor', 'ammo'].includes(P.kind) && t > 0.5);
         if(P.planar && t>1){const gd=g.gadgets.find(q=>q.owner===sh&&q.spec.planar);if(gd)tg.pos.z=gd.pos.z+(t<2?-5:5);}
-        if(P.kind==='ammoBox' && t>1 && !supplied){const gd=g.gadgets.find(q=>q.owner===sh&&q.kind==='ammoBox');if(gd){sh.slots.main.ammo--;sh.pos.copy(gd.pos);supplied=true;}}
+        if(P.kind==='ammo' && t>1 && !supplied){const gd=g.gadgets.find(q=>q.owner===sh&&q.kind==='ammo');if(gd){sh.slots.main.ammo--;sh.pos.copy(gd.pos);supplied=true;}}
         const before = sl.ammo;
         g.weaponsTick(sh, dt, trig, aimAt(), 0.006, false);
         if (sl.ammo < before) fired += before - sl.ammo;
