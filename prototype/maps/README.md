@@ -73,6 +73,8 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 - Botは高い目標へ向かうとき、目的地に接続する設備を選び、実際に歩いて踏む・乗る。下降するリフトの下を塞がないよう乗り場の横で待つ。設備を省略したマップの目標判断は従来どおり。
 - `python3 tools/build_maps.py` で型・寸法・範囲を検査し、`node tools/test/mobility_check.js dbg` で実物理とBotを検査する。配置後は実走して、パッドの上昇・横移動の時間と、リフトの乗降・頭上の空間を確認する。
 
+白煙循環区の生成器も両設備を配置する。各高所にパッド・リフト・徒歩の迂回坂を設け、3戦場すべてに高所プラントを含める。生成時には軽量機・重量機と両陣営による全設備の乗降を実物理で検査する。`node tools/test/generated_mobility_check.js dbg` は、生成済み3戦場の高所プラントへ、本体のBot判断と経路探索でパッド・リフトから到達する検査。生成・対戦・リプレイは `mapdesign/circulation/v2/` に保存する。
+
 試せるマップは「昇降設備試験場 〜垂直射出と運搬〜」。設計と結果は `mapdesign/mobility/README.md`。施設の概要は[ユーザー指定の公式紹介](https://borderbreak.com/game/intro/facility/)を参照し、速度・寸法・外観は本作の仮置きとオリジナルモデルを使う。
 
 ### 地形の種類（`terrain` の `type`）

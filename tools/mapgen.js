@@ -14,38 +14,45 @@ function random(seed) {
 
 function geometry(seed) {
   const rng = random(seed), integer = (a, b) => a + Math.floor(rng() * (b - a + 1));
-  const west = integer(-90, -80), east = integer(68, 78), deck = integer(7, 9), pad = integer(60, 68);
+  const west = integer(-86, -80), east = integer(68, 74), deck = integer(12, 14), pad = integer(60, 68);
   const terrain = [], layout = [];
   for (const sign of [1, -1]) {
     terrain.push({type:'block', x:west, z:sign * pad, hx:17, hz:18, h:deck, slope:2.5});
-    terrain.push({type:'ramp', x0:west - 13, x1:west + 13, z0:sign * (pad + 18), z1:sign * (pad + 62), h:deck});
+    terrain.push({type:'ramp', x0:west - 13, x1:west + 13, z0:sign * (pad + 18), z1:sign * (pad + 90), h:deck});
     // ポッドは三方の土手と窪地に隠し、ベース側だけ開ける。
     terrain.push({type:'block', x:0, z:sign * 141, hx:18, hz:3, h:5, slope:2.5});
     for (const x of [-21, 21]) terrain.push({type:'block', x, z:sign * 151, hx:3, hz:10, h:5, slope:2.5});
     terrain.push({type:'trench', x:0, z0:sign * 147, z1:sign * 158, w:12, slope:3, h:-2});
   }
+  terrain.push({type:'block',x:east,z:0,hx:18,hz:22,h:deck,slope:2.5});
+  for (const sign of [1,-1]) terrain.push({type:'ramp',x0:east-12,x1:east+12,z0:sign*22,z1:sign*100,h:deck});
   // 貯水区画は片側だけ。通り道・再出撃位置から外し、段差は歩ける傾斜にする。
   terrain.push({type:'trench', x:126, z0:24, z1:86, w:10, slope:12, h:-5});
   for (const [x, z, w, d, h] of [
     [-36, 46, 16, 20, 11], [34, -46, 18, 22, 9],
-    [35, 86, 14, 16, 7], [-38, -88, 16, 14, 12],
+    [35, 96, 14, 16, 7], [-35, -103, 12, 14, 12],
     [-128, -20, 12, 28, 6], [113, -66, 12, 20, 5],
-    [40, 10, 7, 7, 14], [-44, -10, 7, 7, 10],
+    [27, 25, 7, 7, 14], [-44, -10, 7, 7, 10],
   ]) layout.push([x, z, w, d, h]);
   const d = {
     order:5, name:'白煙循環区', subtitle:'検証中', asym:true,
     size:[150, 240], team:5, time:300, baseZ:210, baseLine:165,
-    desc:'停止した熱交換施設。片側の保守高架と地上の連絡路が交差する。配置・勝率を検証中。',
+    desc:'停止した熱交換施設。西の保守高架と東の冷却塔広場へ、ジャンプパッド・リフト・長い坂から進む。',
     terrain, layout,
     plants:[['A', 0, 120, 'B'], ['Z', 0, -120, 'R']],
     turrets:[[-33, 177], [33, 177]], radar:[-50, 220],
-    catapults:[[-62, 190, -116, 94], [62, 190, east, 100], [-100, 190, west, 112], [100, 190, 110, 112]],
+    catapults:[[-62, 190, -116, 104], [62, 190, 108, 100], [-100, 190, west, 158], [100, 190, 110, 120]],
     basePods:[[-21, 190], [21, 190]], plantPods:[['A', 0, 153], ['Z', 0, -153]],
     barricades:[], bridges:[[west, 0, 28, pad * 2 - 20, deck, 1.5]],
     water:[[126, 55, 10, 31, -4.7]],
-    paved:[[-20, 20, -138, 138], [west - 21, west + 21, -138, 138], [east - 22, east + 22, -138, 138],
+    jumpPads:[...[-1,1].map(s=>({at:[west+25,s*pad,0],exit:[west+10,s*pad,deck],rise:30})),
+      {at:[east-25,0,0],exit:[east-12,0,deck],rise:30}],
+    // 上端の台は崖の外へ接岸し、台の幅で高所の床につなぐ。
+    lifts:[...[-1,1].map(s=>({from:[west-30,s*pad,0],to:[west-21,s*pad,deck],size:[8,8],speed:5,wait:2})),
+      {from:[east+31,0,0],to:[east+22,0,deck],size:[8,8],speed:5,wait:2}],
+    paved:[[-20, 20, -138, 138], [west - 36, west + 38, -165, 165], [east - 38, east + 37, -138, 138],
       [-115, 105, -116, -94], [-115, 105, -18, 18], [-115, 105, 94, 116], [-30, 30, 112, 165], [-30, 30, -165, -112]],
-    generation:{version:1, seed, west, east, deck, pad, balance:'勝率未確定'},
+    generation:{version:2, seed, west, east, deck, pad, balance:'勝率未確定'},
   };
   return d;
 }
@@ -72,9 +79,12 @@ function placements(candidates, seed, count = 64) {
     const plants = [[0, 120, 'B'], ...selected.map(p => [p.x, p.z, null]), [0, -120, 'R']]
       .map(([x, z, owner], j) => [String.fromCharCode(65 + j), x, z, owner]);
     const elevated = selected.filter(p => p.y >= 5).length;
+    // 全戦場で昇降設備の先に争奪目標を置く。
+    if (!elevated) continue;
     const spread = Math.max(...selected.map(p => p.x)) - Math.min(...selected.map(p => p.x));
     const metrics = {plants:plants.length, elevated, spread, offCenter:selected.filter(p => Math.abs(p.x) > 40).length};
-    const name = elevated >= 2 ? '高架縦断' : elevated ? '片翼争奪' : spread > 80 ? '両翼連絡' : metrics.offCenter ? '側面迂回' : '中央冷却路';
+    const bothSides=selected.some(p=>p.y>=5 && p.x<0) && selected.some(p=>p.y>=5 && p.x>0);
+    const name = plants.length === 3 ? '昇降交差' : bothSides ? '高架縦断' : '片翼争奪';
     proposals.push({plants, plantPods:[['A', 0, 153], [plants.at(-1)[0], 0, -153]], name, metrics, signature});
   }
   return proposals;

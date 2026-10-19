@@ -53,9 +53,20 @@ function navigation() {
     for (const z of [-190, -165, -125, -105, -80, -60, -35, 0, 35, 60, 80, 105, 125, 165, 190]) add(x, z);
   }
   for (const z of [-35, 0, 35]) add(west, z, deck);
+  for (const p of g.jumpPads) {add(p.pos.x,p.pos.z,p.pos.y);add(p.exit.x,p.exit.z,p.exit.y);}
+  for (const l of g.lifts) {add(l.from.x,l.from.z,l.from.y);add(l.to.x,l.to.z,l.to.y);}
   for (const pl of g.plants) for (const dx of [-6, 6]) add(pl.pos.x + dx, pl.pos.z + 3);
   for (const c of g.catapults) {add(c.land.x, c.land.z); add(c.pos.x + 6, c.pos.z);}
-  const walk = (a, b) => g.clearPath(a[0], a[1], b[0], b[1], a[2]) && Math.abs(g.pathEndH - b[2]) < 0.8;
+  const walk = (a, b) => {
+    if(!g.clearPath(a[0],a[1],b[0],b[1],a[2]) || Math.abs(g.pathEndH-b[2])>=.8)return false;
+    // physics は X/Z を別々に解く。斜め方向だけ緩い崖の側面を接続しない。
+    const n=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1]));
+    for(let i=0;i<=n;i++){
+      const x=a[0]+(b[0]-a[0])*i/Math.max(1,n),z=a[1]+(b[1]-a[1])*i/Math.max(1,n);
+      if(Math.abs(g.terrainH(x+.5,z)-g.terrainH(x-.5,z))>.9 || Math.abs(g.terrainH(x,z+.5)-g.terrainH(x,z-.5))>.9)return false;
+    }
+    return true;
+  };
   const links = [], adjacent = nodes.map(() => []);
   for (let a = 0; a < nodes.length; a++) for (let b = a + 1; b < nodes.length; b++) {
     const p = nodes[a], q = nodes[b], distance = Math.hypot(p[0] - q[0], p[1] - q[1]);
@@ -119,4 +130,37 @@ function driveRoutes() {
   return results;
 }
 
-module.exports = {openMap, candidateSites, navigation, driveRoutes};
+// 配置した全設備を、両軍・軽量機/重量機で実際に乗り降りする。
+// 目標の切替は本体の Bot と同じ関数、移動は同じ physics。座標の瞬間移動で合格させない。
+function driveMobility() {
+  const g=__g,T=g.T,dt=.05,results=[];
+  for(const v of g.units){v.frozen=true;v.pos.set(140,0,220-v.idx*8);}
+  const facilities=[...g.jumpPads.map((f,i)=>({kind:'pad',index:i,f,from:f.pos,to:f.exit})),
+    ...g.lifts.map((f,i)=>({kind:'lift',index:i,f,from:f.from,to:f.to}))];
+  for(const [cls,chassis] of [['assault','light'],['heavy','heavy']]) for(const team of ['B','R']) for(const item of facilities){
+    g.resetMobility();
+    const u=g.units.find(v=>v.team===team),{from,to,kind,f,index}=item;
+    u.mech={head:chassis,body:chassis,arms:chassis,legs:chassis,color:'team'};g.equip(u,cls);
+    const away=from.clone().sub(to).setY(0).normalize();
+    const start=from.clone().addScaledVector(away,8);
+    const goal=kind==='pad'?to.clone():to.clone().addScaledVector(away,-8);
+    u.pos.copy(start);u.vel.set(0,0,0);
+    Object.assign(u,{alive:true,onGround:true,flying:false,repairing:false,healing:false,transfer:null,planted:false,stun:'',catCd:0,jumpPad:null,lift:null,mobilityRoute:null,dashT:0,longDash:false,charging:false,overheat:false,ctrlLockT:0,boost:u.maxBoost});
+    let used=false,arrived=false,peak=0,ticks=0;
+    for(;ticks<1000;ticks++){
+      g.liftUpdate(dt);g.jumpPadUpdate(dt);
+      const target=g.botMobilityGoal(u,goal),wish=new T.Vector3(target.x-u.pos.x,0,target.z-u.pos.z);
+      if(wish.length()>.5)wish.normalize();else wish.set(0,0,0);
+      used ||= kind==='pad'?u.jumpPad===f:u.lift===f;
+      g.physics(u,wish,false,false,dt);peak=Math.max(peak,u.pos.y);
+      if(used && u.onGround && Math.abs(u.pos.y-goal.y)<.3 && Math.hypot(u.pos.x-goal.x,u.pos.z-goal.z)<1.5 && !u.lift){arrived=true;break;}
+    }
+    if(!arrived)throw new Error(`${team}/${cls}/${kind}${index}: 昇降経路を走破できません (${u.pos.toArray()}) used=${used}`);
+    results.push({team,class:cls,chassis,kind,index,used,arrived,seconds:Number((ticks*dt).toFixed(2)),peak,landing:u.pos.toArray()});
+    u.pos.set(140,0,220-u.idx*8);
+  }
+  g.resetMobility();
+  return results;
+}
+
+module.exports = {openMap, candidateSites, navigation, driveRoutes, driveMobility};

@@ -8,7 +8,7 @@ const {execFileSync} = require('node:child_process');
 const {geometry, placements, selectDiverse, serialize, facilitiesPass} = require('../mapgen');
 const {options} = require('../generate_map');
 const decode = text => {const c={window:{}};vm.runInNewContext(text,c);return JSON.parse(JSON.stringify(c.window.MAP_DATA.fixture));};
-const sites = data => [[0,0],[0,60],[0,-60],[data.generation.east,0],[data.generation.east,60],[data.generation.east,-60],[data.generation.west,data.generation.pad],[data.generation.west,-data.generation.pad]].map(([x,z],key)=>({key,x,z,y:x===data.generation.west?data.generation.deck:0}));
+const sites = data => [[0,0],[0,60],[0,-60],[data.generation.east,0],[data.generation.east,60],[data.generation.east,-60],[data.generation.west,data.generation.pad],[data.generation.west,-data.generation.pad]].map(([x,z],key)=>({key,x,z,y:x===data.generation.west||x===data.generation.east&&z===0?data.generation.deck:0}));
 
 test('段階1：同じシードで地形を再現し、保存・再読み込みできる',()=>{
   const a=geometry(20261019);
@@ -26,6 +26,7 @@ test('段階2：配置シードを変えても共通地形は変わらず、3種
   assert.equal(new Set(selected.map(p=>JSON.stringify(p.metrics))).size,3);
   assert.equal(JSON.stringify(d),before);
   for(const p of a) {
+    assert.ok(p.metrics.elevated>=1,'すべての戦場に昇降先の高所目標を含める');
     assert.ok(p.plants.length>=3 && p.plants.length<=6);
     assert.equal(p.plants[0][3],'B');assert.equal(p.plants.at(-1)[3],'R');
     const inner=p.plants.slice(1,-1);

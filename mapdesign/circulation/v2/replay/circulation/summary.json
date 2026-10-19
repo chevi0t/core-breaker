@@ -1,0 +1,63 @@
+{
+  "note": "新しく実行した対戦の観測記録。過去13試合の再生ではない。位置は0.25秒刻み、被害・出撃・侵入・所有者変更は0.05秒刻みで観測。攻撃機の位置は命中時の現在位置であり発射地点や弾道ではない。",
+  "sourceCommit": "6db9d1c81e571eaafea3521d661b83dc350ffea9",
+  "matches": [
+    {
+      "seed": 20261070,
+      "winner": "R",
+      "seconds": 300,
+      "losses": {
+        "B": {
+          "direct": 297,
+          "wreck": 2812.5
+        },
+        "R": {
+          "direct": 116,
+          "wreck": 2362.5
+        }
+      },
+      "firstHits": [
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "R",
+          "unit": "B4",
+          "pos": [
+            30.38,
+            0,
+            -182.99
+          ],
+          "amount": 58,
+          "raw": 580,
+          "t": 65.6,
+          "segment": 3
+        },
+        {
+          "type": "coreHit",
+          "via": "damage",
+          "team": "B",
+          "unit": "R4",
+          "pos": [
+            25.16,
+            0,
+            178.41
+          ],
+          "amount": 33,
+          "raw": 330,
+          "t": 266.95,
+          "segment": 6
+        }
+      ],
+      "invasions": {
+        "B": 7,
+        "R": 4
+      },
+      "captures": 8,
+      "kills": {
+        "B": 41,
+        "R": 48
+      },
+      "errors": []
+    }
+  ]
+}

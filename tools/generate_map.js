@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const {execFileSync} = require('node:child_process');
 const {chromium} = require('playwright');
 const {geometry, placements, selectDiverse, save, facilitiesPass} = require('./mapgen');
-const {openMap, candidateSites, navigation, driveRoutes} = require('./mapgen_browser');
+const {openMap, candidateSites, navigation, driveRoutes, driveMobility} = require('./mapgen_browser');
 const ROOT = path.resolve(__dirname, '..');
 
 function options(args) {
@@ -28,7 +28,7 @@ function options(args) {
 async function generate(config) {
   const destination=path.join(ROOT,'prototype/maps',config.id+'.js');
   if (fs.existsSync(destination) && !fs.readFileSync(destination,'utf8').startsWith('// tools/generate_map.js')) throw new Error('手書きの既存マップは上書きしません');
-  const work=path.join(ROOT,'dbg/mapgen',config.id), reportDir=path.join(ROOT,'mapdesign',config.id);
+  const work=path.join(ROOT,'dbg/mapgen',config.id), reportDir=path.join(ROOT,'mapdesign',config.id,'v2');
   fs.mkdirSync(work,{recursive:true}); fs.mkdirSync(reportDir,{recursive:true});
   execFileSync('python3',['tools/test/make_dbg.py','dbg'],{cwd:ROOT,stdio:'inherit'});
   const failures=[];
@@ -60,9 +60,10 @@ async function generate(config) {
           def.nav=built.nav;
           await page.click('#start');
           const routes=await page.evaluate(driveRoutes);
+          const mobility=await page.evaluate(driveMobility);
           const variant={name:choice.name,plants:choice.plants,plantPods:choice.plantPods,nav:built.nav,desc:data.desc+' '+choice.name+'。勝率未確定。'};
           variants.push(variant);
-          validations.push({id:i===0?config.id:`${config.id}-v${i+1}`,metrics:choice.metrics,nav:{nodes:built.retained,links:built.links},routes});
+          validations.push({id:i===0?config.id:`${config.id}-v${i+1}`,metrics:choice.metrics,nav:{nodes:built.retained,links:built.links},routes,mobility});
           // 次の buildMap は進行中の機体を再利用しない。
           await page.evaluate(()=>{__g.setup();document.querySelector('#overlay').hidden=false;});
         }
@@ -78,8 +79,8 @@ async function generate(config) {
         fs.copyFileSync(checked,path.join(inspect,'maps.js'));
         for (const v of validations) {
           const log=execFileSync(process.execPath,['tools/test/map_check.js',inspect,v.id,'--quick'],{cwd:ROOT,encoding:'utf8'});
-          fs.writeFileSync(path.join(work,v.id+'-facilities.log'),log);
-          if(!facilitiesPass(log)) throw new Error(`${v.id}: 施設検査に不合格（${work} のログを参照）`);
+          fs.writeFileSync(path.join(reportDir,v.id+'-facilities.log'),log);
+          if(!facilitiesPass(log)) throw new Error(`${v.id}: 施設検査に不合格（${reportDir} のログを参照）`);
           v.facilities='施設・両陣営の隠れたポッド・nav の検査に合格';
         }
         const existing=fs.readdirSync(path.join(ROOT,'prototype/maps')).filter(name=>name.endsWith('.js') && name!==config.id+'.js').map(name=>path.join(ROOT,'prototype/maps',name));
@@ -94,6 +95,7 @@ async function generate(config) {
           fs.writeFileSync(bundle,previousBundle); throw error;
         }
         fs.writeFileSync(path.join(reportDir,'generation.json'),JSON.stringify({configuration:config,terrainSeed:seed,balance:'勝率未確定',stage:'地形・配置・経路生成と実走行。統計的な最終合格は未判定',candidateSites:sites,validations,failures},null,2)+'\n');
+        fs.rmSync(path.join(reportDir,'generation-failures.json'),{force:true});
         console.log(`保存: ${path.relative(ROOT,destination)}（${variants.length}戦場、勝率未確定）`);
         return data;
       } catch(error) {

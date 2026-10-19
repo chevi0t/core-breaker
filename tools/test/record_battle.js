@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 const child = require('node:child_process');
 const {chromium} = require('playwright');
 const {openMap} = require('../mapgen_browser');
+const observeMobility = require('./mobility_observer');
 const ROOT = path.resolve(__dirname, '../..');
 const [dbg, id = 'circulation-v3', output = 'dbg/replay', seedList = '20261039,20261040,20261041'] = process.argv.slice(2);
 const seeds = seedList.split(',').map(Number);
@@ -30,7 +31,7 @@ function summarize(match) {
 (async () => {
   fs.mkdirSync(output, {recursive:true});
   const data = {version:1, sourceCommit:child.execFileSync('git', ['rev-parse','HEAD'], {cwd:ROOT,encoding:'utf8'}).trim(),
-    engineSha256:hash('prototype/index.html'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'),
+    engineSha256:hash('prototype/index.html'), mapSourceSha256:hash('prototype/maps/'+id.replace(/-v\d+$/,'')+'.js'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'), mobilityObserverSha256:hash('tools/test/mobility_observer.js'),
     positionSampleSeconds:0.25, unitColumns:['x','y','z','hp','flags','segment','yaw','coreDamageRaw','target'],
     flags:{alive:1,flying:2,upper:4,invulnerable:8,transfer:16,down:32},
     note:'新しく実行した対戦の観測記録。過去13試合の再生ではない。位置は0.25秒刻み、被害・出撃・侵入・所有者変更は0.05秒刻みで観測。攻撃機の位置は命中時の現在位置であり発射地点や弾道ではない。', matches:[]};
@@ -42,6 +43,7 @@ function summarize(match) {
       try {
         if (!await page.evaluate(() => window.__battleTraceVersion === 1)) throw new Error('make_dbg.py dbg --trace を実行してください');
         await page.click('#start');
+        await page.evaluate('window.__observeMobility = '+observeMobility.toString());
         const info = await page.evaluate(() => {
           const g=__g, scene=g.units[0].group.parent;
           g.renderer.render=()=>scene.updateMatrixWorld();
@@ -85,6 +87,7 @@ function summarize(match) {
             const g=__g,s=__recording,uid=u=>u.team+(u.idx+1),round=n=>Math.round(n*100)/100;
             for(let f=0;f<100 && !g.ended;f++) {
               g.loop(__advanceClock()); s.ticks++;
+              for(const e of __observeMobility()){e.segment=s.segments[e.unit];s.events.push(e);}
               for(const p of g.plants) if(p.owner!==s.owners[p.id]) {s.events.push({type:'plant',t:round(g.MATCH-g.timeLeft),plant:p.id,from:s.owners[p.id],to:p.owner});s.owners[p.id]=p.owner;}
               for(const u of g.units) {
                 const id=uid(u), inside=u.alive && u.pos.z*g.TEAM[u.team].dir>g.curMap.baseLine;

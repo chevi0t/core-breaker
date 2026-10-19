@@ -27,7 +27,7 @@
       <div class="card"><div class="filters"><label><input type="checkbox" id="showB" checked>青</label><label><input type="checkbox" id="showR" checked>橙</label><label>軌跡 <select id="trails"><option value="5">直近5秒</option><option value="15" selected>直近15秒</option><option value="30">直近30秒</option><option value="sortie">今の出撃から</option><option value="0">非表示</option></select></label><label><input type="checkbox" id="nav">通行可能な接続</label></div>
         <p class="hint">機体をクリックすると強調。出撃・エリア移動の前後は線でつなぎません。</p><div id="blueUnits" class="units"></div><div id="orangeUnits" class="units"></div><div id="unitDetail">機体を選ぶと担当・高さ・初期装備・コア攻撃量を表示します。</div>
       </div>
-      <div class="card"><div class="event-head"><h2>場面を探す</h2><select id="eventFilter" aria-label="イベント種別"><option value="coreHit">コア命中</option><option value="baseEnter">敵ベース侵入</option><option value="plant">プラント所有変更</option><option value="deploy">出撃・エリア移動</option><option value="wreck">大破</option></select></div>
+      <div class="card"><div class="event-head"><h2>場面を探す</h2><select id="eventFilter" aria-label="イベント種別"><option value="coreHit">コア命中</option><option value="baseEnter">敵ベース侵入</option><option value="plant">プラント所有変更</option><option value="deploy">出撃・エリア移動</option><option value="wreck">大破</option><option value="padLaunch">パッド射出</option><option value="padLand">パッドから着地</option><option value="liftBoard">リフト乗車</option><option value="liftExit">リフトから高所へ下車</option></select></div>
         <div class="filters"><button id="firstBlue">青の最初の凸</button><button id="firstOrange">橙の最初の凸</button></div>
         <p class="hint">押すと8秒前で停止します。「再生」で侵攻を追えます。</p><div id="events"></div><div id="focus"></div>
       </div>
@@ -50,6 +50,7 @@ const point=(x,z)=>[map.width/2+x*S,map.height/2+z*S];
 let match,index=0,t=0,playing=false,selected=null,focused=null,eventRows=[],last=0;
 const bg=document.createElement('canvas');bg.width=map.width;bg.height=map.height;
 const bc=bg.getContext('2d');
+const timelineBg=document.createElement('canvas');timelineBg.width=timeline.width;timelineBg.height=timeline.height;
 function line(c,a,b,color,width=1,dash=[]){c.beginPath();c.setLineDash(dash);c.strokeStyle=color;c.lineWidth=width;c.moveTo(...a);c.lineTo(...b);c.stroke();c.setLineDash([]);}
 function circle(c,x,y,r,fill,stroke,width=1){c.beginPath();c.arc(x,y,r,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
 function label(c,text,x,y,color='#eaf2f7',size=13){c.font=`600 ${size}px system-ui,sans-serif`;c.textAlign='center';c.fillStyle=color;c.fillText(text,x,y);}
@@ -111,7 +112,9 @@ function drawMap(s){
     if(u[4]&2)circle(ctx,...a,9,null,'#ffffff99',1);
   });
 }
-function drawTimeline(){
+// 試合中に変わらない履歴は一度だけ描き、再生時には時刻の線だけを重ねる。
+function buildTimeline(){
+  const tc=timelineBg.getContext('2d');
   const w=timeline.width,h=timeline.height,left=35,right=w-12,xx=time=>left+time/match.seconds*(right-left);
   tc.clearRect(0,0,w,h);tc.fillStyle='#14202a';tc.fillRect(left,4,right-left,72);
   for(const [i,team] of ['B','R'].entries()){
@@ -122,8 +125,8 @@ function drawTimeline(){
     for(let i=0;i<match.frames.length-1;i++){const f=match.frames[i],n=match.frames[i+1];tc.fillStyle=colors[f.p[j][0] || 'neutral'];tc.fillRect(xx(f.t),y,Math.max(1,xx(n.t)-xx(f.t)),6);}
   }
   for(let sec=0;sec<=match.seconds;sec+=60)label(tc,fmt(sec),xx(sec),h-2,'#a8bac7',10);
-  line(tc,[xx(t),3],[xx(t),h-14],'#fff',2);
 }
+function drawTimeline(){tc.clearRect(0,0,timeline.width,timeline.height);tc.drawImage(timelineBg,0,0);const x=35+t/match.seconds*(timeline.width-47);line(tc,[x,3],[x,timeline.height-14],'#fff',2);}
 function updateStats(s){
   const losses={B:{direct:0,wreck:0},R:{direct:0,wreck:0}};
   for(const e of match.events){if(e.t>t)continue;if(e.type==='coreHit' || e.type==='wreck')losses[e.team][e.type==='coreHit'?'direct':'wreck']+=e.amount;}
@@ -157,7 +160,7 @@ function buildEvents(){
     const button=document.createElement('button');button.className='event';button.dataset.time=e.t;
     const time=document.createElement('time');time.textContent=fmt(e.t);button.append(time);
     const text=document.createElement('span');text.className='kind';const unit=e.unit?teamName(e.unit[0])+e.unit.slice(1):'攻撃機不明';
-    text.textContent=e.type==='coreHit'?`${unit} → ${teamName(e.team)}コア命中`:e.type==='baseEnter'?`${unit} 敵ベースへ侵入`:e.type==='plant'?`${e.plant}：${teamName(e.from)} → ${teamName(e.to)}`:e.type==='deploy'?`${unit} ${e.reason==='transfer'?'エリア移動':'出撃'}：${e.at==='base'?'ベース':e.at}`:`${unit} 大破`;
+    text.textContent=e.type==='coreHit'?`${unit} → ${teamName(e.team)}コア命中`:e.type==='baseEnter'?`${unit} 敵ベースへ侵入`:e.type==='plant'?`${e.plant}：${teamName(e.from)} → ${teamName(e.to)}`:e.type==='deploy'?`${unit} ${e.reason==='transfer'?'エリア移動':'出撃'}：${e.at==='base'?'ベース':e.at}`:e.facility?`${unit} ${e.facility}：${({padLaunch:"パッド射出",padLand:"高所に着地",liftBoard:"リフト乗車",liftExit:"高所へ下車"})[e.type]}`:`${unit} 大破`;
     button.append(text);if(e.amount){const amount=document.createElement('span');amount.className='amt';amount.textContent='−'+num(e.amount);button.append(amount);}
     button.onclick=()=>focusEvent(e);$('events').append(button);eventRows.push({el:button,e});
   }
@@ -169,7 +172,7 @@ function loadMatch(i){
   for(const unit of match.units){const b=document.createElement('button');b.id='unit-'+unit.id;b.className='unit '+(unit.team==='B'?'blue':'orange');b.textContent=teamName(unit.team)+unit.id.slice(1)+' '+(classShort[unit.cls] || unit.className);b.title=roleName[unit.role];b.onclick=()=>selectUnit(unit.id);$(unit.team==='B'?'blueUnits':'orangeUnits').append(b);}
   $('result').textContent=`終局：${match.winner==='draw'?'引き分け':teamName(match.winner)+'の勝利'}／全${match.seconds}秒／実行エラー ${match.errors.length}件`;
   $('firstBlue').disabled=!match.events.some(e=>e.type==='coreHit' && e.unit?.startsWith('B'));$('firstOrange').disabled=!match.events.some(e=>e.type==='coreHit' && e.unit?.startsWith('R'));
-  buildEvents();render();
+  buildTimeline();buildEvents();render();
 }
 data.matches.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}：${m.winner==='draw'?'引き分け':teamName(m.winner)+'勝利'}（seed ${m.seed}）`;$('match').append(o);});
 $('title').textContent=`${data.map.name}｜俯瞰リプレイ`;
