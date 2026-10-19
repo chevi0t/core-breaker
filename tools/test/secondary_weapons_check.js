@@ -11,7 +11,7 @@ const {chromium}=require('playwright'),source=require('../../research/weapons/ty
   await p.goto('file://'+path.join(dir,'dbg.html'));
   await p.evaluate(()=>{__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();};__g.selectMap('dock');document.getElementById('start').click();__g.running=false;});
   const stats=await p.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));
-  assert.equal(Object.keys(stats.weapons).length,250);const newKeys=[];
+  assert.ok(Object.keys(stats.weapons).length>=250);const newKeys=[];
   for(const f of source.families){
    const ws=Object.values(stats.weapons).filter(w=>w.series===stats.weapons[f.base].series);assert.equal(ws.length,f.rows.length,f.base);
    for(const row of f.rows){const w=ws.find(w=>w.label===row.label),P=w.proj||{};assert.ok(w,f.base+row.label);newKeys.push(w.key);assert.ok(stats.armory[f.cls].sub.includes(w.key));

@@ -1,0 +1,659 @@
+{
+  "date": "2026-10-20",
+  "source": "https://w.atwiki.jp/borderbreak/",
+  "families": [
+    {
+      "base": "sabre",
+      "cls": "assault",
+      "slot": "aux",
+      "name": "連撃細剣",
+      "model": "SY-2",
+      "maker": "sylph",
+      "series": "リヒトメッサー系統",
+      "page": 346,
+      "kind": "melee",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "リヒトメッサー",
+          "values": {
+            "kg": 180,
+            "normalHits": [
+              2000,
+              3500
+            ],
+            "strongHits": [
+              4500
+            ]
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "リヒトメッサーII",
+          "values": {
+            "kg": 300,
+            "normalHits": [
+              2000,
+              4000
+            ],
+            "strongHits": [
+              8000
+            ]
+          }
+        },
+        {
+          "label": "重装型",
+          "official": "LM-ジリオス",
+          "values": {
+            "kg": 390,
+            "normalHits": [
+              2000,
+              4000,
+              4500
+            ],
+            "strongHits": [
+              9000
+            ]
+          }
+        }
+      ],
+      "extra": {
+        "profile": "sabre"
+      }
+    },
+    {
+      "base": "rod",
+      "cls": "assault",
+      "slot": "aux",
+      "name": "双電棍",
+      "model": "LK-4",
+      "maker": "lumina",
+      "series": "スパークロッド系統",
+      "page": 411,
+      "kind": "melee",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "スパークロッド",
+          "values": {
+            "kg": 190,
+            "normalHits": [
+              2500,
+              2500
+            ],
+            "strongHits": [
+              4500,
+              3500
+            ]
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "スパークロッドII",
+          "values": {
+            "kg": 310,
+            "normalHits": [
+              2500,
+              2500,
+              3000
+            ],
+            "strongHits": [
+              4500,
+              4500
+            ]
+          }
+        },
+        {
+          "label": "重装型",
+          "official": "SR-ヴァジュラ",
+          "values": {
+            "kg": 420,
+            "normalHits": [
+              2500,
+              2500,
+              3000,
+              4500
+            ],
+            "strongHits": [
+              2500,
+              4500,
+              2500,
+              4500
+            ]
+          }
+        }
+      ],
+      "extra": {
+        "profile": "rod",
+        "meleeDual": true
+      }
+    },
+    {
+      "base": "claw",
+      "cls": "assault",
+      "slot": "aux",
+      "name": "双爪ガントレット",
+      "model": "SC-9",
+      "maker": "sylph",
+      "series": "ダブルクロー系統",
+      "page": 568,
+      "kind": "melee",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "ダブルクロー",
+          "values": {
+            "kg": 200,
+            "normalHits": [
+              2500,
+              2500
+            ],
+            "strongHits": [
+              3000,
+              3000
+            ]
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "コンバットクロー",
+          "values": {
+            "kg": 300,
+            "normalHits": [
+              2500,
+              2500,
+              2250,
+              2250
+            ],
+            "strongHits": [
+              3500,
+              3500
+            ]
+          }
+        },
+        {
+          "label": "連撃型",
+          "official": "CL-エビセレイター",
+          "values": {
+            "kg": 400,
+            "normalHits": [
+              2500,
+              2500,
+              2500,
+              2500
+            ],
+            "strongHits": [
+              2500,
+              2500,
+              3000,
+              3000,
+              4500
+            ]
+          }
+        },
+        {
+          "label": "重装型",
+          "official": "CL-バーサーカー",
+          "values": {
+            "kg": 500,
+            "normalHits": [
+              3500,
+              3500
+            ],
+            "strongHits": [
+              4500,
+              4500
+            ]
+          }
+        }
+      ],
+      "extra": {
+        "profile": "claw",
+        "meleeDual": true
+      }
+    },
+    {
+      "base": "pike",
+      "cls": "heavy",
+      "slot": "aux",
+      "name": "蓄圧杭",
+      "model": "GJ-8",
+      "maker": "gard",
+      "series": "パイク系統",
+      "page": 362,
+      "kind": "pike",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "アームパイク",
+          "values": {
+            "kg": 210,
+            "normalLevels": [
+              4500,
+              6750,
+              9000
+            ],
+            "strongLevels": [
+              6000,
+              9000,
+              12000
+            ],
+            "chargeTime": 2
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "ヘヴィパイク",
+          "values": {
+            "kg": 240,
+            "normalLevels": [
+              5000,
+              8750,
+              12500
+            ],
+            "strongLevels": [
+              7000,
+              12250,
+              17500
+            ],
+            "chargeTime": 2.5
+          }
+        },
+        {
+          "label": "重装型",
+          "official": "ラベージパイク",
+          "values": {
+            "kg": 280,
+            "normalLevels": [
+              5500,
+              11000,
+              16500
+            ],
+            "strongLevels": [
+              9000,
+              18000,
+              30000
+            ],
+            "chargeTime": 3
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "jammer",
+      "cls": "heavy",
+      "slot": "aux",
+      "name": "電子妨害グレネード",
+      "model": "IJ-2",
+      "maker": "iris",
+      "series": "ECM系統",
+      "page": 361,
+      "kind": "jam",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "ECMグレネード",
+          "values": {
+            "kg": 140,
+            "count": 3,
+            "jamSeconds": 5,
+            "blast": 25,
+            "fuse": 2.5
+          }
+        },
+        {
+          "label": "即応型",
+          "official": "試験型ECMグレネード",
+          "values": {
+            "kg": 160,
+            "count": 3,
+            "jamSeconds": 2.5,
+            "blast": 30,
+            "fuse": 0.5
+          }
+        },
+        {
+          "label": "持続型",
+          "official": "新型ECMグレネード",
+          "values": {
+            "kg": 120,
+            "count": 2,
+            "jamSeconds": 7,
+            "blast": 20,
+            "fuse": 2.5
+          }
+        },
+        {
+          "label": "改良型",
+          "official": "改良型ECMグレネード",
+          "values": {
+            "kg": 170,
+            "count": 3,
+            "jamSeconds": 4,
+            "blast": 22,
+            "fuse": 1
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "airTurret",
+      "cls": "raid",
+      "slot": "aux",
+      "name": "浮遊自動銃",
+      "model": "IO-5",
+      "maker": "iris",
+      "series": "エアロセントリー系統",
+      "page": 970,
+      "kind": "air",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "エアロセントリー",
+          "values": {
+            "kg": 410,
+            "count": 2,
+            "dmg": 70,
+            "mag": 20,
+            "rpm": 420,
+            "reload": 4,
+            "gunEnergy": false
+          }
+        },
+        {
+          "label": "軽量弾型",
+          "official": "エアロセントリーS",
+          "values": {
+            "kg": 450,
+            "count": 3,
+            "dmg": 200,
+            "mag": 3,
+            "rpm": 120,
+            "reload": 2.5,
+            "gunEnergy": false
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "エアロセントリーV",
+          "values": {
+            "kg": 460,
+            "count": 1,
+            "dmg": 720,
+            "mag": 10,
+            "rpm": 75,
+            "reload": 3.2,
+            "gunEnergy": false
+          }
+        },
+        {
+          "label": "光学型",
+          "official": "エアロセントリーLZ",
+          "values": {
+            "kg": 470,
+            "count": 1,
+            "dmg": 800,
+            "mag": 2,
+            "rpm": 120,
+            "reload": 2.7,
+            "gunEnergy": true
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "flyTurret",
+      "cls": "raid",
+      "slot": "aux",
+      "name": "巡航自動銃",
+      "model": "IC-7",
+      "maker": "iris",
+      "series": "FAS系統",
+      "page": 948,
+      "kind": "fly",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "FAS－モスキート",
+          "values": {
+            "kg": 490,
+            "count": 5,
+            "dmg": 230,
+            "mag": 6,
+            "rpm": 120,
+            "reload": 1.5,
+            "dur": 8.4,
+            "roamSpeed": 10
+          }
+        },
+        {
+          "label": "速射型",
+          "official": "FAS－モスキートN",
+          "values": {
+            "kg": 510,
+            "count": 6,
+            "dmg": 150,
+            "mag": 10,
+            "rpm": 150,
+            "reload": 1,
+            "dur": 7.6,
+            "roamSpeed": 15
+          }
+        },
+        {
+          "label": "強装型",
+          "official": "FAS－モスキートP",
+          "values": {
+            "kg": 540,
+            "count": 3,
+            "dmg": 490,
+            "mag": 4,
+            "rpm": 80,
+            "reload": 2,
+            "dur": 10,
+            "roamSpeed": 8
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "stunGrenade",
+      "cls": "raid",
+      "slot": "aux",
+      "name": "電撃グレネード",
+      "model": "VZ-4",
+      "maker": "volca",
+      "series": "スタングレネード系統",
+      "page": 957,
+      "kind": "stun",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "スタングレネード",
+          "values": {
+            "kg": 210,
+            "count": 3,
+            "stunSeconds": 2.5,
+            "blast": 15,
+            "fuse": 3,
+            "reload": 1
+          }
+        },
+        {
+          "label": "即応型",
+          "official": "スタングレネード改",
+          "values": {
+            "kg": 200,
+            "count": 3,
+            "stunSeconds": 2,
+            "blast": 12,
+            "fuse": 1,
+            "reload": 1
+          }
+        },
+        {
+          "label": "持続型",
+          "official": "新型スタングレネード",
+          "values": {
+            "kg": 250,
+            "count": 2,
+            "stunSeconds": 3,
+            "blast": 20,
+            "fuse": 4.5,
+            "reload": 1
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "planeSensor",
+      "cls": "support",
+      "slot": "aux",
+      "name": "索敵カーテン",
+      "model": "IX-3",
+      "maker": "iris",
+      "series": "ND索敵センサー系統",
+      "page": 692,
+      "kind": "plane",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "ND索敵センサー",
+          "values": {
+            "kg": 340,
+            "count": 2,
+            "scan": 160,
+            "keep": 10
+          }
+        },
+        {
+          "label": "軽量型",
+          "official": "小型ND索敵センサー",
+          "values": {
+            "kg": 310,
+            "count": 3,
+            "scan": 110,
+            "keep": 10
+          }
+        },
+        {
+          "label": "広域型",
+          "official": "広域ND索敵センサー",
+          "values": {
+            "kg": 370,
+            "count": 1,
+            "scan": 240,
+            "keep": 10
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "ammoBox",
+      "cls": "support",
+      "slot": "aux",
+      "name": "補給コンテナ",
+      "model": "IB-2",
+      "maker": "iris",
+      "series": "弾薬BOX系統",
+      "page": 402,
+      "kind": "ammo",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "弾薬BOX",
+          "values": {
+            "kg": 300,
+            "count": 3,
+            "reload": 1,
+            "pickupRange": 1.5,
+            "pickupSpeed": 20,
+            "speed": 15
+          }
+        },
+        {
+          "label": "広域型",
+          "official": "自律型弾薬BOX",
+          "values": {
+            "kg": 320,
+            "count": 3,
+            "reload": 1.5,
+            "pickupRange": 8,
+            "pickupSpeed": 20,
+            "speed": 30
+          }
+        }
+      ],
+      "extra": {}
+    },
+    {
+      "base": "radarTool",
+      "cls": "raid",
+      "slot": "aux",
+      "name": "展開式レーダー",
+      "model": "IS-6",
+      "maker": "iris",
+      "series": "レーダーユニット系統",
+      "page": 968,
+      "kind": "radar",
+      "rows": [
+        {
+          "label": "標準型",
+          "official": "レーダーユニット",
+          "values": {
+            "kg": 370,
+            "range": 210,
+            "arc": 60,
+            "keep": 12,
+            "expand": 1.98
+          }
+        },
+        {
+          "label": "広域型",
+          "official": "レーダーユニットII",
+          "values": {
+            "kg": 380,
+            "range": 170,
+            "arc": 120,
+            "keep": 12,
+            "expand": 1.98
+          }
+        },
+        {
+          "label": "全周型",
+          "official": "レーダーユニットIII",
+          "values": {
+            "kg": 410,
+            "range": 140,
+            "arc": 360,
+            "keep": 12,
+            "expand": 1.93
+          }
+        }
+      ],
+      "extra": {}
+    }
+  ],
+  "unknowns": [
+    "近接の各段威力と杭の充填秒/段階威力はAC表。細剣/電棍/爪の間合い3.5～4.6m、段の間隔0.22秒、振り0.16秒、構え0.07/0.09秒、回復0.23秒は本作の再現値。二本同時の判定も各段で独立し、同時命中分で姿勢異常を判定する。",
+    "杭の間合い2.9m、踏み込み1.2/4m、構え0.15秒、振り0.12秒、全体0.72秒、OH復帰2秒は再現値。満充填の保持8秒は本文の概算。半分と満タンで威力段階が切り替わり、離す瞬間のダッシュで特殊攻撃。",
+    "電子妨害のリロードは表に無く不明。既存投擲の1秒、弾速32/重力24を再現値として使用。原典は効果中に複数の妨害強度が重なるが、本作は最長の残り時間だけを保持し、強度を型で変えない。近距離ロックは即座に解除する（本文の約1秒の維持は再現しない）。",
+    "電撃弾の投擲速度32/重力24は既存投擲と同じ再現値。敵だけを足止めする。空中なら重力落下を継続し、移動/攻撃/ダッシュ/ジャンプを止める。",
+    "浮遊自動銃は個別970（2016-07-12）の旧80/460kg等を使わず、一覧923（2017-09-14）の70/410kg等を採用。射程60mは個別本文。耐久1500、投擲22/重力12、投射0.45秒後に3m浮上、浮上速度5m/s、ばらつき0.018rad、投擲側装填1秒は不明なので本作の再現値。浮上中に天井で止まり、弾倉は無限に再装填する。",
+    "巡航自動銃の飛行時間8.4/7.6/10秒は本文の検証中の目測で、確定値ではない。飛行速度は不明のため10/15/8m/sを再現値とし、基本/Nの目測距離80～100/110～130mに収まる。射程60m・耐久1500等は浮遊自動銃と同じ再現値。射撃は下方だけ、時間で消滅、遮蔽物で移動を止める。",
+    "索敵カーテンの半径・表示10秒・数量・重量はAC表。面の厚さは不明。本作は機体の半径を含む平面交差を毎フレーム確認し、フレームをまたいで面を通過しても検出する。耐久3000・弾速24/重力24・投擲装填1秒は既存センサーに合わせた再現値。床設置、深さ方向へ索敵しない。",
+    "補給コンテナは基本型もVer3以降は至近の機体へ吸着取得するため、同じ拾得機構の範囲違いとして2型にする。自律型の投擲速度30m/sは本文、基本15m/sは本文の約半分に基づく。感知1.5/8m・吸着速度20m/s・重力24は不明の再現値。敵味方/自機が取得し、主副の全補給・装填/OH解除。補助/SPは対象外、弾薬が満タンなら取得不可、破壊不可。",
+    "展開式レーダーの最大距離・角度・表示12秒・重量はAC表。拡大の到達1.98/1.98/1.93秒は本文の旧距離時点の概算を本作の再現値として用いる。上下制限なし、左右30度の旋回、動けない。使用回数は無限。"
+  ],
+  "skipped": [
+    "二連光波刃は各段威力に?があり今回は不採用。",
+    "ブリッツァー、グレイヴ、サイス、カノンブレード、チェーンソー、遠隔操作砲台、NDディテクター、Vセンサー、スタナーは後続。",
+    "コラボのテオグレース/氷剣は今回は不採用。"
+  ]
+}
