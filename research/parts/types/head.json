@@ -1,0 +1,125 @@
+[
+  {
+    "base": "light",
+    "series": "シュライク",
+    "source": "https://w.atwiki.jp/borderbreak/pages/315.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "シュライクI型",
+      "weight": 450.0,
+      "armor": 1.32,
+      "aim": 1.0,
+      "lock": 85.0
+    },
+    "types": [
+      {
+        "name": "シュライクII型",
+        "weight": 470.0,
+        "armor": 1.32,
+        "aim": 1.0,
+        "lock": 60.0,
+        "key": "light2",
+        "label": "Ⅱ型",
+        "trait": "ロック距離が短く重い。索敵とDEF回復の差は本作に未実装"
+      },
+      {
+        "name": "シュライクV型",
+        "weight": 450.0,
+        "armor": 1.32,
+        "aim": 1.16,
+        "lock": 100.0,
+        "key": "light3",
+        "label": "Ⅲ型",
+        "trait": "ロック距離と射撃補正が上がる"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "シュライクW型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "standard",
+    "series": "クーガー",
+    "source": "https://w.atwiki.jp/borderbreak/pages/308.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "クーガーI",
+      "weight": 600.0,
+      "armor": 1.0,
+      "aim": 1.0,
+      "lock": 80.0
+    },
+    "types": [
+      {
+        "name": "クーガーII",
+        "weight": 620.0,
+        "armor": 1.0,
+        "aim": 1.0,
+        "lock": 60.0,
+        "key": "standard2",
+        "label": "Ⅱ型",
+        "trait": "ロック距離が短く重い。索敵とDEF回復の差は本作に未実装"
+      },
+      {
+        "name": "クーガーS",
+        "weight": 630.0,
+        "armor": 1.0,
+        "aim": 1.25,
+        "lock": 100.0,
+        "key": "standard3",
+        "label": "Ⅲ型",
+        "trait": "射撃補正とロック距離が上がる"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "クーガーNX",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "heavy",
+    "series": "ヘヴィガード",
+    "source": "https://w.atwiki.jp/borderbreak/pages/313.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "ヘヴィガードI型",
+      "weight": 800.0,
+      "armor": 0.78,
+      "aim": 0.76,
+      "lock": 80.0
+    },
+    "types": [
+      {
+        "name": "ヘヴィガードIII型",
+        "weight": 850.0,
+        "armor": 0.71,
+        "aim": 0.8,
+        "lock": 100.0,
+        "key": "heavy2",
+        "label": "Ⅱ型",
+        "trait": "装甲とロック距離が上がるが重い"
+      },
+      {
+        "name": "ヘヴィガードIV型",
+        "weight": 800.0,
+        "armor": 0.78,
+        "aim": 0.84,
+        "lock": 70.0,
+        "key": "heavy3",
+        "label": "Ⅲ型",
+        "trait": "射撃補正が上がりロック距離が短い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "ヘヴィガードG型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  }
+]
