@@ -1,5 +1,7 @@
 # 関節・移動・近接モーションの確認
 
+これは初回実装の記録。PRレビュー後の接地・待機中の刃・負荷の修正と最新の検証は [review/README.md](review/README.md) を参照。
+
 対象：`4a7fec485ab546d9ae5353ffbf07f6b120ca9363`。`prototype/index.html` のGit blobは `fbda4274540d615a204c99874bd094a061643e70`。以降の画像・記録のコミットでもゲーム本体は同じ。
 
 ## 動きを見る
