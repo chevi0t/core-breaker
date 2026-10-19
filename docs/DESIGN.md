@@ -521,3 +521,5 @@ WebGLが必要です（ヘッドレスなら `--use-gl=swiftshader` で動く）
 `python3 tools/test/make_dbg.py 作業フォルダ` が 1・2 の書き換え（`__g` の公開、`frozen`、three.js をローカルから読む）をした `dbg.html` と、`sounds.js`・`music.js`・`maps.js`・`three.min.js` を作業フォルダに用意する。マップの確認（施設の置き場所、ポッドの見え方、カタパルトの着地点、再出撃位置）は `node tools/test/map_check.js 作業フォルダ マップID`（`prototype/maps/README.md`）。
 
 `node tools/test/arcade_weapons_check.js dbg` は追加10種をACの転記JSONと照合し、射撃数値・縦反動・重量・射程・射撃方式・カスタマイズの比較を確認して画像を保存する。変更前の実行時数値JSONを第4引数に渡すと、既存武器・機体・初期装備の互換性も照合する。
+
+Bot戦のランナーはゲーム内の指定秒数に到達したか正常に試合が終了したことを確認し、ブラウザエラーや実時間20分の期限切れを失敗として返す。準備中から描画を行列更新に置き換え、出撃ハンドラーを直接呼ぶので、ソフトウェア描画やポインタロックでの操作待ちを避ける。
