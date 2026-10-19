@@ -72,7 +72,7 @@ const {chromium}=require('playwright');
     await p.evaluate(()=>__g.renderer.domElement.requestPointerLock());
     await p.waitForFunction(()=>document.pointerLockElement===__g.renderer.domElement);
     // ヘッドレスChromiumのCDP移動はポインタロック中に絶対量になるため、相対入力は実際のDOM入力イベントで検証する。
-    await p.evaluate(()=>window.dispatchEvent(new MouseEvent('mousemove',{movementX:20,movementY:10,bubbles:true}))); 
+    await p.evaluate(()=>window.dispatchEvent(new MouseEvent('mousemove',{movementX:20,movementY:10,bubbles:true})));
     const moved=await p.evaluate(()=>({yaw:__g.player.yaw,pitch:__g.player.pitch,x:__g.mapCur.x,z:__g.mapCur.z}));
     assert.equal(moved.yaw,before.yaw);assert.equal(moved.pitch,before.pitch);assert.ok(moved.x!==before.x||moved.z!==before.z,'マウスはマップ照準だけ動かす');
     await p.evaluate(()=>{const u=__g.player;__g.mapCur.x=u.pos.x;__g.mapCur.z=u.pos.z-80;});
