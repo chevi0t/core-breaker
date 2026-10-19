@@ -11,7 +11,7 @@ const {chromium} = require('playwright');
   try {
     const p=await b.newPage({viewport:{width:640,height:400}}), errors=[];
     p.on('pageerror',e=>errors.push(e.message));
-    p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    p.on('console',m=>{if(m.type()==='error'&&!/net::ERR_FAILED/.test(m.text()))errors.push(m.text());});
     await p.goto('file://'+path.join(dir,'dbg.html'));
     await p.evaluate(()=>{__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();}; __g.selectMap('dock'); document.getElementById('start').click(); __g.running=false;});
     const data=await p.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));
@@ -62,6 +62,11 @@ const {chromium} = require('playwright');
       {const sl=reset('heavy','barrier');g.toggleSp(u);const hp=u.hp;sync();const from=new T.Vector3(e.pos.x,e.pos.y+3.7,e.pos.z);g.fire(e,new T.Vector3(u.pos.x,u.pos.y+3.7,u.pos.z),0,{dmg:1000,range:100},from);yes(u.hp===hp&&near(sl.heat,90.4),'実射はバリア表面に命中し頭部倍率が付かない');
        g.blast({owner:e,team:e.team,spec:{dmg:1000,blast:8}},u.pos.clone().add(new T.Vector3(0,2,-4)),null);yes(u.hp===hp&&sl.heat<90.4,'爆心方向で前方爆風を防御');
        g.blast({owner:e,team:e.team,spec:{dmg:1000,blast:8}},u.pos.clone().add(new T.Vector3(0,2,4)),null);yes(u.hp<hp,'背後で爆発した爆風は前面バリアを通る');}
+      {const sl=reset('heavy','barrier');g.toggleSp(u);const heat=sl.heat;
+       g.blast({owner:a,team:u.team,spec:{dmg:1000,blast:8}},u.pos.clone().add(new T.Vector3(0,2,-4)),null);yes(sl.heat===heat,'味方の爆風でバリアSPを消費しない');
+       g.blast({owner:u,team:u.team,spec:{dmg:1000,blast:8}},u.pos.clone().add(new T.Vector3(0,2,-4)),null);yes(sl.heat===heat,'自分の爆風でバリアSPを消費しない');
+       u.stun='';g.blast({owner:e,team:e.team,spec:{dmg:0,blast:8,knock:true}},u.pos.clone().add(new T.Vector3(0,2,-4)),null);yes(sl.heat===heat&&u.stun==='down','威力0の衝撃弾はSPを消費せずバリアを通す');}
+      {const sl=reset('raid','escort');e.cloak=true;e.vis=.05;e.pos.z=spot[2]-20;sync();g.toggleSp(u);step(2);yes(sl.ammo===sl.w.mag,'背部自動銃は見えない迷彩中の敵へ撃たない');e.cloak=false;step(.1);yes(sl.ammo<sl.w.mag,'迷彩解除後は索敵して射撃');e.cloak=true;e.pos.z=spot[2]-6;sync();const n=sl.ammo;step(.2);yes(sl.ammo<n,'迷彩中でも至近距離で気付いた敵へ射撃');e.cloak=false;}
       for(const key of ['escort','escortR','escortH']){
         const sl=reset('raid',key),hp=e.hp,main=u.slots.main.ammo;g.toggleSp(u);step(.99);yes(e.hp===hp,key+' 展開後1秒は撃たない');step(.1);yes(e.hp<hp&&sl.ammo<sl.w.mag,key+' 1秒後に実弾命中');yes(u.weapon==='main'&&u.slots.main.ammo===main&&u.pitch===0&&u.recoil===0,key+' 主武器の弾・照準は独立');
         sl.ammo=1;u.escortCd=0;step(.01);yes(sl.reloadT>0,key+' 撃ち切りで腕性能の再装填');const rt=sl.reloadT;yes(near(rt,sl.w.reload*u.reloadMul),key+' 腕のリロード倍率');sl.cd=0;g.toggleSp(u);e.alive=false;step(rt+.02);e.alive=true;yes(sl.ammo===sl.w.mag&&sl.reserve===0,key+' 予備弾を使わず弾倉を補充');

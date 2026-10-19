@@ -1444,7 +1444,7 @@ function shellUpdate(dt) {
     if (!sh.stuck) {
       if (S.grav) sh.vel.y -= S.grav * dt;
       const dir = sh.vel.clone().normalize();
-      hit = castFrom(sh.pos, dir, sh.owner, sh.vel.length() * dt);
+      hit = castFrom(sh.pos, dir, sh.owner, sh.vel.length() * dt, !!(S.chainCount || S.bounceUnit));
       // 当たった面の少し手前で爆発させる
       at = hit ? hit.point.clone().addScaledVector(dir, -0.2) : null;
       if (!at) {
@@ -1499,16 +1499,28 @@ function startChain(sh,at) {
   if (!dir.lengthSq()) dir.copy(fwdOf(sh.owner));
   chains.push({owner:sh.owner,team:sh.team,spec:sh.spec,pos:at.clone(),dir,left:sh.spec.chainCount,cd:0,fall:0});
 }
+function clearAttached(u) {
+  for (let i=gadgets.length-1;i>=0;i--) if (gadgets[i].attached===u) removeGadget(gadgets[i]);
+}
+function heatDamage(h,e,dt) {
+  const S=h.spec;
+  if (e.team===h.team && e!==h.owner && e.kind!=='unit') return; // 味方施設に誤射ペナルティを付けない。
+  if ((e.kind==='unit' ? !e.alive || e.invulT>0 : e.alive===false || e.hp<=0) || (e.kind==='unit' ? bodyDist(e,h.pos) : targetPoint(e).distanceTo(h.pos))>S.blast) return;
+  if (!blastVisible(h.pos,targetPoint(e),e)) return; // 傘を含む通常の障害物が熱を遮る。
+  const dmg=S.heatDps*dt+(h.touched.has(e)?0:S.dmg);h.touched.add(e);
+  if (e.team===h.team && e!==h.owner) {friendlyFire(h.owner,dmg*armorMult(e));return;}
+  damage(e,h.owner,dmg,false,false,null,h.pos,false,true);
+}
 function secondaryUpdate(dt) {
   for (let i=heatFields.length-1;i>=0;i--) {
     const h=heatFields[i],S=h.spec,step=Math.min(dt,h.life);
-    // 熱は距離減衰せず、地形とバリアを通る。接触損傷は同じ領域につき1回だけ。
-    for (const e of [...units,...turrets,...radars,...Object.values(cores),...barricades,...gadgets]) {
-      if ((e.kind==='unit' ? !e.alive || e.invulT>0 : e.alive===false || e.hp<=0) || (e.kind==='unit' ? bodyDist(e,h.pos) : targetPoint(e).distanceTo(h.pos))>S.blast) continue;
-      const dmg=S.heatDps*step+(h.touched.has(e)?0:S.dmg);h.touched.add(e);
-      if (e.team===h.team && e!==h.owner) { friendlyFire(h.owner,dmg); continue; }
-      damage(e,h.owner,dmg,false,false,null,h.pos,false,true);
-    }
+    // 距離減衰と姿勢異常なし。接触損傷は1領域につき1回。配列は結合せず走査する。
+    for (const e of units) heatDamage(h,e,step);
+    for (const e of turrets) heatDamage(h,e,step);
+    for (const e of radars) heatDamage(h,e,step);
+    for (const e of barricades) heatDamage(h,e,step);
+    for (let j=gadgets.length-1;j>=0;j--) heatDamage(h,gadgets[j],step);
+    heatDamage(h,cores.B,step);heatDamage(h,cores.R,step);
     h.life-=step;
     if (h.life<=1e-6) {scene.remove(h.mesh);h.mesh.material.dispose();heatFields.splice(i,1);}
   }
@@ -1573,9 +1585,10 @@ function blast(sh, at, ref) {
     if (d > S.blast || (S.occluded && !blastVisible(at,targetPoint(u),u))) continue;
     if (!self && !ally) hitAny = true;
     if (S.weak) { u.weakT = S.weak.time; u.weakMult = S.weak.mult; continue; }
-    if (barrierAbsorb(u, S.dmg ? fall(d) : 0, at, true)) continue;
     if (S.knock) { jolt(u, at, DOWN_DMG, false); continue; } // 衝撃グレネード：ダメージなしで吹き飛ばして倒す（味方も倒れる）
     if (ally) { const real = fall(d) * armorMult(u); jolt(u, at, real * (S.knockMult || 1), false); friendlyFire(sh.owner, real); continue; }
+    // 味方・自分の爆風はバリアのSPを消費しない。威力0の衝撃弾も従来どおり通す。
+    if (!self && barrierAbsorb(u, fall(d), at, true)) continue;
     const real = fall(d) * armorMult(u);
     u.hp -= real;
     noteDmg(u, sh.owner, real);
@@ -2574,6 +2587,7 @@ function spawnPos(u, at) {
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
 function spawn(u, at = 'base') {
+  clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
   Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
@@ -3072,7 +3086,8 @@ function fxUpdate(dt) {
   }
 }
 function refOf(obj) { while (obj) { if (obj.userData.ref) return obj.userData.ref; obj = obj.parent; } return null; }
-function castFrom(origin, dir, ignore, far = 400) {
+const barrierCastSphere = new T.Sphere(), barrierCastPoint = new T.Vector3();
+function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
   const th = terrainHit(origin, dir, far);
   ray.set(origin, dir); ray.far = th ? th.dist : far;
   const hits = ray.intersectObjects(hittables, false);
@@ -3082,17 +3097,18 @@ function castFrom(origin, dir, ignore, far = 400) {
     const r = refOf(h.object);
     if (r === ignore) continue;
     if (r && r.kind === 'unit' && !r.alive) continue;
-    best = { point: h.point, normal: h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld), ref: r, dist: h.distance, wm: !!h.object.userData.weaponModel, slot: h.object.userData.armorSlot || 'body' }; break;
+    best = { point: h.point, normal: needNormal && h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld), ref: r, dist: h.distance, wm: !!h.object.userData.weaponModel, slot: h.object.userData.armorSlot || 'body' }; break;
   }
   // 球面を機体とは別に判定する。前面型の裏側と、内側から撃つ弾は通す。
   for (const u of units) {
     if (u === ignore || (ignore && u.team === ignore.team) || !barrierReady(u)) continue;
-    const center = targetPoint(u), radius = u.slots.sp.w.level === 1 ? 2 : 2.8;
+    const center = barrierCastSphere.center.copy(u.pos).addScaledVector(UP, 2.4), radius = u.slots.sp.w.level === 1 ? 2 : 2.8;
     if (origin.distanceTo(center) < radius) continue;
-    const point = ray.ray.intersectSphere(new T.Sphere(center,radius), new T.Vector3());
+    barrierCastSphere.radius = radius;
+    const point = ray.ray.intersectSphere(barrierCastSphere, barrierCastPoint);
     if (!point || !barrierFacing(u,point)) continue;
     const dist = origin.distanceTo(point);
-    if (dist <= far && (!best || dist < best.dist)) best = { point, ref: u, dist, barrier: true };
+    if (dist <= far && (!best || dist < best.dist)) best = { point: point.clone(), ref: u, dist, barrier: true };
   }
   return best;
 }
@@ -3221,6 +3237,7 @@ function kill(v, by, head, hit = Infinity) {
 }
 // 大破：機体が消え、再出撃までの5秒を数え始める。コア（コスト制は戦力）が減る
 function wreck(v) {
+  clearAttached(v);
   if (v.post) removeGadget(v.post);
   v.jamT=v.electricT=0;
   v.downT = 0; v.respawnT = 5; v.group.visible = false;
@@ -3687,7 +3704,7 @@ function downedAlly(u, range) {
 // 支援Botが回復しに行く、近くの傷ついた味方機か、傷ついたか壊れた自軍の砲台
 function hurtAlly(u, range) {
   let best = null, bd = range;
-  for (const e of [...units, ...turrets, ...radars]) {
+  for (const group of postTargets) for (const e of group) {
     if (e.team !== u.team || e === u) continue;
     if (e.kind === 'unit' ? !e.alive || e.hp > e.maxHp * 0.7 : e.alive && e.hp > e.maxHp * 0.7) continue;
     const d = e.pos.distanceTo(u.pos);
@@ -3718,7 +3735,7 @@ function botAct(u, tracking, enemyCore) {
     // 40m以内の敵機へ弱化・衝撃グレネード（衝撃散弾銃は15m以内）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
     if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
     const sp = s.sp, cost = 100 / sp.w.shots;
-    if (sp.w.type === 'artillery' && sp.heat >= cost*100/sp.cap && !sp.overheat) {
+    if (sp.w.type === 'artillery' && sp.heat >= artilleryCost(sp)-.01 && !sp.overheat) {
       const w = sp.w, safe = p => artilleryInRange(u,p) && u.pos.distanceTo(p) > w.blast+w.scatter+5 && !units.some(e => e.alive && e.team===u.team && e!==u && e.pos.distanceTo(p)<w.blast+w.scatter);
       const pl = plants.find(p => p.owner && p.owner!==u.team && p.contested && safe(p.pos));
       const p = tracking && safe(u.target.pos) ? targetPoint(u.target) : pl ? pl.pos.clone() : null;
@@ -4062,7 +4079,7 @@ const WEAPONS = {
   // AC レーダーユニット系統 pages/968：{"kg": 370, "range": 210, "arc": 60, "keep": 12, "expand": 1.98}。原典と再現値の区別は auxiliary.json。
   radarTool: {"name":"展開式レーダー","type":"radarTool","plant":true,"noLock":true,"range":210,"arc":60,"keep":12,"expand":1.98,"desc":"選ぶとその場で展開し、時間とともに前方の索敵距離が広がる。上下の制限なし。使用回数は無制限"},
   // AC フレアグレネード系統 pages/585：{"kg": 170, "dmg": 1150, "heatDps": 4600, "heatDur": 1.8, "mag": 1, "mags": 5, "blast": 10, "fuse": 1.2, "reload": 1.4, "speed": 35}。不明値・再現用の値は secondary.json に区別
-  flare: {"name":"熱球グレネード","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1.4,"spread":0,"semi":false,"desc":"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし","proj":{"dmg":1150,"blast":10,"core":true,"kind":"grenade","speed":35,"grav":24,"fuse":1.2,"heatDps":4600,"heatDur":1.8}},
+  flare: {"name":"熱球グレネード","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1.4,"spread":0,"semi":false,"desc":"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし","proj":{"dmg":1150,"blast":10,"core":true,"kind":"grenade","speed":35,"grav":24,"fuse":1.2,"heatDps":4600,"heatDur":1.8}},
   // AC チェインボム系統 pages/524：{"kg": 140, "dmg": 6000, "mag": 1, "mags": 4, "blast": 12, "chainCount": 6, "chainStep": 12, "chainGap": 0.18, "reload": 1.5}。不明値・再現用の値は secondary.json に区別
   chain: {"name":"連鎖ボム","type":"gun","rpm":60,"mag":1,"mags":4,"reload":1.5,"spread":0,"semi":false,"desc":"地面に着くと前方へ連続爆発。壁では反射し、連鎖中に障害物へ当たると止まる","proj":{"dmg":6000,"blast":12,"core":true,"kind":"grenade","speed":32,"grav":24,"chainCount":6,"chainStep":12,"chainGap":0.18,"linear":true,"bodyLinear":true,"occluded":true,"life":5}},
   // AC パイロダート系統 pages/762：{"kg": 340, "dmg": 1400, "pellets": 3, "mag": 4, "mags": 3, "blast": 11, "rpm": 90, "reload": 3.5}。不明値・再現用の値は secondary.json に区別
@@ -4451,8 +4468,8 @@ const WEAPON_TYPES = {
     ["全周型",{"kg":410,"range":140,"arc":360,"keep":12,"expand":1.93},"選ぶとその場で展開し、時間とともに前方の索敵距離が広がる。上下の制限なし。使用回数は無制限"],
   ] },
   flare: { w0: {"kg":170,"dmg":1150,"heatDps":4600,"heatDur":1.8,"mag":1,"mags":5,"blast":10,"fuse":1.2,"reload":1.4,"speed":35}, types: [
-    ["即応型",{"kg":160,"dmg":1600,"heatDps":6400,"heatDur":1.2,"mag":1,"mags":6,"blast":9,"fuse":1,"reload":1.4,"speed":45},"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
-    ["持続型",{"kg":200,"dmg":1000,"heatDps":4000,"heatDur":2.5,"mag":1,"mags":3,"blast":12,"fuse":1.5,"reload":1.8,"speed":30},"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
+    ["即応型",{"kg":160,"dmg":1600,"heatDps":6400,"heatDur":1.2,"mag":1,"mags":6,"blast":9,"fuse":1,"reload":1.4,"speed":45},"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
+    ["持続型",{"kg":200,"dmg":1000,"heatDps":4000,"heatDur":2.5,"mag":1,"mags":3,"blast":12,"fuse":1.5,"reload":1.8,"speed":30},"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
   ] },
   chain: { w0: {"kg":140,"dmg":6000,"mag":1,"mags":4,"blast":12,"chainCount":6,"chainStep":12,"chainGap":0.18,"reload":1.5}, types: [
     ["軽量型",{"kg":120,"dmg":4800,"mag":1,"mags":5,"blast":10,"chainCount":8,"chainStep":10,"chainGap":0.12,"reload":1.2},"地面に着くと前方へ連続爆発。壁では反射し、連鎖中に障害物へ当たると止まる"],
@@ -4765,7 +4782,7 @@ const WEAPON_TYPES = {
 };
 const RANKS = ['E-', 'E', 'E+', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S'];
 // 型番の末尾の文字（例：SR-7 の強装型は SR-7H）。キーは元のキー＋この文字（arH）
-const TYPE_LETTER = { 連撃型:'B', 軽量弾型:'S', 光学型:'E', 速射型:'R', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'W', 改良型: 'C', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
+const TYPE_LETTER = { 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
 const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
 function makeType(base, w0, t) {
   const w = structuredClone(base), P = w.proj, G = P && P.gun, D = w.drone, gun = G || w;
@@ -5318,7 +5335,7 @@ function repairTick(u, sl, dt, trigger, aim, self) {
 function repairTarget(u, w, aim) {
   const from = muzzle(u), dir = aim.clone().sub(from).normalize();
   let best = null, ba = 0.3;
-  for (const e of [...units, ...turrets, ...radars]) {
+  for (const group of postTargets) for (const e of group) {
     if (e.team !== u.team || e === u) continue;
     if (e.kind === 'unit' ? (e.alive ? e.hp >= e.maxHp : !(e.downT > 0)) : e.alive && e.hp >= e.maxHp) continue; // 行動不能の味方も起こせる（v0.17）
     const tp = targetPoint(e);
@@ -5374,7 +5391,7 @@ function specialTick(u, dt) {
   if (u.escortT < 1 || u.escortCd > 0) return;
   const from = u.pos.clone().add(new T.Vector3(0, 3.5, -1.35).applyAxisAngle(UP, u.yaw + (u.pack.rotation.y || 0)));
   const axis = fwdOf(u), cos = Math.cos(w.arc * DEG / 2);
-  const targets = units.filter(e => e.alive && e.team !== u.team && e.pos.distanceTo(u.pos) <= w.range && (w.arc === 360 || targetPoint(e).sub(from).normalize().dot(axis) >= cos)).sort((a,b) => a.pos.distanceToSquared(u.pos) - b.pos.distanceToSquared(u.pos));
+  const targets = units.filter(e => e.alive && e.team !== u.team && e.pos.distanceTo(u.pos) <= w.range && noticed(e, e.pos.distanceTo(u.pos)) && (w.arc === 360 || targetPoint(e).sub(from).normalize().dot(axis) >= cos)).sort((a,b) => a.pos.distanceToSquared(u.pos) - b.pos.distanceToSquared(u.pos));
   for (const e of targets) {
     const aim = targetPoint(e), hit = castFrom(from, aim.clone().sub(from).normalize(), u, w.range);
     if (!hit || hit.ref !== e) continue; // 射線が通る敵機だけ。コア・施設・設置物は探さない。
@@ -5418,13 +5435,14 @@ function postFlightTick(u, dt) {
   const field = new T.Mesh(fieldGeo, fieldMat); field.position.copy(f.pos); field.scale.setScalar(f.w.radius); scene.add(field);
   u.post = addGadget({ kind: 'repairPost', name: f.w.name, owner: u, team: u.team, pos: f.pos.clone(), hp: f.w.postHp, maxHp: f.w.postHp, mesh, field, spec: f.w });
 }
+const postTargets = [units, turrets, radars];
 function postFieldTick(g, dt) {
   const u = g.owner, sl = u.slots.sp, w = g.spec;
   if ((!u.alive && !(u.downT > 0)) || sl.w !== w || sl.overheat) { removeGadget(g); return; }
   g.field.visible = !u.repairing;
   if (u.repairing) return; // ポッド使用中は、この装備も使えない。
   let n = 0;
-  for (const e of [...units, ...turrets, ...radars]) {
+  for (const group of postTargets) for (const e of group) {
     if (e.team !== g.team || e.pos.distanceTo(g.pos) > w.radius || (e.repairBlock || 0) > 0) continue;
     if (e.kind === 'unit' ? (e.alive ? e.hp >= e.maxHp : !(e.downT > 0)) : e.alive && e.hp >= e.maxHp) continue;
     const h = w.heal * dt; n++;
@@ -5472,6 +5490,7 @@ const artilleryShellGeo = new T.ConeGeometry(.28,1.2,8);
 const artilleryWarnGeo = new T.CylinderGeometry(.18,.5,4,8,1,true);
 const artilleryWarnMat = new T.MeshBasicMaterial({color:0xffa33f,transparent:true,opacity:.6,depthWrite:false,side:T.DoubleSide});
 function isArtilleryMode(u) { return !!u && u.alive && u.weapon==='sp' && !!u.slots && u.slots.sp.w.type==='artillery'; }
+function artilleryCost(sl) { return Math.min(100 / sl.w.shots * 100 / sl.cap, 100); }
 function artilleryInRange(u,p) { return !!p && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.hypot(p.x-u.pos.x,p.z-u.pos.z)<=u.slots.sp.w.range+.001; }
 function stopArtillery(u) {
   if (!isArtilleryMode(u)) return;
@@ -5486,10 +5505,10 @@ function artilleryConfirm(u,p) {
   return true;
 }
 function artilleryTick(u,sl,dt,trigger,aim,on,cancel) {
-  const w=sl.w,cost=100/w.shots;
+  const w=sl.w,cost=artilleryCost(sl);
   sl.cd=Math.max(-dt,sl.cd-dt);
   if (!isArtilleryMode(u)) { sl.held=false; spRegen(sl,dt); return; }
-  if (cancel || u.repairing || u.transfer || sl.overheat || sl.heat<cost*100/sl.cap-.01) { stopArtillery(u); sl.held=false; return; }
+  if (cancel || u.repairing || u.transfer || sl.overheat || sl.heat<cost-.01) { stopArtillery(u); sl.held=false; return; }
   if (!on) { sl.held=false; return; }
   if (trigger && !sl.held) artilleryConfirm(u,aim);
   sl.held=trigger;
@@ -5499,8 +5518,8 @@ function artilleryTick(u,sl,dt,trigger,aim,on,cancel) {
   const from=muzzle(u),mesh=new T.Mesh(artilleryShellGeo,shellMat[u.team]); mesh.position.copy(from);scene.add(mesh);
   barrages.push({owner:u,team:u.team,age:0,flight:w.flight,from,target,mesh,warn:null,warned:false,sparkT:0,spec:{dmg:w.dmg,blast:w.blast,core:true,linear:true,occluded:true}});
   u.artilleryFired++;sl.cd=w.interval||0;
-  spUse(sl,cost);sfx(w.sfx,u.pos,u,w.sfxRate);flash(from,0xffbd69,2,.15);
-  if (sl.overheat || sl.heat<cost*100/sl.cap-.01) stopArtillery(u);
+  spUse(sl,cost*sl.cap/100);sfx(w.sfx,u.pos,u,w.sfxRate);flash(from,0xffbd69,2,.15);
+  if (sl.overheat || sl.heat<cost-.01) stopArtillery(u);
 }
 // 高い屋根・傘から地面へ向けて調べる。機体と設置物は着地点の地形にしない。
 function artillerySurface(p) {
@@ -6227,7 +6246,7 @@ function wStats(w) {
     if (w.blast || w.directBlast) st.push(`当たると爆発 半径${w.blast || w.directBlast}m${w.directBlast ? '・直撃は部位判定' : ''}`);
   } else if (w.type === 'sword') st.push(`横なぎ ${w.normal.dmg}`, `${w.strong.spin ? '回転斬り' : '突進突き'} ${w.strong.dmg}`, `間合い ${w.normal.reach}m`, `踏み込み ${w.normal.step}m／ダッシュ中${w.strong.lunge}m`);
   else if (w.type === 'cannon') st.push(`威力 ${w.proj.dmg}×${w.shots}発`, `爆発半径 ${w.proj.blast}m`, `弾速 ${w.proj.speed}m/s`);
-  else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
+  else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発（標準胴）`, `現在の胴で満タン${Math.floor(100/artilleryCost({w,cap:PARTS.body[mechCfg.body].sp})+.01)}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
   else if (w.type === 'barrier') st.push(`防御 ${w.arc}度・LV${w.level}`, `耐久 ${w.shieldHp}`, `連続 ${w.use}秒`);
   else if (w.type === 'escort') st.push(`威力 ${w.dmg}`, `射程 ${w.range}m・射角${w.arc}度`, `弾倉 ${w.mag}発×無制限`, `連射 ${w.rpm}発/分`, `再装填 ${w.reload}秒`, `連続 ${w.use}秒`);
   else if (w.type === 'repairPost') st.push(`回復 毎秒${w.heal}`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒`);
@@ -6733,7 +6752,7 @@ function hud(timeLeft, dt) {
   if (p.switchT > 0) { big = '--'; small = '持ち替え中'; }
   else if (cw.type === 'sword') { big = '∞'; small = cw.name + ' · ダッシュ中に振ると回転斬り'; }
   else if(cw.type==='radarTool'){big=Math.round(cur.scanRadius||0)+'m';small=cw.name+' · 展開中（動けない） · 他の武器を選ぶと解除';}
-  else if (cw.type === 'artillery') { big = Math.floor(cur.heat/(100/cw.shots*100/cur.cap)+.01); small = cw.name + (p.bombard ? ' · 連続砲撃中' : ' · マップで地点を指定') + ' · 右クリックで中断'; }
+  else if (cw.type === 'artillery') { big = Math.floor(cur.heat/artilleryCost(cur)+.01); small = cw.name + (p.bombard ? ' · 連続砲撃中' : ' · マップで地点を指定') + ' · 右クリックで中断'; }
   else if (cw.type === 'cannon') { big = Math.floor(cur.heat / (100 / cw.shots) + 0.01); small = cw.name + ' · 構え中（動けない）· 右クリックで戻る'; }
   else if (cw.type === 'repairPost') { big = Math.round(cur.heat) + '%'; small = cw.name + (cur.overheat ? ' · ゲージ回復中' : p.post ? ' · 設置中（再選択で回収）' : p.postFlight ? ' · 投擲中' : ' · 左クリックで設置'); }
   else if (cw.type === 'repair') {

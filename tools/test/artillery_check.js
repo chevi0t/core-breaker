@@ -31,10 +31,10 @@ const {chromium}=require('playwright');
       const target=()=>new T.Vector3(spot[0],g.terrainH(spot[0],spot[2]-60),spot[2]-60);
       function sync(){for(const q of g.units){q.group.position.copy(q.pos);q.group.rotation.y=q.yaw||0;q.group.visible=q.alive;}scene.updateMatrixWorld(true);}
       let launches=[],seen=new Set();
-      function reset(key='artillery'){
+      function reset(key='artillery',body='standard'){
         g.clearArtillery();for(const gd of g.gadgets.slice())g.removeGadget(gd);
         for(const q of [u,e,a])Object.assign(q,{alive:true,hp:1e6,maxHp:1e6,invulT:0,downT:0,stun:'',weakT:0,repairing:false,transfer:null,barrierOn:false,escortOn:false,fieldOn:false});
-        u.isPlayer=true;g.loadout.heavy.sp=key;g.equip(u,'heavy');u.hp=u.maxHp;u.onGround=true;u.flying=false;u.pos.set(...spot);u.vel.set(0,0,0);u.yaw=u.pitch=0;
+        u.isPlayer=true;u.mech.body=body;g.loadout.heavy.sp=key;g.equip(u,'heavy');u.hp=u.maxHp;u.onGround=true;u.flying=false;u.pos.set(...spot);u.vel.set(0,0,0);u.yaw=u.pitch=0;
         e.pos.copy(target());e.armorAvg=1;e.partArmor={head:1,body:1,arms:1,legs:1};a.pos.set(-60,0,-85);
         g.selectWeapon(u,'sub');u.switchT=0;g.selectWeapon(u,'sp');g.weaponsTick(u,1,false,target(),0);launches=[];seen=new Set();sync();return u.slots.sp;
       }
@@ -52,6 +52,10 @@ const {chromium}=require('playwright');
         yes(sl.overheat,key+' 使い切ると再充填待ち');
         for(const sh of launches)yes(Math.hypot(sh.target.x-target().x,sh.target.z-target().z)<=w.scatter+1e-6,key+' 各弾の着弾誤差上限');
         step(w.charge+.1);yes(sl.heat===100&&!sl.overheat,key+' 再充填完了');
+      }
+      for(const [body,counts]of [['light',[4,9,4,1]],['standard',[6,12,5,1]],['heavy',[7,14,6,1]]])for(const [i,key]of ['artillery','artilleryR','artilleryF','artilleryH'].entries()){
+        const sl=reset(key,body);g.artilleryConfirm(u,target());step(14);yes(u.artilleryFired===counts[i],key+' '+body+'胴の満タン発数 '+counts[i]);yes(!g.isArtilleryMode(u),key+' '+body+'胴でも弾数分で終了');
+        if(key==='artilleryH')yes(sl.heat===0||sl.heat>0&&u.weapon!=='sp',body+'胴でも単発榴弾砲を発射可能');
       }
       {const sl=reset();u.switchT=.4;g.stopArtillery(u);yes(u.weapon==='sub'&&sl.heat===100,'発射前の右クリック中断はSPを消費しない');}
       {const sl=reset();g.artilleryConfirm(u,target());step(.01);const count=u.artilleryFired,heat=sl.heat;g.stopArtillery(u);yes(g.barrages.length===1&&heat>0&&!sl.overheat,'途中中断は残SPを保ち発射済みの弾を残す');step(1);yes(u.artilleryFired===count&&eq(sl.heat,heat+100/44),'途中中断後は新たに撃たず44秒基準の早いSP回復');}
