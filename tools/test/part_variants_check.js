@@ -129,6 +129,7 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('coreBreakerMech'))), selected, '新しい型を保存');
     await page.locator('#cuWBar').scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(output,'weight.png') });
+    await page.waitForTimeout(500); // localStorage への書き込みが残るのを待ってから読み直す（重いページだと、すぐ読み直すと書く前の値に戻ることがある）
     await page.reload();
     assert.deepEqual(await page.evaluate(() => __g.mechCfg), selected, '新しい型を保存して再読込');
     assert.deepEqual(errors,[]);
