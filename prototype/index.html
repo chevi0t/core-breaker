@@ -222,6 +222,19 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #qchat .opt small { display: block; font-size: 11px; color: var(--dim); font-family: var(--body); }
 #qchat .hint { position: absolute; left: 0; top: 176px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .1em; color: var(--hud); background: var(--panel); padding: 2px 8px; }
 #feed .chat { border-left: 3px solid var(--blue); }
+/* 機体の頭上の名前と耐久（v0.18、ユーザー指定「敵味方の体力残量の視認性が悪いです」）。--c は陣営の色。白い部分は減ったばかりの耐久 */
+#tags { inset: 0; overflow: hidden; }
+.utag { position: absolute; left: 0; top: 0; text-align: center; white-space: nowrap; font-family: var(--body); font-size: 13px; font-weight: 700; line-height: 1.15; color: var(--c); text-shadow: 0 0 3px #000, 0 0 2px #000, 0 0 1px #000; will-change: transform; }
+.utag .hb { position: relative; width: 64px; height: 6px; margin: 2px auto 0; background: rgba(0, 0, 0, .65); box-shadow: 0 0 0 1px rgba(0, 0, 0, .8); }
+.utag .hb i { position: absolute; left: 0; top: 0; bottom: 0; }
+.utag .hb .lag { background: #fff; }
+.utag .hb .cur { background: var(--c); }
+.utag.low .hb .cur { animation: tagLow .5s steps(2) infinite; } /* 耐久3割以下は点滅 */
+@keyframes tagLow { 50% { opacity: .35; } }
+.utag.down { color: #d8d8d8; }
+.utag.down .hb .cur { background: #7dffb0; } /* 行動不能の味方：蘇生の進み具合 */
+.utag.far { font-size: 11px; opacity: .8; }
+.utag.far .hb { width: 48px; height: 5px; }
 .ping { position: absolute; left: 0; top: 0; font-size: 12px; color: #ffd34d; background: var(--panel); padding: 1px 6px; white-space: nowrap; text-shadow: 0 0 4px #000; will-change: transform; }
 #bigMapC { pointer-events: auto; cursor: crosshair; } /* マウスの固定が外れているときは、地図を直接クリックできる */
 #center { left: 50%; top: 62%; transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; white-space: pre-line; }
@@ -375,6 +388,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
+<div class="hud" id="tags"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
 <div class="hud" id="headMark"><i></i><i></i><i></i><i></i></div>
@@ -2745,6 +2759,87 @@ function impact(at, kind, delay) {
   ls.frustumCulled = false;
   addFx(ls, head ? 0.34 : 0.22, { kind: 'sparks', vel, origin: at.clone() }, delay);
 }
+// 火花だけ（損傷の見た目。impact の火花と同じ動き）
+function sparkBurst(at, color, n, speed, life = 0.25) {
+  const vel = [];
+  for (let i = 0; i < n; i++) vel.push(new T.Vector3(Math.random() - 0.5, Math.random() * 0.9, Math.random() - 0.5).normalize().multiplyScalar(speed * (0.5 + Math.random())));
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 6), 3));
+  const ls = new T.LineSegments(g, new T.LineBasicMaterial(glow(color)));
+  ls.frustumCulled = false;
+  addFx(ls, life, { kind: 'sparks', vel, origin: at.clone() });
+}
+// 損傷の煙と火（v0.18、ユーザー指定「ダメージエフェクト、および行動不能時の破損エフェクトが欲しいです」）：
+// 耐久が DMG_SMOKE 以下で薄い灰色の煙、DMG_FIRE 以下で黒い煙と小さな火と火花。行動不能の間は装甲が焦げた色になり、黒い煙の柱と火と火花が出続ける。
+// 当たるたびに装甲が一瞬光る（hurtT、HURT_TIME 秒）。煙と火は使い回すスプライト（PUFF_MAX 個まで。足りなければ出さない）。
+// カメラから PUFF_FAR m より遠い機体と、光学迷彩中の機体は出さない（煙で居場所が分からないように）
+const DMG_SMOKE = 0.5, DMG_FIRE = 0.25, HURT_TIME = 0.09, PUFF_FAR = 220, PUFF_MAX = 320;
+const puffs = [], puffFree = [];
+function puff(x, y, z, vx, vy, vz, size, grow, life, color, op, add = false) {
+  let p = puffFree.pop();
+  if (!p) {
+    if (puffs.length >= PUFF_MAX) return;
+    p = { sp: new T.Sprite(new T.SpriteMaterial({ map: flashTex, transparent: true, depthWrite: false })) };
+    puffs.push(p);
+  }
+  Object.assign(p, { vx, vy, vz, size, grow, life, op, age: 0, on: true });
+  p.sp.position.set(x, y, z);
+  p.sp.material.color.setHex(color);
+  p.sp.material.blending = add ? T.AdditiveBlending : T.NormalBlending;
+  p.sp.material.opacity = 0;
+  p.sp.scale.setScalar(size);
+  scene.add(p.sp);
+}
+function puffUpdate(dt) {
+  for (const p of puffs) {
+    if (!p.on) continue;
+    p.age += dt;
+    if (p.age >= p.life) { p.on = false; scene.remove(p.sp); puffFree.push(p); continue; }
+    const k = p.age / p.life, drag = Math.max(0, 1 - dt * 0.9);
+    p.sp.position.x += p.vx * dt; p.sp.position.y += p.vy * dt; p.sp.position.z += p.vz * dt;
+    p.vx *= drag; p.vz *= drag;
+    p.sp.scale.setScalar(Math.max(0.05, p.size + p.grow * k));
+    p.sp.material.opacity = p.op * (k < 0.12 ? k / 0.12 : (1 - k) / 0.88);
+  }
+}
+// 煙は少し風下（+x）へ流れる
+const WIND = 1.2;
+// 倒れた・撃破された瞬間：小さな爆発と火花と煙
+function downBurst(u) {
+  const at = u.pos.clone().setY(u.pos.y + 1.6);
+  flash(at, 0xffa040, 6, 0.3);
+  sparkBurst(at, 0xffc070, 20, 20, 0.45);
+  for (let i = 0; i < 5; i++) puff(at.x + (Math.random() - 0.5) * 2, at.y, at.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3, 2.2, 5, 1.8, 0x2a2622, 0.7);
+}
+// 毎フレーム（描画の前）：装甲の色と光り方、損傷の煙・火・火花
+function damageLook(u, dt, now) {
+  const down = u.downT > 0;
+  if (u.hurtT > 0) u.hurtT -= dt;
+  if (u.burnt !== down) { u.burnt = down; u.armorMat.color.setHex(down ? 0x4a4440 : 0xffffff); } // 行動不能は焦げた色
+  // 行動不能は赤く点滅、当たった瞬間は白っぽく、弱化グレネードを浴びている間は紫に光る
+  u.armorMat.emissive.setHex(down ? (Math.floor(now / 350) % 2 ? 0x3a0c0c : 0) : u.hurtT > 0 ? 0x6a5a48 : u.weakT > 0 ? 0x4a1c78 : 0);
+  if (!running || (!u.alive && !down) || u.cloak) return;
+  const f = u.hp / u.maxHp;
+  if (!down && f > DMG_SMOKE) return;
+  if ((u.fxT = (u.fxT || 0) - dt) > 0) return;
+  if (u.pos.distanceToSquared(camera.position) > PUFF_FAR * PUFF_FAR) { u.fxT = 0.5; return; }
+  const r = (Math.random() - 0.5), q = (Math.random() - 0.5);
+  if (down) {
+    // 倒れた機体の胴のあたり（後ろへ倒れているので、向きの後ろ側へ少しずれる）
+    const bx = u.pos.x + Math.sin(u.downYaw) * 1.4, bz = u.pos.z + Math.cos(u.downYaw) * 1.4, y = u.pos.y + 1;
+    u.fxT = 0.11;
+    puff(bx + r * 1.6, y, bz + q * 1.6, WIND + r, 4 + Math.random() * 1.5, q, 1.6, 5, 2.6, 0x1c1a18, 0.5);
+    if (Math.random() < 0.8) puff(bx + q * 1.8, y + 0.2, bz + r * 1.8, 0, 1.6 + Math.random(), 0, 1.4 + Math.random() * 0.6, -0.6, 0.32, Math.random() < 0.5 ? 0xff6a1a : 0xffb040, 0.9, true);
+    if (Math.random() < 0.12) sparkBurst(new T.Vector3(bx + r * 2, y + 0.4, bz + q * 2), 0xcfeaff, 10, 12, 0.3);
+  } else {
+    const top = u.pos.y + 3 + Math.random() * 0.5, x = u.pos.x + r * 1.1, z = u.pos.z + q * 1.1;
+    if (f > DMG_FIRE) { u.fxT = 0.3; puff(x, top, z, WIND * 0.6 + r, 2.4, q, 1, 3, 1.5, 0x9a9a98, 0.45); return; }
+    u.fxT = 0.16;
+    puff(x, top, z, WIND * 0.6 + r, 3, q, 1.2, 3.6, 1.8, 0x2c2a28, 0.55);
+    if (Math.random() < 0.45) puff(x, top - 0.6, z, 0, 1.4, 0, 1.1, -0.4, 0.28, 0xff7a24, 0.9, true);
+    if (Math.random() < 0.1) sparkBurst(new T.Vector3(x, u.pos.y + 2.4, z), 0xcfeaff, 6, 9, 0.22);
+  }
+}
 const cloudGeo = new T.SphereGeometry(1, 16, 12);
 function cloud(at, size, color, life = 1.6) {
   addFx(new T.Mesh(cloudGeo, new T.MeshBasicMaterial({ color, transparent: true, depthWrite: false })), life, { kind: 'cloud', size, at: at.clone() });
@@ -2863,6 +2958,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null) {
   r.hp -= real;
   noteDmg(r, by, real);
   cloakHit(r, dmg);
+  r.hurtT = HURT_TIME; // 装甲が一瞬光る（v0.18）
   if (r.isPlayer) flashDamage();
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0)); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
@@ -2911,6 +3007,7 @@ function kill(v, by, head, hit = Infinity) {
   feed(by === v ? `<span style="color:${TEAM[v.team].css}">${v.name}</span> が自爆` : `<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
   if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
   v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
+  downBurst(v); // 小さな爆発と煙（v0.18）
   v.downT = !v.isPlayer && !reviverNear(v) ? 1 : REVIVE_WAIT;
   // 起こせるのがプレイヤーなら、倒れた味方が呼ぶ（印は REVIVE_WAIT 秒で消える）
   if (!v.isPlayer && player && player.alive && v.team === player.team && v.downT > 1 && canRevive(player) && player.pos.distanceTo(v.pos) < REVIVE_CALL) {
@@ -5204,6 +5301,67 @@ function hitMark(head) {
 }
 let dmgT = 0, spHitT = 0;
 function flashDamage() { dmgT = 0.25; sfx('hurt'); }
+// 機体の頭上の名前と耐久（v0.18、ユーザー指定「敵味方の体力残量の視認性が悪いです」「敵の体力残量の視認可能距離はロックオン距離に依存のこと」「味方は150m以内固定で映してください」）。
+// 敵：自分の頭部のロック距離（索敵を受けている敵は SPOT_LOCK 倍。ロックできる距離と同じ）より近く、カメラとの間に壁が無いときだけ（TAG_SEE 秒ごとに確かめる。索敵を受けている敵は壁越しでも）。
+// 光学迷彩中と行動不能の敵は出さない。味方：TAG_ALLY m 以内なら壁越しでも。行動不能の味方は「行動不能」と蘇生の進み具合（緑）。
+// 白い部分は減ったばかりの耐久で、TAG_LAG 秒たってから縮む。耐久3割以下は点滅。TAG_FAR m より遠いと小さく
+const TAG_ALLY = 150, TAG_SEE = 0.2, TAG_LAG = 0.6, TAG_FAR = 100;
+const tagV = new T.Vector3(), tagF = new T.Vector3();
+function tagOf(u) {
+  if (u.tagEl) return u.tagEl;
+  const el = document.createElement('div');
+  el.className = 'utag'; el.style.setProperty('--c', TEAM[u.team].css); el.style.display = 'none';
+  el.innerHTML = '<span></span><div class="hb"><i class="lag"></i><i class="cur"></i></div>';
+  $('tags').appendChild(el);
+  Object.assign(u, { tagEl: el, tagLag: 1, tagPrev: 1, tagLagT: 0, tagSeeT: 0, tagSeen: false, tagKey: null });
+  return el;
+}
+// 画面に映っているか：カメラから胴の中心か頭まで、間に何も無い
+function tagSight(p, u) {
+  for (const h of [2.4, 3.6]) {
+    tagV.set(u.pos.x, u.pos.y + h, u.pos.z).sub(camera.position);
+    const d = tagV.length(), hit = castFrom(camera.position, tagV.normalize(), p, d + 2);
+    if (hit && hit.ref === u) return true;
+  }
+  return false;
+}
+function tagsHud(p, dt) {
+  const fwd = camera.getWorldDirection(tagF), on = running && p.alive && !killcamOn();
+  for (const u of units) {
+    if (u === p) continue;
+    const el = tagOf(u), ally = u.team === p.team, down = u.downT > 0, d = u.pos.distanceTo(p.pos);
+    let show = on && (u.alive || (ally && down));
+    if (show && ally) show = d <= TAG_ALLY;
+    else if (show) {
+      show = !u.cloak && d <= p.lockRange * spotMul(p.team, u);
+      if (!show) u.tagSeeT = 0; // 範囲に入ったらすぐ確かめる
+      else if ((u.tagSeeT -= dt) <= 0) { u.tagSeeT = TAG_SEE; u.tagSeen = spotted[p.team].has(u) || tagSight(p, u); }
+      show = show && u.tagSeen;
+    }
+    if (show) {
+      tagV.set(u.pos.x, u.pos.y + (down ? 1.8 : 4.4), u.pos.z);
+      show = (tagV.x - camera.position.x) * fwd.x + (tagV.y - camera.position.y) * fwd.y + (tagV.z - camera.position.z) * fwd.z > 0; // カメラの後ろは出さない
+    }
+    if (!show) { if (el.style.display !== 'none') el.style.display = 'none'; continue; }
+    tagV.project(camera);
+    el.style.display = '';
+    el.style.transform = `translate(${((tagV.x + 1) / 2 * innerWidth).toFixed(1)}px, ${((1 - tagV.y) / 2 * innerHeight).toFixed(1)}px) translate(-50%, -100%)`;
+    const f = down ? Math.min(1, u.reviveAcc / REVIVE_NEED) : Math.max(0, u.hp / u.maxHp);
+    if (f < u.tagPrev) u.tagLagT = 0; // 減った：白い部分はしばらくそのまま
+    u.tagPrev = f;
+    if (down || f > u.tagLag) u.tagLag = f;
+    else if ((u.tagLagT += dt) > TAG_LAG) u.tagLag = Math.max(f, u.tagLag - dt * 0.9);
+    const key = `${down ? 'd' : f <= 0.3 ? 'l' : ''}${d > TAG_FAR ? 'f' : ''}`;
+    if (key !== u.tagKey) {
+      u.tagKey = key;
+      el.className = 'utag' + (down ? ' down' : f <= 0.3 ? ' low' : '') + (d > TAG_FAR ? ' far' : '');
+      el.firstChild.textContent = down ? `${u.name}　行動不能` : u.name;
+    }
+    const bar = el.lastChild;
+    bar.firstChild.style.width = (down ? 0 : u.tagLag * 100).toFixed(1) + '%';
+    bar.lastChild.style.width = (f * 100).toFixed(1) + '%';
+  }
+}
 function renderPlantBar() { $('plantBar').innerHTML = plants.map(pl => `<div class="pl" id="pl-${pl.id}"><b>${pl.id}</b><span><i></i></span></div>`).join(''); }
 $('rlist').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -5513,7 +5671,7 @@ const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id) {
   if (id !== mapId) {
-    for (const u of units) { scene.remove(u.group, u.beam, u.fieldMesh); disposeMech(u.group); u.beam.material.dispose(); }
+    for (const u of units) { scene.remove(u.group, u.beam, u.fieldMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
     units.length = 0; player = null; ended = false;
     for (const sh of shells) scene.remove(sh.mesh);
     shells.length = 0;
@@ -5770,6 +5928,7 @@ function hud(timeLeft, dt) {
   $('qchat').hidden = !qc.open;
   if (qc.open) QCHAT.forEach((q, i) => $('qc' + i).classList.toggle('sel', qc.pick === i));
   pingHud(p);
+  tagsHud(p, dt);
   $('wsel').hidden = !wsel.open;
   if (wsel.open) {
     SLOTS.forEach((k, i) => {
@@ -5873,7 +6032,7 @@ function hud(timeLeft, dt) {
 let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
 function setup() {
-  for (const u of units) { scene.remove(u.group, u.beam, u.fieldMesh); disposeMech(u.group); u.beam.material.dispose(); }
+  for (const u of units) { scene.remove(u.group, u.beam, u.fieldMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
   units.length = 0;
   for (let i = hittables.length - 1; i >= 0; i--) if (refOf(hittables[i])?.kind === 'unit') hittables.splice(i, 1);
   cores.B.hp = cores.R.hp = coreMax;
@@ -5978,7 +6137,7 @@ function loop(now) {
   }
   for (const u of units) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
-    const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま、ときどき煙
+    const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
     if (u.planted || u.stun === 'land' || u.transfer) u.group.position.y -= 0.6; // 構えている間と着地硬直、エリア移動の待機中は屈む
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
@@ -5986,8 +6145,7 @@ function loop(now) {
     u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
     u.group.rotation.x = u.tilt; // よろけでのけぞり、ダウンで後ろへ倒れる
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
-    u.armorMat.emissive.setHex(down ? (Math.floor(now / 350) % 2 ? 0x3a0c0c : 0) : u.weakT > 0 ? 0x4a1c78 : 0); // 弱化グレネードを浴びている間は紫に光る。行動不能は赤く点滅
-    if (down && running && Math.random() < 0.12) flash(u.pos.clone().setY(u.pos.y + 1), 0x8a8f96, 2.4, 0.5);
+    damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
     cloakLook(u, now / 1000);
     weaponLook(u, dt);
     u.flame.visible = u.alive && !!u.dashState;
@@ -6006,6 +6164,7 @@ function loop(now) {
     if (u.flame.visible) u.flame.scale.y = (u.dashState === 'short' ? 1.8 : u.dashState === 'charge' ? 2.4 : 1.1) * (0.85 + Math.random() * 0.3);
   }
   fxUpdate(dt);
+  puffUpdate(dt);
   for (let i = booms.length - 1; i >= 0; i--) {
     const b = booms[i]; b.t += dt;
     b.m.scale.setScalar((1 + b.t * 10) * b.k); b.m.material.opacity = Math.max(0, 0.9 - b.t * 1.6);
