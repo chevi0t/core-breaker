@@ -11,7 +11,8 @@
 4. **確かめる**：`tools/test/map_check.js` で施設の置き場所、ポッドの見え方、再出撃位置、カタパルトの着地点、スクリーンショットを見る（使い方は README の「確かめ方」）。
 5. **公開する**：公開ページは1つ（https://claude.ai/artifact/EBViVFVaYZFHUNuuF3bBPF）。公開ページの maps.js を出すのはマップ製作のスレッドだけで、エンジン側は maps.js を出さない。名前は「マップ：〇〇」。手順は README の「公開」。
 6. **配る**：zip の版番号は本体側が付ける。マップだけで配るときは `<今の版>-map<n>`（例 0.10.1-map1）。
-7. **エンジンの変更が要るとき**（新しい地形の種類、新しい施設、11機以上の陣営など）は、マップ作製側から本体側に頼む。
+7. **Codex が作るとき**（ユーザーが GitHub + Codex を決めた、2026-10-19）：リポジトリ https://github.com/chevi0t/core-breaker の Issue で頼み、Codex は PR で `prototype/maps/<id>.js` と `maps.js` を出す。PR では 3・4 の結果（build_maps と map_check の出力）を書く。Claude が見てマージし、`tools/repo_sync.py from-repo` で共有フォルダへ写してから、5 の公開はマップ製作のスレッドがする。
+8. **エンジンの変更が要るとき**（新しい地形の種類、新しい施設、11機以上の陣営など）は、マップ作製側から本体側に頼む。
 
 ## 2. 全体の形
 

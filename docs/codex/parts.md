@@ -1,0 +1,44 @@
+# 機体パーツの型を足す手順（Codex など向け）
+
+オーナーの指定（2026-10-19）：パーツは数値を調べるだけでなく、**性能まで作り込んでゲームに入れてよい**。
+
+## 今の作り
+
+`prototype/index.html`（名前で検索。行番号は変わる）：
+
+| 所 | 中身 |
+|---|---|
+| `PART_SLOTS`・`PART_TYPES` | 部位（head・body・arms・legs）と、型のキー（light・standard・heavy）。`TYPE_NAMES` が表示名 |
+| `PARTS[部位][型のキー]` | 性能。全部位に `weight`（kg）と `armor`（その部位に当たったときの被ダメージ倍率）。頭は `lock`・`aim`、胴は `boost`・`sp`・`supply`、腕は `reload`・`swap`・`recoil`・`ammo`、脚は `walk`・`dash`・`cruise`・`cap`（意味は定義の横のコメントと `docs/DESIGN.md` の「機体パーツと重量」） |
+| `PART_SERIES` | シリーズ（スウィフト＝軽量、ハウンド＝標準、ブルワーク＝重装）。`types` がそのシリーズの型のキーの並びで、起動時に順にⅠ型・Ⅱ型・Ⅲ型と名前が付く。`set` はセットボーナス |
+| `normMech` | 保存した機体（`localStorage` の `coreBreakerMech` と `coreBreakerBuilds`）を読むとき、知らない型を標準に戻す |
+| `mechStats` | 重量・重量超過・速さ・装甲を出す（重量耐性を40kg超えるごとに1%遅い） |
+| `botMech` | Bot の機体（頭・胴・腕はランダム、脚は重量超過が300kg以下になる型から） |
+| `buildMech` | 機体の形。今は型のキー（light・heavy）を見て太さと飾りを変えている |
+| `renderSeries` など | 機体カスタマイズの3列目（シリーズの中の型を並べ、▲▼で数値を比べる） |
+
+元の値は PS4版 wiki（スウィフト＝シュライクⅠ、ハウンド＝クーガーⅠ、ブルワーク＝ヘヴィガードⅠ）。調べた値は `research/parts/*.md`。
+
+## 1. 調べる
+
+`research/parts/types/{head,body,arms,legs}.json` と `research/parts/types/README.md` に、各シリーズに足すⅡ型・Ⅲ型を書く。形は武器の型（`research/weapons/types/README.md`）に合わせる：`base`（本作の型のキー）、`series`（wiki の系統）、`baseRow`（元にした wiki の型の値）、`types`（足す型。`label`、`trait` は一言の説明、値）、`skipped`（使わなかった物と理由）。元にする系統は本作のⅠ型と同じ系統のⅡ・Ⅲ（無ければ近い系統）。
+
+## 2. ゲームに入れる
+
+- 本作の値は「本作のⅠ型の値 × wiki の型の値 ÷ wiki のⅠ型の値」で決める（武器の `makeType` と同じ考え方）。ランクで書かれた性能は `research/parts/*.md` のランクと実数の表で数にする。
+- 型のキーを足す（例 `light2`・`light3`。名前は自由）。`PARTS` の4部位すべてに足し、`PART_SERIES[シリーズ].types` に並べる。
+- 型のキーが light・standard・heavy の3つだと決め打ちしている所を直す：`PART_TYPES` を使う所、`normMech`、`botMech`（`Math.random() * 3`）、`buildMech`（`t === 'light'` など）。形はシリーズ（`PARTS[部位][型].series`）か重さの区分で決めるようにし、同じシリーズの型どうしは同じ系統の形にする（細部を少し変えるのはよい。形の作り分けは Issue #4）。
+- 前に保存した機体と構成がそのまま読めること（今のキーは残す）。
+- セットボーナスはシリーズで決まるので、型が違っても揃えば付く（今のまま）。
+- `docs/DESIGN.md` の「機体パーツと重量」「シリーズと型、メーカー」を直す。
+
+## 3. 確かめる
+
+```sh
+python3 tools/test/make_dbg.py dbg
+node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # 「エラー なし」。Bot の機体に新しい型が出ること
+```
+
+- 機体カスタマイズで、各シリーズにⅠ〜Ⅲ型が並び、▲▼の比べと重量の棒、回る見本が正しく出るスクリーンショット。
+- 前のブラウザの保存（`coreBreakerMech`・`coreBreakerBuilds`）を入れた状態で開いても壊れないこと。
+- PR の説明に、全部の型の性能の表（重量・装甲・各部位の性能）と、重量超過の例（兵装ごとの初期装備で）を書く。

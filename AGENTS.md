@@ -53,22 +53,13 @@ node tools/test/map_check.js dbg <マップID>            # 施設の置き場�
 
 ## 作業ごとの手引き
 
-### マップ
+詳しい手順は `docs/codex/` にある。作業を始める前に、その作業の手順書を最後まで読む。
 
-- `prototype/maps/README.md`（書き方）と `prototype/maps/RULES.md`（決まり。第2章以降）を読む。RULES.md 第1章の流れのうち「頼む」「公開する」「配る」は Claude がする。PR では `maps/<id>.js` と、作り直した `maps.js` を出す。
-- 点対称（自軍の半分を書くと敵軍の半分ができる）。地面の起伏は `python3 tools/gen_rough.py <id>` で付ける。道路・広場・住宅地は平らにする（オーナー 2026-10-19）。
-- 元のゲームのマップ名・地名・形はそのまま使わない。借りるのは作りの考え方だけ。
-- 俯瞰図を `mapdesign/<id>/` に置き（`mapdesign/map_top.py`）、PR の説明に載せる。`map_check.js` の結果も書く。
-- エンジンの変更が要るとき（新しい地形の種類、新しい施設など）は、マップの PR とは分けて Issue に書く。
+| 作業 | 手順書 | 任せる範囲（オーナーの指定 2026-10-19） |
+|---|---|---|
+| マップ | `docs/codex/map.md` | テーマ・名前・大きさ・プラント・地形・施設の配置から、Bot の通り道と動き方（Bot のルール）まで |
+| 武器 | `docs/codex/weapons.md` | 調べ物から、性能・形（モデル）を作り込んでゲームに入れるまで |
+| 機体パーツ | `docs/codex/parts.md` | 調べ物から、性能を作り込んでゲームに入れるまで |
+| 機体の形 | Issue に書いた内容と `docs/codex/parts.md` の「今の作り」 | シリーズごとの形の作り分け |
 
-### 武器・パーツの数値の調べ物
-
-- 出典は BORDER BREAK PS4版 wiki（https://w.atwiki.jp/ps4borderbreak/ ）を基本に、無い物はアーケード版 wiki（https://w.atwiki.jp/borderbreak/ ）。
-- 調べた値は `research/` に、元のページの URL と一緒に書く。武器の型は `research/weapons/types/*.json`（形式は `research/weapons/types/README.md`）。
-- ゲームの数値に入れるときは、定義の横のコメントに元の名前と値を書く。このゲームの値は wiki の値そのままではなく、基準の武器との比で決めている所がある（`docs/DESIGN.md` の「武器の型」の節）。
-
-### モデル（機体・武器の形）
-
-- 形はコードで作る（外部ファイルの読み込み無し）。箱・円柱・球を組み合わせて頂点の色で塗り、1部位1メッシュにまとめる。武器の形は `buildWeaponGeo`、機体は `buildMech`。
-- 当たり判定は機体の部位ごと（頭・胴・腕・脚。メッシュの `userData.armorSlot`）。部位の境目と大きさ（頭は高さ 3.2〜3.95m など）を大きく変えない。ヘッドショットとロックオンの高さがそれに合わせてある。
-- デザインはオリジナル。元のゲームの機体に似せない。
+どの作業も `prototype/index.html` を変えることが多い。PR を出す前に main を取り込み、衝突を直してからテストを回す。
