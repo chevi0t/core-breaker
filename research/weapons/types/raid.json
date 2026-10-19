@@ -1,0 +1,135 @@
+[
+  {
+    "base": "pistols",
+    "series": "レヴェラー系統",
+    "baseRow": { "name": "レヴェラーMP20", "dmg": 340, "dual": true, "rpm": 400, "mag": 26, "mags": 12, "reload": 1.2, "kg": 180, "acc": "C", "recoil": "C+", "range": 150 },
+    "types": [
+      { "name": "レヴェラーR", "dmg": 270, "dual": true, "rpm": 500, "mag": 42, "mags": 11, "reload": 1.4, "kg": 190, "acc": "C-", "recoil": "C+", "range": 150, "label": "大容量型", "trait": "弾数が多いが一発が軽い" },
+      { "name": "レヴェラーRR", "dmg": 270, "dual": true, "rpm": 560, "mag": 32, "mags": 15, "reload": 1.3, "kg": 230, "acc": "B-", "recoil": "B-", "range": 150, "label": "連射型", "trait": "連射が速く精度も高いが重い" },
+      { "name": "レヴェラー・ブルート", "dmg": 490, "dual": true, "rpm": 320, "mag": 16, "mags": 15, "reload": 1.5, "kg": 240, "acc": "B", "recoil": "C", "range": 150, "label": "強装型", "trait": "一発が重いが連射と装填が遅い" }
+    ],
+    "skipped": [
+      { "name": "レヴェラー・パニッシュ", "why": "ブルートと同じ高威力・低連射型で役割が重なる" }
+    ]
+  },
+  {
+    "base": "dualmg",
+    "series": "デュアルマシンガン系統",
+    "baseRow": { "name": "D90デュアル", "dmg": 270, "dual": true, "rpm": 560, "mag": 41, "mags": 11, "reload": 2.1, "kg": 290, "acc": "D", "recoil": "B", "range": 175 },
+    "types": [
+      { "name": "D90カスタム", "dmg": 260, "dual": true, "rpm": 560, "mag": 46, "mags": 10, "reload": 1.9, "kg": 270, "acc": "C+", "recoil": "B+", "range": 175, "label": "精密型", "trait": "精度が高く軽いが一発がやや軽い" },
+      { "name": "D102アシュヴィン", "dmg": 320, "dual": true, "rpm": 500, "mag": 34, "mags": 12, "reload": 1.7, "kg": 340, "acc": "C-", "recoil": "C+", "range": 175, "label": "強装型", "trait": "一発が重く装填も速いが重い" },
+      { "name": "D107カイラル", "dmg": 290, "dual": true, "rpm": 600, "mag": 36, "mags": 12, "reload": 2.3, "kg": 380, "acc": "E-", "recoil": "D+", "range": 175, "label": "連射型", "trait": "連射が速いが精度が低く重い" }
+    ],
+    "skipped": [
+      { "name": "D92ジェイナス", "why": "イベント配布品" },
+      { "name": "D99オルトロス", "why": "アシュヴィンと同じ強装寄りで役割が重なる" },
+      { "name": "ガルド・ミラ", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "coyote",
+    "series": "コヨーテ系統",
+    "baseRow": { "name": "コヨーテM68", "dmg": 500, "dual": true, "rpm": 360, "mag": 12, "mags": 18, "reload": 1.4, "kg": 250, "acc": "B-", "recoil": "B-", "range": 150 },
+    "types": [
+      { "name": "コヨーテ・ヴァーキン", "dmg": 550, "dual": true, "rpm": 360, "mag": 15, "mags": 17, "reload": 1.7, "kg": 280, "acc": "B+", "recoil": "B-", "range": 150, "label": "強装型", "trait": "一発が重く弾数も多いが装填が遅い" },
+      { "name": "コヨーテ・ヴェナラ", "dmg": 370, "dual": true, "rpm": 600, "mag": 18, "mags": 18, "reload": 1.2, "kg": 290, "acc": "B", "recoil": "B", "range": 150, "label": "連射型", "trait": "連射が速いが一発が軽い" },
+      { "name": "コヨーテ・ベイロウ", "dmg": 520, "dual": true, "rpm": 600, "mag": 6, "mags": 36, "reload": 1.2, "kg": 270, "acc": "B", "recoil": "C+", "range": 150, "label": "瞬発型", "trait": "瞬間火力が高いが装弾数が6発" }
+    ],
+    "skipped": [
+      { "name": "コヨーテM68C", "why": "ヴェナラと同じ連射寄り・一発が軽い型で役割が重なる" }
+    ]
+  },
+  {
+    "base": "sniper",
+    "series": "38式狙撃銃系統",
+    "baseRow": { "name": "38式狙撃銃", "dmg": 3600, "rpm": 150, "mag": 4, "mags": 8, "reload": 3.2, "kg": 240 },
+    "types": [
+      { "name": "38式狙撃銃・改", "dmg": 4500, "rpm": 150, "mag": 2, "mags": 7, "reload": 3, "kg": 280, "label": "強装型", "trait": "一発が重いが装弾数が2発" },
+      { "name": "38式狙撃銃・遠雷", "dmg": 7800, "mag": 1, "mags": 8, "reload": 3.8, "kg": 300, "label": "高出力型", "trait": "一発7800だが単発装填で重い" },
+      { "name": "38式狙撃銃・一閃", "dmg": 10000, "mag": 1, "mags": 6, "reload": 4, "kg": 350, "label": "重装型", "trait": "一撃が最大だが最重量で装填が遅い" }
+    ],
+    "skipped": [
+      { "name": "38式狙撃銃・鳴神", "why": "一斉発射で撃ち方が違う" },
+      { "name": "フローズンシューター", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "battle",
+    "series": "バトルライフル系統",
+    "baseRow": { "name": "バトルライフル", "dmg": 1950, "rpm": 300, "mag": 10, "mags": 5, "reload": 2.9, "kg": 230 },
+    "types": [
+      { "name": "バトルライフルS", "dmg": 2700, "rpm": 240, "mag": 7, "mags": 5, "reload": 3, "kg": 290, "label": "強装型", "trait": "一発が重いが連射が遅く重い" }
+    ],
+    "skipped": [
+      { "name": "バトルライフルBF", "why": "3点射で撃ち方が違う" },
+      { "name": "バトルライフルCSM", "why": "連射（フルオート）で単射の基本型と撃ち方が違う" },
+      { "name": "ティグリドル", "why": "コラボ武器（3点射）" }
+    ]
+  },
+  {
+    "base": "lzsniper",
+    "series": "LZ－デイライト系統",
+    "baseRow": { "name": "LZ－デイライト", "dmg": 6100, "mag": 1, "mags": 10, "reload": 4.5, "kg": 290 },
+    "types": [
+      { "name": "LZ－アキュレイト", "dmg": 7700, "mag": 1, "mags": 7, "reload": 5, "kg": 330, "label": "精密型", "trait": "弾道安定が速く高威力だが重い" },
+      { "name": "LZ－ヴェスパイン", "dmg": 9500, "mag": 1, "mags": 6, "reload": 5.5, "kg": 340, "label": "強装型", "trait": "一発が非常に重いが弾数が少ない" },
+      { "name": "LZ－クリパスキュール", "dmg": 8400, "mag": 1, "mags": 7, "reload": 4.8, "kg": 360, "label": "重装型", "trait": "威力が高いが最重量で弾数が少ない" }
+    ],
+    "skipped": [
+      { "name": "LZ－デイライトS", "why": "イベント配布品で基本型より威力・弾数とも下" },
+      { "name": "LZ－トライアド", "why": "3点射で撃ち方が違う" },
+      { "name": "LZ－デイブレイク", "why": "3点射で撃ち方が違う" }
+    ]
+  },
+  {
+    "base": "drone",
+    "series": "偵察機系統",
+    "baseRow": { "name": "ラーク偵察機", "count": 3, "kg": 370, "scan": 110, "range": 250, "speed": 28, "keep": 10, "dur": 5 },
+    "types": [
+      { "name": "ファルコン偵察機", "count": 3, "kg": 360, "scan": 95, "range": 500, "speed": 50, "keep": 10, "dur": 3.5, "label": "瞬発型", "trait": "速く遠くまで飛ぶが索敵範囲が狭い" },
+      { "name": "アウル偵察機", "count": 2, "kg": 390, "scan": 130, "range": 220, "speed": 14, "keep": 10, "dur": 9, "label": "持続型", "trait": "長く滞空し範囲も広いが所持数2" },
+      { "name": "カナリア偵察機", "count": 3, "kg": 400, "scan": 240, "range": 80, "speed": 25, "keep": 10, "dur": 5.6, "label": "広域型", "trait": "索敵範囲が最大だが飛距離が短い" }
+    ],
+    "skipped": [
+      { "name": "ストーク偵察機", "why": "イベント配布品" },
+      { "name": "ロビン偵察機", "why": "カナリアと同じ広域型で役割が重なる" },
+      { "name": "マグ", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "sonar",
+    "series": "クリアリングソナー系統",
+    "baseRow": { "name": "クリアリングソナー", "count": 5, "reload": 1, "kg": 230, "scan": 170, "fuse": 1.5, "keep": 15 },
+    "types": [
+      { "name": "クリアリングソナーM", "count": 6, "reload": 1, "kg": 220, "scan": 160, "fuse": 0.8, "keep": 15, "label": "瞬発型", "trait": "起爆が速く数も多いが範囲が狭い" },
+      { "name": "クリアリングソナーW", "count": 4, "reload": 1, "kg": 270, "scan": 220, "fuse": 2.5, "keep": 15, "label": "広域型", "trait": "索敵範囲が広いが起爆が遅く数が少ない" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "sentry",
+    "series": "セントリーガン系統",
+    "baseRow": { "name": "セントリーガンSMG", "dmg": 110, "rpm": 800, "mag": 30, "reload": 2.6, "kg": 350, "range": 90, "hp": 10000, "count": 1 },
+    "types": [
+      { "name": "セントリーガンAC", "dmg": 620, "rpm": 150, "mag": 5, "reload": 3.3, "kg": 380, "range": 90, "hp": 10000, "count": 1, "label": "強装型", "trait": "一発が重いが連射が遅い" },
+      { "name": "セントリーガンSHG", "dmg": 270, "pellets": 8, "rpm": 800, "mag": 3, "reload": 2.9, "kg": 410, "range": 90, "hp": 10000, "count": 1, "label": "広域型", "trait": "散弾で近距離に強いが弾数3" },
+      { "name": "セントリーガンHV", "dmg": 1420, "rpm": 90, "mag": 2, "reload": 2.6, "kg": 400, "range": 90, "hp": 10000, "count": 1, "label": "高出力型", "trait": "一撃が最大だが連射が遅く2発" }
+    ],
+    "skipped": [
+      { "name": "セントリーガンLZ", "why": "ニュード弾のレーザー系砲台のため指示により除外" }
+    ]
+  },
+  {
+    "base": "camo",
+    "series": "光学迷彩系統",
+    "baseRow": { "name": "光学迷彩・試作型", "kg": 240, "use": 15, "charge": 40, "chargeKeep": 35, "hp": 12000 },
+    "types": [
+      { "name": "光学迷彩・実用型", "kg": 270, "use": 13, "charge": 35, "chargeKeep": 30, "hp": 12000, "label": "速装型", "trait": "隠密性が高く回復が速いが持続が短い" }
+    ],
+    "skipped": [
+      { "name": "光学迷彩・耐久型", "why": "ゲームに既存（camoD）" },
+      { "name": "光学迷彩・高出力型", "why": "ゲームに既存（camoH）" }
+    ]
+  }
+]

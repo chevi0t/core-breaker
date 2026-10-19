@@ -1,0 +1,98 @@
+[
+  {
+    "base": "carbine",
+    "series": "速射機銃系統",
+    "baseRow": { "name": "UK56速射機銃", "dmg": 350, "rpm": 840, "mag": 70, "mags": 14, "reload": 2.2, "kg": 320, "acc": "D+", "recoil": "C+" },
+    "types": [
+      { "name": "UK56速射機銃・改", "dmg": 340, "rpm": 840, "mag": 75, "mags": 13, "reload": 2.3, "kg": 300, "acc": "C", "recoil": "B+", "label": "精密型", "trait": "精度と反動が良いが威力が少し低い" },
+      { "name": "UK57速射機銃", "dmg": 330, "rpm": 900, "mag": 100, "mags": 9, "reload": 3, "kg": 340, "acc": "E+", "recoil": "C-", "label": "大容量型", "trait": "装弾数と連射が多いが精度が低い" },
+      { "name": "UK60速射機銃", "dmg": 470, "rpm": 700, "mag": 54, "mags": 14, "reload": 2.4, "kg": 350, "acc": "C-", "recoil": "C-", "label": "強装型", "trait": "一発が重いが連射が遅い" }
+    ],
+    "skipped": [
+      { "name": "UK57速射機銃・弐", "why": "ベースとの差が小さく、4枠に収まらない" }
+    ]
+  },
+  {
+    "base": "gale",
+    "series": "SSG系統",
+    "baseRow": { "name": "SSG7－ゲイル", "dmg": 280, "pellets": 7, "semi": true, "rpm": 240, "mag": 6, "mags": 19, "reload": 1.4, "kg": 160 },
+    "types": [
+      { "name": "SSG7－ガスト", "dmg": 310, "pellets": 10, "semi": true, "rpm": 240, "mag": 2, "mags": 25, "reload": 1.1, "kg": 220, "label": "瞬発型", "trait": "一撃が重いが装弾数が2発しかない" },
+      { "name": "SSG7C－タイフーン", "dmg": 390, "pellets": 8, "semi": true, "rpm": 150, "mag": 4, "mags": 17, "reload": 1.4, "kg": 230, "label": "強装型", "trait": "一発が重いが連射が遅く重い" }
+    ],
+    "skipped": [
+      { "name": "SSG9－ストーム", "why": "連射（フルオート）で射撃方式が違う" },
+      { "name": "SSG9－トルネード", "why": "連射（フルオート）で射撃方式が違う" },
+      { "name": "SSG9－ヘイルストーム", "why": "連射（フルオート）で射撃方式が違う" }
+    ]
+  },
+  {
+    "base": "vulcan",
+    "series": "ヴルカン系統",
+    "baseRow": { "name": "ヴルカンLG1", "dmg": 640, "rpm": 480, "mag": 45, "mags": 19, "reload": 2.2, "kg": 280, "acc": "D", "recoil": "A-" },
+    "types": [
+      { "name": "ヴルカン・ジャラー", "dmg": 500, "rpm": 600, "mag": 49, "mags": 21, "reload": 2.1, "kg": 300, "acc": "C+", "recoil": "A", "label": "連射型", "trait": "連射が速いが一発が軽い" },
+      { "name": "ヴルカン・ラヴァ", "dmg": 740, "rpm": 420, "mag": 36, "mags": 21, "reload": 2.2, "kg": 320, "acc": "B", "recoil": "B", "label": "強装型", "trait": "一発が重いが連射が遅く弾が少ない" },
+      { "name": "ヴルカン・ハーオス", "dmg": 660, "rpm": 480, "mag": 36, "mags": 22, "reload": 2, "kg": 330, "acc": "B", "recoil": "B+", "label": "精密型", "trait": "精度と反動が良いが装弾数が少なく重い" }
+    ],
+    "skipped": [
+      { "name": "ヴルカンLG2", "why": "ラヴァと同じ威力寄りで差が小さく、4枠に収まらない" },
+      { "name": "レイライフル", "why": "コラボ系（型番なし）" }
+    ]
+  },
+  {
+    "base": "margay",
+    "series": "マーゲイ系統",
+    "baseRow": { "name": "マーゲイM40", "dmg": 450, "dual": true, "semi": true, "rpm": 360, "mag": 18, "mags": 11, "reload": 1.3, "kg": 190, "acc": "B", "recoil": "C+" },
+    "types": [
+      { "name": "マーゲイ・カスタム", "dmg": 430, "dual": true, "semi": true, "rpm": 360, "mag": 22, "mags": 10, "reload": 1.4, "kg": 200, "acc": "A-", "recoil": "C-", "label": "大容量型", "trait": "装弾数と精度が良いが一発が軽い" },
+      { "name": "マーゲイ・サヴァート", "dmg": 980, "dual": true, "semi": true, "rpm": 200, "mag": 7, "mags": 14, "reload": 1.6, "kg": 250, "acc": "A+", "recoil": "C+", "label": "強装型", "trait": "一発が非常に重いが連射が遅く弾が少ない" },
+      { "name": "マーゲイ・レベリオ", "dmg": 570, "dual": true, "semi": true, "rpm": 360, "mag": 13, "mags": 14, "reload": 1.3, "kg": 250, "acc": "A", "recoil": "C-", "label": "精密型", "trait": "威力と精度が高いが装弾数が少なく重い" }
+    ],
+    "skipped": [
+      { "name": "マーゲイ・バリアンス", "why": "3点双射で射撃方式が違う（イベント配布）" },
+      { "name": "マーゲイ・ストライフ", "why": "レベリオと同じ威力寄りの中間的な性能で、4枠に収まらない" }
+    ]
+  },
+  {
+    "base": "gemini",
+    "series": "LMM系統",
+    "baseRow": { "name": "LMM－ジェミニ", "dmg": 400, "dual": true, "rpm": 360, "mag": 18, "mags": 13, "reload": 1.6, "kg": 280, "acc": "B", "recoil": "A-" },
+    "types": [
+      { "name": "LMM－ジェミニC", "dmg": 340, "dual": true, "rpm": 400, "mag": 23, "mags": 12, "reload": 1.5, "kg": 290, "acc": "A-", "recoil": "A+", "label": "大容量型", "trait": "装弾数と連射が多いが一発が軽い" },
+      { "name": "LMM－アブレスト", "dmg": 540, "dual": true, "rpm": 300, "mag": 12, "mags": 14, "reload": 1.5, "kg": 330, "acc": "A-", "recoil": "A-", "label": "強装型", "trait": "一発が重いが連射が遅く重い" },
+      { "name": "LMM－ディオスクリ", "dmg": 490, "dual": true, "rpm": 360, "mag": 11, "mags": 18, "reload": 1.2, "kg": 320, "acc": "A+", "recoil": "A", "label": "精密型", "trait": "精度とリロードが良いが装弾数が少ない" }
+    ],
+    "skipped": [
+      { "name": "LMM－ジェミニTF", "why": "3点双射で射撃方式が違う" },
+      { "name": "LMM－ヴァンキッシュ", "why": "限定デザイン武器で、他の型との差が小さい" }
+    ]
+  },
+  {
+    "base": "haggard",
+    "series": "ハガード系統",
+    "baseRow": { "name": "ハガードM50", "dmg": 2530, "semi": true, "rpm": 120, "mag": 6, "mags": 9, "reload": 1.3, "kg": 210, "acc": "B-", "recoil": "D+" },
+    "types": [
+      { "name": "ハガード・カスタム", "dmg": 2150, "semi": true, "rpm": 120, "mag": 12, "mags": 6, "reload": 1.8, "kg": 200, "acc": "A-", "recoil": "B+", "label": "大容量型", "trait": "装弾数が倍で精度も良いが一発が軽い" },
+      { "name": "ハガード・タフ", "dmg": 3200, "semi": true, "rpm": 120, "mag": 6, "mags": 12, "reload": 1.6, "kg": 250, "acc": "B+", "recoil": "D-", "label": "強装型", "trait": "一発が重いが反動とリロードが悪い" }
+    ],
+    "skipped": [
+      { "name": "ハガードRF", "why": "3点射で射撃方式が違う" },
+      { "name": "ハガード・ヴァリ", "why": "一斉発射で射撃方式が違う" }
+    ]
+  },
+  {
+    "base": "aurora",
+    "series": "LSG系統",
+    "baseRow": { "name": "LSG－アヴローラ", "dmg": 920, "pellets": 5, "semi": true, "rpm": 42, "mag": 5, "mags": 9, "reload": 2.8, "kg": 270 },
+    "types": [
+      { "name": "LSG－アヴローラβ", "dmg": 550, "pellets": 10, "semi": true, "rpm": 42, "mag": 6, "mags": 6, "reload": 3.2, "kg": 310, "label": "広域型", "trait": "散弾が多く広がるが予備弾が少なく重い" },
+      { "name": "LSG－ラドゥガ", "dmg": 910, "pellets": 6, "semi": true, "rpm": 42, "mag": 5, "mags": 9, "reload": 3.1, "kg": 320, "label": "精密型", "trait": "拡散が極小で威力も高いがリロードが遅い" },
+      { "name": "LSG－ミラージ", "dmg": 730, "pellets": 9, "semi": true, "rpm": 42, "mag": 3, "mags": 11, "reload": 2.6, "kg": 350, "label": "強装型", "trait": "総威力が高いが装弾数3発で重い" }
+    ],
+    "skipped": [
+      { "name": "LSG－アヴローラγ", "why": "3点射で射撃方式が違う（イベント配布）" },
+      { "name": "LSG－ラスヴェート", "why": "ミラージと同傾向（高威力・重い・速リロード）で差が小さく、4枠に収まらない" }
+    ]
+  }
+]

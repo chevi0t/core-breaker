@@ -1,0 +1,137 @@
+[
+  {
+    "base": "ar",
+    "series": "サブマシンガン系統",
+    "baseRow": { "name": "M90サブマシンガン", "dmg": 340, "rpm": 780, "mag": 62, "mags": 15, "reload": 1.4, "kg": 140, "acc": "E+", "recoil": "A-" },
+    "types": [
+      { "name": "XM94パイソン", "dmg": 420, "rpm": 740, "mag": 47, "mags": 17, "reload": 1.6, "kg": 200, "acc": "D+", "recoil": "C+", "label": "強装型", "trait": "一発が重いが反動が大きい" },
+      { "name": "M91サブマシンガン", "dmg": 330, "rpm": 850, "mag": 80, "mags": 14, "reload": 1.8, "kg": 150, "acc": "E", "recoil": "B+", "label": "大容量型", "trait": "装弾数と連射が増すがリロードが遅い" },
+      { "name": "M99サーペント", "dmg": 360, "rpm": 780, "mag": 64, "mags": 15, "reload": 1.6, "kg": 160, "acc": "C-", "recoil": "B", "label": "精密型", "trait": "集弾が良いが反動とリロードが増す" }
+    ],
+    "skipped": [
+      { "name": "M90Cサブマシンガン", "why": "イベント配布の別バージョンでM91と役割が重なる" },
+      { "name": "M92ヴァイパー", "why": "連射はM91と同じで中間的な性能" }
+    ]
+  },
+  {
+    "base": "burst",
+    "series": "ヴォルペ突撃銃系統",
+    "baseRow": { "name": "ヴォルペ突撃銃（V16）", "dmg": 440, "rpm": 810, "mag": 57, "mags": 10, "reload": 2.2, "kg": 240, "acc": "C-", "recoil": "C+" },
+    "types": [
+      { "name": "ヴォルペ突撃銃C（V16C）", "dmg": 430, "rpm": 810, "mag": 60, "mags": 11, "reload": 2.1, "kg": 230, "acc": "B-", "recoil": "B", "label": "大容量型", "trait": "弾数と安定性が増すが一発が軽い" },
+      { "name": "ヴォルペ・スコーピオ（V16S）", "dmg": 460, "rpm": 810, "mag": 54, "mags": 11, "reload": 2.1, "kg": 260, "acc": "B+", "recoil": "C+", "label": "精密型", "trait": "精度が高く威力も増すがやや重い" },
+      { "name": "ヴォルペ・メガロ（V16M）", "dmg": 490, "rpm": 810, "mag": 51, "mags": 10, "reload": 2.2, "kg": 270, "acc": "C+", "recoil": "C-", "label": "強装型", "trait": "一発が重いが反動が大きく弾が少ない" }
+    ],
+    "skipped": [
+      { "name": "ヴォルペ突撃銃FAM（C-V16F）", "why": "この機種のみ連射式で射撃方式が違う（イベント配布）" },
+      { "name": "ヴォルペ・メテオラ（V16Z）", "why": "高威力・高精度でメガロ・スコーピオと役割が重なる" },
+      { "name": "ヤスミノコフ5000SD", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "marks",
+    "series": "STAR系統",
+    "baseRow": { "name": "STAR－10（SR-10）", "dmg": 1140, "rpm": 300, "mag": 18, "mags": 10, "reload": 1.9, "kg": 250, "acc": "A", "recoil": "B-" },
+    "types": [
+      { "name": "STAR－10C（SR-10C）", "dmg": 860, "rpm": 400, "mag": 30, "mags": 9, "reload": 2.4, "kg": 300, "acc": "B-", "recoil": "D+", "label": "大容量型", "trait": "装弾数と連射が増すが一発が軽い" },
+      { "name": "STAR－30F（SR-30F）", "dmg": 970, "rpm": 400, "mag": 19, "mags": 11, "reload": 1.7, "kg": 320, "acc": "A+", "recoil": "B+", "label": "精密型", "trait": "精度と反動が良いが一発が軽く重い" },
+      { "name": "STAR－X7D（SR-X7D）", "dmg": 1370, "rpm": 300, "mag": 14, "mags": 12, "reload": 1.8, "kg": 360, "acc": "B+", "recoil": "C+", "label": "強装型", "trait": "一発が最も重いが重く弾が少ない" }
+    ],
+    "skipped": [
+      { "name": "STAR－05（C-SR-05）", "why": "イベント配布。連射寄りで10Cと役割が重なる" },
+      { "name": "STAR－20（SR-20）", "why": "X7Dと同じ高威力路線で中間的な性能" }
+    ]
+  },
+  {
+    "base": "grenade",
+    "series": "クラッカー系統",
+    "baseRow": { "name": "MK3クラッカー", "dmg": 7500, "mag": 1, "mags": 6, "reload": 1, "kg": 100, "blast": 17, "fuse": 2.5 },
+    "types": [
+      { "name": "MK4クラッカー", "dmg": 6600, "mag": 1, "mags": 8, "reload": 1, "kg": 110, "blast": 19, "fuse": 0.8, "label": "瞬発型", "trait": "起爆が早く数も多いが威力が低い" },
+      { "name": "MK5クラッカー", "dmg": 7900, "mag": 1, "mags": 4, "reload": 1.4, "kg": 140, "blast": 24, "fuse": 3.5, "label": "広域型", "trait": "爆風が広いが数が少なく起爆が遅い" },
+      { "name": "MK6クラッカー", "dmg": 9200, "mag": 1, "mags": 6, "reload": 0.8, "kg": 130, "blast": 16, "fuse": 2, "label": "強装型", "trait": "威力が高いが爆風が狭くやや重い" }
+    ],
+    "skipped": [
+      { "name": "MK7Aクラッカー", "why": "MK5とMK6の中間的な性能" },
+      { "name": "マロン", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "timed",
+    "series": "手榴弾系統",
+    "baseRow": { "name": "38型手榴弾", "dmg": 8400, "mag": 1, "mags": 6, "reload": 1, "kg": 90, "blast": 21, "fuse": 2.5 },
+    "types": [
+      { "name": "40型軽量手榴弾", "dmg": 7500, "mag": 1, "mags": 8, "reload": 0.8, "kg": 80, "blast": 19, "fuse": 2.5, "label": "軽量型", "trait": "軽く数が多いが威力と爆風が小さい" },
+      { "name": "41型強化手榴弾", "dmg": 12000, "mag": 1, "mags": 5, "reload": 1.4, "kg": 140, "blast": 25, "fuse": 3.5, "label": "広域型", "trait": "爆風が広く強力だが起爆が遅く重い" },
+      { "name": "47型手榴弾・赫灼", "dmg": 14700, "mag": 1, "mags": 4, "reload": 1.6, "kg": 120, "blast": 24, "fuse": 3.5, "label": "強装型", "trait": "威力が最大だが数が少なく起爆が遅い" }
+    ],
+    "skipped": [
+      { "name": "41型手榴弾・改", "why": "41型強化と47型の中間的な性能" }
+    ]
+  },
+  {
+    "base": "gl",
+    "series": "グレネードランチャー系統",
+    "baseRow": { "name": "グレネードランチャー（GL113）", "dmg": 5400, "rpm": 200, "mag": 3, "mags": 4, "reload": 3, "kg": 220, "blast": 14 },
+    "types": [
+      { "name": "連射式Gランチャー（C-GL163）", "dmg": 2700, "rpm": 350, "mag": 9, "mags": 3, "reload": 2.8, "kg": 320, "blast": 11, "label": "連射型", "trait": "連射と装弾数が多いが一発が軽い" },
+      { "name": "拡散型Gランチャー（GL133）", "dmg": 3300, "rpm": 300, "mag": 6, "mags": 4, "reload": 3.2, "kg": 260, "blast": 18, "label": "広域型", "trait": "爆風が広く弾も多いが一発が軽い" },
+      { "name": "殲滅型Gランチャー（GL173）", "dmg": 6300, "rpm": 400, "mag": 3, "mags": 4, "reload": 3.2, "kg": 310, "blast": 17, "label": "強装型", "trait": "威力と爆風が増すが重い" }
+    ],
+    "skipped": [
+      { "name": "多装Gランチャー（GL121）", "why": "単射で射撃方式が違う（基準は3点射）" },
+      { "name": "強化型Gランチャー（GL141）", "why": "単射・1発装填で射撃方式が違う" }
+    ]
+  },
+  {
+    "base": "sword",
+    "series": "グレートソード系統",
+    "baseRow": { "name": "デュエルソード（CWS-10S）", "normal": 4500, "strong": 6000, "kg": 230 },
+    "types": [
+      { "name": "マーシャルソード（CWS-20S）", "normal": 9000, "strong": 8500, "kg": 300, "label": "強装型", "trait": "通常が連撃で強いがやや重い" },
+      { "name": "SW－ティアダウナー（CWS-30S）", "normal": 9500, "strong": 10000, "kg": 560, "label": "重装型", "trait": "威力が高いがかなり重い" },
+      { "name": "SW－エグゼクター（CWS-40S）", "normal": 13500, "strong": 26000, "kg": 680, "label": "高出力型", "trait": "特殊が桁違いに強いが非常に重い" }
+    ],
+    "skipped": [
+      { "name": "スティールハーツ", "why": "コラボ武器" },
+      { "name": "対魔兵装・神槌", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "blade",
+    "series": "クラッシュエッジ系統",
+    "baseRow": { "name": "クラッシュエッジ（CE501）", "normal": 8500, "strong": 8500, "kg": 320 },
+    "types": [
+      { "name": "クラッシュエッジⅡ（CE502）", "normal": 8500, "strong": 8000, "kg": 240, "label": "軽量型", "trait": "軽いが特殊がやや弱い" },
+      { "name": "CE－クトネシリカ（CE507）", "normal": 8500, "strong": 18000, "kg": 600, "label": "強装型", "trait": "特殊が連撃で強力だが重い" },
+      { "name": "CE－イペタム（CE506）", "normal": 9000, "strong": 19000, "kg": 660, "label": "重装型", "trait": "最も強いが最も重い" }
+    ],
+    "skipped": [
+      { "name": "対魔兵装・太刀", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "spear",
+    "series": "スピア系統",
+    "baseRow": { "name": "ロングスピア（A11S）", "normal": 4000, "strong": 6000, "kg": 200 },
+    "types": [
+      { "name": "ピアシングスピア（A11S2）", "normal": 4500, "strong": 9000, "kg": 310, "label": "強装型", "trait": "特殊が強いが重い" },
+      { "name": "SP－ペネトレーター（A11SP）", "normal": 8500, "strong": 9500, "kg": 490, "label": "重装型", "trait": "通常が2段で強いがかなり重い" }
+    ],
+    "skipped": [
+      { "name": "明錫クラリッサⅢ", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "charger",
+    "series": "アサルトチャージャー系統",
+    "baseRow": { "name": "アサルトチャージャー（AC101）", "kg": 270, "charge": 35, "chargeKeep": 30, "use": 2.4, "power": 1.6 },
+    "types": [
+      { "name": "AC－オーバーラップ（AC103）", "kg": 330, "charge": 38, "chargeKeep": 33, "use": 3.2, "power": 1.45, "label": "持続型", "trait": "長く使えるが出力が低く重い" }
+    ],
+    "skipped": [
+      { "name": "AC－ディスタンス（AC102）", "why": "既にゲームにある（chargerD）" },
+      { "name": "AC－スプリンター（AC104）", "why": "既にゲームにある（chargerS）" }
+    ]
+  }
+]

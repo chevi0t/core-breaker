@@ -1,0 +1,135 @@
+[
+  {
+    "base": "shotgun",
+    "series": "スマックショット系統",
+    "baseRow": { "name": "スマックショット", "dmg": 460, "pellets": 8, "rpm": 50, "mag": 8, "mags": 8, "reload": 2.6, "kg": 220 },
+    "types": [
+      { "name": "ワイドスマック", "dmg": 450, "pellets": 12, "rpm": 50, "mag": 5, "mags": 9, "reload": 3, "kg": 280, "label": "広域型", "trait": "散弾が多く広がるが重く装填が遅い" },
+      { "name": "レイジスマック", "dmg": 600, "pellets": 12, "rpm": 50, "mag": 2, "mags": 14, "reload": 2.5, "kg": 320, "label": "強装型", "trait": "威力絶大だが装弾2発で重い" },
+      { "name": "スマックショットSP", "dmg": 530, "pellets": 10, "rpm": 50, "mag": 6, "mags": 8, "reload": 2.4, "kg": 240, "label": "速装型", "trait": "装填が速く威力も上だが弾数減" }
+    ],
+    "skipped": [
+      { "name": "クイックスマック", "why": "3点射（ベースは単射）、イベント系C-型番" },
+      { "name": "ライトニングスマック", "why": "3点射（ベースは単射）、イベント系C-型番" },
+      { "name": "スマックショット2G", "why": "3枠を使い切った。レイジと同じ重量級で役割が重なる" },
+      { "name": "スプレッドニードル", "why": "コラボ武器" },
+      { "name": "ヴォイドスマック", "why": "コラボ/イベント系の指定除外品" }
+    ]
+  },
+  {
+    "base": "autosg",
+    "series": "ASG系統",
+    "baseRow": { "name": "ASG－スィーパー", "dmg": 430, "pellets": 8, "rpm": 100, "mag": 9, "mags": 9, "reload": 2.3, "kg": 190 },
+    "types": [
+      { "name": "ASG－アヴァランチ", "dmg": 250, "pellets": 10, "rpm": 150, "mag": 11, "mags": 10, "reload": 1.8, "kg": 270, "label": "連射型", "trait": "連射が速く散弾が絞られるが重い" }
+    ],
+    "skipped": [
+      { "name": "ASG－スィーパーR", "why": "連射（フルオート）でベースの単射と射撃方式が違う" },
+      { "name": "ASG－スィーパーRX", "why": "連射（フルオート）、イベント配布" },
+      { "name": "ASG－デリュージ", "why": "3点射、イベント配布" },
+      { "name": "ASG－スタンピード", "why": "連射（フルオート）でベースの単射と射撃方式が違う" },
+      { "name": "ASG－カラミティ", "why": "連射（フルオート）でベースの単射と射撃方式が違う" }
+    ]
+  },
+  {
+    "base": "nail",
+    "series": "ネイルガン系統",
+    "baseRow": { "name": "ネイルガン", "dmg": 690, "rpm": 480, "mag": 20, "mags": 16, "reload": 1.1, "kg": 140, "acc": "D", "recoil": "C", "range": 175 },
+    "types": [
+      { "name": "ラピッドネイル", "dmg": 570, "rpm": 600, "mag": 28, "mags": 14, "reload": 1.6, "kg": 210, "acc": "C-", "recoil": "D", "range": 175, "label": "連射型", "trait": "連射が速いが重く反動が大きい" },
+      { "name": "アッパーネイル", "dmg": 580, "rpm": 480, "mag": 30, "mags": 20, "reload": 1.6, "kg": 150, "acc": "C+", "recoil": "C+", "range": 175, "label": "大容量型", "trait": "弾数と精度が上がるが一発が軽い" }
+    ],
+    "skipped": [
+      { "name": "ネイルガンTF", "why": "3点射（ベースは連射）" },
+      { "name": "スパージネイル", "why": "3点射（ベースは連射）" },
+      { "name": "バンシーズロアー", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "mine",
+    "series": "ヘヴィマイン系統",
+    "baseRow": { "name": "ヘヴィマイン", "dmg": 10800, "mag": 1, "mags": 5, "reload": 1, "kg": 240, "blast": 12, "hp": 3000 },
+    "types": [
+      { "name": "ヘヴィマインS", "dmg": 10200, "mag": 1, "mags": 6, "reload": 1, "kg": 220, "blast": 20, "hp": 3000, "label": "広域型", "trait": "爆風が広く軽いが威力は少し低い" },
+      { "name": "ヘヴィマインV", "dmg": 31500, "mag": 1, "mags": 4, "reload": 1, "kg": 300, "blast": 10, "hp": 3000, "label": "強装型", "trait": "威力約3倍だが範囲が狭く重い" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "fmine",
+    "series": "浮遊機雷系統",
+    "baseRow": { "name": "DAC22浮遊機雷", "dmg": 9100, "mag": 1, "mags": 5, "reload": 1, "kg": 160, "blast": 19, "trigger": 11, "hp": 4000 },
+    "types": [
+      { "name": "DAC24浮遊機雷", "dmg": 7600, "mag": 1, "mags": 6, "reload": 1, "kg": 180, "blast": 25, "trigger": 11, "hp": 4000, "label": "広域型", "trait": "爆風が広く数も多いが威力が低い" },
+      { "name": "DAC25浮遊機雷", "dmg": 11700, "mag": 1, "mags": 4, "reload": 1, "kg": 220, "blast": 16, "trigger": 11, "hp": 4000, "label": "強装型", "trait": "威力が高いが範囲が狭く重い" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "remote",
+    "series": "リモートボム系統",
+    "baseRow": { "name": "リモートボム", "dmg": 13200, "mag": 1, "mags": 4, "reload": 1, "kg": 280, "blast": 17 },
+    "types": [],
+    "skipped": [
+      { "name": "リムペットボムS", "why": "吸着式（壁・天井・機体に貼り付く）でベースの床設置と仕組みが違う" },
+      { "name": "リムペットボムV", "why": "吸着式（壁・天井・機体に貼り付く）でベースの床設置と仕組みが違う" },
+      { "name": "リムペットボムF", "why": "吸着式（壁・天井・機体に貼り付く）でベースの床設置と仕組みが違う" },
+      { "name": "メロン", "why": "コラボ武器（型番なし）" }
+    ]
+  },
+  {
+    "base": "sensor",
+    "series": "索敵センサー系統",
+    "baseRow": { "name": "索敵センサー", "count": 2, "kg": 260, "scan": 65, "keep": 5, "hp": 10000 },
+    "types": [
+      { "name": "小型索敵センサー", "count": 3, "kg": 280, "scan": 60, "keep": 5, "hp": 10000, "label": "大容量型", "trait": "数が多いが範囲がやや狭く重い" },
+      { "name": "広域索敵センサー", "count": 1, "kg": 330, "scan": 115, "keep": 5, "hp": 10000, "label": "広域型", "trait": "範囲が大幅に広いが1個で重い" },
+      { "name": "新型索敵センサー", "count": 2, "kg": 290, "scan": 80, "keep": 5, "hp": 10000, "label": "高出力型", "trait": "範囲が広めだがやや重い" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "airsensor",
+    "series": "滞空索敵弾系統",
+    "baseRow": { "name": "滞空索敵弾", "count": 3, "kg": 380, "scan": 70, "dur": 50, "range": 350, "keep": 5, "hp": 20000 },
+    "types": [
+      { "name": "小型滞空索敵弾", "count": 3, "kg": 370, "scan": 60, "dur": 60, "range": 450, "keep": 5, "hp": 20000, "label": "軽量型", "trait": "軽く遠くまで届くが範囲が狭い" },
+      { "name": "広域滞空索敵弾", "count": 2, "kg": 430, "scan": 90, "dur": 65, "range": 250, "keep": 5, "hp": 20000, "label": "広域型", "trait": "範囲が広いが重く射程が短い" },
+      { "name": "高機能滞空索敵弾", "count": 1, "kg": 400, "scan": 125, "dur": 85, "range": 300, "keep": 5, "hp": 20000, "label": "高出力型", "trait": "範囲と稼働時間が大きいが1個" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "fansensor",
+    "series": "BRトラッカー系統",
+    "baseRow": { "name": "BRトラッカー", "count": 2, "kg": 380, "scan": 150, "keep": 8, "hp": 8000 },
+    "types": [
+      { "name": "集中型BRトラッカー", "count": 3, "kg": 360, "scan": 130, "keep": 8, "hp": 8000, "label": "大容量型", "trait": "数が多く角度が広いが半径が短い" },
+      { "name": "広域型BRトラッカー", "count": 1, "kg": 410, "scan": 180, "keep": 8, "hp": 8000, "label": "広域型", "trait": "半径と角度が大きいが1個で重い" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "repair",
+    "series": "リペアユニット系統",
+    "baseRow": { "name": "リペアユニット", "kg": 580, "use": 10, "heal": 1100, "range": 60, "charge": 35, "chargeKeep": 30 },
+    "types": [
+      { "name": "リペアユニットβ", "kg": 620, "use": 8, "heal": 1100, "range": 80, "charge": 30, "chargeKeep": 25, "label": "広域型", "trait": "射程が長いが使用時間が短く重い" },
+      { "name": "リペアユニットδ", "kg": 630, "use": 14, "heal": 1500, "range": 70, "charge": 80, "chargeKeep": 75, "label": "持続型", "trait": "長く強く修理できるがチャージが遅い" }
+    ],
+    "skipped": [
+      { "name": "リペアユニットγ", "why": "既存（repairG）" },
+      { "name": "リペアユニットζ", "why": "追加は2枠まで。高速修理寄りで既存γ（repairG）と役割が重なる" }
+    ]
+  },
+  {
+    "base": "field",
+    "series": "リペアフィールド系統",
+    "baseRow": { "name": "リペアフィールド", "kg": 550, "use": 50, "heal": 1000, "radius": 12, "charge": 45, "chargeKeep": 40 },
+    "types": [
+      { "name": "リペアフィールドβ", "kg": 590, "use": 45, "heal": 1000, "radius": 18, "charge": 25, "chargeKeep": 20, "label": "広域型", "trait": "範囲が広くチャージが速いが重い" },
+      { "name": "リペアフィールドγ", "kg": 620, "use": 40, "heal": 1300, "radius": 9, "charge": 30, "chargeKeep": 25, "label": "高出力型", "trait": "修理が速いが範囲が狭く重い" }
+    ],
+    "skipped": []
+  }
+]

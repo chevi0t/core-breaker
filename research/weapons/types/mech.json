@@ -1,0 +1,407 @@
+[
+  {
+    "base": "wave",
+    "series": "ウェーブショット系統",
+    "baseRow": {
+      "name": "ウェーブショット",
+      "dmg": 900,
+      "chargeDmg": 1620,
+      "semi": true,
+      "rpm": 300,
+      "mag": 21,
+      "mags": 13,
+      "reload": 2.6,
+      "kg": 330,
+      "chargeTime": 1.2,
+      "ohTime": 2.0,
+      "range": 150
+    },
+    "types": [
+      {
+        "name": "ウェーブショットC",
+        "dmg": 800,
+        "chargeDmg": 1120,
+        "semi": true,
+        "rpm": 300,
+        "mag": 18,
+        "mags": 13,
+        "reload": 2.5,
+        "kg": 350,
+        "chargeTime": 1,
+        "ohTime": 2.0,
+        "range": 150,
+        "label": "広域型",
+        "trait": "弾幅が広く充填も速いが威力が低い"
+      },
+      {
+        "name": "ウェーブショットX",
+        "dmg": 970,
+        "chargeDmg": 2037,
+        "semi": true,
+        "rpm": 300,
+        "mag": 15,
+        "mags": 13,
+        "reload": 2.9,
+        "kg": 400,
+        "chargeTime": 1.5,
+        "ohTime": 2.0,
+        "range": 150,
+        "label": "強装型",
+        "trait": "溜め撃ちが重いが重く弾が少ない"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "ウェーブショットⅡ（NWS-T2）",
+        "why": "3点射で射撃方式が違う"
+      }
+    ]
+  },
+  {
+    "base": "lec",
+    "series": "LEC系統",
+    "baseRow": {
+      "name": "LEC－シュトラル",
+      "dmg": 1370,
+      "chargeDmg": 2740,
+      "semi": true,
+      "rpm": 300,
+      "mag": 18,
+      "mags": 18,
+      "reload": 2.6,
+      "kg": 340,
+      "chargeTime": 1.5,
+      "blast": 11
+    },
+    "types": [
+      {
+        "name": "LEC－シュトラルβ",
+        "dmg": 1280,
+        "chargeDmg": 1920,
+        "semi": true,
+        "rpm": 300,
+        "mag": 22,
+        "mags": 16,
+        "reload": 2.4,
+        "kg": 330,
+        "chargeTime": 1,
+        "blast": 10,
+        "label": "瞬発型",
+        "trait": "充填が速く弾も多いが溜め弾が軽い"
+      },
+      {
+        "name": "LEC－メテオール",
+        "dmg": 1870,
+        "chargeDmg": 3740,
+        "semi": true,
+        "rpm": 240,
+        "mag": 14,
+        "mags": 18,
+        "reload": 2.7,
+        "kg": 390,
+        "chargeTime": 2.5,
+        "blast": 12,
+        "label": "強装型",
+        "trait": "溜め弾が重く爆風も広いが充填が遅い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "LEC－シュトラルγ（LEC-03T）",
+        "why": "3点射で射撃方式が違う"
+      }
+    ]
+  },
+  {
+    "base": "explo",
+    "series": "炸薬砲系統",
+    "baseRow": {
+      "name": "単式炸薬砲",
+      "dmg": 1340,
+      "rpm": 200,
+      "mag": 30,
+      "mags": 9,
+      "reload": 3.6,
+      "kg": 440,
+      "acc": "C-",
+      "recoil": "B-",
+      "blast": 9,
+      "heat": 16,
+      "ohTime": 3.1
+    },
+    "types": [
+      {
+        "name": "単式炸薬砲・猛虎",
+        "dmg": 1520,
+        "rpm": 180,
+        "mag": 40,
+        "mags": 7,
+        "reload": 3.8,
+        "kg": 460,
+        "acc": "B-",
+        "recoil": "C",
+        "blast": 11,
+        "heat": 12,
+        "ohTime": 2.7,
+        "label": "大容量型",
+        "trait": "弾倉が大きく爆風も広いが連射が遅い"
+      },
+      {
+        "name": "単式炸薬砲・金剛",
+        "dmg": 1960,
+        "rpm": 160,
+        "mag": 34,
+        "mags": 7,
+        "reload": 3.4,
+        "kg": 490,
+        "acc": "B+",
+        "recoil": "C+",
+        "blast": 12,
+        "heat": 12,
+        "ohTime": 2.09,
+        "label": "強装型",
+        "trait": "一発が非常に重いが連射が遅く重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "双門炸薬砲（MA253）",
+        "why": "双門で2発同時に撃つ方式が違う"
+      },
+      {
+        "name": "双門炸薬砲・羅刹（MA257）",
+        "why": "双門で2発同時に撃つ方式が違う"
+      }
+    ]
+  },
+  {
+    "base": "cls",
+    "series": "CLS系統",
+    "baseRow": {
+      "name": "CLS－ライオ",
+      "dmg": 450,
+      "pellets": 10,
+      "semi": true,
+      "rpm": 90,
+      "mag": 3,
+      "mags": 14,
+      "reload": 1.8,
+      "kg": 260,
+      "chargeTime": 1.2,
+      "ohTime": 2.0,
+      "range": 200
+    },
+    "types": [
+      {
+        "name": "CLS－ライオβ",
+        "dmg": 470,
+        "pellets": 8,
+        "semi": true,
+        "rpm": 90,
+        "mag": 5,
+        "mags": 12,
+        "reload": 2.4,
+        "kg": 290,
+        "chargeTime": 1,
+        "ohTime": 2.0,
+        "range": 200,
+        "label": "大容量型",
+        "trait": "装弾数が多く充填も速いが散弾が少ない"
+      },
+      {
+        "name": "CLS－イルミナル",
+        "dmg": 1060,
+        "pellets": 6,
+        "semi": true,
+        "mag": 1,
+        "mags": 28,
+        "reload": 1.6,
+        "kg": 320,
+        "chargeTime": 2,
+        "ohTime": 2.0,
+        "range": 200,
+        "label": "瞬発型",
+        "trait": "一撃が最も重いが1発ごとにリロード"
+      },
+      {
+        "name": "CLS－センテレオ",
+        "dmg": 640,
+        "pellets": 9,
+        "semi": true,
+        "rpm": 90,
+        "mag": 2,
+        "mags": 19,
+        "reload": 1.7,
+        "kg": 320,
+        "chargeTime": 1.5,
+        "ohTime": 2.0,
+        "range": 200,
+        "label": "強装型",
+        "trait": "散弾が重いが装弾数が2発で重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "CLS－ライオγ（CLS-03T）",
+        "why": "3点射で射撃方式が違う"
+      }
+    ]
+  },
+  {
+    "base": "omni",
+    "series": "スライドチャージャー系統",
+    "baseRow": {
+      "name": "SC－マルチウェイ",
+      "kg": 240,
+      "charge": 40,
+      "chargeKeep": 35,
+      "use": 3.4,
+      "power": 1.25
+    },
+    "types": [
+      {
+        "name": "SC－マルチウェイX",
+        "kg": 280,
+        "charge": 30,
+        "chargeKeep": 25,
+        "use": 1.6,
+        "power": 1.7,
+        "label": "高出力型",
+        "trait": "出力が高いが使用時間が短く重い"
+      },
+      {
+        "name": "SC－マルチウェイⅡ",
+        "kg": 300,
+        "charge": 45,
+        "chargeKeep": 40,
+        "use": 4.9,
+        "power": 1.0,
+        "label": "持続型",
+        "trait": "長く使えるが出力が低く重い"
+      }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "wide",
+    "series": "ワイドショット系統",
+    "baseRow": {
+      "name": "ワイドショット",
+      "dmg": 130,
+      "pellets": 3,
+      "dual": true,
+      "rpm": 480,
+      "mag": 21,
+      "mags": 13,
+      "reload": 1.4,
+      "kg": 230,
+      "recoil": "C-",
+      "range": 150
+    },
+    "types": [
+      {
+        "name": "ワイドショットX2",
+        "dmg": 130,
+        "pellets": 3,
+        "dual": true,
+        "rpm": 480,
+        "mag": 21,
+        "mags": 14,
+        "reload": 1.5,
+        "kg": 280,
+        "recoil": "C-",
+        "range": 150,
+        "label": "精密型",
+        "trait": "拡散が極小で狙いやすいが重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "ワイドショットX（A27WX）",
+        "why": "双射（単射）で射撃方式が違う"
+      },
+      {
+        "name": "ワイドショットTF（C-A27W3）",
+        "why": "イベント配布。双射で3点射扱い、方式が違う"
+      },
+      {
+        "name": "ワイドショットXC（A27WXC）",
+        "why": "双射（単射）で射撃方式が違う"
+      },
+      {
+        "name": "ワイドショットX7F（A27WX7F）",
+        "why": "双射（単射）で射撃方式が違う"
+      }
+    ]
+  },
+  {
+    "base": "glint",
+    "series": "グリント系統",
+    "baseRow": {
+      "name": "グリントN72D",
+      "dmg": 440,
+      "dual": true,
+      "semi": true,
+      "rpm": 450,
+      "mag": 24,
+      "mags": 10,
+      "reload": 2.1,
+      "kg": 340,
+      "chargeTime": 1.5,
+      "chargeDmg": 2400,
+      "blast": 14,
+      "source": "codex"
+    },
+    "types": [
+      {
+        "name": "グリントN72DⅡ",
+        "dmg": 410,
+        "dual": true,
+        "semi": true,
+        "rpm": 450,
+        "mag": 26,
+        "mags": 11,
+        "reload": 2.2,
+        "kg": 330,
+        "chargeTime": 1,
+        "chargeDmg": 1900,
+        "source": "wiki-compare-v3.14",
+        "label": "瞬発型",
+        "trait": "充填が速く弾も多いが威力が低い"
+      },
+      {
+        "name": "グリントN72DS",
+        "dmg": 520,
+        "dual": true,
+        "semi": true,
+        "rpm": 360,
+        "mag": 17,
+        "mags": 12,
+        "reload": 2.3,
+        "kg": 360,
+        "chargeTime": 3,
+        "chargeDmg": 3700,
+        "source": "wiki-compare-v3.14",
+        "label": "強装型",
+        "trait": "溜め弾が非常に重いが充填が遅い"
+      },
+      {
+        "name": "グリントN77D",
+        "dmg": 610,
+        "dual": true,
+        "semi": true,
+        "rpm": 360,
+        "mag": 15,
+        "mags": 11,
+        "reload": 2.1,
+        "kg": 390,
+        "chargeTime": 2,
+        "chargeDmg": 3000,
+        "source": "wiki-compare-v3.14",
+        "label": "重装型",
+        "trait": "通常弾が重いが重く弾が少ない"
+      }
+    ],
+    "skipped": []
+  }
+]

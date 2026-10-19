@@ -1,0 +1,131 @@
+[
+  {
+    "base": "gatling",
+    "series": "GAXガトリングガン系統",
+    "baseRow": { "name": "GAXガトリングガン", "dmg": 200, "rpm": 1500, "mag": 380, "mags": 7, "reload": 3.5, "kg": 360, "acc": "A-", "recoil": "E", "heat": 143, "ohTime": 4.0 },
+    "types": [
+      { "name": "GAXエレファント", "dmg": 420, "rpm": 800, "mag": 230, "mags": 6, "reload": 3.5, "kg": 410, "acc": "B+", "recoil": "E+", "heat": 75, "ohTime": 4.0, "label": "強装型", "trait": "一発が重いが連射が遅い" },
+      { "name": "GAXファフニール", "dmg": 230, "rpm": 1500, "mag": 400, "mags": 7, "reload": 3.5, "kg": 540, "acc": "A-", "recoil": "E", "heat": 178, "ohTime": 4.8, "label": "持続型", "trait": "長く撃ち続けられるが重い" },
+      { "name": "GAXダイナソア", "dmg": 340, "rpm": 1200, "mag": 310, "mags": 6, "reload": 4, "kg": 470, "acc": "B+", "recoil": "E", "heat": 96, "ohTime": 4.0, "label": "高出力型", "trait": "火力が高いが重くリロードが遅い" }
+    ],
+    "skipped": [
+      { "name": "GAXウッドペッカー", "why": "イベント配布。長時間射撃はファフニールと役割が重なる" },
+      { "name": "GAXアンフィスバエナ", "why": "ファフニールとほぼ同じ性能（ピックアップロット限定）" },
+      { "name": "GAXヘカトンケイレス", "why": "高威力・低連射でエレファントと役割が重なる" }
+    ]
+  },
+  {
+    "base": "mg",
+    "series": "ウィーゼル機関銃系統",
+    "baseRow": { "name": "ウィーゼル機関銃", "dmg": 450, "rpm": 660, "mag": 170, "mags": 8, "reload": 3, "kg": 290, "acc": "D+", "recoil": "D", "heat": 64, "ohTime": 2.8 },
+    "types": [
+      { "name": "ウィーゼル・ラピッド", "dmg": 460, "rpm": 700, "mag": 190, "mags": 7, "reload": 3, "kg": 330, "acc": "D-", "recoil": "D+", "heat": 58, "ohTime": 2.0, "label": "連射型", "trait": "連射が速いが精度が落ちる" },
+      { "name": "ウィーゼル・コロナ", "dmg": 500, "rpm": 660, "mag": 170, "mags": 7, "reload": 3, "kg": 340, "acc": "C-", "recoil": "C", "heat": 53, "ohTime": 2.2, "label": "精密型", "trait": "精度と威力が上がるが重い" },
+      { "name": "ウィーゼル・カルマ", "dmg": 480, "rpm": 700, "mag": 200, "mags": 7, "reload": 3.2, "kg": 360, "acc": "C-", "recoil": "C-", "heat": 53, "ohTime": 2.0, "label": "大容量型", "trait": "装弾数が多いが重く過熱が早い" }
+    ],
+    "skipped": [
+      { "name": "ウィーゼル・オルタ", "why": "威力500・連射700でコロナ・ラピッドと役割が重なる" }
+    ]
+  },
+  {
+    "base": "acannon",
+    "series": "機関砲系統",
+    "baseRow": { "name": "単式機関砲", "dmg": 1520, "rpm": 220, "mag": 30, "mags": 10, "reload": 3.6, "kg": 400, "acc": "C-", "recoil": "C", "heat": 18, "ohTime": 3.1 },
+    "types": [
+      { "name": "単式機関砲・改", "dmg": 1580, "rpm": 220, "mag": 33, "mags": 9, "reload": 3.8, "kg": 440, "acc": "C+", "recoil": "A-", "heat": 18, "ohTime": 3.6, "label": "精密型", "trait": "反動が小さく精度も良いが重い" },
+      { "name": "単式機関砲・不動", "dmg": 1280, "rpm": 300, "mag": 60, "mags": 6, "reload": 4, "kg": 500, "acc": "B-", "recoil": "C-", "heat": 18, "ohTime": 2.3, "label": "大容量型", "trait": "装弾数と連射が増すが一発が軽い" },
+      { "name": "双門機関砲・轟鉄", "dmg": 730, "rpm": 540, "mag": 100, "mags": 6, "reload": 4.2, "kg": 560, "acc": "B", "recoil": "D", "heat": 24, "ohTime": 1.9, "label": "連射型", "trait": "連射が速いが一発が軽く重い" }
+    ],
+    "skipped": [
+      { "name": "双門機関砲", "why": "双門は轟鉄1つで十分。連射型が重複する" },
+      { "name": "双門機関砲・怒竜", "why": "イベント配布の双門。双門機関砲と差が小さい" }
+    ]
+  },
+  {
+    "base": "rocket",
+    "series": "サワードロケット系統",
+    "baseRow": { "name": "サワードロケット", "dmg": 8500, "mag": 1, "mags": 5, "reload": 2, "kg": 490, "blast": 12, "speed": 80 },
+    "types": [
+      { "name": "サワード・スマイト", "dmg": 8500, "mag": 1, "mags": 6, "reload": 2.4, "kg": 500, "blast": 16, "speed": 100, "label": "広域型", "trait": "爆風が広く弾も速いがリロード遅め" },
+      { "name": "サワード・コング", "dmg": 15500, "mag": 1, "mags": 3, "reload": 4, "kg": 600, "blast": 17, "speed": 30, "label": "強装型", "trait": "威力絶大だが弾が遅く数が少ない" },
+      { "name": "サワード・カスタム", "dmg": 6800, "rpm": 120, "mag": 3, "mags": 4, "reload": 3, "kg": 530, "blast": 7, "speed": 90, "label": "連射型", "trait": "3連発できるが威力と爆風が小さい" }
+    ],
+    "skipped": [
+      { "name": "サワード・バラージ", "why": "3点射で発射方式が違う" },
+      { "name": "サワード・アルケス", "why": "高威力・少弾数でコングと役割が重なる" },
+      { "name": "SSPNランチャー", "why": "コラボ武器" }
+    ]
+  },
+  {
+    "base": "scrum",
+    "series": "スクラムバスター系統",
+    "baseRow": { "name": "スクラムバスター", "dmg": 2900, "rpm": 480, "mag": 6, "mags": 4, "reload": 4, "kg": 520, "blast": 13 },
+    "types": [
+      { "name": "スクラムバスターC", "dmg": 2120, "rpm": 600, "mag": 8, "mags": 4, "reload": 4.5, "kg": 490, "blast": 14, "label": "連射型", "trait": "連射が速く軽いが一発が軽い" },
+      { "name": "SCB－ヘルファイア", "dmg": 4500, "rpm": 400, "mag": 4, "mags": 4, "reload": 4.7, "kg": 540, "blast": 15, "label": "強装型", "trait": "一発が重いが装弾数が少ない" },
+      { "name": "SCB－トライデント", "dmg": 2600, "rpm": 540, "mag": 7, "mags": 4, "reload": 4.4, "kg": 560, "blast": 15, "label": "広域型", "trait": "爆風が広く連射も速いが重い" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "plasma",
+    "series": "プラズマカノン系統",
+    "baseRow": { "name": "プラズマカノン", "dmg": 5900, "rpm": 80, "mag": 4, "mags": 3, "reload": 3.5, "kg": 460, "blast": 13 },
+    "types": [
+      { "name": "プラズマカノン・ネオ", "dmg": 18500, "mag": 1, "mags": 3, "reload": 3.6, "kg": 490, "blast": 7, "label": "強装型", "trait": "威力絶大だが爆風が狭く単発" },
+      { "name": "プラズマカノンUG", "dmg": 6300, "rpm": 120, "mag": 3, "mags": 3, "reload": 3.5, "kg": 480, "blast": 14, "label": "連射型", "trait": "連射が速く爆風も広いが弾数減" },
+      { "name": "プラズマカノンXM", "dmg": 7100, "rpm": 80, "mag": 2, "mags": 4, "reload": 2.5, "kg": 520, "blast": 12, "label": "速装型", "trait": "リロードが速いが装弾数が2発" }
+    ],
+    "skipped": [
+      { "name": "プラズマカノンMK－2", "why": "3点射で発射方式が違う（イベント配布）" },
+      { "name": "プラズマカノン・オー", "why": "単発高威力でネオと役割が重なる" },
+      { "name": "プラズマカノン・メテオ", "why": "2発装填でXMと差が小さい" }
+    ]
+  },
+  {
+    "base": "weaken",
+    "series": "AN手榴弾系統",
+    "baseRow": { "name": "AN手榴弾", "count": 4, "reload": 1, "kg": 180, "dur": 5, "blast": 24, "fuse": 1.2 },
+    "types": [
+      { "name": "試験型AN手榴弾", "count": 5, "reload": 1, "kg": 160, "dur": 4, "blast": 32, "fuse": 1, "label": "広域型", "trait": "範囲が広く数も多いが効果が弱い" },
+      { "name": "新型AN手榴弾", "count": 3, "reload": 1, "kg": 150, "dur": 7, "blast": 27, "fuse": 1.8, "label": "持続型", "trait": "効果が長く強いが起爆が遅い" },
+      { "name": "先進型AN手榴弾", "count": 3, "reload": 1, "kg": 140, "dur": 6, "blast": 29, "fuse": 1, "label": "軽量型", "trait": "軽く効果も強いが所持数が少ない" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "impactb",
+    "series": "インパクトボム系統",
+    "baseRow": { "name": "インパクトボム", "count": 5, "reload": 1.6, "kg": 140, "blast": 16, "fuse": 1.5 },
+    "types": [
+      { "name": "インパクトボムS", "count": 3, "reload": 1.8, "kg": 120, "blast": 14, "fuse": 0.3, "label": "瞬発型", "trait": "すぐ起爆するが範囲が狭い" },
+      { "name": "インパクトボムV", "count": 4, "reload": 1.9, "kg": 170, "blast": 22, "fuse": 2.5, "label": "広域型", "trait": "範囲が広いが起爆が遅く重い" },
+      { "name": "インパクトボムX", "count": 3, "reload": 2, "kg": 110, "blast": 20, "fuse": 1, "label": "軽量型", "trait": "軽く範囲も広いが所持数が少ない" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "hsg",
+    "series": "ハウルHSG系統",
+    "baseRow": { "name": "ハウルHSG9", "dmg": 380, "pellets": 8, "rpm": 90, "mag": 3, "mags": 4, "reload": 2.5, "kg": 200 },
+    "types": [
+      { "name": "ハウルHSG9R", "dmg": 250, "pellets": 10, "rpm": 90, "mag": 4, "mags": 4, "reload": 2.8, "kg": 190, "label": "大容量型", "trait": "装弾数が多く集弾も良いが威力低め" },
+      { "name": "ハウルHSG17", "dmg": 320, "pellets": 12, "rpm": 90, "mag": 2, "mags": 4, "reload": 3, "kg": 240, "label": "広域型", "trait": "散弾が多く広がるが装弾数が少ない" },
+      { "name": "ハウル・アデッソ", "dmg": 700, "pellets": 8, "mag": 1, "mags": 6, "reload": 3.5, "kg": 250, "label": "強装型", "trait": "集弾が良く高威力だが単発" }
+    ],
+    "skipped": []
+  },
+  {
+    "base": "cannon",
+    "series": "重装砲系統",
+    "baseRow": { "name": "タウル重装砲", "dmg": 7600, "rpm": 60, "shots": 6, "charge": 35, "kg": 800, "blast": 21, "speed": 60 },
+    "types": [
+      { "name": "ヴァーゴ重装砲", "dmg": 6800, "rpm": 75, "shots": 10, "charge": 45, "kg": 890, "blast": 19, "speed": 80, "label": "大容量型", "trait": "弾数が多いが一発が軽くチャージ長い" }
+    ],
+    "skipped": [
+      { "name": "ドラード重装砲", "why": "イベント配布。高威力少弾数でモノセロスと重なり、弾速も不明" },
+      { "name": "ハイドラ重装砲", "why": "既にゲームに実装済み（cannonH）" },
+      { "name": "モノセロス重装砲", "why": "既にゲームに実装済み（cannonM）" }
+    ]
+  }
+]
