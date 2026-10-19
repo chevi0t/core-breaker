@@ -1,0 +1,159 @@
+{
+  "fetched": "2026-10-19",
+  "edition": "AC",
+  "families": [
+    {
+      "cls": "heavy",
+      "base": "barrier",
+      "sourceName": "バリアユニット系統",
+      "url": "https://w.atwiki.jp/borderbreak/pages/413.html",
+      "rows": [
+        {
+          "key": "barrier",
+          "sourceName": "バリアユニット",
+          "stats": {
+            "kg": 710,
+            "shieldHp": 12500,
+            "arc": 180,
+            "level": 2,
+            "use": 50,
+            "charge": 50,
+            "chargeKeep": 45
+          }
+        },
+        {
+          "key": "barrierL",
+          "sourceName": "バリアユニットβ",
+          "stats": {
+            "kg": 680,
+            "shieldHp": 7500,
+            "arc": 360,
+            "level": 1,
+            "use": 60,
+            "charge": 40,
+            "chargeKeep": 35
+          }
+        },
+        {
+          "key": "barrierM",
+          "sourceName": "バリアユニットγ",
+          "stats": {
+            "kg": 740,
+            "shieldHp": 10500,
+            "arc": 360,
+            "level": 2,
+            "use": 30,
+            "charge": 65,
+            "chargeKeep": null
+          }
+        }
+      ]
+    },
+    {
+      "cls": "raid",
+      "base": "escort",
+      "sourceName": "EUS系統",
+      "url": "https://w.atwiki.jp/borderbreak/pages/974.html",
+      "rows": [
+        {
+          "key": "escort",
+          "sourceName": "EUS-T1",
+          "stats": {
+            "kg": 310,
+            "dmg": 270,
+            "mag": 20,
+            "rpm": 360,
+            "reload": 3.4,
+            "range": 50,
+            "arc": 180,
+            "use": 35,
+            "charge": 30,
+            "chargeKeep": null
+          }
+        },
+        {
+          "key": "escortR",
+          "sourceName": "EUS-T2",
+          "stats": {
+            "kg": 320,
+            "dmg": 90,
+            "mag": 50,
+            "rpm": 900,
+            "reload": 2.2,
+            "range": 40,
+            "arc": 360,
+            "use": 30,
+            "charge": 20,
+            "chargeKeep": null
+          }
+        },
+        {
+          "key": "escortH",
+          "sourceName": "EUS-TLZ",
+          "stats": {
+            "kg": 360,
+            "dmg": 900,
+            "mag": 5,
+            "rpm": 120,
+            "reload": 3.6,
+            "range": 70,
+            "arc": 90,
+            "use": 20,
+            "charge": 35,
+            "chargeKeep": null,
+            "energy": true
+          }
+        }
+      ]
+    },
+    {
+      "cls": "support",
+      "base": "repairPost",
+      "sourceName": "リペアポスト系統",
+      "url": "https://w.atwiki.jp/borderbreak/pages/406.html",
+      "rows": [
+        {
+          "key": "repairPost",
+          "sourceName": "リペアポスト",
+          "stats": {
+            "kg": 480,
+            "heal": 1200,
+            "radius": 12,
+            "use": 80,
+            "charge": 20,
+            "chargeKeep": null
+          }
+        },
+        {
+          "key": "repairPostW",
+          "sourceName": "リペアポストβ",
+          "stats": {
+            "kg": 520,
+            "heal": 1200,
+            "radius": 18,
+            "use": 65,
+            "charge": 35,
+            "chargeKeep": null
+          }
+        },
+        {
+          "key": "repairPostG",
+          "sourceName": "リペアポストγ",
+          "stats": {
+            "kg": 530,
+            "heal": 2000,
+            "radius": 10,
+            "use": 40,
+            "charge": 25,
+            "chargeKeep": null
+          }
+        }
+      ]
+    }
+  ],
+  "unknowns": {
+    "chargeKeep": "nullはAC表で不明。本作では通常充填時間と同じ暫定動作。",
+    "postHp": "本文の旧値6000。Ver4.5以降は増加とのみ記載され現行値は不明。旧値を本作の暫定基準とする。",
+    "healDrain": "本文の旧検証：標準3.75、β3.3～3.4、γ約6.5%/秒。現行表との整合・複数対象時の確定値は不明。"
+  }
+}

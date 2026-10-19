@@ -13,10 +13,10 @@ const dir = process.argv[2];
   p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await p.route('**fonts.g*/**', r => r.abort());
   await p.goto('file://' + path.resolve(dir, 'dbg.html'));
-  await p.waitForTimeout(1500);
+  await p.evaluate(() => { __g.renderer.render = () => { const u=__g.units[0]; if(u)u.group.parent.updateMatrixWorld(); }; });
   const E = (fn, a) => p.evaluate(fn, a);
   await E(() => __g.selectMap(location.hash.slice(1) || 'dock'));
-  await p.click('#start');
+  await p.evaluate(() => document.getElementById('start').click());
   await p.waitForTimeout(500);
   await E(() => {
     const g = __g; { const sc = g.units[0].group.parent; g.renderer.render = () => sc.updateMatrixWorld(); }
@@ -70,10 +70,10 @@ const dir = process.argv[2];
       const tp = () => new T.Vector3(tg.pos.x, tg.pos.y + 2.4, tg.pos.z);
       // 狙う点：設置物は的の手前の地面、ほかは的の胴体。回復は味方
       const ground = new T.Vector3(spot[0], y, spot[1] - (P.kind === 'sentry' ? 6 : P.hover ? 30 : near - 1));
-      const aimAt = () => w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
+      const aimAt = () => w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
       const sp0 = sh.slots.sp.heat, sl = sh.slots[slot], ammo0 = sl.ammo + sl.reserve;
       let shots = 0, maxStun = '', fired = 0;
-      if (['charger', 'camo', 'field'].includes(w.type)) g.toggleSp(sh);
+      if (['charger', 'camo', 'field', 'barrier', 'escort'].includes(w.type)) g.toggleSp(sh);
       const dt = 0.05, T0 = w.type === 'cannon' ? 8 : P.kind === 'sentry' ? 6 : 4;
       let det = false;
       for (let t = 0; t < T0; t += dt) {
@@ -92,11 +92,12 @@ const dir = process.argv[2];
       const dmg = Math.round(1e6 - tg.hp);
       return { key, name: w.name, type: w.type, fired, ammoUsed: ammo0 - (sl.ammo + sl.reserve), dmg, stun: maxStun, weak: tg.weakT > 0,
         gadgets: g.gadgets.map(x => x.name + (x.pos.y - y > 1 ? `@${Math.round(x.pos.y - y)}m` : '') + (dbgPos ? `(${(x.pos.x - sh.pos.x).toFixed(1)},${(x.pos.z - sh.pos.z).toFixed(1)}) tg(${(tg.pos.x - sh.pos.x).toFixed(1)},${(tg.pos.z - sh.pos.z).toFixed(1)})` : '')).join(','), spotted: g.spotted.B.has(tg), drones: g.drones.length,
-        sp: Math.round(sp0) + '→' + Math.round(sh.slots.sp.heat), on: [sh.chargerOn && 'charger', sh.cloak && 'cloak', sh.fieldOn && 'field'].filter(Boolean).join(''), allyHp: Math.round(al.hp) };
+        sp: Math.round(sp0) + '→' + Math.round(sh.slots.sp.heat), on: [sh.chargerOn && 'charger', sh.cloak && 'cloak', sh.fieldOn && 'field', sh.barrierOn && 'barrier', sh.escortOn && 'escort'].filter(Boolean).join(''), allyHp: Math.round(al.hp) };
     }, [cls, slot, key, spot, !!process.env.ONLY]);
     results.push(r);
     console.log(`${cls}/${slot} ${r.key} ${r.name}: 発射${r.fired} 弾減${r.ammoUsed} ダメ${r.dmg}${r.stun ? ' 崩れ=' + r.stun : ''}${r.weak ? ' 弱化' : ''}${r.gadgets ? ' 設置=' + r.gadgets : ''}${r.spotted ? ' 索敵' : ''}${r.drones ? ' 偵察機' + r.drones : ''} SP${r.sp}${r.on ? ' 作動=' + r.on : ''} 味方HP${r.allyHp}`);
   }
   console.log('エラー', errs);
   await b.close();
-})();
+  if (errs.length) throw new Error(errs.join('\n'));
+})().catch(e => { console.error(e); process.exitCode = 1; });

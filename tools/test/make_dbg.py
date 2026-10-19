@@ -27,7 +27,9 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
   get botMech() { return botMech; }, get renderCustom() { return renderCustom; },
   get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
-  get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; } };"""
+  get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; },
+  get specialTick() { return specialTick; }, get barrierAbsorb() { return barrierAbsorb; }, get barrierReady() { return barrierReady; }, get postTick() { return postTick; }, get postFlightTick() { return postFlightTick; }, get postFieldTick() { return postFieldTick; }, get botAct() { return botAct; }, get removeGadget() { return removeGadget; }, get gadgetUpdate() { return gadgetUpdate; }, get revive() { return revive; }, get wreck() { return wreck; }, get canRevive() { return canRevive; }, get downTick() { return downTick; },
+  get barrierAxis() { return barrierAxis; }, get running() { return running; }, set running(v) { running = v; } };"""
 
 
 def rep(s, a, b):
