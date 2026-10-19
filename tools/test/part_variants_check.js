@@ -20,6 +20,7 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
     await page.addInitScript(cfg => {
       if (localStorage.getItem('partVariantsFixture')) return;
       localStorage.setItem('partVariantsFixture', '1');
+      localStorage.setItem('coreBreakerMap', 'dock');
       localStorage.setItem('coreBreakerMech', JSON.stringify(cfg));
       const mech2 = { head: 'heavy', body: 'heavy', arms: 'heavy', legs: 'heavy', color: 'sand' };
       localStorage.setItem('coreBreakerBuilds', JSON.stringify({ cur: 0, list: [{ mech: cfg }, { mech: mech2 }, { mech: cfg }] }));
@@ -126,6 +127,8 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
     }
     assert.deepEqual(await page.evaluate(() => __g.mechCfg), selected, '新しい型をUIで装備');
     assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('coreBreakerMech'))), selected, '新しい型を保存');
+    await page.locator('#cuWBar').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output,'weight.png') });
     await page.reload();
     assert.deepEqual(await page.evaluate(() => __g.mechCfg), selected, '新しい型を保存して再読込');
     assert.deepEqual(errors,[]);
