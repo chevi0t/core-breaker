@@ -6,6 +6,7 @@ try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = requ
 const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').split(','), secs = +(process.argv[4] || 150);
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--disable-frame-rate-limit', '--disable-gpu-vsync'] });
+  try {
   for (const id of maps) {
     const p = await b.newPage({ viewport: { width: 640, height: 400 } });
     const errs = [];
@@ -13,10 +14,13 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
     p.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED/.test(m.text())) errs.push(m.text()); });
     await p.route('**fonts.g*/**', r => r.abort());
     await p.goto('file://' + path.resolve(dir, 'dbg.html'));
-    await p.waitForTimeout(1200);
+    // ソフトウェア描画でも準備中の描画を待たずに操作できるよう、先に行列更新だけにする。
+    await p.evaluate(() => { __g.renderer.render = () => { const u = __g.units[0]; if (u) u.group.parent.updateMatrixWorld(); }; });
+    await p.waitForTimeout(200);
     const E = (fn, a) => p.evaluate(fn, a);
     await E(id => __g.selectMap(id), id);
-    await p.click('#start');
+    // Bot戦は出撃処理を直接起動する。ポインタロックを伴う実マウス操作は必要ない。
+    await p.evaluate(() => document.getElementById('start').click());
     await p.waitForTimeout(300);
     await E(() => {
       const g = __g; { const sc = g.units[0].group.parent; g.renderer.render = () => sc.updateMatrixWorld(); }
@@ -42,10 +46,12 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       f();
     });
     const t0 = Date.now();
-    let res;
-    while (Date.now() - t0 < 300000) {
+    let res, nextProgress = 30;
+    // 低速な環境で指定時間に届かず成功扱いにならないよう、実時間上限と進行を両方確かめる。
+    while (Date.now() - t0 < 1200000) {
       await p.waitForTimeout(3000);
       res = await E(() => ({ t: Math.round(__g.MATCH - __g.timeLeft), ended: !document.getElementById('overlay').hidden }));
+      if (res.t >= nextProgress) { console.log(id + ': ' + res.t + '秒まで進行'); nextProgress += 30; }
       if (res.t >= secs || res.ended) break;
     }
     const st = await E(() => {
@@ -53,13 +59,17 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       // どの武器が何回撃破を取ったかは数えない。武器の種類ごとの使われ方と、試合の進み
       return { t: Math.round(g.MATCH - g.timeLeft), core: [Math.round(g.cores.B.hp), Math.round(g.cores.R.hp)], kills: s.kills, spawns: s.spawns, kinds: Object.keys(s.used).length,
         placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells,
+        mechTypes: [...new Set(g.units.flatMap(u => ['head','body','arms','legs'].map(k => u.mech[k])))],
         score: g.units.map(u => `${u.team}${u.idx}:${u.cls[0]}${u.sc.kills}/${u.sc.deaths}`).join(' ') };
     });
     console.log(`== ${id} ${st.t}秒 コア/戦力 ${st.core} 撃破${st.kills} 出撃${st.spawns} 使われた武器${st.kinds}種 フィールド作動${st.fieldT}秒 弾の最大${st.maxShells}`);
+    if (st.t < secs && !res.ended) throw new Error(id + ': 指定したゲーム内時間に未到達');
+    if (errs.length) throw new Error(errs.join('\n'));
+    console.log('  機体の型', st.mechTypes.join(','));
     console.log('  設置', JSON.stringify(st.placed));
     console.log('  ', st.score);
     console.log('  エラー', errs.length ? errs.slice(0, 5) : 'なし');
     await p.close();
   }
-  await b.close();
-})();
+  } finally { await b.close(); }
+})().catch(e => { console.error(e); process.exitCode = 1; });
