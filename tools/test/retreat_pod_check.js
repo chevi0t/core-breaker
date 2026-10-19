@@ -2,10 +2,13 @@
 // 敵を退避させた機能検査であり、交戦下の生還率の代用にはしない。
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {chromium}=require('playwright'),{openMap}=require('../mapgen_browser'),prepare=require('./prepare_bot_battle');
+const sourceFile=process.argv[3]==='--map-source'?process.argv[4]:null;
+let source=null;
+if(sourceFile){const c={window:{}};require('node:vm').runInNewContext(fs.readFileSync(sourceFile,'utf8'),c);source=JSON.parse(JSON.stringify(c.window.MAP_DATA.circulation));}
 (async()=>{
  const browser=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
  try{
-  const {page,errors}=await openMap(browser,'circulation-v3',null,20261105,{silent:true});
+  const {page,errors}=await openMap(browser,'circulation-v3',source,20261105,{silent:true});
   try{
    await page.click('#start');await page.evaluate(prepare,{fixture:{seed:20261105,swapped:false}});
    const results=await page.evaluate(()=>{

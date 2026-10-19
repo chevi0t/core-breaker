@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const {execFileSync} = require('node:child_process');
 const {geometry, placements, selectDiverse, routeCover, serialize, facilitiesPass} = require('../mapgen');
-const {options} = require('../generate_map');
+const {options,reportDirectory} = require('../generate_map');
 const decode = text => {const c={window:{}};vm.runInNewContext(text,c);return JSON.parse(JSON.stringify(c.window.MAP_DATA.fixture));};
 const sites = data => [[0,0],[0,60],[0,-60],[data.generation.east,0],[data.generation.east,60],[data.generation.east,-60],[data.generation.west,data.generation.pad],[data.generation.west,-data.generation.pad]].map(([x,z],key)=>({key,x,z,y:x===data.generation.west||x===data.generation.east&&z===0?data.generation.deck:0}));
 
@@ -42,16 +42,31 @@ test('予算が足りない場合に3戦場あると偽らない',()=>{
   assert.throws(()=>options(['--id','../mesa']));
   assert.ok(options(['--seed','4294967295']).placementSeed>=0);
 });
+test('同条件の再実行でも過去の検証記録を上書きしない',()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'core-map-history-'));
+  try{
+    const first=reportDirectory(root,'fixture','reviewed250');
+    fs.writeFileSync(path.join(first,'generation.json'),'最初の失敗');
+    const second=reportDirectory(root,'fixture','reviewed250');
+    assert.notEqual(first,second);
+    assert.equal(fs.readFileSync(path.join(first,'generation.json'),'utf8'),'最初の失敗');
+  }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
 test('遮蔽修正でプラントと共通地形を動かさず、比較基準の高架縦断を変えない',()=>{
   const d=geometry(20261019),choices=selectDiverse(placements(sites(d),20280950,64),3),before=JSON.stringify({d,choices});
   for(const choice of choices){
-    const cover=routeCover(choice);
+    assert.deepEqual(routeCover(choice),{barricades:[]},'最終版は棄却した追加配置を戻す');
     assert.deepEqual(routeCover(choice,'baseline'),{barricades:[]});
+    for(const revision of ['cover1','cover2','repair3']){
+    const cover=routeCover(choice,revision);
     if(choice.name==='高架縦断')assert.deepEqual(cover,{barricades:[]});
     for(const [x,z,w,h] of cover.barricades)for(const [,px,pz] of choice.plants){
       assert.ok(Math.hypot(Math.max(0,Math.abs(x-px)-w/2),Math.max(0,Math.abs(z-pz)-h/2))>16,'占拠円は空ける');
     }
+    }
   }
+  const relay=routeCover({plants:[['A',0,120,'B'],['B',-81,65,null],['C',0,60,null],['D',-81,-65,null],['E',0,-120,'R']],plantPods:[['A',0,153],['E',0,-153]],metrics:{plants:5,offCenter:2,elevated:2,spread:81}},'repair3').plantPods.at(-1);
+  for(const [x,z] of [[-4,-45],[16,-89]])assert.ok(Math.hypot(x-relay[1],z-relay[2])<90,'観測した中央地点からBotが選べる補給圏に置く');
   assert.equal(JSON.stringify({d,choices}),before);
 });
 test('起伏生成は両半面を使い、同じシードで再実行しても地形が増殖しない',()=>{

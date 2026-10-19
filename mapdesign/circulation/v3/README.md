@@ -1,8 +1,8 @@
 # 迎撃の足場と中央補給圏の修正
 
-2026-10-20（日本時間）。[前回の診断](../v2/initialization-check/README.md)を受けて、プラント位置を固定したまま遮蔽・退避・補給を比較した。**現在の開発候補は `repair3`。勝率の統計的合格・青の大破数減少は未達**。公開版の配布ではない。
+2026-10-20（日本時間）。[前回の診断](../v2/initialization-check/README.md)を受けて、プラント位置を固定したまま遮蔽・退避・補給を比較した。**最新250武器版で改善を再現できなかったため、追加配置は不採用。登録は `reviewed250` として基準配置を維持する**。[最新版の結果と採否](main250/README.md)を参照。以下はv0.18での設計実験の履歴であり、最新版の勝率ではない。勝率の統計的合格・青の大破数減少は未達。公開版の配布ではない。
 
-## 変更と判断
+## v0.18で試した候補（最新版では不採用）
 
 - **昇降交差**：青ベース手前の外側に、幅12m・奥行2m・高さ4.5mの壊せる遮蔽を2枚（x=±45、z=158）。中央の視界と両端を回る横道を残す。`cover2` の配置を採用した開発候補。
 - **片翼争奪**：既存建物の南側 `(38,-27)` に、既存の中央プラントCと連動するリペアポッドを1基。Cを所有する陣営が利用でき、中立時は使えない。追加の壁は採用しない。補給点へのnavを再生成した。
@@ -75,7 +75,7 @@
 
 `before.json`・`cover1.json`・`cover2-new.json`・`repair3-new.json` が実行単位の結果。`cover2.json` と `repair3.json` は同一条件の無変更戦場を含めた比較用の集約で、新たな対戦ではない。各 `*-comparison.json` には試合別HP・被害・Wilson区間も保存。棄却した地形データは `candidates/`。
 
-再生成：`node tools/generate_map.js --seed 20261019 --placement-seed 20280950 --terrain-attempts 1 --placement-attempts 64 --variants 3 --revision repair3`。`baseline` / `cover1` / `cover2` で旧案を再現できる。基準の完全な入力は `git show 3c6077e:prototype/maps/circulation.js`。
+再生成：`node tools/generate_map.js --seed 20261019 --placement-seed 20280950 --terrain-attempts 1 --placement-attempts 64 --variants 3 --revision reviewed250` が最終登録。`repair3` は当時選抜した補給点案、`baseline` / `cover1` / `cover2` は基準と旧案を再現する。基準の完全な入力は `git show 3c6077e:prototype/maps/circulation.js`。
 
 対戦は `make_dbg.py dbg --trace` の後、`map_battle.js dbg <同じマップを2回ずつ並べた一覧> 301 <出力.json> <seed> --paired-rosters`。`--map-source <旧案.js>` で変更前を比較する。記録器は同じ条件に `--paired-rosters`、入替編成なら `--swap-rosters` を指定する。
 

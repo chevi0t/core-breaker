@@ -111,9 +111,9 @@ function selectDiverse(proposals, count) {
 
 // 共通の地形を固定し、戦場の構造ごとに中立の壊せる遮蔽を試す。
 // 配置円・再出撃位置・昇降口を塞がず、短い壁の両端に徒歩経路を残す。
-function routeCover(choice, revision='repair3') {
-  if(revision==='baseline') return {barricades:[]};
-  if(!['cover1','cover2','repair3'].includes(revision)) throw new Error('修正案は baseline / cover1 / cover2 / repair3 を指定してください');
+function routeCover(choice, revision='reviewed250') {
+  if(['baseline','reviewed250'].includes(revision)) return {barricades:[]};
+  if(!['cover1','cover2','repair3','reviewed250'].includes(revision)) throw new Error('修正案は baseline / cover1 / cover2 / repair3 / reviewed250 を指定してください');
   if(choice.metrics.plants===3) return {barricades:revision==='cover1'
     ?[[-24,172,2,18,4.5],[24,172,2,18,4.5]]
     :[[-45,158,12,2,4.5],[45,158,12,2,4.5]]};
