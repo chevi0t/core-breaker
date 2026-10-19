@@ -3941,7 +3941,7 @@ function clearGadgets() {
 // rpm：毎分の発射数、mag：1マガジンの弾数、mags：マガジン数、reload：秒、spread：ばらつき、look：銃身の見た目の拡大率、sfx：発射音（SFX の名前）
 const WEAPONS = {
   // AC フレアグレネード系統 pages/585：{"kg": 170, "dmg": 1150, "heatDps": 4600, "heatDur": 1.8, "mag": 1, "mags": 5, "blast": 10, "fuse": 1.2, "reload": 1.4, "speed": 35}。不明値・再現用の値は secondary.json に区別
-  flare: {"name":"熱球グレネード","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1.4,"spread":0,"semi":false,"desc":"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし","proj":{"dmg":1150,"blast":10,"core":true,"kind":"grenade","speed":35,"grav":24,"fuse":1.2,"heatDps":4600,"heatDur":1.8}},
+  flare: {"name":"熱球グレネード","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1.4,"spread":0,"semi":false,"desc":"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし","proj":{"dmg":1150,"blast":10,"core":true,"kind":"grenade","speed":35,"grav":24,"fuse":1.2,"heatDps":4600,"heatDur":1.8}},
   // AC チェインボム系統 pages/524：{"kg": 140, "dmg": 6000, "mag": 1, "mags": 4, "blast": 12, "chainCount": 6, "chainStep": 12, "chainGap": 0.18, "reload": 1.5}。不明値・再現用の値は secondary.json に区別
   chain: {"name":"連鎖ボム","type":"gun","rpm":60,"mag":1,"mags":4,"reload":1.5,"spread":0,"semi":false,"desc":"地面に着くと前方へ連続爆発。壁では反射し、連鎖中に障害物へ当たると止まる","proj":{"dmg":6000,"blast":12,"core":true,"kind":"grenade","speed":32,"grav":24,"chainCount":6,"chainStep":12,"chainGap":0.18,"linear":true,"bodyLinear":true,"occluded":true,"life":5}},
   // AC パイロダート系統 pages/762：{"kg": 340, "dmg": 1400, "pellets": 3, "mag": 4, "mags": 3, "blast": 11, "rpm": 90, "reload": 3.5}。不明値・再現用の値は secondary.json に区別
@@ -4272,8 +4272,8 @@ const SERIES = {
 // 近接は重いほど振りが遅く（重さの比の0.35乗）、踏み込みが短く（0.3乗で割る）、間合いが少し長い（0.12乗）。値の決め方は仮（Claude の判断）
 const WEAPON_TYPES = {
   flare: { w0: {"kg":170,"dmg":1150,"heatDps":4600,"heatDur":1.8,"mag":1,"mags":5,"blast":10,"fuse":1.2,"reload":1.4,"speed":35}, types: [
-    ["即応型",{"kg":160,"dmg":1600,"heatDps":6400,"heatDur":1.2,"mag":1,"mags":6,"blast":9,"fuse":1,"reload":1.4,"speed":45},"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
-    ["持続型",{"kg":200,"dmg":1000,"heatDps":4000,"heatDur":2.5,"mag":1,"mags":3,"blast":12,"fuse":1.5,"reload":1.8,"speed":30},"時間で炸裂し、壁を通る熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
+    ["即応型",{"kg":160,"dmg":1600,"heatDps":6400,"heatDur":1.2,"mag":1,"mags":6,"blast":9,"fuse":1,"reload":1.4,"speed":45},"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
+    ["持続型",{"kg":200,"dmg":1000,"heatDps":4000,"heatDur":2.5,"mag":1,"mags":3,"blast":12,"fuse":1.5,"reload":1.8,"speed":30},"時間で炸裂し、障害物で遮られる熱球を残す。触れた相手へ一度の接触損傷と継続損傷。距離減衰・のけぞりなし"],
   ] },
   chain: { w0: {"kg":140,"dmg":6000,"mag":1,"mags":4,"blast":12,"chainCount":6,"chainStep":12,"chainGap":0.18,"reload":1.5}, types: [
     ["軽量型",{"kg":120,"dmg":4800,"mag":1,"mags":5,"blast":10,"chainCount":8,"chainStep":10,"chainGap":0.12,"reload":1.2},"地面に着くと前方へ連続爆発。壁では反射し、連鎖中に障害物へ当たると止まる"],
