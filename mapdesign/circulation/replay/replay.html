@@ -17,7 +17,7 @@
   </div>
   <div class="layout">
     <section class="map-wrap" aria-label="対戦の俯瞰図"><canvas id="map" width="640" height="1000"></canvas>
-      <div class="legend"><span class="blue">● 青軍（南）</span><span class="orange">● 橙軍（北）</span><span>▲ 高架に接地</span><span>× 行動不能</span><span>線＝実際の移動</span></div>
+      <div class="legend"><span class="blue">● 青軍（南）</span><span class="orange">● 橙軍（北）</span><span>▲ 高所の床に接地</span><span>× 行動不能</span><span>線＝実際の移動</span></div>
     </section>
     <section class="side">
       <div class="cores">
@@ -34,7 +34,7 @@
       <div class="card"><h2>見比べるところ</h2><p>① どのプラントから再出撃したか<br>② どの道で敵ベースへ入ったか<br>③ コアへ直接攻撃が通ったか</p><p class="hint">丸い枠は占拠範囲。線は記録した移動で、弾道ではありません。命中イベントの位置は、命中した時点の攻撃機の位置です。</p><p id="result"></p></div>
     </section>
   </div>
-  <section class="card timeline-card"><div class="hint">上：コア残量　下：A〜Eの所有状態（灰＝中立）／クリック・ドラッグで移動</div><canvas id="timeline" width="1200" height="145" aria-label="コア残量とプラント所有状態の時間軸"></canvas></section>
+  <section class="card timeline-card"><div class="hint">上：コア残量　下：各プラントの所有状態（灰＝中立）／クリック・ドラッグで移動</div><canvas id="timeline" width="1200" height="145" aria-label="コア残量とプラント所有状態の時間軸"></canvas></section>
   <p class="footer" id="note"></p>
 </main>
 <script>
@@ -68,8 +68,10 @@ function background(){
   for(let z=-200;z<=200;z+=40)line(bc,point(-mx,z),point(mx,z),'#68839730',1,[2,7]);
   for(const sign of [-1,1]){const z=data.map.baseLine*sign;line(bc,point(-mx,z),point(mx,z),sign>0?'#64b9ff88':'#ffa65f88',1,[8,5]);}
   for(const c of data.map.catapults){const a=point(c.pos[0],c.pos[2]),b=point(c.land[0],c.land[2]);circle(bc,...a,3,'#dfcc7c');line(bc,a,[a[0]+(b[0]-a[0])*.15,a[1]+(b[1]-a[1])*.15],'#dfcc7c',2);}
+  for(const p of data.map.jumpPads || []){const a=point(p.pos[0],p.pos[2]);circle(bc,...a,p.radius*S,'#80e7c055','#80e7c0',2);label(bc,'J',a[0]-12,a[1]-7,'#80e7c0',12);}
+  for(const l of data.map.lifts || [])line(bc,point(l.from[0],l.from[2]),point(l.to[0],l.to[2]),'#e2c16f',2,[3,4]);
   label(bc,'北・橙ベース',map.width/2,25,colors.R,15);label(bc,'南・青ベース',map.width/2,map.height-18,colors.B,15);
-  label(bc,'西側の高架',point(-85,0)[0],point(-85,0)[1]-22,'#bca681',12);
+  if(data.map.id.startsWith('circulation'))label(bc,'西側の高架',point(-85,0)[0],point(-85,0)[1]-22,'#bca681',12);
 }
 background();
 function frameAt(time){let lo=0,hi=match.frames.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(match.frames[mid].t<=time)lo=mid;else hi=mid-1;}return lo;}
@@ -77,6 +79,7 @@ function visible(u){return $(u.team==='B'?'showB':'showR').checked;}
 function sample(time){const i=frameAt(time),a=match.frames[i],b=match.frames[Math.min(i+1,match.frames.length-1)],r=b.t>a.t?(time-a.t)/(b.t-a.t):0;return {i,frame:a,units:a.u.map((u,j)=>{const v=b.u[j];if(u[5]!==v[5] || !(u[4]&1) || !(v[4]&1))return u;return u.map((n,k)=>k<=2?n+(v[k]-n)*r:n);})};}
 function drawMap(s){
   ctx.clearRect(0,0,map.width,map.height);ctx.drawImage(bg,0,0);
+  (data.map.lifts || []).forEach((l,i)=>{const p=s.frame.l?.[i] || l.from;rectWorld(ctx,p[0],p[2],l.w,l.depth,'#e2c16f88');const a=point(p[0],p[2]);label(ctx,'L '+p[1].toFixed(1)+'m',a[0]+22,a[1]-8,'#f8d68b',11);});
   if($('nav').checked)for(const [a,b] of data.map.nav.links){const A=data.map.nav.nodes[a],B=data.map.nav.nodes[b];line(ctx,point(A[0],A[2]),point(B[0],B[2]),'#80dcce25');}
   const trail=$('trails').value;
   if(trail!=='0')for(let j=0;j<match.units.length;j++){
@@ -129,7 +132,7 @@ function updateStats(s){
   if(selected){
     const i=match.units.findIndex(u=>u.id===selected),meta=match.units[i],u=s.units[i];
     const deployment=match.events.filter(e=>e.type==='deploy' && e.unit===selected && e.t<=t).at(-1);
-    const where=!(u[4]&1)?(u[4]&32?'行動不能':'再出撃待ち'):u[4]&2?'飛行中':u[4]&4?'高架上':'地上';
+    const where=!(u[4]&1)?(u[4]&32?'行動不能':'再出撃待ち'):u[4]&2?'飛行中':u[4]&4?'高所の床に接地':'地上';
     const raw=match.events.filter(e=>e.type==='coreHit' && e.unit===selected && e.t<=t).reduce((n,e)=>n+e.raw,0);
     $('unitDetail').textContent=`${teamName(meta.team)}${meta.id.slice(1)}｜${meta.className}・担当 ${roleName[meta.role] || meta.role}｜HP ${num(u[3])}｜${where}（高さ ${u[1].toFixed(1)}m）\n出撃元 ${deployment?.at==='base'?'ベース':deployment?.at || '不明'}｜コアへの攻撃威力 ${num(raw)}（コア減少はその1割）\n初期装備：${Object.values(meta.loadout).join('・')}`;
     $('unitDetail').style.whiteSpace='pre-line';

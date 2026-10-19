@@ -57,7 +57,7 @@ function summarize(match) {
           };
           for(const u of g.units) s.events.push({type:'deploy',t:0,unit:uid(u),team:u.team,at:'base',reason:'initial',pos:u.pos.toArray().map(round),segment:0});
           window.__recordFrame=()=>{
-            s.frames.push({t:round(g.MATCH-g.timeLeft),c:[g.cores.B.hp,g.cores.R.hp],p:g.plants.map(p=>[p.owner,round(p.gauge)]),u:g.units.map(u=>[
+            s.frames.push({t:round(g.MATCH-g.timeLeft),c:[g.cores.B.hp,g.cores.R.hp],p:g.plants.map(p=>[p.owner,round(p.gauge)]),l:g.curMap.lifts ? g.lifts.map(l=>l.pos.toArray().map(round)) : [],u:g.units.map(u=>[
               round(u.pos.x),round(u.pos.y),round(u.pos.z),round(u.hp),
               (u.alive?1:0)|(u.flying?2:0)|(u.onGround && g.groundAt(u.pos.x,u.pos.z,u.pos.y)>5?4:0)|(u.invulT>0?8:0)|(u.transfer?16:0)|(u.downT>0?32:0),
               s.segments[uid(u)],round(u.yaw),u.sc.coreDmg,u.target ? (u.target.kind==='unit'?uid(u.target):u.target.kind) : null])});
@@ -69,12 +69,14 @@ function summarize(match) {
           return {initialCore:[g.cores.B.hp,g.cores.R.hp],duration:g.MATCH,
             units:g.units.map(u=>({id:uid(u),team:u.team,role:u.role,cls:u.cls,className:g.CLASSES[u.cls].name,mech:u.mech,loadout:Object.fromEntries(Object.entries(u.slots).map(([k,s])=>[k,s.w.name]))})),
             map:{id:g.mapId,name:g.curMap.name,subtitle:g.curMap.subtitle,size:g.curMap.size,baseLine:g.curMap.baseLine,
-              terrain:{step,nx,nz,heights},obstacles:g.obstacles.map(o=>({minX:o.minX,maxX:o.maxX,minZ:o.minZ,maxZ:o.maxZ,top:o.top,bottom:o.bottom || 0})),
+              terrain:{step,nx,nz,heights},obstacles:g.obstacles.filter(o=>!g.curMap.lifts || !g.lifts.some(l=>l.ob===o)).map(o=>({minX:o.minX,maxX:o.maxX,minZ:o.minZ,maxZ:o.maxZ,top:o.top,bottom:o.bottom || 0})),
               bridges:g.curMap.bridges || [],water:g.curMap.water || [],
               plants:g.plants.map(p=>({id:p.id,pos:p.pos.toArray(),radius:g.PLANT_R})),
               cores:['B','R'].map(team=>({team,pos:g.cores[team].pos.toArray()})),
               catapults:g.catapults.map(c=>({pos:c.pos.toArray(),land:c.land.toArray()})),
-              nav:{nodes:g.NAV.pts.map(p=>[p.x,p.y,p.z]),links:g.curMap.nav.links}}};
+              jumpPads:g.curMap.jumpPads ? g.jumpPads.map(p=>({pos:p.pos.toArray(),exit:p.exit.toArray(),radius:p.radius})) : [],
+              lifts:g.curMap.lifts ? g.lifts.map(l=>({from:l.from.toArray(),to:l.to.toArray(),w:l.w,depth:l.depth})) : [],
+              nav:{nodes:g.NAV ? g.NAV.pts.map(p=>[p.x,p.y,p.z]) : [],links:g.NAV ? g.NAV.links.map(l=>[l.a,l.b]) : []}}};
         });
         data.map ||= info.map;
         let ended=false, elapsed=0;

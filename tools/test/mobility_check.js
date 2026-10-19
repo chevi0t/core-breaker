@@ -51,7 +51,8 @@ if(process.argv[2]!=='dbg')throw new Error('dbg を指定してください');
           report.push({name:`リフト往復 ${team}/${isPlayer?'プレイヤー':'Bot'}`,up,down});
         }
         u=reset();let l=g.lifts[0];u.pos.copy(l.from);u.onGround=true;
-        while(l.pos.y<5){g.liftUpdate(dt);g.physics(u,new T.Vector3(),false,false,dt);}
+        for(let i=0;i<300 && l.pos.y<5;i++){g.liftUpdate(dt);g.physics(u,new T.Vector3(),false,false,dt);}
+        check(l.pos.y>=5,'リフトが上昇しない');
         g.physics(u,new T.Vector3(1,0,0),false,true,dt);g.liftUpdate(dt);
         check(!u.onGround && !u.lift,'リフトからジャンプで離れられない');
         report.push({name:'移動するリフトからジャンプで降りる',height:u.pos.y});
@@ -63,6 +64,16 @@ if(process.argv[2]!=='dbg')throw new Error('dbg を指定してください');
         for(let i=0;i<150 && l.pos.distanceTo(l.to)>.05;i++){g.liftUpdate(dt);g.physics(u,new T.Vector3(),false,false,dt);}
         check(l.pos.distanceTo(l.to)<.05,'障害物を除いてもリフトが再開しない');
         report.push({name:'頭上の障害物で停止し、除去後に再開',stopped,resumed:true});
+        u=reset();l=g.lifts[0];u.pos.set(60,0,0);
+        for(let i=0;i<300 && l.pos.distanceTo(l.to)>.05;i++)g.liftUpdate(dt);
+        check(l.pos.distanceTo(l.to)<.05,'空のリフトが上端に着かない');
+        u.pos.copy(l.from);u.onGround=true;stopped=false;
+        for(let i=0;i<200;i++){g.liftUpdate(dt);g.physics(u,new T.Vector3(),false,false,dt);if(l.blocked){stopped=true;break;}}
+        check(stopped && l.pos.y-.6>=u.pos.y+4,'下降リフトが下の機体を押し潰した');
+        u.pos.set(60,0,0);
+        for(let i=0;i<150 && l.pos.distanceTo(l.from)>.05;i++)g.liftUpdate(dt);
+        check(l.pos.distanceTo(l.from)<.05,'床下が空いても下降を再開しない');
+        report.push({name:'床下の機体で停止し、退避後に下降を再開'});
         for(const kind of ['pad','lift']) for(const team of ['B','R']){
           reset();u=g.units.find(v=>v.team===team && !v.isPlayer);u.frozen=false;u.role='plant';
           u.pos.set(kind==='pad'?-31:33,0,3);u.vel.set(0,0,0);u.onGround=true;u.stun='';u.catCd=0;
@@ -74,6 +85,13 @@ if(process.argv[2]!=='dbg')throw new Error('dbg を指定してください');
           check(used && arrived,`Bot ${team} が ${kind} を選んで高所へ到達できない (${u.pos.toArray()})`);
           report.push({name:`Botの設備選択と高所到達 ${team}/${kind}`,used,arrived,landing:u.pos.toArray()});
         }
+        reset();l=g.lifts[0];for(let i=0;i<300 && l.pos.distanceTo(l.to)>.05;i++)g.liftUpdate(dt);
+        check(l.pos.distanceTo(l.to)<.05,'待機検査のリフトが上端に着かない');
+        u=g.units.find(v=>v.team==='B' && !v.isPlayer);u.frozen=false;u.role='plant';u.pos.set(33,0,3);u.onGround=true;u.vel.set(0,0,0);
+        let waited=false,boarded=false,arrived=false;
+        for(let i=0;i<1000;i++){g.loop(__advanceClock());waited ||= !u.lift && l.pos.distanceTo(l.from)>.2 && u.pos.x>29;boarded ||= !!u.lift;if(u.onGround && g.terrainH(u.pos.x,u.pos.z)>11.8){arrived=true;break;}}
+        check(waited && boarded && arrived,'Botが不在のリフトを待って乗り込めない');
+        report.push({name:'Botが下降リフトの外で待ち、次の便で台地へ到達',waited,boarded,arrived});
         g.setup();check(g.lifts[0].pos.distanceTo(g.lifts[0].from)<1e-6,'再試合でリフトが戻らない');
         report.push({name:'再試合でリフトを初期位置へ戻す'});
         g.MAPS.mobility_mirror={...g.curMap,asym:false,jumpPads:[{at:[-20,30,0],exit:[-6,30,12],rise:28}],lifts:[{from:[24,30,0],to:[16,30,12],size:[8,8]}]};

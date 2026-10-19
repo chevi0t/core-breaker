@@ -10,6 +10,8 @@
 
 [preview.mp4](preview.mp4) は2試合目を5倍速にした約1分の動画。[preview.png](preview.png) は操作画面の例。
 
+[閲覧用ZIP](replay.zip)には、このHTMLと動画に加え、昇降設備試験場の `mobility-replay.html` を同梱する。
+
 ## 何を記録したか
 
 過去13試合には位置が残っていないため、同じ片翼争奪で**新たに3試合**を実行して保存した。過去13試合の映像を推定・再現したものではない。ジャンプパッド・リフトを追加する**前**のエンジンで記録し、実行したソースと観測器のハッシュを `recorded.json` に残す。新設備の変更と元の勝敗を混ぜない。
@@ -41,3 +43,10 @@ node tools/test/record_battle.js dbg circulation-v3 dbg/replay-new 20261060,2026
 ```
 
 生成したHTMLは記録だけを使って再生し、閲覧のたびにゲームを再シミュレーションしない。初期乱数だけで過去の試合を完全再現できるとはしていない。`--trace` はデバッグ版に観測イベントを加えるための指定で、本体のゲーム計算・乱数を置き換えない。
+
+保存済みのデータから表示だけを作り直す場合は次を使う。`--video` の動画書き出しには ffmpeg が必要。
+
+```sh
+node tools/test/export_replay.js mapdesign/circulation/replay/recorded.json dbg/replay-export 1 --video
+node tools/test/replay_check.js
+```
