@@ -2119,52 +2119,99 @@ function botMech(cls) {
 
 // ---- 機体 ----
 const R = 1.3, UNIT_H = 4; // 機体の半径と高さ（ソードの当たり判定に使う）
-// 機体の形（v0.12、Codex 版の組み立てを移植）：パーツの型で太さと飾りが変わる。箱は部位ごとに頂点の色で1つの形にまとめ、
+// 機体の形：シリーズごとに装甲の輪郭を作り分ける。箱は部位ごとに頂点の色で1つの形にまとめ、
 // 部位（userData.armorSlot）で当たった所の装甲を決める。color はチームの色、cfg.color が 'team' 以外なら装甲をその色に塗る
 function buildMech(color, cfg = MECH_DEFAULT) {
   const g = new T.Group();
   const paint = PAINTS.find(p => p.id === cfg.color) || PAINTS[0];
   const C = { armor: paint.color ?? color, frame: 0x26323d, metal: 0x71828e, trim: color, visor: 0xbdf5ff };
-  const W = t => t === 'light' ? 0.84 : t === 'heavy' ? 1.12 : 1;
+  const series = Object.fromEntries(PART_SLOTS.map(k => [k, PARTS[k][cfg[k]].series]));
+  const W = k => series[k] === 'swift' ? 0.84 : series[k] === 'bulwark' ? 1.12 : 1;
   const boxes = { head: [], body: [], arms: [], legs: [] };
-  const part = (slot, w, h, d, c, x, y, z, tilt = 0) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt]);
-  const lw = W(cfg.legs), bw = W(cfg.body), hw = W(cfg.head), aw = W(cfg.arms);
+  const part = (slot, w, h, d, c, x, y, z, tilt = 0, pitch = 0) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt, pitch]);
+  const lw = W('legs'), bw = W('body'), hw = W('head'), aw = W('arms');
+  // 接続する骨格と足裏は共通。薄い斜めの装甲、標準の面構成、厚い箱型の装甲で見分ける。
   for (const sd of [-1, 1]) {
     part('legs', 0.42, 1.7, 0.52, 'frame', sd * 0.58, 1.05, 0.04);
-    part('legs', 0.7 * lw, 0.65, 0.72 * lw, 'armor', sd * 0.58, 1.45, -0.04);
-    part('legs', 0.64 * lw, 0.85, 0.8 * lw, 'armor', sd * 0.62, 0.67, 0.06);
     part('legs', 0.82 * lw, 0.3, 1.22, 'frame', sd * 0.62, 0.15, -0.2);
-    part('legs', 0.42 * lw, 0.2, 0.12, 'trim', sd * 0.62, 1.04, -0.4 * lw);
-    if (cfg.legs === 'heavy') part('legs', 0.2, 0.9, 0.9, 'metal', sd * 0.99, 0.7, 0.1);
-    if (cfg.legs === 'light') part('legs', 0.14, 0.8, 0.16, 'metal', sd * 0.9, 0.72, 0.1);
+    if (series.legs === 'swift') {
+      part('legs', 0.46, 0.68, 0.54, 'armor', sd * 0.58, 1.48, -0.04, sd * 0.12);
+      part('legs', 0.36, 0.86, 0.56, 'armor', sd * 0.62, 0.7, 0.06, sd * -0.08);
+      part('legs', 0.44, 0.22, 0.14, 'trim', sd * 0.62, 1.1, -0.34, sd * 0.08);
+      part('legs', 0.1, 0.94, 0.12, 'metal', sd * 0.88, 0.88, 0.1, sd * -0.12);
+      part('legs', 0.48, 0.18, 0.4, 'armor', sd * 0.62, 0.28, -0.58, 0, -0.25);
+    } else {
+      part('legs', 0.7 * lw, 0.65, 0.72 * lw, 'armor', sd * 0.58, 1.45, -0.04);
+      part('legs', 0.64 * lw, 0.85, 0.8 * lw, 'armor', sd * 0.62, 0.67, 0.06);
+      part('legs', 0.42 * lw, 0.2, 0.12, 'trim', sd * 0.62, 1.04, -0.4 * lw);
+      if (series.legs === 'bulwark') {
+        part('legs', 0.6, 0.72, 0.18, 'metal', sd * 0.62, 0.68, -0.48);
+        part('legs', 0.2, 0.9, 0.9, 'armor', sd * 0.99, 0.7, 0.1);
+      } else part('legs', 0.34, 0.5, 0.12, 'metal', sd * 0.62, 0.66, -0.4);
+    }
   }
   part('body', 1.3, 0.5, 0.9, 'frame', 0, 1.9, 0);
-  part('body', 2.05 * bw, 1.25, 1.35 * bw, 'armor', 0, 2.65, 0);
-  part('body', 1.35 * bw, 0.64, 0.22, 'frame', 0, 2.67, -0.7 * bw);
-  part('body', 0.75, 0.14, 0.12, 'trim', 0, 2.85, -0.84 * bw);
-  part('body', 1.2 * bw, 0.6, 0.65, 'armor', 0, 2.85, 0.9 * bw); // 背中のブースター
-  for (const sd of [-1, 1]) part('body', 0.36, 0.42, 0.24, 'metal', sd * 0.38 * bw, 2.85, 1.25 * bw);
-  if (cfg.body === 'heavy') {
-    part('body', 1.75, 0.3, 0.28, 'metal', 0, 2.3, -0.8);
-    for (const sd of [-1, 1]) part('body', 0.36, 0.8, 0.9, 'armor', sd * 0.95, 2.65, 0.9);
+  if (series.body === 'swift') {
+    part('body', 1.48, 1.18, 0.96, 'armor', 0, 2.63, -0.02);
+    for (const sd of [-1, 1]) part('body', 0.67, 0.48, 0.26, 'metal', sd * 0.41, 2.92, -0.55, sd * 0.2);
+    part('body', 0.76, 0.48, 0.24, 'frame', 0, 2.39, -0.58);
+    part('body', 0.55, 0.1, 0.12, 'trim', 0, 2.84, -0.72);
+    part('body', 1, 0.58, 0.55, 'armor', 0, 2.85, 0.82);
+    for (const sd of [-1, 1]) part('body', 0.26, 0.38, 0.22, 'metal', sd * 0.32, 2.85, 1.18);
+  } else {
+    part('body', 2.05 * bw, 1.25, 1.35 * bw, 'armor', 0, 2.65, 0);
+    part('body', 1.35 * bw, 0.64, 0.22, 'frame', 0, 2.67, -0.7 * bw);
+    part('body', 0.75, 0.14, 0.12, 'trim', 0, 2.85, -0.84 * bw);
+    part('body', 1.2 * bw, 0.6, 0.65, 'armor', 0, 2.85, 0.9 * bw);
+    for (const sd of [-1, 1]) part('body', 0.36, 0.42, 0.24, 'metal', sd * 0.38 * bw, 2.85, 1.25 * bw);
+    if (series.body === 'bulwark') {
+      part('body', 1.75, 0.3, 0.28, 'metal', 0, 2.3, -0.8);
+      for (const sd of [-1, 1]) {
+        part('body', 0.36, 0.8, 0.9, 'armor', sd * 0.95, 2.65, 0.9);
+        part('body', 0.9, 0.32, 0.22, 'armor', sd * 0.49, 2.95, -0.85, sd * 0.12);
+      }
+    } else for (const sd of [-1, 1]) part('body', 0.48, 0.48, 0.16, 'armor', sd * 0.68, 2.86, -0.73, sd * -0.1);
   }
-  part('head', 0.5, 0.22, 0.5, 'frame', 0, 3.3, 0.05);
-  part('head', 0.94 * hw, 0.56, 0.85, 'armor', 0, 3.65, 0.04);
-  part('head', 0.76 * hw, 0.19, 0.12, 'frame', 0, 3.68, -0.42);
-  part('head', 0.62 * hw, 0.1, 0.14, 'visor', 0, 3.7, -0.49);
-  if (cfg.head === 'light') part('head', 0.1, 0.62, 0.12, 'metal', 0.44, 3.65, 0.2);
-  if (cfg.head === 'heavy') for (const sd of [-1, 1]) part('head', 0.18, 0.42, 0.92, 'metal', sd * 0.57, 3.62, 0.04);
+  part('head', 0.5, 0.2, 0.5, 'frame', 0, 3.3, 0.05);
+  if (series.head === 'swift') {
+    part('head', 0.7, 0.48, 0.74, 'armor', 0, 3.64, 0.04);
+    part('head', 0.78, 0.1, 0.16, 'metal', 0, 3.84, -0.33);
+    part('head', 0.52, 0.08, 0.14, 'visor', 0, 3.67, -0.38);
+    for (const sd of [-1, 1]) part('head', 0.12, 0.32, 0.58, 'armor', sd * 0.34, 3.57, 0, sd * -0.2);
+    part('head', 0.08, 0.4, 0.22, 'metal', 0.24, 3.74, 0.2);
+  } else {
+    part('head', 0.94 * hw, 0.56, 0.85, 'armor', 0, 3.65, 0.04);
+    part('head', 0.76 * hw, 0.19, 0.12, 'frame', 0, 3.68, -0.42);
+    part('head', series.head === 'bulwark' ? 0.5 : 0.62, 0.1, 0.14, 'visor', 0, 3.7, -0.49);
+    if (series.head === 'bulwark') {
+      for (const sd of [-1, 1]) part('head', 0.18, 0.42, 0.92, 'metal', sd * 0.57, 3.62, 0.04);
+      part('head', 1.04, 0.16, 0.18, 'armor', 0, 3.85, -0.42);
+    } else {
+      for (const sd of [-1, 1]) part('head', 0.1, 0.32, 0.46, 'metal', sd * 0.42, 3.65, 0.12);
+      part('head', 0.64, 0.08, 0.54, 'armor', 0, 3.91, 0.06);
+    }
+  }
+  part('head', 0.32, 0.05, 0.1, 'trim', 0, 3.55, -0.5);
   for (const sd of [-1, 1]) {
-    part('arms', 0.55 * aw, 0.8, 0.9 * aw, 'armor', sd * 1.35, 2.8, 0.02, sd * -0.12);
     part('arms', 0.35, 0.72, 0.52, 'frame', sd * 1.48, 2.24, -0.18);
-    if (cfg.arms === 'heavy') part('arms', 0.68, 0.35, 1.2, 'metal', sd * 1.4, 3.1, 0.02);
+    if (series.arms === 'swift') {
+      part('arms', 0.42, 0.72, 0.68, 'armor', sd * 1.3, 2.8, 0.02, sd * -0.2);
+      part('arms', 0.14, 0.76, 0.58, 'metal', sd * 1.53, 2.87, 0.02, sd * -0.2);
+      part('arms', 0.4, 0.32, 0.16, 'armor', sd * 1.48, 2.19, -0.48, sd * 0.06);
+    } else {
+      part('arms', 0.55 * aw, 0.8, 0.9 * aw, 'armor', sd * 1.35, 2.8, 0.02, sd * -0.12);
+      if (series.arms === 'bulwark') {
+        part('arms', 0.68, 0.35, 1.2, 'metal', sd * 1.4, 3.1, 0.02);
+        part('arms', 0.18, 0.82, 1.08, 'armor', sd * 1.67, 2.7, 0.02, sd * -0.08);
+      } else part('arms', 0.46, 0.32, 0.18, 'armor', sd * 1.48, 2.24, -0.46);
+    }
     part('arms', 0.32, 0.13, 0.12, 'trim', sd * 1.35, 2.93, -0.48 * aw);
   }
   const skin = new T.MeshLambertMaterial({ vertexColors: true });
   for (const slot of PART_SLOTS) {
     const pos = [], nor = [], col = [];
-    for (const [w, h, d, c, x, y, z, tilt] of boxes[slot]) {
-      const b = new T.BoxGeometry(w, h, d); b.rotateZ(tilt); b.translate(x, y, z);
+    for (const [w, h, d, c, x, y, z, tilt, pitch] of boxes[slot]) {
+      const b = new T.BoxGeometry(w, h, d); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z);
       const geo = b.toNonIndexed(), cc = new T.Color(c);
       pos.push(...geo.attributes.position.array); nor.push(...geo.attributes.normal.array);
       for (let k = 0; k < geo.attributes.position.count; k++) col.push(cc.r, cc.g, cc.b);

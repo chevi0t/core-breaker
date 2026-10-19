@@ -25,7 +25,9 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
   get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
-  get botMech() { return botMech; }, get renderCustom() { return renderCustom; } };"""
+  get botMech() { return botMech; }, get renderCustom() { return renderCustom; },
+  get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
+  get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; } };"""
 
 
 def rep(s, a, b):
