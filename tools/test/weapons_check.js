@@ -54,9 +54,10 @@ const dir = process.argv[2];
       const g = __g, T = g.T, { sh, tg, al } = __T, w = g.WEAPONS[key];
       // 装備（Botは本来ランダムなので、プレイヤー扱いにして loadout から）
       g.loadout[cls][slot] = key;
+      Object.assign(sh.mech, g.MECH_DEFAULT); // 発数・携行弾数を標準パーツに固定する
       sh.isPlayer = true; g.equip(sh, cls); sh.isPlayer = false;
       const P = w.proj || {};
-      const near = w.type === 'sword' ? (key === 'spear' ? 6 : 4) : w.pellets ? 10 : P.kind === 'sentry' ? 20 : w.type === 'cannon' ? 40 : 18;
+      const near = w.type === 'artillery' ? 60 : w.type === 'sword' ? (key === 'spear' ? 6 : 4) : w.pellets ? 10 : P.kind === 'sentry' ? 20 : w.type === 'cannon' ? 40 : 18;
       const y = g.terrainH(spot[0], spot[1]);
       Object.assign(sh, { alive: true, hp: sh.maxHp, stun: '', invulT: 0, cloak: false, chargerOn: false, fieldOn: false, swing: null, weapon: slot, switchT: 0, planted: !!w.plant, yaw: 0 });
       sh.pos.set(spot[0], y, spot[1]); sh.vel.set(0, 0, 0);
@@ -70,11 +71,11 @@ const dir = process.argv[2];
       const tp = () => new T.Vector3(tg.pos.x, tg.pos.y + 2.4, tg.pos.z);
       // 狙う点：設置物は的の手前の地面、ほかは的の胴体。回復は味方
       const ground = new T.Vector3(spot[0], y, spot[1] - (P.kind === 'sentry' ? 6 : P.hover ? 30 : near - 1));
-      const aimAt = () => w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
+      const aimAt = () => w.type === 'artillery' ? new T.Vector3(tg.pos.x,g.terrainH(tg.pos.x,tg.pos.z),tg.pos.z) : w.type === 'repairPost' ? new T.Vector3(spot[0],y,spot[1]-2) : w.type === 'repair' ? new T.Vector3(al.pos.x, al.pos.y + 2.4, al.pos.z) : P.kind === 'mine' || P.kind === 'remote' || P.kind === 'sentry' || (P.kind === 'sensor' && !P.hover) ? ground : P.hover ? ground : w.drone ? new T.Vector3(spot[0], y + 15, spot[1] - 40) : tp();
       const sp0 = sh.slots.sp.heat, sl = sh.slots[slot], ammo0 = sl.ammo + sl.reserve;
       let shots = 0, maxStun = '', fired = 0;
       if (['charger', 'camo', 'field', 'barrier', 'escort'].includes(w.type)) g.toggleSp(sh);
-      const dt = 0.05, T0 = w.type === 'cannon' ? 8 : P.kind === 'sentry' ? 6 : 4;
+      const dt = 0.05, T0 = w.type === 'artillery' ? w.flight+(w.shots-1)*(w.interval||0)+2 : w.type === 'cannon' ? 8 : P.kind === 'sentry' ? 6 : 4;
       let det = false;
       for (let t = 0; t < T0; t += dt) {
         // 遠隔爆弾は2.5秒で起爆
@@ -90,7 +91,7 @@ const dir = process.argv[2];
         if (tg.stun && !maxStun) maxStun = tg.stun;
       }
       const dmg = Math.round(1e6 - tg.hp);
-      return { key, name: w.name, type: w.type, fired, ammoUsed: ammo0 - (sl.ammo + sl.reserve), dmg, stun: maxStun, weak: tg.weakT > 0,
+      return { key, name: w.name, type: w.type, fired: w.type === 'artillery' ? sh.artilleryFired : fired, ammoUsed: ammo0 - (sl.ammo + sl.reserve), dmg, stun: maxStun, weak: tg.weakT > 0,
         gadgets: g.gadgets.map(x => x.name + (x.pos.y - y > 1 ? `@${Math.round(x.pos.y - y)}m` : '') + (dbgPos ? `(${(x.pos.x - sh.pos.x).toFixed(1)},${(x.pos.z - sh.pos.z).toFixed(1)}) tg(${(tg.pos.x - sh.pos.x).toFixed(1)},${(tg.pos.z - sh.pos.z).toFixed(1)})` : '')).join(','), spotted: g.spotted.B.has(tg), drones: g.drones.length,
         sp: Math.round(sp0) + '→' + Math.round(sh.slots.sp.heat), on: [sh.chargerOn && 'charger', sh.cloak && 'cloak', sh.fieldOn && 'field', sh.barrierOn && 'barrier', sh.escortOn && 'escort'].filter(Boolean).join(''), allyHp: Math.round(al.hp) };
     }, [cls, slot, key, spot, !!process.env.ONLY]);

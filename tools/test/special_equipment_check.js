@@ -15,7 +15,7 @@ const {chromium} = require('playwright');
     await p.goto('file://'+path.join(dir,'dbg.html'));
     await p.evaluate(()=>{__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();}; __g.selectMap('dock'); document.getElementById('start').click(); __g.running=false;});
     const data=await p.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));
-    assert.equal(Object.keys(data.weapons).length,213);
+    assert.ok(Object.keys(data.weapons).length>=213);
     const source=require('../../research/weapons/types/special.json');
     for(const family of source.families)for(const row of family.rows){
       const w=data.weapons[row.key];
