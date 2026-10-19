@@ -1,0 +1,125 @@
+[
+  {
+    "base": "light",
+    "series": "シュライク",
+    "source": "https://w.atwiki.jp/borderbreak/pages/315.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "シュライクI型",
+      "weight": 1000.0,
+      "armor": 1.32,
+      "boost": 95.0,
+      "supply": 0.9
+    },
+    "types": [
+      {
+        "name": "シュライクII型",
+        "weight": 1030.0,
+        "armor": 1.32,
+        "boost": 115.0,
+        "supply": 0.5,
+        "key": "light2",
+        "label": "Ⅱ型",
+        "trait": "ブーストが増えるがSP供給が遅い"
+      },
+      {
+        "name": "シュライクV型",
+        "weight": 1070.0,
+        "armor": 1.25,
+        "boost": 90.0,
+        "supply": 1.2,
+        "key": "light3",
+        "label": "Ⅲ型",
+        "trait": "装甲とSP供給が上がるがブーストが減る"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "シュライクW型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "standard",
+    "series": "クーガー",
+    "source": "https://w.atwiki.jp/borderbreak/pages/308.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "クーガーI",
+      "weight": 1250.0,
+      "armor": 1.0,
+      "boost": 100.0,
+      "supply": 1.0
+    },
+    "types": [
+      {
+        "name": "クーガーII",
+        "weight": 1300.0,
+        "armor": 1.0,
+        "boost": 110.0,
+        "supply": 1.0,
+        "key": "standard2",
+        "label": "Ⅱ型",
+        "trait": "ブーストが増えるが重い"
+      },
+      {
+        "name": "クーガーS",
+        "weight": 1320.0,
+        "armor": 0.9,
+        "boost": 100.0,
+        "supply": 1.35,
+        "key": "standard3",
+        "label": "Ⅲ型",
+        "trait": "装甲とSP供給が上がるが重い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "クーガーNX",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  },
+  {
+    "base": "heavy",
+    "series": "ヘヴィガード",
+    "source": "https://w.atwiki.jp/borderbreak/pages/313.html",
+    "retrieved": "2026-10-19",
+    "baseRow": {
+      "name": "ヘヴィガードI型",
+      "weight": 1430.0,
+      "armor": 0.78,
+      "boost": 100.0,
+      "supply": 1.2
+    },
+    "types": [
+      {
+        "name": "ヘヴィガードIII型",
+        "weight": 1550.0,
+        "armor": 0.71,
+        "boost": 110.0,
+        "supply": 1.0,
+        "key": "heavy2",
+        "label": "Ⅱ型",
+        "trait": "装甲とブーストが上がるがSP供給が遅い"
+      },
+      {
+        "name": "ヘヴィガードIV型",
+        "weight": 1500.0,
+        "armor": 0.78,
+        "boost": 120.0,
+        "supply": 1.0,
+        "key": "heavy3",
+        "label": "Ⅲ型",
+        "trait": "ブーストが大きく増えるがSP供給が遅い"
+      }
+    ],
+    "skipped": [
+      {
+        "name": "ヘヴィガードG型",
+        "why": "同じ系統の先の2型を採用したため"
+      }
+    ]
+  }
+]
