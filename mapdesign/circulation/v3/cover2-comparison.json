@@ -1,0 +1,631 @@
+{
+  "note": "各戦場2構成×青橙入替=4戦。変更前後の初期状態一致・対照戦場の全対戦記録一致を確認。戦闘中は経路や乱数消費が分岐する。勝率の統計的合格を意味しない。",
+  "inputs": {
+    "before": {
+      "file": "mapdesign/circulation/v3/before.json",
+      "sha256": "3bef24248510e567532c53bf2725600a982e81df6be88b6647cbd7503fa10615"
+    },
+    "after": {
+      "file": "mapdesign/circulation/v3/cover2.json",
+      "sha256": "6d6e10179b73ceea7739242a7d0ef8e222734bafa1150f090f0e4736a989a5be"
+    }
+  },
+  "initialStatesIdentical": true,
+  "rostersSwapped": true,
+  "controlMatchesIdentical": 4,
+  "allCoreLossLedgersCorrect": true,
+  "maps": {
+    "circulation-v2": {
+      "before": {
+        "games": 4,
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "blueWinRate": 0.25,
+        "blueWinWilson95": [
+          0.045586062644636216,
+          0.6993639475573634
+        ],
+        "losses": {
+          "B": {
+            "direct": 1858.431556616445,
+            "wreck": 9562.5
+          },
+          "R": {
+            "direct": 260,
+            "wreck": 8662.5
+          }
+        },
+        "meanBlueCoreMargin": -624.6078891541113
+      },
+      "after": {
+        "games": 4,
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "blueWinRate": 0.25,
+        "blueWinWilson95": [
+          0.045586062644636216,
+          0.6993639475573634
+        ],
+        "losses": {
+          "B": {
+            "direct": 1858.431556616445,
+            "wreck": 9562.5
+          },
+          "R": {
+            "direct": 260,
+            "wreck": 8662.5
+          }
+        },
+        "meanBlueCoreMargin": -624.6078891541113
+      },
+      "trials": [
+        {
+          "seed": 20261101,
+          "swapped": false,
+          "before": {
+            "winner": "R",
+            "core": [
+              6412.5,
+              6862.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2587.5
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2137.5
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              6412.5,
+              6862.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2587.5
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2137.5
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261101,
+          "swapped": true,
+          "before": {
+            "winner": "R",
+            "core": [
+              5063.818443383555,
+              6806.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 1292.431556616445,
+                "wreck": 2643.75
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2193.75
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              5063.818443383555,
+              6806.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 1292.431556616445,
+                "wreck": 2643.75
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2193.75
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261102,
+          "swapped": false,
+          "before": {
+            "winner": "R",
+            "core": [
+              6127.75,
+              6862.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 566,
+                "wreck": 2306.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2137.5
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              6127.75,
+              6862.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 566,
+                "wreck": 2306.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2137.5
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261102,
+          "swapped": true,
+          "before": {
+            "winner": "B",
+            "core": [
+              6975,
+              6546.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2025
+              },
+              "R": {
+                "direct": 260,
+                "wreck": 2193.75
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              6975,
+              6546.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2025
+              },
+              "R": {
+                "direct": 260,
+                "wreck": 2193.75
+              }
+            }
+          }
+        }
+      ]
+    },
+    "circulation": {
+      "before": {
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2,
+          "draw": 0
+        },
+        "blueWinRate": 0.5,
+        "blueWinWilson95": [
+          0.15003570882017148,
+          0.8499642911798285
+        ],
+        "losses": {
+          "B": {
+            "direct": 4386,
+            "wreck": 8268.75
+          },
+          "R": {
+            "direct": 312,
+            "wreck": 8212.5
+          }
+        },
+        "meanBlueCoreMargin": -1032.5625
+      },
+      "after": {
+        "games": 4,
+        "wins": {
+          "B": 3,
+          "R": 1,
+          "draw": 0
+        },
+        "blueWinRate": 0.75,
+        "blueWinWilson95": [
+          0.3006360524426366,
+          0.9544139373553637
+        ],
+        "losses": {
+          "B": {
+            "direct": 1174,
+            "wreck": 7987.5
+          },
+          "R": {
+            "direct": 3839,
+            "wreck": 8606.25
+          }
+        },
+        "meanBlueCoreMargin": 820.9375
+      },
+      "trials": [
+        {
+          "seed": 20261103,
+          "swapped": false,
+          "before": {
+            "winner": "R",
+            "core": [
+              6806.25,
+              6833.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2193.75
+              },
+              "R": {
+                "direct": 198,
+                "wreck": 1968.75
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              7143.75,
+              6003
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 1856.25
+              },
+              "R": {
+                "direct": 972,
+                "wreck": 2025
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261103,
+          "swapped": true,
+          "before": {
+            "winner": "R",
+            "core": [
+              2814,
+              7256.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 4386,
+                "wreck": 1800
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 1743.75
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              7274.75,
+              6918.75
+            ],
+            "losses": {
+              "B": {
+                "direct": 94,
+                "wreck": 1631.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2081.25
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261104,
+          "swapped": false,
+          "before": {
+            "winner": "B",
+            "core": [
+              6975,
+              6861
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2025
+              },
+              "R": {
+                "direct": 114,
+                "wreck": 2025
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              6693.75,
+              3489.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2306.25
+              },
+              "R": {
+                "direct": 2867,
+                "wreck": 2643.75
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261104,
+          "swapped": true,
+          "before": {
+            "winner": "B",
+            "core": [
+              6750,
+              6525
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2250
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2475
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              5726.25,
+              7143.75
+            ],
+            "losses": {
+              "B": {
+                "direct": 1080,
+                "wreck": 2193.75
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 1856.25
+              }
+            }
+          }
+        }
+      ]
+    },
+    "circulation-v3": {
+      "before": {
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2,
+          "draw": 0
+        },
+        "blueWinRate": 0.5,
+        "blueWinWilson95": [
+          0.15003570882017148,
+          0.8499642911798285
+        ],
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 7931.25
+          },
+          "R": {
+            "direct": 166.34632357706505,
+            "wreck": 7200
+          }
+        },
+        "meanBlueCoreMargin": -141.22591910573374
+      },
+      "after": {
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2,
+          "draw": 0
+        },
+        "blueWinRate": 0.5,
+        "blueWinWilson95": [
+          0.15003570882017148,
+          0.8499642911798285
+        ],
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 8831.25
+          },
+          "R": {
+            "direct": 1395,
+            "wreck": 7425
+          }
+        },
+        "meanBlueCoreMargin": -2.8125
+      },
+      "trials": [
+        {
+          "seed": 20261105,
+          "swapped": false,
+          "before": {
+            "winner": "B",
+            "core": [
+              7368.75,
+              7312.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 1631.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 1687.5
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              6750,
+              6656.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2250
+              },
+              "R": {
+                "direct": 656,
+                "wreck": 1687.5
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261105,
+          "swapped": true,
+          "before": {
+            "winner": "B",
+            "core": [
+              7368.75,
+              6977.403676422935
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 1631.25
+              },
+              "R": {
+                "direct": 166.34632357706505,
+                "wreck": 1856.25
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              6693.75,
+              6862.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2306.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 2137.5
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261106,
+          "swapped": false,
+          "before": {
+            "winner": "R",
+            "core": [
+              6412.5,
+              7031.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2587.5
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 1968.75
+              }
+            }
+          },
+          "after": {
+            "winner": "R",
+            "core": [
+              6918.75,
+              7170.25
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2081.25
+              },
+              "R": {
+                "direct": 86,
+                "wreck": 1743.75
+              }
+            }
+          }
+        },
+        {
+          "seed": 20261106,
+          "swapped": true,
+          "before": {
+            "winner": "R",
+            "core": [
+              6918.75,
+              7312.5
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2081.25
+              },
+              "R": {
+                "direct": 0,
+                "wreck": 1687.5
+              }
+            }
+          },
+          "after": {
+            "winner": "B",
+            "core": [
+              6806.25,
+              6490.75
+            ],
+            "losses": {
+              "B": {
+                "direct": 0,
+                "wreck": 2193.75
+              },
+              "R": {
+                "direct": 653,
+                "wreck": 1856.25
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

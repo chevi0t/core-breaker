@@ -17,7 +17,7 @@
   </div>
   <div class="layout">
     <section class="map-wrap" aria-label="対戦の俯瞰図"><canvas id="map" width="640" height="1000"></canvas>
-      <div class="legend"><span class="blue">● 青軍（南）</span><span class="orange">● 橙軍（北）</span><span>▲ 高所の床に接地</span><span>× 行動不能</span><span>線＝実際の移動</span></div>
+      <div class="legend"><span class="blue">● 青軍（南）</span><span class="orange">● 橙軍（北）</span><span>▲ 高所の床に接地</span><span>× 行動不能</span><span>線＝実際の移動</span><span>黄＝壊せる遮蔽</span><span>緑P＝補給点</span></div>
     </section>
     <section class="side">
       <div class="cores">
@@ -27,7 +27,7 @@
       <div class="card"><div class="filters"><label><input type="checkbox" id="showB" checked>青</label><label><input type="checkbox" id="showR" checked>橙</label><label>軌跡 <select id="trails"><option value="5">直近5秒</option><option value="15" selected>直近15秒</option><option value="30">直近30秒</option><option value="sortie">今の出撃から</option><option value="0">非表示</option></select></label><label><input type="checkbox" id="nav">通行可能な接続</label></div>
         <p class="hint">機体をクリックすると強調。出撃・エリア移動の前後は線でつなぎません。</p><div id="blueUnits" class="units"></div><div id="orangeUnits" class="units"></div><div id="unitDetail">機体を選ぶと担当・高さ・初期装備・コア攻撃量を表示します。</div>
       </div>
-      <div class="card"><div class="event-head"><h2>場面を探す</h2><select id="eventFilter" aria-label="イベント種別"><option value="coreHit">コア命中</option><option value="baseEnter">敵ベース侵入</option><option value="plant">プラント所有変更</option><option value="deploy">出撃・エリア移動</option><option value="wreck">大破</option><option value="padLaunch">パッド射出</option><option value="padLand">パッドから着地</option><option value="liftBoard">リフト乗車</option><option value="liftExit">リフトから高所へ下車</option></select></div>
+      <div class="card"><div class="event-head"><h2>場面を探す</h2><select id="eventFilter" aria-label="イベント種別"><option value="coreHit">コア命中</option><option value="baseEnter">敵ベース侵入</option><option value="plant">プラント所有変更</option><option value="deploy">出撃・エリア移動</option><option value="wreck">大破</option><option value="coverBreak">遮蔽の破壊</option><option value="repairStart">ポッドで補給開始</option><option value="padLaunch">パッド射出</option><option value="padLand">パッドから着地</option><option value="liftBoard">リフト乗車</option><option value="liftExit">リフトから高所へ下車</option></select></div>
         <div class="filters"><button id="firstBlue">青の最初の凸</button><button id="firstOrange">橙の最初の凸</button></div>
         <p class="hint">押すと8秒前で停止します。「再生」で侵攻を追えます。</p><div id="events"></div><div id="focus"></div>
       </div>
@@ -80,7 +80,9 @@ function visible(u){return $(u.team==='B'?'showB':'showR').checked;}
 function sample(time){const i=frameAt(time),a=match.frames[i],b=match.frames[Math.min(i+1,match.frames.length-1)],r=b.t>a.t?(time-a.t)/(b.t-a.t):0;return {i,frame:a,units:a.u.map((u,j)=>{const v=b.u[j];if(u[5]!==v[5] || !(u[4]&1) || !(v[4]&1))return u;return u.map((n,k)=>k<=2?n+(v[k]-n)*r:n);})};}
 function drawMap(s){
   ctx.clearRect(0,0,map.width,map.height);ctx.drawImage(bg,0,0);
+  (data.map.pods || []).forEach(p=>{const a=point(p.pos[0],p.pos[2]);rectWorld(ctx,p.pos[0],p.pos[2],6,6,'#7dffb0');label(ctx,(p.plant || '')+'P',a[0]+14,a[1]-7,'#7dffb0',11);});
   (data.map.lifts || []).forEach((l,i)=>{const p=s.frame.l?.[i] || l.from;rectWorld(ctx,p[0],p[2],l.w,l.depth,'#e2c16f88');const a=point(p[0],p[2]);label(ctx,'L '+p[1].toFixed(1)+'m',a[0]+22,a[1]-8,'#f8d68b',11);});
+  (data.map.barricades || []).forEach((b,i)=>{if((s.frame.b?.[i]??b.maxHp)>0){rectWorld(ctx,b.x,b.z,b.w,b.depth,'#efcb55');const p=point(b.x,b.z);label(ctx,'遮蔽'+(i+1),p[0]+20,p[1]-7,'#efcb55',10);}});
   if($('nav').checked)for(const [a,b] of data.map.nav.links){const A=data.map.nav.nodes[a],B=data.map.nav.nodes[b];line(ctx,point(A[0],A[2]),point(B[0],B[2]),'#80dcce25');}
   const trail=$('trails').value;
   if(trail!=='0')for(let j=0;j<match.units.length;j++){
@@ -105,6 +107,7 @@ function drawMap(s){
     if(!(u[4]&1)){if(u[4]&32){line(ctx,[a[0]-4,a[1]-4],[a[0]+4,a[1]+4],colors[meta.team]+'bb',2);line(ctx,[a[0]-4,a[1]+4],[a[0]+4,a[1]-4],colors[meta.team]+'bb',2);}return;}
     if(active)circle(ctx,...a,13,null,'#fbffdf',2);
     if(u[4]&8)circle(ctx,...a,11,null,colors[meta.team]+'66');
+    if(u[4]&64)circle(ctx,...a,12,null,'#7dffb0',2);
     circle(ctx,...a,6,colors[meta.team],active?'#fff':'#0c1822',1.5);
     const yaw=u[6];line(ctx,a,[a[0]-Math.sin(yaw)*11,a[1]-Math.cos(yaw)*11],colors[meta.team],1.5);
     label(ctx,meta.id,a[0]+15,a[1]-8,active?'#ffffde':colors[meta.team],10);
@@ -135,7 +138,7 @@ function updateStats(s){
   if(selected){
     const i=match.units.findIndex(u=>u.id===selected),meta=match.units[i],u=s.units[i];
     const deployment=match.events.filter(e=>e.type==='deploy' && e.unit===selected && e.t<=t).at(-1);
-    const where=!(u[4]&1)?(u[4]&32?'行動不能':'再出撃待ち'):u[4]&2?'飛行中':u[4]&4?'高所の床に接地':'地上';
+    const where=u[4]&64?'ポッドで補給中':!(u[4]&1)?(u[4]&32?'行動不能':'再出撃待ち'):u[4]&2?'飛行中':u[4]&4?'高所の床に接地':'地上';
     const raw=match.events.filter(e=>e.type==='coreHit' && e.unit===selected && e.t<=t).reduce((n,e)=>n+e.raw,0);
     $('unitDetail').textContent=`${teamName(meta.team)}${meta.id.slice(1)}｜${meta.className}・担当 ${roleName[meta.role] || meta.role}｜HP ${num(u[3])}｜${where}（高さ ${u[1].toFixed(1)}m）\n出撃元 ${deployment?.at==='base'?'ベース':deployment?.at || '不明'}｜コアへの攻撃威力 ${num(raw)}（コア減少はその1割）\n初期装備：${Object.values(meta.loadout).join('・')}`;
     $('unitDetail').style.whiteSpace='pre-line';
@@ -160,7 +163,7 @@ function buildEvents(){
     const button=document.createElement('button');button.className='event';button.dataset.time=e.t;
     const time=document.createElement('time');time.textContent=fmt(e.t);button.append(time);
     const text=document.createElement('span');text.className='kind';const unit=e.unit?teamName(e.unit[0])+e.unit.slice(1):'攻撃機不明';
-    text.textContent=e.type==='coreHit'?`${unit} → ${teamName(e.team)}コア命中`:e.type==='baseEnter'?`${unit} 敵ベースへ侵入`:e.type==='plant'?`${e.plant}：${teamName(e.from)} → ${teamName(e.to)}`:e.type==='deploy'?`${unit} ${e.reason==='transfer'?'エリア移動':'出撃'}：${e.at==='base'?'ベース':e.at}`:e.facility?`${unit} ${e.facility}：${({padLaunch:"パッド射出",padLand:"高所に着地",liftBoard:"リフト乗車",liftExit:"高所へ下車"})[e.type]}`:`${unit} 大破`;
+    text.textContent=e.type==='repairStart'?`${unit} ${e.plant || 'ベース'}のポッドで補給開始`:e.type==='coverBreak'?`遮蔽${e.index+1}が破壊`:e.type==='coreHit'?`${unit} → ${teamName(e.team)}コア命中`:e.type==='baseEnter'?`${unit} 敵ベースへ侵入`:e.type==='plant'?`${e.plant}：${teamName(e.from)} → ${teamName(e.to)}`:e.type==='deploy'?`${unit} ${e.reason==='transfer'?'エリア移動':'出撃'}：${e.at==='base'?'ベース':e.at}`:e.facility?`${unit} ${e.facility}：${({padLaunch:"パッド射出",padLand:"高所に着地",liftBoard:"リフト乗車",liftExit:"高所へ下車"})[e.type]}`:`${unit} 大破`;
     button.append(text);if(e.amount){const amount=document.createElement('span');amount.className='amt';amount.textContent='−'+num(e.amount);button.append(amount);}
     button.onclick=()=>focusEvent(e);$('events').append(button);eventRows.push({el:button,e});
   }

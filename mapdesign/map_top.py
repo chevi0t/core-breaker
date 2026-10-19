@@ -64,10 +64,14 @@ for j in range(Hh):
 dr = ImageDraw.Draw(img, "RGBA")
 P = lambda x, z: ((x + mx) * S, (z + mz) * S)
 def both(x, z, geometry=True): return [(x, z)] + ([] if x == 0 and z == 0 or geometry and d.get("asym") else [(-x, -z)])
-for x, z, w, dd, h, *_ in d["layout"] + d["barricades"]:
+for x, z, w, dd, h, *_ in d["layout"]:
     for X, Z in both(x, z):
         a, b = P(X - w / 2, Z - dd / 2), P(X + w / 2, Z + dd / 2)
         dr.rectangle([a, b], fill=(40, 40, 40, min(255, 90 + int(h * 12))))
+for i, (x, z, w, dd, h) in enumerate(d["barricades"]):
+    for X, Z in both(x, z):
+        dr.rectangle([P(X-w/2, Z-dd/2), P(X+w/2, Z+dd/2)], fill=(245, 202, 63), outline=(80, 60, 10))
+        dr.text(P(X+w/2+2, Z-4), f"Cover {i+1}", fill=(255, 225, 90))
 for x, z, w, dd, top, th in d.get("bridges", []):  # 橋の板（茶色の枠）
     for X, Z in both(x, z):
         dr.rectangle([P(X - w / 2, Z - dd / 2), P(X + w / 2, Z + dd / 2)], fill=(150, 110, 60, 120), outline=(120, 80, 30), width=2)

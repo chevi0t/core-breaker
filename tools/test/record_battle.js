@@ -11,7 +11,13 @@ const {openMap} = require('../mapgen_browser');
 const observeMobility = require('./mobility_observer');
 const prepareBotBattle = require('./prepare_bot_battle');
 const ROOT = path.resolve(__dirname, '../..');
-const [dbg, id = 'circulation-v3', output = 'dbg/replay', seedList = '20261039,20261040,20261041'] = process.argv.slice(2);
+const args=process.argv.slice(2),flag=name=>{const i=args.indexOf(name);if(i<0)return false;args.splice(i,1);return true;};
+const paired=flag('--paired-rosters'),swapped=flag('--swap-rosters'),sourceIndex=args.indexOf('--map-source');
+if(swapped&&!paired)throw new Error('--swap-rosters には --paired-rosters が必要です');
+const mapSource=sourceIndex<0?null:args.splice(sourceIndex,2)[1];
+let mapData=null;
+if(mapSource){const context={window:{}};require('node:vm').runInNewContext(fs.readFileSync(mapSource,'utf8'),context);mapData=JSON.parse(JSON.stringify(Object.values(context.window.MAP_DATA)[0]));}
+const [dbg, id = 'circulation-v3', output = 'dbg/replay', seedList = '20261039,20261040,20261041'] = args;
 const seeds = seedList.split(',').map(Number);
 if (dbg !== 'dbg' || !seeds.length || new Set(seeds).size !== seeds.length || seeds.some(s => !Number.isInteger(s) || s < 0 || s > 0xffffffff)) throw new Error('dbg、マップID、出力フォルダ、重複しない32bit整数のシードを指定してください');
 const hash = file => crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, file))).digest('hex');
@@ -32,24 +38,24 @@ function summarize(match) {
 (async () => {
   fs.mkdirSync(output, {recursive:true});
   const data = {version:1, sourceCommit:child.execFileSync('git', ['rev-parse','HEAD'], {cwd:ROOT,encoding:'utf8'}).trim(),
-    engineSha256:hash('prototype/index.html'), mapSourceSha256:hash('prototype/maps/'+id.replace(/-v\d+$/,'')+'.js'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'), mobilityObserverSha256:hash('tools/test/mobility_observer.js'), initializationSha256:hash('tools/test/prepare_bot_battle.js'),
+    engineSha256:hash('prototype/index.html'), mapSourceSha256:crypto.createHash('sha256').update(fs.readFileSync(mapSource||path.join(ROOT,'prototype/maps/'+id.replace(/-v\d+$/,'')+'.js'))).digest('hex'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'), mobilityObserverSha256:hash('tools/test/mobility_observer.js'), initializationSha256:hash('tools/test/prepare_bot_battle.js'),
     positionSampleSeconds:0.25, unitColumns:['x','y','z','hp','flags','segment','yaw','coreDamageRaw','target'],
-    flags:{alive:1,flying:2,upper:4,invulnerable:8,transfer:16,down:32},
+    flags:{alive:1,flying:2,upper:4,invulnerable:8,transfer:16,down:32,repairing:64},
     note:'新しく実行した対戦の観測記録。過去13試合の再生ではない。位置は0.25秒刻み、被害・出撃・侵入・所有者変更は0.05秒刻みで観測。攻撃機の位置は命中時の現在位置であり発射地点や弾道ではない。', matches:[]};
   let browser;
   try {
     browser = await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
     for (const seed of seeds) {
-      const {page,errors} = await openMap(browser, id, null, seed, {silent:true});
+      const {page,errors} = await openMap(browser, id, mapData, seed, {silent:true});
       try {
         if (!await page.evaluate(() => window.__battleTraceVersion === 1)) throw new Error('make_dbg.py dbg --trace を実行してください');
         await page.click('#start');
-        const initialization=await page.evaluate(prepareBotBattle);
+        const initialization=await page.evaluate(prepareBotBattle,{fixture:paired?{seed,swapped}:null});
         await page.evaluate('window.__observeMobility = '+observeMobility.toString());
         const info = await page.evaluate(() => {
           const g=__g;
           const round=n=>Math.round(n*100)/100, uid=u=>u.team+(u.idx+1);
-          const s=window.__recording={ticks:0,events:[],frames:[],segments:Object.fromEntries(g.units.map(u=>[uid(u),0])),inBase:{},alive:{},owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner]))};
+          const s=window.__recording={ticks:0,events:[],frames:[],segments:Object.fromEntries(g.units.map(u=>[uid(u),0])),inBase:{},alive:{},repairing:{},covers:g.barricades.map(b=>b.alive),owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner]))};
           window.__battleEvent=e=>{
             e.t=round(g.MATCH-g.timeLeft);
             if(e.pos) e.pos=e.pos.map(round);
@@ -59,9 +65,9 @@ function summarize(match) {
           };
           for(const u of g.units) s.events.push({type:'deploy',t:0,unit:uid(u),team:u.team,at:'base',reason:'initial',pos:u.pos.toArray().map(round),segment:0});
           window.__recordFrame=()=>{
-            s.frames.push({t:round(g.MATCH-g.timeLeft),c:[g.cores.B.hp,g.cores.R.hp],p:g.plants.map(p=>[p.owner,round(p.gauge)]),l:g.curMap.lifts ? g.lifts.map(l=>l.pos.toArray().map(round)) : [],u:g.units.map(u=>[
+            s.frames.push({t:round(g.MATCH-g.timeLeft),c:[g.cores.B.hp,g.cores.R.hp],p:g.plants.map(p=>[p.owner,round(p.gauge)]),l:g.curMap.lifts ? g.lifts.map(l=>l.pos.toArray().map(round)) : [],b:g.barricades.map(b=>round(Math.max(0,b.hp))),u:g.units.map(u=>[
               round(u.pos.x),round(u.pos.y),round(u.pos.z),round(u.hp),
-              (u.alive?1:0)|(u.flying?2:0)|(u.onGround && g.groundAt(u.pos.x,u.pos.z,u.pos.y)>5?4:0)|(u.invulT>0?8:0)|(u.transfer?16:0)|(u.downT>0?32:0),
+              (u.alive?1:0)|(u.flying?2:0)|(u.onGround && g.groundAt(u.pos.x,u.pos.z,u.pos.y)>5?4:0)|(u.invulT>0?8:0)|(u.transfer?16:0)|(u.downT>0?32:0)|(u.repairing?64:0),
               s.segments[uid(u)],round(u.yaw),u.sc.coreDmg,u.target ? (u.target.kind==='unit'?uid(u.target):u.target.kind) : null])});
           };
           __recordFrame();
@@ -71,9 +77,11 @@ function summarize(match) {
           return {initialCore:[g.cores.B.hp,g.cores.R.hp],duration:g.MATCH,
             units:g.units.map(u=>({id:uid(u),team:u.team,role:u.role,cls:u.cls,className:g.CLASSES[u.cls].name,mech:u.mech,loadout:Object.fromEntries(Object.entries(u.slots).map(([k,s])=>[k,s.w.name]))})),
             map:{id:g.mapId,name:g.curMap.name,subtitle:g.curMap.subtitle,size:g.curMap.size,baseLine:g.curMap.baseLine,
-              terrain:{step,nx,nz,heights},obstacles:g.obstacles.filter(o=>!g.curMap.lifts || !g.lifts.some(l=>l.ob===o)).map(o=>({minX:o.minX,maxX:o.maxX,minZ:o.minZ,maxZ:o.maxZ,top:o.top,bottom:o.bottom || 0})),
+              terrain:{step,nx,nz,heights},obstacles:g.obstacles.filter(o=>!g.lifts.some(l=>l.ob===o)&&!g.barricades.some(b=>b.ob===o)).map(o=>({minX:o.minX,maxX:o.maxX,minZ:o.minZ,maxZ:o.maxZ,top:o.top,bottom:o.bottom || 0})),
+              barricades:g.barricades.map(b=>({x:b.pos.x,z:b.pos.z,w:b.ob.maxX-b.ob.minX,depth:b.ob.maxZ-b.ob.minZ,maxHp:b.maxHp})),
               bridges:g.curMap.bridges || [],water:g.curMap.water || [],
               plants:g.plants.map(p=>({id:p.id,pos:p.pos.toArray(),radius:g.PLANT_R})),
+              pods:g.pods.map(p=>({plant:p.plant?.id||null,team:p.team||null,pos:p.pos.toArray()})),
               cores:['B','R'].map(team=>({team,pos:g.cores[team].pos.toArray()})),
               catapults:g.catapults.map(c=>({pos:c.pos.toArray(),land:c.land.toArray()})),
               jumpPads:g.curMap.jumpPads ? g.jumpPads.map(p=>({pos:p.pos.toArray(),exit:p.exit.toArray(),radius:p.radius})) : [],
@@ -88,11 +96,14 @@ function summarize(match) {
             for(let f=0;f<100 && !g.ended;f++) {
               g.loop(__advanceClock()); s.ticks++;
               for(const e of __observeMobility()){e.segment=s.segments[e.unit];s.events.push(e);}
+              g.barricades.forEach((b,i)=>{if(s.covers[i]&&!b.alive)s.events.push({type:'coverBreak',t:round(g.MATCH-g.timeLeft),index:i,pos:b.pos.toArray().map(round)});s.covers[i]=b.alive;});
               for(const p of g.plants) if(p.owner!==s.owners[p.id]) {s.events.push({type:'plant',t:round(g.MATCH-g.timeLeft),plant:p.id,from:s.owners[p.id],to:p.owner});s.owners[p.id]=p.owner;}
               for(const u of g.units) {
                 const id=uid(u), inside=u.alive && u.pos.z*g.TEAM[u.team].dir>g.curMap.baseLine;
                 if(inside && !s.inBase[id]) s.events.push({type:'baseEnter',t:round(g.MATCH-g.timeLeft),unit:id,team:u.team,pos:u.pos.toArray().map(round),segment:s.segments[id]});
                 if(s.alive[id] && !u.alive) s.events.push({type:'down',t:round(g.MATCH-g.timeLeft),unit:id,team:u.team,pos:u.pos.toArray().map(round),segment:s.segments[id]});
+                if(u.repairing&&!s.repairing[id]){const pod=g.pods.find(p=>p.pos.distanceTo(u.pos)<5);s.events.push({type:'repairStart',t:round(g.MATCH-g.timeLeft),unit:id,team:u.team,plant:pod?.plant?.id||null,pos:u.pos.toArray().map(round),segment:s.segments[id]});}
+                s.repairing[id]=u.repairing;
                 s.inBase[id]=inside; s.alive[id]=u.alive;
               }
               if(s.ticks%5===0 || g.ended) __recordFrame();
@@ -106,7 +117,7 @@ function summarize(match) {
             finalCore:[b,r],winner:b===r?'draw':r<=0 || (b>0 && b>r)?'B':'R',
             kills:Object.fromEntries(['B','R'].map(t=>[t,g.units.filter(u=>u.team===t).reduce((n,u)=>n+u.sc.kills,0)]))};
         });
-        const {segments,inBase,alive,owners,...record}=match;
+        const {segments,inBase,alive,owners,covers,repairing,...record}=match;
         Object.assign(record,{seed,units:info.units,initialCore:info.initialCore,initialization,errors});
         if(!record.ended || errors.length || !record.kills.B || !record.kills.R) throw new Error(`seed ${seed} の対戦が正常に終わりませんでした: ${errors.join(',')}`);
         const summary=summarize(record);

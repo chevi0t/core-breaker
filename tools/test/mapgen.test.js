@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const vm = require('node:vm');
 const {execFileSync} = require('node:child_process');
-const {geometry, placements, selectDiverse, serialize, facilitiesPass} = require('../mapgen');
+const {geometry, placements, selectDiverse, routeCover, serialize, facilitiesPass} = require('../mapgen');
 const {options} = require('../generate_map');
 const decode = text => {const c={window:{}};vm.runInNewContext(text,c);return JSON.parse(JSON.stringify(c.window.MAP_DATA.fixture));};
 const sites = data => [[0,0],[0,60],[0,-60],[data.generation.east,0],[data.generation.east,60],[data.generation.east,-60],[data.generation.west,data.generation.pad],[data.generation.west,-data.generation.pad]].map(([x,z],key)=>({key,x,z,y:x===data.generation.west||x===data.generation.east&&z===0?data.generation.deck:0}));
@@ -42,6 +42,18 @@ test('予算が足りない場合に3戦場あると偽らない',()=>{
   assert.throws(()=>options(['--id','../mesa']));
   assert.ok(options(['--seed','4294967295']).placementSeed>=0);
 });
+test('遮蔽修正でプラントと共通地形を動かさず、比較基準の高架縦断を変えない',()=>{
+  const d=geometry(20261019),choices=selectDiverse(placements(sites(d),20280950,64),3),before=JSON.stringify({d,choices});
+  for(const choice of choices){
+    const cover=routeCover(choice);
+    assert.deepEqual(routeCover(choice,'baseline'),{barricades:[]});
+    if(choice.name==='高架縦断')assert.deepEqual(cover,{barricades:[]});
+    for(const [x,z,w,h] of cover.barricades)for(const [,px,pz] of choice.plants){
+      assert.ok(Math.hypot(Math.max(0,Math.abs(x-px)-w/2),Math.max(0,Math.abs(z-pz)-h/2))>16,'占拠円は空ける');
+    }
+  }
+  assert.equal(JSON.stringify({d,choices}),before);
+});
 test('起伏生成は両半面を使い、同じシードで再実行しても地形が増殖しない',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'core-mapgen-'));
   try {
@@ -62,4 +74,7 @@ test('★が無くてもポッドが見える・片側未検査・ページエ�
   assert.equal(facilitiesPass(good.split('\n').slice(1).join('\n')),false);
   assert.equal(facilitiesPass(good.replace('ページのエラー 0','ページのエラー 1')),false);
   assert.equal(facilitiesPass(good+'\n★リンクを歩けない'),false);
+  assert.equal(facilitiesPass(good+'\nポッド プラントC (38, -27)：300か所中 80か所から見える',['A','F']),true,'中央ポッドの視認は報告するが、完全遮蔽の要件は両端');
+  assert.equal(facilitiesPass(good.replace('ポッドA','ポッドQ'),['A','F']),false,'必要な端ポッドの計測漏れは不合格');
+  assert.equal(facilitiesPass(good.replace('中 0','中 1'),['A','F']),false,'端ポッドは見えると不合格');
 });

@@ -26,7 +26,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
   get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
-  get botMech() { return botMech; }, get renderCustom() { return renderCustom; },
+  get botMech() { return botMech; }, get renderCustom() { return renderCustom; }, get weaponGeoBank() { return weaponGeoBank; }, get nearestPod() { return nearestPod; },
   get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
   get resetMobility() { return resetMobility; }, get botMobilityGoal() { return botMobilityGoal; },
   get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
@@ -59,6 +59,11 @@ def main():
     # Bot戦では青1も最初から通常Botとして生成し、機体抽選と初動を同じにする。
     # フラグを指定しない通常のデバッグ操作はプレイヤーのまま。
     s = rep(s, "player = makeUnit('B', true, 0);", "player = makeUnit('B', !window.__allBotBattle, 0);")
+    # 比較試験では1機ごとの初期乱数を固定し、同じ編成を両陣営へ入れ替える。
+    # hook が無い通常の dbg と本体には影響しない。生成・装備・出撃は本体を使う。
+    s = rep(s, "function makeUnit(team, isPlayer, idx) {", "function makeUnit(team, isPlayer, idx) {\n  const restoreFixtureRandom = window.__botFixtureRandom?.(team, idx);")
+    s = rep(s, "if (isPlayer) spawn(u); else botSpawn(u, true);\n  return u;", "window.__botFixturePhase?.(team, idx, 1);\n  if (isPlayer) spawn(u); else botSpawn(u, true);\n  restoreFixtureRandom?.();\n  return u;")
+    s = rep(s, "spawn(u, at);\n  // ベースから出た攻撃役", "spawn(u, at);\n  window.__botFixturePhase?.(u.team, u.idx, 2);\n  // ベースから出た攻撃役")
     s = rep(s, "\nrequestAnimationFrame(loop);\n", "\nrequestAnimationFrame(loop);\n" + EXPOSE + "\n")
     s = rep(s, EXPOSE, EXPOSE + "\nwindow.__allBotSetupVersion = 1;")
     if trace:

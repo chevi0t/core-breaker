@@ -7,8 +7,15 @@ const {chromium} = require('playwright');
 const {openMap} = require('../mapgen_browser');
 const observeMobility = require('./mobility_observer');
 const prepareBotBattle = require('./prepare_bot_battle');
-const legacy=process.argv.includes('--legacy-player'),args=process.argv.slice(2).filter(a=>a!=='--legacy-player');
+const args=process.argv.slice(2);
+const flag=name=>{const i=args.indexOf(name);if(i<0)return false;args.splice(i,1);return true;};
+const value=name=>{const i=args.indexOf(name);if(i<0)return null;return args.splice(i,2)[1];};
+const legacy=flag('--legacy-player'),paired=flag('--paired-rosters'),mapSource=value('--map-source');
+if(legacy&&paired)throw new Error('旧初期化と編成入替は同時指定できません');
+let mapData=null;
+if(mapSource){const context={window:{}};require('node:vm').runInNewContext(fs.readFileSync(mapSource,'utf8'),context);mapData=JSON.parse(JSON.stringify(Object.values(context.window.MAP_DATA)[0]));}
 const maps=(args[1] || 'circulation,circulation-v2,circulation-v3').split(',');
+if(paired&&(maps.length%2||maps.some((id,i)=>i%2&&id!==maps[i-1])))throw new Error('編成入替は同じマップを2回ずつ並べてください');
 const seconds=Number(args[2] || 150), output=args[3] || 'dbg/map-battles.json';
 const seedStart=Number(args[4] ?? 20261019);
 if(args[0]!=='dbg' || !(seconds>0 && Number.isFinite(seconds))) throw new Error('dbg と正の検証秒数を指定してください');
@@ -19,14 +26,15 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
   try {
     browser=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
     for(const [index,id] of maps.entries()) {
-      const {page,errors}=await openMap(browser,id,null,seedStart+index,{silent:true});
+      const fixture=paired?{seed:seedStart+Math.floor(index/2),swapped:!!(index%2)}:null;
+      const {page,errors}=await openMap(browser,id,mapData,fixture?.seed??seedStart+index,{silent:true});
       try {
         await page.click('#start');
-        const initialization=await page.evaluate(prepareBotBattle,legacy);
+        const initialization=await page.evaluate(prepareBotBattle,{legacy,fixture});
         await page.evaluate('window.__observeMobility = '+observeMobility.toString());
         await page.evaluate(()=>{
           const g=__g;
-          window.__battle={ticks:0,captures:0,events:[],mobility:[],owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner])),occupancy:{},layers:{upper:0,west:0,center:0,east:0},stalls:0,last:{}};
+          window.__battle={ticks:0,captures:0,events:[],mobility:[],owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner])),occupancy:{},layers:{upper:0,west:0,center:0,east:0},stalls:0,last:{},repairs:[],repairing:{}};
           __battle.initialCore=[g.cores.B.hp,g.cores.R.hp];
           if(window.__battleTraceVersion===1){
             __battle.losses={B:{direct:0,wreck:0},R:{direct:0,wreck:0}};
@@ -40,6 +48,11 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
             for(let frame=0;frame<100 && g.MATCH-g.timeLeft<limit && !g.ended;frame++) {
               g.loop(__advanceClock()); s.ticks++;
               s.mobility.push(...__observeMobility());
+              for(const u of g.units){
+                const id=u.team+(u.idx+1);
+                if(u.repairing&&!s.repairing[id]){const pod=g.pods.find(p=>p.pos.distanceTo(u.pos)<5);s.repairs.push({t:Math.round((g.MATCH-g.timeLeft)*20)/20,unit:id,plant:pod?.plant?.id||null,pos:u.pos.toArray()});}
+                s.repairing[id]=u.repairing;
+              }
               for(const p of g.plants) {
                 if(p.owner!==s.owners[p.id]) {s.events.push({t:Math.round((g.MATCH-g.timeLeft)*10)/10,id:p.id,from:s.owners[p.id],to:p.owner});s.owners[p.id]=p.owner;s.captures++;}
                 const key=p.id+':'+(p.owner || 'neutral'); s.occupancy[key]=(s.occupancy[key] || 0)+0.05;
@@ -62,6 +75,7 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
           return {map:g.mapId,seconds:Math.round((g.MATCH-g.timeLeft)*10)/10,matchDuration:g.MATCH,ended:g.ended,winner:g.ended?(b===r?'draw':r<=0 || (b>0 && b>r)?'B':'R'):null,endedBy:g.ended?(b<=0 || r<=0?'core':'time'):null,core:[Math.round(b),Math.round(r)],kills:{B:g.units.filter(u=>u.team==='B').reduce((a,u)=>a+u.sc.kills,0),R:g.units.filter(u=>u.team==='R').reduce((a,u)=>a+u.sc.kills,0)},captures:s.captures,captureEvents:s.events,occupancy:s.occupancy,layers:s.layers,layerSampling:'1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45',stalls:s.stalls};
         });
         result.mobility=await page.evaluate(()=>__battle.mobility);
+        result.repairs=await page.evaluate(()=>__battle.repairs);
         result.initialization=initialization;
         result.coreExact=await page.evaluate(()=>[__g.cores.B.hp,__g.cores.R.hp]);
         result.initialCore=await page.evaluate(()=>__battle.initialCore);
@@ -69,7 +83,7 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
         if(result.losses) for(const [i,team] of ['B','R'].entries()) {
           if(Math.abs(result.initialCore[i]-result.coreExact[i]-result.losses[team].direct-result.losses[team].wreck)>1e-6)throw new Error(`${id}/${team}: コア被害内訳が一致しません`);
         }
-        result.seed=seedStart+index;result.errors=errors;
+        result.seed=fixture?.seed??seedStart+index;result.errors=errors;
         result.balance=result.ended?'勝率未確定（終局までの観測1試合）':'勝率未確定（短時間動作確認）';
         results.push(result);
         fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(results,null,2)+'\n');

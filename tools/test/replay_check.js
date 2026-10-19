@@ -31,7 +31,7 @@ const ledger=await p.evaluate(()=>{const m=__replay.data.matches[Number(document
 await p.screenshot({path:path.join(folder,'viewer-check.png'),fullPage:true});
 await p.click('#play');await p.waitForFunction(t=>__replay.time>t+.5,first.t);await p.click('#play');
 const available=await p.locator('#eventFilter option').evaluateAll(options=>options.map(o=>o.value));
-const types=['plant','deploy','baseEnter','wreck','coreHit','padLaunch','padLand','liftBoard','liftExit'].filter(type=>available.includes(type));
+const types=['plant','deploy','baseEnter','wreck','coreHit','padLaunch','padLand','liftBoard','liftExit','coverBreak','repairStart'].filter(type=>available.includes(type));
 if(await p.evaluate(i=>__replay.data.matches[i].events.some(e=>e.facility),chosen))expect(['padLaunch','padLand','liftBoard','liftExit'].every(type=>types.includes(type)),'昇降イベントの選択肢');
 for(const type of types){
  await p.selectOption('#eventFilter',type);const observed=await p.evaluate(({i,type})=>__replay.data.matches[i].events.filter(e=>e.type===type).length,{i:chosen,type});expect((await p.locator('#events button').count()>0)===(observed>0),type+'イベント表示');
@@ -40,9 +40,18 @@ for(const type of types){
   expect(await p.evaluate(e=>__replay.time===Math.max(0,e.t-8)&&__replay.selected===e.unit,e),type+'の8秒前と対象機体へ移動');
  }
 }
+const covers=await p.evaluate(()=>{
+ const data=__replay.data,m=data.matches[Number(document.querySelector('#match').value)];
+ if(!data.map.barricades?.length)return null;
+ return {count:data.map.barricades.length,frames:m.frames.length,
+  recorded:m.frames.every(f=>f.b?.length===data.map.barricades.length),
+  initial:m.frames[0].b,final:m.frames.at(-1).b,
+  destroyed:m.events.filter(e=>e.type==='coverBreak').map(e=>({index:e.index,t:e.t,hp:m.frames.find(f=>f.t>=e.t)?.b[e.index]}))};
+});
+if(covers){expect(covers.recorded,'全フレームに遮蔽の耐久');expect(covers.destroyed.every(e=>e.hp===0),'破壊後は耐久0');}
 await p.setViewportSize({width:390,height:844});
 expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'モバイル横はみ出し');
 expect(!errors.length,'ページエラー '+errors.join(','));expect(!external.length,'外部要求 '+external.join(','));
-fs.writeFileSync(path.join(folder,'viewer-check.json'),JSON.stringify({matches:count,finalCoreDisplay:true,eventSeek:true,unitSelection:true,sortieTrail:true,playback:true,eventTypes:types.length,mobileWidth:390,overflow:false,firstAttackFromDeployment:!!attack,coreLossLedgerDisplay:true,externalRequests:external,errors},null,2)+'\n');
+fs.writeFileSync(path.join(folder,'viewer-check.json'),JSON.stringify({matches:count,finalCoreDisplay:true,eventSeek:true,unitSelection:true,sortieTrail:true,playback:true,eventTypes:types.length,covers,mobileWidth:390,overflow:false,firstAttackFromDeployment:!!attack,coreLossLedgerDisplay:true,externalRequests:external,errors},null,2)+'\n');
 process.stdout.write(count+'試合切替・終局HP・イベント遡り・機体選択・軌跡・再生・390px幅・外部要求なしを確認\n');
 }finally{await b.close()}})().catch(e=>{process.stderr.write(e.stack+'\n');process.exitCode=1});

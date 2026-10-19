@@ -1,0 +1,33 @@
+
+> test:mapgen
+> node --test tools/test/mapgen.test.js
+
+✔ 段階1：同じシードで地形を再現し、保存・再読み込みできる (3.849889ms)
+✔ 段階2：配置シードを変えても共通地形は変わらず、3種類を選べる (1.674817ms)
+✔ 予算が足りない場合に3戦場あると偽らない (0.45733ms)
+✔ 遮蔽修正でプラントと共通地形を動かさず、比較基準の高架縦断を変えない (0.819056ms)
+✔ 起伏生成は両半面を使い、同じシードで再実行しても地形が増殖しない (897.569236ms)
+✔ ★が無くてもポッドが見える・片側未検査・ページエラーなら合格にしない (0.651543ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1225.952385
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+✔ 昇降設備を保存・検査し、省略した従来マップも受け付ける (2495.369429ms)
+✔ 危険な寸法・速度・高さと壊れた座標を登録しない (11539.668942ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14720.492999

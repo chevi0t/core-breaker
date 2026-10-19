@@ -20,12 +20,12 @@ async function openMap(browser, id, data, seed = 1, {silent=false} = {}) {
     if(silent){window.AudioContext=undefined;window.webkitAudioContext=undefined;}
     window.__battleSilent=silent;
   }, {seed,silent});
-  if (data) await page.route('**/maps.js', route => route.fulfill({contentType:'application/javascript; charset=utf-8', body:serialize(id, data)}));
+  if (data) await page.route('**/maps.js', route => route.fulfill({contentType:'application/javascript; charset=utf-8', body:serialize(id.replace(/-v\d+$/,''), data)}));
   await page.route('**fonts.g*/**', route => route.fulfill({contentType:'text/css', body:''}));
   await page.goto('file://' + path.join(ROOT, 'dbg/dbg.html'));
   await page.waitForFunction(() => !!window.__g);
   if (!await page.evaluate(id => Object.hasOwn(__g.MAPS,id),id)) throw new Error(`マップ ${id} は存在しません`);
-  if (!data) await page.evaluate(id => __g.selectMap(id), id);
+  if (!data || await page.evaluate(id=>__g.mapId!==id,id)) await page.evaluate(id => __g.selectMap(id), id);
   return {page, errors};
   } catch (error) {await page.close(); throw error;}
 }
@@ -59,6 +59,9 @@ function navigation() {
   for (const p of g.jumpPads) {add(p.pos.x,p.pos.z,p.pos.y);add(p.exit.x,p.exit.z,p.exit.y);}
   for (const l of g.lifts) {add(l.from.x,l.from.z,l.from.y);add(l.to.x,l.to.z,l.to.y);}
   for (const pl of g.plants) for (const dx of [-6, 6]) add(pl.pos.x + dx, pl.pos.z + 3);
+  // 内側プラントの補給点も帰還目標へ接続する。既存の外側ポッドの経路は保持。
+  const outer=[g.plants[0].id,g.plants.at(-1).id];
+  for (const pod of g.pods) if(pod.plant&&!outer.includes(pod.plant.id)) add(pod.pos.x,pod.pos.z);
   for (const c of g.catapults) {add(c.land.x, c.land.z); add(c.pos.x + 6, c.pos.z);}
   const walk = (a, b) => {
     if(!g.clearPath(a[0],a[1],b[0],b[1],a[2]) || Math.abs(g.pathEndH-b[2])>=.8)return false;

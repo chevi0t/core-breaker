@@ -109,6 +109,28 @@ function selectDiverse(proposals, count) {
   return chosen;
 }
 
+// 共通の地形を固定し、戦場の構造ごとに中立の壊せる遮蔽を試す。
+// 配置円・再出撃位置・昇降口を塞がず、短い壁の両端に徒歩経路を残す。
+function routeCover(choice, revision='repair3') {
+  if(revision==='baseline') return {barricades:[]};
+  if(!['cover1','cover2','repair3'].includes(revision)) throw new Error('修正案は baseline / cover1 / cover2 / repair3 を指定してください');
+  if(choice.metrics.plants===3) return {barricades:revision==='cover1'
+    ?[[-24,172,2,18,4.5],[24,172,2,18,4.5]]
+    :[[-45,158,12,2,4.5],[45,158,12,2,4.5]]};
+  if(choice.metrics.offCenter===choice.metrics.elevated && choice.metrics.spread>100) return {barricades:[]};
+  if(revision==='repair3'){
+    // 低耐久Botが選べるポッドは90m以内。中央の実測大破地点から届く建物裏に置く。
+    // 所有権は既存の地上中央プラントに従い、敵軍も奪えば利用できる。
+    const relay=choice.plants.slice(1,-1).find(p=>p[1]===0&&p[2]===60);
+    if(!relay) return {barricades:[]};
+    return {barricades:[],plantPods:[...choice.plantPods,[relay[0],38,-27]]};
+  }
+  // 中央から北へ進む区間。中央通路を閉じず、南側へ射線を切って戻れる位置。
+  return {barricades:revision==='cover1'
+    ?[[-9,-24,14,2,4.5],[9,-79,14,2,4.5]]
+    :[[-18,-38,2,18,4.5],[24,-90,2,18,4.5]]};
+}
+
 function serialize(id, data) {
   if (!/^[a-z][a-z0-9_]*$/.test(id)) throw new Error('マップIDは英小文字から始まる英小文字・数字・_ にしてください');
   // gen_rough.py の既存の terrain マーカーを利用する。
@@ -129,8 +151,13 @@ function serialize(id, data) {
 }
 
 function save(id, data, file) {fs.writeFileSync(file, serialize(id, data));}
-function facilitiesPass(log) {
+function facilitiesPass(log, requiredPodIds=null) {
   const visibility=[...log.matchAll(/か所中 (\d+)か所から見える/g)].map(match=>Number(match[1]));
+  if(requiredPodIds){
+    const pods=new Map([...log.matchAll(/ポッド(?: プラント)?([A-Z]+)[^\n]*?か所中 (\d+)か所から見える/g)].map(m=>[m[1],Number(m[2])]));
+    // 敵陣から完全に隠す要件は両端のポッド。中央は視認数を報告し、★は全施設で禁止。
+    return !log.includes('★')&&log.includes('ページのエラー 0')&&requiredPodIds.length>=2&&requiredPodIds.every(id=>pods.get(id)===0);
+  }
   return !log.includes('★') && log.includes('ページのエラー 0') && visibility.length>=2 && visibility.every(count=>count===0);
 }
-module.exports = {random, geometry, placements, diversity, selectDiverse, serialize, save, facilitiesPass};
+module.exports = {random, geometry, placements, diversity, selectDiverse, routeCover, serialize, save, facilitiesPass};
