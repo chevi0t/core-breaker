@@ -20,7 +20,7 @@
 | `prototype/maps/<id>.js` | マップのデータ（書き方 `prototype/maps/README.md`、決まり `prototype/maps/RULES.md`） |
 | `prototype/maps.js` | `python3 tools/build_maps.py` が `maps/` から作る。手で書き換えない |
 | `prototype/sounds.js`・`music.js` | `tools/build_sounds.py` が `sounds/` から作る |
-| `research/` | wiki から調べた数値。`weapons/*.md`、`weapons/types/*.json`、`parts/*.md` は PS4版 wiki の表（本作の今の数値の元）。アーケード版 wiki の表は `arcade/` に置く |
+| `research/` | wiki から調べた数値。`weapons/*.md`、`weapons/types/*.json`、`parts/*.md` は PS4版 wiki の表（本作の今の数値の元）。アーケード版 wiki の表は `arcade/` に置く。ACの採用記録は `weapons/types/arcade.json` と `parts/types/` |
 | `mapdesign/` | マップの設計メモと俯瞰図（`map_top.py`） |
 | `tools/` | `build_maps.py`、`gen_rough.py`（地面の起伏）、`build_sounds.py`、`build_zip.py`、`repo_sync.py`、`test/` |
 | `plan.md` | 計画と残タスク |
