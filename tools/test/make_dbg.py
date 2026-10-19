@@ -32,7 +32,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get bladeSweep() { return bladeSweep; },
   get heatFields() { return heatFields; }, get chains() { return chains; }, get secondaryBurst() { return secondaryBurst; }, get secondaryUpdate() { return secondaryUpdate; }, get clearSecondaryEffects() { return clearSecondaryEffects; }, get startChain() { return startChain; }, get shellUpdate() { return shellUpdate; }, get scopePower() { return scopePower; }, get wStats() { return wStats; }, get itemNums() { return itemNums; },
   get barrages() { return barrages; }, get artilleryTick() { return artilleryTick; }, get artilleryUpdate() { return artilleryUpdate; }, get artilleryConfirm() { return artilleryConfirm; }, get isArtilleryMode() { return isArtilleryMode; }, get stopArtillery() { return stopArtillery; }, get clearArtillery() { return clearArtillery; }, get artillerySurface() { return artillerySurface; }, get drawBigMap() { return drawBigMap; }, get playerUpdate() { return playerUpdate; }, get mapCur() { return mapCur; }, get startTransfer() { return startTransfer; }, get shortDash() { return shortDash; },
-  get barrierAxis() { return barrierAxis; }, get running() { return running; }, set running(v) { running = v; } };"""
+  get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get running() { return running; }, set running(v) { running = v; } };"""
 
 
 def rep(s, a, b):
