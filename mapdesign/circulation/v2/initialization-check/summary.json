@@ -1,0 +1,187 @@
+{
+  "baseCommit": "851ec1ebbf597f8003924fbdfd5b519109434e15",
+  "upstream": "a39ac62",
+  "note": "v0.18同一エンジン・同一地形で無音比較。初期化で乱数消費が変わるため、同seedでも装備の一致した対比較ではない。",
+  "balance": "勝率未確定",
+  "sha256": {
+    "prototype/index.html": "a5288b7f706a4a8e08512b2fcea4d14ca2dddc016d632fec0dcc62083b6d1a5f",
+    "prototype/maps/circulation.js": "66cc268e145f22a5d1ffcbd7147846df6d521e24e410f38b465065bb2a14032b",
+    "prototype/maps.js": "f9f1e745cd2b1c0229f11c1151c79e34dcc206b03839ad3d9336730d3370223d",
+    "tools/test/make_dbg.py": "fbdce7c9cb75d75fcae3d250f882b466a713e1286a46d39800b4d37085ab35bf",
+    "tools/mapgen_browser.js": "c626081538dbe27439f6f31416a221160d18945f8e21432f80bf7dfb5bdb003b",
+    "tools/test/prepare_bot_battle.js": "0a3b402d233ba7c7c2735fdd25f0e3397253bdc39da7a1e57560367850bb39f2",
+    "tools/test/map_battle.js": "ac4c0c9719bd606915f6a7333bb83c62f4c42e9cb246462dde638c51bcb6e791",
+    "tools/test/record_battle.js": "9c32cdb9dda0e95f0ee87094861b658cefc49783fad50e794451afd04d19a366"
+  },
+  "modes": {
+    "legacy": [
+      {
+        "id": "circulation",
+        "name": "昇降交差",
+        "games": 4,
+        "wins": {
+          "B": 1,
+          "R": 3
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 25,
+          "R": 75
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 731,
+            "wreck": 9337.5
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 8212.5
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 1
+      },
+      {
+        "id": "circulation-v2",
+        "name": "高架縦断",
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 50,
+          "R": 50
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 1330,
+            "wreck": 8381.25
+          },
+          "R": {
+            "direct": 766,
+            "wreck": 8943.75
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 1
+      },
+      {
+        "id": "circulation-v3",
+        "name": "片翼争奪",
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 50,
+          "R": 50
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 288,
+            "wreck": 9112.5
+          },
+          "R": {
+            "direct": 330,
+            "wreck": 8887.5
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 2
+      }
+    ],
+    "ordinary": [
+      {
+        "id": "circulation",
+        "name": "昇降交差",
+        "games": 4,
+        "wins": {
+          "B": 1,
+          "R": 3
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 25,
+          "R": 75
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 1851,
+            "wreck": 8718.75
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 6975.0
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 2
+      },
+      {
+        "id": "circulation-v2",
+        "name": "高架縦断",
+        "games": 4,
+        "wins": {
+          "B": 2,
+          "R": 2
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 50,
+          "R": 50
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 80,
+            "wreck": 8662.5
+          },
+          "R": {
+            "direct": 160,
+            "wreck": 8437.5
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 2
+      },
+      {
+        "id": "circulation-v3",
+        "name": "片翼争奪",
+        "games": 4,
+        "wins": {
+          "B": 1,
+          "R": 3
+        },
+        "draws": 0,
+        "winPercent": {
+          "B": 25,
+          "R": 75
+        },
+        "lossesTotal": {
+          "B": {
+            "direct": 92,
+            "wreck": 8493.75
+          },
+          "R": {
+            "direct": 3044,
+            "wreck": 7706.25
+          }
+        },
+        "gamesWithoutDirectCoreDamage": 2
+      }
+    ]
+  },
+  "checks": {
+    "ordinaryInitializationSeeds": 4,
+    "deterministicSeconds": 20,
+    "recorderAgreesWithRunner300Seconds": true,
+    "mobilityCases": 18,
+    "viewerErrors": 0,
+    "weaponCount": 204,
+    "standardMaps": [
+      "city",
+      "wide",
+      "mesa",
+      "dock"
+    ],
+    "errors": 0
+  }
+}

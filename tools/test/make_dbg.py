@@ -56,7 +56,11 @@ def main():
     s = src.read_text(encoding="utf-8")
     s = rep(s, "const dt = Math.min(0.05, (now - last) / 1000); last = now;", "const dt = window.__dt || 0.05; last = now;")
     s = rep(s, "function botUpdate(u, dt) {\n", "function botUpdate(u, dt) {\n  if (u.frozen) return;\n")
+    # Bot戦では青1も最初から通常Botとして生成し、機体抽選と初動を同じにする。
+    # フラグを指定しない通常のデバッグ操作はプレイヤーのまま。
+    s = rep(s, "player = makeUnit('B', true, 0);", "player = makeUnit('B', !window.__allBotBattle, 0);")
     s = rep(s, "\nrequestAnimationFrame(loop);\n", "\nrequestAnimationFrame(loop);\n" + EXPOSE + "\n")
+    s = rep(s, EXPOSE, EXPOSE + "\nwindow.__allBotSetupVersion = 1;")
     if trace:
         # 元の代入をそのまま残し、前後の実測差と機体の位置だけを読む。
         s = rep(s,

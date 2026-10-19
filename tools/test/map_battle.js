@@ -6,10 +6,12 @@ const path = require('node:path');
 const {chromium} = require('playwright');
 const {openMap} = require('../mapgen_browser');
 const observeMobility = require('./mobility_observer');
-const maps=(process.argv[3] || 'circulation,circulation-v2,circulation-v3').split(',');
-const seconds=Number(process.argv[4] || 150), output=process.argv[5] || 'dbg/map-battles.json';
-const seedStart=Number(process.argv[6] ?? 20261019);
-if(process.argv[2]!=='dbg' || !(seconds>0 && Number.isFinite(seconds))) throw new Error('dbg と正の検証秒数を指定してください');
+const prepareBotBattle = require('./prepare_bot_battle');
+const legacy=process.argv.includes('--legacy-player'),args=process.argv.slice(2).filter(a=>a!=='--legacy-player');
+const maps=(args[1] || 'circulation,circulation-v2,circulation-v3').split(',');
+const seconds=Number(args[2] || 150), output=args[3] || 'dbg/map-battles.json';
+const seedStart=Number(args[4] ?? 20261019);
+if(args[0]!=='dbg' || !(seconds>0 && Number.isFinite(seconds))) throw new Error('dbg と正の検証秒数を指定してください');
 if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffffffff) throw new Error('開始シードと最終シードは0〜4294967295の整数にしてください');
 (async()=>{
   let browser;
@@ -17,15 +19,19 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
   try {
     browser=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
     for(const [index,id] of maps.entries()) {
-      const {page,errors}=await openMap(browser,id,null,seedStart+index);
+      const {page,errors}=await openMap(browser,id,null,seedStart+index,{silent:true});
       try {
         await page.click('#start');
+        const initialization=await page.evaluate(prepareBotBattle,legacy);
         await page.evaluate('window.__observeMobility = '+observeMobility.toString());
         await page.evaluate(()=>{
-          const g=__g, scene=g.units[0].group.parent;
-          g.renderer.render=()=>scene.updateMatrixWorld();
-          g.player.isPlayer=false; g.spawn(g.player,'base');
+          const g=__g;
           window.__battle={ticks:0,captures:0,events:[],mobility:[],owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner])),occupancy:{},layers:{upper:0,west:0,center:0,east:0},stalls:0,last:{}};
+          __battle.initialCore=[g.cores.B.hp,g.cores.R.hp];
+          if(window.__battleTraceVersion===1){
+            __battle.losses={B:{direct:0,wreck:0},R:{direct:0,wreck:0}};
+            window.__battleEvent=e=>{if(e.type==='coreHit'||e.type==='wreck')__battle.losses[e.team][e.type==='coreHit'?'direct':'wreck']+=e.amount;};
+          }
         });
         let elapsed=0,ended=false;
         while(elapsed<seconds && !ended) {
@@ -56,6 +62,13 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
           return {map:g.mapId,seconds:Math.round((g.MATCH-g.timeLeft)*10)/10,matchDuration:g.MATCH,ended:g.ended,winner:g.ended?(b===r?'draw':r<=0 || (b>0 && b>r)?'B':'R'):null,endedBy:g.ended?(b<=0 || r<=0?'core':'time'):null,core:[Math.round(b),Math.round(r)],kills:{B:g.units.filter(u=>u.team==='B').reduce((a,u)=>a+u.sc.kills,0),R:g.units.filter(u=>u.team==='R').reduce((a,u)=>a+u.sc.kills,0)},captures:s.captures,captureEvents:s.events,occupancy:s.occupancy,layers:s.layers,layerSampling:'1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45',stalls:s.stalls};
         });
         result.mobility=await page.evaluate(()=>__battle.mobility);
+        result.initialization=initialization;
+        result.coreExact=await page.evaluate(()=>[__g.cores.B.hp,__g.cores.R.hp]);
+        result.initialCore=await page.evaluate(()=>__battle.initialCore);
+        result.losses=await page.evaluate(()=>__battle.losses||null);
+        if(result.losses) for(const [i,team] of ['B','R'].entries()) {
+          if(Math.abs(result.initialCore[i]-result.coreExact[i]-result.losses[team].direct-result.losses[team].wreck)>1e-6)throw new Error(`${id}/${team}: コア被害内訳が一致しません`);
+        }
         result.seed=seedStart+index;result.errors=errors;
         result.balance=result.ended?'勝率未確定（終局までの観測1試合）':'勝率未確定（短時間動作確認）';
         results.push(result);

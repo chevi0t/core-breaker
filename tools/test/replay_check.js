@@ -19,11 +19,13 @@ for(let i=0;i<count;i++){
  expect(JSON.stringify(s.actual)===JSON.stringify(s.expected),'終局HP表示');
 }
 const chosen=Math.min(1,count-1);await p.selectOption('#match',String(chosen));
+const first=await p.evaluate(i=>{const events=__replay.data.matches[i].events;return events.find(e=>e.type==='coreHit')||events.find(e=>e.type==='wreck');},chosen);
+expect(!!first,'被害イベントがある');
+await p.selectOption('#eventFilter',first.type);
 await p.locator('#events button').first().click();
-expect(await p.evaluate(()=>__replay.selected!==null),'命中イベントの機体選択');
+expect(await p.evaluate(()=>__replay.selected!==null),'被害イベントの機体選択');
 const attack=await p.evaluate(i=>{const m=__replay.data.matches[i],e=m.events.find(e=>e.type==='coreHit'&&e.unit?.startsWith('R'));return e?{unit:e.unit,t:m.events.filter(d=>d.type==='deploy'&&d.unit===e.unit&&d.t<=e.t).at(-1)?.t||0}:null;},chosen);
 if(attack){await p.click('#firstOrange');expect(await p.evaluate(a=>__replay.time===a.t && __replay.selected===a.unit,attack),'最初の凸を出撃から再生');}await p.selectOption('#trails','sortie');
-const first=await p.evaluate(i=>__replay.data.matches[i].events.find(e=>e.type==='coreHit'),chosen);
 await p.evaluate(t=>__replay.seek(t),first.t);
 const ledger=await p.evaluate(()=>{const m=__replay.data.matches[Number(document.querySelector('#match').value)],loss=m.events.filter(e=>(e.type==='coreHit'||e.type==='wreck')&&e.team==='B'&&e.t<=__replay.time).reduce((n,e)=>n+e.amount,0);return [document.querySelector('#coreB').textContent,Number((m.initialCore[0]-loss).toFixed(2)).toLocaleString('ja-JP')]});expect(ledger[0]===ledger[1],'命中直後のコアHPと被害内訳の一致');
 await p.screenshot({path:path.join(folder,'viewer-check.png'),fullPage:true});

@@ -9,6 +9,7 @@ const child = require('node:child_process');
 const {chromium} = require('playwright');
 const {openMap} = require('../mapgen_browser');
 const observeMobility = require('./mobility_observer');
+const prepareBotBattle = require('./prepare_bot_battle');
 const ROOT = path.resolve(__dirname, '../..');
 const [dbg, id = 'circulation-v3', output = 'dbg/replay', seedList = '20261039,20261040,20261041'] = process.argv.slice(2);
 const seeds = seedList.split(',').map(Number);
@@ -31,7 +32,7 @@ function summarize(match) {
 (async () => {
   fs.mkdirSync(output, {recursive:true});
   const data = {version:1, sourceCommit:child.execFileSync('git', ['rev-parse','HEAD'], {cwd:ROOT,encoding:'utf8'}).trim(),
-    engineSha256:hash('prototype/index.html'), mapSourceSha256:hash('prototype/maps/'+id.replace(/-v\d+$/,'')+'.js'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'), mobilityObserverSha256:hash('tools/test/mobility_observer.js'),
+    engineSha256:hash('prototype/index.html'), mapSourceSha256:hash('prototype/maps/'+id.replace(/-v\d+$/,'')+'.js'), recorderSha256:hash('tools/test/record_battle.js'), debugMakerSha256:hash('tools/test/make_dbg.py'), mobilityObserverSha256:hash('tools/test/mobility_observer.js'), initializationSha256:hash('tools/test/prepare_bot_battle.js'),
     positionSampleSeconds:0.25, unitColumns:['x','y','z','hp','flags','segment','yaw','coreDamageRaw','target'],
     flags:{alive:1,flying:2,upper:4,invulnerable:8,transfer:16,down:32},
     note:'新しく実行した対戦の観測記録。過去13試合の再生ではない。位置は0.25秒刻み、被害・出撃・侵入・所有者変更は0.05秒刻みで観測。攻撃機の位置は命中時の現在位置であり発射地点や弾道ではない。', matches:[]};
@@ -39,15 +40,14 @@ function summarize(match) {
   try {
     browser = await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
     for (const seed of seeds) {
-      const {page,errors} = await openMap(browser, id, null, seed);
+      const {page,errors} = await openMap(browser, id, null, seed, {silent:true});
       try {
         if (!await page.evaluate(() => window.__battleTraceVersion === 1)) throw new Error('make_dbg.py dbg --trace を実行してください');
         await page.click('#start');
+        const initialization=await page.evaluate(prepareBotBattle);
         await page.evaluate('window.__observeMobility = '+observeMobility.toString());
         const info = await page.evaluate(() => {
-          const g=__g, scene=g.units[0].group.parent;
-          g.renderer.render=()=>scene.updateMatrixWorld();
-          g.player.isPlayer=false; g.spawn(g.player,'base');
+          const g=__g;
           const round=n=>Math.round(n*100)/100, uid=u=>u.team+(u.idx+1);
           const s=window.__recording={ticks:0,events:[],frames:[],segments:Object.fromEntries(g.units.map(u=>[uid(u),0])),inBase:{},alive:{},owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner]))};
           window.__battleEvent=e=>{
@@ -107,7 +107,7 @@ function summarize(match) {
             kills:Object.fromEntries(['B','R'].map(t=>[t,g.units.filter(u=>u.team===t).reduce((n,u)=>n+u.sc.kills,0)]))};
         });
         const {segments,inBase,alive,owners,...record}=match;
-        Object.assign(record,{seed,units:info.units,initialCore:info.initialCore,errors});
+        Object.assign(record,{seed,units:info.units,initialCore:info.initialCore,initialization,errors});
         if(!record.ended || errors.length || !record.kills.B || !record.kills.R) throw new Error(`seed ${seed} の対戦が正常に終わりませんでした: ${errors.join(',')}`);
         const summary=summarize(record);
         data.matches.push(record);

@@ -3,20 +3,23 @@ const path = require('node:path');
 const {serialize} = require('./mapgen');
 const ROOT = path.resolve(__dirname, '..');
 
-async function openMap(browser, id, data, seed = 1) {
+async function openMap(browser, id, data, seed = 1, {silent=false} = {}) {
   const page = await browser.newPage({viewport:{width:800, height:500}});
   const errors = [];
   try {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {if (message.type() === 'error' && !/ERR_FAILED/.test(message.text())) errors.push(message.text());});
-  await page.addInitScript(({seed}) => {
+  await page.addInitScript(({seed,silent}) => {
     let state = seed >>> 0, now = 0;
     Math.random = () => {state = Math.imul(1664525, state) + 1013904223 >>> 0; return state / 4294967296;};
     performance.now = () => now;
     window.__advanceClock = () => now += 50;
     // 検査は明示的に1ステップずつ進める。物理と勝敗の処理は元の loop を使う。
     window.requestAnimationFrame = () => 0;
-  }, {seed});
+    // 音のピッチの乱数が実時間の再生制限・デコード待ちに左右されるため、対戦検証は無音。
+    if(silent){window.AudioContext=undefined;window.webkitAudioContext=undefined;}
+    window.__battleSilent=silent;
+  }, {seed,silent});
   if (data) await page.route('**/maps.js', route => route.fulfill({contentType:'application/javascript; charset=utf-8', body:serialize(id, data)}));
   await page.route('**fonts.g*/**', route => route.fulfill({contentType:'text/css', body:''}));
   await page.goto('file://' + path.join(ROOT, 'dbg/dbg.html'));
