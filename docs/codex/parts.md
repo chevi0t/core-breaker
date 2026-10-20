@@ -42,9 +42,12 @@
 ## 3. 確かめる
 
 ```sh
-python3 tools/test/make_dbg.py dbg
-node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # 「エラー なし」。Bot の機体に新しい型が出ること
+# まず簡易テスト：main から増えた・変わった武器とパーツだけを試し、Bot 戦を2マップ60秒だけ回す（2026-10-20 オーナーの指定）
+node tools/test/quick_check.js origin/main
+# 増えたパーツを1つずつ、ほかの部位は初期のまま付け、形・重さ・装甲・部位ごとの被弾・立ち/歩き/屈みの姿勢を確かめる
 ```
+
+- 全混成の `mech_shapes_check.js`（6系統で1296通り）と4マップ150秒の `bot_battle.js` は時間がかかるので、機体の形の作り方や当たり判定そのものを変えたときだけ回す。
 
 - 機体カスタマイズで、各シリーズにⅠ〜Ⅲ型が並び、▲▼の比べと重量の棒、回る見本が正しく出るスクリーンショット。
 - 前のブラウザの保存（`coreBreakerMech`・`coreBreakerBuilds`）を入れた状態で開いても壊れないこと。

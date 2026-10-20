@@ -7,7 +7,8 @@
     "test:weapons": "node tools/test/weapons_check.js dbg",
     "test:bots": "node tools/test/bot_battle.js dbg city,wide,mesa,dock 150",
     "test:mapgen": "node --test tools/test/mapgen.test.js",
-    "test": "npm run dbg && npm run test:weapons && npm run test:bots"
+    "test": "npm run dbg && npm run test:weapons && npm run test:bots",
+    "test:quick": "node tools/test/quick_check.js origin/main"
   },
   "devDependencies": {
     "playwright": "1.56.1"

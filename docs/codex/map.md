@@ -119,6 +119,7 @@ Bot はどのマップでも同じ考え方で動く（`index.html` の `botUpda
 ## 7. Bot 戦で確かめる
 
 ```sh
+node tools/test/quick_check.js origin/main                 # 増えた・変わったマップと city で Bot 戦を60秒（武器・パーツの変更があればそれも試す）
 node tools/test/bot_battle.js dbg <id> 150
 node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # エンジンの Bot を変えたときは今のマップも
 ```
