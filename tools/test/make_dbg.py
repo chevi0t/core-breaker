@@ -41,6 +41,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get botUpdate() { return botUpdate; }, get trackAim() { return trackAim; }, get fieldTick() { return fieldTick; }, get sentryTick() { return sentryTick; },
   get heatFields() { return heatFields; }, get chains() { return chains; }, get secondaryBurst() { return secondaryBurst; }, get secondaryUpdate() { return secondaryUpdate; }, get clearSecondaryEffects() { return clearSecondaryEffects; }, get startChain() { return startChain; }, get shellUpdate() { return shellUpdate; }, get scopePower() { return scopePower; }, get wStats() { return wStats; }, get itemNums() { return itemNums; },
   get barrages() { return barrages; }, get artilleryTick() { return artilleryTick; }, get artilleryUpdate() { return artilleryUpdate; }, get artilleryConfirm() { return artilleryConfirm; }, get isArtilleryMode() { return isArtilleryMode; }, get stopArtillery() { return stopArtillery; }, get clearArtillery() { return clearArtillery; }, get artillerySurface() { return artillerySurface; }, get drawBigMap() { return drawBigMap; }, get playerUpdate() { return playerUpdate; }, get mapCur() { return mapCur; }, get startTransfer() { return startTransfer; }, get shortDash() { return shortDash; },
+  get tracer() { return tracer; },
   get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get running() { return running; }, set running(v) { running = v; } };"""
 
 
@@ -67,9 +68,10 @@ def main():
     s = src.read_text(encoding="utf-8")
     s = rep(s, "const dt = Math.min(0.05, (now - last) / 1000); last = now;", "const dt = window.__dt || 0.05; last = now;")
     s = rep(s, "function botUpdate(u, dt) {\n", "function botUpdate(u, dt) {\n  if (u.frozen) return;\n")
-    # Bot戦では青1も最初から通常Botとして生成し、機体抽選と初動を同じにする。
+    # Bot戦では選択陣営の1番機も最初から通常Botとして生成し、機体抽選と初動を同じにする。
     # フラグを指定しない通常のデバッグ操作はプレイヤーのまま。
-    s = rep(s, "player = makeUnit('B', true, 0);", "player = makeUnit('B', !window.__allBotBattle, 0);")
+    player_setup = "player = makeUnit(chosenTeam, true, 0);" if "player = makeUnit(chosenTeam, true, 0);" in s else "player = makeUnit('B', true, 0);"
+    s = rep(s, player_setup, player_setup.replace("true, 0", "!window.__allBotBattle, 0"))
     # 比較試験では1機ごとの初期乱数を固定し、同じ編成を両陣営へ入れ替える。
     # hook が無い通常の dbg と本体には影響しない。生成・装備・出撃は本体を使う。
     s = rep(s, "function makeUnit(team, isPlayer, idx) {", "function makeUnit(team, isPlayer, idx) {\n  const restoreFixtureRandom = window.__botFixtureRandom?.(team, idx);")

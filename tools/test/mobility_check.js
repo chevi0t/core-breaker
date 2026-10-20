@@ -23,7 +23,7 @@ if(process.argv[2]!=='dbg')throw new Error('dbg を指定してください');
         let u=reset(),peak=0;
         u.pos.set(-60,0,0);
         for(let i=0;i<80;i++){g.physics(u,new T.Vector3(),false,i===0,dt);peak=Math.max(peak,u.pos.y);}
-        check(peak<6 && peak>3,'通常ジャンプの高さが変わった');
+        check(peak>6 && peak<7,'通常ジャンプが約6.8m（時間刻み0.05秒では約6.3m）になっていない');
         report.push({name:'通常ジャンプでは高さ12mへ届かない',peak});
         for(const [team,isPlayer] of [['B',true],['B',false],['R',false]]){
           u=reset();u=team==='R'?g.units.find(v=>v.team==='R'):u;u.isPlayer=isPlayer;
