@@ -418,8 +418,10 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .consoleMini[data-preview="arcade"] .weapon { width: 30px; height: 30px; transform: rotate(45deg); right: 16px; bottom: 6px; }
 .consoleMini[data-preview="flight"] { --ink: #78edff; }
 .consoleMini[data-preview="flight"] .team { left: 35%; width: 30%; height: 10px; background: linear-gradient(#3ea6ff 0 44%, transparent 44% 56%, #ff8a2a 56%); }
-.consoleMini[data-preview="flight"] .map { left: auto; top: auto; right: 8px; bottom: 35px; }
-.consoleMini[data-preview="flight"] .weapon { left: 36%; width: 28%; height: 20px; background: linear-gradient(transparent 47%, #78edff 47% 52%, transparent 52%), linear-gradient(90deg, #122633 47%, #78edff 47% 52%, #122633 52%); }
+.consoleMini[data-preview="flight"] .map { left: auto; top: 8px; right: 8px; width: 16px; height: 22px; }
+.consoleMini[data-preview="flight"] .weapon { right: 8px; bottom: 8px; width: 28px; height: 64px; background: repeating-linear-gradient(#123747 0 13px, #78edff 13px 14px, transparent 14px 17px); border: 0; }
+.consoleMini[data-preview="flight"] .sp { top: auto; bottom: 10px; left: 30%; width: 38%; height: 3px; }
+.consoleMini[data-preview="flight"] .sp::before { content: ""; position: absolute; left: 0; bottom: 8px; width: 100%; height: 4px; background: #78edff; }
 .consoleMini[data-preview="flight"] .sight::before { content: ''; position: absolute; inset: 8px -20px; border-inline: 2px solid #78edff; }
 .consoleMini[data-preview="flight"] .sight::after { content: ''; position: absolute; inset: -8px -30px; border: 1px solid #d8f7ff55; border-radius: 10px; }
 .consoleMini[data-preview="mechanical"] { --ink: #dce4e4; }
@@ -490,7 +492,8 @@ body[data-console="arcade"] #wpn > #w-sp::after { color: #fff; }
 body[data-console="arcade"] #wpn > span.act { color: #7dffb0; }
 body[data-console="arcade"] #ammoSub { margin-top: 4px; padding: 3px 10px; background: #0b1c2acc; text-align: right; }
 body[data-console="arcade"] #lockRing { border-width: 2px; }
-/* フライト：上中央に積む戦況、丸みのある計器枠と中央下の装備パネル。 */
+/* フライト（ユーザーの星の翼の画像）：下中央に大きなブーストとSP、右側に4枠を縦に並べる。 */
+body[data-console="flight"] { --flight-weapons-width: clamp(180px, 21vw, 300px); --flight-gauge-width: min(42vw, 600px, calc(100vw - 2 * (var(--flight-weapons-width) + var(--console-edge) + 12px))); }
 body[data-console="flight"] .hud { --panel: #071f30cc; }
 body[data-console="flight"] #top { top: max(14px, env(safe-area-inset-top, 0px)); display: grid; grid-template-columns: 96px min(30vw, 320px); gap: 4px 14px; padding: 6px 12px; background: #061b29cc; }
 body[data-console="flight"] .core { width: 100%; grid-column: 2; }
@@ -500,19 +503,42 @@ body[data-console="flight"] .core .lbl { color: #ddfaff; font-size: 10px; }
 body[data-console="flight"] .core .bar { height: 7px; }
 body[data-console="flight"] #timer { grid-column: 1; grid-row: 1 / 3; font-size: 36px; }
 body[data-console="flight"] #plantBar { top: 88px; }
-body[data-console="flight"] #mapHud { top: auto; bottom: calc(var(--console-ammo-height, 120px) + var(--console-edge) + 12px); padding: 6px; border: 1px solid #a6efff88; border-radius: 14px; background: #05273799; }
-body[data-console="flight"] #status { width: 280px; background: linear-gradient(110deg, #062e42e8, #061e2bcc); border-top: 2px solid #78edff; border-bottom: 1px solid #78edff55; }
-body[data-console="flight"] #status .row { color: #b5dce4; grid-template-columns: 58px 1fr 60px; }
-body[data-console="flight"] #status .row:first-child { min-height: 34px; }
-body[data-console="flight"] #hp { height: 14px; }
-body[data-console="flight"] #hp > i { background: #75ebff; }
-body[data-console="flight"] #hpT { font-size: 25px; color: #baf8ff; }
-body[data-console="flight"] #ammoBox { width: 280px; background: #061e2bdd; border-right: 2px solid #78edff; }
-body[data-console="flight"] #ammo { color: #c8f7ff; font-size: 42px; }
-body[data-console="flight"] #wpn { position: fixed; left: 50%; bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(32vw, 420px); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; text-align: left; justify-items: stretch; }
-body[data-console="flight"] #wcls { grid-column: 1 / -1; color: #c8f7ff; }
-body[data-console="flight"] #wpn > span:not(#wcls) { padding: 8px 6px; background: #052737e8; border-top: 2px solid #5c9dac; font-size: 11px; line-height: 1.5; }
-body[data-console="flight"] #wpn > .on { border-top-color: #e0fcff; background: #14596ade; box-shadow: inset 0 -2px #8cf0ff; }
+body[data-console="flight"] #mapHud { top: max(var(--console-edge), env(safe-area-inset-top, 0px)); bottom: auto; padding: 4px; border: 1px solid #a6efff88; border-radius: 14px; background: #05273799; }
+body[data-console="flight"] #mini { max-height: 24vh; }
+body[data-console="flight"] #status { width: min(280px, 32vw); bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 96px); padding: 8px 10px; background: linear-gradient(110deg, #062e42c0, #061e2b66); border: 0; }
+body[data-console="flight"] #status .row { color: #d8faff; }
+body[data-console="flight"] #status .row:first-child { grid-template-columns: 1fr auto; gap: 4px; align-items: baseline; }
+body[data-console="flight"] #hp { grid-column: 1 / -1; grid-row: 2; height: 12px; }
+body[data-console="flight"] #hp > i { background: #e5f8fa; }
+body[data-console="flight"] #status.low #hp > i { background: var(--warn); }
+body[data-console="flight"] #hpT { font-size: 32px; color: #e5f8fa; line-height: 1; }
+body[data-console="flight"] #status :is(#boostRow, #spRow) { position: fixed; left: 50%; transform: translateX(-50%); width: var(--flight-gauge-width); grid-template-columns: 1fr auto; gap: 4px; font-size: 12px; }
+body[data-console="flight"] #boostRow { bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); }
+body[data-console="flight"] #spRow { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); }
+body[data-console="flight"] :is(#boostRow, #spRow) .bar { grid-column: 1 / -1; grid-row: 2; height: 14px; border: 1px solid #e4faffaa; background: #04141fc0; box-shadow: 0 0 0 2px #04141f88; }
+body[data-console="flight"] :is(#boostRow, #spRow) b { grid-column: 2; grid-row: 1; font-size: 12px; }
+body[data-console="flight"] #boost > i { background: linear-gradient(#b7f6ff, #25c9ea); }
+body[data-console="flight"] #boost.oh > i { background: var(--warn); }
+body[data-console="flight"] #aimSp { display: none; }
+body[data-console="flight"] #ammoBox { width: var(--flight-weapons-width); padding: 0; background: none; border: 0; }
+body[data-console="flight"] #ammo { display: none; }
+body[data-console="flight"] #ammoSub { margin-top: 6px; padding: 4px 6px; background: #061e2ba8; color: #d8faff; font-size: 11px; }
+body[data-console="flight"] #wpn { position: static; width: auto; transform: none; grid-template-columns: minmax(0, 1fr); gap: clamp(6px, 1vh, 12px); text-align: left; justify-items: stretch; }
+body[data-console="flight"] #wcls { color: #e0fcff; text-align: right; font-size: 12px; }
+body[data-console="flight"] #wpn > span[id^="w-"] { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; min-width: 0; padding: 8px 64px 8px 10px; background: linear-gradient(90deg, #062e4266, #061e2bdd); border-bottom: 1px solid #b7edff77; color: #c8eff9; box-shadow: none; }
+body[data-console="flight"] #wpn > span.on { background: linear-gradient(90deg, #167286a8, #123754e8); color: #fff; border-bottom-color: #e0fcff; box-shadow: inset 3px 0 #99edff; }
+.flightBadge { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid #d9efff; border-radius: 50%; background: radial-gradient(#614ba9aa, #10283f); color: #e6c8ff; }
+.flightBadge svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.flightBadge small { position: absolute; right: 0; bottom: -3px; padding: 0 3px; background: #10283f; color: #fff; font-size: 10px; }
+.flightSlot { font-size: 10px; align-self: center; }
+.flightCount { font-size: 26px; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; }
+.flightName { grid-column: 1 / -1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; line-height: 1.3; }
+.flightState { grid-column: 1 / -1; font-size: 10px; line-height: 1.2; }
+.flightBar { grid-column: 1 / -1; display: block; height: 4px; background: #001a29; border: 1px solid #8dbed577; }
+.flightBar i { display: block; height: 100%; width: var(--fill, 100%); background: #63dfff; }
+#w-sp .flightBar i { background: #ffd34d; }
+body[data-console="flight"] #wpn > span.warn { color: #ffb4a2; }
+body[data-console="flight"] #wpn > .warn .flightBar i { background: var(--warn); }
 body[data-console="flight"] #lockRing { border-color: #91f1ff77; }
 body[data-console="flight"] #lockRing::before { content: ''; position: absolute; inset: 36% -18px; border-inline: 6px solid #91f1ff; }
 /* メカニカル：細い白線、左下の大きな耐久数値、武器4枠と方位計。 */
@@ -590,10 +616,10 @@ body[data-console="mechanical"] #mechCompass { display: block; }
 #mechCompass span::before { content: ''; position: absolute; top: 0; left: 50%; height: 3px; border-left: 1px solid #c4d8d6; }
 @media (max-width: 1000px) {
   body[data-console]:where(:not([data-console="standard"])) { --console-edge: 12px; --console-map-width: 108px; }
-  body[data-console]:where(:not([data-console="standard"])) #status { width: min(280px, 42vw); padding: 10px; }
-  body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: min(300px, 42vw); padding: 8px 10px; }
-  body[data-console="flight"] #wpn { position: static; transform: none; width: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  body[data-console="flight"] #wpn > span:not(#wcls) { padding: 4px; }
+  body[data-console]:where(:not([data-console="standard"], [data-console="flight"])) #status { width: min(280px, 42vw); padding: 10px; }
+  body[data-console]:where(:not([data-console="standard"], [data-console="flight"])) #ammoBox { width: min(300px, 42vw); padding: 8px 10px; }
+  body[data-console="flight"] #top { left: var(--console-edge); transform: none; grid-template-columns: 66px min(25vw, 240px); }
+  body[data-console="flight"] #timer { min-width: 0; font-size: 30px; }
   body[data-console="mechanical"] #status, body[data-console="mechanical"] #ammoBox { width: min(240px, 30vw); padding: 0; }
   body[data-console="mechanical"] #consoleHeading, body[data-console="mechanical"] #mechBoost { width: 28vw; letter-spacing: .02em; }
   body[data-console="arcade"] #plantBar { left: auto; right: var(--console-edge); transform: none; }
@@ -629,14 +655,42 @@ body[data-console="mechanical"] #mechCompass { display: block; }
 }
 @media (max-width: 700px) {
   /* 中央のSPバーの左右に余白を確保し、縦に長い武器説明とも重ねない。 */
-  body[data-console]:where(:not([data-console="standard"])) #status,
-  body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: calc(50vw - 104px); }
+  body[data-console]:where(:not([data-console="standard"], [data-console="flight"])) #status,
+  body[data-console]:where(:not([data-console="standard"], [data-console="flight"])) #ammoBox { width: calc(50vw - 104px); }
   body[data-console="arcade"] #pilot { grid-template-columns: minmax(0, 1fr); }
   body[data-console="arcade"] #pilotMark { display: none; }
   body[data-console="arcade"] #pilotCls { white-space: nowrap; }
 }
 @media (max-height: 640px) {
   body[data-console="flight"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
+}
+@media (max-height: 760px), (max-width: 1000px) {
+  body[data-console="flight"] #wpn > span[id^="w-"] { padding: 6px 50px 6px 8px; gap: 2px 6px; }
+  .flightBadge { width: 38px; height: 38px; }
+  .flightBadge svg { width: 24px; height: 24px; }
+  .flightCount { font-size: 22px; }
+  .flightName { font-size: 11px; }
+}
+@media (max-height: 600px), (max-width: 700px) {
+  body[data-console="flight"] { --console-map-width: 90px; }
+  body[data-console="flight"] #wpn { gap: 4px; }
+  body[data-console="flight"] #mini { max-height: 20vh; }
+  body[data-console="flight"] #spotAlert { font-size: 10px; line-height: 1.3; }
+  body[data-console="flight"] #consoleSpeed { right: calc(50% + var(--aim-sp-offset)); }
+  body[data-console="flight"] #consoleAltitude { left: calc(50% + var(--aim-sp-offset)); }
+  body[data-console="flight"] #wpn > span[id^="w-"] { padding: 5px 44px 5px 6px; gap: 2px 4px; }
+  .flightSlot { display: none; }
+  .flightCount { grid-column: 2; grid-row: 1; font-size: 20px; }
+  .flightName { grid-column: 1; grid-row: 1; align-self: center; font-size: 10px; }
+  .flightState { grid-row: 2; font-size: 9px; }
+  .flightBar { grid-row: 3; height: 3px; }
+  .flightBadge { width: 32px; height: 32px; }
+  .flightBadge svg { width: 21px; height: 21px; }
+  body[data-console="flight"] #ammoSub { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 10px; }
+  body[data-console="flight"] #status .row:first-child { grid-template-columns: 1fr auto; }
+  body[data-console="flight"] #status :is(#boostRow, #spRow) { grid-template-columns: 1fr auto; font-size: 10px; }
+  body[data-console="flight"] #consoleTelemetry .instrument { width: 52px; font-size: 9px; padding-inline: 4px; }
+  body[data-console="flight"] #consoleTelemetry .instrument b { font-size: 18px; }
 }
 /* 対象の耐久表示の前を空け、メカニカルの通知は左上へ積む。 */
 body[data-console="mechanical"] #lockAlert { top: 112px; left: var(--console-edge); transform: none; width: min(280px, calc(50vw - 104px)); box-sizing: border-box; text-align: left; font-size: 12px; }
@@ -729,8 +783,8 @@ body[data-console="arcade"] #pilotMark { padding: 0; background: #f8eedb; clip-p
 <div id="respawn" hidden><div id="rtXf" hidden></div><div id="killcam" hidden><div id="killerFace"></div><small>あなたを撃破した相手</small><b></b><span id="killcamInfo"></span></div><div class="rt" id="rtCls">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt" id="rtPt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
 <div class="hud" id="status">
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
-  <div class="row"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
-  <div class="row"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
+  <div class="row" id="boostRow"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
+  <div class="row" id="spRow"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
   <div id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
 </div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
@@ -7507,7 +7561,7 @@ $('pilotList').addEventListener('click', e => { const b = e.target.closest('[dat
 const CONSOLES = [
   { id: 'standard', name: '標準', desc: '現在の配置。左上のマップ、四隅の情報、照準の弧を使う基本の画面。' },
   { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右下にマップと菱形の武器枠。' },
-  { id: 'flight', name: 'フライト', desc: '青緑の飛行計器。照準の左右に速度と対地高度、中央下に4枠の装備を配置。' },
+  { id: 'flight', name: 'フライト', desc: '下中央に大きなブーストとSPの2本。右側に4枠の装備と残弾を縦に並べ、右上にマップを配置。' },
   { id: 'mechanical', name: 'メカニカル', desc: '照準の4枠の武器メーター。両端の飛行計器、下中央のブーストと方位、右下の残弾。' },
 ];
 const CONSOLE_KEY = 'coreBreakerConsole';
@@ -7519,7 +7573,7 @@ function setConsole(id, save = true) {
   consoleMode = c.id;
   document.body.dataset.console = c.id;
   $('consoleNow').textContent = c.name;
-  $('consoleSelection').textContent = `選択中：${c.name}。照準の下のSPの棒と、戦闘に必要な情報はすべての配置で確認できます。`;
+  $('consoleSelection').textContent = `選択中：${c.name}。${c.id === 'flight' ? '下中央にブーストとSP、右側に装備を表示します。' : '照準の下のSPの棒と、戦闘に必要な情報を確認できます。'}`;
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
   consoleTelemetry(player);
@@ -7624,6 +7678,28 @@ function mechanicalHud(p) {
     $('mechTargetHp').setAttribute('stroke-dasharray', Math.max(0, target.hp / target.maxHp * 100).toFixed(1) + ' 100');
     $('mechRange').textContent = Math.round(target.pos.distanceTo(p.pos)) + 'm';
   }
+}
+function flightWeapons(p, spOn) {
+  const marks = ['M4 10h19v6H4z M8 16v8h5v-8 M23 12h5 M7 7h8', 'M12 7h8v4 M17 7V3h7 M11 13a9 9 0 1 0 12 0Z', 'M5 4l17 18-4 4L2 8Z M26 4L9 22l4 4L30 8Z', 'M16 3l12 13-12 13L4 16Z M16 8v16 M9 16h14'];
+  SLOTS.forEach((k, i) => {
+    const sl = p.slots[k], w = sl.w, special = k === 'sp', el = $('w-' + k);
+    const count = special ? Math.round(sl.heat) + '%' : w.mag ? sl.ammo : w.type === 'radarTool' ? Math.round(sl.scanRadius || 0) + 'm' : '∞';
+    let fill = special ? sl.heat / 100 : w.mag ? sl.ammo / w.mag : 1;
+    let state = special ? spOn || p.bombard || p.healTarget ? '作動中' : 'SP' : w.mag ? '予備 ' + sl.reserve : w.type === 'sword' ? '近接' : p.weapon === k && w.type === 'radarTool' ? '展開中' : '待機', warn = false;
+    if (sl.overheat) { state = special ? 'SP回復中' : '冷却 ' + Math.max(0, sl.ohT).toFixed(1) + '秒'; warn = true; if (!special) fill = 1 - sl.ohT / w.ohTime; }
+    else if (sl.reloadT > 0) { state = '再装填 ' + sl.reloadT.toFixed(1) + '秒'; if (!special) fill = 1 - sl.reloadT / (w.reload * p.reloadMul); }
+    else if (w.chargeTime && sl.chargeT > 0) state = '充填 ' + Math.min(100, Math.round(sl.chargeT / w.chargeTime * 100)) + '%';
+    else if (w.heat && sl.temp > 0) { state = '熱 ' + Math.round(sl.temp) + '%'; warn = sl.temp >= 75; }
+    else if (!special && w.mag && sl.ammo + sl.reserve <= 0) { state = '弾切れ'; warn = true; }
+    if (p.weapon === k && p.switchT > 0) state = '持ち替え中';
+    const stamp = w.name + '|' + count + '|' + state;
+    if (el.dataset.flightReadout !== stamp) {
+      el.innerHTML = `<span class="flightSlot">${SLOT_NAMES[k]}</span><b class="flightCount">${count}</b><span class="flightName" title="${w.name}">${w.name}</span><span class="flightState">${state}</span><span class="flightBar" aria-hidden="true"><i></i></span><span class="flightBadge" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="${marks[i]}"/></svg><small>${i + 1}</small></span>`;
+      el.dataset.flightReadout = stamp;
+    }
+    el.style.setProperty('--fill', Math.max(0, Math.min(100, fill * 100)).toFixed(1) + '%');
+    el.classList.toggle('warn', warn);
+  });
 }
 function showPage(id) {
   for (const pg of document.querySelectorAll('#overlay .page')) pg.hidden = pg.id !== id;
@@ -8235,10 +8311,10 @@ function hud(timeLeft, dt) {
   if (arcade) { // 縦に伸びる耐久ゲージと機体の札
     $('hp').style.setProperty('--fill', Math.max(0, p.hp / p.maxHp * 100) + '%');
   }
-  $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = Math.round(p.boost);
+  $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = consoleMode === 'flight' ? Math.round(p.boost / p.maxBoost * 100) + '%' : Math.round(p.boost);
   $('boost').classList.toggle('oh', p.overheat);
   const sps = p.slots.sp;
-  $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat);
+  $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat) + (consoleMode === 'flight' ? '%' : '');
   $('sp').classList.toggle('oh', sps.overheat);
   $('sp').classList.toggle('hit', spHitT > 0);
   const spOn = p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
@@ -8252,9 +8328,12 @@ function hud(timeLeft, dt) {
   $('wcls').textContent = CLASSES[p.cls].name;
   SLOTS.forEach((k, i) => {
     const el = $('w-' + k);
-    if (consoleMode !== 'mechanical') { el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; delete el.dataset.readout; el.classList.remove('warn'); }
+    if (consoleMode !== 'flight') delete el.dataset.flightReadout;
+    if (consoleMode !== 'mechanical') delete el.dataset.readout;
+    if (consoleMode !== 'flight' && consoleMode !== 'mechanical') { el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; el.classList.remove('warn'); }
     el.classList.toggle('on', p.weapon === k); el.classList.toggle('act', k === 'sp' && spOn);
   });
+  if (consoleMode === 'flight') flightWeapons(p, spOn);
   mechanicalHud(p);
   let big, small;
   if (p.switchT > 0) { big = '--'; small = '持ち替え中'; }
