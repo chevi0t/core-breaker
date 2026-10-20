@@ -286,6 +286,9 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .mapCard b i { font-style: normal; font-size: 12px; font-family: var(--body); color: var(--blue); margin-left: 8px; }
 .mapCard small { display: block; font-size: 13px; margin: 2px 0 6px; color: var(--hud); }
 .mapCard em { display: block; font-style: normal; font-size: 12px; line-height: 1.7; color: var(--dim); }
+.mapGroup { display: grid; gap: 6px; }
+.mapVariants { display: grid; gap: 6px; margin-left: 24px; padding-left: 10px; border-left: 2px solid rgba(62, 166, 255, .35); }
+.mapVariants .mapCard b { font-size: 16px; }
 .note { font-size: 12px; }
 /* 機体カスタマイズ（v0.11、ユーザー指定）：兵装のタブ、4つの枠、枠ごとに3種類の武器 */
 .ctabs { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -692,10 +695,11 @@ const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([i
   return !miss.length;
 }).flatMap(([id, d]) => [
   // 配置違い：地形と layout はそのままで、ほかの項目を上書きした版を、マップ選択に別の行として並べる。
-  // ID は「マップID-キー」、名前は「マップ名 〜版の name〜」。元のマップに subtitle があれば、元の行も「マップ名 〜subtitle〜」と出す
-  [id, d.subtitle ? { ...d, name: `${d.name} 〜${d.subtitle}〜` } : d],
+  // ID は「マップID-キー」、名前は「マップ名 〜版の name〜」。元のマップに subtitle があれば、元の行も「マップ名 〜subtitle〜」と出す。
+  // 配置違いのあるマップは、元と全部の版に group（元のマップID）・groupName（元の名前）・variant（版の名前）を付け、マップ選択で1つにまとめる（v0.21）
+  [id, d.subtitle || d.variants ? { ...d, name: d.subtitle ? `${d.name} 〜${d.subtitle}〜` : d.name, ...(d.variants ? { group: id, groupName: d.name, variant: d.subtitle || '基本' } : {}) } : d],
   ...Object.entries(d.variants || {}).map(([k, v], i) => [`${id}-${k}`,
-    { ...d, ...v, terrain: d.terrain, layout: d.layout, name: `${d.name} 〜${v.name}〜`, order: (d.order ?? 99) + (i + 1) / 100 }]),
+    { ...d, ...v, terrain: d.terrain, layout: d.layout, name: `${d.name} 〜${v.name}〜`, order: (d.order ?? 99) + (i + 1) / 100, group: id, groupName: d.name, variant: v.name }]),
 ]).sort((x, y) => (x[1].order ?? 99) - (y[1].order ?? 99)));
 const FIRST_MAP = Object.keys(MAPS)[0];
 let curMap = null, mapId = '';
@@ -6706,7 +6710,11 @@ $('overlay').addEventListener('click', e => {
     if (isPart(cuSlot)) { mechCfg[cuSlot] = k; saveMech(); } else { loadout[cuCls][cuSlot] = k; saveLoadout(); }
     cuHover = null; renderCustom(); renderClsButtons(); $('cuSeries').querySelector(`[data-pick="${k}"]`)?.focus();
   } else if (b.dataset.paint) { mechCfg.color = b.dataset.paint; saveMech(); renderCustom(); }
-  else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
+  else if (b.dataset.mapGroup) { // 配置違いのまとまりを開く・閉じる
+    const g = b.dataset.mapGroup;
+    if (mapGroupsOpen.has(g)) mapGroupsOpen.delete(g); else mapGroupsOpen.add(g);
+    renderMapList(); $('mapList').querySelector(`[data-map-group="${g}"]`)?.focus();
+  } else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
 });
 addEventListener('keydown', e => { if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden) showPage('pgMenu'); });
 // ---- 機体カスタマイズ（v0.11、ユーザー指定。v0.13で3列に作り直し、ユーザー決定）----
@@ -7001,10 +7009,34 @@ function drawMapPreview(cv, d) {
     g.fillText(id, sx(x), sz(z));
   }
 }
+// 配置違いのあるマップ（白煙循環区など）は1行にまとめて折りたたみ、開くと配置ごとに選べる（v0.21、ユーザー「折りたためるようならんかな」）。
+// 開いているまとまり。最初は閉じていて、閉じていても選んでいる配置の名前は見出しに出す
+const mapGroupsOpen = new Set();
+const mapCanvas = d => `<canvas width="90" height="${Math.round(90 * d.size[1] / d.size[0])}"></canvas>`;
+function mapCardHtml(id, d, label) {
+  return `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}">${mapCanvas(d)}<span><b>${label}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${d.desc}</em></span></button>`;
+}
 function renderMapList() {
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
-  $('mapList').innerHTML = Object.entries(MAPS).filter(([, d]) => !d.testOnly).map(([id, d]) => `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}"><canvas width="90" height="${Math.round(90 * d.size[1] / d.size[0])}"></canvas><span><b>${d.name}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${d.desc}</em></span></button>`).join('');
-  for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map]);
+  const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly), done = new Set(), rows = [];
+  for (const [id, d] of list) {
+    if (!d.group) { rows.push(mapCardHtml(id, d, d.name)); continue; }
+    if (done.has(d.group)) continue;
+    done.add(d.group);
+    const ids = list.filter(([, e]) => e.group === d.group).map(([k]) => k), open = mapGroupsOpen.has(d.group), cur = ids.includes(mapId) ? mapId : null, show = MAPS[cur || ids[0]];
+    // まとまりの説明は、どの配置にも共通する文（最後の「。」まで）
+    let desc = MAPS[ids[0]].desc;
+    for (const k of ids) { const e = MAPS[k].desc; let n = 0; while (n < desc.length && desc[n] === e[n]) n++; desc = desc.slice(0, n); }
+    desc = desc.slice(0, desc.lastIndexOf('。') + 1) || MAPS[ids[0]].desc;
+    // 選んでいなければ、プラントの数は配置ごとの幅で出す
+    const pn = ids.map(k => MAPS[k].plants.length), lo = Math.min(...pn), hi = Math.max(...pn);
+    const info = cur || lo === hi ? mapInfo(show) : mapInfo(show).replace(`プラント${show.plants.length}`, `プラント${lo}〜${hi}`);
+    rows.push(`<div class="mapGroup"><button type="button" class="mapCard mapHead${cur ? ' sel' : ''}" data-map-group="${d.group}" data-preview="${cur || ids[0]}" aria-expanded="${open}">${mapCanvas(show)}`
+      + `<span><b>${d.groupName}<i>${open ? '▾ 閉じる' : `▸ 配置${ids.length}種から選ぶ`}</i>${cur ? `<i>選択中：${MAPS[cur].variant}</i>` : ''}</b><small>${info}</small><em>${desc}</em></span></button>`
+      + (open ? `<div class="mapVariants">${ids.map(k => mapCardHtml(k, MAPS[k], MAPS[k].variant)).join('')}</div>` : '') + '</div>');
+  }
+  $('mapList').innerHTML = rows.join('');
+  for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map || b.dataset.preview]);
   $('mapNow').textContent = `${curMap.name}（${mapInfo(curMap)}）`;
 }
 const MAP_KEY = 'coreBreakerMap';
