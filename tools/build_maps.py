@@ -57,7 +57,7 @@ function check(d) {
   // 任意の項目
   if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
-  for (const key of ['jumpPads', 'lifts']) if (d[key] !== undefined && !Array.isArray(d[key])) E(`${key} は配列`);
+  for (const key of ['jumpPads', 'lifts', 'ziplines']) if (d[key] !== undefined && !Array.isArray(d[key])) E(`${key} は配列`);
   const point = (p, what) => {
     if (!Array.isArray(p) || p.length !== 3 || !p.every(num)) { E(`${what} は [x, z, 海抜y]`); return false; }
     inMap(p[0], p[1], what); return true;
@@ -76,6 +76,12 @@ function check(d) {
     if (l.size !== undefined && (!Array.isArray(l.size) || l.size.length !== 2 || !l.size.every(v => num(v) && v >= 4 && v <= 20))) E('リフトの size は4〜20の [幅, 奥行き]');
     if (l.speed !== undefined && (!num(l.speed) || l.speed <= 0 || l.speed > 30)) E('リフトの speed は0より大きく30以下');
     if (l.wait !== undefined && (!num(l.wait) || l.wait < 0 || l.wait > 60)) E('リフトの wait は0〜60秒');
+  }
+  // ジップライン（v0.21）：from と to のうち低い方が下の乗り場、高い方が上の端（崖の縁の外側でよい。降り場は上の端の先の足場をエンジンが探す）
+  for (const z of Array.isArray(d.ziplines) ? d.ziplines : []) {
+    if (!z || typeof z !== 'object') { E('ziplines の各項目はオブジェクト'); continue; }
+    const a = point(z.from, 'ジップラインの一端'), b = point(z.to, 'ジップラインのもう一端');
+    if (a && b && Math.abs(z.from[2] - z.to[2]) < 3) E('ジップラインの両端の高さは3m以上違える（上へ昇る設備）');
   }
   for (const w of d.water || []) { if (w.length !== 5 || !w.every(num)) E(`水面 [${w}] は [x, z, 横の半分, 奥行きの半分, 高さ]`); else inMap(w[0], w[1], '水面'); }
   for (const b of d.bridges || []) {

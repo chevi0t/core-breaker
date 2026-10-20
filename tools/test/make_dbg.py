@@ -27,7 +27,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
   get botMech() { return botMech; }, get renderCustom() { return renderCustom; }, get weaponGeoBank() { return weaponGeoBank; }, get nearestPod() { return nearestPod; },
-  get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
+  get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get ziplines() { return ziplines; }, get zipGrab() { return zipGrab; }, get zipNear() { return zipNear; }, get zipDrop() { return zipDrop; }, get zipCan() { return zipCan; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
   get resetMobility() { return resetMobility; }, get botMobilityGoal() { return botMobilityGoal; },
   get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
   get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; },
