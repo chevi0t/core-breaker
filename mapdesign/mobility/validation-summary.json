@@ -1,0 +1,72 @@
+{
+  "upstreamCommit": "3af0dbea792de8765c098e998ad9c75fd7a10291",
+  "testedEngineCommit": "8eeead35324ede2ecea1c3279abc9a64299a6397",
+  "engineSha256": "425b03aff1bdf4addc7eb1e2324ad77ff8056bbf2043934e2185b85e143e5a1a",
+  "mobilityCases": 18,
+  "schemaTests": {
+    "passed": 2,
+    "invalidConfigurationsRejected": 14
+  },
+  "weapons": {
+    "count": 204,
+    "errors": []
+  },
+  "legacyBotBattles": [
+    {
+      "map": "city",
+      "seconds": 154,
+      "errors": []
+    },
+    {
+      "map": "wide",
+      "seconds": 159,
+      "errors": []
+    },
+    {
+      "map": "mesa",
+      "seconds": 154,
+      "errors": []
+    },
+    {
+      "map": "dock",
+      "seconds": 26,
+      "errors": []
+    }
+  ],
+  "newFullBotBattles": {
+    "matches": 4,
+    "completed": 4,
+    "secondsEach": 300,
+    "errors": 0,
+    "path": "battles-final.json"
+  },
+  "facilities": {
+    "warnings": 0,
+    "hiddenPodSamplesEach": 162,
+    "hiddenPodVisibleSamples": 0,
+    "catapults": 8,
+    "maxLandingErrorMeters": 0.6,
+    "pageErrors": 0
+  },
+  "mergedComponentChecks": {
+    "arcadeWeapons": 10,
+    "mechCombinations": 81,
+    "partCombinations": 6561,
+    "errors": 0
+  },
+  "menuSmoke": {
+    "selected": "mobility",
+    "timerBefore": "5:00",
+    "timerAfter": "4:59",
+    "errors": []
+  },
+  "observerDemo": {
+    "map": "mobility",
+    "matches": 1,
+    "seconds": 300,
+    "path": "replay/recorded.json",
+    "coreLossLedgerMatches": true
+  },
+  "previousRecordings": "../circulation/replay/ は昇降設備追加前に実行した3試合。旧13試合の位置を推定した映像ではない。",
+  "balance": "勝率未確定。設備と対戦の動作検証であり、バランス調整済みという判定ではない。"
+}

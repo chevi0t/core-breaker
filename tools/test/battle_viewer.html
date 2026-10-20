@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bot対戦・俯瞰リプレイ</title>
+<style>
+:root{color-scheme:dark;--bg:#101820;--panel:#19242e;--line:#334653;--muted:#a8bac7;--blue:#64b9ff;--orange:#ffa65f;--ink:#eef5fa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 system-ui,sans-serif}button,select,input{font:inherit}button,select{background:#243542;color:var(--ink);border:1px solid #4c6475;border-radius:6px;padding:7px 10px}button{cursor:pointer}button:hover{background:#354e60}button:disabled{opacity:.4;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}main{max-width:1330px;margin:auto;padding:16px 24px}header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}h1{margin:0;font-size:23px;letter-spacing:.04em}h2{font-size:15px;margin:0 0 8px}p{margin:5px 0}.sub,.hint{color:var(--muted);font-size:12px}.tag{border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:12px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:13px 0}#play{background:#d8edc1;color:#132219;font-weight:700;min-width:90px}#seek{flex:1;min-width:180px;accent-color:#d8edc1}#clock{font:600 19px ui-monospace,monospace;min-width:116px}.layout{display:grid;grid-template-columns:minmax(360px,.95fr) minmax(350px,1fr);gap:17px}.map-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#111c25;position:relative}#map{display:block;width:100%;height:calc(100vh - 255px);min-height:450px;max-height:850px;object-fit:contain;cursor:crosshair}.legend{display:flex;gap:13px;flex-wrap:wrap;padding:8px 12px;background:#19242e;font-size:12px}.blue{color:var(--blue)}.orange{color:var(--orange)}.side{display:flex;flex-direction:column;gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px}.cores{display:grid;grid-template-columns:1fr 1fr;gap:12px}.core-number{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}.core-bar{height:5px;background:#0b131a;border-radius:3px;overflow:hidden;margin:4px 0 9px}.core-bar span{display:block;height:100%;background:currentColor}.loss{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);gap:8px}.loss b{font-variant-numeric:tabular-nums;color:var(--ink)}.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}.filters select{padding:4px}.units{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:6px 0}.unit{padding:5px;font-size:12px}.unit.active{border-color:#fff;box-shadow:inset 0 0 0 1px #fff}.unit.dead{opacity:.45}#unitDetail{min-height:57px;font-size:12px}.event-head{display:flex;align-items:center;justify-content:space-between;gap:8px}#eventFilter{padding:3px 5px;font-size:12px}#events{height:180px;overflow:auto;margin-top:7px;padding-right:3px}.event{width:100%;display:flex;gap:9px;align-items:center;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:12px;padding:7px 4px}.event.past{opacity:.62}.event.current{background:#344653;opacity:1}.event time{font:12px ui-monospace,monospace;color:var(--muted)}.event .kind{flex:1}.event .amt{color:#f1d796;font-variant-numeric:tabular-nums}#timeline{width:100%;height:145px;display:block;cursor:crosshair}.timeline-card{margin-top:12px;padding:8px 12px 3px}.footer{font-size:11px;color:var(--muted);margin-top:10px}#result{font-size:12px;color:#d8edc1}#focus{font-size:12px;color:#f1d796;min-height:18px}@media(max-width:800px){main{padding:12px}.layout{grid-template-columns:1fr}#map{height:70vh}.cores{gap:8px}h1{font-size:20px}.toolbar{gap:6px}#events{height:210px}}
+</style>
+<main>
+  <header><div><h1 id="title">Bot対戦・俯瞰リプレイ</h1><p class="sub">機体を選んで移動を追い、被弾時刻から凸を見直す</p></div><span class="tag">観測した対戦を再生／オフライン対応</span></header>
+  <div class="toolbar">
+    <label>試合 <select id="match" aria-label="試合を選ぶ"></select></label>
+    <button id="play">▶ 再生</button><button id="back" title="5秒戻る">−5秒</button><button id="forward" title="5秒進む">＋5秒</button>
+    <span id="clock">0:00 / 5:00</span><input id="seek" aria-label="再生位置" type="range" min="0" max="300" step="0.05" value="0">
+    <select id="speed" aria-label="再生速度"><option value="1">1倍速</option><option value="2">2倍速</option><option value="4" selected>4倍速</option><option value="5">5倍速</option><option value="8">8倍速</option><option value="16">16倍速</option></select>
+  </div>
+  <div class="layout">
+    <section class="map-wrap" aria-label="対戦の俯瞰図"><canvas id="map" width="640" height="1000"></canvas>
+      <div class="legend"><span class="blue">● 青軍（南）</span><span class="orange">● 橙軍（北）</span><span>▲ 高所の床に接地</span><span>× 行動不能</span><span>線＝実際の移動</span><span>黄＝壊せる遮蔽</span><span>緑P＝補給点</span></div>
+    </section>
+    <section class="side">
+      <div class="cores">
+        <div class="card blue"><h2>青コア</h2><div id="coreB" class="core-number"></div><div class="core-bar"><span id="barB"></span></div><div class="loss"><span>敵の直接攻撃で減少</span><b id="directB"></b></div><div class="loss"><span>自軍機の大破で減少</span><b id="wreckB"></b></div></div>
+        <div class="card orange"><h2>橙コア</h2><div id="coreR" class="core-number"></div><div class="core-bar"><span id="barR"></span></div><div class="loss"><span>敵の直接攻撃で減少</span><b id="directR"></b></div><div class="loss"><span>自軍機の大破で減少</span><b id="wreckR"></b></div></div>
+      </div>
+      <div class="card"><div class="filters"><label><input type="checkbox" id="showB" checked>青</label><label><input type="checkbox" id="showR" checked>橙</label><label>軌跡 <select id="trails"><option value="5">直近5秒</option><option value="15" selected>直近15秒</option><option value="30">直近30秒</option><option value="sortie">今の出撃から</option><option value="0">非表示</option></select></label><label><input type="checkbox" id="nav">通行可能な接続</label></div>
+        <p class="hint">機体をクリックすると強調。出撃・エリア移動の前後は線でつなぎません。</p><div id="blueUnits" class="units"></div><div id="orangeUnits" class="units"></div><div id="unitDetail">機体を選ぶと担当・高さ・初期装備・コア攻撃量を表示します。</div>
+      </div>
+      <div class="card"><div class="event-head"><h2>場面を探す</h2><select id="eventFilter" aria-label="イベント種別"><option value="coreHit">コア命中</option><option value="baseEnter">敵ベース侵入</option><option value="plant">プラント所有変更</option><option value="deploy">出撃・エリア移動</option><option value="wreck">大破</option><option value="coverBreak">遮蔽の破壊</option><option value="repairStart">ポッドで補給開始</option><option value="padLaunch">パッド射出</option><option value="padLand">パッドから着地</option><option value="liftBoard">リフト乗車</option><option value="liftExit">リフトから高所へ下車</option></select></div>
+        <div class="filters"><button id="firstBlue">青の最初の凸</button><button id="firstOrange">橙の最初の凸</button></div>
+        <p class="hint">押すと8秒前で停止します。「再生」で侵攻を追えます。</p><div id="events"></div><div id="focus"></div>
+      </div>
+      <div class="card"><h2>見比べるところ</h2><p>① どのプラントから再出撃したか<br>② どの道で敵ベースへ入ったか<br>③ コアへ直接攻撃が通ったか</p><p class="hint">丸い枠は占拠範囲。線は記録した移動で、弾道ではありません。命中イベントの位置は、命中した時点の攻撃機の位置です。</p><p id="result"></p></div>
+    </section>
+  </div>
+  <section class="card timeline-card"><div class="hint">上：コア残量　下：各プラントの所有状態（灰＝中立）／クリック・ドラッグで移動</div><canvas id="timeline" width="1200" height="145" aria-label="コア残量とプラント所有状態の時間軸"></canvas></section>
+  <p class="footer" id="note"></p>
+</main>
+<script>
+'use strict';
+const data=/*__BATTLE_DATA__*/;
+const $=id=>document.getElementById(id), colors={B:'#64b9ff',R:'#ffa65f',neutral:'#71818e'}, teamName=t=>t==='B'?'青':t==='R'?'橙':'中立';
+const roleName={attack:'攻め',plant:'占拠',defend:'防衛'}, classShort={assault:'強',heavy:'重',sniper:'遊',support:'支'};
+const fmt=t=>`${Math.floor(Math.max(0,t)/60)}:${String(Math.floor(Math.max(0,t)%60)).padStart(2,'0')}`;
+const num=n=>Number(n.toFixed(2)).toLocaleString('ja-JP');
+const map=$('map'),ctx=map.getContext('2d'),timeline=$('timeline'),tc=timeline.getContext('2d');
+const [mx,mz]=data.map.size,S=Math.min((map.width-64)/(mx*2),(map.height-80)/(mz*2));
+const point=(x,z)=>[map.width/2+x*S,map.height/2+z*S];
+let match,index=0,t=0,playing=false,selected=null,focused=null,eventRows=[],last=0;
+const bg=document.createElement('canvas');bg.width=map.width;bg.height=map.height;
+const bc=bg.getContext('2d');
+const timelineBg=document.createElement('canvas');timelineBg.width=timeline.width;timelineBg.height=timeline.height;
+function line(c,a,b,color,width=1,dash=[]){c.beginPath();c.setLineDash(dash);c.strokeStyle=color;c.lineWidth=width;c.moveTo(...a);c.lineTo(...b);c.stroke();c.setLineDash([]);}
+function circle(c,x,y,r,fill,stroke,width=1){c.beginPath();c.arc(x,y,r,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}}
+function label(c,text,x,y,color='#eaf2f7',size=13){c.font=`600 ${size}px system-ui,sans-serif`;c.textAlign='center';c.fillStyle=color;c.fillText(text,x,y);}
+function rectWorld(c,x,z,w,h,fill){const [a,b]=point(x-w/2,z-h/2);c.fillStyle=fill;c.fillRect(a,b,w*S,h*S);}
+function background(){
+  bc.fillStyle='#111c25';bc.fillRect(0,0,bg.width,bg.height);
+  const g=data.map.terrain;
+  for(let z=0;z<g.nz-1;z++)for(let x=0;x<g.nx-1;x++){
+    const h=g.heights[z*g.nx+x],a=point(-mx+x*g.step,-mz+z*g.step);
+    bc.fillStyle=`rgb(${Math.round(33+h*2)},${Math.round(47+h*1.5)},${Math.round(57+h)})`;
+    bc.fillRect(...a,g.step*S+.5,g.step*S+.5);
+  }
+  for(const w of data.map.water)rectWorld(bc,w[0],w[1],w[2]*2,w[3]*2,'#235174');
+  for(const o of data.map.obstacles)rectWorld(bc,(o.minX+o.maxX)/2,(o.minZ+o.maxZ)/2,o.maxX-o.minX,o.maxZ-o.minZ,o.bottom>0?'#776447':'#16242f');
+  for(let x=-120;x<=120;x+=40)line(bc,point(x,-mz),point(x,mz),'#68839730',1,[2,7]);
+  for(let z=-200;z<=200;z+=40)line(bc,point(-mx,z),point(mx,z),'#68839730',1,[2,7]);
+  for(const sign of [-1,1]){const z=data.map.baseLine*sign;line(bc,point(-mx,z),point(mx,z),sign>0?'#64b9ff88':'#ffa65f88',1,[8,5]);}
+  for(const c of data.map.catapults){const a=point(c.pos[0],c.pos[2]),b=point(c.land[0],c.land[2]);circle(bc,...a,3,'#dfcc7c');line(bc,a,[a[0]+(b[0]-a[0])*.15,a[1]+(b[1]-a[1])*.15],'#dfcc7c',2);}
+  for(const p of data.map.jumpPads || []){const a=point(p.pos[0],p.pos[2]);circle(bc,...a,p.radius*S,'#80e7c055','#80e7c0',2);label(bc,'J',a[0]-12,a[1]-7,'#80e7c0',12);}
+  for(const l of data.map.lifts || [])line(bc,point(l.from[0],l.from[2]),point(l.to[0],l.to[2]),'#e2c16f',2,[3,4]);
+  label(bc,'北・橙ベース',map.width/2,25,colors.R,15);label(bc,'南・青ベース',map.width/2,map.height-18,colors.B,15);
+  if(data.map.id.startsWith('circulation'))label(bc,'西側の高架',point(-85,0)[0],point(-85,0)[1]-22,'#bca681',12);
+}
+background();
+function frameAt(time){let lo=0,hi=match.frames.length-1;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(match.frames[mid].t<=time)lo=mid;else hi=mid-1;}return lo;}
+function visible(u){return $(u.team==='B'?'showB':'showR').checked;}
+function sample(time){const i=frameAt(time),a=match.frames[i],b=match.frames[Math.min(i+1,match.frames.length-1)],r=b.t>a.t?(time-a.t)/(b.t-a.t):0;return {i,frame:a,units:a.u.map((u,j)=>{const v=b.u[j];if(u[5]!==v[5] || !(u[4]&1) || !(v[4]&1))return u;return u.map((n,k)=>k<=2?n+(v[k]-n)*r:n);})};}
+function drawMap(s){
+  ctx.clearRect(0,0,map.width,map.height);ctx.drawImage(bg,0,0);
+  (data.map.pods || []).forEach(p=>{const a=point(p.pos[0],p.pos[2]);rectWorld(ctx,p.pos[0],p.pos[2],6,6,'#7dffb0');label(ctx,(p.plant || '')+'P',a[0]+14,a[1]-7,'#7dffb0',11);});
+  (data.map.lifts || []).forEach((l,i)=>{const p=s.frame.l?.[i] || l.from;rectWorld(ctx,p[0],p[2],l.w,l.depth,'#e2c16f88');const a=point(p[0],p[2]);label(ctx,'L '+p[1].toFixed(1)+'m',a[0]+22,a[1]-8,'#f8d68b',11);});
+  (data.map.barricades || []).forEach((b,i)=>{if((s.frame.b?.[i]??b.maxHp)>0){rectWorld(ctx,b.x,b.z,b.w,b.depth,'#efcb55');const p=point(b.x,b.z);label(ctx,'遮蔽'+(i+1),p[0]+20,p[1]-7,'#efcb55',10);}});
+  if($('nav').checked)for(const [a,b] of data.map.nav.links){const A=data.map.nav.nodes[a],B=data.map.nav.nodes[b];line(ctx,point(A[0],A[2]),point(B[0],B[2]),'#80dcce25');}
+  const trail=$('trails').value;
+  if(trail!=='0')for(let j=0;j<match.units.length;j++){
+    const meta=match.units[j];if(!visible(meta))continue;
+    const active=meta.id===selected,segment=s.units[j][5],start=trail==='sortie'?0:Math.max(0,t-Number(trail));let prev=null;
+    for(let f=frameAt(start);f<=s.i;f++){
+      const u=match.frames[f].u[j];
+      if(u[5]!==segment || !(u[4]&1)){prev=null;continue;}
+      const p=point(u[0],u[2]);if(prev)line(ctx,prev,p,active?'#f5f8db':colors[meta.team]+(selected?'35':'77'),active?3:1.4);prev=p;
+    }
+  }
+  data.map.plants.forEach((p,i)=>{
+    const state=s.frame.p[i],col=colors[state[0] || 'neutral'],a=point(p.pos[0],p.pos[2]);
+    circle(ctx,...a,p.radius*S,col+'22',col,2);circle(ctx,...a,11,'#18242e',col,1.4);label(ctx,p.id,a[0],a[1]+4,col,14);
+    const gauge=state[1];if(Math.abs(gauge)<100){ctx.beginPath();ctx.arc(...a,p.radius*S+4,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.abs(gauge)/100);ctx.strokeStyle=colors[gauge>=0?'B':'R'];ctx.lineWidth=3;ctx.stroke();}
+  });
+  for(const c of data.map.cores){const a=point(c.pos[0],c.pos[2]);circle(ctx,...a,12,colors[c.team]+'55',colors[c.team],2);label(ctx,'コア',a[0],a[1]+28,colors[c.team],12);}
+  for(const e of match.events)if(e.type==='coreHit' && Math.abs(e.t-t)<.7){const c=data.map.cores.find(c=>c.team===e.team);circle(ctx,...point(c.pos[0],c.pos[2]),24+Math.abs(e.t-t)*12,null,'#f6de8c',3);}
+  s.units.forEach((u,j)=>{
+    const meta=match.units[j];if(!visible(meta))return;
+    const a=point(u[0],u[2]),active=selected===meta.id;
+    if(!(u[4]&1)){if(u[4]&32){line(ctx,[a[0]-4,a[1]-4],[a[0]+4,a[1]+4],colors[meta.team]+'bb',2);line(ctx,[a[0]-4,a[1]+4],[a[0]+4,a[1]-4],colors[meta.team]+'bb',2);}return;}
+    if(active)circle(ctx,...a,13,null,'#fbffdf',2);
+    if(u[4]&8)circle(ctx,...a,11,null,colors[meta.team]+'66');
+    if(u[4]&64)circle(ctx,...a,12,null,'#7dffb0',2);
+    circle(ctx,...a,6,colors[meta.team],active?'#fff':'#0c1822',1.5);
+    const yaw=u[6];line(ctx,a,[a[0]-Math.sin(yaw)*11,a[1]-Math.cos(yaw)*11],colors[meta.team],1.5);
+    label(ctx,meta.id,a[0]+15,a[1]-8,active?'#ffffde':colors[meta.team],10);
+    if(u[4]&4)label(ctx,'▲',a[0],a[1]+20,'#f5e8b4',10);
+    if(u[4]&2)circle(ctx,...a,9,null,'#ffffff99',1);
+  });
+}
+// 試合中に変わらない履歴は一度だけ描き、再生時には時刻の線だけを重ねる。
+function buildTimeline(){
+  const tc=timelineBg.getContext('2d');
+  const w=timeline.width,h=timeline.height,left=35,right=w-12,xx=time=>left+time/match.seconds*(right-left);
+  tc.clearRect(0,0,w,h);tc.fillStyle='#14202a';tc.fillRect(left,4,right-left,72);
+  for(const [i,team] of ['B','R'].entries()){
+    tc.beginPath();match.frames.forEach((f,k)=>{const x=xx(f.t),y=9+(1-f.c[i]/match.initialCore[i])*58;if(!k)tc.moveTo(x,y);else tc.lineTo(x,y);});tc.strokeStyle=colors[team];tc.lineWidth=2;tc.stroke();
+  }
+  for(let j=0;j<data.map.plants.length;j++){
+    const y=80+j*9;label(tc,data.map.plants[j].id,15,y+7,'#b9c9d4',10);
+    for(let i=0;i<match.frames.length-1;i++){const f=match.frames[i],n=match.frames[i+1];tc.fillStyle=colors[f.p[j][0] || 'neutral'];tc.fillRect(xx(f.t),y,Math.max(1,xx(n.t)-xx(f.t)),6);}
+  }
+  for(let sec=0;sec<=match.seconds;sec+=60)label(tc,fmt(sec),xx(sec),h-2,'#a8bac7',10);
+}
+function drawTimeline(){tc.clearRect(0,0,timeline.width,timeline.height);tc.drawImage(timelineBg,0,0);const x=35+t/match.seconds*(timeline.width-47);line(tc,[x,3],[x,timeline.height-14],'#fff',2);}
+function updateStats(s){
+  const losses={B:{direct:0,wreck:0},R:{direct:0,wreck:0}};
+  for(const e of match.events){if(e.t>t)continue;if(e.type==='coreHit' || e.type==='wreck')losses[e.team][e.type==='coreHit'?'direct':'wreck']+=e.amount;}
+  for(const [i,team] of ['B','R'].entries()){const hp=match.initialCore[i]-losses[team].direct-losses[team].wreck;$('core'+team).textContent=num(hp);$('bar'+team).style.width=(hp/match.initialCore[i]*100)+'%';$('direct'+team).textContent=num(losses[team].direct);$('wreck'+team).textContent=num(losses[team].wreck);}
+  for(let i=0;i<match.units.length;i++){const el=$('unit-'+match.units[i].id);el.classList.toggle('active',match.units[i].id===selected);el.classList.toggle('dead',!(s.units[i][4]&1));}
+  if(selected){
+    const i=match.units.findIndex(u=>u.id===selected),meta=match.units[i],u=s.units[i];
+    const deployment=match.events.filter(e=>e.type==='deploy' && e.unit===selected && e.t<=t).at(-1);
+    const where=u[4]&64?'ポッドで補給中':!(u[4]&1)?(u[4]&32?'行動不能':'再出撃待ち'):u[4]&2?'飛行中':u[4]&4?'高所の床に接地':'地上';
+    const raw=match.events.filter(e=>e.type==='coreHit' && e.unit===selected && e.t<=t).reduce((n,e)=>n+e.raw,0);
+    $('unitDetail').textContent=`${teamName(meta.team)}${meta.id.slice(1)}｜${meta.className}・担当 ${roleName[meta.role] || meta.role}｜HP ${num(u[3])}｜${where}（高さ ${u[1].toFixed(1)}m）\n出撃元 ${deployment?.at==='base'?'ベース':deployment?.at || '不明'}｜コアへの攻撃威力 ${num(raw)}（コア減少はその1割）\n初期装備：${Object.values(meta.loadout).join('・')}`;
+    $('unitDetail').style.whiteSpace='pre-line';
+  }else $('unitDetail').textContent='機体を選ぶと担当・高さ・初期装備・コア攻撃量を表示します。';
+  for(const row of eventRows){row.el.classList.toggle('past',row.e.t<t-2);row.el.classList.toggle('current',Math.abs(row.e.t-t)<2);}
+}
+function render(){const s=sample(t);drawMap(s);drawTimeline();updateStats(s);$('seek').value=t;$('clock').textContent=`${fmt(t)} / ${fmt(match.seconds)}`;$('play').textContent=playing?'Ⅱ 停止':'▶ 再生';}
+function seek(time){t=Math.max(0,Math.min(match.seconds,Number(time)));render();}
+function selectUnit(id){selected=selected===id?null:id;render();}
+function focusEvent(e){playing=false;selected=e.unit || null;focused=e;$('focus').textContent=`${fmt(e.t)}の場面・8秒前から確認`;seek(e.t-8);}
+function firstAttack(team){const e=match.events.find(e=>e.type==='coreHit' && e.unit?.startsWith(team));if(!e)return;const dep=match.events.filter(d=>d.type==='deploy' && d.unit===e.unit && d.t<=e.t).at(-1);playing=false;selected=e.unit;$('trails').value='sortie';$('focus').textContent=`${teamName(team)}の最初の凸：${dep?.at==='base'?'ベース':dep?.at || '不明'}から出撃 → ${fmt(e.t)}に命中`;seek(dep?.t || 0);}
+function eventsForView(){
+  const type=$('eventFilter').value,events=match.events.filter(e=>e.type===type && (type!=='coreHit' || e.amount>0));
+  if(type!=='coreHit')return events;
+  const grouped=[];
+  for(const e of events){const prev=grouped.at(-1);if(prev && prev.unit===e.unit && prev.team===e.team && e.t-prev.end<1){prev.amount+=e.amount;prev.end=e.t;}else grouped.push({...e,end:e.t});}
+  return grouped;
+}
+function buildEvents(){
+  $('events').replaceChildren();eventRows=[];
+  for(const e of eventsForView()){
+    const button=document.createElement('button');button.className='event';button.dataset.time=e.t;
+    const time=document.createElement('time');time.textContent=fmt(e.t);button.append(time);
+    const text=document.createElement('span');text.className='kind';const unit=e.unit?teamName(e.unit[0])+e.unit.slice(1):'攻撃機不明';
+    text.textContent=e.type==='repairStart'?`${unit} ${e.plant || 'ベース'}のポッドで補給開始`:e.type==='coverBreak'?`遮蔽${e.index+1}が破壊`:e.type==='coreHit'?`${unit} → ${teamName(e.team)}コア命中`:e.type==='baseEnter'?`${unit} 敵ベースへ侵入`:e.type==='plant'?`${e.plant}：${teamName(e.from)} → ${teamName(e.to)}`:e.type==='deploy'?`${unit} ${e.reason==='transfer'?'エリア移動':'出撃'}：${e.at==='base'?'ベース':e.at}`:e.facility?`${unit} ${e.facility}：${({padLaunch:"パッド射出",padLand:"高所に着地",liftBoard:"リフト乗車",liftExit:"高所へ下車"})[e.type]}`:`${unit} 大破`;
+    button.append(text);if(e.amount){const amount=document.createElement('span');amount.className='amt';amount.textContent='−'+num(e.amount);button.append(amount);}
+    button.onclick=()=>focusEvent(e);$('events').append(button);eventRows.push({el:button,e});
+  }
+  if(!eventRows.length){const p=document.createElement('p');p.className='hint';p.textContent='この試合では記録されていません。';$('events').append(p);}
+}
+function loadMatch(i){
+  index=i;match=data.matches[i];t=0;playing=false;selected=null;focused=null;$('focus').textContent='';$('seek').max=match.seconds;
+  $('blueUnits').replaceChildren();$('orangeUnits').replaceChildren();
+  for(const unit of match.units){const b=document.createElement('button');b.id='unit-'+unit.id;b.className='unit '+(unit.team==='B'?'blue':'orange');b.textContent=teamName(unit.team)+unit.id.slice(1)+' '+(classShort[unit.cls] || unit.className);b.title=roleName[unit.role];b.onclick=()=>selectUnit(unit.id);$(unit.team==='B'?'blueUnits':'orangeUnits').append(b);}
+  $('result').textContent=`終局：${match.winner==='draw'?'引き分け':teamName(match.winner)+'の勝利'}／全${match.seconds}秒／実行エラー ${match.errors.length}件`;
+  $('firstBlue').disabled=!match.events.some(e=>e.type==='coreHit' && e.unit?.startsWith('B'));$('firstOrange').disabled=!match.events.some(e=>e.type==='coreHit' && e.unit?.startsWith('R'));
+  buildTimeline();buildEvents();render();
+}
+data.matches.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}：${m.winner==='draw'?'引き分け':teamName(m.winner)+'勝利'}（seed ${m.seed}）`;$('match').append(o);});
+$('title').textContent=`${data.map.name}｜俯瞰リプレイ`;
+$('note').textContent=data.note+'　矢印先の経路を推定して補ってはいません。';
+$('match').onchange=()=>loadMatch(Number($('match').value));
+$('play').onclick=()=>{if(t>=match.seconds)seek(0);playing=!playing;render();};
+$('back').onclick=()=>{playing=false;seek(t-5);};$('forward').onclick=()=>{playing=false;seek(t+5);};
+$('seek').oninput=()=>{playing=false;seek($('seek').value);};
+for(const id of ['showB','showR','trails','nav'])$(id).onchange=render;
+$('eventFilter').onchange=()=>{buildEvents();render();};
+$('firstBlue').onclick=()=>firstAttack('B');$('firstOrange').onclick=()=>firstAttack('R');
+map.onclick=e=>{const r=map.getBoundingClientRect(),scale=Math.min(r.width/map.width,r.height/map.height),ox=(r.width-map.width*scale)/2,oy=(r.height-map.height*scale)/2,x=(e.clientX-r.left-ox)/scale,y=(e.clientY-r.top-oy)/scale;const s=sample(t);let best=null,dist=22;for(let i=0;i<s.units.length;i++){if(!visible(match.units[i]) || !(s.units[i][4]&1))continue;const p=point(s.units[i][0],s.units[i][2]),d=Math.hypot(p[0]-x,p[1]-y);if(d<dist){dist=d;best=match.units[i].id;}}if(best)selectUnit(best);};
+let dragging=false;
+function timelineSeek(e){const r=timeline.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*timeline.width;playing=false;seek((x-35)/(timeline.width-47)*match.seconds);}
+timeline.onpointerdown=e=>{dragging=true;timeline.setPointerCapture(e.pointerId);timelineSeek(e);};timeline.onpointermove=e=>{if(dragging)timelineSeek(e);};timeline.onpointerup=()=>dragging=false;timeline.onpointercancel=()=>dragging=false;
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();$('play').click();}if(e.code==='ArrowLeft')$('back').click();if(e.code==='ArrowRight')$('forward').click();});
+function animate(now){if(playing){t=Math.min(match.seconds,t+Math.min(.1,(now-last)/1000)*Number($('speed').value));if(t>=match.seconds)playing=false;render();}last=now;requestAnimationFrame(animate);}
+loadMatch(0);requestAnimationFrame(animate);
+// 動画書き出しと操作検証も、ユーザーと同じ描画を使う。
+window.__replay={seek,loadMatch,focusEvent,selectUnit,get data(){return data;},get time(){return t;},get selected(){return selected;},pause(){playing=false;render();}};
+</script>
+</html>

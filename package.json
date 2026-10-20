@@ -6,6 +6,7 @@
     "dbg": "python3 tools/test/make_dbg.py dbg",
     "test:weapons": "node tools/test/weapons_check.js dbg",
     "test:bots": "node tools/test/bot_battle.js dbg city,wide,mesa,dock 150",
+    "test:mapgen": "node --test tools/test/mapgen.test.js",
     "test": "npm run dbg && npm run test:weapons && npm run test:bots"
   },
   "devDependencies": {

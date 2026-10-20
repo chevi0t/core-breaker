@@ -1,0 +1,22 @@
+
+> test:mapgen
+> node --test tools/test/mapgen.test.js
+
+✔ 段階1：同じシードで地形を再現し、保存・再読み込みできる (3.55849ms)
+✔ 段階2：配置シードを変えても共通地形は変わらず、3種類を選べる (2.043514ms)
+✔ 予算が足りない場合に3戦場あると偽らない (0.500685ms)
+✔ 起伏生成は両半面を使い、同じシードで再実行しても地形が増殖しない (761.408531ms)
+✔ ★が無くてもポッドが見える・片側未検査・ページエラーなら合格にしない (0.51032ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1065.364006
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

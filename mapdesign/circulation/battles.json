@@ -1,0 +1,191 @@
+[
+  {
+    "map": "circulation",
+    "seconds": 150,
+    "ended": false,
+    "core": [
+      7763,
+      7409
+    ],
+    "kills": {
+      "B": 26,
+      "R": 20
+    },
+    "captures": 1,
+    "captureEvents": [
+      {
+        "t": 62.9,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      }
+    ],
+    "occupancy": {
+      "A:B": 149.99999999999986,
+      "B:neutral": 62.849999999998566,
+      "C:R": 149.99999999999986,
+      "B:B": 87.14999999999719
+    },
+    "layers": {
+      "upper": 0,
+      "west": 101,
+      "center": 999,
+      "east": 94
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 0,
+    "seed": 20261019,
+    "errors": [],
+    "balance": "勝率未確定（単一シードの短時間動作確認）"
+  },
+  {
+    "map": "circulation-v2",
+    "seconds": 150,
+    "ended": false,
+    "core": [
+      7537,
+      7763
+    ],
+    "kills": {
+      "B": 20,
+      "R": 20
+    },
+    "captures": 4,
+    "captureEvents": [
+      {
+        "t": 17,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 23.8,
+        "id": "C",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 27.3,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 27.4,
+        "id": "E",
+        "from": null,
+        "to": "R"
+      }
+    ],
+    "occupancy": {
+      "A:B": 149.99999999999986,
+      "B:neutral": 16.900000000000105,
+      "C:neutral": 23.750000000000203,
+      "D:neutral": 27.20000000000025,
+      "E:neutral": 27.300000000000253,
+      "F:R": 149.99999999999986,
+      "B:B": 133.09999999999602,
+      "C:B": 126.24999999999497,
+      "D:R": 122.79999999999517,
+      "E:R": 122.69999999999517
+    },
+    "layers": {
+      "upper": 39,
+      "west": 140,
+      "center": 880,
+      "east": 164
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 9,
+    "seed": 20261020,
+    "errors": [],
+    "balance": "勝率未確定（単一シードの短時間動作確認）"
+  },
+  {
+    "map": "circulation-v3",
+    "seconds": 150,
+    "ended": false,
+    "core": [
+      6871,
+      7875
+    ],
+    "kills": {
+      "B": 18,
+      "R": 26
+    },
+    "captures": 8,
+    "captureEvents": [
+      {
+        "t": 14.9,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 26.7,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 27.3,
+        "id": "C",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 72.5,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 82.5,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 89.9,
+        "id": "E",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 110.2,
+        "id": "D",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 140.2,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      }
+    ],
+    "occupancy": {
+      "A:B": 149.99999999999986,
+      "B:neutral": 14.850000000000076,
+      "C:neutral": 27.20000000000025,
+      "D:neutral": 66.59999999999836,
+      "E:R": 89.84999999999704,
+      "B:B": 135.14999999999648,
+      "D:R": 55.74999999999897,
+      "C:B": 122.79999999999517,
+      "D:B": 27.650000000000258,
+      "E:neutral": 60.14999999999872
+    },
+    "layers": {
+      "upper": 72,
+      "west": 162,
+      "center": 887,
+      "east": 72
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 0,
+    "seed": 20261021,
+    "errors": [],
+    "balance": "勝率未確定（単一シードの短時間動作確認）"
+  }
+]

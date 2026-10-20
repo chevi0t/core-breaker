@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import argparse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "prototype" / "maps"
@@ -54,7 +55,28 @@ function check(d) {
   const types = ['mesa', 'block', 'ramp', 'hill', 'trench'];
   for (const f of d.terrain) if (!types.includes(f.type)) E(`地形の種類 ${f.type} はエンジンに無い（使えるのは ${types.join('・')}）`);
   // 任意の項目
+  if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
+  for (const key of ['jumpPads', 'lifts']) if (d[key] !== undefined && !Array.isArray(d[key])) E(`${key} は配列`);
+  const point = (p, what) => {
+    if (!Array.isArray(p) || p.length !== 3 || !p.every(num)) { E(`${what} は [x, z, 海抜y]`); return false; }
+    inMap(p[0], p[1], what); return true;
+  };
+  for (const p of Array.isArray(d.jumpPads) ? d.jumpPads : []) {
+    if (!p || typeof p !== 'object') { E('jumpPads の各項目はオブジェクト'); continue; }
+    point(p.at, 'ジャンプパッド');
+    if (point(p.exit, 'ジャンプパッドの出口') && Array.isArray(p.at) && num(p.at[2]) && p.exit[2] >= p.at[2] + p.rise) E('ジャンプパッドの出口は射出の最高点より低くする');
+    if (!num(p.rise) || p.rise <= 0 || p.rise > 100) E('ジャンプパッドの rise は0より大きく100以下');
+    if (p.radius !== undefined && (!num(p.radius) || p.radius < 2 || p.radius > 10)) E('ジャンプパッドの radius は2〜10');
+  }
+  for (const l of Array.isArray(d.lifts) ? d.lifts : []) {
+    if (!l || typeof l !== 'object') { E('lifts の各項目はオブジェクト'); continue; }
+    const a = point(l.from, 'リフト始点'), b = point(l.to, 'リフト終点');
+    if (a && b && l.from.every((v, i) => v === l.to[i])) E('リフトの始点と終点を分ける');
+    if (l.size !== undefined && (!Array.isArray(l.size) || l.size.length !== 2 || !l.size.every(v => num(v) && v >= 4 && v <= 20))) E('リフトの size は4〜20の [幅, 奥行き]');
+    if (l.speed !== undefined && (!num(l.speed) || l.speed <= 0 || l.speed > 30)) E('リフトの speed は0より大きく30以下');
+    if (l.wait !== undefined && (!num(l.wait) || l.wait < 0 || l.wait > 60)) E('リフトの wait は0〜60秒');
+  }
   for (const w of d.water || []) { if (w.length !== 5 || !w.every(num)) E(`水面 [${w}] は [x, z, 横の半分, 奥行きの半分, 高さ]`); else inMap(w[0], w[1], '水面'); }
   for (const b of d.bridges || []) {
     if (b.length !== 6 || !b.every(num)) { E(`橋 [${b}] は [x, z, 幅, 奥行き, 上面の高さ, 厚さ]`); continue; }
@@ -68,6 +90,7 @@ function check(d) {
       nodes.forEach((n, i) => { if (!Array.isArray(n) || !(n.length === 2 || n.length === 3) || !n.every(num)) E(`nav の節点 ${i} は [x, z] か、橋の上なら [x, z, 歩く高さ]`); else inMap(n[0], n[1], `nav の節点 ${i}`); });
       const used = new Set();
       const ref = r => {
+        if (d.asym && typeof r === 'string') { E('asym の nav は全域の節点番号で指定する'); return null; }
         const i = typeof r === 'string' && /^~\d+$/.test(r) ? +r.slice(1) : r;
         if (!Number.isInteger(i) || i < 0 || i >= nodes.length) { E(`nav のリンクの ${JSON.stringify(r)} は節点の番号か '~番号'`); return null; }
         used.add(i); return i;
@@ -100,7 +123,10 @@ console.log(JSON.stringify(errs));
 
 
 def main():
-    files = sorted(SRC.glob("*.js"))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check', nargs='+', type=pathlib.Path, help='指定したマップだけ検査し、maps.js は書かない')
+    args = parser.parse_args()
+    files = args.check or sorted(SRC.glob("*.js"))
     if not files:
         sys.exit(f"{SRC} にマップがありません")
     pairs = [(f.stem, str(f)) for f in files]
@@ -116,6 +142,9 @@ def main():
             sys.exit("マップに問題があります（maps.js は書いていません）:\n- " + "\n- ".join(errs))
     else:
         print("node が無いので中身の確認は飛ばします")
+    if args.check:
+        print('検査済み:', ', '.join(i for i, _ in pairs))
+        return
     parts = [f"// ---- maps/{f.name} ----\n{f.read_text(encoding='utf-8').rstrip()}\n" for f in files]
     OUT.write_text(
         "// マップのデータ（tools/build_maps.py が prototype/maps/*.js から作る。手で編集しない）。書き方は prototype/maps/README.md\n"

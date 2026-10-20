@@ -1,0 +1,104 @@
+{
+  "mapAndEngineSourceCommit": "773c20bcf7fbb6619b086cc62c989ed06d6a4378",
+  "engineSha256": "758b35e0cab611656ba353489c2eaa25f72c614c9cee61c7a7be3d30240c14ae",
+  "battleRunnerSha256": "53fe36777494cb105363cc1b1ce28e19b42cd353449e4974254bd0c35f06885a",
+  "command": "node tools/test/map_battle.js dbg circulation,circulation-v2,circulation-v3,circulation,circulation-v2,circulation-v3,circulation,circulation-v2,circulation-v3,circulation 301 mapdesign/circulation/battles-10.json",
+  "conditions": "5対5・本体のゲームループを0.05秒刻みで実行。描画を省き、プレイヤー機もBot化。既存の兵装・役割構成で乱数初期値を変えて10試合。",
+  "seeds": [
+    20261019,
+    20261020,
+    20261021,
+    20261022,
+    20261023,
+    20261024,
+    20261025,
+    20261026,
+    20261027,
+    20261028
+  ],
+  "completed": 10,
+  "simulatedSeconds": 3000,
+  "endedBy": {
+    "time": 10
+  },
+  "wins": {
+    "B": 4,
+    "R": 6,
+    "draw": 0
+  },
+  "byMap": [
+    {
+      "map": "circulation",
+      "matches": 4,
+      "wins": {
+        "B": 2,
+        "R": 2,
+        "draw": 0
+      },
+      "kills": {
+        "B": 179,
+        "R": 193
+      },
+      "captureChanges": 21,
+      "layers": {
+        "upper": 41,
+        "west": 1061,
+        "center": 7837,
+        "east": 571
+      },
+      "stallCandidateSamples": 40,
+      "errors": 0
+    },
+    {
+      "map": "circulation-v2",
+      "matches": 3,
+      "wins": {
+        "B": 2,
+        "R": 1,
+        "draw": 0
+      },
+      "kills": {
+        "B": 147,
+        "R": 119
+      },
+      "captureChanges": 39,
+      "layers": {
+        "upper": 362,
+        "west": 1098,
+        "center": 4699,
+        "east": 1022
+      },
+      "stallCandidateSamples": 76,
+      "errors": 0
+    },
+    {
+      "map": "circulation-v3",
+      "matches": 3,
+      "wins": {
+        "B": 0,
+        "R": 3,
+        "draw": 0
+      },
+      "kills": {
+        "B": 133,
+        "R": 145
+      },
+      "captureChanges": 36,
+      "layers": {
+        "upper": 349,
+        "west": 1097,
+        "center": 5332,
+        "east": 418
+      },
+      "stallCandidateSamples": 52,
+      "errors": 0
+    }
+  ],
+  "errors": 0,
+  "balance": "勝率未確定。各戦場3〜4試合で、戦術構成の入れ替えも未実施。今回の勝敗だけでは地形や陣営による有利不利は判定できない。",
+  "samplingNotes": [
+    "初期乱数を記録するが、ブラウザ対戦の完全な再現性は未検証。",
+    "layers は生存機を1秒ごとに数えた標本。upper は地上高5m超の面に接地中。",
+    "stallCandidateSamples は移動入力あり・交戦目標なし・非飛行で前標本からの移動が0.5m未満の件数。連続停滞時間や経路探索失敗の確定件数ではない。"
+  ]
+}
