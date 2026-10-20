@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-20",
+  "comparisonBaseCommit": "d8ce28087ca1fa306580bda2455510a43c526ffc",
+  "comparisonBaseHtmlSha256": "76988c91b12d32e0cf8e27e1625d21bb1a41f9ec2536c9116405e3330d5ccb35",
+  "broadValidationCommit": "64262bc02990be924922cade446c7b3df257b3a2",
+  "broadValidationSha256": {
+    "prototype/index.html": "67df63a85d2f15deabb0b9cc4e3ce15ba1b32e71fb8403c46b1a40697fcb9ffe",
+    "prototype/maps.js": "1053d23b777d368aca6ccc8cd95b891a38a0e5a4a5560cfd7926e4a9078b4f4f",
+    "tools/test/make_dbg.py": "163e8210e6a2ee0a8c332b907f540cc2e7abb60ddd5f456f8e0b6dd42cac871e",
+    "tools/test/primary_recoil_check.js": "424c7d33f3ff641d458e3fa8904800923336ddecb371c4a1dda4fcb321cf0a71",
+    "tools/test/plot_primary_recoil.py": "083cde5aa2b5d08ee2582bab212914954b25225a5ff495d64cee65eea565baed",
+    "research/weapons/primary-recoil.json": "65487903499910ea0f60c3be4e05e76b1d9fb43c47f2189a69220588fcab2c29"
+  },
+  "integratedBaseCommit": "7062e754ce4be985d32061c4f88fa3fb89bac12d",
+  "integratedSourceCommit": "748632e8274ccaeefd7b4d5283f8593a0c5fea42",
+  "sha256": {
+    "prototype/index.html": "8fb10934d705ba7c993bcd1afd670581fafdc8cc4a52ccf12a297ba4cba16ad9",
+    "prototype/maps.js": "edcbb0933fcb5909c7c563a0e7a1a74b7a0ac01aac34991a58d406afa0cbab72",
+    "tools/test/make_dbg.py": "163e8210e6a2ee0a8c332b907f540cc2e7abb60ddd5f456f8e0b6dd42cac871e",
+    "tools/test/primary_recoil_check.js": "424c7d33f3ff641d458e3fa8904800923336ddecb371c4a1dda4fcb321cf0a71",
+    "tools/test/plot_primary_recoil.py": "93f5602896b312d55755539bd25d3554998cd383f153ad431126ba90d799e82e",
+    "research/weapons/primary-recoil.json": "65487903499910ea0f60c3be4e05e76b1d9fb43c47f2189a69220588fcab2c29"
+  },
+  "evidence": {
+    "broadValidation": "元のmainへ反動を実装した64262bcで、全286武器・1296機体構成・4マップ150秒・50対50を検証。ルートのquick/Bot/large/shapes/other-weaponsログが対応する。",
+    "integratedValidation": "7062e75を取り込んだ本体で、反動専用167項目・簡易検査・4マップ150秒・コア減少率と港の10機先取を確認。専用検査のJSON/比較図とintegrated/内のログが対応する。",
+    "stats": "before-stats.jsonとafter-stats.jsonは武器・パーツ・装備順の比較用。統合されたmainの変更はこれらの定義を変更しない。"
+  }
+}

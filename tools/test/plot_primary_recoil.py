@@ -46,4 +46,6 @@ fig.suptitle('照準を補正せずに撃ったときの弾道の比較', fontsi
 fig.supxlabel('100m先の面へ弾道を投影。標準機体・同じ初期乱数・武器本来のばらつき。\n色は発射順（暗い→明るい）。灰色は機体の大きさの目安。', fontsize=11)
 fig.savefig(folder / 'comparison.png', dpi=160)
 fig.savefig(folder / 'comparison.svg')
+svg = folder / 'comparison.svg'
+svg.write_text('\n'.join(line.rstrip() for line in svg.read_text().splitlines()) + '\n')
 print('弾道の比較画像を保存:', folder / 'comparison.png')
