@@ -1,0 +1,69 @@
+{
+  "passed": 33,
+  "checks": [
+    "B/lightSniper 発射時に従来の威力で命中する",
+    "B/lightSniper 射線全体に緑レーザーを即座に描く",
+    "B/lightSniper 飛んでいく弾と白い煙を重ねない",
+    "B/lightSniper 着弾演出も発射と同時",
+    "B/lightSniper 発射直後ははっきり光る",
+    "B/lightSniper ぼやけた太い残光へ移る",
+    "B/lightSniper 発射後0.39秒まで残光が残る",
+    "B/lightSniper 0.4秒で残光を片付ける",
+    "B/lightSniperH 発射時に従来の威力で命中する",
+    "B/lightSniperH 射線全体に緑レーザーを即座に描く",
+    "B/lightSniperH 飛んでいく弾と白い煙を重ねない",
+    "B/lightSniperH 着弾演出も発射と同時",
+    "B/lightSniperH 発射直後ははっきり光る",
+    "B/lightSniperH ぼやけた太い残光へ移る",
+    "B/lightSniperH 発射後0.39秒まで残光が残る",
+    "B/lightSniperH 0.4秒で残光を片付ける",
+    "R/lightSniper 発射時に従来の威力で命中する",
+    "R/lightSniper 射線全体に緑レーザーを即座に描く",
+    "R/lightSniper 飛んでいく弾と白い煙を重ねない",
+    "R/lightSniper 着弾演出も発射と同時",
+    "R/lightSniper 発射直後ははっきり光る",
+    "R/lightSniper ぼやけた太い残光へ移る",
+    "R/lightSniper 発射後0.39秒まで残光が残る",
+    "R/lightSniper 0.4秒で残光を片付ける",
+    "R/lightSniperH 発射時に従来の威力で命中する",
+    "R/lightSniperH 射線全体に緑レーザーを即座に描く",
+    "R/lightSniperH 飛んでいく弾と白い煙を重ねない",
+    "R/lightSniperH 着弾演出も発射と同時",
+    "R/lightSniperH 発射直後ははっきり光る",
+    "R/lightSniperH ぼやけた太い残光へ移る",
+    "R/lightSniperH 発射後0.39秒まで残光が残る",
+    "R/lightSniperH 0.4秒で残光を片付ける",
+    "壁でレーザーが止まり、背後の敵へ命中しない"
+  ],
+  "cases": [
+    {
+      "team": "B",
+      "key": "lightSniper",
+      "damage": 1930,
+      "segments": 2,
+      "beamLength": 57.62499998807907
+    },
+    {
+      "team": "B",
+      "key": "lightSniperH",
+      "damage": 2480,
+      "segments": 2,
+      "beamLength": 57.62499998807907
+    },
+    {
+      "team": "R",
+      "key": "lightSniper",
+      "damage": 1930,
+      "segments": 2,
+      "beamLength": 57.62499998807907
+    },
+    {
+      "team": "R",
+      "key": "lightSniperH",
+      "damage": 2480,
+      "segments": 2,
+      "beamLength": 57.62499998807907
+    }
+  ],
+  "errors": []
+}
