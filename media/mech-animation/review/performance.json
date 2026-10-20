@@ -1,0 +1,92 @@
+{
+  "viewport": [
+    640,
+    400
+  ],
+  "map": "wide",
+  "seed": 15485863,
+  "dt": 0.016666666666666666,
+  "repeats": 1,
+  "renderer": "SwiftShader。描画ありはJSと描画命令の送信時間。GPU完了待ちは入れない。",
+  "note": "全6条件の最初の1巡が完了した時点で、追加の反復を終了。出力済みの300フレーム測定のみ記録。",
+  "results": [
+    {
+      "dir": "review15-baseline",
+      "run": 0,
+      "meanMs": 1.8353333333134652,
+      "medianMs": 1.3000000044703484,
+      "p95Ms": 3.7000000029802322,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": false,
+      "frames": 300,
+      "warmup": 120
+    },
+    {
+      "dir": "review15-before",
+      "run": 0,
+      "meanMs": 2.5096666666617,
+      "medianMs": 2.100000001490116,
+      "p95Ms": 3.8000000044703484,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": false,
+      "frames": 300,
+      "warmup": 120
+    },
+    {
+      "dir": "review15",
+      "run": 0,
+      "meanMs": 1.9693333332985639,
+      "medianMs": 1.7000000029802322,
+      "p95Ms": 3.399999998509884,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": false,
+      "frames": 300,
+      "warmup": 120
+    },
+    {
+      "dir": "review15-baseline",
+      "run": 0,
+      "meanMs": 307.3006666666269,
+      "medianMs": 304.1000000014901,
+      "p95Ms": 503,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": true,
+      "frames": 300,
+      "warmup": 120
+    },
+    {
+      "dir": "review15-before",
+      "run": 0,
+      "meanMs": 325.93833333328365,
+      "medianMs": 311.5,
+      "p95Ms": 424.19999999552965,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": true,
+      "frames": 300,
+      "warmup": 120
+    },
+    {
+      "dir": "review15",
+      "run": 0,
+      "meanMs": 303.6876666666071,
+      "medianMs": 286.29999999701977,
+      "p95Ms": 453.80000000447035,
+      "units": 20,
+      "aliveMean": 20,
+      "visibleMean": 20,
+      "render": true,
+      "frames": 300,
+      "warmup": 120
+    }
+  ]
+}
