@@ -41,13 +41,24 @@ const dir=path.resolve(process.argv[2]||'dbg/player-profile'),out=path.resolve(p
         const overlaps=(a,b)=>Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>1;
         yes(inside(boxes.pilot)&&inside(boxes.pilotMark),`${width}/${mode}の猫と名前が画面内`);
         if(mode==='arcade'){
+          yes(await p.evaluate(()=>['status','pilot','pilotMark'].every(id=>{const s=getComputedStyle(document.getElementById(id));return s.backgroundImage==='none'&&s.backgroundColor==='rgba(0, 0, 0, 0)';})&&getComputedStyle(document.querySelector('#pilotMark .catFace')).backgroundColor==='rgba(0, 0, 0, 0)'),`${width}の猫の透明部分と肖像欄の奥に地形を表示できる`);
           yes(boxes.pilotMark.w===size&&boxes.pilotMark.h===size&&boxes.pilotName.y>=boxes.pilotMark.y+size&&boxes.pilotCls.y>=boxes.pilotName.y+boxes.pilotName.h-1,`${width}の猫を3倍にし、下に名前と兵装`);
           yes(['aimSp','ammoBox','mini'].every(id=>!overlaps(boxes.pilot,boxes[id])),`${width}の顔とSP・装備・地図が重ならない`);
           yes(await p.evaluate(()=>__g.SLOTS.every((k,i)=>document.getElementById('w-'+k).dataset.name===`${i+1} ${__g.player.slots[k].w.name}`)),`${width}の武器名の前に1・2・3・4キーを表示`);
           if(width===1280||width===640){
             await p.waitForTimeout(150); // 画面サイズ変更による描画バッファの作り直しを待つ。
-            await p.evaluate(()=>{const g=__g;for(const u of g.units)u.group.position.copy(u.pos);g.scene.updateMatrixWorld(true);g.camera.position.copy(g.player.pos).add(new g.T.Vector3(0,9,18));g.camera.lookAt(g.player.pos.clone().add(new g.T.Vector3(0,3,0)));profileRender(g.scene,g.camera);});
+            await p.evaluate(async()=>{
+              const g=__g;for(const u of g.units)u.group.position.copy(u.pos);g.scene.updateMatrixWorld(true);
+              g.renderer.setSize(innerWidth,innerHeight,false);g.camera.aspect=innerWidth/innerHeight;g.camera.updateProjectionMatrix();
+              g.camera.position.copy(g.player.pos).add(new g.T.Vector3(0,9,18));g.camera.lookAt(g.player.pos.clone().add(new g.T.Vector3(0,3,0)));
+              profileRender(g.scene,g.camera);g.renderer.getContext().finish();
+              // 固定した本体の3Dフレームを背景に置き、撮影中のバッファ再作成で消えないようにする。
+              const frame=new Image();frame.id='profileCaptureFrame';frame.src=g.renderer.domElement.toDataURL();await frame.decode();
+              frame.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+              document.getElementById('game').appendChild(frame);g.renderer.domElement.style.visibility='hidden';
+            });
             await p.screenshot({path:path.join(out,`arcade-${width}.png`)});
+            await p.evaluate(()=>{document.getElementById('profileCaptureFrame').remove();__g.renderer.domElement.style.visibility='';});
           }
         }else yes(boxes.pilotMark.w===(width<=700?40:52),`${width}/${mode}の顔は従来の大きさ`);
         yes(await p.locator('.pilotRole').count()===0,'顔に兵装の一文字バッジがない');layouts.push({width,height,mode,boxes});
