@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-20",
+  "sourceBaseCommit": "38b1798e5db4ff9fe75de0e9e79acb586feab0a6",
+  "sources": {
+    "prototype/index.html": "d08ca1b19741b96ee5fc99f4afa0ce8451f98d3ac09bb2fec70cdbc175f613e8",
+    "prototype/maps/tidal.js": "f3366b389e1058ee960155670b097a457b1052ea5430e2bb7fa5c57222493694",
+    "tools/tidal_mapgen.js": "adcd3f0e2f7524cd3f7c4b1ebe1da41cdaf1fda19b29fd17a7d8c152087cfa9a",
+    "tools/mapgen_browser.js": "959c13bba4313cb92c96420671738941b86e3ef272e7858acb7e00ab0796ebf6",
+    "tools/generate_map.js": "dae84f9967025f775f5549f086fc47a22ef4dc1cfddf3e67cf7b50757cba43fb",
+    "tools/test/make_dbg.py": "c9931ae08a6f6132d269c30c32b9daab577d7677cefe3cb777041cbb01242b37",
+    "tools/test/map_battle.js": "fe5589c4eb5df11412d34c0ef4fb3bac8c56ed7048909e5622ed3c6511573404",
+    "tools/test/prepare_bot_battle.js": "2f75dc5ceb3275e0f49ef1c6cd169f3201194dd20283a80974865b70b5e69f6f",
+    "tools/test/tidal_check.js": "df10d50e4f31a2dda79ebb293f9be2cca707bc40d648c0c80a5b6fcd49f76ddd"
+  },
+  "generation": "v1/runs/2026-10-20T01-31-37-730Z-tidal1-pJyqVA/generation.json",
+  "balance": "勝率未確定。各配置は異なる2編成seedを両軍へ入替した4試合。配置間の因果比較ではない。",
+  "battles": [
+    {
+      "map": "tidal",
+      "matches": 4,
+      "blueWins": 3,
+      "orangeWins": 1,
+      "captures": 102,
+      "repairs": 160,
+      "mobilityEvents": 77,
+      "losses": {
+        "B": {
+          "direct": 0,
+          "wreck": 34087.5
+        },
+        "R": {
+          "direct": 86,
+          "wreck": 35156.25
+        }
+      }
+    },
+    {
+      "map": "tidal-v2",
+      "matches": 4,
+      "blueWins": 2,
+      "orangeWins": 2,
+      "captures": 100,
+      "repairs": 127,
+      "mobilityEvents": 293,
+      "losses": {
+        "B": {
+          "direct": 1524,
+          "wreck": 30707.25
+        },
+        "R": {
+          "direct": 0,
+          "wreck": 32737.5
+        }
+      }
+    },
+    {
+      "map": "tidal-v3",
+      "matches": 4,
+      "blueWins": 2,
+      "orangeWins": 2,
+      "captures": 128,
+      "repairs": 157,
+      "mobilityEvents": 178,
+      "losses": {
+        "B": {
+          "direct": 0,
+          "wreck": 34987.5
+        },
+        "R": {
+          "direct": 29,
+          "wreck": 34846.0
+        }
+      }
+    }
+  ],
+  "spawnSamples": 1280,
+  "isolatedBotCaptureRoutes": 40,
+  "recordedBattleMatchesBatch": true,
+  "replayComparisons": [
+    {
+      "folder": "replay",
+      "batchIndex": 0,
+      "exactCore": true,
+      "kills": true,
+      "durationWithinPointOneSecond": true,
+      "offlineViewerPassed": true
+    },
+    {
+      "folder": "replay-high",
+      "batchIndex": 7,
+      "exactCore": true,
+      "kills": true,
+      "durationWithinPointOneSecond": true,
+      "offlineViewerPassed": true
+    }
+  ]
+}

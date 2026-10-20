@@ -1,0 +1,158 @@
+{
+  "routes": [
+    {
+      "name": "工場の地上路・連絡橋下",
+      "class": "assault",
+      "seconds": 7,
+      "arrived": true
+    },
+    {
+      "name": "住宅の庭壁と路地",
+      "class": "assault",
+      "seconds": 9,
+      "arrived": true
+    },
+    {
+      "name": "青ゲート正面",
+      "class": "assault",
+      "seconds": 3.45,
+      "arrived": true
+    },
+    {
+      "name": "橙ゲート正面",
+      "class": "assault",
+      "seconds": 3.45,
+      "arrived": true
+    },
+    {
+      "name": "工場の地上路・連絡橋下",
+      "class": "heavy",
+      "seconds": 11.75,
+      "arrived": true
+    },
+    {
+      "name": "住宅の庭壁と路地",
+      "class": "heavy",
+      "seconds": 15.05,
+      "arrived": true
+    },
+    {
+      "name": "青ゲート正面",
+      "class": "heavy",
+      "seconds": 5.800000000000001,
+      "arrived": true
+    },
+    {
+      "name": "橙ゲート正面",
+      "class": "heavy",
+      "seconds": 5.800000000000001,
+      "arrived": true
+    }
+  ],
+  "sightlines": [
+    {
+      "name": "青の門内→正面の接近路",
+      "from": [
+        -36,
+        0,
+        467.2
+      ],
+      "to": [
+        -42,
+        0,
+        420
+      ],
+      "visible": true,
+      "expected": true
+    },
+    {
+      "name": "青の門内→工場間の地上路",
+      "from": [
+        -36,
+        0,
+        467.2
+      ],
+      "to": [
+        -95,
+        0,
+        407
+      ],
+      "visible": false,
+      "expected": false
+    },
+    {
+      "name": "青の門内→工場の後方屋根",
+      "from": [
+        36,
+        0,
+        467.2
+      ],
+      "to": [
+        88,
+        10,
+        374
+      ],
+      "visible": false,
+      "expected": false
+    },
+    {
+      "name": "橙の門内→正面の接近路",
+      "from": [
+        36,
+        0,
+        -467.2
+      ],
+      "to": [
+        42,
+        0,
+        -420
+      ],
+      "visible": true,
+      "expected": true
+    },
+    {
+      "name": "橙の門内→住宅間の路地",
+      "from": [
+        36,
+        0,
+        -467.2
+      ],
+      "to": [
+        103,
+        0,
+        -402
+      ],
+      "visible": false,
+      "expected": false
+    },
+    {
+      "name": "橙の門内→共同住宅の屋上",
+      "from": [
+        -36,
+        0,
+        -467.2
+      ],
+      "to": [
+        -78,
+        10,
+        -371
+      ],
+      "visible": false,
+      "expected": false
+    }
+  ],
+  "repairVisibility": [
+    {
+      "plant": "A",
+      "samples": 239,
+      "exposed": []
+    },
+    {
+      "plant": "E",
+      "samples": 136,
+      "exposed": []
+    }
+  ],
+  "blockedRaidWaypoints": [],
+  "errors": []
+}

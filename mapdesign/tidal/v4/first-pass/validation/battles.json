@@ -1,0 +1,5314 @@
+[
+  {
+    "map": "tidal",
+    "seconds": 600,
+    "matchDuration": 600,
+    "ended": true,
+    "winner": "R",
+    "endedBy": "time",
+    "core": [
+      2813,
+      3038
+    ],
+    "kills": {
+      "B": 105,
+      "R": 108
+    },
+    "captures": 15,
+    "captureEvents": [
+      {
+        "t": 19.8,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 22.9,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 42.2,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 141.2,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 169,
+        "id": "C",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 177,
+        "id": "C",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 179.7,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 252.3,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 265.9,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 334.3,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 343.2,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 446.3,
+        "id": "C",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 469.3,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 535.1,
+        "id": "A",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 561.3,
+        "id": "A",
+        "from": null,
+        "to": "B"
+      }
+    ],
+    "occupancy": {
+      "A:B": 573.8000000000259,
+      "B:neutral": 19.750000000000146,
+      "C:neutral": 73.14999999999799,
+      "D:neutral": 83.94999999999737,
+      "E:R": 600.000000000002,
+      "B:B": 580.25000000002,
+      "D:R": 516.0500000000784,
+      "C:R": 257.6000000000243,
+      "C:B": 269.25000000002694,
+      "A:neutral": 26.200000000000237
+    },
+    "layers": {
+      "upper": 215,
+      "west": 3812,
+      "center": 5443,
+      "east": 1171
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 278,
+    "mobility": [
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B4",
+        "team": "B",
+        "t": 40.5,
+        "pos": [
+          23.21,
+          0,
+          153.41
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B4",
+        "team": "B",
+        "t": 42.9,
+        "pos": [
+          37.05,
+          10,
+          152.42
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B7",
+        "team": "B",
+        "t": 47.25,
+        "pos": [
+          22.14,
+          0,
+          149.71
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B7",
+        "team": "B",
+        "t": 49.65,
+        "pos": [
+          35.93,
+          10,
+          151.22
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 54.95,
+        "pos": [
+          -58.52,
+          0,
+          -367.34
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 55.7,
+        "pos": [
+          48.13,
+          0,
+          294.6
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 57.85,
+        "pos": [
+          55.71,
+          10,
+          295.17
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "R10",
+        "team": "R",
+        "t": 75,
+        "pos": [
+          23.41,
+          0,
+          150.36
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "R10",
+        "team": "R",
+        "t": 77.4,
+        "pos": [
+          37.23,
+          10,
+          151.52
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 87.25,
+        "pos": [
+          48.58,
+          0,
+          292.85
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "R7",
+        "team": "R",
+        "t": 87.95,
+        "pos": [
+          -70.16,
+          0,
+          74.28
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 89.4,
+        "pos": [
+          59.85,
+          10,
+          294.09
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 127.8,
+        "pos": [
+          -58.45,
+          0,
+          -367.54
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 129.95,
+        "pos": [
+          -70.06,
+          10,
+          -370.88
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B9",
+        "team": "B",
+        "t": 190.35,
+        "pos": [
+          24.44,
+          0,
+          154.66
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B9",
+        "team": "B",
+        "t": 192.75,
+        "pos": [
+          43.07,
+          10,
+          151.99
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "R7",
+        "team": "R",
+        "t": 216.65,
+        "pos": [
+          -56.89,
+          0,
+          -369.63
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "R7",
+        "team": "R",
+        "t": 218.8,
+        "pos": [
+          -71.38,
+          10,
+          -370.16
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "R6",
+        "team": "R",
+        "t": 223.65,
+        "pos": [
+          -66.48,
+          0,
+          69.67
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L1",
+        "unit": "R10",
+        "team": "R",
+        "t": 232.4,
+        "pos": [
+          104,
+          0,
+          -1.38
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 249.5,
+        "pos": [
+          49.19,
+          0,
+          292.22
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 251.65,
+        "pos": [
+          60.28,
+          10,
+          294.23
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 261.5,
+        "pos": [
+          48.57,
+          0,
+          295.25
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 263.65,
+        "pos": [
+          56.66,
+          10,
+          295.88
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 322.8,
+        "pos": [
+          23.46,
+          0,
+          153.51
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 325.2,
+        "pos": [
+          37.3,
+          10,
+          152.44
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 336.2,
+        "pos": [
+          26.81,
+          0,
+          -151.46
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 338.6,
+        "pos": [
+          40.38,
+          10,
+          -149.84
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 361.35,
+        "pos": [
+          48.96,
+          0,
+          292.27
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 363.5,
+        "pos": [
+          60.06,
+          10,
+          294.18
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 410.8,
+        "pos": [
+          50.04,
+          0,
+          291.5
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 412.95,
+        "pos": [
+          60.72,
+          10,
+          294.48
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 421.45,
+        "pos": [
+          -57.55,
+          0,
+          -367.65
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 423.6,
+        "pos": [
+          -65.89,
+          10,
+          -368.97
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 478.95,
+        "pos": [
+          48.68,
+          0,
+          292.35
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 482,
+        "pos": [
+          48.68,
+          0,
+          292.35
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 485.05,
+        "pos": [
+          48.68,
+          0,
+          292.35
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "B9",
+        "team": "B",
+        "t": 485.65,
+        "pos": [
+          48.88,
+          0,
+          292.32
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 487.2,
+        "pos": [
+          55.68,
+          10,
+          294.43
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 519,
+        "pos": [
+          -58.33,
+          0,
+          -367.19
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "R2",
+        "team": "R",
+        "t": 520.2,
+        "pos": [
+          25.49,
+          0,
+          149.93
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 521.15,
+        "pos": [
+          -69.82,
+          10,
+          -370.91
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "R2",
+        "team": "R",
+        "t": 522.6,
+        "pos": [
+          40.82,
+          10,
+          151.74
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B1",
+        "team": "B",
+        "t": 523.6,
+        "pos": [
+          -73,
+          0,
+          73.88
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B1",
+        "team": "B",
+        "t": 523.85,
+        "pos": [
+          -72.39,
+          0,
+          67.8
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 543.9,
+        "pos": [
+          48.01,
+          0,
+          293.83
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 546.05,
+        "pos": [
+          59.41,
+          10,
+          294.01
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J4",
+        "unit": "B10",
+        "team": "B",
+        "t": 550.7,
+        "pos": [
+          -148.03,
+          0,
+          -529.14
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 581.75,
+        "pos": [
+          50.1,
+          0,
+          291.51
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 583.9,
+        "pos": [
+          60.78,
+          10,
+          294.5
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B4",
+        "team": "B",
+        "t": 597.5,
+        "pos": [
+          21.32,
+          0,
+          152.61
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B4",
+        "team": "B",
+        "t": 599.9,
+        "pos": [
+          35.18,
+          10,
+          152.22
+        ]
+      }
+    ],
+    "repairs": [
+      {
+        "t": 77.55,
+        "unit": "B6",
+        "plant": "B",
+        "pos": [
+          -70.0539136882112,
+          0,
+          97.23037840134067
+        ]
+      },
+      {
+        "t": 80.3,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -68.91969928028196,
+          0,
+          100.37728901688868
+        ]
+      },
+      {
+        "t": 118.35,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -69.84879268712139,
+          0,
+          102.15647867983148
+        ]
+      },
+      {
+        "t": 118.55,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -69.65137404692773,
+          0,
+          100.94684099934948
+        ]
+      },
+      {
+        "t": 141.1,
+        "unit": "R1",
+        "plant": "D",
+        "pos": [
+          -31.56127186429603,
+          0,
+          -91.0134078306201
+        ]
+      },
+      {
+        "t": 177.2,
+        "unit": "B1",
+        "plant": "B",
+        "pos": [
+          -70.4154842025321,
+          0,
+          97.84892536357644
+        ]
+      },
+      {
+        "t": 236.75,
+        "unit": "B1",
+        "plant": "B",
+        "pos": [
+          -71.18896616253126,
+          0,
+          98.02068737954376
+        ]
+      },
+      {
+        "t": 264.5,
+        "unit": "B3",
+        "plant": "A",
+        "pos": [
+          -1.0611231516218744,
+          -2,
+          369.8730242040456
+        ]
+      },
+      {
+        "t": 269.3,
+        "unit": "B10",
+        "plant": "A",
+        "pos": [
+          0.5283272930692356,
+          -2,
+          370.5933606318249
+        ]
+      },
+      {
+        "t": 270,
+        "unit": "R9",
+        "plant": "D",
+        "pos": [
+          -29.904620445514865,
+          0,
+          -94.18411480905462
+        ]
+      },
+      {
+        "t": 274.65,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -70.414098750568,
+          0,
+          97.83381141641154
+        ]
+      },
+      {
+        "t": 290.05,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -70.40600763422442,
+          0,
+          97.93887447124067
+        ]
+      },
+      {
+        "t": 291.95,
+        "unit": "R4",
+        "plant": "D",
+        "pos": [
+          -32.25276304235554,
+          0,
+          -91.93065285640263
+        ]
+      },
+      {
+        "t": 309.8,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -70.43385922466452,
+          0,
+          97.54561139902756
+        ]
+      },
+      {
+        "t": 367.8,
+        "unit": "R1",
+        "plant": "D",
+        "pos": [
+          -32.04446193474884,
+          0,
+          -91.28100373310544
+        ]
+      },
+      {
+        "t": 372.8,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -31.366187613672007,
+          0,
+          -91.14045991832832
+        ]
+      },
+      {
+        "t": 379.4,
+        "unit": "R2",
+        "plant": "D",
+        "pos": [
+          -31.419273471566793,
+          0,
+          -91.22204011245167
+        ]
+      },
+      {
+        "t": 384.8,
+        "unit": "B4",
+        "plant": "A",
+        "pos": [
+          0.9904775284744817,
+          -2,
+          370.5676669796818
+        ]
+      },
+      {
+        "t": 410.85,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -30.55021494660651,
+          0,
+          -94.49333597919637
+        ]
+      },
+      {
+        "t": 426.7,
+        "unit": "R2",
+        "plant": "E",
+        "pos": [
+          -1.2917413720122979,
+          -2,
+          -369.94987175002285
+        ]
+      },
+      {
+        "t": 435.5,
+        "unit": "R6",
+        "plant": "D",
+        "pos": [
+          -29.837330228894146,
+          0,
+          -91.45751232254479
+        ]
+      },
+      {
+        "t": 437.95,
+        "unit": "B1",
+        "plant": "B",
+        "pos": [
+          -70.50034135468762,
+          0,
+          98.0032598712981
+        ]
+      },
+      {
+        "t": 454.55,
+        "unit": "R9",
+        "plant": "D",
+        "pos": [
+          -31.994158694930707,
+          0,
+          -91.66609020942295
+        ]
+      },
+      {
+        "t": 457.65,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -31.29535201684527,
+          0,
+          -91.30048695627599
+        ]
+      },
+      {
+        "t": 501.9,
+        "unit": "B3",
+        "plant": null,
+        "pos": [
+          -23.516687000021804,
+          0,
+          496.8964680496889
+        ]
+      },
+      {
+        "t": 505.5,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -30.588846452815154,
+          0,
+          -94.24586807734298
+        ]
+      },
+      {
+        "t": 518.4,
+        "unit": "R9",
+        "plant": "D",
+        "pos": [
+          -31.642289642827365,
+          0,
+          -91.27199786464793
+        ]
+      },
+      {
+        "t": 536.8,
+        "unit": "R8",
+        "plant": null,
+        "pos": [
+          23.64620047540377,
+          0,
+          -496.6714343226628
+        ]
+      },
+      {
+        "t": 547.1,
+        "unit": "R6",
+        "plant": "D",
+        "pos": [
+          -32.03049418784288,
+          0,
+          -91.1956712678356
+        ]
+      },
+      {
+        "t": 584.35,
+        "unit": "B10",
+        "plant": "A",
+        "pos": [
+          -0.5746674726832375,
+          -2,
+          370.55974480534934
+        ]
+      },
+      {
+        "t": 598.4,
+        "unit": "B1",
+        "plant": "B",
+        "pos": [
+          -70.66989308334102,
+          0,
+          100.38248204840771
+        ]
+      }
+    ],
+    "initialization": {
+      "version": "paired-rosters-v2",
+      "fixture": {
+        "seed": 20261410,
+        "swapped": false
+      },
+      "silent": true,
+      "units": [
+        {
+          "id": "B1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "standard2",
+            "arms": "heavy2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・強装型",
+            "sub": "時限グレネード",
+            "aux": "ソード・重装型",
+            "sp": "加速装置・瞬発型"
+          },
+          "position": [
+            7.714919253252447,
+            0,
+            488.4254258191213
+          ],
+          "waypoint": [
+            -85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5100
+        },
+        {
+          "id": "B2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "light",
+            "arms": "heavy2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ショットガン・広域型",
+            "sub": "遠隔ボムランチャー",
+            "aux": "索敵センサー・高出力型",
+            "sp": "リペアビーコン・高出力型"
+          },
+          "position": [
+            5.092194316908717,
+            0,
+            492.6545001375489
+          ],
+          "waypoint": [
+            -85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5474
+        },
+        {
+          "id": "B3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "standard",
+            "arms": "standard",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲",
+            "sub": "蓄圧砲・強装型",
+            "aux": "弱化グレネード・持続型",
+            "sp": "榴弾砲・連射型"
+          },
+          "position": [
+            13.312127226032317,
+            0,
+            488.258511537686
+          ],
+          "waypoint": null,
+          "walk": 12.021749999999999,
+          "cruise": 27.7425,
+          "weight": 5564
+        },
+        {
+          "id": "B4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "standard",
+            "body": "heavy3",
+            "arms": "light3",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "レールライフル・連射型",
+            "sub": "時限グレネード",
+            "aux": "ソード・大剣",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            13.635935492813587,
+            0,
+            489.6598270670511
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5244
+        },
+        {
+          "id": "B5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "standard2",
+            "arms": "standard2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁バーストピストル・強装型",
+            "sub": "炸裂狙撃銃・強装型",
+            "aux": "自動砲台",
+            "sp": "光学迷彩・即応型"
+          },
+          "position": [
+            -5.523723182268441,
+            0,
+            493.78653287608176
+          ],
+          "waypoint": [
+            -57,
+            0,
+            472
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 4906
+        },
+        {
+          "id": "B6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "light2",
+            "body": "light",
+            "arms": "heavy2",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "コイル機関砲・連射型",
+            "sub": "ロケットランチャー・連射型",
+            "aux": "衝撃グレネード・軽量型",
+            "sp": "重砲"
+          },
+          "position": [
+            8.012957828119397,
+            0,
+            494.9090840383433
+          ],
+          "waypoint": [
+            -57,
+            0,
+            472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5965
+        },
+        {
+          "id": "B7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "light2",
+            "arms": "standard",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "収束散弾銃・瞬発型",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "扇形センサー・大容量型",
+            "sp": "リペアユニット・持続型"
+          },
+          "position": [
+            12.661207568831742,
+            0,
+            492.71473425626755
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5351
+        },
+        {
+          "id": "B8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "light2",
+            "arms": "standard3",
+            "legs": "standard2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・連射型",
+            "sub": "跳躍地雷・拡大型",
+            "aux": "偵察機",
+            "sp": "光学迷彩"
+          },
+          "position": [
+            17.247531305998564,
+            0,
+            493.12623214395717
+          ],
+          "waypoint": null,
+          "walk": 15.795,
+          "cruise": 30,
+          "weight": 4258
+        },
+        {
+          "id": "B9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "standard",
+            "arms": "heavy",
+            "legs": "standard",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マークスマンライフル・強装型",
+            "sub": "時限グレネード・広域型",
+            "aux": "スピア・強装型",
+            "sp": "加速装置・巡航型"
+          },
+          "position": [
+            -5.568377369083464,
+            0,
+            490.45606295298785
+          ],
+          "waypoint": [
+            57,
+            0,
+            472
+          ],
+          "walk": 12.090000000000002,
+          "cruise": 27.899999999999995,
+          "weight": 4930
+        },
+        {
+          "id": "B10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "standard",
+            "arms": "standard",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー機銃・精密型",
+            "sub": "蓄圧砲・重装型",
+            "aux": "衝撃グレネード・瞬発型",
+            "sp": "防護バリア・重装型"
+          },
+          "position": [
+            -4.534852305427194,
+            0,
+            491.48201227141544
+          ],
+          "waypoint": [
+            85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6060
+        },
+        {
+          "id": "R1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "heavy3",
+            "body": "light2",
+            "arms": "heavy3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "カービン・精密型",
+            "sub": "グレネード・瞬発型",
+            "aux": "スピア・強装型",
+            "sp": "加速装置"
+          },
+          "position": [
+            1.6478033820167184,
+            0,
+            -488.99363933317363
+          ],
+          "waypoint": [
+            57,
+            0,
+            -472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5303
+        },
+        {
+          "id": "R2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "heavy3",
+            "body": "heavy3",
+            "arms": "standard2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー散弾銃・広域型",
+            "sub": "遠隔ボムランチャー・強装型",
+            "aux": "滞空センサー・高出力型",
+            "sp": "リペアフィールド・高出力型"
+          },
+          "position": [
+            16.59661164879799,
+            0,
+            -497.5824548625387
+          ],
+          "waypoint": [
+            85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6212
+        },
+        {
+          "id": "R3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light2",
+            "body": "light3",
+            "arms": "standard",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "蓄積エナジー砲・瞬発型",
+            "sub": "蓄圧砲",
+            "aux": "衝撃グレネード",
+            "sp": "榴弾砲・強装型"
+          },
+          "position": [
+            8.405702973715961,
+            0,
+            -492.0997856715694
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5782
+        },
+        {
+          "id": "R4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "standard3",
+            "arms": "light",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "カービン",
+            "sub": "グレネードランチャー・連射型",
+            "aux": "スピア・強装型",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            -1.6140887942165136,
+            0,
+            -493.73659617220983
+          ],
+          "waypoint": null,
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5043
+        },
+        {
+          "id": "R5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "heavy",
+            "arms": "heavy3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拡散銃・精密型",
+            "sub": "炸裂狙撃銃",
+            "aux": "偵察機",
+            "sp": "光学迷彩・耐久型"
+          },
+          "position": [
+            -11.590839053504169,
+            0,
+            -494.3547463901341
+          ],
+          "waypoint": [
+            -57,
+            0,
+            -472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5703
+        },
+        {
+          "id": "R6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "standard2",
+            "body": "heavy2",
+            "arms": "heavy2",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "炸裂機関砲・大容量型",
+            "sub": "プラズマ砲・速装型",
+            "aux": "衝撃散弾銃・大容量型",
+            "sp": "重砲"
+          },
+          "position": [
+            -15.345332141965628,
+            0,
+            -492.0236550872214
+          ],
+          "waypoint": [
+            -85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 9.261292083333332,
+          "cruise": 25.976802030456852,
+          "weight": 6729
+        },
+        {
+          "id": "R7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "standard3",
+            "arms": "heavy2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ショットガン・強装型",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "索敵センサー・大容量型",
+            "sp": "リペアフィールド・高出力型"
+          },
+          "position": [
+            10.677917598746717,
+            0,
+            -492.6418053051457
+          ],
+          "waypoint": null,
+          "walk": 12.194,
+          "cruise": 28.139999999999997,
+          "weight": 5511
+        },
+        {
+          "id": "R8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "standard",
+            "body": "heavy2",
+            "arms": "standard2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・強装型",
+            "sub": "炸裂狙撃銃・軽量型",
+            "aux": "索敵ソナー・瞬発型",
+            "sp": "光学迷彩"
+          },
+          "position": [
+            -4.783965753391385,
+            0,
+            -493.5825602146797
+          ],
+          "waypoint": null,
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5038
+        },
+        {
+          "id": "R9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "light3",
+            "arms": "standard",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マークスマンライフル",
+            "sub": "熱球グレネード・即応型",
+            "aux": "ソード",
+            "sp": "全方向加速装置・持続型"
+          },
+          "position": [
+            10.010185905732214,
+            0,
+            -490.4463372398168
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 4682
+        },
+        {
+          "id": "R10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "light2",
+            "arms": "standard",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲・連射型",
+            "sub": "プラズマ砲・速装型",
+            "aux": "弱化グレネード・持続型",
+            "sp": "防護バリア"
+          },
+          "position": [
+            -7.208974577486515,
+            0,
+            -490.1972621441819
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 6021
+        }
+      ]
+    },
+    "coreExact": [
+      2812.5,
+      3037.5
+    ],
+    "initialCore": [
+      9000,
+      9000
+    ],
+    "losses": {
+      "B": {
+        "direct": 0,
+        "wreck": 6187.5
+      },
+      "R": {
+        "direct": 0,
+        "wreck": 5962.5
+      }
+    },
+    "seed": 20261410,
+    "errors": [],
+    "balance": "勝率未確定（終局までの観測1試合）"
+  },
+  {
+    "map": "tidal",
+    "seconds": 600,
+    "matchDuration": 600,
+    "ended": true,
+    "winner": "B",
+    "endedBy": "time",
+    "core": [
+      3150,
+      2756
+    ],
+    "kills": {
+      "B": 111,
+      "R": 103
+    },
+    "captures": 22,
+    "captureEvents": [
+      {
+        "t": 20.2,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 23.3,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 30,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 51,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 76.5,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 103.8,
+        "id": "B",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 113.8,
+        "id": "B",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 134.2,
+        "id": "B",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 142.9,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 175.8,
+        "id": "C",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 186.4,
+        "id": "C",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 238.4,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 249.3,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 303.2,
+        "id": "E",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 340.5,
+        "id": "E",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 414.3,
+        "id": "D",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 433.3,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 471.9,
+        "id": "E",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 476.5,
+        "id": "E",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 514.6,
+        "id": "E",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 551.2,
+        "id": "E",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 596.2,
+        "id": "C",
+        "from": "B",
+        "to": null
+      }
+    ],
+    "occupancy": {
+      "A:B": 600.000000000002,
+      "B:neutral": 42.04999999999975,
+      "C:neutral": 44.44999999999961,
+      "D:neutral": 75.54999999999785,
+      "E:R": 483.40000000007564,
+      "D:R": 192.65000000000956,
+      "B:B": 537.5500000000588,
+      "C:R": 145.7999999999989,
+      "B:R": 20.400000000000155,
+      "C:B": 409.7500000000589,
+      "D:B": 331.80000000004117,
+      "E:neutral": 78.49999999999768,
+      "E:B": 38.09999999999997
+    },
+    "layers": {
+      "upper": 211,
+      "west": 3167,
+      "center": 5512,
+      "east": 1621
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 205,
+    "mobility": [
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 24.45,
+        "pos": [
+          26.1,
+          0,
+          152.74
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 26.85,
+        "pos": [
+          39.84,
+          10,
+          152.14
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 49.15,
+        "pos": [
+          -57.89,
+          0,
+          -367.63
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 51.3,
+        "pos": [
+          -68.62,
+          10,
+          -370.42
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 55.65,
+        "pos": [
+          49.89,
+          0,
+          291.55
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 59.4,
+        "pos": [
+          50.08,
+          0,
+          296.53
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 63.75,
+        "pos": [
+          51.35,
+          0,
+          292.9
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 66.25,
+        "pos": [
+          60.42,
+          10,
+          299.92
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 150.45,
+        "pos": [
+          23.43,
+          0,
+          -153.69
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B5",
+        "team": "B",
+        "t": 150.75,
+        "pos": [
+          -69.11,
+          0,
+          71.49
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 152.85,
+        "pos": [
+          37.25,
+          10,
+          -152.5
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 153.6,
+        "pos": [
+          21.48,
+          0,
+          -152.9
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 156,
+        "pos": [
+          36.91,
+          10,
+          -152.25
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B10",
+        "team": "B",
+        "t": 201.15,
+        "pos": [
+          -69.76,
+          0,
+          73.94
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L3",
+        "unit": "B4",
+        "team": "B",
+        "t": 237.35,
+        "pos": [
+          -9.4,
+          0,
+          -71.32
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B9",
+        "team": "B",
+        "t": 255.8,
+        "pos": [
+          22.59,
+          0,
+          -149.72
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "B9",
+        "team": "B",
+        "t": 258.2,
+        "pos": [
+          36.38,
+          10,
+          -151.26
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 329.9,
+        "pos": [
+          23.62,
+          0,
+          154.33
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B6",
+        "team": "B",
+        "t": 332.3,
+        "pos": [
+          37.11,
+          10,
+          152.71
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L3",
+        "unit": "B1",
+        "team": "B",
+        "t": 348.55,
+        "pos": [
+          -5.9,
+          0,
+          -74.07
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R5",
+        "team": "R",
+        "t": 370.6,
+        "pos": [
+          26.73,
+          0,
+          -151.27
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 372.45,
+        "pos": [
+          -58.38,
+          0,
+          -367.17
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R5",
+        "team": "R",
+        "t": 373,
+        "pos": [
+          42.5,
+          10,
+          -147.9
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 374.6,
+        "pos": [
+          -69.66,
+          10,
+          -369.32
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J6",
+        "unit": "B5",
+        "team": "B",
+        "t": 420.1,
+        "pos": [
+          -125.33,
+          0,
+          391.85
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J6",
+        "unit": "B5",
+        "team": "B",
+        "t": 422.5,
+        "pos": [
+          -112.86,
+          12,
+          389.38
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 443.15,
+        "pos": [
+          48.41,
+          0,
+          292.72
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 449,
+        "pos": [
+          49.9,
+          0,
+          296.67
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L3",
+        "unit": "B6",
+        "team": "B",
+        "t": 450.35,
+        "pos": [
+          -6.54,
+          0.14,
+          -75.37
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 451.15,
+        "pos": [
+          61.57,
+          10,
+          293.25
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B5",
+        "team": "B",
+        "t": 454.65,
+        "pos": [
+          25.9,
+          0,
+          -150.42
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B9",
+        "team": "B",
+        "t": 454.65,
+        "pos": [
+          23.35,
+          0,
+          -150.43
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "B5",
+        "team": "B",
+        "t": 457.05,
+        "pos": [
+          39.71,
+          10,
+          -151.7
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "B9",
+        "team": "B",
+        "t": 457.05,
+        "pos": [
+          37.18,
+          10,
+          -151.53
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 485.2,
+        "pos": [
+          -58.31,
+          0,
+          -367.22
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 487.35,
+        "pos": [
+          -68.87,
+          10,
+          -370.6
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 521,
+        "pos": [
+          22.48,
+          0,
+          -150.62
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 523.4,
+        "pos": [
+          35.22,
+          10,
+          -151.56
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 566.1,
+        "pos": [
+          51.53,
+          0,
+          291.53
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B6",
+        "team": "B",
+        "t": 581.95,
+        "pos": [
+          23.18,
+          0,
+          -150.19
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "B6",
+        "team": "B",
+        "t": 584.35,
+        "pos": [
+          37,
+          10,
+          -151.45
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 591.15,
+        "pos": [
+          -60.25,
+          0,
+          -367.64
+        ]
+      }
+    ],
+    "repairs": [
+      {
+        "t": 26.25,
+        "unit": "R1",
+        "plant": "D",
+        "pos": [
+          -32.08160807937767,
+          0,
+          -91.60903540303055
+        ]
+      },
+      {
+        "t": 62.85,
+        "unit": "B1",
+        "plant": "A",
+        "pos": [
+          -1.1823511637727633,
+          -2,
+          370.48024244260205
+        ]
+      },
+      {
+        "t": 79.4,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -29.840104618458472,
+          0,
+          -94.10917644137065
+        ]
+      },
+      {
+        "t": 79.75,
+        "unit": "R9",
+        "plant": "D",
+        "pos": [
+          -29.87452394657746,
+          0,
+          -93.99874817026637
+        ]
+      },
+      {
+        "t": 84.45,
+        "unit": "B1",
+        "plant": "A",
+        "pos": [
+          -1.0266068589976551,
+          -2,
+          370.151621474526
+        ]
+      },
+      {
+        "t": 103.95,
+        "unit": "B1",
+        "plant": "A",
+        "pos": [
+          1.162231775758426,
+          -2,
+          370.00973147287334
+        ]
+      },
+      {
+        "t": 112,
+        "unit": "R3",
+        "plant": "E",
+        "pos": [
+          1.3676359536975011,
+          -2,
+          -369.9975451231195
+        ]
+      },
+      {
+        "t": 154.55,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -68.65574362708442,
+          0,
+          98.07587635752255
+        ]
+      },
+      {
+        "t": 159.35,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -69.58169322619523,
+          0,
+          97.39541389066544
+        ]
+      },
+      {
+        "t": 163.45,
+        "unit": "B10",
+        "plant": "B",
+        "pos": [
+          -70.20488457549972,
+          0,
+          100.85432760178352
+        ]
+      },
+      {
+        "t": 183.9,
+        "unit": "B9",
+        "plant": "B",
+        "pos": [
+          -70.47975353501943,
+          0,
+          97.74899702648116
+        ]
+      },
+      {
+        "t": 190.85,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -70.47361869994812,
+          0,
+          97.465781483555
+        ]
+      },
+      {
+        "t": 192.3,
+        "unit": "B10",
+        "plant": "B",
+        "pos": [
+          -70.30837852323187,
+          0,
+          97.63883168441679
+        ]
+      },
+      {
+        "t": 207.75,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -70.50921629415576,
+          0,
+          97.41536448599659
+        ]
+      },
+      {
+        "t": 253.35,
+        "unit": "B5",
+        "plant": "D",
+        "pos": [
+          -29.872524359912106,
+          0,
+          -94.10567075970941
+        ]
+      },
+      {
+        "t": 265.6,
+        "unit": "R9",
+        "plant": "E",
+        "pos": [
+          -1.5564603823061232,
+          -2,
+          -369.8928135140249
+        ]
+      },
+      {
+        "t": 279.6,
+        "unit": "B2",
+        "plant": "D",
+        "pos": [
+          -30.511644054635514,
+          0,
+          -94.44071141253119
+        ]
+      },
+      {
+        "t": 315.8,
+        "unit": "R8",
+        "plant": null,
+        "pos": [
+          20.500276449347204,
+          0,
+          -496.32320666697746
+        ]
+      },
+      {
+        "t": 316.95,
+        "unit": "R5",
+        "plant": null,
+        "pos": [
+          23.152183423693085,
+          0,
+          -496.60808595234977
+        ]
+      },
+      {
+        "t": 328.8,
+        "unit": "B9",
+        "plant": "A",
+        "pos": [
+          -1.0115425028156178,
+          -2,
+          370.0499006061685
+        ]
+      },
+      {
+        "t": 345.2,
+        "unit": "R4",
+        "plant": null,
+        "pos": [
+          22.522564173105156,
+          0,
+          -494.5907452533476
+        ]
+      },
+      {
+        "t": 355.15,
+        "unit": "B6",
+        "plant": "D",
+        "pos": [
+          -29.75761129242247,
+          0,
+          -94.1733899065533
+        ]
+      },
+      {
+        "t": 371.95,
+        "unit": "B2",
+        "plant": "D",
+        "pos": [
+          -31.86725922146895,
+          0,
+          -94.1832065882936
+        ]
+      },
+      {
+        "t": 384.3,
+        "unit": "B7",
+        "plant": "D",
+        "pos": [
+          -29.820025971150407,
+          0,
+          -94.10629727708654
+        ]
+      },
+      {
+        "t": 437.3,
+        "unit": "B9",
+        "plant": "D",
+        "pos": [
+          -29.762665443547288,
+          0,
+          -94.11045670787819
+        ]
+      },
+      {
+        "t": 441.75,
+        "unit": "B1",
+        "plant": "D",
+        "pos": [
+          -32.876310907323116,
+          0,
+          -93.2473830916776
+        ]
+      },
+      {
+        "t": 449.05,
+        "unit": "R6",
+        "plant": "E",
+        "pos": [
+          0.6179486292904062,
+          -2,
+          -370.6542827611913
+        ]
+      },
+      {
+        "t": 456.9,
+        "unit": "B2",
+        "plant": "D",
+        "pos": [
+          -30.62482601136141,
+          0,
+          -94.40640132493415
+        ]
+      },
+      {
+        "t": 490.95,
+        "unit": "B6",
+        "plant": "E",
+        "pos": [
+          -0.006678705609156996,
+          -2,
+          -370.70504553598255
+        ]
+      },
+      {
+        "t": 534.45,
+        "unit": "B6",
+        "plant": "D",
+        "pos": [
+          -30.472043503829255,
+          0,
+          -91.3385866540428
+        ]
+      },
+      {
+        "t": 540.2,
+        "unit": "B1",
+        "plant": "D",
+        "pos": [
+          -32.880615855372234,
+          0,
+          -93.15831161436165
+        ]
+      },
+      {
+        "t": 564.9,
+        "unit": "R1",
+        "plant": "E",
+        "pos": [
+          -1.0103557980594924,
+          -2,
+          -369.5868711449818
+        ]
+      },
+      {
+        "t": 568.5,
+        "unit": "B1",
+        "plant": "D",
+        "pos": [
+          -31.836049658551044,
+          0,
+          -94.2718732260988
+        ]
+      },
+      {
+        "t": 581.9,
+        "unit": "R9",
+        "plant": "E",
+        "pos": [
+          -1.156368397578932,
+          -2,
+          -369.67022779104343
+        ]
+      }
+    ],
+    "initialization": {
+      "version": "paired-rosters-v2",
+      "fixture": {
+        "seed": 20261410,
+        "swapped": true
+      },
+      "silent": true,
+      "units": [
+        {
+          "id": "B1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "heavy3",
+            "body": "light2",
+            "arms": "heavy3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "カービン・精密型",
+            "sub": "グレネード・瞬発型",
+            "aux": "スピア・強装型",
+            "sp": "加速装置"
+          },
+          "position": [
+            1.6478033820167184,
+            0,
+            488.99363933317363
+          ],
+          "waypoint": [
+            -57,
+            0,
+            472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5303
+        },
+        {
+          "id": "B2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "heavy3",
+            "body": "heavy3",
+            "arms": "standard2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー散弾銃・広域型",
+            "sub": "遠隔ボムランチャー・強装型",
+            "aux": "滞空センサー・高出力型",
+            "sp": "リペアフィールド・高出力型"
+          },
+          "position": [
+            16.59661164879799,
+            0,
+            497.5824548625387
+          ],
+          "waypoint": [
+            -85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6212
+        },
+        {
+          "id": "B3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light2",
+            "body": "light3",
+            "arms": "standard",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "蓄積エナジー砲・瞬発型",
+            "sub": "蓄圧砲",
+            "aux": "衝撃グレネード",
+            "sp": "榴弾砲・強装型"
+          },
+          "position": [
+            8.405702973715961,
+            0,
+            492.0997856715694
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5782
+        },
+        {
+          "id": "B4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "standard3",
+            "arms": "light",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "カービン",
+            "sub": "グレネードランチャー・連射型",
+            "aux": "スピア・強装型",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            -1.6140887942165136,
+            0,
+            493.73659617220983
+          ],
+          "waypoint": null,
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5043
+        },
+        {
+          "id": "B5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "heavy",
+            "arms": "heavy3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拡散銃・精密型",
+            "sub": "炸裂狙撃銃",
+            "aux": "偵察機",
+            "sp": "光学迷彩・耐久型"
+          },
+          "position": [
+            -11.590839053504169,
+            0,
+            494.3547463901341
+          ],
+          "waypoint": [
+            57,
+            0,
+            472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5703
+        },
+        {
+          "id": "B6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "standard2",
+            "body": "heavy2",
+            "arms": "heavy2",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "炸裂機関砲・大容量型",
+            "sub": "プラズマ砲・速装型",
+            "aux": "衝撃散弾銃・大容量型",
+            "sp": "重砲"
+          },
+          "position": [
+            -15.345332141965628,
+            0,
+            492.0236550872214
+          ],
+          "waypoint": [
+            85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 9.261292083333332,
+          "cruise": 25.976802030456852,
+          "weight": 6729
+        },
+        {
+          "id": "B7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "standard3",
+            "arms": "heavy2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ショットガン・強装型",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "索敵センサー・大容量型",
+            "sp": "リペアフィールド・高出力型"
+          },
+          "position": [
+            10.677917598746717,
+            0,
+            492.6418053051457
+          ],
+          "waypoint": null,
+          "walk": 12.194,
+          "cruise": 28.139999999999997,
+          "weight": 5511
+        },
+        {
+          "id": "B8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "standard",
+            "body": "heavy2",
+            "arms": "standard2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・強装型",
+            "sub": "炸裂狙撃銃・軽量型",
+            "aux": "索敵ソナー・瞬発型",
+            "sp": "光学迷彩"
+          },
+          "position": [
+            -4.783965753391385,
+            0,
+            493.5825602146797
+          ],
+          "waypoint": null,
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5038
+        },
+        {
+          "id": "B9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "light3",
+            "arms": "standard",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マークスマンライフル",
+            "sub": "熱球グレネード・即応型",
+            "aux": "ソード",
+            "sp": "全方向加速装置・持続型"
+          },
+          "position": [
+            10.010185905732214,
+            0,
+            490.4463372398168
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 4682
+        },
+        {
+          "id": "B10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "light2",
+            "arms": "standard",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲・連射型",
+            "sub": "プラズマ砲・速装型",
+            "aux": "弱化グレネード・持続型",
+            "sp": "防護バリア"
+          },
+          "position": [
+            -7.208974577486515,
+            0,
+            490.1972621441819
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 6021
+        },
+        {
+          "id": "R1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "standard2",
+            "arms": "heavy2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・強装型",
+            "sub": "時限グレネード",
+            "aux": "ソード・重装型",
+            "sp": "加速装置・瞬発型"
+          },
+          "position": [
+            7.714919253252447,
+            0,
+            -488.4254258191213
+          ],
+          "waypoint": [
+            85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5100
+        },
+        {
+          "id": "R2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "light",
+            "arms": "heavy2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ショットガン・広域型",
+            "sub": "遠隔ボムランチャー",
+            "aux": "索敵センサー・高出力型",
+            "sp": "リペアビーコン・高出力型"
+          },
+          "position": [
+            5.092194316908717,
+            0,
+            -492.6545001375489
+          ],
+          "waypoint": [
+            85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5474
+        },
+        {
+          "id": "R3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "standard",
+            "arms": "standard",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲",
+            "sub": "蓄圧砲・強装型",
+            "aux": "弱化グレネード・持続型",
+            "sp": "榴弾砲・連射型"
+          },
+          "position": [
+            13.312127226032317,
+            0,
+            -488.258511537686
+          ],
+          "waypoint": null,
+          "walk": 12.021749999999999,
+          "cruise": 27.7425,
+          "weight": 5564
+        },
+        {
+          "id": "R4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "standard",
+            "body": "heavy3",
+            "arms": "light3",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "レールライフル・連射型",
+            "sub": "時限グレネード",
+            "aux": "ソード・大剣",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            13.635935492813587,
+            0,
+            -489.6598270670511
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5244
+        },
+        {
+          "id": "R5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "standard2",
+            "arms": "standard2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁バーストピストル・強装型",
+            "sub": "炸裂狙撃銃・強装型",
+            "aux": "自動砲台",
+            "sp": "光学迷彩・即応型"
+          },
+          "position": [
+            -5.523723182268441,
+            0,
+            -493.78653287608176
+          ],
+          "waypoint": [
+            57,
+            0,
+            -472
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 4906
+        },
+        {
+          "id": "R6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "light2",
+            "body": "light",
+            "arms": "heavy2",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "コイル機関砲・連射型",
+            "sub": "ロケットランチャー・連射型",
+            "aux": "衝撃グレネード・軽量型",
+            "sp": "重砲"
+          },
+          "position": [
+            8.012957828119397,
+            0,
+            -494.9090840383433
+          ],
+          "waypoint": [
+            57,
+            0,
+            -472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5965
+        },
+        {
+          "id": "R7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "light2",
+            "arms": "standard",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "収束散弾銃・瞬発型",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "扇形センサー・大容量型",
+            "sp": "リペアユニット・持続型"
+          },
+          "position": [
+            12.661207568831742,
+            0,
+            -492.71473425626755
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5351
+        },
+        {
+          "id": "R8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "light2",
+            "arms": "standard3",
+            "legs": "standard2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・連射型",
+            "sub": "跳躍地雷・拡大型",
+            "aux": "偵察機",
+            "sp": "光学迷彩"
+          },
+          "position": [
+            17.247531305998564,
+            0,
+            -493.12623214395717
+          ],
+          "waypoint": null,
+          "walk": 15.795,
+          "cruise": 30,
+          "weight": 4258
+        },
+        {
+          "id": "R9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "standard",
+            "arms": "heavy",
+            "legs": "standard",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マークスマンライフル・強装型",
+            "sub": "時限グレネード・広域型",
+            "aux": "スピア・強装型",
+            "sp": "加速装置・巡航型"
+          },
+          "position": [
+            -5.568377369083464,
+            0,
+            -490.45606295298785
+          ],
+          "waypoint": [
+            -57,
+            0,
+            -472
+          ],
+          "walk": 12.090000000000002,
+          "cruise": 27.899999999999995,
+          "weight": 4930
+        },
+        {
+          "id": "R10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "standard",
+            "arms": "standard",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー機銃・精密型",
+            "sub": "蓄圧砲・重装型",
+            "aux": "衝撃グレネード・瞬発型",
+            "sp": "防護バリア・重装型"
+          },
+          "position": [
+            -4.534852305427194,
+            0,
+            -491.48201227141544
+          ],
+          "waypoint": [
+            -85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6060
+        }
+      ]
+    },
+    "coreExact": [
+      3150,
+      2756.25
+    ],
+    "initialCore": [
+      9000,
+      9000
+    ],
+    "losses": {
+      "B": {
+        "direct": 0,
+        "wreck": 5850
+      },
+      "R": {
+        "direct": 0,
+        "wreck": 6243.75
+      }
+    },
+    "seed": 20261410,
+    "errors": [],
+    "balance": "勝率未確定（終局までの観測1試合）"
+  },
+  {
+    "map": "tidal",
+    "seconds": 600,
+    "matchDuration": 600,
+    "ended": true,
+    "winner": "R",
+    "endedBy": "time",
+    "core": [
+      2390,
+      3177
+    ],
+    "kills": {
+      "B": 100,
+      "R": 110
+    },
+    "captures": 25,
+    "captureEvents": [
+      {
+        "t": 19,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 22.5,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 56.5,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 102.5,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 112.5,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 123.5,
+        "id": "B",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 130.8,
+        "id": "B",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 138,
+        "id": "D",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 147.6,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 180.7,
+        "id": "A",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 202.9,
+        "id": "A",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 222,
+        "id": "B",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 232,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 241.2,
+        "id": "C",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 250.8,
+        "id": "C",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 263.5,
+        "id": "B",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 292.9,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 350.5,
+        "id": "D",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 362.3,
+        "id": "A",
+        "from": "R",
+        "to": null
+      },
+      {
+        "t": 372.5,
+        "id": "A",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 448.9,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 539.4,
+        "id": "D",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 573.4,
+        "id": "D",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 584,
+        "id": "C",
+        "from": "B",
+        "to": null
+      },
+      {
+        "t": 593.2,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      }
+    ],
+    "occupancy": {
+      "A:B": 408.25000000005855,
+      "B:neutral": 65.74999999999841,
+      "C:neutral": 75.39999999999786,
+      "D:neutral": 174.4000000000054,
+      "E:R": 600.000000000002,
+      "B:B": 443.05000000006646,
+      "D:R": 282.95000000003006,
+      "C:R": 191.5000000000093,
+      "D:B": 142.6499999999982,
+      "B:R": 91.19999999999696,
+      "A:neutral": 32.3500000000003,
+      "A:R": 159.400000000002,
+      "C:B": 333.10000000004146
+    },
+    "layers": {
+      "upper": 396,
+      "west": 3428,
+      "center": 5226,
+      "east": 1549
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 253,
+    "mobility": [
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 39.95,
+        "pos": [
+          24.15,
+          0,
+          -154.09
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 42.35,
+        "pos": [
+          39.18,
+          10,
+          -150.8
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 75.5,
+        "pos": [
+          50.04,
+          0,
+          291.46
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 77.45,
+        "pos": [
+          23.21,
+          0,
+          -154.35
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R6",
+        "team": "R",
+        "t": 79.85,
+        "pos": [
+          36.99,
+          10,
+          -152.71
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B1",
+        "team": "B",
+        "t": 87.45,
+        "pos": [
+          -68.66,
+          0,
+          72.57
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B1",
+        "team": "B",
+        "t": 110.9,
+        "pos": [
+          -61.64,
+          0,
+          -369.52
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B1",
+        "team": "B",
+        "t": 113.05,
+        "pos": [
+          -71.63,
+          10,
+          -370.41
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J6",
+        "unit": "B9",
+        "team": "B",
+        "t": 115.5,
+        "pos": [
+          -124.05,
+          0,
+          391.26
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J6",
+        "unit": "B9",
+        "team": "B",
+        "t": 117.9,
+        "pos": [
+          -110.55,
+          12,
+          389.15
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 122.25,
+        "pos": [
+          49.52,
+          0,
+          291.56
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 124.4,
+        "pos": [
+          60.35,
+          10,
+          294.35
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J6",
+        "unit": "B9",
+        "team": "B",
+        "t": 162.5,
+        "pos": [
+          -125.31,
+          0,
+          391.78
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J6",
+        "unit": "B2",
+        "team": "B",
+        "t": 163.4,
+        "pos": [
+          -124.75,
+          0,
+          392.53
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J6",
+        "unit": "B9",
+        "team": "B",
+        "t": 164.9,
+        "pos": [
+          -110.23,
+          12,
+          388.9
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J6",
+        "unit": "B2",
+        "team": "B",
+        "t": 165.8,
+        "pos": [
+          -111.65,
+          12,
+          388.74
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 177.2,
+        "pos": [
+          48.41,
+          0,
+          293.84
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 179.35,
+        "pos": [
+          59.75,
+          10,
+          294.01
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 192.2,
+        "pos": [
+          -58.38,
+          0,
+          -367.4
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J4",
+        "unit": "B10",
+        "team": "B",
+        "t": 221.5,
+        "pos": [
+          -147.13,
+          0,
+          -528.35
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J4",
+        "unit": "B10",
+        "team": "B",
+        "t": 224.05,
+        "pos": [
+          -130.45,
+          10,
+          -530.83
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J4",
+        "unit": "R3",
+        "team": "R",
+        "t": 225.35,
+        "pos": [
+          -145.62,
+          0,
+          -530.28
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J4",
+        "unit": "R3",
+        "team": "R",
+        "t": 228.8,
+        "pos": [
+          -145.22,
+          0,
+          -531.56
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 230.1,
+        "pos": [
+          48.28,
+          0,
+          292.98
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J4",
+        "unit": "R3",
+        "team": "R",
+        "t": 231.35,
+        "pos": [
+          -126.59,
+          10,
+          -531.17
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 232.25,
+        "pos": [
+          59.16,
+          10,
+          294.01
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B7",
+        "team": "B",
+        "t": 239.5,
+        "pos": [
+          22.63,
+          0,
+          152.04
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B7",
+        "team": "B",
+        "t": 241.9,
+        "pos": [
+          36.5,
+          10,
+          152.01
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "R4",
+        "team": "R",
+        "t": 261.4,
+        "pos": [
+          -56.67,
+          0,
+          -370.7
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 266.05,
+        "pos": [
+          48.43,
+          0,
+          293.46
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 268.2,
+        "pos": [
+          59.76,
+          10,
+          294.04
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 271,
+        "pos": [
+          -57.72,
+          0,
+          -371.06
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "R5",
+        "team": "R",
+        "t": 281.25,
+        "pos": [
+          -61.92,
+          0,
+          -370.31
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "R5",
+        "team": "R",
+        "t": 283.4,
+        "pos": [
+          -69.59,
+          10,
+          -369.84
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B2",
+        "team": "B",
+        "t": 296.85,
+        "pos": [
+          22.91,
+          0,
+          154.05
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B2",
+        "team": "B",
+        "t": 299.25,
+        "pos": [
+          38.28,
+          10,
+          152.48
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 313.6,
+        "pos": [
+          -60.39,
+          0,
+          -367.4
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 315.75,
+        "pos": [
+          -70.48,
+          10,
+          -371.37
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 318.35,
+        "pos": [
+          48.25,
+          0,
+          293.5
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 320.5,
+        "pos": [
+          59.64,
+          10,
+          294.03
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "B6",
+        "team": "B",
+        "t": 396.35,
+        "pos": [
+          51.83,
+          0,
+          296.69
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "B6",
+        "team": "B",
+        "t": 398.5,
+        "pos": [
+          61.69,
+          10,
+          292.99
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 426.45,
+        "pos": [
+          49.64,
+          0,
+          291.41
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 428.6,
+        "pos": [
+          60.11,
+          10,
+          294.31
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "R6",
+        "team": "R",
+        "t": 447.9,
+        "pos": [
+          -58.35,
+          0,
+          -370.97
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J7",
+        "unit": "R6",
+        "team": "R",
+        "t": 450.05,
+        "pos": [
+          -69.26,
+          10,
+          -369.75
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L2",
+        "unit": "B6",
+        "team": "B",
+        "t": 452.25,
+        "pos": [
+          -68.61,
+          0,
+          70.26
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J1",
+        "unit": "B2",
+        "team": "B",
+        "t": 478.85,
+        "pos": [
+          24.17,
+          0,
+          150.53
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 479.35,
+        "pos": [
+          26.32,
+          0,
+          -150.69
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J1",
+        "unit": "B2",
+        "team": "B",
+        "t": 481.25,
+        "pos": [
+          39.58,
+          10,
+          151.73
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B6",
+        "team": "B",
+        "t": 481.35,
+        "pos": [
+          23.04,
+          0,
+          -149.57
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "B6",
+        "team": "B",
+        "t": 487.35,
+        "pos": [
+          21.12,
+          0,
+          -152.85
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "B6",
+        "team": "B",
+        "t": 489.75,
+        "pos": [
+          34.99,
+          10,
+          -152.31
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "B5",
+        "team": "B",
+        "t": 505.5,
+        "pos": [
+          50.93,
+          0,
+          296.21
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "B5",
+        "team": "B",
+        "t": 507.65,
+        "pos": [
+          64.41,
+          10,
+          292.52
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 509.6,
+        "pos": [
+          23.32,
+          0,
+          -154.07
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 539.75,
+        "pos": [
+          51.1,
+          0,
+          291.3
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J5",
+        "unit": "R10",
+        "team": "R",
+        "t": 541.9,
+        "pos": [
+          61.37,
+          10,
+          294.81
+        ]
+      },
+      {
+        "type": "liftBoard",
+        "facility": "L3",
+        "unit": "B4",
+        "team": "B",
+        "t": 547.15,
+        "pos": [
+          -8.7,
+          0,
+          -71.44
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J7",
+        "unit": "B10",
+        "team": "B",
+        "t": 574.2,
+        "pos": [
+          -58.36,
+          0,
+          -367.21
+        ]
+      },
+      {
+        "type": "padLaunch",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 596.5,
+        "pos": [
+          23.27,
+          0,
+          -150.82
+        ]
+      },
+      {
+        "type": "padLand",
+        "facility": "J2",
+        "unit": "R10",
+        "team": "R",
+        "t": 598.9,
+        "pos": [
+          34.79,
+          10,
+          -152.32
+        ]
+      }
+    ],
+    "repairs": [
+      {
+        "t": 41.45,
+        "unit": "R1",
+        "plant": "D",
+        "pos": [
+          -32.33546669678272,
+          0,
+          -93.54236326787483
+        ]
+      },
+      {
+        "t": 42.65,
+        "unit": "R2",
+        "plant": "D",
+        "pos": [
+          -30.100032389746897,
+          0,
+          -91.17376509123892
+        ]
+      },
+      {
+        "t": 58.1,
+        "unit": "R9",
+        "plant": "D",
+        "pos": [
+          -32.123007744287094,
+          0,
+          -91.54071004690269
+        ]
+      },
+      {
+        "t": 63.45,
+        "unit": "R3",
+        "plant": null,
+        "pos": [
+          23.202091226962345,
+          0,
+          -494.81567186675653
+        ]
+      },
+      {
+        "t": 81.4,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -69.03702470013016,
+          0,
+          100.5338431969184
+        ]
+      },
+      {
+        "t": 95.35,
+        "unit": "B5",
+        "plant": "B",
+        "pos": [
+          -70.3583656066268,
+          0,
+          98.07335633282129
+        ]
+      },
+      {
+        "t": 120.4,
+        "unit": "B6",
+        "plant": "D",
+        "pos": [
+          -29.993796413225226,
+          0,
+          -94.04716029648156
+        ]
+      },
+      {
+        "t": 136.25,
+        "unit": "R7",
+        "plant": "B",
+        "pos": [
+          -69.97200071208458,
+          0,
+          100.418472496523
+        ]
+      },
+      {
+        "t": 146.8,
+        "unit": "B6",
+        "plant": null,
+        "pos": [
+          -20.47691131239522,
+          0,
+          495.50264150757613
+        ]
+      },
+      {
+        "t": 151.65,
+        "unit": "R5",
+        "plant": "D",
+        "pos": [
+          -29.782968502398077,
+          0,
+          -94.27415252861147
+        ]
+      },
+      {
+        "t": 169.95,
+        "unit": "R7",
+        "plant": "B",
+        "pos": [
+          -69.55973361865793,
+          0,
+          100.6405425329235
+        ]
+      },
+      {
+        "t": 178.8,
+        "unit": "R7",
+        "plant": "B",
+        "pos": [
+          -69.82779273402345,
+          0,
+          100.89045668149099
+        ]
+      },
+      {
+        "t": 186.15,
+        "unit": "B9",
+        "plant": null,
+        "pos": [
+          -22.679405299029234,
+          0,
+          495.07173287496425
+        ]
+      },
+      {
+        "t": 192.5,
+        "unit": "B5",
+        "plant": null,
+        "pos": [
+          -22.85539770731839,
+          0,
+          494.75069983944536
+        ]
+      },
+      {
+        "t": 209.55,
+        "unit": "R1",
+        "plant": "A",
+        "pos": [
+          -1.2242797938271477,
+          -2,
+          370.1947815322065
+        ]
+      },
+      {
+        "t": 214.25,
+        "unit": "B3",
+        "plant": null,
+        "pos": [
+          -22.783118765421882,
+          0,
+          494.3546691542607
+        ]
+      },
+      {
+        "t": 216.75,
+        "unit": "R2",
+        "plant": "A",
+        "pos": [
+          1.3070534843975021,
+          -2,
+          370.2937688945416
+        ]
+      },
+      {
+        "t": 220.25,
+        "unit": "B1",
+        "plant": null,
+        "pos": [
+          -22.930138361879237,
+          0,
+          496.7010643183766
+        ]
+      },
+      {
+        "t": 220.95,
+        "unit": "R1",
+        "plant": "A",
+        "pos": [
+          -0.2693328684740545,
+          -2,
+          370.52873428633967
+        ]
+      },
+      {
+        "t": 221.3,
+        "unit": "R8",
+        "plant": null,
+        "pos": [
+          -23.97173940339456,
+          0,
+          -495.9132650388993
+        ]
+      },
+      {
+        "t": 267.65,
+        "unit": "B5",
+        "plant": null,
+        "pos": [
+          -22.823242590492487,
+          0,
+          496.70523739647155
+        ]
+      },
+      {
+        "t": 281.35,
+        "unit": "R7",
+        "plant": "E",
+        "pos": [
+          -1.3819526326135583,
+          -2,
+          -369.6880398481634
+        ]
+      },
+      {
+        "t": 289.1,
+        "unit": "R1",
+        "plant": "A",
+        "pos": [
+          1.4638768868289747,
+          -2,
+          369.8439373116673
+        ]
+      },
+      {
+        "t": 307.3,
+        "unit": "B3",
+        "plant": null,
+        "pos": [
+          -22.960576985021735,
+          0,
+          494.73037507579636
+        ]
+      },
+      {
+        "t": 318.8,
+        "unit": "R6",
+        "plant": "D",
+        "pos": [
+          -31.950322628530568,
+          0,
+          -94.28144006967888
+        ]
+      },
+      {
+        "t": 319.4,
+        "unit": "B9",
+        "plant": null,
+        "pos": [
+          -22.832507615282637,
+          0,
+          495.0446628499648
+        ]
+      },
+      {
+        "t": 337.95,
+        "unit": "B9",
+        "plant": null,
+        "pos": [
+          -23.088266829095037,
+          0,
+          494.7270933932964
+        ]
+      },
+      {
+        "t": 361.8,
+        "unit": "R3",
+        "plant": null,
+        "pos": [
+          22.890372067433038,
+          0,
+          -496.76157180660795
+        ]
+      },
+      {
+        "t": 392.05,
+        "unit": "R1",
+        "plant": "E",
+        "pos": [
+          -1.2517834692950414,
+          -2,
+          -370.4477436622526
+        ]
+      },
+      {
+        "t": 464.5,
+        "unit": "B9",
+        "plant": "D",
+        "pos": [
+          -29.508246781695668,
+          0,
+          -93.2098912228306
+        ]
+      },
+      {
+        "t": 482.15,
+        "unit": "B8",
+        "plant": null,
+        "pos": [
+          -23.339923400220247,
+          0,
+          496.68282764591373
+        ]
+      },
+      {
+        "t": 483.3,
+        "unit": "B9",
+        "plant": "D",
+        "pos": [
+          -30.567642480862013,
+          0,
+          -93.9581798869981
+        ]
+      },
+      {
+        "t": 499.65,
+        "unit": "B9",
+        "plant": "D",
+        "pos": [
+          -31.01156222743931,
+          0,
+          -93.99220054621149
+        ]
+      },
+      {
+        "t": 499.75,
+        "unit": "B1",
+        "plant": "D",
+        "pos": [
+          -30.113194897646633,
+          0,
+          -94.30759953109728
+        ]
+      },
+      {
+        "t": 510.45,
+        "unit": "R5",
+        "plant": "E",
+        "pos": [
+          -0.11822268260517728,
+          -2,
+          -370.5970367602674
+        ]
+      },
+      {
+        "t": 536.5,
+        "unit": "B10",
+        "plant": "B",
+        "pos": [
+          -70.21292052016305,
+          0,
+          100.73053316267173
+        ]
+      },
+      {
+        "t": 540.3,
+        "unit": "R6",
+        "plant": "E",
+        "pos": [
+          -1.210793871423041,
+          -2,
+          -369.84984878628745
+        ]
+      },
+      {
+        "t": 570.75,
+        "unit": "B8",
+        "plant": null,
+        "pos": [
+          23.63747365658945,
+          0,
+          496.36669899865745
+        ]
+      },
+      {
+        "t": 582.7,
+        "unit": "B2",
+        "plant": "A",
+        "pos": [
+          -1.4935025372011441,
+          -2,
+          370.11703707718834
+        ]
+      }
+    ],
+    "initialization": {
+      "version": "paired-rosters-v2",
+      "fixture": {
+        "seed": 20261411,
+        "swapped": false
+      },
+      "silent": true,
+      "units": [
+        {
+          "id": "B1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "light3",
+            "arms": "light",
+            "legs": "light3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "波動ライフル・広域型",
+            "sub": "時限グレネード・軽量型",
+            "aux": "ソード",
+            "sp": "加速装置"
+          },
+          "position": [
+            7.728871140629053,
+            0,
+            497.5183881674893
+          ],
+          "waypoint": [
+            -85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 14.395972500000001,
+          "cruise": 30.45426395939086,
+          "weight": 3962
+        },
+        {
+          "id": "B2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "standard",
+            "arms": "light3",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ネイルガン・連射型",
+            "sub": "衝撃吸着地雷・強装型",
+            "aux": "滞空センサー・高出力型",
+            "sp": "リペアユニット・広域型"
+          },
+          "position": [
+            5.078242429532111,
+            0,
+            493.5615377891809
+          ],
+          "waypoint": [
+            -85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5421
+        },
+        {
+          "id": "B3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "light",
+            "arms": "light3",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ガトリング",
+            "sub": "蓄圧砲・重装型",
+            "aux": "衝撃散弾銃・広域型",
+            "sp": "防護バリア・軽量型"
+          },
+          "position": [
+            13.326079113408923,
+            0,
+            497.351473886054
+          ],
+          "waypoint": null,
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5371
+        },
+        {
+          "id": "B4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "standard",
+            "body": "heavy3",
+            "arms": "standard",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "バーストライフル・大容量型",
+            "sub": "グレネード・強装型",
+            "aux": "ソード・高出力型",
+            "sp": "全方向加速装置・高出力型"
+          },
+          "position": [
+            13.62198360543698,
+            0,
+            490.56686471868306
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5693
+        },
+        {
+          "id": "B5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "light3",
+            "arms": "heavy3",
+            "legs": "standard2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・大容量型",
+            "sub": "光弾狙撃ライフル",
+            "aux": "偵察機・広域型",
+            "sp": "光学迷彩・耐久型"
+          },
+          "position": [
+            -5.509771294891834,
+            0,
+            492.8794952244498
+          ],
+          "waypoint": [
+            -57,
+            0,
+            472
+          ],
+          "walk": 15.747615000000001,
+          "cruise": 29.91,
+          "weight": 4662
+        },
+        {
+          "id": "B6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "light2",
+            "body": "standard",
+            "arms": "light3",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関銃・精密型",
+            "sub": "ロケットランチャー・強装型",
+            "aux": "衝撃散弾銃・強装型",
+            "sp": "重砲・大容量型"
+          },
+          "position": [
+            7.999005940742791,
+            0,
+            495.81612168997526
+          ],
+          "waypoint": [
+            57,
+            0,
+            472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5952
+        },
+        {
+          "id": "B7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "heavy",
+            "arms": "light3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー散弾銃",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "滞空センサー・広域型",
+            "sp": "リペアユニット・高出力型"
+          },
+          "position": [
+            12.675159456208348,
+            0,
+            491.80769660463557
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5662
+        },
+        {
+          "id": "B8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "light",
+            "body": "light3",
+            "arms": "light2",
+            "legs": "light2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁バーストピストル・連射型",
+            "sub": "跳躍地雷",
+            "aux": "偵察機・広域型",
+            "sp": "光学迷彩・耐久型"
+          },
+          "position": [
+            17.233579418621957,
+            0,
+            494.03326979558915
+          ],
+          "waypoint": null,
+          "walk": 17.65126458333333,
+          "cruise": 29.663984771573606,
+          "weight": 4059
+        },
+        {
+          "id": "B9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "standard",
+            "body": "light",
+            "arms": "light3",
+            "legs": "light",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・大容量型",
+            "sub": "時限グレネード・広域型",
+            "aux": "ソード・重装型",
+            "sp": "加速装置・持続型"
+          },
+          "position": [
+            -5.554425481706858,
+            0,
+            489.54902530135587
+          ],
+          "waypoint": [
+            57,
+            0,
+            472
+          ],
+          "walk": 14.116050000000001,
+          "cruise": 27.936776649746196,
+          "weight": 4271
+        },
+        {
+          "id": "B10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "heavy",
+            "arms": "heavy2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "コイル機関砲・精密型",
+            "sub": "蓄圧砲・強装型",
+            "aux": "衝撃散弾銃・大容量型",
+            "sp": "榴弾砲・長射程型"
+          },
+          "position": [
+            -4.5488041928038,
+            0,
+            492.3890499230474
+          ],
+          "waypoint": [
+            85,
+            0,
+            483.20000000000005
+          ],
+          "walk": 9.0636,
+          "cruise": 22.82710659898477,
+          "weight": 6964
+        },
+        {
+          "id": "R1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "heavy3",
+            "body": "heavy",
+            "arms": "heavy",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "バーストライフル",
+            "sub": "グレネード・広域型",
+            "aux": "ソード・高出力型",
+            "sp": "全方向加速装置・高出力型"
+          },
+          "position": [
+            1.6617552693933249,
+            0,
+            -488.08660168154165
+          ],
+          "waypoint": [
+            57,
+            0,
+            -472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 6041
+        },
+        {
+          "id": "R2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "heavy3",
+            "body": "light",
+            "arms": "heavy",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "収束散弾銃・強装型",
+            "sub": "遠隔ボムランチャー・拡大型",
+            "aux": "索敵センサー",
+            "sp": "リペアビーコン・高出力型"
+          },
+          "position": [
+            16.582659761421382,
+            0,
+            -488.4894925141707
+          ],
+          "waypoint": [
+            85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5610
+        },
+        {
+          "id": "R3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "light2",
+            "body": "light2",
+            "arms": "light3",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲・精密型",
+            "sub": "蓄圧砲",
+            "aux": "弱化グレネード",
+            "sp": "榴弾砲"
+          },
+          "position": [
+            8.419654861092567,
+            0,
+            -491.1927480199374
+          ],
+          "waypoint": null,
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5195
+        },
+        {
+          "id": "R4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "standard3",
+            "arms": "standard3",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "波動ライフル・強装型",
+            "sub": "グレネードランチャー",
+            "aux": "ソード",
+            "sp": "全方向加速装置・持続型"
+          },
+          "position": [
+            -1.62804068159312,
+            0,
+            -494.6436338238418
+          ],
+          "waypoint": null,
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5212
+        },
+        {
+          "id": "R5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "standard",
+            "arms": "heavy",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "単射二丁拳銃",
+            "sub": "炸裂狙撃銃・軽量型",
+            "aux": "自動砲台・強装型",
+            "sp": "背部自動銃・強装型"
+          },
+          "position": [
+            -11.576887166127563,
+            0,
+            -493.4477087385021
+          ],
+          "waypoint": [
+            57,
+            0,
+            -472
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5411
+        },
+        {
+          "id": "R6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "standard2",
+            "body": "heavy3",
+            "arms": "light3",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ガトリング・持続型",
+            "sub": "プラズマ砲・連射型",
+            "aux": "弱化グレネード・広域型",
+            "sp": "重砲・大容量型"
+          },
+          "position": [
+            -15.359284029342234,
+            0,
+            -492.9306927388534
+          ],
+          "waypoint": [
+            -85,
+            0,
+            -483.20000000000005
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 6344
+        },
+        {
+          "id": "R7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "standard3",
+            "arms": "standard",
+            "legs": "standard2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "収束散弾銃",
+            "sub": "遠隔ボムランチャー・連射型",
+            "aux": "扇形センサー・大容量型",
+            "sp": "リペアユニット・持続型"
+          },
+          "position": [
+            10.691869486123323,
+            0,
+            -491.7347676535137
+          ],
+          "waypoint": null,
+          "walk": 13.812727500000001,
+          "cruise": 26.235000000000003,
+          "weight": 5152
+        },
+        {
+          "id": "R8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "standard",
+            "body": "heavy3",
+            "arms": "heavy",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁バーストピストル・瞬発型",
+            "sub": "炸裂狙撃銃",
+            "aux": "自動砲台・広域型",
+            "sp": "光学迷彩・高出力型"
+          },
+          "position": [
+            -4.7979176407679915,
+            0,
+            -494.48959786631167
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5893
+        },
+        {
+          "id": "R9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "light3",
+            "body": "light2",
+            "arms": "light3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "パルスバーストライフル・強装型",
+            "sub": "熱球グレネード・即応型",
+            "aux": "スピア・強装型",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            10.024137793108821,
+            0,
+            -489.5392995881848
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 4522
+        },
+        {
+          "id": "R10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "light3",
+            "arms": "heavy2",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "炸裂機関砲・大容量型",
+            "sub": "プラズマ砲・連射型",
+            "aux": "衝撃グレネード・広域型",
+            "sp": "榴弾砲"
+          },
+          "position": [
+            -7.2229264648631215,
+            0,
+            -491.10429979581386
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 6436
+        }
+      ]
+    },
+    "coreExact": [
+      2389.5,
+      3176.5
+    ],
+    "initialCore": [
+      9000,
+      9000
+    ],
+    "losses": {
+      "B": {
+        "direct": 198,
+        "wreck": 6412.5
+      },
+      "R": {
+        "direct": 86,
+        "wreck": 5737.5
+      }
+    },
+    "seed": 20261411,
+    "errors": [],
+    "balance": "勝率未確定（終局までの観測1試合）"
+  }
+]

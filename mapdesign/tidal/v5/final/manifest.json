@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-20",
+  "revision": "tidal5",
+  "sha256": {
+    "prototype/index.html": "43a5366b482a2528593473a37efc1fdbaad2312aa2f26b23b8f3560cc603a5c6",
+    "prototype/maps/tidal.js": "d6ed3f342cce3ffb7f8d57ff7080152fa131a13671763c13141692824acaf427",
+    "prototype/maps.js": "b0f0a7b5f46ec7ef58daa3f9d8874710900d6dc2532e5aced28653b0dc388dd6",
+    "tools/tidal_mapgen.js": "3e422bae31556bf1bd1059ed50ec82b1b777888a5e67b177ee1482e6c51c83f1",
+    "tools/generate_map.js": "8bcca9dd8ac25d4d96481265f94c944be67533a41c3d0488a8b9d4140b01072a",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/build_maps.py": "63dbe10d3e47583d3b2363b5f78b8472fd6ebdcaeb22c70da1d3c91e13f8fe1a",
+    "tools/test/make_dbg.py": "21e27e3342a4e49cded3be450e285db7d6925107c30e0df7c3612a34d0737d8b",
+    "tools/test/map_battle.js": "dabccd56e0819a68637e1fe4af9eab93ef40c0892daa83d4592c23a4c35d5115",
+    "tools/test/prepare_bot_battle.js": "2f75dc5ceb3275e0f49ef1c6cd169f3201194dd20283a80974865b70b5e69f6f",
+    "tools/test/tidal_mountain_check.js": "0ac49996590519de1949ad9b9a9719a9e31ebe7b0a5c54d75d485d4fb1090d46",
+    "tools/test/tidal_raid_check.js": "6b93834bf535e8996c778d4b7529a465cda56cd9c2458fcfe8d5e204a4c3db1d",
+    "tools/test/tidal_district_check.js": "b686efe02e03f931f5c033e9d1db74a8bd2ec4bce53b4a0fd7b7e2369da27187",
+    "tools/test/tidal_check.js": "df10d50e4f31a2dda79ebb293f9be2cca707bc40d648c0c80a5b6fcd49f76ddd",
+    "tools/test/base_defense_check.js": "858c10df4871b451d6971d038c7c72bec9a82e134da8b595877e9efa2974227c",
+    "tools/test/mapgen.test.js": "e161c0c9481ee807892c9945d32d5e191d223d22e2b2f315f3f1be3de0ddfff4",
+    "tools/test/mobility_schema.test.js": "b413a55884bcc903eea006e6e4f2c7b1469701f73e0a3555dc609ba8f31e568c",
+    "tools/test/terrain_base_height.test.js": "15730d3575b3819165af6a702f6ecb7f32af1e41d58996db093615afbb14c55e",
+    "tools/test/record_battle.js": "196be125e65f92bdd2c0b575c3869a74c285026834caedc2e43eeb83d3717da6",
+    "tools/test/export_replay.js": "c78eb40a2b995a87ea7cd773b1a457e8dd47c9aa5f658134bc13d72c516b6bc0",
+    "tools/test/replay_check.js": "9f95e9ad2ccbabeb494143fcb32c8a79182dcb508d5ea23e4b611d261adb36c9",
+    "mapdesign/map_top.py": "6837ade2ff42d716bebaead6a797a7674e048b9ed81f7e4b992fbc480fb1df98",
+    "mapdesign/tidal/sample_drawings.js": "f8abfa0a90297a83960a739d4e552092270499db32ef86d8399a7aeb884c97ee",
+    "mapdesign/tidal/render_drawings.py": "e3c39f70577be356c446b6cef13de0f3f8778d8ca187d0ec504e362ce1005313",
+    "mapdesign/tidal/render_views.js": "42ae7187032294bd2baacf0382f24de49c95ae249512c1e86b745e3aa940b38e",
+    "mapdesign/tidal/v5/baseline-map.js": "1f0614d433fcc4573a25b858562229736a627c73abbc4853a588f4b4cff68d5f",
+    "mapdesign/tidal/v5/baseline-engine.html": "11f454a831189377d686e55aff46135b8da3bed46830d4923fb10a91e30b4bb9",
+    "mapdesign/tidal/v5/baseline-generator.js": "dfafea039eae3cc9c613ed99e804197ed412a02bcf5862c9776a83fbc76dd3d6",
+    "mapdesign/tidal/v5/final/battles.json": "8af602a2a87abd3caa718e25b1fa2e5e23456a51b29bd29b633eb939315d614d",
+    "mapdesign/tidal/v5/final/comparison.json": "5eadf87d6411e79186726a0a4f8363366ec2b8d3c8d723c0dcfc23602b629770",
+    "mapdesign/tidal/v5/replay/recorded.json": "ddb03ea432c65105d74650713fc2fd162f47bd21726fa0652a04b5a1dd054d37",
+    "mapdesign/tidal/v5/drawings/geometry.json": "8ec464b15492cb6b4f69490f5864fe03427b957947fac28401739379d80ff764"
+  },
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal5"
+  },
+  "generation": "../runs/2026-10-20T05-37-59-044Z-tidal5-bUdY9D/generation.json",
+  "battles": "battles.json",
+  "comparison": "comparison.json",
+  "seedPairs": {
+    "tidal": [
+      20261410,
+      20261411
+    ],
+    "tidal-v2": [
+      20261412,
+      20261413
+    ],
+    "tidal-v3": [
+      20261414,
+      20261415
+    ]
+  },
+  "controls": {
+    "existingData": "existing-data.json",
+    "oldMainAll4Match": true,
+    "initializationAll12Match": true,
+    "replayMatchesBatch": true,
+    "drawingHashesMatch": true
+  },
+  "note": "ユーザー指定の山岳経路を追加。到達性は成立、勝率対策は未合格。青1勝・橙10勝・引分1。山と青の誘導を合わせた少数比較。"
+}

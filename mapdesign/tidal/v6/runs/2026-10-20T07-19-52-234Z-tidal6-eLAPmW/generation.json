@@ -1,0 +1,5063 @@
+{
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal6"
+  },
+  "sources": {
+    "prototype/index.html": "43a5366b482a2528593473a37efc1fdbaad2312aa2f26b23b8f3560cc603a5c6",
+    "tools/mapgen.js": "106403a22e0887a5cf9abf565d879e2157e174804a2c6ca069dc4269541555d7",
+    "tools/generate_map.js": "99fde7f83683a2ef3d7df3b2eeab4664b16721b17bc91fe0770dcd7c4fb92f60",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/tidal_mapgen.js": "e8f5dbafe4abd9dfefa4504fd52c4ba99ab530ed68600f1b379a0259b8688a05"
+  },
+  "terrainSeed": 20261020,
+  "balance": "勝率未確定",
+  "stage": "地形・配置・経路生成と実走行。統計的な最終合格は未判定",
+  "candidateSites": [
+    {
+      "key": 0,
+      "x": -72,
+      "z": 136,
+      "role": "south",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 1,
+      "x": -74,
+      "z": 168,
+      "role": "south",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 2,
+      "x": 8,
+      "z": -136,
+      "role": "north",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 3,
+      "x": -72,
+      "z": -136,
+      "role": "north",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 4,
+      "x": -72,
+      "z": 0,
+      "role": "middle",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 5,
+      "x": 30,
+      "z": 0,
+      "role": "middle",
+      "lengthScale": 1.6,
+      "y": 0
+    },
+    {
+      "key": 6,
+      "x": 72,
+      "z": 0,
+      "role": "middle",
+      "lengthScale": 1.6,
+      "y": 22
+    }
+  ],
+  "validations": [
+    {
+      "id": "tidal",
+      "metrics": {
+        "plants": 5,
+        "elevated": 0,
+        "spread": 0,
+        "offCenter": 2
+      },
+      "nav": {
+        "nodes": 787,
+        "links": 7650
+      },
+      "routes": [
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 50.6,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 50.6,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 5.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 26.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 25.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 1.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 2.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 25.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 25.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 5.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 3.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 3.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 3.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 6.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 3.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 2.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 2.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 4.05,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 2.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 6.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 21.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 20.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 54.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 6.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 45.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 16.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 36.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 26.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントC",
+          "waypoints": 10,
+          "seconds": 26.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントD",
+          "waypoints": 15,
+          "seconds": 33.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントD",
+          "waypoints": 9,
+          "seconds": 18.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントE",
+          "waypoints": 18,
+          "seconds": 45.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントE",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 85.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 85.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 9.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 44.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 44.05,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 2.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 4.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 43.05,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 42.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 8.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 5.55,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 5.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 10.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 19,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 4.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 4.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 19.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 3.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 10.4,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 36.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 34.35,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 92.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 10.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 77.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 27.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 61.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 44.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントC",
+          "waypoints": 10,
+          "seconds": 44.5,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントD",
+          "waypoints": 15,
+          "seconds": 57.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントD",
+          "waypoints": 9,
+          "seconds": 30.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントE",
+          "waypoints": 18,
+          "seconds": 77.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントE",
+          "waypoints": 3,
+          "seconds": 11.5,
+          "arrived": true
+        }
+      ],
+      "mobility": [
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            127.10033852654678,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            -127.10033852654678,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            58.06205765619013,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.75,
+          "peak": 30.844280464329223,
+          "landing": [
+            -117.4333556550569,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            -66.0620576561901,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.75,
+          "peak": 22,
+          "landing": [
+            84.77139574992353,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.5,
+          "peak": 22,
+          "landing": [
+            -55.49501704112873,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.38161921177317,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.10256636253024,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.31573302219988,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            126.76746337836832,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.15,
+          "peak": 32.80656556895931,
+          "landing": [
+            -126.72316093134455,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            59.35211465696273,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.75,
+          "peak": 30.844280464329223,
+          "landing": [
+            -116.98421689092703,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            -67.86520720620733,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.8,
+          "peak": 22,
+          "landing": [
+            84.98025808365492,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.55,
+          "peak": 22,
+          "landing": [
+            -55.87194650764208,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.892005196587377,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.25640443147836,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.25640443147836,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.30897661693202,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.1,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.51116802511504,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.30897661693203,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.15,
+          "peak": 22,
+          "landing": [
+            85.42351742341233,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -56.14713871461764,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.7,
+          "peak": 22,
+          "landing": [
+            20.148132629693528,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.3,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.954606745728256,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.2,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.759656940037495,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.5,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.36411024307392,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.25640443147836,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.65,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.177287628138636,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 4,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.78088633607949,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.30897661693203,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.3,
+          "peak": 22,
+          "landing": [
+            85.1047844685327,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -56.03615026860304,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.7,
+          "peak": 22,
+          "landing": [
+            20.185126255737956,
+            22,
+            -48
+          ]
+        }
+      ],
+      "facilities": "施設・両陣営の隠れたポッド・nav の検査に合格"
+    },
+    {
+      "id": "tidal-v2",
+      "metrics": {
+        "plants": 5,
+        "elevated": 1,
+        "spread": 0,
+        "offCenter": 2
+      },
+      "nav": {
+        "nodes": 786,
+        "links": 7647
+      },
+      "routes": [
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 50.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 50.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 5.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 26.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 25.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 1.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 2.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 25.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 25.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 5.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 3.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 3.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 3.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 6.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 3.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 2.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 2.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 4.05,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 2.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 6.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 21.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 20.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 54.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 6.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 45.8,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 18.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 34.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 25.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントC",
+          "waypoints": 11,
+          "seconds": 25.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントD",
+          "waypoints": 15,
+          "seconds": 33.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントD",
+          "waypoints": 9,
+          "seconds": 18.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントE",
+          "waypoints": 18,
+          "seconds": 45.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントE",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 86,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 86,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 9.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 44.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 44.05,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 2.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 4.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 42.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 43.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 8.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 5.55,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 5.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 10.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 19,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 4.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 4.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 19.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 3.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 10.4,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 36.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 34.35,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 92.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 10.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 77.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 31,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 59.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 42.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントC",
+          "waypoints": 11,
+          "seconds": 43.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントD",
+          "waypoints": 15,
+          "seconds": 57.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントD",
+          "waypoints": 9,
+          "seconds": 30.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントE",
+          "waypoints": 18,
+          "seconds": 77.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントE",
+          "waypoints": 3,
+          "seconds": 11.5,
+          "arrived": true
+        }
+      ],
+      "mobility": [
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            127.10033852654678,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            -127.10033852654678,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            58.06205765619013,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.75,
+          "peak": 30.844280464329223,
+          "landing": [
+            -117.4333556550569,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            -66.0620576561901,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.75,
+          "peak": 22,
+          "landing": [
+            84.77139574992353,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.5,
+          "peak": 22,
+          "landing": [
+            -55.49501704112873,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.38161921177317,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.95,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.34681454933984,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.22295114690016,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.15,
+          "peak": 32.80656556895931,
+          "landing": [
+            126.80402269458435,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.15,
+          "peak": 32.80656556895931,
+          "landing": [
+            -126.96530460381115,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            58.637644807682854,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.65,
+          "peak": 30.844280464329223,
+          "landing": [
+            -117.467602690275,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -67.99763693414884,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.8,
+          "peak": 22,
+          "landing": [
+            85.18857365758467,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.55,
+          "peak": 22,
+          "landing": [
+            -56.15368559567712,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.885480498237158,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.25640443147836,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.25640443147836,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.30897661693202,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.1,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.51116802511504,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.30897661693203,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.15,
+          "peak": 22,
+          "landing": [
+            85.42351742341233,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -56.14713871461764,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.7,
+          "peak": 22,
+          "landing": [
+            20.148132629693528,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.3,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.954606745728256,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.826772898601895,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.2,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.38685342911882,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.35,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.11550178958706,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.6,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.08587748812767,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.85,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.63995305717756,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.48215442059103,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.15,
+          "peak": 22,
+          "landing": [
+            85.20154053138322,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -55.92516182258839,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.75,
+          "peak": 22,
+          "landing": [
+            19.76509707585268,
+            22,
+            -48
+          ]
+        }
+      ],
+      "facilities": "施設・両陣営の隠れたポッド・nav の検査に合格"
+    },
+    {
+      "id": "tidal-v3",
+      "metrics": {
+        "plants": 6,
+        "elevated": 0,
+        "spread": 102,
+        "offCenter": 2
+      },
+      "nav": {
+        "nodes": 788,
+        "links": 7662
+      },
+      "routes": [
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 50.6,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 50.6,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 5.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 26.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 25.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 1.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 2.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 25.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 25.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 5.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 6.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 4.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 2.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 10.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 3.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 3.35,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 1.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 3.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 6.1,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.3,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 3.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 2.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 2.95,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 11.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 3.45,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 4.05,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 3.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 2.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 6.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 21.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 20.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 54.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 6.5,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 45.75,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 18.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 34.85,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 26.25,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントC",
+          "waypoints": 10,
+          "seconds": 26.2,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントD",
+          "waypoints": 12,
+          "seconds": 25.7,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントD",
+          "waypoints": 11,
+          "seconds": 26.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントE",
+          "waypoints": 15,
+          "seconds": 33.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントE",
+          "waypoints": 9,
+          "seconds": 18.15,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "青からプラントF",
+          "waypoints": 18,
+          "seconds": 45.65,
+          "arrived": true
+        },
+        {
+          "class": "assault",
+          "chassis": "light",
+          "walkSpeed": 17.441666666666666,
+          "route": "橙からプラントF",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から橙ベース",
+          "waypoints": 21,
+          "seconds": 85.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から青ベース",
+          "waypoints": 21,
+          "seconds": 85.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "高架下の横断",
+          "waypoints": 3,
+          "seconds": 8.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から沿岸",
+          "waypoints": 11,
+          "seconds": 44.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "沿岸から橙",
+          "waypoints": 11,
+          "seconds": 44.05,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫内部の通過",
+          "waypoints": 2,
+          "seconds": 2.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "倉庫屋根の通過",
+          "waypoints": 2,
+          "seconds": 4.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から展望台",
+          "waypoints": 11,
+          "seconds": 43.05,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から展望台",
+          "waypoints": 11,
+          "seconds": 42.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の左門からコア前",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から左門",
+          "waypoints": 4,
+          "seconds": 11.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青の右門からコア前",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青コア前から右門",
+          "waypoints": 4,
+          "seconds": 9.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の右搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青基地の荷役屋根",
+          "waypoints": 6,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の左門からコア前",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から左門",
+          "waypoints": 3,
+          "seconds": 10.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙の右門からコア前",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙コア前から右門",
+          "waypoints": 3,
+          "seconds": 7.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の左搬入口",
+          "waypoints": 2,
+          "seconds": 3.85,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の右搬入口",
+          "waypoints": 4,
+          "seconds": 8.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙基地の荷役屋根",
+          "waypoints": 5,
+          "seconds": 17.7,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：正面から青ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：正面から橙ゲート",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：内側の地上路",
+          "waypoints": 2,
+          "seconds": 5.55,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：連絡橋下の横路",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：庭壁の迂回",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：住宅間の路地",
+          "waypoints": 3,
+          "seconds": 5.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：路地から基地前",
+          "waypoints": 2,
+          "seconds": 2.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：東の坂から屋根",
+          "waypoints": 3,
+          "seconds": 5.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根の連絡橋",
+          "waypoints": 4,
+          "seconds": 10.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：屋根から荷役通路",
+          "waypoints": 7,
+          "seconds": 19,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の坂と作業棟",
+          "waypoints": 4,
+          "seconds": 6.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "工場街：西の屋根の縦断",
+          "waypoints": 2,
+          "seconds": 4.1,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：坂から共同住宅",
+          "waypoints": 2,
+          "seconds": 4.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "住宅地：共同住宅から荷役通路",
+          "waypoints": 7,
+          "seconds": 19.95,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：徒歩で尾根へ",
+          "waypoints": 2,
+          "seconds": 5.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：基地横の尾根",
+          "waypoints": 3,
+          "seconds": 6.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：防壁越え",
+          "waypoints": 2,
+          "seconds": 6.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：内側の下り",
+          "waypoints": 2,
+          "seconds": 3.65,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙側の山：コア脇まで",
+          "waypoints": 4,
+          "seconds": 10.4,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青から斜め高架",
+          "waypoints": 9,
+          "seconds": 36.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙から斜め高架",
+          "waypoints": 9,
+          "seconds": 34.35,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "斜め高架の縦断",
+          "waypoints": 19,
+          "seconds": 92.25,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントA",
+          "waypoints": 5,
+          "seconds": 10.9,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントA",
+          "waypoints": 18,
+          "seconds": 77.8,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントB",
+          "waypoints": 8,
+          "seconds": 31,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントB",
+          "waypoints": 14,
+          "seconds": 59.2,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントC",
+          "waypoints": 11,
+          "seconds": 44.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントC",
+          "waypoints": 10,
+          "seconds": 44.5,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントD",
+          "waypoints": 12,
+          "seconds": 43.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントD",
+          "waypoints": 11,
+          "seconds": 44.3,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントE",
+          "waypoints": 15,
+          "seconds": 57.15,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントE",
+          "waypoints": 9,
+          "seconds": 30.75,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "青からプラントF",
+          "waypoints": 18,
+          "seconds": 77.6,
+          "arrived": true
+        },
+        {
+          "class": "heavy",
+          "chassis": "heavy",
+          "walkSpeed": 10.244,
+          "route": "橙からプラントF",
+          "waypoints": 3,
+          "seconds": 11.5,
+          "arrived": true
+        }
+      ],
+      "mobility": [
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 28.881266911308305,
+          "landing": [
+            44.48946298147325,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            127.10033852654678,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            -127.10033852654678,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            58.06205765619013,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.75,
+          "peak": 30.844280464329223,
+          "landing": [
+            -117.4333556550569,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            -66.0620576561901,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.75,
+          "peak": 22,
+          "landing": [
+            84.77139574992353,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.5,
+          "peak": 22,
+          "landing": [
+            -55.49501704112873,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.38161921177317,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.95,
+          "peak": 28.881266911308305,
+          "landing": [
+            43.93956114625388,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.95,
+          "peak": 28.881266911308305,
+          "landing": [
+            43.98020109524745,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 32.80656556895931,
+          "landing": [
+            126.84520948640474,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.15,
+          "peak": 32.80656556895931,
+          "landing": [
+            -127.21157380180318,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            59.00020418814509,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.75,
+          "peak": 30.844280464329223,
+          "landing": [
+            -117.32763276667913,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 2.5,
+          "peak": 24.957110499908733,
+          "landing": [
+            -67.99344678562048,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 8.75,
+          "peak": 22,
+          "landing": [
+            84.77139574992353,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.65,
+          "peak": 22,
+          "landing": [
+            -55.845713926499855,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "assault",
+          "chassis": "light",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.5,
+          "peak": 22,
+          "landing": [
+            19.692655517896256,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.1,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.681735320813736,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.25640443147836,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.25640443147836,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.30897661693202,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.1,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.51116802511504,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.30897661693203,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.15,
+          "peak": 22,
+          "landing": [
+            85.42351742341233,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -56.14713871461764,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "B",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.7,
+          "peak": 22,
+          "landing": [
+            20.148132629693528,
+            22,
+            -48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.35,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.64898164686496,
+            10,
+            152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.2,
+          "peak": 28.881266911308305,
+          "landing": [
+            41.82726758817408,
+            10,
+            -152
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.25,
+          "peak": 32.80656556895931,
+          "landing": [
+            129.18852728536535,
+            10,
+            531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 3,
+          "used": true,
+          "arrived": true,
+          "seconds": 4.3,
+          "peak": 32.80656556895931,
+          "landing": [
+            -129.29652861155657,
+            10,
+            -531.2
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 4,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            60.352908029665315,
+            10,
+            294
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 5,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.9,
+          "peak": 30.844280464329223,
+          "landing": [
+            -114.5716641841501,
+            12,
+            390
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "pad",
+          "index": 6,
+          "used": true,
+          "arrived": true,
+          "seconds": 3.55,
+          "peak": 24.957110499908733,
+          "landing": [
+            -68.26504520419869,
+            10,
+            -370
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 0,
+          "used": true,
+          "arrived": true,
+          "seconds": 9.15,
+          "peak": 22,
+          "landing": [
+            85.17939046411325,
+            22,
+            0
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 1,
+          "used": true,
+          "arrived": true,
+          "seconds": 11.9,
+          "peak": 22,
+          "landing": [
+            -55.92516182258839,
+            22,
+            48
+          ]
+        },
+        {
+          "team": "R",
+          "class": "heavy",
+          "chassis": "heavy",
+          "kind": "lift",
+          "index": 2,
+          "used": true,
+          "arrived": true,
+          "seconds": 7.75,
+          "peak": 22,
+          "landing": [
+            19.842602382668016,
+            22,
+            -48
+          ]
+        }
+      ],
+      "facilities": "施設・両陣営の隠れたポッド・nav の検査に合格"
+    }
+  ],
+  "failures": []
+}

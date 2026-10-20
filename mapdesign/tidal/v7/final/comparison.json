@@ -1,0 +1,159 @@
+{
+  "baseline": "../../v6/final/battles.json",
+  "candidate": "battles.json",
+  "matchesPerVariant": 4,
+  "initializationMatchesAll12": true,
+  "engineUnchangedFromV6": true,
+  "replayMatchesMainSeed20261410": true,
+  "rows": [
+    {
+      "map": "tidal",
+      "before": {
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 25650.0
+          },
+          "R": {
+            "direct": 480.71057176386375,
+            "wreck": 23681.25
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 3,
+          "R": 1,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 25031.25
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 25312.5
+          }
+        }
+      }
+    },
+    {
+      "map": "tidal-v2",
+      "before": {
+        "wins": {
+          "B": 2,
+          "R": 2,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 252,
+            "wreck": 22443.75
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 23681.25
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 0,
+          "R": 4,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 22950.0
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 20531.25
+          }
+        }
+      }
+    },
+    {
+      "map": "tidal-v3",
+      "before": {
+        "wins": {
+          "B": 1,
+          "R": 2,
+          "draw": 1
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 26268.75
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 25706.25
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 3,
+          "R": 1,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 23737.5
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 24468.75
+          }
+        }
+      }
+    }
+  ],
+  "totalBefore": {
+    "wins": {
+      "B": 4,
+      "R": 7,
+      "draw": 1
+    },
+    "losses": {
+      "B": {
+        "direct": 252,
+        "wreck": 74362.5
+      },
+      "R": {
+        "direct": 480.71057176386375,
+        "wreck": 73068.75
+      }
+    }
+  },
+  "totalAfter": {
+    "wins": {
+      "B": 6,
+      "R": 6,
+      "draw": 0
+    },
+    "losses": {
+      "B": {
+        "direct": 0,
+        "wreck": 71718.75
+      },
+      "R": {
+        "direct": 0,
+        "wreck": 70312.5
+      }
+    }
+  },
+  "limits": [
+    "両区間のコンテナ追加と出撃余白のための倉庫2m移動をまとめて比較。区間ごとの因果効果は分離していない。",
+    "各4戦で公平さは未確定。実弾を遮れることと大破の減少を分ける。"
+  ]
+}

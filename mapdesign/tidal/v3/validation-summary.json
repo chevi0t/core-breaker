@@ -1,0 +1,54 @@
+{
+  "revision": "tidal3",
+  "size": [
+    370,
+    1136
+  ],
+  "team": 10,
+  "time": 600,
+  "balance": "勝率未確定。主配置と複路は橙3勝・青1勝、上層は2勝2敗。",
+  "generation": "v3/runs/2026-10-20T02-18-38-061Z-tidal3-HaUXJB/generation.json",
+  "facilities": [
+    {
+      "id": "tidal",
+      "walkRoutes": 72,
+      "mobilityRides": 28,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v2",
+      "walkRoutes": 72,
+      "mobilityRides": 28,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v3",
+      "walkRoutes": 76,
+      "mobilityRides": 28,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    }
+  ],
+  "baseDefenseCases": 8,
+  "isolatedRaids": 8,
+  "spawnSamples": 1280,
+  "isolatedPlantCaptures": 40,
+  "unitTests": 11,
+  "battles": "v3/final/battles.json",
+  "manifest": "v3/final/manifest.json",
+  "replays": [
+    "v3/replay/replay.html",
+    "v3/replay-high/replay.html"
+  ],
+  "replayMatchesBatch": true,
+  "limits": [
+    "単独到達性は敵と砲台の射撃を止めた検査。交戦下の生還率とは別。",
+    "旧版との固定条件での因果比較は未実施。",
+    "各4戦の少数観測で公平さを断定しない。"
+  ]
+}

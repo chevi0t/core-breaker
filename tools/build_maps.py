@@ -26,7 +26,7 @@ const fs = require('fs');
 global.window = {};
 const files = JSON.parse(process.argv[1]), errs = [];
 const num = v => typeof v === 'number' && isFinite(v);
-const KINDS = ['house', 'wall', 'tower'];
+const KINDS = ['house', 'wall', 'tower', 'baseWall', 'container', 'trailer', 'barracks', 'office', 'hesco', 'prefab'];
 // 1つのマップ（配置違いは元のマップに上書きした物）を確かめ、問題の一覧を返す
 function check(d) {
   const out = [], E = m => out.push(m);
@@ -54,14 +54,51 @@ function check(d) {
   }
   const types = ['mesa', 'block', 'ramp', 'hill', 'trench'];
   for (const f of d.terrain) if (!types.includes(f.type)) E(`地形の種類 ${f.type} はエンジンに無い（使えるのは ${types.join('・')}）`);
+  for (const f of d.terrain) if (f.keepBaseHeight !== undefined) {
+    if (typeof f.keepBaseHeight !== 'boolean') E('keepBaseHeight は真偽値');
+    if (f.keepBaseHeight && (!num(f.h) || f.h <= 0)) E('keepBaseHeight は正の高さの地形にだけ指定する');
+  }
   // 任意の項目
   if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
+  if (d.baseDefense !== undefined) {
+    const cfg=d.baseDefense;
+    if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) E('baseDefense はオブジェクト');
+    else {
+      for (const key of ['posts','gates']) {
+        if (!Array.isArray(cfg[key]) || cfg[key].length<2) E(`baseDefense.${key} は2地点以上の配列`);
+        else for (const p of cfg[key]) {
+          if (!Array.isArray(p) || p.length!==2 || !p.every(num)) E(`baseDefense.${key} は [x,z]`);
+          else {inMap(p[0],p[1],`baseDefense.${key}`);if(p[1]<d.baseLine)E(`baseDefense.${key} は自軍ベース内`);}
+        }
+      }
+      for (const key of ['leash','responseRadius']) if(!num(cfg[key]) || cfg[key]<=0)E(`baseDefense.${key} は正の数`);
+      for (const key of ['alertRadius','gateDepth']) if(cfg[key]!==undefined&&(!num(cfg[key])||cfg[key]<=0))E(`baseDefense.${key} は正の数`);
+      if(cfg.yard!==undefined&&(!Array.isArray(cfg.yard)||cfg.yard.length!==4||!cfg.yard.every(num)||cfg.yard[2]<=0||cfg.yard[3]<=0))E('baseDefense.yard は [x,z,幅,奥行き]');
+      if(!Number.isInteger(cfg.reinforcements) || cfg.reinforcements<0 || cfg.reinforcements>d.team)E('baseDefense.reinforcements は0〜teamの整数');
+    }
+  }
   for (const key of ['jumpPads', 'lifts', 'ziplines']) if (d[key] !== undefined && !Array.isArray(d[key])) E(`${key} は配列`);
   const point = (p, what) => {
     if (!Array.isArray(p) || p.length !== 3 || !p.every(num)) { E(`${what} は [x, z, 海抜y]`); return false; }
     inMap(p[0], p[1], what); return true;
   };
+  if(d.botRepairRange!==undefined&&(!num(d.botRepairRange)||d.botRepairRange<=0))E('botRepairRange は正の数');
+  if(d.raidRoutes!==undefined){
+    if(!Array.isArray(d.raidRoutes)||!d.raidRoutes.length)E('raidRoutes は空でない配列');
+    else for(const r of d.raidRoutes){
+      if(!r||!['rush','covert','radar','sprint'].includes(r.kind)||!['core','radar'].includes(r.objective)){E('raidRoutes の kind または objective が不正');continue;}
+      if(r.pointRadius!==undefined){
+        if(!r.pointRadius||typeof r.pointRadius!=='object'||Array.isArray(r.pointRadius))E('pointRadius は陣営ごとの半径');
+        else for(const [team,radius] of Object.entries(r.pointRadius))if(!['B','R'].includes(team)||!num(radius)||radius<=0||radius>14)E('pointRadius は B/R ごとに0より大きく14m以下');
+      }
+      for(const key of ['points','pointsR']){
+        if(key==='pointsR'&&r[key]===undefined)continue;
+        if(!Array.isArray(r[key])||!r[key].length)E(`raidRoutes.${key} は空でない配列`);
+        else for(const p of r[key])point(p,`raidRoutes.${key}`);
+      }
+    }
+  }
   for (const p of Array.isArray(d.jumpPads) ? d.jumpPads : []) {
     if (!p || typeof p !== 'object') { E('jumpPads の各項目はオブジェクト'); continue; }
     point(p.at, 'ジャンプパッド');

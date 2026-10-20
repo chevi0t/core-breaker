@@ -39,12 +39,14 @@ def featureH(f, x, z):
     dz = max(0, min(f["z0"], f["z1"]) - z, z - max(f["z0"], f["z1"]))
     return f["h"] * (1 - smooth(math.hypot(max(0, abs(x - f["x"]) - f["w"]), dz) / f["slope"]))
 def H(x, z):
-    up = down = 0
+    up = down = kept = 0
     for f in fs:
         h = featureH(f, x, z)
         if h > 0: up = max(up, h)
         else: down += h
-    return (up + down) * (1 - smooth((abs(z) - d["baseLine"]) / 25))
+        if f.get('keepBaseHeight'): kept = max(kept, h)
+    height = (up + down) * (1 - smooth((abs(z) - d["baseLine"]) / 25))
+    return max(height, kept) if kept > 0 else height
 
 wrs = d.get("water", []) if d.get("asym") else [r for w in d.get("water", []) for r in (w, [-w[0], -w[1]] + w[2:])]
 def in_water(x, z): return any(abs(x - w[0]) <= w[2] and abs(z - w[1]) <= w[3] for w in wrs)

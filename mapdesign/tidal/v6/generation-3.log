@@ -1,0 +1,10 @@
+検査記録: mapdesign/tidal/v6/runs/2026-10-20T07-19-00-225Z-tidal6-N6b6bc
+書き出し: /workspace/core-breaker/dbg/mapgen/tidal/runner/dbg.html
+tidal: 小山 10、くぼみ 5（seed 20261020）
+地形 seed=20261020、候補地点7、配置候補20、選抜3
+試行1/1: page.evaluate: Error: B/assault/lift1: 昇降経路を走破できません (-60.71782099436009,19.19004252102522,48) used=true
+    at driveMobility (eval at evaluate (:290:30), <anonymous>:24:23)
+    at UtilityScript.evaluate (<anonymous>:292:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+Error: 予算内に合格候補なし（1地形）。既存の登録マップは保持しました
+    at generate (/workspace/core-breaker/tools/generate_map.js:129:11)

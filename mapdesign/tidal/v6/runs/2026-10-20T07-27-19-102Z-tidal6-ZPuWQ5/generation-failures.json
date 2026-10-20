@@ -1,0 +1,27 @@
+{
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal6"
+  },
+  "sources": {
+    "prototype/index.html": "43a5366b482a2528593473a37efc1fdbaad2312aa2f26b23b8f3560cc603a5c6",
+    "tools/mapgen.js": "106403a22e0887a5cf9abf565d879e2157e174804a2c6ca069dc4269541555d7",
+    "tools/generate_map.js": "99fde7f83683a2ef3d7df3b2eeab4664b16721b17bc91fe0770dcd7c4fb92f60",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/tidal_mapgen.js": "579071d3a1a087893a7163b7f1eaacfeca142816c4c5260918bc944236380648"
+  },
+  "failures": [
+    {
+      "attempt": 1,
+      "seed": 20261020,
+      "reason": "page.evaluate: Error: B/assault/lift2: 昇降経路を走破できません (24.75286027414418,19.57887706908122,-48) used=true\n    at driveMobility (eval at evaluate (:290:30), <anonymous>:24:23)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    }
+  ],
+  "status": "未合格"
+}

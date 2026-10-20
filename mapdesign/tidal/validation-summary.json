@@ -1,0 +1,72 @@
+{
+  "revision": "tidal7",
+  "size": [
+    370,
+    1136
+  ],
+  "team": 10,
+  "time": 600,
+  "approachCover": {
+    "AB": 6,
+    "CE": 8,
+    "total": 14,
+    "boxes": 28,
+    "lowerTop": 6,
+    "upperTop": 12
+  },
+  "balance": "未合格・勝率未確定。合計は青6勝・橙6勝だが、主配置と複路は青3勝・橙1勝、上層は青0勝・橙4勝。",
+  "generation": "v7/runs/2026-10-20T07-59-19-042Z-tidal7-ysKtTo/generation.json",
+  "facilities": [
+    {
+      "id": "tidal",
+      "walkRoutes": 122,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    },
+    {
+      "id": "tidal-v2",
+      "walkRoutes": 122,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    },
+    {
+      "id": "tidal-v3",
+      "walkRoutes": 126,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    }
+  ],
+  "approachSightlineAndLiveShotCases": 33,
+  "approachWalkRoutesPerRevision": 168,
+  "frontlineSightlineAndLiveShotCases": 15,
+  "frontlineWalkRoutes": 84,
+  "respawnBandSamples": 3808,
+  "respawnBandFailures": 0,
+  "randomSpawnSamples": 1280,
+  "isolatedPlantCaptures": 40,
+  "isolatedRaids": 8,
+  "districtGroundRoutes": 8,
+  "districtSightlineCases": 6,
+  "unitTests": 17,
+  "engineUnchangedFromV6": true,
+  "weaponAndLegacyChecks": {
+    "runThisRevision": false,
+    "reference": "v5/final/regression.log",
+    "reason": "本体・既存マップは変更していない。"
+  },
+  "battles": "v7/final/battles.json",
+  "comparison": "v7/final/comparison.json",
+  "exposureComparison": "v7/final/exposure-comparison.json",
+  "manifest": "v7/final/manifest.json",
+  "replays": [
+    "v7/replay/replay.html"
+  ],
+  "replayMatchesBatch": true,
+  "limits": [
+    "両区間のコンテナと倉庫2m移動をまとめて比較。区間ごとの因果効果は分離していない。",
+    "各4戦で公平さは未確定。合計五分でも上層の悪化を合格にしない。",
+    "固定視点への視認と、実戦の射撃頻度・滞在量・生存率は別。",
+    "出撃の範囲端は1m格子。連続全域の解析的証明ではない。",
+    "単独攻略は敵と砲台の射撃を止めた機能検査。"
+  ]
+}
