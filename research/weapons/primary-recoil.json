@@ -1,0 +1,1114 @@
+{
+  "date": "2026-10-20",
+  "reference": "research/arcade/weapons/ のAC表（2026-10-19取得）、マグナムの個別ページは2026-10-20再確認",
+  "units": "本作では表の縦を1射の上向き角、横を左右への最大角（度）として扱う。戻り方・待機・上限は本作の調整。",
+  "exactDegrees": {
+    "rail": [
+      0.3,
+      0.3
+    ],
+    "railX": [
+      0.2,
+      0.3
+    ],
+    "railR": [
+      0.2,
+      0.2
+    ],
+    "pulse": [
+      0.2,
+      0.25
+    ],
+    "pulseX": [
+      0.1,
+      0.15
+    ],
+    "pulseH": [
+      0.3,
+      0.35
+    ],
+    "coil": [
+      0.4,
+      0.5
+    ],
+    "coilP": [
+      0.2,
+      0.3
+    ],
+    "coilR": [
+      0.4,
+      0.5
+    ],
+    "coilD": [
+      0.3,
+      0.4
+    ],
+    "ar": [
+      0.2,
+      0.2
+    ],
+    "arX": [
+      0.3,
+      0.2
+    ],
+    "arP": [
+      0.4,
+      0.3
+    ],
+    "burst": [
+      0.7,
+      0.2
+    ],
+    "burstX": [
+      0.5,
+      0.1
+    ],
+    "burstP": [
+      0.6,
+      0.2
+    ],
+    "burstH": [
+      0.9,
+      0.5
+    ],
+    "marks": [
+      1.2,
+      0.2
+    ],
+    "marksX": [
+      1.3,
+      0.3
+    ],
+    "gale": [
+      6.0,
+      0.03
+    ],
+    "galeS": [
+      4.0,
+      0.03
+    ],
+    "vulcan": [
+      0.2,
+      0.3
+    ],
+    "vulcanR": [
+      0.15,
+      0.25
+    ],
+    "vulcanH": [
+      0.4,
+      0.5
+    ],
+    "gatling": [
+      0.3,
+      1.5
+    ],
+    "gatlingH": [
+      0.2,
+      1.8
+    ],
+    "gatlingD": [
+      0.4,
+      2.0
+    ],
+    "gatlingG": [
+      0.4,
+      1.9
+    ],
+    "mg": [
+      0.4,
+      1.0
+    ],
+    "mgR": [
+      0.4,
+      0.9
+    ],
+    "mgP": [
+      0.3,
+      0.7
+    ],
+    "acannon": [
+      1.0,
+      1.4
+    ],
+    "acannonP": [
+      0.5,
+      0.8
+    ],
+    "explo": [
+      0.7,
+      1.4
+    ],
+    "exploX": [
+      1.2,
+      1.6
+    ],
+    "wide": [
+      0.9,
+      0.4
+    ],
+    "wideP": [
+      0.9,
+      0.4
+    ],
+    "pistols": [
+      0.9,
+      0.4
+    ],
+    "pistolsX": [
+      0.8,
+      0.2
+    ],
+    "pistolsR": [
+      0.5,
+      0.2
+    ],
+    "pistolsH": [
+      1.4,
+      0.5
+    ],
+    "dualmg": [
+      0.3,
+      0.5
+    ],
+    "dualmgP": [
+      0.2,
+      0.4
+    ],
+    "dualmgH": [
+      0.4,
+      0.8
+    ],
+    "haggard": [
+      2.75,
+      0.6
+    ]
+  },
+  "weapons": [
+    {
+      "key": "rail",
+      "base": "rail",
+      "referenceName": "電磁加速砲・壱式",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/335.html",
+        "sourceRow": "電磁加速砲・壱式"
+      }
+    },
+    {
+      "key": "railX",
+      "base": "rail",
+      "referenceName": "電磁加速砲・特式",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/335.html",
+        "sourceRow": "電磁加速砲・特式"
+      }
+    },
+    {
+      "key": "railR",
+      "base": "rail",
+      "referenceName": "電磁加速砲・速式",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/335.html",
+        "sourceRow": "電磁加速砲・速式"
+      }
+    },
+    {
+      "key": "pulse",
+      "base": "pulse",
+      "referenceName": "VOLT-01",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.25,
+        "source": "https://w.atwiki.jp/borderbreak/pages/336.html",
+        "sourceRow": "VOLT-01"
+      }
+    },
+    {
+      "key": "pulseX",
+      "base": "pulse",
+      "referenceName": "VOLT-02",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.1,
+        "h": 0.15,
+        "source": "https://w.atwiki.jp/borderbreak/pages/336.html",
+        "sourceRow": "VOLT-02"
+      }
+    },
+    {
+      "key": "pulseH",
+      "base": "pulse",
+      "referenceName": "VOLT-X",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.35,
+        "source": "https://w.atwiki.jp/borderbreak/pages/336.html",
+        "sourceRow": "VOLT-X"
+      }
+    },
+    {
+      "key": "coil",
+      "base": "coil",
+      "referenceName": "LAC-グローム",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/463.html",
+        "sourceRow": "LAC-グローム"
+      }
+    },
+    {
+      "key": "coilP",
+      "base": "coil",
+      "referenceName": "LAC-グロームβ",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/463.html",
+        "sourceRow": "LAC-グロームβ"
+      }
+    },
+    {
+      "key": "coilR",
+      "base": "coil",
+      "referenceName": "LAC-グロームγ",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/463.html",
+        "sourceRow": "LAC-グロームγ"
+      }
+    },
+    {
+      "key": "coilD",
+      "base": "coil",
+      "referenceName": "LAC-タルナダ",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/463.html",
+        "sourceRow": "LAC-タルナダ"
+      }
+    },
+    {
+      "key": "ar",
+      "base": "ar",
+      "referenceName": "M90サブマシンガン",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/333.html",
+        "sourceRow": "M90サブマシンガン"
+      }
+    },
+    {
+      "key": "arH",
+      "base": "ar",
+      "referenceName": "XM94パイソン",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "arX",
+      "base": "ar",
+      "referenceName": "M91サブマシンガン",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/333.html",
+        "sourceRow": "M91サブマシンガン"
+      }
+    },
+    {
+      "key": "arP",
+      "base": "ar",
+      "referenceName": "M99サーペント",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/333.html",
+        "sourceRow": "M99サーペント"
+      }
+    },
+    {
+      "key": "burst",
+      "base": "burst",
+      "referenceName": "ヴォルペ突撃銃（V16）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.7,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/334.html",
+        "sourceRow": "ヴォルペ突撃銃"
+      }
+    },
+    {
+      "key": "burstX",
+      "base": "burst",
+      "referenceName": "ヴォルペ突撃銃C（V16C）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.5,
+        "h": 0.1,
+        "source": "https://w.atwiki.jp/borderbreak/pages/334.html",
+        "sourceRow": "ヴォルペ突撃銃C"
+      }
+    },
+    {
+      "key": "burstP",
+      "base": "burst",
+      "referenceName": "ヴォルペ・スコーピオ（V16S）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.6,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/334.html",
+        "sourceRow": "ヴォルペ・スコーピオ"
+      }
+    },
+    {
+      "key": "burstH",
+      "base": "burst",
+      "referenceName": "ヴォルペ・メガロ（V16M）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.9,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/334.html",
+        "sourceRow": "ヴォルペ・メガロ"
+      }
+    },
+    {
+      "key": "marks",
+      "base": "marks",
+      "referenceName": "STAR－10（SR-10）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 1.2,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/461.html",
+        "sourceRow": "STAR-10"
+      }
+    },
+    {
+      "key": "marksX",
+      "base": "marks",
+      "referenceName": "STAR－10C（SR-10C）",
+      "status": "AC実数",
+      "arcade": {
+        "v": 1.3,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/461.html",
+        "sourceRow": "STAR-10C"
+      }
+    },
+    {
+      "key": "marksP",
+      "base": "marks",
+      "referenceName": "STAR－30F（SR-30F）",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "marksH",
+      "base": "marks",
+      "referenceName": "STAR－X7D（SR-X7D）",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "carbine",
+      "base": "carbine",
+      "referenceName": "UK56速射機銃",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "carbineP",
+      "base": "carbine",
+      "referenceName": "UK56速射機銃・改",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "carbineX",
+      "base": "carbine",
+      "referenceName": "UK57速射機銃",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "carbineH",
+      "base": "carbine",
+      "referenceName": "UK60速射機銃",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "gale",
+      "base": "gale",
+      "referenceName": "SSG7－ゲイル",
+      "status": "AC実数",
+      "arcade": {
+        "v": 6.0,
+        "h": 0.03,
+        "source": "https://w.atwiki.jp/borderbreak/pages/695.html",
+        "sourceRow": "SSG7-ゲイル"
+      }
+    },
+    {
+      "key": "galeS",
+      "base": "gale",
+      "referenceName": "SSG7－ガスト",
+      "status": "AC実数",
+      "arcade": {
+        "v": 4.0,
+        "h": 0.03,
+        "source": "https://w.atwiki.jp/borderbreak/pages/695.html",
+        "sourceRow": "SSG7-ガスト"
+      }
+    },
+    {
+      "key": "galeH",
+      "base": "gale",
+      "referenceName": "SSG7C－タイフーン",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "vulcan",
+      "base": "vulcan",
+      "referenceName": "ヴルカンLG1",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.3,
+        "source": "https://w.atwiki.jp/borderbreak/pages/354.html",
+        "sourceRow": "ヴルカンLG1"
+      }
+    },
+    {
+      "key": "vulcanR",
+      "base": "vulcan",
+      "referenceName": "ヴルカン・ジャラー",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.15,
+        "h": 0.25,
+        "source": "https://w.atwiki.jp/borderbreak/pages/354.html",
+        "sourceRow": "ヴルカン・ジャラー"
+      }
+    },
+    {
+      "key": "vulcanH",
+      "base": "vulcan",
+      "referenceName": "ヴルカン・ラヴァ",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/354.html",
+        "sourceRow": "ヴルカン・ラヴァ"
+      }
+    },
+    {
+      "key": "vulcanP",
+      "base": "vulcan",
+      "referenceName": "ヴルカン・ハーオス",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "margay",
+      "base": "margay",
+      "referenceName": "マーゲイM40",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "margayX",
+      "base": "margay",
+      "referenceName": "マーゲイ・カスタム",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "margayH",
+      "base": "margay",
+      "referenceName": "マーゲイ・サヴァート",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "margayP",
+      "base": "margay",
+      "referenceName": "マーゲイ・レベリオ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "gemini",
+      "base": "gemini",
+      "referenceName": "LMM－ジェミニ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "geminiX",
+      "base": "gemini",
+      "referenceName": "LMM－ジェミニC",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "geminiH",
+      "base": "gemini",
+      "referenceName": "LMM－アブレスト",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "geminiP",
+      "base": "gemini",
+      "referenceName": "LMM－ディオスクリ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "haggard",
+      "base": "haggard",
+      "referenceName": "ハガードM50",
+      "status": "本作調整・ACの実数不明",
+      "arcade": null,
+      "provisionalDegrees": [
+        2.75,
+        0.6
+      ],
+      "source": "https://w.atwiki.jp/borderbreak/pages/456.html"
+    },
+    {
+      "key": "haggardX",
+      "base": "haggard",
+      "referenceName": "ハガード・カスタム",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "haggardH",
+      "base": "haggard",
+      "referenceName": "ハガード・タフ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "aurora",
+      "base": "aurora",
+      "referenceName": "LSG－アヴローラ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "auroraW",
+      "base": "aurora",
+      "referenceName": "LSG－アヴローラβ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "auroraP",
+      "base": "aurora",
+      "referenceName": "LSG－ラドゥガ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "auroraH",
+      "base": "aurora",
+      "referenceName": "LSG－ミラージ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "gatling",
+      "base": "gatling",
+      "referenceName": "GAXガトリングガン",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 1.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/352.html",
+        "sourceRow": "GAXガトリングガン"
+      }
+    },
+    {
+      "key": "gatlingH",
+      "base": "gatling",
+      "referenceName": "GAXエレファント",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 1.8,
+        "source": "https://w.atwiki.jp/borderbreak/pages/352.html",
+        "sourceRow": "GAXエレファント"
+      }
+    },
+    {
+      "key": "gatlingD",
+      "base": "gatling",
+      "referenceName": "GAXファフニール",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 2.0,
+        "source": "https://w.atwiki.jp/borderbreak/pages/352.html",
+        "sourceRow": "GAXファフニール"
+      }
+    },
+    {
+      "key": "gatlingG",
+      "base": "gatling",
+      "referenceName": "GAXダイナソア",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 1.9,
+        "source": "https://w.atwiki.jp/borderbreak/pages/352.html",
+        "sourceRow": "GAXダイナソア"
+      }
+    },
+    {
+      "key": "mg",
+      "base": "mg",
+      "referenceName": "ウィーゼル機関銃",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 1.0,
+        "source": "https://w.atwiki.jp/borderbreak/pages/351.html",
+        "sourceRow": "ウィーゼル機関銃"
+      }
+    },
+    {
+      "key": "mgR",
+      "base": "mg",
+      "referenceName": "ウィーゼル・ラピッド",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.9,
+        "source": "https://w.atwiki.jp/borderbreak/pages/351.html",
+        "sourceRow": "ウィーゼル･ラピッド"
+      }
+    },
+    {
+      "key": "mgP",
+      "base": "mg",
+      "referenceName": "ウィーゼル・コロナ",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.7,
+        "source": "https://w.atwiki.jp/borderbreak/pages/351.html",
+        "sourceRow": "ウィーゼル･コロナ"
+      }
+    },
+    {
+      "key": "mgX",
+      "base": "mg",
+      "referenceName": "ウィーゼル・カルマ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "acannon",
+      "base": "acannon",
+      "referenceName": "単式機関砲",
+      "status": "AC実数",
+      "arcade": {
+        "v": 1.0,
+        "h": 1.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/353.html",
+        "sourceRow": "単式機関砲"
+      }
+    },
+    {
+      "key": "acannonP",
+      "base": "acannon",
+      "referenceName": "単式機関砲・改",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.5,
+        "h": 0.8,
+        "source": "https://w.atwiki.jp/borderbreak/pages/353.html",
+        "sourceRow": "単式機関砲・改"
+      }
+    },
+    {
+      "key": "acannonX",
+      "base": "acannon",
+      "referenceName": "単式機関砲・不動",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "acannonR",
+      "base": "acannon",
+      "referenceName": "双門機関砲・轟鉄",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "wave",
+      "base": "wave",
+      "referenceName": "ウェーブショット",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "waveW",
+      "base": "wave",
+      "referenceName": "ウェーブショットC",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "waveH",
+      "base": "wave",
+      "referenceName": "ウェーブショットX",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "lec",
+      "base": "lec",
+      "referenceName": "LEC－シュトラル",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "lecS",
+      "base": "lec",
+      "referenceName": "LEC－シュトラルβ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "lecH",
+      "base": "lec",
+      "referenceName": "LEC－メテオール",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "explo",
+      "base": "explo",
+      "referenceName": "単式炸薬砲",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.7,
+        "h": 1.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/562.html#id_16bde8fa",
+        "sourceRow": "単式炸薬砲"
+      }
+    },
+    {
+      "key": "exploX",
+      "base": "explo",
+      "referenceName": "単式炸薬砲・猛虎",
+      "status": "AC実数",
+      "arcade": {
+        "v": 1.2,
+        "h": 1.6,
+        "source": "https://w.atwiki.jp/borderbreak/pages/562.html#id_16bde8fa",
+        "sourceRow": "単式炸薬砲・猛虎"
+      }
+    },
+    {
+      "key": "exploH",
+      "base": "explo",
+      "referenceName": "単式炸薬砲・金剛",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "cls",
+      "base": "cls",
+      "referenceName": "CLS－ライオ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "clsX",
+      "base": "cls",
+      "referenceName": "CLS－ライオβ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "clsS",
+      "base": "cls",
+      "referenceName": "CLS－イルミナル",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "clsH",
+      "base": "cls",
+      "referenceName": "CLS－センテレオ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "wide",
+      "base": "wide",
+      "referenceName": "ワイドショット",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.9,
+        "h": 0.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/929.html",
+        "sourceRow": "ワイドショット"
+      }
+    },
+    {
+      "key": "wideP",
+      "base": "wide",
+      "referenceName": "ワイドショットX2",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.9,
+        "h": 0.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/929.html",
+        "sourceRow": "ワイドショットX2"
+      }
+    },
+    {
+      "key": "glint",
+      "base": "glint",
+      "referenceName": "グリントN72D",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "glintS",
+      "base": "glint",
+      "referenceName": "グリントN72DⅡ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "glintH",
+      "base": "glint",
+      "referenceName": "グリントN72DS",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "glintM",
+      "base": "glint",
+      "referenceName": "グリントN77D",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "pistols",
+      "base": "pistols",
+      "referenceName": "レヴェラーMP20",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.9,
+        "h": 0.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/928.html",
+        "sourceRow": "レヴェラーMP20"
+      }
+    },
+    {
+      "key": "pistolsX",
+      "base": "pistols",
+      "referenceName": "レヴェラーR",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.8,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/928.html",
+        "sourceRow": "レヴェラーR"
+      }
+    },
+    {
+      "key": "pistolsR",
+      "base": "pistols",
+      "referenceName": "レヴェラーRR",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.5,
+        "h": 0.2,
+        "source": "https://w.atwiki.jp/borderbreak/pages/928.html",
+        "sourceRow": "レヴェラーRR"
+      }
+    },
+    {
+      "key": "pistolsH",
+      "base": "pistols",
+      "referenceName": "レヴェラー・ブルート",
+      "status": "AC実数",
+      "arcade": {
+        "v": 1.4,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/928.html",
+        "sourceRow": "レヴェラー・ブルート"
+      }
+    },
+    {
+      "key": "dualmg",
+      "base": "dualmg",
+      "referenceName": "D90デュアル",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.3,
+        "h": 0.5,
+        "source": "https://w.atwiki.jp/borderbreak/pages/927.html",
+        "sourceRow": "D90デュアル"
+      }
+    },
+    {
+      "key": "dualmgP",
+      "base": "dualmg",
+      "referenceName": "D90カスタム",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.2,
+        "h": 0.4,
+        "source": "https://w.atwiki.jp/borderbreak/pages/927.html",
+        "sourceRow": "D90カスタム"
+      }
+    },
+    {
+      "key": "dualmgH",
+      "base": "dualmg",
+      "referenceName": "D102アシュヴィン",
+      "status": "AC実数",
+      "arcade": {
+        "v": 0.4,
+        "h": 0.8,
+        "source": "https://w.atwiki.jp/borderbreak/pages/927.html",
+        "sourceRow": "D102アシュヴィン"
+      }
+    },
+    {
+      "key": "dualmgR",
+      "base": "dualmg",
+      "referenceName": "D107カイラル",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "coyote",
+      "base": "coyote",
+      "referenceName": "コヨーテM68",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "coyoteH",
+      "base": "coyote",
+      "referenceName": "コヨーテ・ヴァーキン",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "coyoteR",
+      "base": "coyote",
+      "referenceName": "コヨーテ・ヴェナラ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "coyoteS",
+      "base": "coyote",
+      "referenceName": "コヨーテ・ベイロウ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "shotgun",
+      "base": "shotgun",
+      "referenceName": "スマックショット",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "shotgunW",
+      "base": "shotgun",
+      "referenceName": "ワイドスマック",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "shotgunH",
+      "base": "shotgun",
+      "referenceName": "レイジスマック",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "shotgunQ",
+      "base": "shotgun",
+      "referenceName": "スマックショットSP",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "autosg",
+      "base": "autosg",
+      "referenceName": "ASG－スィーパー",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "autosgR",
+      "base": "autosg",
+      "referenceName": "ASG－アヴァランチ",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "nail",
+      "base": "nail",
+      "referenceName": "ネイルガン",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "nailR",
+      "base": "nail",
+      "referenceName": "ラピッドネイル",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    },
+    {
+      "key": "nailX",
+      "base": "nail",
+      "referenceName": "アッパーネイル",
+      "status": "既存値と系統差からの本作暫定",
+      "arcade": null
+    }
+  ]
+}

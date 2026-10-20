@@ -3547,7 +3547,7 @@ function mechPose(u, dt) {
   const cur = u.slots[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' ? u.slots.main.w : cur;
   const pitch = (u.isPlayer ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
   const dual = !!hw.dual;
-  poseChestQ.setFromRotationMatrix(B.chest.node.matrixWorld); poseAimQ.setFromEuler(poseEuler.set(pitch, 0, 0));
+  poseChestQ.setFromRotationMatrix(B.chest.node.matrixWorld); poseAimQ.setFromEuler(poseEuler.set(pitch, u.recoilYaw || 0, 0, 'YXZ'));
   posePoint(u.gun.position, dual ? 1.35 : heavy ? .45 : .25, heavy ? 2.35 : hw.scope ? 2.78 : 2.6, dual || heavy ? -.8 : -.85);
   u.gun.quaternion.copy(poseChestQ).multiply(poseAimQ);
   posePoint(u.gun2.position, -1.35, 2.5, -.8); u.gun2.quaternion.copy(u.gun.quaternion);
@@ -4887,6 +4887,8 @@ function botUpdate(u, dt) {
   u.snipe = !act && !!snl.w.scope && slot === u.weapon && tracking && !busy;
   u.scoped = u.snipe && u.switchT <= 0;
   if (u.snipe) trig = trig && snl.conv >= 0.6;
+  // 反動で狙いが体幅を外れるときは撃ち止め、同じ回復規則で落ち着いてから再開する。
+  if (!act && slot === 'main' && aim && snl.w.recoilH !== undefined && !snl.w.chargeTime) trig = trig && botRecoilReady(u, aim);
   // チャージ撃ち（v0.15）：満タンになったら離して撃つ。満タンで爆発する物は、自分も巻き込まれる近さなら溜めきらずに撃つ。炸裂する弾は近すぎる相手には撃たない
   const bl = snl.w.chargeBlast || (snl.w.chargeOrb && snl.w.chargeOrb.blast) || (snl.w.chargeStages && snl.w.proj.blast) || 0;
   if (snl.w.chargeTime && !snl.w.meleeCharge && !snl.w.chargeWave && (snl.chargeT >= snl.w.chargeTime || bl && td < bl + 2 && snl.chargeT > 0.3)) trig = false;
@@ -6121,6 +6123,65 @@ for (const [id, se] of Object.entries(SERIES)) {
   se.cat = WEAPONS[se.types[0][0]].name.split('・')[0];
   se.types.forEach(([k, model], i) => { const nm = WEAPONS[k].name; Object.assign(WEAPONS[k], { series: id, model, maker: se.maker, label: nm.includes('・') ? nm.split('・')[1] : se.types.length > 1 ? '標準型' : '' }); });
 }
+// 主武器の縦/横反動（度）。AC表との対応、不明値と本作調整は research/weapons/primary-recoil.json。
+// マグナム2.75/0.6は操作感の本作調整。表のない型は系統の基準に既存の反動倍率を掛ける。
+const PRIMARY_RECOIL_DEG = {
+  rail: [0.3, 0.3],
+  railX: [0.2, 0.3],
+  railR: [0.2, 0.2],
+  pulse: [0.2, 0.25],
+  pulseX: [0.1, 0.15],
+  pulseH: [0.3, 0.35],
+  coil: [0.4, 0.5],
+  coilP: [0.2, 0.3],
+  coilR: [0.4, 0.5],
+  coilD: [0.3, 0.4],
+  ar: [0.2, 0.2],
+  arX: [0.3, 0.2],
+  arP: [0.4, 0.3],
+  burst: [0.7, 0.2],
+  burstX: [0.5, 0.1],
+  burstP: [0.6, 0.2],
+  burstH: [0.9, 0.5],
+  marks: [1.2, 0.2],
+  marksX: [1.3, 0.3],
+  gale: [6.0, 0.03],
+  galeS: [4.0, 0.03],
+  vulcan: [0.2, 0.3],
+  vulcanR: [0.15, 0.25],
+  vulcanH: [0.4, 0.5],
+  gatling: [0.3, 1.5],
+  gatlingH: [0.2, 1.8],
+  gatlingD: [0.4, 2.0],
+  gatlingG: [0.4, 1.9],
+  mg: [0.4, 1.0],
+  mgR: [0.4, 0.9],
+  mgP: [0.3, 0.7],
+  acannon: [1.0, 1.4],
+  acannonP: [0.5, 0.8],
+  explo: [0.7, 1.4],
+  exploX: [1.2, 1.6],
+  wide: [0.9, 0.4],
+  wideP: [0.9, 0.4],
+  pistols: [0.9, 0.4],
+  pistolsX: [0.8, 0.2],
+  pistolsR: [0.5, 0.2],
+  pistolsH: [1.4, 0.5],
+  dualmg: [0.3, 0.5],
+  dualmgP: [0.2, 0.4],
+  dualmgH: [0.4, 0.8],
+  haggard: [2.75, 0.6],
+};
+// 型の生成が済んでから反動を設定し、既存の威力・発数・精度などは変えない。
+const primaryKickBefore = Object.fromEntries(Object.values(ARMORY).flatMap(s => s.main).map(k => [k, baseKick(WEAPONS[k])]));
+for (const slots of Object.values(ARMORY)) for (const key of slots.main) {
+  const w = WEAPONS[key], base = SERIES[w.series].types[0][0], oldBase = primaryKickBefore[base];
+  const reference = PRIMARY_RECOIL_DEG[base] || [oldBase * 180 / Math.PI, Math.max(.12, oldBase * 180 / Math.PI * .6)];
+  const ratio = oldBase > 0 ? primaryKickBefore[key] / oldBase : 1;
+  const [v, h] = PRIMARY_RECOIL_DEG[key] || reference.map(x => x * ratio);
+  Object.assign(w, { recoil: v * Math.PI / 180, recoilH: h * Math.PI / 180, recoilDelay: .1, recoilRecovery: .06 });
+}
+
 // プレイヤーが選んだ武器（兵装ごと・枠ごと）。このブラウザに保存する。読めなければ初期装備
 const LOADOUT_KEY = 'coreBreakerLoadout';
 function normLoadout(saved) {
@@ -6178,7 +6239,7 @@ function equip(u, cls) {
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
-    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0,
+    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: 'main', prevWeapon: 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
@@ -6234,7 +6295,7 @@ function reload(sl, u) {
 // alt：右クリック（リペアユニットの自己修復、重砲の構えをやめる、遠隔爆弾の起爆）
 function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
   u.switchT -= dt;
-  u.recoil = Math.max(0, u.recoil - 0.04 * dt);
+  recoilRecover(u, dt);
   let res = false;
   for (const k of SLOTS) {
     const sl = u.slots[k], type = sl.w.type;
@@ -6327,7 +6388,9 @@ function shot(u, sl, aim, spread) {
   const w = sl.w;
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
-  if (!u.isPlayer && u.recoil > 0) aim = recoilAim(muzzle(u), aim, u.recoil); // Botも同じだけ跳ね上がる（プレイヤーは視点が跳ね上がる）
+  // プレイヤーのaimには前の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
+  const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
+  if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
     const P = w.proj;
     for (const [hand, from] of (w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]).entries()) { // 二丁蓄積銃の光弾は左右から（v0.15）
@@ -6364,19 +6427,35 @@ function shot(u, sl, aim, spread) {
   recoilKick(u, w);
   return res;
 }
-// 反動（v0.12、Codex 版から）：撃つたびに銃が跳ね上がり（ラジアン）、毎秒0.04ずつ戻る。腕部の反動吸収で割り、上限は0.08÷反動吸収。
-// 重砲0.02、ロケット0.014、狙撃銃0.018、散弾0.014、二丁0.006、ガトリング0.002、ほかの銃0.004。投げる物と偵察機は0
-function baseKick(w) { return w.recoil ?? (w.type === 'cannon' ? 0.02 : w.proj ? (w.proj.rocket ? 0.014 : 0) : w.scope ? 0.018 : w.pellets ? 0.014 : w.dual ? 0.006 : w.spin ? 0.002 : 0.004); }
-function recoilKick(u, w) {
-  const kick = baseKick(w);
-  u.recoil = Math.min(0.08 / u.recoilAbsorb, u.recoil + kick / u.recoilAbsorb);
+// 反動：主武器は縦・横を持ち、撃ち止めて0.1秒後から毎秒0.06radずつ戻す。腕部の反動吸収で割る。
+// 設定のない副武器などは従来の縦反動・回復速度・上限を使う。
+function botRecoilReady(u, aim) {
+  const margin = Math.atan2(1.2, Math.max(1, u.pos.distanceTo(aim)));
+  return u.recoil <= margin && Math.abs(u.recoilYaw || 0) <= margin;
 }
-// Botの照準を反動のぶん上へずらす
-function recoilAim(from, aim, recoil) {
+function baseKick(w) { return w.recoil ?? (w.type === 'cannon' ? 0.02 : w.proj ? (w.proj.rocket ? 0.014 : 0) : w.scope ? 0.018 : w.pellets ? 0.014 : w.dual ? 0.006 : w.spin ? 0.002 : 0.004); }
+function recoilRecover(u, dt) {
+  const wait = u.recoilWait || 0, recoverDt = Math.max(0, dt - wait), step = (u.recoilRecovery || .04) * recoverDt;
+  u.recoilWait = Math.max(0, wait - dt);
+  u.recoil = Math.max(0, u.recoil - step);
+  const yaw = u.recoilYaw || 0;
+  u.recoilYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - step);
+}
+function recoilKick(u, w) {
+  const kick = baseKick(w), sideways = w.recoilH || 0, absorb = u.recoilAbsorb || 1;
+  if (!kick && !sideways) return;
+  const cap = (w.recoilH !== undefined ? .24 : .08) / absorb;
+  // 持ち替えた直後も、残っている大きな反動を小さい上限へ瞬間的に切り詰めない。
+  u.recoil = Math.min(Math.max(cap, u.recoil), u.recoil + kick / absorb);
+  if (sideways) u.recoilYaw = Math.max(-.14 / absorb, Math.min(.14 / absorb, (u.recoilYaw || 0) + (Math.random() * 2 - 1) * sideways / absorb));
+  u.recoilWait = w.recoilDelay || 0; u.recoilRecovery = w.recoilRecovery || .04;
+}
+// 弾の照準を反動のぶん上下・左右へずらす。プレイヤーとBotで同じ角度の計算を使う。
+function recoilAim(from, aim, recoil, sideways = 0) {
   const d = aim.clone().sub(from), flat = Math.hypot(d.x, d.z), dist = d.length();
   if (flat < 1e-6) return aim;
-  const pitch = Math.min(Math.PI / 2 - 0.01, Math.atan2(d.y, flat) + recoil), k = Math.cos(pitch) * dist / flat;
-  return new T.Vector3(from.x + d.x * k, from.y + Math.sin(pitch) * dist, from.z + d.z * k);
+  const pitch = Math.max(-Math.PI / 2 + .01, Math.min(Math.PI / 2 - .01, Math.atan2(d.y, flat) + recoil)), yaw = Math.atan2(-d.x, -d.z) + sideways, span = Math.cos(pitch) * dist;
+  return new T.Vector3(from.x - Math.sin(yaw) * span, from.y + Math.sin(pitch) * dist, from.z - Math.cos(yaw) * span);
 }
 // ソード：止まっているか歩いているときは横なぎ、ダッシュ中は回転斬り。ロック中の敵がいればその方向へ踏み込み、踏み込み中も追う（meleeHome）。
 // 刃は毎フレーム前のフレームの角度から今の角度まで振られ、その間に通った扇形にいる相手に1回ずつ当たる
@@ -6552,9 +6631,9 @@ function setWeaponGeo(m, id, part = 'whole') {
 }
 function weaponLook(u, dt) {
   const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
-  setWeaponGeo(u.gun, hw.key); u.gun.rotation.x = pitch;
+  setWeaponGeo(u.gun, hw.key); u.gun.rotation.set(pitch, u.recoilYaw || 0, 0, 'YXZ');
   u.gun2.visible = !!hw.dual;
-  if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.x = pitch; }
+  if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.copy(u.gun.rotation); }
   u.blade.visible = S.aux.w.type === 'sword';
   if (u.blade.visible) setWeaponGeo(u.blade, S.aux.w.key);
   if (S.aux.w.meleeDual && !u.blade2) {
@@ -7255,7 +7334,7 @@ function lockStick(u, t, step) {
   const off = wrapAngle(Math.atan2(-dx, -dz) - u.yaw), half = Math.atan2(LOCK_BODY.w, flat);
   const ey = Math.sign(off) * Math.max(0, Math.abs(off) - half);
   const lo = Math.atan2(t.pos.y + LOCK_BODY.lo - pv.y, flat), hi = Math.atan2(t.pos.y + LOCK_BODY.hi - pv.y, flat), top = Math.atan2(t.pos.y + LOCK_BODY.top - pv.y, flat);
-  const pitch = u.pitch + u.recoil; // ロック中は反動の跳ね上がりも機体へ引き戻す
+  const pitch = u.pitch; // 手で置いた照準を追従させ、射撃で生じた反動は引き戻しで消さない。
   // 上に外れたら頭を通り越して肩（top）まで下ろす（lock.down の間は頭の高さでも止めない。v0.15、ユーザー指摘）。
   // 下ろし終わった後に自分で頭に置けば、今までどおり頭を追い続ける
   if (pitch > hi) lock.down = true;
@@ -7349,7 +7428,9 @@ function cameraPivot(u) {
 }
 function updateCamera(u, dt) {
   const pitch = u.pitch + u.recoil; // 反動で視点が跳ね上がる
-  const dir = new T.Vector3(-Math.sin(u.yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(u.yaw) * Math.cos(pitch));
+  const yaw = u.yaw + (u.recoilYaw || 0);
+  const dir = new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+  u.cameraRecoil = u.recoil; u.cameraRecoilYaw = u.recoilYaw || 0;
   const pivot = cameraPivot(u);
   // ダッシュ中は画角を広げてスピード感を出す。ロックオン中は LOCK_ZOOM 倍にズーム
   const base = u.dashState === 'short' || u.dashState === 'lunge' || u.dashState === 'charge' ? 82 : u.dashState === 'long' ? 77 : 70;
@@ -7905,7 +7986,9 @@ function itemNums(sl, key) {
   if (x.type === 'artillery') r.push(['発数',x.shots,n0,true],['着弾時間',x.flight,u('秒'),false],['着弾誤差',x.scatter,u('m'),false]);
   if (x.type === 'cannon') r.push(['発数', x.shots, n0, true]);
   if (x.type === 'gun' && !x.drone && x.rpm > 60) r.push(['連射', x.rpm, u('発/分'), true]);
-  if (x.type === 'gun' && !x.proj && !x.drone) r.push(['弾のばらつき', x.spread * 57.3, v => v.toFixed(2) + '°', false], ['反動', baseKick(x) * 57.3, v => v.toFixed(2) + '°', false]); // v0.14
+  if (x.type === 'gun' && !x.proj && !x.drone) r.push(['弾のばらつき', x.spread * 57.3, v => v.toFixed(2) + '°', false]);
+  if (x.recoilH !== undefined) r.push(['縦反動', baseKick(x) * 180 / Math.PI, v => v.toFixed(2) + '°', false], ['横反動', x.recoilH * 180 / Math.PI, v => '±' + v.toFixed(2) + '°', false]);
+  else if (x.type === 'gun' && !x.proj && !x.drone) r.push(['反動', baseKick(x) * 57.3, v => v.toFixed(2) + '°', false]);
   if (P.heatDps) r.push(['熱の毎秒威力',P.heatDps,n0,true],['熱の持続',P.heatDur,u('秒'),true]);
   if (P.chainCount) r.push(['連鎖回数',P.chainCount,n0,true],['連鎖の間隔',P.chainGap,u('秒'),false]);
   if (P.jumpDelay) r.push(['上昇時間',P.jumpDelay,u('秒'),false]);
