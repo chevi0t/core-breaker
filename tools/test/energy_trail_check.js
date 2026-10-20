@@ -15,9 +15,9 @@ const dir=path.resolve(process.argv[2]||'dbg/lime-energy');
   const aim=new T.Vector3(0,202.5,-100);
   const energy=Object.entries(g.ARMORY).flatMap(([cls,s])=>Object.entries(s).flatMap(([slot,keys])=>keys.filter(k=>g.WEAPONS[k].energy).map(key=>({cls,slot,key}))));
   for(const team of['B','R'])for(const {cls,slot,key}of energy){
-   const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const traces=g.fx.filter(f=>f.kind==='tracer');
-   yes(traces.length>0&&traces.every(f=>f.energy&&f.obj.material.color.getHex()===0xb8ff32),team+'/'+key+' ライム色');
-   g.fxUpdate(.04);yes(traces.every(f=>f.obj.scale.x<=.055&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+' 細いレーザー状');
+   const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const laser=sl.w.series==='ln',traces=g.fx.filter(f=>f.kind===(laser?'laser':'tracer'));
+   yes(traces.length>0&&traces.every(f=>(laser||f.energy)&&f.obj.material.color.getHex()===0xb8ff32),team+'/'+key+' ライム色');
+   g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):f.obj.scale.x<=.055&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 細いレーザー状'));
   }
   reset('assault','rail');const hp=e.hp;g.fire(u,aim,0,g.WEAPONS.rail,new T.Vector3(0,202.5,0));const f=g.fx.find(f=>f.kind==='tracer');
   yes(e.hp<hp,'光学弾の命中ダメージは射撃時に発生');const impact=g.fx.find(q=>q.kind==='flash'&&q.age<0);yes(impact&&near(-impact.age,f.len/450),'着弾エフェクトの遅延は従来のまま');
@@ -27,7 +27,7 @@ const dir=path.resolve(process.argv[2]||'dbg/lime-energy');
   yes(g.shells.length===2&&g.shells.every(s=>s.energyFrom&&s.mesh.material.color.getHex()===0xb8ff32),'満充填の二丁光弾もライム色');yes(g.shells[0].mesh.geometry===g.shells[1].mesh.geometry&&g.shells[0].mesh.material===g.shells[1].mesh.material,'飛翔弾の形と材質を共有');
   const sh=g.shells[0],start=sh.pos.clone(),vel=sh.vel.clone(),life=sh.life;g.shellUpdate(.04);yes(sh.pos.distanceTo(start.clone().addScaledVector(vel,.04))<1e-6&&sh.vel.equals(vel)&&near(sh.life,life-.04),'光弾の位置・速度・寿命を変更しない');
   sh.mesh.updateMatrixWorld(true);const tip=sh.mesh.localToWorld(new T.Vector3()),tail=sh.mesh.localToWorld(new T.Vector3(0,1,0));yes(tip.distanceTo(sh.pos)<1e-6&&tail.clone().sub(tip).dot(sh.vel)<0&&sh.mesh.scale.y<=start.distanceTo(sh.pos)+1e-6,'尾は先端から後ろへ伸び、発射点を越えない');
-  for(const [cls,key,slot]of[['heavy','charge','sub'],['heavy','plasma','sub']]){reset(cls,key,slot);g.shot(u,u.slots[slot],aim,0);yes(g.shells[0]?.energyFrom&&g.shells[0].mesh.material.color.getHex()===0xb8ff32,key+' もライム色の尾');}
+  for(const [cls,key,slot]of[['heavy','charge','sub'],['heavy','plasma','sub']]){reset(cls,key,slot);g.shot(u,u.slots[slot],aim,0);const sh=g.shells[0],trail=sh?.mesh.getObjectByName('plasmaTrail')||sh?.mesh;yes(sh?.energyFrom&&trail.material.color.getHex()===(key==='plasma'?0xff63cc:0xb8ff32),key+' の指定色の尾');}
   reset('heavy','plasma','sub');const wall=new T.Mesh(new T.BoxGeometry(8,12,.5),new T.MeshBasicMaterial());wall.position.set(0,203,-10);scene.add(wall);g.hittables.push(wall);wall.updateMatrixWorld(true);g.shot(u,u.slots.sub,aim,0);const m=g.shells[0].mesh;for(let i=0;i<10;i++)g.shellUpdate(.02);yes(!g.shells.length&&!m.parent&&e.hp===1e6,'プラズマ弾は壁で消え、背後へ直進しない');g.hittables.splice(g.hittables.indexOf(wall),1);scene.remove(wall);wall.geometry.dispose();wall.material.dispose();
   reset('heavy','rocket','sub');g.shot(u,u.slots.sub,aim,0);yes(g.shells.length&&!g.shells[0].energyFrom,'実体ロケットの形を継承');
   reset('assault','waveSword','aux');g.shoot(u,new T.Vector3(0,202,0),new T.Vector3(0,0,-70),g.WEAPONS.waveSword.chargeWave);yes(!g.shells[0].energyFrom,'光波剣は三日月のまま');

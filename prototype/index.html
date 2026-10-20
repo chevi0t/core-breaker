@@ -1905,34 +1905,52 @@ const PLACED = ['mine', 'sensor', 'remote', 'sentry', 'ammo'];
 const shellMat = { B: new T.MeshBasicMaterial({ color: TEAM.B.color }), R: new T.MeshBasicMaterial({ color: TEAM.R.color }) };
 const rocketMat = new T.MeshLambertMaterial({ color: 0xd9dde2 });
 const weakMat = new T.MeshBasicMaterial({ color: 0xa070ff });
-const ENERGY_COLOR = 0xb8ff32; // 光学弾は敵味方ともライムグリーン（ユーザー指定）。
+const ENERGY_COLOR = 0xb8ff32; // 通常の光学弾は敵味方ともライムグリーン（ユーザー指定）。
 const energyShotGeo = new T.CylinderGeometry(1, 1, 1, 6, 1, true);
 energyShotGeo.translate(0, .5, 0);
 const energyShotMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false });
+// プラズマ砲は後方からも追えるピンクの砲弾と太い尾を描く（ユーザー指定、見た目だけ）。
+const PLASMA_COLOR = 0xff63cc;
+const plasmaHeadGeo = new T.SphereGeometry(1, 12, 8);
+const plasmaHeadMat = new T.MeshBasicMaterial({ color: 0xff90dc });
+const plasmaHaloMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.BackSide });
+const plasmaTrailMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .9, depthWrite: false, side: T.DoubleSide });
+function plasmaShotMesh() {
+  const group = new T.Group(), trail = new T.Mesh(energyShotGeo, plasmaTrailMat), head = new T.Mesh(plasmaHeadGeo, plasmaHeadMat), halo = new T.Mesh(plasmaHeadGeo, plasmaHaloMat);
+  trail.name = 'plasmaTrail'; head.name = 'plasmaHead'; halo.name = 'plasmaHalo';
+  group.add(trail, head, halo);
+  return group;
+}
 // spec: dmg（爆心の威力）, blast（爆風半径）, core（コアに直撃したときダメージを与えるか）, rocket（見た目）,
 // kind（投げる物と重砲の弾：grenade・mine・sensor・shell）, grav（重力。あれば山なりに飛ぶ）, life（消えるまでの秒）,
 // fuse（起爆までの秒）, impact（fuse があっても何かに当たれば爆発）, weak（爆風に巻き込んだ敵機の被ダメージを上げる { mult, time }）,
 // knock（ダメージの代わりに巻き込んだ敵機をダウンさせる）, scan・keep（炸裂した瞬間に周りの敵機を映す。索敵ソナー）。
 // 置かれる物（kind が mine・sensor・remote・sentry）：hp（耐久）, max（同時に置ける数）, trigger（地雷が反応する距離）, float（浮かぶ高さ）,
 // hover（上空に浮かぶ高さ）, dur（消えるまでの秒）, col（真下の円柱の範囲を見る）, cone（前方の扇形の角度）, gun（自動砲台の銃）
-function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false) {
+function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visualStyle = '') {
   // 投げる物（spec.model）は武器の形（v0.11.1）。ロケット、重砲・プラズマ砲の弾、グレネードランチャーの弾はこれまでの形
   const energy = !spec.bladeWave && !spec.model && !spec.rocket && !spec.weak && !!(visualEnergy || spec.energy);
-  const m = energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
+  const plasmaVisual = energy && visualStyle === 'plasma';
+  const m = plasmaVisual ? plasmaShotMesh() : energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
   m.position.copy(from);
   if (spec.bladeWave) { m.scale.x = spec.width; m.lookAt(from.clone().sub(vel)); }
   if (spec.rocket) m.quaternion.setFromUnitVectors(UP, vel.clone().normalize());
   scene.add(m);
   const sh = { owner, team: owner.team, spec, pos: from.clone(), vel, mesh: m, life: spec.bladeWave ? spec.range / spec.speed : spec.fuse || spec.life || 3, stuck: false };
-  if (energy) { sh.energyFrom = from.clone(); energyShotLook(sh); }
+  if (energy) { sh.energyFrom = from.clone(); sh.plasmaVisual = plasmaVisual; energyShotLook(sh); }
   shells.push(sh);
 }
-// 飛翔する光学弾は先端から後ろへ短いレーザー状の尾を引く。位置・速度・衝突は既存の弾のまま。
+// 飛翔する光学弾は先端から後ろへ尾を引く。プラズマ砲だけ先端と尾を太くする。
 function energyShotLook(sh) {
   const speed = sh.vel.length();
   if (speed > .0001) sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().multiplyScalar(-1 / speed));
   const width = energyTraceWidth(sh.pos), len = Math.min(10, speed * .06, sh.pos.distanceTo(sh.energyFrom));
-  sh.mesh.scale.set(width, len, width);
+  if (sh.plasmaVisual) {
+    const distance = sh.pos.distanceTo(camera.position), radius = Math.max(.36, Math.min(.75, distance * .0032));
+    const tailWidth = Math.max(.12, Math.min(.32, distance * .002));
+    const [trail, head, halo] = sh.mesh.children;
+    trail.scale.set(tailWidth, len, tailWidth); head.scale.setScalar(radius); halo.scale.setScalar(radius * 1.8);
+  } else sh.mesh.scale.set(width, len, width);
 }
 const waveDir = new T.Vector3(), waveSide = new T.Vector3(), waveSideBack = new T.Vector3(), waveAt = new T.Vector3();
 // 光波だけの直進判定。幅の両端までの横の遮蔽と、幅内5本の軌道を調べ、最初の接触で消す。
@@ -3973,6 +3991,37 @@ function tracer(from, end, team, energy = false) {
   addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(0.03, len / TRACER_SPEED), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy });
   return len / TRACER_SPEED;
 }
+// 光弾狙撃ライフルは射線全体を瞬時に光らせ、0.4秒かけてぼやけた緑の軌跡を消す。
+const laserGeo = new T.PlaneGeometry(1, 1); laserGeo.translate(0, .5, 0);
+const laserTex = [false, true].map(soft => {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 8;
+  const g = c.getContext('2d'), grad = g.createLinearGradient(0, 0, 64, 0);
+  for (const [stop, alpha] of soft ? [[0, 0], [.2, .08], [.35, .4], [.5, .75], [.65, .4], [.8, .08], [1, 0]] : [[0, 0], [.3, .1], [.4, .7], [.45, 1], [.55, 1], [.6, .7], [.7, .1], [1, 0]]) grad.addColorStop(stop, `rgba(255,255,255,${alpha})`);
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 8);
+  return new T.CanvasTexture(c);
+});
+const laserSide = new T.Vector3(), laserView = new T.Vector3(), laserNormal = new T.Vector3(), laserBasis = new T.Matrix4();
+function laserLook(f) {
+  laserView.subVectors(camera.position, f.mid); laserSide.crossVectors(f.dir, laserView);
+  if (laserSide.lengthSq() < .000001) laserSide.set(1, 0, 0).applyQuaternion(camera.quaternion);
+  else laserSide.normalize();
+  laserNormal.crossVectors(laserSide, f.dir).normalize();
+  f.obj.quaternion.setFromRotationMatrix(laserBasis.makeBasis(laserSide, f.dir, laserNormal));
+  const k = Math.min(1, f.age / .4), bright = f.age < .08, width = Math.max(.12, f.mid.distanceTo(camera.position) * .006);
+  f.obj.scale.set(width * (bright ? 1 : 1 + k * 3), f.len, 1);
+  f.obj.material.map = laserTex[bright ? 0 : 1];
+  f.obj.material.opacity = bright ? .98 : .4 * (1 - k) ** .8;
+}
+function laserTrail(from, end) {
+  const len = from.distanceTo(end), n = Math.max(1, Math.ceil(len / 50)), dir = end.clone().sub(from).normalize();
+  for (let i = 0; i < n; i++) {
+    const m = new T.Mesh(laserGeo, new T.MeshBasicMaterial({ color: ENERGY_COLOR, map: laserTex[0], transparent: true, depthWrite: false, side: T.DoubleSide }));
+    m.position.copy(from).lerp(end, i / n);
+    const f = { kind: 'laser', from: m.position.clone(), mid: from.clone().lerp(end, (i + .5) / n), dir, len: len / n };
+    laserLook({ ...f, obj: m, age: 0 }); addFx(m, .4, f);
+  }
+  return 0; // 実際の命中と着弾演出も発射時に揃える。
+}
 // 狙撃銃（スコープのある銃）の弾道に残る白い煙（v0.14、ユーザー指定「射撃軌道に白い煙を0.4秒程度残る」）。細い筋が少し太りながら消える
 const SMOKE_LIFE = 0.4, smokeGeo = new T.CylinderGeometry(1, 1, 1, 8, 1, true);
 smokeGeo.translate(0, 0.5, 0);
@@ -4053,6 +4102,12 @@ const ringTex = (() => {
   g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
   return new T.CanvasTexture(c);
 })();
+const plasmaRingGeo = new T.RingGeometry(.88, 1, 40);
+function plasmaMuzzleRing(from, velocity) {
+  const dir = velocity.clone().normalize(), ring = new T.Mesh(plasmaRingGeo, new T.MeshBasicMaterial({ ...glow(PLASMA_COLOR), side: T.DoubleSide }));
+  ring.position.copy(from); ring.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), dir);
+  addFx(ring, .28, { kind: 'plasmaRing', origin: from.clone(), dir });
+}
 // kind: 'world'（地形）/ 'shield'（コアの傘）/ 'hit'（敵に命中）/ 'head'（ヘッドショット）
 // ヘッドショットはボディより派手に（v0.9.5、ユーザー指定）：白い芯と大きな金色の光、広がる輪、倍の数の速い火花
 function impact(at, kind, delay) {
@@ -4173,6 +4228,8 @@ function fxUpdate(dt) {
       const w = f.energy ? energyTraceWidth(f.obj.position) : Math.max(0.05, f.obj.position.distanceTo(camera.position) * 0.0022);
       f.obj.scale.set(w, Math.max(0.01, head - tail), w);
       f.obj.material.opacity = f.energy ? .95 * Math.max(0, 1 - Math.max(0, f.age - f.len / TRACER_SPEED) / ENERGY_TRACE_FADE) : 0.95;
+    } else if (f.kind === 'laser') {
+      laserLook(f);
     } else if (f.kind === 'smoke') {
       const w = Math.max(0.1 + 0.25 * k, f.mid.distanceTo(camera.position) * 0.0018 * (1 + k));
       f.obj.scale.set(w, f.len, w);
@@ -4189,6 +4246,10 @@ function fxUpdate(dt) {
     } else if (f.kind === 'ring') {
       f.obj.scale.setScalar(f.size * (0.15 + 0.85 * Math.sqrt(k)));
       f.obj.material.opacity = 1 - k * k;
+    } else if (f.kind === 'plasmaRing') {
+      f.obj.position.copy(f.origin).addScaledVector(f.dir, .8 * k);
+      f.obj.scale.setScalar(.25 + 1.65 * k);
+      f.obj.material.opacity = .9 * (1 - k) ** 2;
     } else if (f.kind === 'sparks') {
       const a = f.obj.geometry.attributes.position;
       f.vel.forEach((v, j) => {
@@ -4279,9 +4340,9 @@ function fire(u, aimPoint, spread, w, from = muzzle(u)) {
   dir.normalize();
   const hit = castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
-  const travel = tracer(from, end, u.team, w.energy);
-  if (w.scope) smokeTrail(from, end);
-  flash(from, w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
+  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy);
+  if (w.scope && !laser) smokeTrail(from, end);
+  flash(from, laser ? ENERGY_COLOR : w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
   if (!hit) return false;
   const r = hit.ref;
   if (w.directBlast) {
@@ -6392,7 +6453,7 @@ function shot(u, sl, aim, spread) {
   const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
-    const P = w.proj;
+    const P = w.proj, plasma = w.series === 'lp';
     for (const [hand, from] of (w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]).entries()) { // 二丁蓄積銃の光弾は左右から（v0.15）
       let v = P.grav ? lobTo(from, aim, P.speed, P.grav).vel : aim.clone().sub(from).normalize();
       if (!P.grav) {
@@ -6400,9 +6461,10 @@ function shot(u, sl, aim, spread) {
         if (ws) { v.x += (Math.random() - 0.5) * ws; v.y += (Math.random() - 0.5) * ws; v.z += (Math.random() - 0.5) * ws; v.normalize(); } // 連射ロケットはばらけて飛ぶ
         v.multiplyScalar(P.speed);
       }
-      shoot(u, from, v, P, w.energy || w.series === 'lp'); // プラズマ砲も光学弾として描く（見た目だけ）。
+      shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : '');
+      if (plasma) plasmaMuzzleRing(from, v);
       mainMuzzleFlash(u, !!hand, w);
-      if (!P.grav) flash(from, P.energy ? 0xa0ffe8 : 0xffc080, 1.8, 0.08);
+      if (!P.grav) flash(from, plasma ? PLASMA_COLOR : P.energy ? 0xa0ffe8 : 0xffc080, 1.8, 0.08);
     }
     recoilKick(u, w);
     return false;
