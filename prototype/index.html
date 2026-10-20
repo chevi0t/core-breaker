@@ -858,7 +858,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
     </section>
     <section class="page" id="pgHelp" hidden>
       <div class="pgh"><h2>操作説明</h2><button type="button" class="back">戻る</button></div>
-      <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
+      <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります（50対50では1/800）。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
       <div class="keys">
         <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。メニューの「コンソール」でも選べます</span>
         <kbd>WASD</kbd><span>移動</span>
@@ -4271,6 +4271,8 @@ function muzzleClamp(u, p) {
 const HEADSHOT_MULT = 1.3; // ヘッドショット倍率（仮置き。狙撃銃は武器ごとの倍率）
 const CORE_RATE = 0.1; // コアへのダメージは機体への威力の1割
 const KILL_CORE = CORE_MAX / 160; // 機体が撃破されると、その陣営のコアが最大値の1/160減る（元のゲームの仕様。ユーザー指定）
+const KILL_CORE_LARGE = CORE_MAX / 800; // 50対50のときだけ1/800（ユーザー指定 2026-10-20「速攻で160人死んでゲームセットになっちゃう」）
+let killCore = KILL_CORE; // 今の試合の1大破あたりのコアの減り。setup で人数から決める
 function fire(u, aimPoint, spread, w, from = muzzle(u)) {
   const dir = aimPoint.clone().sub(from).normalize();
   dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread;
@@ -4388,7 +4390,7 @@ function wreck(v) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
   const by = v.downBy;
   if (v.isPlayer) killcam = by && by !== v && by.pos ? { by, at: v.pos.clone(), end: v.respawnT * (1 - KILLCAM) } : null; // 自爆は映さない
-  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : KILL_CORE)); // コスト制では戦力ゲージが vs.death 減る
+  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : killCore)); // コスト制では戦力ゲージが vs.death 減る
   if (v.isPlayer) v.spawnChoice = null; // 再出撃画面で最前線のプラントを初期選択。マウスの固定は外さない（v0.15、ユーザー指摘。兵装はキー、地点はキーかホイール）
   boom(v.pos);
 }
@@ -8183,7 +8185,7 @@ function renderMapList() {
   if (!largeBattleMap(curMap)) largeBattle = false;
   $('largeBattleControl').hidden = !largeBattleMap(curMap);
   $('largeBattleSw').checked = largeBattle;
-  $('largeBattleHint').textContent = largeBattle ? 'あなた＋味方BOT49機 対 敵BOT50機。通常より動作が重くなります' : '通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機';
+  $('largeBattleHint').textContent = largeBattle ? 'あなた＋味方BOT49機 対 敵BOT50機。1大破でコアが1/800減ります。通常より動作が重くなります' : '通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機';
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
   const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly), done = new Set(), rows = [];
   for (const [id, d] of list) {
@@ -8661,6 +8663,7 @@ function setup() {
   pops.length = 0;
   player = makeUnit('B', true, 0);
   const count = battleTeamSize();
+  killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit('B', false, i);
   for (let i = 0; i < count; i++) makeUnit('R', false, i);
   MATCH = curMap.time;
