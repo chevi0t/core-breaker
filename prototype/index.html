@@ -453,7 +453,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると1秒動けない。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
         <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動。倒れて行動不能の味方は約3秒当てると蘇生）。ゲージを使い切ると満タンに戻るまで使えません</span>
         <kbd>R</kbd><span>選んでいる武器のリロード</span>
-        <kbd>追加補助装備</kbd><span>連撃細剣・双電棍・双爪は一度押すと各段の連撃。蓄圧杭は左長押しで二段階充填、離す瞬間にダッシュすると強打。電子妨害弾は敵の視界・敵名・ロックと他者への修理を妨害し、電撃弾は敵を硬直させます。浮遊自動銃は投げた空中で停滞、巡航自動銃は前進しながら下方を攻撃。索敵カーテンは設置時の真横の面を通る敵を検出します。展開式レーダーは選ぶと静止して索敵し、持ち替えで解除。補給コンテナは接地後に敵味方・自機が拾え、主副武器を全補給します（補助・SPは対象外）</span>
+        <kbd>追加補助装備</kbd><span>連撃細剣・双短刀・双爪は一度押すと各段の連撃。蓄圧杭は左長押しで二段階充填、離す瞬間にダッシュすると強打。電子妨害弾は敵の視界・敵名・ロックと他者への修理を妨害し、電撃弾は敵を硬直させます。浮遊自動銃は投げた空中で停滞、巡航自動銃は前進しながら下方を攻撃。索敵カーテンは設置時の真横の面を通る敵を検出します。展開式レーダーは選ぶと静止して索敵し、持ち替えで解除。補給コンテナは接地後に敵味方・自機が拾え、主副武器を全補給します（補助・SPは対象外）</span>
         <kbd>追加副武器</kbd><span>二段ズーム狙撃銃は右クリックで低倍率→高倍率→通常視点。蓄圧砲は左長押しで半充填・満充填、離して発射（保持しすぎると過熱）。熱球は炸裂後に一定時間残り、連鎖ボムは接地後に前方へ連続爆発します。跳躍地雷は敵を感知して上昇後に起爆。衝撃吸着地雷は壁にも設置でき、感知から1秒後に炸裂。遠隔ボムランチャーは射出した爆弾の吸着準備が済んだ後、右クリックで一括起爆します</span>
         <kbd>榴弾砲</kbd><span>重火力の特別装備で選ぶと、移動・旋回を止めて射撃モードへ。マウスで拡大マップの照準を動かし、左クリックで爆撃中心を指定するとSPが尽きるまで連射します。射程は緑の円、着弾誤差は黄色の円。射撃前・射撃中とも右クリックで中断して直前の武器へ戻れます。中断でSPを残すと再充填が早まります。着弾2秒前に火柱と落下音で予告します</span>
         <kbd>追加の特別装備</kbd><span>重火力の防護バリアと遊撃の背部自動銃は、選ぶと起動し、再選択で停止します。手持ち武器と同時に使えます。支援のリペアビーコンは左クリックで投げて地面に設置し、範囲内の味方を回復・蘇生します。特別装備を再選択し、持ち替えが終わると回収します。各3種類を機体カスタマイズで選べます</span>
@@ -2047,7 +2047,7 @@ function buildMap(id) {
 // 部品を頂点カラー付きの1つの形にまとめ、同じ形はキャッシュして使い回す。性能とは関係なく、機体の手の武器・背中の装置・投げた物・設置物・カードの画像で同じ形を使う。
 // MODEL_OF：武器のキー → [形の系統, 型（0・1・2。色と細部が変わる）]。spear・sonar・sentry・remote・fmine・field は本作で足した形
 const MODEL_OF = {
-  sabre: ['sabre', 0], rod: ['rod', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
+  sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   artillery: ['artillery', 0], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
   ar: ['ar', 0], burst: ['burst', 0], marks: ['marksman', 0], grenade: ['grenade', 0], timed: ['grenade', 1], gl: ['explosive', 0],
@@ -2087,9 +2087,17 @@ function buildWeaponGeo(id, part) {
   if (f === 'sabre') {
     cyl(.12,.5,dark,0,0,.22);box(.7,.12,.15,accent,0,0,-.08);
     box(.22,.07,2.3,steel,0,0,-1.28);box(.08,.1,2,accent,.1,0,-1.16);box(.12,.09,.45,steel,.05,0,-2.45);
-  } else if (f === 'rod') {
-    cyl(.12,.6,dark,0,0,.2);cyl(.17,1.5,steel,0,0,-.85);ball(.22,accent,0,0,-1.62);
-    for(let i=0;i<4;i++)cyl(.19,.06,accent,0,0,-.32-i*.3);
+  } else if (f === 'dagger') {
+    // 短い両刃と面取り。保存キーrodは残し、電棍の棒・電極を短刀へ置き換える。
+    const outline = new T.Shape();
+    outline.moveTo(-.11, 0); outline.lineTo(-.14, -.5); outline.lineTo(0, -.9);
+    outline.lineTo(.14, -.5); outline.lineTo(.11, 0); outline.closePath();
+    const blade = new T.ExtrudeGeometry(outline, { depth: .035, bevelEnabled: true, bevelThickness: .02, bevelSize: .025, bevelSegments: 1, steps: 1, curveSegments: 1 });
+    blade.rotateX(Math.PI / 2); add(blade, steel, 0, .0175, -.12);
+    cyl(.095,.48,dark,0,0,.21,'z',.095,8); box(.46,.1,.12,accent,0,0,-.08);
+    box(.2,.19,.09,shell,0,0,.48); box(.16,.08,.14,dark,0,0,-.16);
+    for (const y of [-.042, .042]) box(.035,.012,.4,accent,0,y,-.43);
+    for (const z of [.08,.21,.34]) cyl(.102,.025,shell,0,0,z,'z',.102,8);
   } else if (f === 'claw') {
     box(.6,.32,.7,shell);box(.45,.13,.6,accent,0,.22,0);
     for(const x of [-.22,0,.22]){box(.1,.1,1.2,steel,x,0,-.8);box(.12,.18,.22,accent,x,0,-1.42);}
@@ -4504,7 +4512,7 @@ const WEAPONS = {
   // AC リヒトメッサー系統 pages/346：{"kg": 180, "normalHits": [2000, 3500], "strongHits": [4500]}。原典と再現値の区別は auxiliary.json。
   sabre: {"name":"連撃細剣","type":"sword","acMelee":"sabre","normal":auxiliaryMelee([2000, 3500],"sabre"),"strong":auxiliaryMelee([4500],"sabre",true),"desc":"一度の入力で素早い連続斬撃。ダッシュ中は踏み込んで斬る。通常と特殊の各段が別々に命中する"},
   // AC スパークロッド系統 pages/411：{"kg": 190, "normalHits": [2500, 2500], "strongHits": [4500, 3500]}。原典と再現値の区別は auxiliary.json。
-  rod: {"name":"双電棍","type":"sword","acMelee":"rod","normal":auxiliaryMelee([2500, 2500],"rod"),"strong":auxiliaryMelee([4500, 3500],"rod",true),"desc":"左右の電棍で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃","meleeDual":true},
+  rod: {"name":"双短刀","type":"sword","acMelee":"rod","normal":auxiliaryMelee([2500, 2500],"rod"),"strong":auxiliaryMelee([4500, 3500],"rod",true),"desc":"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃","meleeDual":true},
   // AC ダブルクロー系統 pages/568：{"kg": 200, "normalHits": [2500, 2500], "strongHits": [3000, 3000]}。原典と再現値の区別は auxiliary.json。
   claw: {"name":"双爪ガントレット","type":"sword","acMelee":"claw","normal":auxiliaryMelee([2500, 2500],"claw"),"strong":auxiliaryMelee([3000, 3000],"claw",true),"desc":"左右の爪で近距離を連撃。通常とダッシュ攻撃は型ごとに段数と威力が異なる","meleeDual":true},
   // AC パイク系統 pages/362：{"kg": 210, "normalLevels": [4500, 6750, 9000], "strongLevels": [6000, 9000, 12000], "chargeTime": 2}。原典と再現値の区別は auxiliary.json。
@@ -4871,8 +4879,8 @@ const WEAPON_TYPES = {
     ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は踏み込んで斬る。通常と特殊の各段が別々に命中する"],
   ] },
   rod: { w0: {"kg":190,"normalHits":[2500,2500],"strongHits":[4500,3500]}, types: [
-    ["強装型",{"kg":310,"normalHits":[2500,2500,3000],"strongHits":[4500,4500]},"左右の電棍で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃"],
-    ["重装型",{"kg":420,"normalHits":[2500,2500,3000,4500],"strongHits":[2500,4500,2500,4500]},"左右の電棍で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃"],
+    ["強装型",{"kg":310,"normalHits":[2500,2500,3000],"strongHits":[4500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃"],
+    ["重装型",{"kg":420,"normalHits":[2500,2500,3000,4500],"strongHits":[2500,4500,2500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は踏み込み連撃"],
   ] },
   claw: { w0: {"kg":200,"normalHits":[2500,2500],"strongHits":[3000,3000]}, types: [
     ["強装型",{"kg":300,"normalHits":[2500,2500,2250,2250],"strongHits":[3500,3500]},"左右の爪で近距離を連撃。通常とダッシュ攻撃は型ごとに段数と威力が異なる"],
@@ -5782,7 +5790,7 @@ function bladePose(u) {
     if (!b?.visible) continue;
     const bb = b.geometry.boundingBox, gripZ = family === 'sword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
     const held = bladeHeld.set(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
-    let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'claw' ? .15 : .62;
+    let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'dagger' ? .18 : family === 'claw' ? .15 : .62;
     let scale = 1; // 構え中は#13の形の寸法。間合いへの伸長は攻撃中だけ。
     if (!selected) { held.set(sd * 1.1, 3.15, .8); angle = sd * -.15; pitch = -1.22; scale = Math.min(1, 2.9 / (gripZ - bb.min.z)); }
     if (sw) {
@@ -5810,7 +5818,7 @@ function bladePose(u) {
         strikeHand.y += Math.hypot(strikeHand.x, strikeHand.z) * (sw.slope || 0); // 上下の斬り：手も同じ円すいの面に乗せる
         held.lerp(strikeHand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
         pitch += ((sw.tilt || 0) - pitch) * blend;
-        scale = family === 'pike' || family === 'claw' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
+        scale = family === 'pike' || family === 'claw' || family === 'dagger' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
         if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1 + (sw.tilt || 0) * .35 * blend; }
       }
     }
