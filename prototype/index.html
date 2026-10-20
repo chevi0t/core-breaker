@@ -3522,15 +3522,36 @@ function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
 // left: 左腕（二丁拳銃の2丁目）。銃口は持っている武器の形の先端（v0.11.1）
 // CANNON_TIP：重砲の砲身の先（砲身の形の中で。左の砲身から撃つ）
 const CANNON_TIP = { cannon: [-0.325, 0.18, -1.7], cannonH: [-0.31, 0, -1.7], cannonM: [0, 0.18, -1.7] };
-function muzzle(u, left = false) {
+// clamp：銃口が壁・地面・ほかの機体の向こうへ出ていたら手前へ戻す（v0.20）。照準の追従のように弾を出さない所では false
+function muzzle(u, left = false, clamp = true) {
   const w = u.slots && u.slots[u.weapon].w;
-  if (!left && w && w.type === 'artillery') return new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
-  if (!left && w && w.type === 'cannon') {
-    const p = new T.Vector3(...(CANNON_TIP[w.key] || CANNON_TIP.cannon)).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP, u.yaw).add(u.pos);
-    return p;
+  let p;
+  if (!left && w && w.type === 'artillery') p = new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
+  else if (!left && w && w.type === 'cannon') p = new T.Vector3(...(CANNON_TIP[w.key] || CANNON_TIP.cannon)).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP, u.yaw).add(u.pos);
+  else {
+    const g = left ? u.gun2 : u.gun;
+    p = new T.Vector3(0, 0, g.geometry.boundingBox.min.z).applyEuler(g.rotation).add(g.position).applyAxisAngle(UP, u.yaw).add(u.pos);
   }
-  const g = left ? u.gun2 : u.gun;
-  return new T.Vector3(0, 0, g.geometry.boundingBox.min.z).applyEuler(g.rotation).add(g.position).applyAxisAngle(UP, u.yaw).add(u.pos);
+  return clamp ? muzzleClamp(u, p) : p;
+}
+// 銃口は胴の半径（1.3m）より1.4〜3.25m前にあるので、壁に張り付くと壁の向こうから弾が出ていた（v0.19 までの不具合）。
+// 胴の中心（銃口と同じ高さ）から銃口までを調べ、最初に当たった物の5cm手前を銃口にする。弾はそこから飛ぶので壁に当たる
+const muzzleRay = new T.Raycaster(), muzzleFrom = new T.Vector3(), muzzleDir = new T.Vector3();
+function muzzleClamp(u, p) {
+  if (!u.pos) return p;
+  muzzleFrom.set(u.pos.x, p.y, u.pos.z); muzzleDir.copy(p).sub(muzzleFrom);
+  const len = muzzleDir.length(); if (len < 1e-4) return p;
+  muzzleDir.multiplyScalar(1 / len);
+  let dist = len;
+  const th = terrainHit(muzzleFrom, muzzleDir, len); if (th) dist = th.dist;
+  muzzleRay.set(muzzleFrom, muzzleDir); muzzleRay.far = dist;
+  for (const h of muzzleRay.intersectObjects(hittables, false)) {
+    if (h.object.userData.weaponModel && !h.object.visible) continue;
+    const r = refOf(h.object);
+    if (r === u || (r && r.kind === 'unit' && !r.alive)) continue;
+    dist = h.distance; break;
+  }
+  return dist < len ? p.copy(muzzleFrom).addScaledVector(muzzleDir, Math.max(0, dist - 0.05)) : p;
 }
 const HEADSHOT_MULT = 1.3; // ヘッドショット倍率（仮置き。狙撃銃は武器ごとの倍率）
 const CORE_RATE = 0.1; // コアへのダメージは機体への威力の1割
@@ -4034,7 +4055,7 @@ function botUpdate(u, dt) {
   physics(u, wish, wantLong || chargeGo || ukemi, dodge || fallSave || (u.sideT > 0.9 && Math.random() < 0.05), dt, dodge || ukemi);
   // 照準と射撃
   const tracking = u.target && u.target.alive;
-  const locked = trackAim(u, dt, muzzle(u));
+  const locked = trackAim(u, dt, muzzle(u, false, false));
   const healer = u.slots.sp.w.type === 'repair' ? u.slots.sp : null;
   const ally = !tracking && healer ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null;
   const selfHeal = !!healer && !tracking && !ally && u.hp < u.maxHp * 0.6;
