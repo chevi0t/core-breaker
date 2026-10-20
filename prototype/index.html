@@ -453,6 +453,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると1秒動けない。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
         <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動。倒れて行動不能の味方は約3秒当てると蘇生）。ゲージを使い切ると満タンに戻るまで使えません</span>
         <kbd>R</kbd><span>選んでいる武器のリロード</span>
+        <kbd>光波剣</kbd><span>左長押しで1.2秒充填し、離すと斬撃。満充填なら振りに合わせて威力2000の光波を1発放ちます。短押しは斬撃のみ。直接斬る威力は通常3000・ダッシュ6000。持ち替え・被弾硬直・エリア移動で充填を取り消します</span>
         <kbd>追加補助装備</kbd><span>連撃細剣・双短刀・双爪は一度押すと各段の連撃。蓄圧杭は左長押しで二段階充填、離す瞬間にダッシュすると強打。電子妨害弾は敵の視界・敵名・ロックと他者への修理を妨害し、電撃弾は敵を硬直させます。浮遊自動銃は投げた空中で停滞、巡航自動銃は前進しながら下方を攻撃。索敵カーテンは設置時の真横の面を通る敵を検出します。展開式レーダーは選ぶと静止して索敵し、持ち替えで解除。補給コンテナは接地後に敵味方・自機が拾え、主副武器を全補給します（補助・SPは対象外）</span>
         <kbd>追加副武器</kbd><span>二段ズーム狙撃銃は右クリックで低倍率→高倍率→通常視点。蓄圧砲は左長押しで半充填・満充填、離して発射（保持しすぎると過熱）。熱球は炸裂後に一定時間残り、連鎖ボムは接地後に前方へ連続爆発します。跳躍地雷は敵を感知して上昇後に起爆。衝撃吸着地雷は壁にも設置でき、感知から1秒後に炸裂。遠隔ボムランチャーは射出した爆弾の吸着準備が済んだ後、右クリックで一括起爆します</span>
         <kbd>榴弾砲</kbd><span>重火力の特別装備で選ぶと、移動・旋回を止めて射撃モードへ。マウスで拡大マップの照準を動かし、左クリックで爆撃中心を指定するとSPが尽きるまで連射します。射程は緑の円、着弾誤差は黄色の円。射撃前・射撃中とも右クリックで中断して直前の武器へ戻れます。中断でSPを残すと再充填が早まります。着弾2秒前に火柱と落下音で予告します</span>
@@ -1409,6 +1410,11 @@ const projGeo = {
   grenade: new T.SphereGeometry(0.32, 10, 8),
   shell: new T.SphereGeometry(0.7, 12, 10),
 };
+// 光波は幅1の三日月を共有し、発射時に武器の幅へ広げる。
+const bladeWaveGeo = new T.TorusGeometry(1, .06, 4, 24, Math.PI / 2);
+bladeWaveGeo.rotateZ(Math.PI / 4); bladeWaveGeo.rotateX(-Math.PI / 2); bladeWaveGeo.translate(0, 0, Math.SQRT1_2);
+bladeWaveGeo.computeBoundingBox(); bladeWaveGeo.scale(1 / (bladeWaveGeo.boundingBox.max.x - bladeWaveGeo.boundingBox.min.x), 1, 1);
+const bladeWaveMat = Object.fromEntries(['B', 'R'].map(k => [k, new T.MeshBasicMaterial({ color: k === 'B' ? 0x9eefff : 0xffc691, transparent: true, opacity: .9, blending: T.AdditiveBlending, depthWrite: false })]));
 // 止まった所に置かれる物（設置物になる）
 const PLACED = ['mine', 'sensor', 'remote', 'sentry', 'ammo'];
 const shellMat = { B: new T.MeshBasicMaterial({ color: TEAM.B.color }), R: new T.MeshBasicMaterial({ color: TEAM.R.color }) };
@@ -1422,11 +1428,38 @@ const weakMat = new T.MeshBasicMaterial({ color: 0xa070ff });
 // hover（上空に浮かぶ高さ）, dur（消えるまでの秒）, col（真下の円柱の範囲を見る）, cone（前方の扇形の角度）, gun（自動砲台の銃）
 function shoot(owner, from, vel, spec = TURRET_SHELL) {
   // 投げる物（spec.model）は武器の形（v0.11.1）。ロケット、重砲・プラズマ砲の弾、グレネードランチャーの弾はこれまでの形
-  const m = spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
+  const m = spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
   m.position.copy(from);
+  if (spec.bladeWave) { m.scale.x = spec.width; m.lookAt(from.clone().sub(vel)); }
   if (spec.rocket) m.quaternion.setFromUnitVectors(UP, vel.clone().normalize());
   scene.add(m);
-  shells.push({ owner, team: owner.team, spec, pos: from.clone(), vel, mesh: m, life: spec.fuse || spec.life || 3, stuck: false });
+  shells.push({ owner, team: owner.team, spec, pos: from.clone(), vel, mesh: m, life: spec.bladeWave ? spec.range / spec.speed : spec.fuse || spec.life || 3, stuck: false });
+}
+const waveDir = new T.Vector3(), waveSide = new T.Vector3(), waveSideBack = new T.Vector3(), waveAt = new T.Vector3();
+// 光波だけの直進判定。幅の両端までの横の遮蔽と、幅内5本の軌道を調べ、最初の接触で消す。
+function bladeWaveTick(sh, dt) {
+  const S = sh.spec, step = Math.min(dt, sh.life), distance = S.speed * step;
+  waveDir.copy(sh.vel).normalize(); waveSide.crossVectors(waveDir, UP).normalize();
+  if (waveSide.lengthSq() < .001) waveSide.set(1, 0, 0);
+  let hit = castFrom(sh.pos, waveSide, sh.owner, S.width / 2) || castFrom(sh.pos, waveSideBack.copy(waveSide).negate(), sh.owner, S.width / 2);
+  if (!hit) for (let i = -2; i <= 2; i++) {
+    waveAt.copy(sh.pos).addScaledVector(waveSide, i * S.width / 4);
+    const h = castFrom(waveAt, waveDir, sh.owner, distance);
+    if (h && (!hit || h.dist < hit.dist)) hit = h;
+  }
+  sh.life -= step;
+  if (hit) {
+    const r = hit.ref;
+    if (hit.barrier) barrierAbsorb(r, S.dmg, hit.point);
+    else if (r && r.team !== sh.team && r.kind !== 'umbrella' && r.kind !== 'core') {
+      const result = damage(r, sh.owner, S.dmg, false, false, r.kind === 'unit' ? hit.slot : null, sh.pos);
+      if (result && sh.owner.isPlayer) hitMark(false);
+    }
+    impact(hit.point, hit.barrier ? 'shield' : 'hit', 0);
+    return false;
+  }
+  sh.pos.addScaledVector(sh.vel, step); sh.mesh.position.copy(sh.pos);
+  return sh.life > .00001;
 }
 // 弾速 v・重力 g で p に落ちる発射速度（低い弾道）。届かない所へは、同じ向きで届く所に落とす。at は落ちる所
 function lobTo(from, p, v, g) {
@@ -1445,6 +1478,7 @@ function lobTo(from, p, v, g) {
 function shellUpdate(dt) {
   for (let i = shells.length - 1; i >= 0; i--) {
     const sh = shells[i], S = sh.spec;
+    if (S.bladeWave) { if (!bladeWaveTick(sh, dt)) { scene.remove(sh.mesh); shells.splice(i, 1); } continue; }
     sh.life -= dt;
     sh.age=(sh.age||0)+dt;
     let at = null, hit = null;
@@ -2136,6 +2170,7 @@ function buildMap(id) {
 // 部品を頂点カラー付きの1つの形にまとめ、同じ形はキャッシュして使い回す。性能とは関係なく、機体の手の武器・背中の装置・投げた物・設置物・カードの画像で同じ形を使う。
 // MODEL_OF：武器のキー → [形の系統, 型（0・1・2。色と細部が変わる）]。spear・sonar・sentry・remote・fmine・field は本作で足した形
 const MODEL_OF = {
+  waveSword: ['waveSword', 0],
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   artillery: ['artillery', 0], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
@@ -2411,6 +2446,12 @@ function buildWeaponGeo(id, part) {
     for(let i=0;i<count;i++) barrel(v===1?.13:.17,v===2?1.4:.9,v===2?-1:-.78,(i-(count-1)/2)*.27);
     box(.5,.28,.5,accent,0,-.15,-.65); box(.4,.35,.6,dark,0,-.04,.82);
     for(let i=0;i<3;i++) box(.055,.32,.08,steel,.31,-.04,.25-i*.18);
+  } else if (f === 'waveSword') {
+    // 二枚の導光レールと刃の発振器。既存ソードと同じ握り位置を持つオリジナル形。
+    box(.16,.42,3.25,steel,0,0,-.12); box(.2,.12,2.85,accent,0,0,-.25);
+    for (const y of [-.28,.28]) { box(.22,.08,2.6,dark,0,y,-.27); box(.24,.045,2.2,accent,0,y,-.35); }
+    box(.3,.9,.22,shell,0,0,1.18); cyl(.18,.22,accent,0,0,1.1);
+    box(.22,.22,.72,dark,0,0,1.68); box(.28,.28,.12,steel,0,0,2.08);
   } else if (f === 'sword') {
     const length=[3.4,3.7,4.3][v], width=[.38,.62,.9][v];
     box(.13,width,length,steel,0,0,-.05); box(.15,.09,length*.85,accent,0,-width/2,-.15);
@@ -2635,7 +2676,7 @@ const PAINTS = [
   { id: 'forest', name: 'フォレスト', color: 0x648d79 }, { id: 'violet', name: 'バイオレット', color: 0x9c82c7 }, { id: 'crimson', name: 'クリムゾン', color: 0xc76363 },
 ];
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { waveSword: 230, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -3753,6 +3794,7 @@ function kill(v, by, head, hit = Infinity) {
   scoreKill(v, by, head);
   if (by.isPlayer && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
   v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null;
+  if (v.slots.aux.w.chargeWave) v.slots.aux.chargeT = 0;
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
   if (v.isPlayer) aimMark.visible = false;
   if (v.isPlayer || v === lock.target) releaseLock();
@@ -4189,15 +4231,16 @@ function botUpdate(u, dt) {
     if (u.target.kind !== 'unit' || Math.random() < 0.3) u.rkGo = true; else u.botRkT = 2;
   }
   if (act) slot = act.slot;
-  else if (sword && tracking && u.target.kind === 'unit' && td < sword.w.strong.lunge + sword.w.strong.reach) {
+  else if (sword && tracking && u.target.kind === 'unit' && td < (sword.w.chargeWave ? sword.w.chargeWave.range : sword.w.strong.lunge + sword.w.strong.reach)) {
     slot = 'aux';
     const sw = sword.w, close = td < sw.normal.reach + R;
     // 間合いの外ならダッシュして踏み込み斬り
-    if (ready && !close && td < sw.strong.lunge + sw.strong.reach && u.weapon === 'aux' && u.switchT <= 0 && !u.swing && sword.cd <= 0) {
+    if (ready && !close && td < sw.strong.lunge + sw.strong.reach && u.weapon === 'aux' && u.switchT <= 0 && !u.swing && sword.cd <= 0 && (!sw.chargeWave || sword.chargeT >= sw.chargeTime)) {
       shortDash(u, u.target.pos.clone().sub(u.pos).setY(0).normalize());
     }
     // 杭は照準のreadyが一瞬外れても離さず、半分以上の充填と間合いを待って撃つ。
-    trig = sw.meleeCharge ? sword.cd <= 0 && !sword.overheat && (sword.chargeT < sw.chargeTime * .5 || !close || !ready)
+    trig = sw.chargeWave ? sword.cd <= 0 && (sword.chargeT < sw.chargeTime || !ready)
+      : sw.meleeCharge ? sword.cd <= 0 && !sword.overheat && (sword.chargeT < sw.chargeTime * .5 || !close || !ready)
       : ready && (close || u.dashT > 0);
   } else if (u.cls === 'heavy' && u.rkGo) slot = 'sub';
   else if (u.cls === 'raid' && sub.w.scope && tracking && td > 35) slot = 'sub'; // 遠い敵は狙撃銃で
@@ -4210,7 +4253,7 @@ function botUpdate(u, dt) {
   if (u.snipe) trig = trig && snl.conv >= 0.6;
   // チャージ撃ち（v0.15）：満タンになったら離して撃つ。満タンで爆発する物は、自分も巻き込まれる近さなら溜めきらずに撃つ。炸裂する弾は近すぎる相手には撃たない
   const bl = snl.w.chargeBlast || (snl.w.chargeOrb && snl.w.chargeOrb.blast) || (snl.w.chargeStages && snl.w.proj.blast) || 0;
-  if (snl.w.chargeTime && !snl.w.meleeCharge && (snl.chargeT >= snl.w.chargeTime || bl && td < bl + 2 && snl.chargeT > 0.3)) trig = false;
+  if (snl.w.chargeTime && !snl.w.meleeCharge && !snl.w.chargeWave && (snl.chargeT >= snl.w.chargeTime || bl && td < bl + 2 && snl.chargeT > 0.3)) trig = false;
   if ((snl.w.blast || snl.w.directBlast) && td < (snl.w.blast || snl.w.directBlast) + 2) trig = false;
   const before = sub.ammo;
   weaponsTick(u, dt, trig, aim || (selfHeal ? targetPoint(u) : null), u.slots[u.weapon].w.scope ? 0.006 : 0.04, alt);
@@ -4602,6 +4645,12 @@ function auxiliaryMelee(hits, profile, strong=false) {
   return {dmg:hits.reduce((n,x)=>n+x,0),reach:profile==='claw'?3.5:profile==='rod'?4:4.6,height:2.4,from:65,to:-65,windup,sweep,time:windup+sweep+.23,step:2.5,homing:5,...(strong?{lunge:5,recover:.23}:{}),strikes};
 }
 const WEAPONS = {
+  // ユーザー指定のオリジナル：直接威力は通常3000・ダッシュ6000、満充填の光波は2000。
+  waveSword: { name: '光波剣', type: 'sword', chargeTime: 1.2,
+    chargeWave: { bladeWave: true, dmg: 2000, speed: 70, range: 60, width: 1.8 },
+    normal: { dmg: 3000, reach: 4.8, height: 2.6, from: 75, to: -75, windup: .1, sweep: .15, time: .5, step: 4, homing: 6 },
+    strong: { dmg: 6000, reach: 4.8, height: 2, from: 90, to: -630, spin: true, lunge: 16, windup: 0, sweep: .6, recover: 1, time: 1.6, homing: 1.8 },
+    desc: '左長押しで充填し、離すと斬る。満充填なら振りに合わせて光波を1発放つ。短押しは斬撃のみ。直接威力は通常3000・ダッシュ6000' },
   // AC リヒトメッサー系統 pages/346：{"kg": 180, "normalHits": [2000, 3500], "strongHits": [4500]}。原典と再現値の区別は auxiliary.json。
   sabre: {"name":"連撃細剣","type":"sword","acMelee":"sabre","normal":auxiliaryMelee([2000, 3500],"sabre"),"strong":auxiliaryMelee([4500],"sabre",true),"desc":"一度の入力で素早い連続斬撃。ダッシュ中は踏み込んで斬る。通常と特殊の各段が別々に命中する"},
   // AC スパークロッド系統 pages/411：{"kg": 190, "normalHits": [2500, 2500], "strongHits": [4500, 3500]}。原典と再現値の区別は auxiliary.json。
@@ -4881,7 +4930,7 @@ const CLASSES = {
 const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
-  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw'], sp: ['charger', 'chargerD', 'chargerS', 'omni'] },
+  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni'] },
   heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
@@ -4890,6 +4939,7 @@ const ARMORY = {
 // 射撃音（v0.11.3、ユーザー指定「射撃音のバリエーションを増やす」）：同じ音を使う武器は、音の種類と高さ（sfxRate）を変えて聞き分けられるようにする。
 // 音の素材は同じ13個（sounds/CREDITS.md）。マグナムは Codex 版の音の設定
 const SFX_TUNE = {
+  waveSword: ['swing', 1.15],
   sabre:['swing',1.25],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
   flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
   artillery: ['heavy', .85],
@@ -4906,6 +4956,7 @@ for (const [k, w] of Object.entries(WEAPONS)) { w.key = k; w.kg = WEAPON_KG[k] |
 // 武器のシリーズ（v0.13、ユーザー決定）：撃ち方と形が同じ武器のまとまり。types は [武器のキー, 型番]。型の違いは数値だけ。
 // 名前は「型番＋武器の名前」（例：SR-7 アサルトライフル）。型番とメーカーはオリジナル。今の48種のうち、特別装備の同じ仕組みの物（加速装置・重砲・光学迷彩・リペアユニット）は1つのシリーズの型
 const SERIES = {
+  lj: { maker: 'lumina', types: [['waveSword', 'LJ-6']] },
   sy: { maker: 'sylph', types: [['sabre', 'SY-2']] },
   lk: { maker: 'lumina', types: [['rod', 'LK-4']] },
   sc: { maker: 'sylph', types: [['claw', 'SC-9']] },
@@ -5528,6 +5579,7 @@ function selectWeapon(u, w) {
   }
   if (w !== 'sp') u.postRecall = false;
   if (u.weapon === w) return;
+  if (u.slots[u.weapon].w.chargeWave) u.slots[u.weapon].chargeT = 0;
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
@@ -5551,7 +5603,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
   for (const k of SLOTS) {
     const sl = u.slots[k], type = sl.w.type;
     // リペアポッドの上ではリペアユニットだけ使える（ポッドと効果が重なる。ユーザー指定、v0.9.3）
-    const on = !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword');
+    const on = !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer);
     const t = on && trigger;
     let r = false;
     if (type === 'gun') {
@@ -5559,7 +5611,13 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
       r = gunTick(u, sl, dt, t, aim, spread);
       if (on && alt && !u.altHeld && sl.w.proj && sl.w.proj.kind === 'remote') detonateRemotes(u); // 遠隔爆弾：持っている間に右クリックで全部起爆
     }
-    else if (type === 'sword') {if(sl.w.meleeCharge&&!on)sl.chargeT=sl.holdT=0;r=swordTick(u, sl, dt, t, aim);}
+    else if (type === 'sword') {
+      if ((sl.w.meleeCharge || sl.w.chargeWave) && (!on || sl.w.chargeWave && u.transfer)) {
+        sl.chargeT = sl.holdT = 0;
+        if (sl.w.chargeWave && u.swing) u.swing.wave = null;
+      }
+      r = swordTick(u, sl, dt, t, aim);
+    }
     else if(type==='radarTool') radarToolTick(u,sl,dt,on);
     else if (type === 'repair') r = repairTick(u, sl, dt, t, aim, on && alt);
     else if (type === 'charger') chargerTick(u, sl, dt);
@@ -5729,6 +5787,12 @@ function swordTick(u, sl, dt, trigger, aim) {
     sw.t += dt;
     if (sw.tgt && u.lungeT > 0) meleeHome(u, sw, dt);
     const a = sw.a, phi = swingPhi(u, sw);
+    if (sw.wave && sw.t >= a.windup + a.sweep * .5) {
+      const from = u.pos.clone().addScaledVector(UP, a.height);
+      shoot(u, from, sw.waveDir.clone().multiplyScalar(sw.wave.speed), sw.wave);
+      u.waveFired = (u.waveFired || 0) + 1;
+      sfx('sniper', from, u); sw.wave = null;
+    }
     if(a.strikes) {
       volley=meleeVolley;volley.clear();
       a.strikes.forEach((strike,i)=>{
@@ -5747,7 +5811,12 @@ function swordTick(u, sl, dt, trigger, aim) {
     if (sw.t >= a.time) u.swing = null;
     return false;
   }
-  let chargeStage=0;
+  let chargeStage=0, waveReady=false;
+  if (sl.w.chargeWave) {
+    if (trigger) { if (sl.cd <= 0) sl.chargeT = Math.min(sl.w.chargeTime, sl.chargeT + dt); return false; }
+    if (sl.chargeT <= 0 || sl.cd > 0) return false;
+    waveReady = sl.chargeT >= sl.w.chargeTime - .00001; sl.chargeT = 0; trigger = true;
+  }
   if(sl.w.meleeCharge) {
     if(sl.overheat){sl.ohT-=dt;if(sl.ohT<=0)sl.overheat=false;sl.chargeT=sl.holdT=0;return false;}
     if(trigger){
@@ -5774,6 +5843,11 @@ function swordTick(u, sl, dt, trigger, aim) {
   else tgt = null;
   const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt, tilt = swingTilt(u, a, aim);
   u.swing = { a, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
+  if (waveReady) {
+    const from = u.pos.clone().addScaledVector(UP, a.height), d = aim ? aim.clone().sub(from) : fwdOf(u);
+    if (d.lengthSq() < .0001) d.copy(fwdOf(u));
+    u.swing.wave = sl.w.chargeWave; u.swing.waveDir = d.normalize();
+  }
   if(sl.w.acMelee)u.meleeFired=(u.meleeFired||0)+1;
   reveal(u);
   sfx(a.spin ? 'spin' : 'swing', u.pos, u);
@@ -5852,6 +5926,15 @@ function weaponLook(u, dt) {
   }
   if (u.blade2) { u.blade2.visible = !!S.aux.w.meleeDual; if (u.blade2.visible) setWeaponGeo(u.blade2, S.aux.w.key); }
   bladePose(u);
+  if (S.aux.w.chargeWave && !u.blade.userData.chargeGlow) {
+    const effect = new T.Mesh(u.blade.geometry, new T.MeshBasicMaterial({ color: 0x75e5ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
+    effect.scale.setScalar(1.035); u.blade.add(effect); u.blade.userData.chargeGlow = effect;
+  }
+  const chargeGlow = u.blade.userData.chargeGlow;
+  if (chargeGlow) {
+    chargeGlow.visible = !!S.aux.w.chargeWave && u.weapon === 'aux' && S.aux.chargeT > 0 && !u.swing;
+    chargeGlow.material.opacity = S.aux.w.chargeWave ? .15 + .6 * Math.min(1, S.aux.chargeT / S.aux.w.chargeTime) : 0;
+  }
   u.gun.visible = cur.type !== 'sword'; u.gun2.visible &&= cur.type !== 'sword';
   const sp = S.sp.w, cannon = sp.type === 'cannon';
   u.pack.visible = cannon || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
@@ -5882,7 +5965,7 @@ function bladePose(u) {
   for (let hand = 0; hand < 2; hand++) {
     const b = hand === 0 ? u.blade : u.blade2, sd = hand === 0 ? 1 : -1;
     if (!b?.visible) continue;
-    const bb = b.geometry.boundingBox, gripZ = family === 'sword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
+    const bb = b.geometry.boundingBox, gripZ = family === 'sword' || family === 'waveSword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
     const held = bladeHeld.set(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
     let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'dagger' ? .18 : family === 'claw' ? .15 : .62;
     let scale = 1; // 構え中は#13の形の寸法。間合いへの伸長は攻撃中だけ。
@@ -5917,6 +6000,7 @@ function bladePose(u) {
       }
     }
     if (selected && w.meleeCharge && !sw) { const charge = Math.min(1, (u.slots.aux.chargeT || 0) / w.chargeTime); held.z += charge * .22; twist -= charge * .2; }
+    if (selected && w.chargeWave && !sw) { const charge = Math.min(1, (u.slots.aux.chargeT || 0) / w.chargeTime); held.z += charge * .3; angle += sd * charge * .18; twist -= charge * .3; }
     b.scale.set(1, 1, scale); b.rotation.set(pitch, angle, 0, 'YXZ');
     b.position.copy(held).sub(bladeOffset.set(0, 0, gripZ * scale).applyQuaternion(b.quaternion));
     (b.userData.grip ||= new T.Vector3()).copy(held);
@@ -6876,6 +6960,7 @@ function wStats(w) {
     if(w.normal.strikes)st.push(`通常 ${w.normal.strikes.map(x=>x.dmg).join('+')}`,`特殊 ${w.strong.strikes.map(x=>x.dmg).join('+')}`);
     if(w.meleeCharge)st.push(`通常 ${w.normalLevels.join('／')}`,`特殊 ${w.strongLevels.join('／')}`,`充填 ${w.chargeTime}秒・保持${w.chargeHold}秒`);
   }
+  if (w.chargeWave) st.push(`満充填の光波 ${w.chargeWave.dmg}`, `充填 ${w.chargeTime}秒`, `光波の射程 ${w.chargeWave.range}m`, '短押しは斬撃のみ・離して発動');
   if(w.type==='radarTool')st.push(`索敵 ${w.range}m・${w.arc}度`,`表示 ${w.keep}秒`,`最大範囲まで約${w.expand}秒`,'回数無制限');
   if(P?.planar)st.push('横向きの垂直面・前後方向の索敵なし');
   if(P?.airDeploy)st.push(`弾倉 ${P.gun.mag}発×無制限`,`再装填 ${P.gun.reload}秒`,P.roamSpeed?`巡航 ${P.roamSpeed}m/s・約${P.dur}秒`:'浮上後に停滞');
@@ -6919,6 +7004,7 @@ function itemNums(sl, key) {
   if(P.airDeploy)r.push(['砲台の弾倉',P.gun.mag,n0,true],['砲台の連射',P.gun.rpm,u('発/分'),true],['砲台の再装填',P.gun.reload,u('秒'),false]);
   if(P.roamSpeed)r.push(['巡航速度',P.roamSpeed,u('m/s'),true],['飛行時間',P.dur,u('秒'),true]);
   if(x.meleeCharge)r.push(['通常の満充填威力',x.normalLevels[2],n0,true],['特殊の満充填威力',x.strongLevels[2],n0,true]);
+  if(x.chargeWave)r.push(['光波の威力',x.chargeWave.dmg,n0,true],['光波の充填',x.chargeTime,u('秒'),false],['光波の射程',x.chargeWave.range,u('m'),true]);
   if(x.normal?.strikes)r.push(['通常の判定数',x.normal.strikes.length,n0,true]);
   if(x.type==='radarTool')r.push(['索敵表示',x.keep,u('秒'),true],['展開時間',x.expand,u('秒'),false]);
   if (x.strong) r.push([x.strong.spin ? '回転斬り' : '突進突き', x.strong.dmg, n0, true], ['間合い', x.normal.reach, u('m'), true], ['ダッシュ中の踏み込み', x.strong.lunge, u('m'), true]);
@@ -7406,7 +7492,10 @@ function hud(timeLeft, dt) {
   if (p.switchT > 0) { big = '--'; small = '持ち替え中'; }
   else if (cw.type === 'sword') {
     big = '∞';
-    if(cw.meleeCharge){
+    if(cw.chargeWave){
+      const charge=Math.min(100,Math.floor(cur.chargeT/cw.chargeTime*100));big=charge+'%';
+      small=cw.name+(charge>=100?' · 光波準備完了！ 離して斬る':' · 左長押しで充填／短押しは斬撃のみ');
+    }else if(cw.meleeCharge){
       const charge=Math.min(100,Math.round(cur.chargeT/cw.chargeTime*100));
       big=cur.overheat?'過熱':charge+'%';
       small=cw.name+(cur.overheat?` · オーバーヒート（残り${Math.max(0,cur.ohT).toFixed(1)}秒）`:` · 溜め ${charge}%（${charge>=100?'満充填':charge>=50?'半充填':'充填中'}） · 離すと突く／ダッシュ中は強打`);
@@ -7461,7 +7550,7 @@ function hud(timeLeft, dt) {
   if (cw.mag) {
     if (cur.reloadT > 0) { fa = 1 - cur.reloadT / cw.reload; ac = 'rl'; }
     else { fa = cur.ammo / cw.mag; if (fa <= 0.25) ac = 'low'; }
-  } else fa = cw.type === 'sword' ? 1 : cur.heat / 100;
+  } else fa = cw.type === 'sword' ? cw.chargeWave ? Math.min(1,cur.chargeT/cw.chargeTime) : 1 : cur.heat / 100;
   const fh = Math.max(0, p.hp / p.maxHp);
   $('agAmmo').setAttribute('stroke-dasharray', `${(Math.max(0, fa) * 100).toFixed(1)} 100`); $('agAmmo').setAttribute('class', ac);
   $('agHp').setAttribute('stroke-dasharray', `${(fh * 100).toFixed(1)} 100`); $('agHp').setAttribute('class', fh <= 0.3 ? 'low' : '');
