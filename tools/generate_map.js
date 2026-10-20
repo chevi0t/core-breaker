@@ -82,7 +82,7 @@ async function generate(config) {
           await page.click('#start');
           const routes=await page.evaluate(driveRoutes);
           const mobility=await page.evaluate(driveMobility);
-          const variant={name:choice.name,plants:choice.plants,plantPods:def.plantPods,barricades:def.barricades,nav:built.nav,desc:data.desc+' '+choice.name+'。勝率未確定。'};
+          const variant={name:choice.name,plants:choice.plants,plantPods:def.plantPods,barricades:def.barricades,nav:built.nav,desc:data.desc+choice.name+'。'};
           variants.push(variant);
           validations.push({id:i===0?config.id:`${config.id}-v${i+1}`,metrics:choice.metrics,nav:{nodes:built.retained,links:built.links},routes,mobility});
           // 次の buildMap は進行中の機体を再利用しない。

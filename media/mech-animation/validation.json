@@ -1,0 +1,165 @@
+{
+  "testedCommit": "4a7fec485ab546d9ae5353ffbf07f6b120ca9363",
+  "htmlBlob": "fbda4274540d615a204c99874bd094a061643e70",
+  "baseCommit": "2696c01962d40d1c9ed905ae3c4b4ed6d0e0be94",
+  "animation": {
+    "weaponPoses": 1995,
+    "meleeFrames": 2023,
+    "rayHits": 28,
+    "maxVertices": 2556,
+    "maxGripError": 0.016142851850550328,
+    "cpuMsFor20": 4.016666666666667,
+    "checks": [
+      "{\"head\":\"light\",\"body\":\"light\",\"arms\":\"light\",\"legs\":\"light\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"standard\",\"body\":\"standard\",\"arms\":\"standard\",\"legs\":\"standard\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"heavy\",\"body\":\"heavy\",\"arms\":\"heavy\",\"legs\":\"heavy\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"harrier\",\"body\":\"harrier\",\"arms\":\"harrier\",\"legs\":\"harrier\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"prism\",\"body\":\"prism\",\"arms\":\"prism\",\"legs\":\"prism\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"bastion\",\"body\":\"bastion\",\"arms\":\"bastion\",\"legs\":\"bastion\"} 全武器・着地・移動・被弾",
+      "{\"head\":\"prism3\",\"body\":\"bastion2\",\"arms\":\"harrier3\",\"legs\":\"light2\"} 全武器・着地・移動・被弾"
+    ],
+    "previews": 7
+  },
+  "shapes": {
+    "combinations": 1296,
+    "shots": 6480,
+    "maxVertices": 2592,
+    "armorMeshes": 4
+  },
+  "auxiliary": {
+    "checks": 64,
+    "nativeChargeInput": true,
+    "screens": 6,
+    "errors": []
+  },
+  "videos": {
+    "comparison.webm": {
+      "seconds": 3,
+      "cases": [
+        "sword"
+      ]
+    },
+    "motion.webm": {
+      "seconds": 21,
+      "cases": [
+        "walk",
+        "sword",
+        "spear",
+        "sabre",
+        "rod",
+        "clawB",
+        "pikeM"
+      ]
+    }
+  },
+  "logs": {
+    "check": {
+      "sha256": "ba9a2e5dfaec06bd573d622770b7c1299f1d25418ba71ff8a76bbaeb8ebb7f75",
+      "exitCode": 0,
+      "errors": []
+    },
+    "shapes": {
+      "sha256": "0cfd943c1568b2a8ee07bc4b14b8289369b5e49245c28285378371011d7c777e",
+      "exitCode": 0,
+      "errors": []
+    },
+    "auxiliary": {
+      "sha256": "415ebdcdacf5fae31bc3d53321dbcd25692a5610395a07a82ecc1c85c0048037",
+      "exitCode": 0,
+      "errors": []
+    },
+    "capture": {
+      "sha256": "292ed2d3a426e52adf2c02b991a1d95a6676e80506a6187a922d60725ec8dc94",
+      "exitCode": 0,
+      "errors": []
+    },
+    "capture-before": {
+      "sha256": "e1af3a3054bad836e76b107aef136fac535a0376f0a2794f10fbb064da4724f4",
+      "exitCode": 0,
+      "errors": []
+    },
+    "weapons": {
+      "sha256": "ff94054ba460c1a58ac3577c9c2c5ebea103d32dc573abb42551c2e7d00fc5a4",
+      "exitCode": 0,
+      "errors": []
+    },
+    "bots": {
+      "sha256": "bd606edc441fa710dd16cdcdacca909c05ed4b3d8ebde2ec917cac858ad2db12",
+      "exitCode": 0,
+      "errors": []
+    },
+    "targeted-ground": {
+      "sha256": "364d1bf85954002dbf3c92f2832be01eb954e35b62c8ad81c096d50a2222c877",
+      "exitCode": 0,
+      "errors": []
+    }
+  },
+  "weapons": {
+    "count": 285,
+    "errors": [],
+    "supplement": [
+      "chain",
+      "chainL",
+      "chainH",
+      "chainD",
+      "lzsniperH",
+      "blastSniperH"
+    ],
+    "supplementResult": "手前の地面を狙う連鎖4型、姿勢/行列を同期した狙撃2型とも実ダメージあり",
+    "supplementErrors": []
+  },
+  "bots": [
+    {
+      "map": "city",
+      "gameSeconds": 151,
+      "coreOrCost": [
+        6694,
+        6638
+      ],
+      "kills": 85,
+      "revives": 2,
+      "transfers": 15,
+      "normalEnd": false,
+      "errors": []
+    },
+    {
+      "map": "wide",
+      "gameSeconds": 152,
+      "coreOrCost": [
+        6806,
+        6413
+      ],
+      "kills": 88,
+      "revives": 2,
+      "transfers": 9,
+      "normalEnd": false,
+      "errors": []
+    },
+    {
+      "map": "mesa",
+      "gameSeconds": 154,
+      "coreOrCost": [
+        7538,
+        7538
+      ],
+      "kills": 54,
+      "revives": 1,
+      "transfers": 3,
+      "normalEnd": false,
+      "errors": []
+    },
+    {
+      "map": "dock",
+      "gameSeconds": 27,
+      "coreOrCost": [
+        2000,
+        0
+      ],
+      "kills": 5,
+      "revives": 0,
+      "transfers": 0,
+      "normalEnd": true,
+      "errors": []
+    }
+  ]
+}

@@ -28,9 +28,10 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       g.player.isPlayer = false;
       g.spawn(g.player, 'base'); // Botとしてランダムな武器で出直す
       window.__st = { kills: 0, spawns: 0, used: {}, placed: {}, fieldT: 0, sentryShots: 0, remoteBoom: 0, maxShells: 0, stuck: 0, revives: 0, xfers: 0, barrierT: 0, escortT: 0, specialTypes: {}, artilleryShots: 0, maxBarrages: 0 };
-      const was = new Map(), seen = new Set(), subAmmo = new Map();
+      const was = new Map(), seen = new Set(), subAmmo = new Map(), auxAmmo = new Map();
       const secondarySeries = new Set(['flare','chain','dart','charge','zoom','blastSniper','lightSniper','jumpMine','delayMine','detonator'].map(k=>g.WEAPONS[k]?.series).filter(Boolean));
-      __st.secondaryShots = {};
+      __st.secondaryShots = {};__st.auxiliaryShots={};__st.radarTime={};
+      const auxiliarySeries=new Set(['sabre','rod','claw','pike','jammer','airTurret','flyTurret','stunGrenade','planeSensor','ammoBox','radarTool'].map(k=>g.WEAPONS[k]?.series).filter(Boolean));
       const f = () => {
         const s = __st;
         for (const u of g.units) {
@@ -46,6 +47,13 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
           const sub=u.slots.sub, count=sub.ammo+sub.reserve, prev=subAmmo.get(sub);
           if (secondarySeries.has(sub.w.series) && prev!=null && count<prev) s.secondaryShots[sub.w.key]=(s.secondaryShots[sub.w.key]||0)+prev-count;
           subAmmo.set(sub,count);
+          const aux=u.slots.aux, ac=aux.w.type==='sword'?(u.meleeFired||0):aux.ammo+aux.reserve, prevAux=auxAmmo.get(aux);
+          if(auxiliarySeries.has(aux.w.series)){
+            const n=prevAux==null?0:aux.w.type==='sword'?ac-prevAux:prevAux-ac;
+            if(n>0)__st.auxiliaryShots[aux.w.key]=(__st.auxiliaryShots[aux.w.key]||0)+n;
+            if(aux.w.type==='radarTool' && aux.scanRadius>0)__st.radarTime[aux.w.key]=(__st.radarTime[aux.w.key]||0)+.05;
+          }
+          auxAmmo.set(aux,ac);
           if (u.artilleryFired > (u.__artWas || 0)) s.artilleryShots += u.artilleryFired - (u.__artWas || 0);
           u.__artWas = u.artilleryFired;
           if (u.fieldOn) s.fieldT += 0.05;
@@ -73,7 +81,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
       const g = __g, s = __st;
       // どの武器が何回撃破を取ったかは数えない。武器の種類ごとの使われ方と、試合の進み
       return { t: Math.round(g.MATCH - g.timeLeft), core: [Math.round(g.cores.B.hp), Math.round(g.cores.R.hp)], kills: s.kills, spawns: s.spawns, kinds: Object.keys(s.used).length,
-        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers, barrierT: Math.round(s.barrierT), escortT: Math.round(s.escortT), specialTypes: Object.keys(s.specialTypes), artilleryShots: s.artilleryShots, maxBarrages: s.maxBarrages, secondaryShots: s.secondaryShots,
+        placed: s.placed, fieldT: Math.round(s.fieldT), maxShells: s.maxShells, revives: s.revives, xfers: s.xfers, barrierT: Math.round(s.barrierT), escortT: Math.round(s.escortT), specialTypes: Object.keys(s.specialTypes), artilleryShots: s.artilleryShots, maxBarrages: s.maxBarrages, secondaryShots: s.secondaryShots, auxiliaryShots:s.auxiliaryShots, radarTime:s.radarTime,
         mechTypes: [...new Set(g.units.flatMap(u => ['head','body','arms','legs'].map(k => u.mech[k])))],
         score: g.units.map(u => `${u.team}${u.idx}:${u.cls[0]}${u.sc.kills}/${u.sc.deaths}`).join(' ') };
     });
@@ -84,6 +92,7 @@ const dir = process.argv[2], maps = (process.argv[3] || 'city,wide,mesa,dock').s
     console.log('  追加特別装備', st.specialTypes.join(','), 'バリア作動' + st.barrierT + '秒、自動銃作動' + st.escortT + '秒');
     console.log('  榴弾砲', st.artilleryShots + '発、飛翔中の最大' + st.maxBarrages + '発');
     console.log('  追加副武器の発射', JSON.stringify(st.secondaryShots));
+    console.log('  追加補助装備',JSON.stringify(st.auxiliaryShots),'レーダー稼働秒',JSON.stringify(st.radarTime));
     console.log('  設置', JSON.stringify(st.placed));
     console.log('  ', st.score);
     console.log('  エラー', errs.length ? errs.slice(0, 5) : 'なし');

@@ -20,7 +20,8 @@ SKIP = [
     'dbg/*', 'node_modules/*',  # 動作確認の作業フォルダ（clone の中で作る）
 ]
 # clone の側でだけ持つ物（共有フォルダには無い）
-REPO_ONLY = ['.git/*', '.gitignore', 'README.md', 'AGENTS.md', 'CLAUDE.md', '.github/*', 'package.json', 'package-lock.json']
+# releases/：配布版の zip（GitHub のリリースを作れないのでリポジトリに置く。2026-10-20）
+REPO_ONLY = ['.git/*', '.gitignore', 'README.md', 'AGENTS.md', 'CLAUDE.md', '.github/*', 'package.json', 'package-lock.json', 'releases/*']
 
 
 def skipped(rel, pats):

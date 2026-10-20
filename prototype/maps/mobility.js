@@ -2,7 +2,8 @@
 (window.MAP_DATA = window.MAP_DATA || {}).mobility = {
   order: 6, name: '昇降設備試験場', subtitle: '垂直射出と運搬', asym: true,
   size: [135, 240], team: 5, time: 300, baseZ: 210, baseLine: 165,
-  desc: '中央の高さ12mの台地へ、西のジャンプパッドか東の往復リフトで上がる。通常のジャンプでは届かない。設備の操作検証用・勝率未確定。',
+  desc: '中央の高さ12mの台地へ、西のジャンプパッドか東の往復リフトで上がる。通常のジャンプでは届かない。設備の操作検証用。',
+  testOnly: true, // 試験用。マップ選択には出さない
   terrain: [
     {type:'block', x:0, z:0, hx:12, hz:27, h:12, slope:2},
     {type:'block', x:0, z:141, hx:18, hz:3, h:5, slope:2.5},

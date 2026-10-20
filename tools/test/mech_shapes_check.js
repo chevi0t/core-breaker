@@ -1,5 +1,5 @@
 // 使い方: python3 tools/test/make_dbg.py dbg && node tools/test/mech_shapes_check.js dbg [画像の出力先]
-// 全81通りの混成機で、部位別の実射ダメージ、頭の高さ、描画予算、武器の取付位置を確認する。
+// 各シリーズの基本型で全混成機（6系統なら1296通り）を作り、部位別の実射ダメージ、頭の高さ、描画予算、武器の取付位置を確認する。
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,13 +18,13 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.route('**fonts.g*/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
     await page.goto('file://' + path.join(dir, 'dbg.html'));
-    await page.evaluate(() => __g.selectMap('dock'));
-    await page.click('#start');
+    await page.evaluate(() => {__g.renderer.render=()=>{const u=__g.units[0];if(u)u.group.parent.updateMatrixWorld();};__g.selectMap('dock');document.getElementById('start').click();__g.running=false;});
 
     const result = await page.evaluate(() => {
       const g = __g, T = g.T, slots = ['head', 'body', 'arms', 'legs'];
-      const types = ['light', 'standard', 'heavy'];
-      // 変更前の各部位の箱数。混成機でも合計1.5倍以内を保つ。
+      const keys=Object.keys(g.PARTS.head), types=keys.filter((k,i)=>keys.findIndex(x=>g.PARTS.head[x].series===g.PARTS.head[k].series)===i);
+      const legacyTypes=['light','standard','heavy'];
+      // 装甲は従来の予算。関節10個・分割フレーム/掌と、接地のためのブーツ分割（最大10箱）を別に数える。
       const original = { head: [5, 4, 6], body: [7, 7, 10], arms: [6, 6, 8], legs: [12, 10, 12] };
       const anchors = { gun: [1.55, 2.5, -0.7], gun2: [-1.6, 2.6, -0.7], blade: [-1.6, 2.6, -1.6], pack: [0, 2.7, 1.45], mount: [0, 2.75, 1.25] };
       const check = (ok, message) => { if (!ok) throw new Error(message); };
@@ -44,7 +44,9 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             const armor = model.g.children.filter(m => m.userData.own && m.userData.armorSlot);
             check(armor.length === 4, label + ': 装甲は4部位のメッシュ');
             const boxes = armor.reduce((sum, m) => sum + m.geometry.attributes.position.count / 36, 0);
-            const budget = slots.reduce((sum, slot) => sum + original[slot][types.indexOf(cfg[slot])], 0) * 1.5;
+            const legacy=slots.every(slot=>legacyTypes.includes(cfg[slot]));
+            const joints = model.rig ? 10 * 2 + 4 + 10 : 0;
+            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60) + joints;
             check(boxes <= budget, label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);
             if (slots.every(slot => cfg[slot] === head)) counts[head] = boxes;
@@ -78,6 +80,8 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
               check(Math.abs(before - target.hp - expected) < 1e-5, label + ': 部位の装甲・頭部倍率 ' + slot + '/' + y);
               shots++;
             }
+            // 実射の光・弾道はこの同期検証中に時刻が進まないため、溜めずに片付ける。
+            for(const f of g.fx){scene.remove(f.obj);if(f.kind==='sparks'||f.ownGeo)f.obj.geometry.dispose();if(f.obj.material&&!Array.isArray(f.obj.material))f.obj.material.dispose();}g.fx.length=0;
             combinations++;
           } finally { g.disposeMech(model.g); }
         }
@@ -98,16 +102,17 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
         g.hittables.splice(0, g.hittables.length, ...hits);
         Object.assign(target, previous); target.pos = previous.pos;
       }
-      return { combinations, shots, boxes: counts, maxBoxes, futureType: true };
+      return { combinations, shots, boxes: counts, maxBoxes, futureType: true, seriesCount:types.length };
     });
-    assert.equal(result.combinations, 81);
-    assert.equal(result.shots, 405);
+    assert.equal(result.combinations, result.seriesCount**4);
+    assert.equal(result.shots, result.combinations*5);
     console.log('機体形状:', JSON.stringify(result));
 
     const configurations = {
       swift: { head: 'light', body: 'light', arms: 'light', legs: 'light' },
       hound: { head: 'standard', body: 'standard', arms: 'standard', legs: 'standard' },
       bulwark: { head: 'heavy', body: 'heavy', arms: 'heavy', legs: 'heavy' },
+      ...(await page.evaluate(()=>Object.fromEntries(['harrier','prism','bastion'].filter(k=>__g.PARTS.head[k]).map(k=>[k,{head:k,body:k,arms:k,legs:k}])))),
       mixed: { head: 'light', body: 'standard', arms: 'heavy', legs: 'light' }
     };
     await page.evaluate(async () => { await document.exitPointerLock?.(); });

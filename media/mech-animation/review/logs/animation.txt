@@ -1,0 +1,23 @@
+node tools/test/mech_animation_check.js dbg/review15 <出力先> <修正前stats.json>
+
+{
+  "weaponPoses": 1995,
+  "meleeFrames": 2023,
+  "rayHits": 28,
+  "maxVertices": 2808,
+  "maxGripError": 0.01614285185055054,
+  "floorChecks": 3059,
+  "minLegY": -0.0020139794796705246,
+  "idleBlades": 189,
+  "cpuMsFor20": 1.8533333333830038,
+  "checks": [
+    "{\"head\":\"light\",\"body\":\"light\",\"arms\":\"light\",\"legs\":\"light\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"standard\",\"body\":\"standard\",\"arms\":\"standard\",\"legs\":\"standard\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"heavy\",\"body\":\"heavy\",\"arms\":\"heavy\",\"legs\":\"heavy\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"harrier\",\"body\":\"harrier\",\"arms\":\"harrier\",\"legs\":\"harrier\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"prism\",\"body\":\"prism\",\"arms\":\"prism\",\"legs\":\"prism\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"bastion\",\"body\":\"bastion\",\"arms\":\"bastion\",\"legs\":\"bastion\"} 全武器・着地・移動・被弾",
+    "{\"head\":\"prism3\",\"body\":\"bastion2\",\"arms\":\"harrier3\",\"legs\":\"light2\"} 全武器・着地・移動・被弾"
+  ]
+}
+全武器の姿勢・近接の各段・足裏・被弾・銃口：成功。ブラウザエラーなし

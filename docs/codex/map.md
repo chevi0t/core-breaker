@@ -119,6 +119,7 @@ Bot はどのマップでも同じ考え方で動く（`index.html` の `botUpda
 ## 7. Bot 戦で確かめる
 
 ```sh
+node tools/test/quick_check.js origin/main                 # 増えた・変わったマップと city で Bot 戦を60秒（武器・パーツの変更があればそれも試す）
 node tools/test/bot_battle.js dbg <id> 150
 node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # エンジンの Bot を変えたときは今のマップも
 ```
@@ -127,6 +128,7 @@ node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # エンジンの Bo
 
 ## 8. PR に入れる物
 
+- 新しい物を足すだけで「任せる所」に収まる PR は、`AGENTS.md` の「自分でマージしてよい変更」の手順で自分でマージしてよい（オーナーの指定 2026-10-20）。今ある物の数値や、全部に効く仕組みを変えたら、今までどおり Claude かオーナーがマージする。
 - `prototype/maps/<id>.js` と、作り直した `prototype/maps.js`（今あるマップの中身は変わらないこと）
 - `mapdesign/<id>/README.md`（1. で決めたこと）、上から見た図、map_check のスクリーンショット（`dbg/map_<id>_*.png` から選んで `mapdesign/<id>/` へ）
 - エンジンを変えたなら `prototype/index.html` と `docs/DESIGN.md`、`prototype/maps/README.md`

@@ -1,5 +1,7 @@
 # 白煙循環区
 
+> リプレイ（`replay.html`・`replay.zip`・`preview.mp4`）、`recorded.json`、100KB を超える対戦記録と大きな画像は、リポジトリを軽くするため main に入れていない（#8 のマージ、2026-10-20）。全部はブランチ `codex/1-mapgen` の [38b1798](https://github.com/chevi0t/core-breaker/tree/38b1798e5db4ff9fe75de0e9e79acb586feab0a6/mapdesign) にある。作り直すときは `tools/test/record_battle.js` と `tools/test/export_replay.js` を使う。
+
 ジャンプパッドとリフトを使う共通地形と3戦場。[v3の設計実験](v3/README.md)で迎撃の遮蔽と中央補給圏を比較したが、**[最新250武器版](v3/main250/README.md)で改善を再現できず、追加配置は不採用**。登録は `reviewed250` として[v2](v2/README.md)の配置を維持する。勝率未確定。
 
 - 西の高架と東の広場を高さ13mにし、各高所に内側のパッド・外側の往復リフトを配置。計3基ずつ。

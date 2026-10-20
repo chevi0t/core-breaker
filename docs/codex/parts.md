@@ -10,8 +10,8 @@
 |---|---|
 | `PART_SLOTS`・`PARTS` | 部位（head・body・arms・legs）と型のキー。light・standard・heavyがⅠ型、末尾2・3がⅡ・Ⅲ型。各部位の型は `Object.keys(PARTS[部位])` で列挙する |
 | `PARTS[部位][型のキー]` | 性能。全部位に `weight`（kg）と `armor`（その部位に当たったときの被ダメージ倍率）。頭は `lock`・`aim`、胴は `boost`・`sp`・`supply`、腕は `reload`・`swap`・`recoil`・`ammo`、脚は `walk`・`dash`・`cruise`・`cap`（意味は定義の横のコメントと `docs/DESIGN.md` の「機体パーツと重量」） |
-| `PART_SERIES` | シリーズ（スウィフト＝軽量、ハウンド＝標準、ブルワーク＝重装）。`types` がそのシリーズの型のキーの並びで、起動時に順にⅠ型・Ⅱ型・Ⅲ型と名前が付く。`set` はセットボーナス |
-| `PART_VARIANTS` | ACの採用型÷ACのⅠ型の比。起動時に本作Ⅰ型へ掛け、Ⅱ・Ⅲ型を `PARTS` へ足す |
+| `PART_SERIES` | 6シリーズ（既存スウィフト・ハウンド・ブルワーク、追加ハリアー・プリズム・バスティオン）。`types` がそのシリーズの型のキーの並びで、起動時に順にⅠ型・Ⅱ型・Ⅲ型と名前が付く。`set` はセットボーナス |
+| `PART_VARIANTS` | ACの採用型÷基準型の比。既存Ⅱ・Ⅲ型は同系統のⅠ型が基準。追加3系統は標準Ⅰ型/ACクーガーⅠ型を共通基準にⅠ〜Ⅲを生成する |
 | `normMech` | 保存した機体（`localStorage` の `coreBreakerMech` と `coreBreakerBuilds`）を読むとき、その部位に無い型を標準Ⅰに戻す |
 | `mechStats` | 重量・重量超過・速さ・装甲を出す（重量耐性を40kg超えるごとに1%遅い） |
 | `botMech` | Bot の機体（頭・胴・腕は全型からランダム、脚は重量超過が300kg以下になる全型から。無ければ重量耐性が最大の型） |
@@ -42,10 +42,16 @@
 ## 3. 確かめる
 
 ```sh
-python3 tools/test/make_dbg.py dbg
-node tools/test/bot_battle.js dbg city,wide,mesa,dock 150   # 「エラー なし」。Bot の機体に新しい型が出ること
+# まず簡易テスト：main から増えた・変わった武器とパーツだけを試し、Bot 戦を2マップ60秒だけ回す（2026-10-20 オーナーの指定）
+node tools/test/quick_check.js origin/main
+# 増えたパーツを1つずつ、ほかの部位は初期のまま付け、形・重さ・装甲・部位ごとの被弾・立ち/歩き/屈みの姿勢を確かめる
 ```
+
+- 全混成の `mech_shapes_check.js`（6系統で1296通り）と4マップ150秒の `bot_battle.js` は時間がかかるので、機体の形の作り方や当たり判定そのものを変えたときだけ回す。
 
 - 機体カスタマイズで、各シリーズにⅠ〜Ⅲ型が並び、▲▼の比べと重量の棒、回る見本が正しく出るスクリーンショット。
 - 前のブラウザの保存（`coreBreakerMech`・`coreBreakerBuilds`）を入れた状態で開いても壊れないこと。
 - PR の説明に、全部の型の性能の表（重量・装甲・各部位の性能）と、重量超過の例（兵装ごとの初期装備で）を書く。
+- 新しい物を足すだけで「任せる所」に収まる PR は、`AGENTS.md` の「自分でマージしてよい変更」の手順で自分でマージしてよい（オーナーの指定 2026-10-20）。今ある物の数値や、全部に効く仕組みを変えたら、今までどおり Claude かオーナーがマージする。
+
+現在の追加3系統の採用記録は `research/parts/types/new-series.json`、全72パーツと重量例は `new-series-stats.md`。SP消費は固定割合で、胴の `sp/100×supply` は回復速度（2026-10-20ユーザー指定）。

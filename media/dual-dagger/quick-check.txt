@@ -1,0 +1,40 @@
+node tools/test/quick_check.js origin/main
+
+書き出し: /workspace/core-breaker/dbg/quick-new/dbg.html
+書き出し: /workspace/core-breaker/dbg/quick-base/dbg.html
+比べる版 origin/main
+武器 285種：増えた0・変わった3・消えた0
+パーツ head：増えた0・変わった0・消えた0
+パーツ body：増えた0・変わった0・消えた0
+パーツ arms：増えた0・変わった0・消えた0
+パーツ legs：増えた0・変わった0・消えた0
+マップ：増えた なし・変わった なし・消えた なし
+パーツ：試す物なし
+武器 3種を撃つ: rod,rodH,rodM
+場所 [ -50, -48 ]
+assault/aux rod 双短刀: 発射0 弾減0 ダメ6037 崩れ=down SP100→100 味方HP3000
+assault/aux rodH 双短刀・強装型: 発射0 弾減0 ダメ9659 崩れ=down SP100→100 味方HP3000
+assault/aux rodM 双短刀・重装型: 発射0 弾減0 ダメ15093 崩れ=down SP100→100 味方HP3000
+エラー []
+Bot戦 city,dock 各60秒
+city: 31秒まで進行
+city: 60秒まで進行
+== city 60秒 コア/戦力 8438,8156 撃破27 蘇生1 エリア移動3 出撃42 使われた武器118種 フィールド作動7秒 弾の最大4
+  機体の型 standard,prism3,heavy3,bastion3,heavy2,light,heavy,harrier,bastion,bastion2,harrier3,light3,prism,light2,standard2,harrier2,prism2,standard3
+  追加特別装備 artillery,escort,barrier,artilleryH,barrierM,repairPost,escortH,repairPostW,artilleryR,escortR バリア作動50秒、自動銃作動55秒
+  榴弾砲 7発、飛翔中の最大6発
+  追加副武器の発射 {"jumpMineH":3,"lightSniper":11,"chainD":2,"chain":1,"chainH":1,"dartE":1}
+  追加補助装備 {"ammoBox":2,"jammerI":1,"airTurretH":1,"rod":1,"sabreM":1,"airTurret":1} レーダー稼働秒 {"radarTool":13.650000000000059}
+  設置 {"地雷":5,"補給コンテナ":2,"リペアビーコン":3,"索敵センサー":1,"自動砲台":2,"リペアビーコン・広域型":2}
+   B0:a0/2 B1:s1/2 B2:h0/0 B3:a1/2 B4:r2/1 B5:h2/1 B6:s2/0 B7:r1/1 B8:a3/1 B9:h3/1 R0:a1/3 R1:s1/2 R2:h1/0 R3:a0/2 R4:r2/2 R5:h1/1 R6:s2/2 R7:r0/0 R8:a0/2 R9:h3/2
+  エラー なし
+== dock 16秒 コア/戦力 4000,0 撃破4 蘇生0 エリア移動0 出撃6 使われた武器22種 フィールド作動5秒 弾の最大1
+  機体の型 standard,prism2,light,harrier2,bastion3,bastion,heavy,harrier
+  追加特別装備 repairPostG,repairPostW バリア作動0秒、自動銃作動0秒
+  榴弾砲 0発、飛翔中の最大0発
+  追加副武器の発射 {"detonatorR":2,"dartH":1}
+  追加補助装備 {} レーダー稼働秒 {}
+  設置 {"遠隔爆弾":2,"リペアビーコン・高出力型":1}
+   B0:a2/0 B1:s1/1 R0:a1/2 R1:s0/1
+  エラー なし
+簡易テスト：成功
