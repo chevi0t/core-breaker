@@ -59,12 +59,12 @@ const dir = path.resolve(process.argv[2] || 'dbg/cat-pilots');
     });
     yes(board, '10対10のスコア表に全員の顔が付き、Botに8匹を割り当てる');
     const killcam = await p.evaluate(() => {
-      const g = __g, u = g.player, e = g.units.find(q => q.team !== u.team); g.kill(u, e, false); g.hud(240, .016);
-      const result = !document.getElementById('killcam').hidden && document.getElementById('killerFace').firstChild.dataset.pilot === ['tabby', 'silver', 'black', 'white', 'ginger', 'calico', 'tuxedo', 'siamese'][(e.idx + 4) % 8];
-      g.spawn(u); g.hud(240, .016); return result && document.getElementById('pilotMark').dataset.pilot === 'white';
+      const g = __g, u = g.player, e = g.units.find(q => q.team !== u.team); g.running = true; g.kill(u, e, false); g.hud(240, .016);
+      const result = !document.getElementById('respawn').hidden && !document.getElementById('killcam').hidden && document.getElementById('killerFace').firstChild.dataset.pilot === ['tabby', 'silver', 'black', 'white', 'ginger', 'calico', 'tuxedo', 'siamese'][(e.idx + 4) % 8];
+      g.spawn(u); g.hud(240, .016); g.running = false; return result && document.getElementById('pilotMark').dataset.pilot === 'white';
     });
     yes(killcam, '撃破相手の顔が出て、再出撃後も自分は白猫');
-    await p.evaluate(() => { const g = __g, u = g.player, t = g.turrets.find(t => t.team !== u.team); g.kill(u, t, false); g.hud(240, .016); });
+    await p.evaluate(() => { const g = __g, u = g.player, t = g.turrets.find(t => t.team !== u.team); g.running = true; g.kill(u, t, false); g.hud(240, .016); g.running = false; });
     yes(await p.evaluate(() => !document.getElementById('killcam').hidden && getComputedStyle(document.getElementById('killerFace')).display === 'none'), '砲台に撃破された場合は猫の顔を付けない');
     await p.evaluate(() => { __g.spawn(__g.player); });
     for (const [width, height] of [[640, 480], [800, 600], [1280, 720], [1920, 1080]]) {
