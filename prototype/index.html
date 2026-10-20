@@ -828,6 +828,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       </div>
       <div id="ovBoard"></div>
       <nav class="menu" aria-label="メニュー">
+        <button type="button" data-page="pgOnline">オンライン対戦<small>友達の部屋へ参加・10対10（不足分はBOT）</small></button>
         <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
         <label class="sw" id="largeBattleControl" hidden><span>50対50（実験）<small id="largeBattleHint">通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機</small></span><input type="checkbox" role="switch" id="largeBattleSw" aria-label="50対50（実験）"><i aria-hidden="true"></i></label>
@@ -841,6 +842,11 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
       <button id="start" type="button">出撃する</button>
       <p class="note">PCのキーボードとマウス向けです。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
+    </section>
+    <section class="page" id="pgOnline" hidden>
+      <h2>オンライン対戦（試験版）</h2>
+      <div id="onlineRoot" aria-live="polite">接続を準備しています…</div>
+      <button type="button" class="back">戻る</button>
     </section>
     <section class="page" id="pgPilot" hidden>
       <h2>パイロット</h2>
@@ -1079,6 +1085,7 @@ bgmSw.addEventListener('change', e => {
 // name の音を at の位置で鳴らす（at が無ければ自分の耳元）。src は鳴らした機体や砲台。自機から遠いほど小さく、左右に振り分ける
 // rate：武器ごとの音の高さ（w.sfxRate、v0.11.3）
 function sfx(name, at, src, rate = 1) {
+  if (roomGame?.role === 'authority') { roomGame.sound(name, at, src, rate); return; }
   const s = SFX[name];
   if (!audio || muted || !s || !sfxBuf[s.file] || voices >= MAX_VOICES) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
@@ -1952,7 +1959,7 @@ function bladeWaveTick(sh, dt) {
     if (hit.barrier) barrierAbsorb(r, S.dmg, hit.point);
     else if (r && r.team !== sh.team && r.kind !== 'umbrella' && r.kind !== 'core') {
       const result = damage(r, sh.owner, S.dmg, false, false, r.kind === 'unit' ? hit.slot : null, sh.pos);
-      if (result && sh.owner.isPlayer) hitMark(false);
+      if (result && sh.owner.isPlayer) hitMark(false, sh.owner);
     }
     impact(hit.point, hit.barrier ? 'shield' : 'hit', 0);
     return false;
@@ -2104,7 +2111,7 @@ function blast(sh, at, ref) {
       hit=true;
     }
     cloud(at,S.blast,S.jamSeconds?0x7b9eff:0xf2dc88,.5);sfx('gas',at);
-    if(hit && sh.owner.isPlayer)hitMark(false);
+    if(hit && sh.owner.isPlayer)hitMark(false, sh.owner);
     return;
   }
   // 索敵ソナー：炸裂した瞬間に周り（水平に S.scan m）の敵機を味方のミニマップに S.keep 秒映す。ダメージは無い
@@ -2135,11 +2142,11 @@ function blast(sh, at, ref) {
     u.hp -= real;
     noteDmg(u, sh.owner, real);
     cloakHit(u, fall(d));
-    if (u.isPlayer) flashDamage();
+    if (u.isPlayer) flashDamage(u);
     if (u.hp <= 0) kill(u, sh.owner, false, real);
     else jolt(u, at, real * (S.knockMult || 1), false); // 爆風は1つずつ判定（wiki）
   }
-  if (!S.dmg) { if (hitAny && sh.owner.isPlayer) hitMark(false); return; }
+  if (!S.dmg) { if (hitAny && sh.owner.isPlayer) hitMark(false, sh.owner); return; }
   for (const g of gadgets.slice()) {
     if (g === sh.skip || g.team === sh.team) continue;
     const d = g.pos.distanceTo(at);
@@ -2167,7 +2174,7 @@ function blast(sh, at, ref) {
     if (d > S.blast || (S.occluded && !blastVisible(at,new T.Vector3((o.minX+o.maxX)/2,o.top,(o.minZ+o.maxZ)/2),br))) continue;
     damageBarricade(br, fall(d), sh.owner); hitAny = true;
   }
-  if (hitAny && sh.owner.isPlayer) hitMark(false);
+  if (hitAny && sh.owner.isPlayer) hitMark(false, sh.owner);
 }
 
 // カタパルト：台に乗ると輪の向き（着地点）へ射出。最初の1秒は操作できずブーストが回復し、
@@ -3964,6 +3971,8 @@ const flashTex = (() => {
 })();
 const glow = color => ({ color, transparent: true, blending: T.AdditiveBlending, depthWrite: false });
 function addFx(obj, life, extra = {}, delay = 0) {
+  // サーバーの20Hz同期でも短い発砲光を1フレーム以上届ける（見た目の寿命だけ）。
+  if (roomGame?.role === 'authority') life = Math.max(life, .1);
   fx.push(Object.assign({ obj, life, age: -delay, shown: false }, extra));
 }
 function tracer(from, end, team, energy = false) {
@@ -4323,7 +4332,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   noteDmg(r, by, real);
   cloakHit(r, dmg);
   r.hurtT = HURT_TIME; // 装甲が一瞬光る（v0.18）
-  if (r.isPlayer) flashDamage();
+  if (r.isPlayer) flashDamage(r);
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0)); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
   else if (!noJolt) jolt(r, melee ? origin : by.pos, real, melee); // 近接は刃が来た向きの逆へ（v0.21）
@@ -6234,7 +6243,7 @@ function equip(u, cls) {
   u.postFlight = null; u.postRecall = false; u.repairBlock = 0; u.jamT=u.electricT=0; u.radarHeading=null;
   const c = CLASSES[cls], A = ARMORY[cls];
   // プレイヤーは機体カスタマイズで選んだ武器、Botは出撃ごとに枠ごとにランダム（v0.11）
-  const pick = k => u.isPlayer ? loadout[cls][k] : A[k][Math.floor(Math.random() * A[k].length)];
+  const pick = k => u.isPlayer ? (u.onlineLoadout || loadout)[cls][k] : A[k][Math.floor(Math.random() * A[k].length)];
   const keys = Object.fromEntries(SLOTS.map(k => [k, pick(k)])), st = mechStats(u.mech, keys), P = st.P;
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
@@ -6265,6 +6274,7 @@ function toggleSp(u) {
   return true;
 }
 function selectWeapon(u, w) {
+  if (roomGame?.role === 'replica' && u === player) { roomGame.action('weapon', w); return; }
   if (u.swing) return;
   if (u.zip && (u.slots[w].w.plant || u.slots[w].w.type === 'artillery')) return; // ジップラインで昇る間は構えられない
   if (w !== u.weapon) u.bombard = null;
@@ -6620,7 +6630,7 @@ function bladeSweep(u, sw, phi0, phi1) {
     tryHit(br, new T.Vector3(Math.max(o.minX, Math.min(u.pos.x, o.maxX)), 0, Math.max(o.minZ, Math.min(u.pos.z, o.maxZ))), 0, br.base, o.top);
   }
   // ソードはコアには当たらない（wiki）
-  if (res && u.isPlayer) hitMark(false);
+  if (res && u.isPlayer) hitMark(false, u);
 }
 // 右手に今の銃、二丁の武器は左手にも。近接を選ぶと銃を格納して右手（二刀は両手）で構える。
 // 背部装備は胸に追従。重砲は背中に畳んであり、選ぶと右肩へ起こす（CANNON_DEPLOY 秒）
@@ -6907,12 +6917,14 @@ function isArtilleryMode(u) { return !!u && u.alive && u.weapon==='sp' && !!u.sl
 function artilleryCost(sl) { return 100 / sl.w.shots; }
 function artilleryInRange(u,p) { return !!p && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.hypot(p.x-u.pos.x,p.z-u.pos.z)<=u.slots.sp.w.range+.001; }
 function stopArtillery(u) {
+  if (roomGame?.role === 'replica') { roomGame.action('cancelArtillery'); return; }
   if (!isArtilleryMode(u)) return;
   u.bombard=null; const back=u.prevWeapon==='sp'?'main':u.prevWeapon;
   selectWeapon(u,back);
   if (u.isPlayer) { mapOpen=false; mouseDown=rightDown=false; }
 }
 function artilleryConfirm(u,p) {
+  if (roomGame?.role === 'replica') { roomGame.action('artillery', '', p); return false; }
   const sl=u.slots.sp;
   if (!isArtilleryMode(u) || u.switchT>0 || u.repairing || u.transfer || u.stun || sl.overheat || !artilleryInRange(u,p)) return false;
   u.bombard=new T.Vector3(p.x,terrainH(p.x,p.z),p.z);
@@ -7077,6 +7089,7 @@ function clearTo(u, p, target) {
 }
 
 // ---- プレイヤー入力 ----
+let roomGame = null, onlineLobby = null;
 const keys = {}, pressed = {};
 let mouseDown = false, rightDown = false, running = false, ended = false;
 addEventListener('keydown', e => {
@@ -7202,6 +7215,7 @@ function aimPoint(u) {
 }
 function mapPoint() { return new T.Vector3(mapCur.x, terrainH(mapCur.x, mapCur.z), mapCur.z); }
 function qchatSend(u, i, at) {
+  if (roomGame?.role === 'replica') { roomGame.action('chat', '', at, i); return; }
   const q = QCHAT[i];
   chatLine(u, q.text);
   if (q.ping && at) addPing(u.team, at, q.text);
@@ -7219,6 +7233,7 @@ function qchatSend(u, i, at) {
 }
 // 味方の言葉を右の欄に出す（敵の言葉は出さない）
 function chatLine(u, text) {
+  if(roomGame?.role==='authority'){roomGame.chat(u,text);return;}
   if (!player || u.team !== player.team) return;
   feed(`<span style="color:${TEAM[u.team].css}">${htmlText(u.name)}</span>：${text}`, 'chat');
   sfx('chat');
@@ -7541,14 +7556,15 @@ function feed(html, cls = '') {
 }
 let hitT = 0;
 let headHit = false;
-function hitMark(head) {
+function hitMark(head, u = player) {
+  if (roomGame?.role === 'authority') { roomGame.feedback(u,head?'head':'hit'); return; }
   hitT = 0.12; headHit = head;
   if (!head) { sfx('hit'); return; }
   sfx('headshot'); sfx('headping');
   for (const id of ['headMark', 'headTxt']) { const el = $(id); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); } // 当たるたびにアニメーションをやり直す
 }
 let dmgT = 0, spHitT = 0;
-function flashDamage() { dmgT = 0.25; sfx('hurt'); }
+function flashDamage(u = player) { if(roomGame?.role==='authority'){roomGame.feedback(u,'hurt');return;} dmgT = 0.25; sfx('hurt'); }
 // 機体の頭上の名前と耐久（v0.18、ユーザー指定「敵味方の体力残量の視認性が悪いです」「敵の体力残量の視認可能距離はロックオン距離に依存のこと」「味方は150m以内固定で映してください」）。
 // 敵：自分の頭部のロック距離（索敵を受けている敵は SPOT_LOCK 倍。ロックできる距離と同じ）より近く、カメラとの間に壁が無いときだけ（TAG_SEE 秒ごとに確かめる。索敵を受けている敵は壁越しでも）。
 // 光学迷彩中と行動不能の敵は出さない。味方：TAG_ALLY m 以内なら壁越しでも。行動不能の味方は「行動不能」と蘇生の進み具合（緑）。
@@ -7624,10 +7640,11 @@ function tagsHud(p, dt) {
 function renderPlantBar() { $('plantBar').innerHTML = plants.map(pl => `<div class="pl" id="pl-${pl.id}"><b>${pl.id}</b><span><i></i></span></div>`).join(''); }
 $('rlist').addEventListener('click', e => {
   const b = e.target.closest('button');
-  if (b && player) player.spawnChoice = b.dataset.id;
+  if (b && player) { player.spawnChoice = b.dataset.id; roomGame?.action?.('spawn', b.dataset.id); }
 });
 // 兵装の選択：出撃前の画面と、撃破後の再出撃画面
 function pickClass(k) {
+  if (roomGame?.role === 'replica') roomGame.action('class', k);
   chosenCls = k;
   if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
@@ -7684,7 +7701,7 @@ function pilotFace(id, decorative = false) {
   const i = Math.max(0, PILOTS.findIndex(c => c.id === id)), c = PILOTS[i];
   return `<span class="catFace" data-pilot="${c.id}" style="--cat-x:${i % 4 / 3 * 100}%;--cat-y:${i < 4 ? 0 : 100}%" ${decorative ? 'aria-hidden="true"' : `role="img" aria-label="${c.name}・${c.trait}"`}></span>`;
 }
-function pilotFor(u) { return u?.isPlayer ? pilotChoice : PILOTS[((u?.idx || 0) + (u?.team === 'R' ? 4 : 1)) % PILOTS.length].id; }
+function pilotFor(u) { return u?.onlinePilot || (u?.isPlayer ? pilotChoice : PILOTS[((u?.idx || 0) + (u?.team === 'R' ? 4 : 1)) % PILOTS.length].id); }
 function pilotHud(p) {
   const id = p ? pilotFor(p) : pilotChoice, cls = CLASSES[p?.cls || chosenCls], mark = $('pilotMark');
   if (mark.dataset.pilot !== id) { mark.innerHTML = pilotFace(id); mark.dataset.pilot = id; }
@@ -7849,6 +7866,7 @@ function flightWeapons(p, spOn) {
   });
 }
 function showPage(id) {
+  if (id === 'pgOnline' && !onlineLobby) openOnline();
   for (const pg of document.querySelectorAll('#overlay .page')) pg.hidden = pg.id !== id;
   $('ovCard').classList.toggle('wide', id === 'pgConsole' || id === 'pgMenu' && !!$('ovBoard').innerHTML);
   $('ovCard').classList.toggle('xwide', id === 'pgCustom');
@@ -8212,6 +8230,7 @@ $('largeBattleSw').addEventListener('change', () => { largeBattle = $('largeBatt
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id) {
+  if (roomGame?.role === 'replica') { onlineLobby?.show(); return; }
   if (id !== mapId) {
     clearArtillery();
     clearSecondaryEffects();
@@ -8373,12 +8392,12 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
     const enemy = player && u.team !== player.team;
     const near = !enemy || (u.pos.distanceTo(player.pos) <= 80 && !u.cloak); // 敵は近くだけ映る（光学迷彩中はセンサーなどで見つけたときだけ）
     if (!near && !spotted[player.team].has(u)) continue;
-    mini.fillStyle = u.isPlayer ? '#ffffff' : TEAM[u.team].css;
+    mini.fillStyle = u === player ? '#ffffff' : TEAM[u.team].css;
     mini.beginPath();
-    if (near) mini.arc(sx(u.pos.x), sz(u.pos.z), (u.isPlayer ? 3.5 : 2.5) * k, 0, 7);
+    if (near) mini.arc(sx(u.pos.x), sz(u.pos.z), (u === player ? 3.5 : 2.5) * k, 0, 7);
     else { const x = sx(u.pos.x), y = sz(u.pos.z); mini.moveTo(x, y - 3.5 * k); mini.lineTo(x + 3 * k, y); mini.lineTo(x, y + 3.5 * k); mini.lineTo(x - 3 * k, y); mini.closePath(); } // センサーや偵察機で見つけた敵は◇
     mini.fill();
-    if (u.isPlayer) { // 自機は向いている方へ短い線（v0.15）
+    if (u === player) { // 自機は向いている方へ短い線（v0.15）
       mini.strokeStyle = '#ffffff'; mini.lineWidth = 1.2 * k; mini.beginPath();
       mini.moveTo(sx(u.pos.x), sz(u.pos.z)); mini.lineTo(sx(u.pos.x - Math.sin(u.yaw) * 14 * MAP_X / 120), sz(u.pos.z - Math.cos(u.yaw) * 14 * MAP_X / 120)); mini.stroke();
     }
@@ -8451,10 +8470,13 @@ function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
   if (showBoard && performance.now() - boardAt > 200) { boardAt = performance.now(); $('boardBody').innerHTML = boardHtml(true); }
-  const pb = cores.B.hp / coreMax * 100, pr = cores.R.hp / coreMax * 100;
+  const own = player?.team || 'B', foe = own === 'B' ? 'R' : 'B';
+  $('coreB').firstChild.style.background = own === 'R' ? TEAM.R.css : '';
+  $('coreR').firstChild.style.background = own === 'R' ? TEAM.B.css : '';
+  const pb = cores[own].hp / coreMax * 100, pr = cores[foe].hp / coreMax * 100;
   const gauge = (k, pc) => VS ? String(Math.max(0, Math.round(cores[k].hp))) : pc.toFixed(1) + '%'; // コスト制は戦力の残りをそのまま出す
-  $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge('B', pb);
-  $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge('R', pr);
+  $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge(own, pb);
+  $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge(foe, pr);
   const arcade = consoleMode === 'arcade';
   $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
@@ -8634,7 +8656,7 @@ function hud(timeLeft, dt) {
     const pl = plants.find(q => inPlant(p, q));
     if (pl && pl.contested) centerEl.textContent = `プラント${pl.id} 争奪中`;
     else if (pl && pl.owner !== p.team) centerEl.textContent = `プラント${pl.id} ${pl.owner ? '中立化中' : '占拠中'} ${Math.round(Math.abs(pl.gauge))}%`;
-    else if (p.pos.distanceTo(cores.R.pos) < 40) centerEl.textContent = '敵コアを攻撃中';
+    else if (p.pos.distanceTo(cores[p.team === 'B' ? 'R' : 'B'].pos) < 40) centerEl.textContent = '敵コアを攻撃中';
     else centerEl.textContent = '';
   }
   renderer.domElement.style.filter = dmgT > 0 ? 'saturate(1.6) hue-rotate(-12deg)' : '';
@@ -8677,22 +8699,24 @@ function setup() {
 function finish() {
   ended = true; running = false; mapOpen = false;
   document.exitPointerLock?.();
-  const b = cores.B.hp, r = cores.R.hp;
+  const own = player?.team || 'B', foe = own === 'B' ? 'R' : 'B';
+  const b = cores[own].hp, r = cores[foe].hp;
   const win = r <= 0 || (b > 0 && b > r);
   const draw = b === r;
-  $('ovTitle').innerHTML = draw ? '引き分け' : win ? '<span style="color:var(--blue)">勝利</span>' : '<span>敗北</span>';
-  const medals = medalList(), mine = medals.filter(m => m.u.isPlayer).map(m => m.name);
+  $('ovTitle').innerHTML = draw ? '引き分け' : win ? `<span style="color:${TEAM[own].css}">勝利</span>` : '<span>敗北</span>';
+  const medals = medalList(), mine = medals.filter(m => m.u === player).map(m => m.name);
   $('ovText').textContent = (VS ? `自軍戦力 ${Math.max(0, Math.round(b))}　敵軍戦力 ${Math.max(0, Math.round(r))}` : `自軍コア ${(b / CORE_MAX * 100).toFixed(1)}%　敵軍コア ${(r / CORE_MAX * 100).toFixed(1)}%`) + `　あなたのスコア ${player.sc.total}` + (mine.length ? `　あなたの表彰：${mine.join('・')}` : '');
   $('ovBoard').innerHTML = medalsHtml(medals) + boardHtml(false);
   $('announce').innerHTML = ''; // 結果画面の上にアナウンスを残さない
   $('ovCard').classList.add('wide');
   $('board').hidden = true;
-  $('start').textContent = 'もう一度出撃する';
+  $('start').textContent = roomGame?.role === 'replica' ? 'オンラインの部屋へ' : 'もう一度出撃する';
   showPage('pgMenu');
   $('overlay').hidden = false;
   $('overlay').scrollTop = 0; // 出撃ボタンまで下げたままだと勝敗と表彰が隠れる
 }
 $('start').addEventListener('click', () => {
+  if (roomGame?.role === 'replica') { onlineLobby?.show(); return; }
   if (ended || !player) setup();
   $('overlay').hidden = true;
   running = true;
@@ -8744,12 +8768,13 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   bgmTick();
-  if (running) {
+  if (roomGame?.role === 'replica') roomGame.renderStep(dt);
+  if (running && roomGame?.role !== 'replica') {
     timeLeft -= dt;
     liftUpdate(dt);
     for (const u of units) {
       if (!u.alive) {
-        if (u.downT > 0) { downTick(u, dt); continue; }
+        if (u.downT > 0) { if (roomGame?.role === 'authority' && u.isPlayer) roomGame.updateDown(u,dt); else downTick(u, dt); continue; }
         u.respawnT -= dt;
         if (u.respawnT <= 0) { if (u.isPlayer) spawn(u, u.spawnChoice); else botSpawn(u); }
         continue;
@@ -8758,7 +8783,7 @@ function loop(now) {
       auxiliaryStatusTick(u,dt);
       specialTick(u, dt); // 背部装備はダウン・エリア移動待機中も進める
       if (u.transfer) { if (u.stun === 'down') cancelTransfer(u); else if ((u.transfer.t -= dt) <= 0) doTransfer(u); } // エリア移動の待機（v0.17）
-      if (u.isPlayer) playerUpdate(u, dt); else botUpdate(u, dt);
+      if (u.isPlayer) { if (roomGame?.role === 'authority') roomGame.updatePlayer(u, dt); else playerUpdate(u, dt); } else botUpdate(u, dt);
     }
     for (const pl of plants) plantUpdate(pl, dt);
     annTick();
@@ -8823,15 +8848,52 @@ function loop(now) {
   if (player) {
     if (killcamOn()) killcamCamera(dt);
     else { if (killcam) endKillcam(); updateCamera(player, dt); }
-    hud(timeLeft, dt); popUpdate(dt);
+    if (roomGame?.role !== 'authority') { hud(timeLeft, dt); popUpdate(dt); }
   }
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
-  renderer.render(scene, camera);
-  cloakPass();
-  mechPreview(dt);
+  if (roomGame?.role === 'authority') scene.updateMatrixWorld(true);
+  else { renderer.render(scene, camera); cloakPass(); mechPreview(dt); }
   requestAnimationFrame(loop);
 }
+// オンライン用の読み書き口はこのIIFEの内側だけに置く。通常のオフライン起動では読み込まない。
+const roomEngine = {
+  T, scene, mapRoot, units, cores, plants, turrets, radars, barricades, lifts, gadgets, drones, spotted, spotSrc, lock, keys, pressed, camera, pings,
+  get player() { return player; }, set player(u) { player = u; },
+  get running() { return running; }, set running(v) { running = v; },
+  get ended() { return ended; }, set ended(v) { ended = v; },
+  get time() { return timeLeft; }, set time(v) { timeLeft = v; },
+  get buttons() { return { fire:mouseDown, alt:rightDown, wheel:wheelDir }; },
+  set buttons(v) { mouseDown=v.fire; rightDown=v.alt; wheelDir=v.wheel; },
+  get mapCursor() { return { ...mapCur }; }, set mapCursor(v) { Object.assign(mapCur,v); },
+  get mapOpen() { return mapOpen; }, set mapOpen(v) { mapOpen=v; },
+  get lookBlocked() { return qc.open || wsel.open || mapOpen || isArtilleryMode(player); },
+  get profile() { return {name:playerName,cls:chosenCls,mech:{...mechCfg},loadout:JSON.parse(JSON.stringify(loadout)),pilot:pilotChoice}; },
+  set game(v) { roomGame=v; },
+  boot(id) { largeBattle=false; buildMap(id); setup(); renderPlantBar(); annReset(); },
+  weaponKey(w) { return Object.keys(WEAPONS).find(k=>WEAPONS[k]===w); }, weapon(k) { return WEAPONS[k]; },
+  tick() { loop(last+50); }, playerUpdate, updateCamera, selectWeapon, spawnPoints, respawnPanel,
+  paintPlant, finish, announce, annTick, hitMark, flashDamage, sfx, feed, downTick, qchatSend, chatLine, addPing, clearPings, placeGadget, launchDrone, isArtilleryMode, artilleryConfirm, stopArtillery,
+  show() { if(roomGame?.role==='replica'&&!ended)running=true; $('overlay').hidden=true; },
+  menu() { if(roomGame?.role!=='replica')running=false; $('overlay').hidden=false; showPage('pgOnline'); document.exitPointerLock?.(); },
+  reset() { roomGame=null; running=false; ended=false; setup(); $('overlay').hidden=false; showPage('pgMenu'); },
+  create(raw) {
+    const old=units.find(u=>u.team===raw.team && u.idx===raw.index);
+    if(old) { scene.remove(old.group,old.beam,old.fieldMesh,old.barrierMesh); disposeMech(old.group); old.beam.material.dispose(); old.tagEl?.remove(); units.splice(units.indexOf(old),1); for(let i=hittables.length-1;i>=0;i--) if(refOf(hittables[i])===old)hittables.splice(i,1); }
+    const saved={cls:chosenCls,name:playerName,mech:{...mechCfg},loadout:JSON.parse(JSON.stringify(loadout))};
+    try { chosenCls=Object.hasOwn(CLASSES,raw.profile.cls)?raw.profile.cls:'assault'; playerName=raw.profile.name; Object.assign(mechCfg,normMech(raw.profile.mech)); const ld=normLoadout(raw.profile.loadout); for(const c of CLASS_KEYS)Object.assign(loadout[c],ld[c]);
+      const u=makeUnit(raw.team,true,raw.index); u.onlineLoadout=ld; u.onlinePilot=raw.profile.pilot; return u;
+    } finally { chosenCls=saved.cls;playerName=saved.name;Object.assign(mechCfg,saved.mech);for(const c of CLASS_KEYS)Object.assign(loadout[c],saved.loadout[c]); }
+  },
+  deathCamera(u,by) { if(by&&by!==u)killcam={by,at:u.pos.clone(),end:2.5};else killcam=null; },
+  classChoice(u,k) { if(Object.hasOwn(CLASSES,k) && (!u.alive || u.transfer?.base)) u.nextCls=k; },
+};
+async function openOnline() {
+  if(location.protocol==='file:') { $('onlineRoot').textContent='オンライン対戦は対戦サーバーのURLから開いてください。起動方法は online/README.md にあります。'; return; }
+  try { const {mountLobby}=await import('./online-client.js'); onlineLobby=mountLobby($('onlineRoot'),roomEngine); }
+  catch(e) { $('onlineRoot').textContent='この配信元はオンライン対戦に対応していません。対戦サーバーのURLから開いてください。'; }
+}
+if(window.__roomAuthority) import('./online-game.js').then(m=>{window.__roomAuthorityAdapter=m.createAuthority(roomEngine);});
 if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('ovText').textContent = 'マップのデータ（maps.js）が読めないため遊べません。index.html と同じフォルダに maps.js があるか確かめてください。';
   $('start').disabled = true;

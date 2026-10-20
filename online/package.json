@@ -1,0 +1,14 @@
+{
+  "name": "core-breaker-rooms",
+  "private": true,
+  "version": "0.1.0",
+  "description": "友達と部屋に入って遊ぶコアブレイカーの対戦サーバー",
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test rooms.test.cjs"
+  },
+  "dependencies": {
+    "playwright": "1.56.1",
+    "ws": "8.18.3"
+  }
+}
