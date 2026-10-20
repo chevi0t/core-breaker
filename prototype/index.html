@@ -425,6 +425,9 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .consoleMini[data-preview="mechanical"] { --ink: #dce4e4; }
 .consoleMini[data-preview="mechanical"] .map { left: auto; right: 8px; height: 24px; }
 .consoleMini[data-preview="mechanical"] .health { background: none; border-width: 1px 0; }
+.consoleMini[data-preview="mechanical"] .sp::after { content: ''; position: absolute; left: -20px; right: -20px; top: 20px; height: 2px; background: #dce4e4; }
+.consoleMini[data-preview="mechanical"] .sight { border-color: #dce4e444; }
+.consoleMini[data-preview="mechanical"] .sight::before { content: ''; position: absolute; inset: -6px; border: 3px double #dce4e4; border-top-color: transparent; border-bottom-color: transparent; border-radius: 50%; }
 .consoleMini[data-preview="mechanical"] .weapon { background: none; border-width: 1px 0; }
 .consoleMini[data-preview="mechanical"] .team { left: 8px; width: 52%; height: 2px; }
 /* 追加の3種類は同じHUD要素を再配置する。標準の見た目と情報の意味は保つ。 */
@@ -495,43 +498,79 @@ body[data-console="mechanical"] .core .bar { height: 3px; border: 0; }
 body[data-console="mechanical"] .core .lbl { font-size: 10px; }
 body[data-console="mechanical"] #plantBar { top: 76px; gap: 6px; }
 body[data-console="mechanical"] .pl { width: 38px; padding: 1px 0 4px; background: #08131588; border-width: 0 0 1px; font-size: 12px; }
-body[data-console="mechanical"] #status { width: 304px; gap: 12px; padding: 8px 0; background: linear-gradient(90deg, #06121899, transparent); }
+body[data-console="mechanical"] #status { width: 280px; gap: 8px; padding: 0; background: none; }
 body[data-console="mechanical"] #status .row { grid-template-columns: 62px 1fr 62px; color: #d2e0df; }
 body[data-console="mechanical"] #status .row:first-child { grid-template-columns: 62px 1fr; }
+body[data-console="mechanical"] #status .row:nth-child(2) { display: none; }
 body[data-console="mechanical"] #hp { grid-column: 1 / -1; grid-row: 2; }
-body[data-console="mechanical"] #hpT { grid-column: 2; grid-row: 1; font-size: 36px; font-weight: 500; line-height: 1; }
-body[data-console="mechanical"] #status .bar { height: 4px; border: 0; }
+body[data-console="mechanical"] #hpT { grid-column: 2; grid-row: 1; font-size: 42px; font-weight: 500; line-height: 1; letter-spacing: .04em; }
+body[data-console="mechanical"] #status .bar { height: 3px; border: 0; }
 body[data-console="mechanical"] #hp > i { background: #e4eeec; }
 body[data-console="mechanical"] #status.low #hp > i { background: var(--warn); }
-body[data-console="mechanical"] #ammoBox { padding: 8px 10px; background: #07121888; border-top: 1px solid #cadad8; }
+body[data-console="mechanical"] #ammoBox { padding: 0; background: none; border: 0; }
 body[data-console="mechanical"] #wpn { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; justify-items: stretch; text-align: left; }
 body[data-console="mechanical"] #wcls { grid-column: 1 / -1; }
-body[data-console="mechanical"] #wpn > span:not(#wcls) { border-top: 1px solid #b4c9c755; padding-top: 4px; }
+body[data-console="mechanical"] #wpn > span:not(#wcls) { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; border-top: 1px solid #b4c9c755; padding: 4px 0; align-content: start; }
 body[data-console="mechanical"] #wpn > .on { border-top-color: #efffff; box-shadow: none; color: #efffff; }
 body[data-console="mechanical"] #wpn > .act { color: #7dffb0; }
-body[data-console="mechanical"] #ammo { font-size: 32px; }
+body[data-console="mechanical"] #wpn .mechSlot { font-size: 10px; letter-spacing: .1em; }
+body[data-console="mechanical"] #wpn .mechCount { font-size: 15px; font-weight: 500; white-space: nowrap; }
+body[data-console="mechanical"] #wpn .mechWeapon { grid-column: 1 / -1; font-size: 10px; }
+body[data-console="mechanical"] #wpn .mechState { grid-column: 1 / -1; font-size: 10px; min-height: 13px; }
+body[data-console="mechanical"] #wpn .warn .mechState { color: var(--warn); }
+body[data-console="mechanical"] #ammo { display: none; }
+body[data-console="mechanical"] #ammoSub { font-size: 10px; margin-top: 6px; color: #bbcdca; }
 body[data-console="mechanical"] #aimSp { background: #07121899; border-bottom: 1px solid #c8d9d755; }
-body[data-console="mechanical"] #lockRing { border-color: #c6d9d744; }
-body[data-console="mechanical"] #lockRing::before { content: ''; position: absolute; inset: -9px; border: 1px solid #d9eeec88; clip-path: polygon(0 0, 22% 0, 22% 2%, 2% 2%, 2% 22%, 0 22%, 0 0, 100% 0, 100% 22%, 98% 22%, 98% 2%, 78% 2%, 78% 0, 100% 0, 100% 100%, 78% 100%, 78% 98%, 98% 98%, 98% 78%, 100% 78%, 100% 100%, 0 100%, 0 78%, 2% 78%, 2% 98%, 22% 98%, 22% 100%, 0 100%); }
+body[data-console="mechanical"] #lockRing { border-color: #c6d9d744; border-style: dashed; }
+body[data-console="mechanical"] #aimGauge { display: none; }
+body[data-console="mechanical"] #lockMark .info { display: none; }
+#mechanicalHud[hidden] { display: none; }
+#mechAim { left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: visible; }
+#mechAim path, #mechAim circle { fill: none; stroke: #dce9e5; stroke-width: 2; }
+#mechAim .track { stroke: #dce9e544; stroke-width: 5; }
+#mechAim circle { stroke-width: 1; opacity: .55; }
+#mechAim.locked circle { stroke: var(--warn); opacity: 1; }
+#mechAim .warn { stroke: var(--warn); }
+#mechAim .reload { stroke: #93ceff; }
+#mechAim .charge { stroke: #7dffd8; }
+#mechAim .active { stroke: #a6ffcb; }
+#mechAim text { fill: #e5f1ed; font-size: 10px; font-family: var(--display); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
+#mechAim .selected { stroke-width: 3; }
+#mechBoost { left: 50%; bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); transform: translateX(-50%); width: min(34vw, 420px); color: #dce9e5; }
+#mechBoost .lbl { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .14em; margin-bottom: 4px; }
+#mechBoost .bar { height: 4px; border: 0; background: #dce9e533; }
+#mechBoost .bar > i { background: currentColor; }
+#mechBoost.oh { color: var(--warn); }
+#mechBoost::after { content: ''; display: block; width: 4px; height: 4px; border-bottom: 1px solid currentColor; border-right: 1px solid currentColor; transform: rotate(45deg); margin: 2px auto 0; }
 body[data-console="flight"] #lockRing.acq, body[data-console="mechanical"] #lockRing.acq { border-color: #ffc46e; }
 body[data-console="flight"] #lockRing.on, body[data-console="mechanical"] #lockRing.on { border-color: var(--warn); }
 #consoleTelemetry[hidden], #consoleTelemetry .flightOnly[hidden] { display: none; }
 body[data-console="flight"] #consoleTelemetry::before { content: ''; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(56vw, 700px); height: 40vh; border: 1px solid #d8f7ff55; border-radius: 44px; }
 #consoleTelemetry .instrument { position: fixed; top: 50%; transform: translateY(-50%); width: 82px; color: #c6f8ff; font-size: 11px; }
 #consoleTelemetry .instrument b { display: block; font-size: 25px; line-height: 1.3; font-weight: 500; font-variant-numeric: tabular-nums; }
+body[data-console="mechanical"] #consoleSpeed { left: var(--console-edge); right: auto; text-align: left; border: 0; border-left: 1px solid #c4d8d666; padding: 20px 0 20px 8px; background: repeating-linear-gradient(#c4d8d666 0 1px, transparent 1px 10px) left / 4px 100% no-repeat; }
+body[data-console="mechanical"] #consoleAltitude { right: var(--console-edge); left: auto; text-align: right; border: 0; border-right: 1px solid #c4d8d666; padding: 20px 8px 20px 0; background: repeating-linear-gradient(#c4d8d666 0 1px, transparent 1px 10px) right / 4px 100% no-repeat; }
+body[data-console="mechanical"] #consoleTelemetry .instrument { width: 58px; color: #d5e9e2; font-size: 9px; }
+body[data-console="mechanical"] #consoleTelemetry .instrument b { font-size: 18px; }
 #consoleSpeed { right: calc(50% + var(--aim-sp-offset) + 24px); text-align: right; border-right: 2px solid #78edff; padding-right: 10px; }
 #consoleAltitude { left: calc(50% + var(--aim-sp-offset) + 24px); border-left: 2px solid #78edff; padding-left: 10px; }
 #consoleHeading { position: fixed; left: 50%; transform: translateX(-50%); text-align: center; font-size: 11px; letter-spacing: .16em; color: #d5e9e7; }
 #consoleHeading b { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
 body[data-console="flight"] #consoleHeading { top: calc(50% - var(--aim-sp-offset) - 36px); border-bottom: 1px solid #78edff66; padding: 2px 18px; }
-body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: 220px; padding: 8px 0 0; border-top: 1px solid #c4d8d6; background: repeating-linear-gradient(90deg, #c4d8d6 0 1px, transparent 1px 11px) top / 100% 4px no-repeat; }
+body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: min(34vw, 420px); padding-top: 16px; font-size: 9px; }
+body[data-console="mechanical"] #consoleHeading b { font-size: 12px; }
+#mechCompass { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 16px; overflow: hidden; border-top: 1px solid #c4d8d666; }
+body[data-console="mechanical"] #mechCompass { display: block; }
+#mechCompass span { position: absolute; top: 0; transform: translateX(-50%); font-size: 8px; letter-spacing: 0; padding-top: 5px; }
+#mechCompass span::before { content: ''; position: absolute; top: 0; left: 50%; height: 3px; border-left: 1px solid #c4d8d6; }
 @media (max-width: 1000px) {
   body[data-console]:where(:not([data-console="standard"])) { --console-edge: 12px; --console-map-width: 108px; }
   body[data-console]:where(:not([data-console="standard"])) #status { width: min(280px, 42vw); padding: 10px; }
   body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: min(300px, 42vw); padding: 8px 10px; }
   body[data-console="flight"] #wpn { position: static; transform: none; width: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body[data-console="flight"] #wpn > span:not(#wcls) { padding: 4px; }
-  body[data-console="mechanical"] #consoleHeading { width: clamp(64px, calc(16vw - 24px), 160px); letter-spacing: .02em; }
+  body[data-console="mechanical"] #status, body[data-console="mechanical"] #ammoBox { width: min(240px, 30vw); padding: 0; }
+  body[data-console="mechanical"] #consoleHeading, body[data-console="mechanical"] #mechBoost { width: 28vw; letter-spacing: .02em; }
 }
 @media (max-width: 700px), (max-height: 540px) {
   #consoleList { grid-template-columns: 1fr; }
@@ -544,6 +583,9 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
   body[data-console="arcade"] #hpT { font-size: 20px; }
   body[data-console="flight"] #hpT { font-size: 20px; }
   body[data-console="mechanical"] #hpT { font-size: 28px; }
+  body[data-console="mechanical"] #wpn .mechCount { font-size: 11px; }
+  body[data-console="mechanical"] #wpn .mechSlot { font-size: 9px; }
+  body[data-console="mechanical"] #wpn > span:not(#wcls) { gap: 2px; }
   body[data-console]:where(:not([data-console="standard"])) #wpn { font-size: 10px; }
   body[data-console]:where(:not([data-console="standard"])) #ammo { font-size: 28px; }
   body[data-console]:where(:not([data-console="standard"])) #ammoSub { font-size: 10px; }
@@ -556,6 +598,13 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
 }
 @media (max-height: 640px) {
   body[data-console="flight"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
+}
+/* 対象の耐久表示の前を空け、メカニカルの通知は左上へ積む。 */
+body[data-console="mechanical"] #lockAlert { top: 112px; left: var(--console-edge); transform: none; width: min(280px, calc(50vw - 104px)); box-sizing: border-box; text-align: left; font-size: 12px; }
+body[data-console="mechanical"] #baseAlert { top: calc(120px + var(--console-lock-height, 0px)); left: var(--console-edge); transform: none; max-width: min(280px, calc(50vw - 104px)); box-sizing: border-box; font-size: 12px; }
+body[data-console="mechanical"] #feed { top: calc(128px + var(--console-lock-height, 0px) + var(--console-base-height, 0px)); max-width: min(280px, calc(50vw - 104px)); }
+@media (max-height: 540px) {
+  body[data-console="mechanical"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden]), #feed:not(:empty)) #consoleSpeed { visibility: hidden; }
 }
 </style>
 
@@ -575,7 +624,19 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="lbl"><span>SP <b id="aimSpT">100%</b></span><span id="aimSpState"></span></div><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
-<div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b></div></div>
+<div id="mechanicalHud" hidden>
+  <svg class="hud" id="mechAim" aria-label="武器4枠の状態">
+    <circle id="mechSight"/>
+    <path class="track" id="mech-main-bg"/><path id="mech-main" pathLength="100"/><text id="mech-main-text"/>
+    <path class="track" id="mech-sub-bg"/><path id="mech-sub" pathLength="100"/><text id="mech-sub-text"/>
+    <path class="track" id="mech-aux-bg"/><path id="mech-aux" pathLength="100"/><text id="mech-aux-text"/>
+    <path class="track" id="mech-sp-bg"/><path id="mech-sp" pathLength="100"/><text id="mech-sp-text"/>
+    <path id="mechHeat" pathLength="100"/>
+    <g id="mechTarget" style="display:none"><path class="track" id="mechTargetBg"/><path id="mechTargetHp" pathLength="100"/><text id="mechTargetName" text-anchor="middle"/><text id="mechRange" text-anchor="middle"/></g>
+  </svg>
+  <div class="hud" id="mechBoost"><div class="lbl"><span>BOOST</span><b id="mechBoostT">100%</b></div><div class="bar" id="mechBoostBar" role="meter" aria-label="ブースト残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
+</div>
+<div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b><span id="mechCompass" aria-hidden="true"></span></div></div>
 <div class="hud" id="tags"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
@@ -656,7 +717,8 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
         <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
         <kbd>Q</kbd><span>ロック対象を切り替え</span>
-        <kbd>照準の弧</kbd><span>照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
+        <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
+        <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
         <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
@@ -7187,11 +7249,12 @@ const CONSOLES = [
   { id: 'standard', name: '標準', desc: '現在の配置。左上のマップ、四隅の情報、照準の弧を使う基本の画面。' },
   { id: 'arcade', name: 'アーケード', desc: '左上の大きな時間・戦況と斜めの耐久ゲージ。マップと装備は右下に集約。' },
   { id: 'flight', name: 'フライト', desc: '青緑の飛行計器。照準の左右に速度と対地高度、中央下に4枠の装備を配置。' },
-  { id: 'mechanical', name: 'メカニカル', desc: '細い白線と大きな耐久数値。左下の機体情報、右下の装備、下中央の方位計。' },
+  { id: 'mechanical', name: 'メカニカル', desc: '照準の4枠の武器メーター。両端の飛行計器、下中央のブーストと方位、右下の残弾。' },
 ];
 const CONSOLE_KEY = 'coreBreakerConsole';
 let consoleMode = 'standard';
 $('consoleList').innerHTML = CONSOLES.map(c => `<button type="button" class="consoleCard" data-console-choice="${c.id}" aria-pressed="false"><span class="consoleMini" data-preview="${c.id}" aria-hidden="true"><i class="team"></i><i class="map"></i><i class="sight"></i><i class="sp"></i><i class="health"></i><i class="weapon"></i></span><b>${c.name}</b><small>${c.desc}</small></button>`).join('');
+$('mechCompass').innerHTML = Array.from({ length: 24 }, (_, i) => `<span data-bearing="${i * 15}">${i % 3 === 0 ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][i / 3] : ''}</span>`).join('');
 function setConsole(id, save = true) {
   const c = CONSOLES.find(c => c.id === id) || CONSOLES[0];
   consoleMode = c.id;
@@ -7201,6 +7264,7 @@ function setConsole(id, save = true) {
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
   consoleTelemetry(player);
+  mechanicalHud(player);
   if (save) { try { localStorage.setItem(CONSOLE_KEY, c.id); } catch (_) {} }
 }
 let savedConsole;
@@ -7222,18 +7286,84 @@ if (window.ResizeObserver) {
   const observer = new ResizeObserver(() => {
     document.body.style.setProperty('--console-ammo-height', $('ammoBox').offsetHeight + 'px');
     document.body.style.setProperty('--console-lock-height', $('lockAlert').offsetHeight + 'px');
+    document.body.style.setProperty('--console-base-height', $('baseAlert').offsetHeight + 'px');
   });
-  observer.observe($('ammoBox')); observer.observe($('lockAlert'));
+  observer.observe($('ammoBox')); observer.observe($('lockAlert')); observer.observe($('baseAlert'));
 }
 function consoleTelemetry(p) {
   const flight = consoleMode === 'flight', on = p && p.alive && !p.scoped && (flight || consoleMode === 'mechanical');
   $('consoleTelemetry').hidden = !on;
   if (!on) return;
-  $('consoleSpeed').hidden = $('consoleAltitude').hidden = !flight;
+  $('consoleSpeed').hidden = $('consoleAltitude').hidden = false;
   $('consoleHeadingT').textContent = String((Math.round(-p.yaw * 180 / Math.PI) % 360 + 360) % 360).padStart(3, '0') + '°';
-  if (flight) {
-    $('consoleSpeedT').textContent = Math.hypot(p.vel.x, p.vel.y, p.vel.z).toFixed(1);
-    $('consoleAltitudeT').textContent = Math.max(0, p.pos.y - groundAt(p.pos.x, p.pos.z, p.pos.y + .3)).toFixed(1);
+  $('consoleSpeedT').textContent = Math.hypot(p.vel.x, p.vel.y, p.vel.z).toFixed(1);
+  $('consoleAltitudeT').textContent = Math.max(0, p.pos.y - groundAt(p.pos.x, p.pos.z, p.pos.y + .3)).toFixed(1);
+  if (!flight) {
+    const heading = -p.yaw * 180 / Math.PI;
+    for (const el of $('mechCompass').children) {
+      const delta = ((+el.dataset.bearing - heading) % 360 + 540) % 360 - 180;
+      el.style.left = (50 + delta / 120 * 100) + '%';
+    }
+  }
+}
+// 表示用の残量と状態。4枠を左右の腕・肩には読み替えず、本作の武器枠のまま描く。
+function mechanicalWeaponState(p, k) {
+  const sl = p.slots[k], w = sl.w, special = k === 'sp';
+  let fraction = special ? sl.heat / 100 : w.mag ? sl.ammo / w.mag : 1;
+  const count = special ? Math.round(sl.heat) + '%' : w.mag ? sl.ammo : w.type === 'radarTool' ? Math.round(sl.scanRadius || 0) + 'm' : '∞';
+  let value = !special && w.mag ? sl.ammo + ' / ' + sl.reserve : String(count), state = special ? 'SP' : w.type === 'sword' ? '近接' : '待機', color = '';
+  if (special && w.shots) state = Math.floor(sl.heat / (100 / w.shots) + .01) + '発';
+  if (special && w.type === 'escort') state = sl.ammo + ' / ' + w.mag + '発';
+  if (sl.overheat) {
+    state = special ? '再充填中' : '冷却 ' + Math.max(0, sl.ohT).toFixed(1) + 's'; color = 'warn';
+    if (!special) fraction = 1 - sl.ohT / w.ohTime;
+  } else if (sl.reloadT > 0) {
+    state = '再装填 ' + sl.reloadT.toFixed(1) + 's'; color = 'reload';
+    if (!special) fraction = 1 - sl.reloadT / (w.reload * p.reloadMul);
+  } else if (w.chargeTime && sl.chargeT > 0) {
+    state = '充填 ' + Math.min(100, Math.round(sl.chargeT / w.chargeTime * 100)) + '%'; color = 'charge';
+    if (!w.mag) fraction = sl.chargeT / w.chargeTime;
+  } else if (w.heat && sl.temp > 0) {
+    state = '熱 ' + Math.round(sl.temp) + '%'; color = sl.temp >= 75 ? 'warn' : '';
+  } else if (special && (p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || p.post || p.bombard || p.healTarget)) {
+    state = '作動中'; color = 'active';
+  } else if (!special && w.mag && sl.ammo + sl.reserve <= 0) { state = '弾切れ'; color = 'warn'; }
+  if (p.weapon === k && p.switchT > 0) state = '持ち替え中';
+  return { fraction: Math.max(0, Math.min(1, fraction)), count, value, state, color };
+}
+function mechanicalHud(p) {
+  const on = consoleMode === 'mechanical' && p && p.alive;
+  $('mechanicalHud').hidden = !on;
+  if (!on) return;
+  $('mechAim').style.visibility = p.scoped ? 'hidden' : '';
+  const boost = Math.max(0, Math.min(100, p.boost / p.maxBoost * 100));
+  $('mechBoostBar').firstChild.style.width = boost + '%';
+  $('mechBoostBar').setAttribute('aria-valuenow', Math.round(boost));
+  $('mechBoostT').textContent = p.overheat ? '回復待ち' : Math.round(boost) + '%';
+  $('mechBoost').classList.toggle('oh', p.overheat);
+  SLOTS.forEach((k, i) => {
+    const sl = p.slots[k], r = mechanicalWeaponState(p, k), el = $('w-' + k), stamp = sl.w.name + '|' + r.value + '|' + r.state;
+    if (el.dataset.readout !== stamp) {
+      el.innerHTML = `<span class="mechSlot" title="${SLOT_NAMES[k]}">${i + 1} ${['主', '副', '補', '特'][i]}</span><b class="mechCount">${r.value}</b><span class="mechWeapon">${sl.w.name}</span><span class="mechState">${r.state}</span>`;
+      el.dataset.readout = stamp;
+    }
+    el.classList.toggle('warn', r.color === 'warn');
+    $('mech-' + k).setAttribute('stroke-dasharray', (r.fraction * 100).toFixed(1) + ' 100');
+    $('mech-' + k).setAttribute('class', r.color + (p.weapon === k ? ' selected' : ''));
+    $('mech-' + k + '-text').textContent = (i + 1) + ' ' + r.count;
+  });
+  const sl = p.slots[p.weapon], w = sl.w;
+  $('mechHeat').style.display = w.heat || w.chargeTime ? '' : 'none';
+  const heat = sl.overheat ? 1 - sl.ohT / w.ohTime : w.chargeTime ? sl.chargeT / w.chargeTime : sl.temp / 100;
+  $('mechHeat').setAttribute('stroke-dasharray', (Math.max(0, Math.min(1, heat || 0)) * 100).toFixed(1) + ' 100');
+  $('mechHeat').setAttribute('class', sl.overheat || sl.temp >= 75 ? 'warn' : w.chargeTime ? 'charge' : '');
+  const target = lock.target && lock.visible && lock.target.alive ? lock.target : null;
+  $('mechTarget').style.display = target && !p.scoped ? '' : 'none';
+  $('mechAim').classList.toggle('locked', !!target);
+  if (target) {
+    $('mechTargetName').textContent = target.name;
+    $('mechTargetHp').setAttribute('stroke-dasharray', Math.max(0, target.hp / target.maxHp * 100).toFixed(1) + ' 100');
+    $('mechRange').textContent = Math.round(target.pos.distanceTo(p.pos)) + 'm';
   }
 }
 function showPage(id) {
@@ -7858,7 +7988,12 @@ function hud(timeLeft, dt) {
   $('aimSpState').textContent = sps.overheat ? '再充填中' : spOn ? '作動中' : '';
   const cur = p.slots[p.weapon], cw = cur.w;
   $('wcls').textContent = CLASSES[p.cls].name;
-  SLOTS.forEach((k, i) => { const el = $('w-' + k); el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; el.classList.toggle('on', p.weapon === k); el.classList.toggle('act', k === 'sp' && spOn); });
+  SLOTS.forEach((k, i) => {
+    const el = $('w-' + k);
+    if (consoleMode !== 'mechanical') { el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; delete el.dataset.readout; el.classList.remove('warn'); }
+    el.classList.toggle('on', p.weapon === k); el.classList.toggle('act', k === 'sp' && spOn);
+  });
+  mechanicalHud(p);
   let big, small;
   if (p.switchT > 0) { big = '--'; small = '持ち替え中'; }
   else if (cw.type === 'sword') {
@@ -8082,6 +8217,22 @@ function resize() {
   for (const id of ['agHpBg', 'agHp']) $(id).setAttribute('d', right(R));
   for (const id of ['agHeatBg', 'agHeat']) $(id).setAttribute('d', left(R2));
   for (const id of ['agBoostBg', 'agBoost']) $(id).setAttribute('d', right(R2));
+  // メカニカルの4枠の弧。左右の内側が主・副、外側が補助・特別。SP表示の上で止める。
+  const r0 = R - 7, ms = 2 * (r0 + 48), mc = ms / 2;
+  $('mechAim').setAttribute('width', ms); $('mechAim').setAttribute('height', ms); $('mechAim').setAttribute('viewBox', `0 0 ${ms} ${ms}`);
+  const mp = (a, r) => `${(mc + r * Math.sin(a * Math.PI / 180)).toFixed(1)} ${(mc - r * Math.cos(a * Math.PI / 180)).toFixed(1)}`;
+  const ma = (r, a, b) => `M ${mp(a, r)} A ${r} ${r} 0 0 ${b > a ? 1 : 0} ${mp(b, r)}`;
+  SLOTS.forEach((k, i) => {
+    const left = k === 'main' || k === 'aux', r = r0 + (i < 2 ? 21 : 29), d = left ? ma(r, 215, 270) : ma(r, 145, 90);
+    for (const suffix of ['', '-bg']) $('mech-' + k + suffix).setAttribute('d', d);
+    const text = $('mech-' + k + '-text');
+    text.setAttribute('x', mc + (left ? -1 : 1) * (r0 + 25)); text.setAttribute('y', mc + (i < 2 ? -2 : -18)); text.setAttribute('text-anchor', left ? 'end' : 'start');
+  });
+  $('mechSight').setAttribute('cx', mc); $('mechSight').setAttribute('cy', mc); $('mechSight').setAttribute('r', r0 * .55);
+  $('mechHeat').setAttribute('d', ma(r0 + 11, 215, 270));
+  for (const id of ['mechTargetBg', 'mechTargetHp']) $(id).setAttribute('d', ma(r0 + 28, -28, 28));
+  $('mechTargetName').setAttribute('x', mc); $('mechTargetName').setAttribute('y', mc - r0 - 38);
+  $('mechRange').setAttribute('x', mc); $('mechRange').setAttribute('y', mc + 25);
 }
 addEventListener('resize', resize);
 resize();
