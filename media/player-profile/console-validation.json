@@ -1,0 +1,2735 @@
+{
+  "passed": 359,
+  "checks": [
+    "未設定時は標準",
+    "メニューに4種類",
+    "キーボードで選択し、選択状態は1つ",
+    "選択を再読み込み後も復元",
+    "不正な保存値は標準へ",
+    "F2で巡回：arcade",
+    "F2で巡回：flight",
+    "F2で巡回：mechanical",
+    "F2で巡回：standard",
+    "切り替えても試合・機体・装備と既存の保存値は変わらない",
+    "修飾キー付きF2では切り替えない",
+    "standard：values",
+    "standard：active",
+    "standard：recovery",
+    "standard：scope",
+    "standard：down",
+    "standard：respawn",
+    "arcade：values",
+    "arcade：active",
+    "arcade：recovery",
+    "arcade：scope",
+    "arcade：down",
+    "arcade：respawn",
+    "flight：values",
+    "flight：active",
+    "flight：recovery",
+    "flight：scope",
+    "flight：down",
+    "flight：respawn",
+    "mechanical：values",
+    "mechanical：active",
+    "mechanical：recovery",
+    "mechanical：scope",
+    "mechanical：down",
+    "mechanical：respawn",
+    "フライトの速度・高度・方位は実際の状態を表示",
+    "city/640x480/arcade/miniが画面内",
+    "city/640x480/arcade/spotAlertが画面内",
+    "city/640x480/arcade/statusが画面内",
+    "city/640x480/arcade/ammoBoxが画面内",
+    "city/640x480/arcade/aimSpが画面内",
+    "city/640x480/arcade/topが画面内",
+    "city/640x480/arcade/wpnが画面内",
+    "city/640x480/arcade/SPとminiが重ならない",
+    "city/640x480/arcade/SPとstatusが重ならない",
+    "city/640x480/arcade/SPとammoBoxが重ならない",
+    "city/640x480/arcade/SPとwpnが重ならない",
+    "city/640x480/arcade/被索敵と武器情報が重ならない",
+    "city/640x480/arcade/プラントと警告が重ならない",
+    "city/640x480/flight/miniが画面内",
+    "city/640x480/flight/spotAlertが画面内",
+    "city/640x480/flight/statusが画面内",
+    "city/640x480/flight/ammoBoxが画面内",
+    "city/640x480/flight/aimSpが画面内",
+    "city/640x480/flight/topが画面内",
+    "city/640x480/flight/wpnが画面内",
+    "city/640x480/flight/SPとminiが重ならない",
+    "city/640x480/flight/SPとstatusが重ならない",
+    "city/640x480/flight/SPとammoBoxが重ならない",
+    "city/640x480/flight/SPとwpnが重ならない",
+    "city/640x480/flight/被索敵と武器情報が重ならない",
+    "city/640x480/flight/プラントと警告が重ならない",
+    "city/640x480/mechanical/miniが画面内",
+    "city/640x480/mechanical/spotAlertが画面内",
+    "city/640x480/mechanical/statusが画面内",
+    "city/640x480/mechanical/ammoBoxが画面内",
+    "city/640x480/mechanical/aimSpが画面内",
+    "city/640x480/mechanical/topが画面内",
+    "city/640x480/mechanical/wpnが画面内",
+    "city/640x480/mechanical/SPとminiが重ならない",
+    "city/640x480/mechanical/SPとstatusが重ならない",
+    "city/640x480/mechanical/SPとammoBoxが重ならない",
+    "city/640x480/mechanical/SPとwpnが重ならない",
+    "city/640x480/mechanical/被索敵と武器情報が重ならない",
+    "city/640x480/mechanical/プラントと警告が重ならない",
+    "city/640x480/mechanical/方位計が重ならない",
+    "city/800x600/arcade/miniが画面内",
+    "city/800x600/arcade/spotAlertが画面内",
+    "city/800x600/arcade/statusが画面内",
+    "city/800x600/arcade/ammoBoxが画面内",
+    "city/800x600/arcade/aimSpが画面内",
+    "city/800x600/arcade/topが画面内",
+    "city/800x600/arcade/wpnが画面内",
+    "city/800x600/arcade/SPとminiが重ならない",
+    "city/800x600/arcade/SPとstatusが重ならない",
+    "city/800x600/arcade/SPとammoBoxが重ならない",
+    "city/800x600/arcade/SPとwpnが重ならない",
+    "city/800x600/arcade/被索敵と武器情報が重ならない",
+    "city/800x600/arcade/プラントと警告が重ならない",
+    "city/800x600/flight/miniが画面内",
+    "city/800x600/flight/spotAlertが画面内",
+    "city/800x600/flight/statusが画面内",
+    "city/800x600/flight/ammoBoxが画面内",
+    "city/800x600/flight/aimSpが画面内",
+    "city/800x600/flight/topが画面内",
+    "city/800x600/flight/wpnが画面内",
+    "city/800x600/flight/SPとminiが重ならない",
+    "city/800x600/flight/SPとstatusが重ならない",
+    "city/800x600/flight/SPとammoBoxが重ならない",
+    "city/800x600/flight/SPとwpnが重ならない",
+    "city/800x600/flight/被索敵と武器情報が重ならない",
+    "city/800x600/flight/プラントと警告が重ならない",
+    "city/800x600/mechanical/miniが画面内",
+    "city/800x600/mechanical/spotAlertが画面内",
+    "city/800x600/mechanical/statusが画面内",
+    "city/800x600/mechanical/ammoBoxが画面内",
+    "city/800x600/mechanical/aimSpが画面内",
+    "city/800x600/mechanical/topが画面内",
+    "city/800x600/mechanical/wpnが画面内",
+    "city/800x600/mechanical/SPとminiが重ならない",
+    "city/800x600/mechanical/SPとstatusが重ならない",
+    "city/800x600/mechanical/SPとammoBoxが重ならない",
+    "city/800x600/mechanical/SPとwpnが重ならない",
+    "city/800x600/mechanical/被索敵と武器情報が重ならない",
+    "city/800x600/mechanical/プラントと警告が重ならない",
+    "city/800x600/mechanical/方位計が重ならない",
+    "city/1280x720/arcade/miniが画面内",
+    "city/1280x720/arcade/spotAlertが画面内",
+    "city/1280x720/arcade/statusが画面内",
+    "city/1280x720/arcade/ammoBoxが画面内",
+    "city/1280x720/arcade/aimSpが画面内",
+    "city/1280x720/arcade/topが画面内",
+    "city/1280x720/arcade/wpnが画面内",
+    "city/1280x720/arcade/SPとminiが重ならない",
+    "city/1280x720/arcade/SPとstatusが重ならない",
+    "city/1280x720/arcade/SPとammoBoxが重ならない",
+    "city/1280x720/arcade/SPとwpnが重ならない",
+    "city/1280x720/arcade/被索敵と武器情報が重ならない",
+    "city/1280x720/arcade/プラントと警告が重ならない",
+    "city/1280x720/flight/miniが画面内",
+    "city/1280x720/flight/spotAlertが画面内",
+    "city/1280x720/flight/statusが画面内",
+    "city/1280x720/flight/ammoBoxが画面内",
+    "city/1280x720/flight/aimSpが画面内",
+    "city/1280x720/flight/topが画面内",
+    "city/1280x720/flight/wpnが画面内",
+    "city/1280x720/flight/SPとminiが重ならない",
+    "city/1280x720/flight/SPとstatusが重ならない",
+    "city/1280x720/flight/SPとammoBoxが重ならない",
+    "city/1280x720/flight/SPとwpnが重ならない",
+    "city/1280x720/flight/被索敵と武器情報が重ならない",
+    "city/1280x720/flight/プラントと警告が重ならない",
+    "city/1280x720/mechanical/miniが画面内",
+    "city/1280x720/mechanical/spotAlertが画面内",
+    "city/1280x720/mechanical/statusが画面内",
+    "city/1280x720/mechanical/ammoBoxが画面内",
+    "city/1280x720/mechanical/aimSpが画面内",
+    "city/1280x720/mechanical/topが画面内",
+    "city/1280x720/mechanical/wpnが画面内",
+    "city/1280x720/mechanical/SPとminiが重ならない",
+    "city/1280x720/mechanical/SPとstatusが重ならない",
+    "city/1280x720/mechanical/SPとammoBoxが重ならない",
+    "city/1280x720/mechanical/SPとwpnが重ならない",
+    "city/1280x720/mechanical/被索敵と武器情報が重ならない",
+    "city/1280x720/mechanical/プラントと警告が重ならない",
+    "city/1280x720/mechanical/方位計が重ならない",
+    "city/1920x1080/arcade/miniが画面内",
+    "city/1920x1080/arcade/spotAlertが画面内",
+    "city/1920x1080/arcade/statusが画面内",
+    "city/1920x1080/arcade/ammoBoxが画面内",
+    "city/1920x1080/arcade/aimSpが画面内",
+    "city/1920x1080/arcade/topが画面内",
+    "city/1920x1080/arcade/wpnが画面内",
+    "city/1920x1080/arcade/SPとminiが重ならない",
+    "city/1920x1080/arcade/SPとstatusが重ならない",
+    "city/1920x1080/arcade/SPとammoBoxが重ならない",
+    "city/1920x1080/arcade/SPとwpnが重ならない",
+    "city/1920x1080/arcade/被索敵と武器情報が重ならない",
+    "city/1920x1080/arcade/プラントと警告が重ならない",
+    "city/1920x1080/flight/miniが画面内",
+    "city/1920x1080/flight/spotAlertが画面内",
+    "city/1920x1080/flight/statusが画面内",
+    "city/1920x1080/flight/ammoBoxが画面内",
+    "city/1920x1080/flight/aimSpが画面内",
+    "city/1920x1080/flight/topが画面内",
+    "city/1920x1080/flight/wpnが画面内",
+    "city/1920x1080/flight/SPとminiが重ならない",
+    "city/1920x1080/flight/SPとstatusが重ならない",
+    "city/1920x1080/flight/SPとammoBoxが重ならない",
+    "city/1920x1080/flight/SPとwpnが重ならない",
+    "city/1920x1080/flight/被索敵と武器情報が重ならない",
+    "city/1920x1080/flight/プラントと警告が重ならない",
+    "city/1920x1080/mechanical/miniが画面内",
+    "city/1920x1080/mechanical/spotAlertが画面内",
+    "city/1920x1080/mechanical/statusが画面内",
+    "city/1920x1080/mechanical/ammoBoxが画面内",
+    "city/1920x1080/mechanical/aimSpが画面内",
+    "city/1920x1080/mechanical/topが画面内",
+    "city/1920x1080/mechanical/wpnが画面内",
+    "city/1920x1080/mechanical/SPとminiが重ならない",
+    "city/1920x1080/mechanical/SPとstatusが重ならない",
+    "city/1920x1080/mechanical/SPとammoBoxが重ならない",
+    "city/1920x1080/mechanical/SPとwpnが重ならない",
+    "city/1920x1080/mechanical/被索敵と武器情報が重ならない",
+    "city/1920x1080/mechanical/プラントと警告が重ならない",
+    "city/1920x1080/mechanical/方位計が重ならない",
+    "dock/640x480/arcade/miniが画面内",
+    "dock/640x480/arcade/spotAlertが画面内",
+    "dock/640x480/arcade/statusが画面内",
+    "dock/640x480/arcade/ammoBoxが画面内",
+    "dock/640x480/arcade/aimSpが画面内",
+    "dock/640x480/arcade/topが画面内",
+    "dock/640x480/arcade/wpnが画面内",
+    "dock/640x480/arcade/SPとminiが重ならない",
+    "dock/640x480/arcade/SPとstatusが重ならない",
+    "dock/640x480/arcade/SPとammoBoxが重ならない",
+    "dock/640x480/arcade/SPとwpnが重ならない",
+    "dock/640x480/arcade/被索敵と武器情報が重ならない",
+    "dock/640x480/arcade/プラントと警告が重ならない",
+    "dock/640x480/flight/miniが画面内",
+    "dock/640x480/flight/spotAlertが画面内",
+    "dock/640x480/flight/statusが画面内",
+    "dock/640x480/flight/ammoBoxが画面内",
+    "dock/640x480/flight/aimSpが画面内",
+    "dock/640x480/flight/topが画面内",
+    "dock/640x480/flight/wpnが画面内",
+    "dock/640x480/flight/SPとminiが重ならない",
+    "dock/640x480/flight/SPとstatusが重ならない",
+    "dock/640x480/flight/SPとammoBoxが重ならない",
+    "dock/640x480/flight/SPとwpnが重ならない",
+    "dock/640x480/flight/被索敵と武器情報が重ならない",
+    "dock/640x480/flight/プラントと警告が重ならない",
+    "dock/640x480/mechanical/miniが画面内",
+    "dock/640x480/mechanical/spotAlertが画面内",
+    "dock/640x480/mechanical/statusが画面内",
+    "dock/640x480/mechanical/ammoBoxが画面内",
+    "dock/640x480/mechanical/aimSpが画面内",
+    "dock/640x480/mechanical/topが画面内",
+    "dock/640x480/mechanical/wpnが画面内",
+    "dock/640x480/mechanical/SPとminiが重ならない",
+    "dock/640x480/mechanical/SPとstatusが重ならない",
+    "dock/640x480/mechanical/SPとammoBoxが重ならない",
+    "dock/640x480/mechanical/SPとwpnが重ならない",
+    "dock/640x480/mechanical/被索敵と武器情報が重ならない",
+    "dock/640x480/mechanical/プラントと警告が重ならない",
+    "dock/640x480/mechanical/方位計が重ならない",
+    "dock/800x600/arcade/miniが画面内",
+    "dock/800x600/arcade/spotAlertが画面内",
+    "dock/800x600/arcade/statusが画面内",
+    "dock/800x600/arcade/ammoBoxが画面内",
+    "dock/800x600/arcade/aimSpが画面内",
+    "dock/800x600/arcade/topが画面内",
+    "dock/800x600/arcade/wpnが画面内",
+    "dock/800x600/arcade/SPとminiが重ならない",
+    "dock/800x600/arcade/SPとstatusが重ならない",
+    "dock/800x600/arcade/SPとammoBoxが重ならない",
+    "dock/800x600/arcade/SPとwpnが重ならない",
+    "dock/800x600/arcade/被索敵と武器情報が重ならない",
+    "dock/800x600/arcade/プラントと警告が重ならない",
+    "dock/800x600/flight/miniが画面内",
+    "dock/800x600/flight/spotAlertが画面内",
+    "dock/800x600/flight/statusが画面内",
+    "dock/800x600/flight/ammoBoxが画面内",
+    "dock/800x600/flight/aimSpが画面内",
+    "dock/800x600/flight/topが画面内",
+    "dock/800x600/flight/wpnが画面内",
+    "dock/800x600/flight/SPとminiが重ならない",
+    "dock/800x600/flight/SPとstatusが重ならない",
+    "dock/800x600/flight/SPとammoBoxが重ならない",
+    "dock/800x600/flight/SPとwpnが重ならない",
+    "dock/800x600/flight/被索敵と武器情報が重ならない",
+    "dock/800x600/flight/プラントと警告が重ならない",
+    "dock/800x600/mechanical/miniが画面内",
+    "dock/800x600/mechanical/spotAlertが画面内",
+    "dock/800x600/mechanical/statusが画面内",
+    "dock/800x600/mechanical/ammoBoxが画面内",
+    "dock/800x600/mechanical/aimSpが画面内",
+    "dock/800x600/mechanical/topが画面内",
+    "dock/800x600/mechanical/wpnが画面内",
+    "dock/800x600/mechanical/SPとminiが重ならない",
+    "dock/800x600/mechanical/SPとstatusが重ならない",
+    "dock/800x600/mechanical/SPとammoBoxが重ならない",
+    "dock/800x600/mechanical/SPとwpnが重ならない",
+    "dock/800x600/mechanical/被索敵と武器情報が重ならない",
+    "dock/800x600/mechanical/プラントと警告が重ならない",
+    "dock/800x600/mechanical/方位計が重ならない",
+    "dock/1280x720/arcade/miniが画面内",
+    "dock/1280x720/arcade/spotAlertが画面内",
+    "dock/1280x720/arcade/statusが画面内",
+    "dock/1280x720/arcade/ammoBoxが画面内",
+    "dock/1280x720/arcade/aimSpが画面内",
+    "dock/1280x720/arcade/topが画面内",
+    "dock/1280x720/arcade/wpnが画面内",
+    "dock/1280x720/arcade/SPとminiが重ならない",
+    "dock/1280x720/arcade/SPとstatusが重ならない",
+    "dock/1280x720/arcade/SPとammoBoxが重ならない",
+    "dock/1280x720/arcade/SPとwpnが重ならない",
+    "dock/1280x720/arcade/被索敵と武器情報が重ならない",
+    "dock/1280x720/arcade/プラントと警告が重ならない",
+    "dock/1280x720/flight/miniが画面内",
+    "dock/1280x720/flight/spotAlertが画面内",
+    "dock/1280x720/flight/statusが画面内",
+    "dock/1280x720/flight/ammoBoxが画面内",
+    "dock/1280x720/flight/aimSpが画面内",
+    "dock/1280x720/flight/topが画面内",
+    "dock/1280x720/flight/wpnが画面内",
+    "dock/1280x720/flight/SPとminiが重ならない",
+    "dock/1280x720/flight/SPとstatusが重ならない",
+    "dock/1280x720/flight/SPとammoBoxが重ならない",
+    "dock/1280x720/flight/SPとwpnが重ならない",
+    "dock/1280x720/flight/被索敵と武器情報が重ならない",
+    "dock/1280x720/flight/プラントと警告が重ならない",
+    "dock/1280x720/mechanical/miniが画面内",
+    "dock/1280x720/mechanical/spotAlertが画面内",
+    "dock/1280x720/mechanical/statusが画面内",
+    "dock/1280x720/mechanical/ammoBoxが画面内",
+    "dock/1280x720/mechanical/aimSpが画面内",
+    "dock/1280x720/mechanical/topが画面内",
+    "dock/1280x720/mechanical/wpnが画面内",
+    "dock/1280x720/mechanical/SPとminiが重ならない",
+    "dock/1280x720/mechanical/SPとstatusが重ならない",
+    "dock/1280x720/mechanical/SPとammoBoxが重ならない",
+    "dock/1280x720/mechanical/SPとwpnが重ならない",
+    "dock/1280x720/mechanical/被索敵と武器情報が重ならない",
+    "dock/1280x720/mechanical/プラントと警告が重ならない",
+    "dock/1280x720/mechanical/方位計が重ならない",
+    "dock/1920x1080/arcade/miniが画面内",
+    "dock/1920x1080/arcade/spotAlertが画面内",
+    "dock/1920x1080/arcade/statusが画面内",
+    "dock/1920x1080/arcade/ammoBoxが画面内",
+    "dock/1920x1080/arcade/aimSpが画面内",
+    "dock/1920x1080/arcade/topが画面内",
+    "dock/1920x1080/arcade/wpnが画面内",
+    "dock/1920x1080/arcade/SPとminiが重ならない",
+    "dock/1920x1080/arcade/SPとstatusが重ならない",
+    "dock/1920x1080/arcade/SPとammoBoxが重ならない",
+    "dock/1920x1080/arcade/SPとwpnが重ならない",
+    "dock/1920x1080/arcade/被索敵と武器情報が重ならない",
+    "dock/1920x1080/arcade/プラントと警告が重ならない",
+    "dock/1920x1080/flight/miniが画面内",
+    "dock/1920x1080/flight/spotAlertが画面内",
+    "dock/1920x1080/flight/statusが画面内",
+    "dock/1920x1080/flight/ammoBoxが画面内",
+    "dock/1920x1080/flight/aimSpが画面内",
+    "dock/1920x1080/flight/topが画面内",
+    "dock/1920x1080/flight/wpnが画面内",
+    "dock/1920x1080/flight/SPとminiが重ならない",
+    "dock/1920x1080/flight/SPとstatusが重ならない",
+    "dock/1920x1080/flight/SPとammoBoxが重ならない",
+    "dock/1920x1080/flight/SPとwpnが重ならない",
+    "dock/1920x1080/flight/被索敵と武器情報が重ならない",
+    "dock/1920x1080/flight/プラントと警告が重ならない",
+    "dock/1920x1080/mechanical/miniが画面内",
+    "dock/1920x1080/mechanical/spotAlertが画面内",
+    "dock/1920x1080/mechanical/statusが画面内",
+    "dock/1920x1080/mechanical/ammoBoxが画面内",
+    "dock/1920x1080/mechanical/aimSpが画面内",
+    "dock/1920x1080/mechanical/topが画面内",
+    "dock/1920x1080/mechanical/wpnが画面内",
+    "dock/1920x1080/mechanical/SPとminiが重ならない",
+    "dock/1920x1080/mechanical/SPとstatusが重ならない",
+    "dock/1920x1080/mechanical/SPとammoBoxが重ならない",
+    "dock/1920x1080/mechanical/SPとwpnが重ならない",
+    "dock/1920x1080/mechanical/被索敵と武器情報が重ならない",
+    "dock/1920x1080/mechanical/プラントと警告が重ならない",
+    "dock/1920x1080/mechanical/方位計が重ならない",
+    "保存不可の環境でも起動",
+    "保存不可でもコンソールは選べる",
+    "ブラウザのエラーなし："
+  ],
+  "layouts": [
+    {
+      "map": "city",
+      "width": 640,
+      "height": 480,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 205
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 375,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 221.453125,
+          "y": 280,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 265,
+          "y": 321,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 84.8125,
+          "y": 10,
+          "w": 470.375,
+          "h": 36
+        },
+        "wpn": {
+          "x": 235.453125,
+          "y": 290,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 184,
+          "y": 50,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 181.328125,
+          "y": 118,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 640,
+      "height": 480,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 520,
+          "y": 86.40625,
+          "w": 108,
+          "h": 153.59375
+        },
+        "spotAlert": {
+          "x": 520,
+          "y": 248,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 311.453125,
+          "w": 236,
+          "h": 156.546875
+        },
+        "ammoBox": {
+          "x": 412,
+          "y": 312,
+          "w": 216,
+          "h": 156
+        },
+        "aimSp": {
+          "x": 260,
+          "y": 301,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 168.796875,
+          "h": 88
+        },
+        "wpn": {
+          "x": 412,
+          "y": 312,
+          "w": 216,
+          "h": 116
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 356,
+          "y": 14,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 181.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 640,
+      "height": 480,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 533,
+          "y": 17,
+          "w": 90,
+          "h": 96
+        },
+        "spotAlert": {
+          "x": 533,
+          "y": 121,
+          "w": 90,
+          "h": 49
+        },
+        "status": {
+          "x": 12,
+          "y": 318,
+          "w": 204.796875,
+          "h": 54
+        },
+        "ammoBox": {
+          "x": 448,
+          "y": 184.8125,
+          "w": 180,
+          "h": 283.1875
+        },
+        "aimSp": {
+          "x": 204,
+          "y": 452,
+          "w": 232,
+          "h": 16
+        },
+        "top": {
+          "x": 12,
+          "y": 14,
+          "w": 258,
+          "h": 68
+        },
+        "wpn": {
+          "x": 448,
+          "y": 184.8125,
+          "w": 180,
+          "h": 239.1875
+        },
+        "consoleHeading": {
+          "x": 266.25,
+          "y": 143,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 184,
+          "y": 88,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 181.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 640,
+      "height": 480,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 520,
+          "y": 12,
+          "w": 108,
+          "h": 153.59375
+        },
+        "spotAlert": {
+          "x": 520,
+          "y": 173.59375,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 410,
+          "w": 216,
+          "h": 58
+        },
+        "ammoBox": {
+          "x": 412,
+          "y": 283,
+          "w": 216,
+          "h": 185
+        },
+        "aimSp": {
+          "x": 260,
+          "y": 301,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 317.59375,
+          "h": 33
+        },
+        "wpn": {
+          "x": 412,
+          "y": 283,
+          "w": 216,
+          "h": 149
+        },
+        "consoleHeading": {
+          "x": 230.40625,
+          "y": 435,
+          "w": 179.1875,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 213,
+          "y": 76,
+          "w": 214,
+          "h": 28
+        },
+        "lockAlert": {
+          "x": 12,
+          "y": 112,
+          "w": 216,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 12,
+          "y": 169,
+          "w": 216,
+          "h": 44
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 800,
+      "height": 600,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 205
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 495,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 381.453125,
+          "y": 400,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 345,
+          "y": 361,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 120,
+          "y": 10,
+          "w": 560,
+          "h": 36
+        },
+        "wpn": {
+          "x": 395.453125,
+          "y": 410,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 264,
+          "y": 50,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 261.328125,
+          "y": 118,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 800,
+      "height": 600,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 680,
+          "y": 131,
+          "w": 108,
+          "h": 192
+        },
+        "spotAlert": {
+          "x": 680,
+          "y": 331,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 403.40625,
+          "w": 280,
+          "h": 184.59375
+        },
+        "ammoBox": {
+          "x": 488,
+          "y": 394.609375,
+          "w": 300,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 340,
+          "y": 371,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 236,
+          "h": 90
+        },
+        "wpn": {
+          "x": 488,
+          "y": 394.609375,
+          "w": 300,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 516,
+          "y": 14,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 261.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 800,
+      "height": 600,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 693,
+          "y": 17,
+          "w": 90,
+          "h": 120
+        },
+        "spotAlert": {
+          "x": 693,
+          "y": 145,
+          "w": 90,
+          "h": 49
+        },
+        "status": {
+          "x": 12,
+          "y": 426,
+          "w": 256,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 608,
+          "y": 304.8125,
+          "w": 180,
+          "h": 283.1875
+        },
+        "aimSp": {
+          "x": 232,
+          "y": 572,
+          "w": 336,
+          "h": 16
+        },
+        "top": {
+          "x": 12,
+          "y": 14,
+          "w": 304,
+          "h": 64
+        },
+        "wpn": {
+          "x": 608,
+          "y": 304.8125,
+          "w": 180,
+          "h": 239.1875
+        },
+        "consoleHeading": {
+          "x": 346.25,
+          "y": 193,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 264,
+          "y": 88,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 261.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 800,
+      "height": 600,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 680,
+          "y": 12,
+          "w": 108,
+          "h": 192
+        },
+        "spotAlert": {
+          "x": 680,
+          "y": 212,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 510,
+          "w": 240,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 548,
+          "y": 390,
+          "w": 240,
+          "h": 198
+        },
+        "aimSp": {
+          "x": 340,
+          "y": 371,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 412,
+          "h": 33
+        },
+        "wpn": {
+          "x": 548,
+          "y": 390,
+          "w": 240,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 288,
+          "y": 555,
+          "w": 224,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 293,
+          "y": 76,
+          "w": 214,
+          "h": 28
+        },
+        "lockAlert": {
+          "x": 12,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 12,
+          "y": 169,
+          "w": 227.46875,
+          "h": 26
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1280,
+      "height": 720,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 205
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 615,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 861.453125,
+          "y": 520,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 585,
+          "y": 441,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 324,
+          "y": 10,
+          "w": 632,
+          "h": 36
+        },
+        "wpn": {
+          "x": 875.453125,
+          "y": 530,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 504,
+          "y": 50,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 501.328125,
+          "y": 118,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1280,
+      "height": 720,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 1078.40625,
+          "y": 222.015625,
+          "w": 176,
+          "h": 230.390625
+        },
+        "spotAlert": {
+          "x": 1078.40625,
+          "y": 460.40625,
+          "w": 176,
+          "h": 40
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 469.8125,
+          "w": 330,
+          "h": 224.59375
+        },
+        "ammoBox": {
+          "x": 914.40625,
+          "y": 501.015625,
+          "w": 340,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 580,
+          "y": 441,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 25.59375,
+          "y": 12,
+          "w": 310,
+          "h": 90
+        },
+        "wpn": {
+          "x": 914.40625,
+          "y": 501.015625,
+          "w": 340,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 504,
+          "y": 14,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 501.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1280,
+      "height": 720,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 1105.40625,
+          "y": 30.59375,
+          "w": 144,
+          "h": 172.796875
+        },
+        "spotAlert": {
+          "x": 1105.40625,
+          "y": 211.390625,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 532.40625,
+          "w": 280,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 985.609375,
+          "y": 305.46875,
+          "w": 268.796875,
+          "h": 388.9375
+        },
+        "aimSp": {
+          "x": 371.203125,
+          "y": 678.40625,
+          "w": 537.59375,
+          "h": 16
+        },
+        "top": {
+          "x": 413,
+          "y": 14,
+          "w": 454,
+          "h": 64
+        },
+        "wpn": {
+          "x": 985.609375,
+          "y": 305.46875,
+          "w": 268.796875,
+          "h": 341.9375
+        },
+        "consoleHeading": {
+          "x": 586.25,
+          "y": 243,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 504,
+          "y": 88,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 501.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1280,
+      "height": 720,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 1110.40625,
+          "y": 25.59375,
+          "w": 144,
+          "h": 230.390625
+        },
+        "spotAlert": {
+          "x": 1110.40625,
+          "y": 263.984375,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 616.40625,
+          "w": 280,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 934.40625,
+          "y": 511.40625,
+          "w": 320,
+          "h": 183
+        },
+        "aimSp": {
+          "x": 580,
+          "y": 441,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 25.59375,
+          "y": 25.59375,
+          "w": 508,
+          "h": 33
+        },
+        "wpn": {
+          "x": 934.40625,
+          "y": 511.40625,
+          "w": 320,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 430,
+          "y": 661.40625,
+          "w": 420,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 533,
+          "y": 76,
+          "w": 214,
+          "h": 28
+        },
+        "lockAlert": {
+          "x": 25.59375,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 25.59375,
+          "y": 168,
+          "w": 227.46875,
+          "h": 26
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1920,
+      "height": 1080,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 205
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 975,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 1501.453125,
+          "y": 880,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 905,
+          "y": 621,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 644,
+          "y": 10,
+          "w": 632,
+          "h": 36
+        },
+        "wpn": {
+          "x": 1515.453125,
+          "y": 890,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 824,
+          "y": 50,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 821.328125,
+          "y": 118,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1920,
+      "height": 1080,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 1705.609375,
+          "y": 471.5625,
+          "w": 176,
+          "h": 329.046875
+        },
+        "spotAlert": {
+          "x": 1705.609375,
+          "y": 808.609375,
+          "w": 176,
+          "h": 40
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 817.015625,
+          "w": 330,
+          "h": 224.59375
+        },
+        "ammoBox": {
+          "x": 1541.609375,
+          "y": 848.21875,
+          "w": 340,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 900,
+          "y": 621,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 38.390625,
+          "y": 12,
+          "w": 310,
+          "h": 90
+        },
+        "wpn": {
+          "x": 1541.609375,
+          "y": 848.21875,
+          "w": 340,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 824,
+          "y": 14,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 821.328125,
+          "y": 188,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1920,
+      "height": 1080,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 1732.609375,
+          "y": 43.390625,
+          "w": 144,
+          "h": 259.1875
+        },
+        "spotAlert": {
+          "x": 1732.609375,
+          "y": 310.578125,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 879.609375,
+          "w": 280,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 1581.609375,
+          "y": 583.859375,
+          "w": 300,
+          "h": 457.75
+        },
+        "aimSp": {
+          "x": 660,
+          "y": 1025.609375,
+          "w": 600,
+          "h": 16
+        },
+        "top": {
+          "x": 733,
+          "y": 14,
+          "w": 454,
+          "h": 64
+        },
+        "wpn": {
+          "x": 1581.609375,
+          "y": 583.859375,
+          "w": 300,
+          "h": 410.75
+        },
+        "consoleHeading": {
+          "x": 906.25,
+          "y": 395,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 824,
+          "y": 88,
+          "w": 272,
+          "h": 33
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 821.328125,
+          "y": 189,
+          "w": 277.34375,
+          "h": 29
+        }
+      }
+    },
+    {
+      "map": "city",
+      "width": 1920,
+      "height": 1080,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 1737.609375,
+          "y": 38.390625,
+          "w": 144,
+          "h": 268.90625
+        },
+        "spotAlert": {
+          "x": 1737.609375,
+          "y": 315.296875,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 963.609375,
+          "w": 280,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 1561.609375,
+          "y": 858.609375,
+          "w": 320,
+          "h": 183
+        },
+        "aimSp": {
+          "x": 900,
+          "y": 649,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 38.390625,
+          "y": 38.390625,
+          "w": 508,
+          "h": 33
+        },
+        "wpn": {
+          "x": 1561.609375,
+          "y": 858.609375,
+          "w": 320,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 750,
+          "y": 1008.609375,
+          "w": 420,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 853,
+          "y": 76,
+          "w": 214,
+          "h": 28
+        },
+        "lockAlert": {
+          "x": 38.390625,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 38.390625,
+          "y": 168,
+          "w": 227.46875,
+          "h": 26
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 640,
+      "height": 480,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 141
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 375,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 221.453125,
+          "y": 280,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 265,
+          "y": 301,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 84.8125,
+          "y": 10,
+          "w": 470.375,
+          "h": 36
+        },
+        "wpn": {
+          "x": 235.453125,
+          "y": 290,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 320,
+          "y": 50,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 640,
+      "height": 480,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 520,
+          "y": 101.578125,
+          "w": 108,
+          "h": 138.421875
+        },
+        "spotAlert": {
+          "x": 520,
+          "y": 248,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 311.453125,
+          "w": 236,
+          "h": 156.546875
+        },
+        "ammoBox": {
+          "x": 412,
+          "y": 312,
+          "w": 216,
+          "h": 156
+        },
+        "aimSp": {
+          "x": 260,
+          "y": 301,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 168.796875,
+          "h": 88
+        },
+        "wpn": {
+          "x": 412,
+          "y": 312,
+          "w": 216,
+          "h": 116
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 628,
+          "y": 14,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 640,
+      "height": 480,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 533,
+          "y": 17,
+          "w": 90,
+          "h": 96
+        },
+        "spotAlert": {
+          "x": 533,
+          "y": 121,
+          "w": 90,
+          "h": 49
+        },
+        "status": {
+          "x": 12,
+          "y": 318,
+          "w": 204.796875,
+          "h": 54
+        },
+        "ammoBox": {
+          "x": 448,
+          "y": 184.8125,
+          "w": 180,
+          "h": 283.1875
+        },
+        "aimSp": {
+          "x": 204,
+          "y": 452,
+          "w": 232,
+          "h": 16
+        },
+        "top": {
+          "x": 12,
+          "y": 14,
+          "w": 258,
+          "h": 68
+        },
+        "wpn": {
+          "x": 448,
+          "y": 184.8125,
+          "w": 180,
+          "h": 239.1875
+        },
+        "consoleHeading": {
+          "x": 266.25,
+          "y": 143,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 320,
+          "y": 88,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 261.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 640,
+      "height": 480,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 520,
+          "y": 12,
+          "w": 108,
+          "h": 138.421875
+        },
+        "spotAlert": {
+          "x": 520,
+          "y": 158.421875,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 410,
+          "w": 216,
+          "h": 58
+        },
+        "ammoBox": {
+          "x": 412,
+          "y": 283,
+          "w": 216,
+          "h": 185
+        },
+        "aimSp": {
+          "x": 260,
+          "y": 301,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 317.59375,
+          "h": 33
+        },
+        "wpn": {
+          "x": 412,
+          "y": 283,
+          "w": 216,
+          "h": 149
+        },
+        "consoleHeading": {
+          "x": 230.40625,
+          "y": 435,
+          "w": 179.1875,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 320,
+          "y": 76,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 12,
+          "y": 112,
+          "w": 216,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 800,
+      "height": 600,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 141
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 495,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 381.453125,
+          "y": 400,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 345,
+          "y": 371,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 120,
+          "y": 10,
+          "w": 560,
+          "h": 36
+        },
+        "wpn": {
+          "x": 395.453125,
+          "y": 410,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 400,
+          "y": 50,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 800,
+      "height": 600,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 680,
+          "y": 184.578125,
+          "w": 108,
+          "h": 138.421875
+        },
+        "spotAlert": {
+          "x": 680,
+          "y": 331,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 403.40625,
+          "w": 280,
+          "h": 184.59375
+        },
+        "ammoBox": {
+          "x": 488,
+          "y": 394.609375,
+          "w": 300,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 340,
+          "y": 371,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 236,
+          "h": 90
+        },
+        "wpn": {
+          "x": 488,
+          "y": 394.609375,
+          "w": 300,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 788,
+          "y": 14,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 800,
+      "height": 600,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 693,
+          "y": 17,
+          "w": 90,
+          "h": 115.25
+        },
+        "spotAlert": {
+          "x": 693,
+          "y": 140.25,
+          "w": 90,
+          "h": 49
+        },
+        "status": {
+          "x": 12,
+          "y": 426,
+          "w": 256,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 608,
+          "y": 304.8125,
+          "w": 180,
+          "h": 283.1875
+        },
+        "aimSp": {
+          "x": 232,
+          "y": 572,
+          "w": 336,
+          "h": 16
+        },
+        "top": {
+          "x": 12,
+          "y": 14,
+          "w": 304,
+          "h": 64
+        },
+        "wpn": {
+          "x": 608,
+          "y": 304.8125,
+          "w": 180,
+          "h": 239.1875
+        },
+        "consoleHeading": {
+          "x": 346.25,
+          "y": 193,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 400,
+          "y": 88,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 341.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 800,
+      "height": 600,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 680,
+          "y": 12,
+          "w": 108,
+          "h": 138.421875
+        },
+        "spotAlert": {
+          "x": 680,
+          "y": 158.421875,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 12,
+          "y": 510,
+          "w": 240,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 548,
+          "y": 390,
+          "w": 240,
+          "h": 198
+        },
+        "aimSp": {
+          "x": 340,
+          "y": 371,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 12,
+          "y": 12,
+          "w": 412,
+          "h": 33
+        },
+        "wpn": {
+          "x": 548,
+          "y": 390,
+          "w": 240,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 288,
+          "y": 555,
+          "w": 224,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 400,
+          "y": 76,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 12,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1280,
+      "height": 720,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 141
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 615,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 861.453125,
+          "y": 520,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 585,
+          "y": 431,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 324,
+          "y": 10,
+          "w": 632,
+          "h": 36
+        },
+        "wpn": {
+          "x": 875.453125,
+          "y": 530,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 640,
+          "y": 50,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1280,
+      "height": 720,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 1078.40625,
+          "y": 217.46875,
+          "w": 176,
+          "h": 225.9375
+        },
+        "spotAlert": {
+          "x": 1078.40625,
+          "y": 451.40625,
+          "w": 176,
+          "h": 40
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 469.8125,
+          "w": 330,
+          "h": 224.59375
+        },
+        "ammoBox": {
+          "x": 914.40625,
+          "y": 501.015625,
+          "w": 340,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 580,
+          "y": 431,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 25.59375,
+          "y": 12,
+          "w": 310,
+          "h": 90
+        },
+        "wpn": {
+          "x": 914.40625,
+          "y": 501.015625,
+          "w": 340,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 640,
+          "y": 14,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1280,
+      "height": 720,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 1105.40625,
+          "y": 30.59375,
+          "w": 144,
+          "h": 172.796875
+        },
+        "spotAlert": {
+          "x": 1105.40625,
+          "y": 211.390625,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 532.40625,
+          "w": 280,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 985.609375,
+          "y": 305.46875,
+          "w": 268.796875,
+          "h": 388.9375
+        },
+        "aimSp": {
+          "x": 371.203125,
+          "y": 678.40625,
+          "w": 537.59375,
+          "h": 16
+        },
+        "top": {
+          "x": 413,
+          "y": 14,
+          "w": 454,
+          "h": 64
+        },
+        "wpn": {
+          "x": 985.609375,
+          "y": 305.46875,
+          "w": 268.796875,
+          "h": 341.9375
+        },
+        "consoleHeading": {
+          "x": 586.25,
+          "y": 243,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 640,
+          "y": 88,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 581.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1280,
+      "height": 720,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 1110.40625,
+          "y": 25.59375,
+          "w": 144,
+          "h": 184.75
+        },
+        "spotAlert": {
+          "x": 1110.40625,
+          "y": 218.34375,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 25.59375,
+          "y": 616.40625,
+          "w": 280,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 934.40625,
+          "y": 511.40625,
+          "w": 320,
+          "h": 183
+        },
+        "aimSp": {
+          "x": 580,
+          "y": 441,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 25.59375,
+          "y": 25.59375,
+          "w": 508,
+          "h": 33
+        },
+        "wpn": {
+          "x": 934.40625,
+          "y": 511.40625,
+          "w": 320,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 430,
+          "y": 661.40625,
+          "w": 420,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 640,
+          "y": 76,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 25.59375,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1920,
+      "height": 1080,
+      "mode": "standard",
+      "box": {
+        "mini": {
+          "x": 16,
+          "y": 16,
+          "w": 110,
+          "h": 141
+        },
+        "spotAlert": {
+          "x": 16,
+          "y": 216,
+          "w": 108,
+          "h": 54
+        },
+        "status": {
+          "x": 16,
+          "y": 975,
+          "w": 304,
+          "h": 89
+        },
+        "ammoBox": {
+          "x": 1501.453125,
+          "y": 880,
+          "w": 402.546875,
+          "h": 184
+        },
+        "aimSp": {
+          "x": 905,
+          "y": 621,
+          "w": 110,
+          "h": 4
+        },
+        "top": {
+          "x": 644,
+          "y": 10,
+          "w": 632,
+          "h": 36
+        },
+        "wpn": {
+          "x": 1515.453125,
+          "y": 890,
+          "w": 374.546875,
+          "h": 96
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 960,
+          "y": 50,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 92,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1920,
+      "height": 1080,
+      "mode": "arcade",
+      "box": {
+        "mini": {
+          "x": 1705.609375,
+          "y": 564.671875,
+          "w": 176,
+          "h": 225.9375
+        },
+        "spotAlert": {
+          "x": 1705.609375,
+          "y": 798.609375,
+          "w": 176,
+          "h": 40
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 817.015625,
+          "w": 330,
+          "h": 224.59375
+        },
+        "ammoBox": {
+          "x": 1541.609375,
+          "y": 848.21875,
+          "w": 340,
+          "h": 193.390625
+        },
+        "aimSp": {
+          "x": 900,
+          "y": 649,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 38.390625,
+          "y": 12,
+          "w": 310,
+          "h": 90
+        },
+        "wpn": {
+          "x": 1541.609375,
+          "y": 848.21875,
+          "w": 340,
+          "h": 147.390625
+        },
+        "consoleHeading": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        },
+        "plantBar": {
+          "x": 960,
+          "y": 14,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1920,
+      "height": 1080,
+      "mode": "flight",
+      "box": {
+        "mini": {
+          "x": 1732.609375,
+          "y": 43.390625,
+          "w": 144,
+          "h": 184.75
+        },
+        "spotAlert": {
+          "x": 1732.609375,
+          "y": 236.140625,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 879.609375,
+          "w": 280,
+          "h": 66
+        },
+        "ammoBox": {
+          "x": 1581.609375,
+          "y": 583.859375,
+          "w": 300,
+          "h": 457.75
+        },
+        "aimSp": {
+          "x": 660,
+          "y": 1025.609375,
+          "w": 600,
+          "h": 16
+        },
+        "top": {
+          "x": 733,
+          "y": 14,
+          "w": 454,
+          "h": 64
+        },
+        "wpn": {
+          "x": 1581.609375,
+          "y": 583.859375,
+          "w": 300,
+          "h": 410.75
+        },
+        "consoleHeading": {
+          "x": 906.25,
+          "y": 395,
+          "w": 107.5,
+          "h": 27
+        },
+        "plantBar": {
+          "x": 960,
+          "y": 88,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 901.5390625,
+          "y": 132,
+          "w": 116.921875,
+          "h": 49
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "map": "dock",
+      "width": 1920,
+      "height": 1080,
+      "mode": "mechanical",
+      "box": {
+        "mini": {
+          "x": 1737.609375,
+          "y": 38.390625,
+          "w": 144,
+          "h": 184.75
+        },
+        "spotAlert": {
+          "x": 1737.609375,
+          "y": 231.140625,
+          "w": 144,
+          "h": 54
+        },
+        "status": {
+          "x": 38.390625,
+          "y": 963.609375,
+          "w": 280,
+          "h": 78
+        },
+        "ammoBox": {
+          "x": 1561.609375,
+          "y": 858.609375,
+          "w": 320,
+          "h": 183
+        },
+        "aimSp": {
+          "x": 900,
+          "y": 649,
+          "w": 120,
+          "h": 4
+        },
+        "top": {
+          "x": 38.390625,
+          "y": 38.390625,
+          "w": 508,
+          "h": 33
+        },
+        "wpn": {
+          "x": 1561.609375,
+          "y": 858.609375,
+          "w": 320,
+          "h": 162
+        },
+        "consoleHeading": {
+          "x": 750,
+          "y": 1008.609375,
+          "w": 420,
+          "h": 33
+        },
+        "plantBar": {
+          "x": 960,
+          "y": 76,
+          "w": 0,
+          "h": 0
+        },
+        "lockAlert": {
+          "x": 38.390625,
+          "y": 112,
+          "w": 280,
+          "h": 48
+        },
+        "baseAlert": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0
+        }
+      }
+    }
+  ],
+  "errors": []
+}

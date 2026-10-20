@@ -715,11 +715,22 @@ body[data-console="mechanical"] #feed { top: calc(128px + var(--console-lock-hei
 #pilot { position: absolute; bottom: calc(100% + 8px); left: 0; width: min(100%, 220px); box-sizing: border-box; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 3px 10px; align-items: center; padding: 6px 8px; background: var(--panel); }
 #pilotMark { position: relative; grid-row: 1 / 3; display: grid; width: 52px; height: 52px; border-radius: 8px; background: #f8eedb; }
 #pilotMark .catFace { width: 100%; height: 100%; }
-.pilotRole { position: absolute; right: -3px; bottom: -3px; min-width: 16px; padding: 1px 2px; font: 700 10px var(--display); text-align: center; color: #fff; background: #183a57; border: 1px solid #8acfff; border-radius: 3px; }
 #pilotName { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
 #pilotCls { font-size: 11px; color: #b5ccda; }
 body[data-console="arcade"] #pilot { position: static; bottom: auto; left: auto; width: auto; padding: 0; background: none; }
 body[data-console="arcade"] #pilotMark { padding: 0; background: #f8eedb; clip-path: none; }
+/* アーケードだけ顔を従来の約3倍にし、名前と兵装をその下へ並べる。 */
+body[data-console="arcade"] { --arcade-pilot-size: 156px; }
+body[data-console="arcade"] #pilot { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 5px; }
+body[data-console="arcade"] #pilotMark { grid-row: 1; width: var(--arcade-pilot-size); height: var(--arcade-pilot-size); }
+body[data-console="arcade"] #pilotName { grid-row: 2; width: 100%; text-align: center; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
+.playerProfile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 14px; margin: 18px 0; }
+.playerProfile label { color: var(--hud); font-size: 14px; }
+.playerProfile input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: 1px solid #536d80; border-radius: 4px; color: #fff; background: #101e2b; font: inherit; }
+.playerProfile input:focus-visible { outline: 2px solid #9fe0ff; outline-offset: 2px; }
+.playerProfile small { grid-column: 2; color: #b6cad8; font-size: 11px; }
+@media (max-width: 1000px) { body[data-console="arcade"] { --arcade-pilot-size: 120px; } }
 .sbName { display: flex; align-items: center; gap: 5px; }
 .sbName .catFace { width: 22px; height: 22px; border-radius: 4px; }
 #killerFace { display: none; }
@@ -727,13 +738,18 @@ body[data-console="arcade"] #pilotMark { padding: 0; background: #f8eedb; clip-p
 #killcam.withPilot #killerFace { display: block; position: absolute; left: 0; top: 0; }
 #killerFace .catFace { width: 52px; height: 52px; }
 @media (max-width: 700px) {
-  body[data-console="arcade"] #pilot { grid-template-columns: 32px minmax(0, 1fr); gap: 3px 6px; }
-  body[data-console="arcade"] #pilotMark { display: grid; width: 32px; height: 32px; }
+  body[data-console="arcade"] { --arcade-pilot-size: 96px; }
+  body[data-console="arcade"] #status { width: min(236px, calc(100vw - 2 * var(--console-edge))); padding: 8px 30px 8px 10px; grid-template-columns: minmax(0, 1fr) 76px; gap: 0 8px; }
+  body[data-console="arcade"] #pilotMark { display: grid; }
   #pilot { grid-template-columns: 40px minmax(0, 1fr); gap: 3px 6px; }
   #pilotMark { width: 40px; height: 40px; }
   #pilotName { font-size: 12px; }
 }
-@media (max-width: 480px) { #pilotList { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  #pilotList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .playerProfile { grid-template-columns: minmax(0, 1fr); }
+  .playerProfile small { grid-column: 1; }
+}
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -794,6 +810,11 @@ body[data-console="arcade"] #pilotMark { padding: 0; background: #f8eedb; clip-p
     <section class="page" id="pgMenu">
       <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
       <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。操作説明とマップを確かめ、兵装を選んで出撃してください。</p>
+      <div class="playerProfile">
+        <label for="playerName">プレイヤー名</label>
+        <input id="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="あなた" aria-describedby="playerNameHint">
+        <small id="playerNameHint">20文字まで・自動保存。空欄の場合は「あなた」。</small>
+      </div>
       <div id="ovBoard"></div>
       <nav class="menu" aria-label="メニュー">
         <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
@@ -1730,7 +1751,7 @@ function reviveTurret(tu, hp, by) {
   tu.baseMat.color.setHex(TURRET_BASE);
   tu.base.userData.ref = tu;
   for (const m of tu.parts) if (!hittables.includes(m)) hittables.push(m);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
+  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
 }
 function resetTurrets() { for (const tu of turrets) reviveTurret(tu, tu.maxHp); }
 
@@ -1774,7 +1795,7 @@ function reviveRadar(rd, hp, by) {
   rd.baseMat.color.setHex(TURRET_BASE);
   rd.base.userData.ref = rd.mast.userData.ref = rd;
   if (!hittables.includes(rd.dish)) hittables.push(rd.dish);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
+  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
 }
 function destroyRadar(rd, by) {
   Object.assign(rd, { alive: false, hp: 0, revive: 0, intruders: [] });
@@ -1782,7 +1803,7 @@ function destroyRadar(rd, by) {
   rd.baseMat.color.setHex(0x26282b);
   rd.base.userData.ref = rd.mast.userData.ref = null; // 残骸は遮蔽物として残る
   const i = hittables.indexOf(rd.dish); if (i >= 0) hittables.splice(i, 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
+  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
   addScore(by, 'support', SC.radar, 'レーダー破壊');
   if (by.isPlayer) popup(rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
   boom(rd.pos.clone().setY(rd.pos.y + 8));
@@ -1811,7 +1832,7 @@ function destroyTurret(tu, by) {
   tu.baseMat.color.setHex(0x26282b);
   tu.base.userData.ref = null; // 残骸は遮蔽物として残る
   for (const m of tu.parts) { const i = hittables.indexOf(m); if (i >= 0) hittables.splice(i, 1); }
-  feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
+  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
   addScore(by, 'support', SC.turret, '防衛砲台破壊');
   if (by.isPlayer) popup(tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
   boom(tu.pos);
@@ -2566,7 +2587,7 @@ function damageBarricade(br, dmg, by) {
   mapRoot.remove(br.mesh);
   hittables.splice(hittables.indexOf(br.mesh), 1);
   obstacles.splice(obstacles.indexOf(br.ob), 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> がバリケードを破壊`);
+  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
   if (by.isPlayer) popup(br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
   boom(br.pos.clone().setY(br.base));
 }
@@ -3554,7 +3575,7 @@ function makeUnit(team, isPlayer, idx) {
   scene.add(m.g);
   const u = {
     kind: 'unit', team, isPlayer, idx, mech,
-    name: isPlayer ? 'あなた' : `${team === 'B' ? '味方' : '敵'}${idx + 1}`,
+    name: isPlayer ? playerName : `${team === 'B' ? '味方' : '敵'}${idx + 1}`,
     group: m.g, gun: m.gun, gun2: m.gun2, flame: m.flame, blade: m.blade, pack: m.pack, mount: m.mount, armorMat: m.armor, rig: m.rig, cannonDeploy: 0,
     pos: new T.Vector3(), vel: new T.Vector3(), yaw: 0, pitch: 0,
     hp: 10000, maxHp: 10000, alive: true, respawnT: 0,
@@ -4330,7 +4351,7 @@ function kill(v, by, head, hit = Infinity) {
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
   if (v.isPlayer) aimMark.visible = false;
   if (v.isPlayer || v === lock.target) releaseLock();
-  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${v.name}</span> が自爆` : `<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
+  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が自爆` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
   if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
   v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
   downBurst(v); // 小さな爆発と煙（v0.18）
@@ -4372,7 +4393,7 @@ function revive(v, by) {
   resetMechPose(v);
   v.group.visible = true;
   scoreRevive(by, v);
-  feed(`<span style="color:${TEAM[by.team].css}">${by.name}</span> が <span style="color:${TEAM[v.team].css}">${v.name}</span> を蘇生`);
+  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
   if (by.isPlayer) popup(v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
   if (v.isPlayer) announce('蘇生されました', 'good');
   sfx('pod', v.pos, v);
@@ -4563,7 +4584,7 @@ function scoreTick(dt) {
 }
 // 両軍のスコア表。live：試合中（撃破されている機体を薄く）
 function boardHtml(live) {
-  const row = (u, i) => `<tr class="${u.isPlayer ? 'me' : ''}${live && !u.alive ? ' dead' : ''}"><td>${i + 1}</td><td><span class="sbName">${pilotFace(pilotFor(u), true)}<span>${u.name}</span></span></td><td>${CLASSES[u.cls].name}</td><td>${u.sc.battle}</td><td>${u.sc.plant}</td><td>${u.sc.support}</td><td class="tot">${u.sc.total}</td><td>${u.sc.kills}</td><td>${u.sc.assists}</td><td>${u.sc.deaths}</td></tr>`;
+  const row = (u, i) => `<tr class="${u.isPlayer ? 'me' : ''}${live && !u.alive ? ' dead' : ''}"><td>${i + 1}</td><td><span class="sbName">${pilotFace(pilotFor(u), true)}<span>${htmlText(u.name)}</span></span></td><td>${CLASSES[u.cls].name}</td><td>${u.sc.battle}</td><td>${u.sc.plant}</td><td>${u.sc.support}</td><td class="tot">${u.sc.total}</td><td>${u.sc.kills}</td><td>${u.sc.assists}</td><td>${u.sc.deaths}</td></tr>`;
   return '<div class="sb">' + ['B', 'R'].map(k => {
     const us = units.filter(u => u.team === k).sort((a, b) => b.sc.total - a.sc.total || b.sc.kills - a.sc.kills);
     const sum = us.reduce((t, u) => t + u.sc.total, 0);
@@ -4592,7 +4613,7 @@ function medalList() {
   return out;
 }
 function medalsHtml(list) {
-  return list.length ? '<div class="medals">' + list.map(m => `<div class="medal${m.mvp ? ' mvp' : ''}${m.u.isPlayer ? ' me' : ''}"><small>${m.name}</small><b class="${m.u.team}">${m.u.name}</b><span>${m.val}</span></div>`).join('') + '</div>' : '';
+  return list.length ? '<div class="medals">' + list.map(m => `<div class="medal${m.mvp ? ' mvp' : ''}${m.u.isPlayer ? ' me' : ''}"><small>${m.name}</small><b class="${m.u.team}">${htmlText(m.u.name)}</b><span>${m.val}</span></div>`).join('') + '</div>' : '';
 }
 
 const booms = [];
@@ -7094,7 +7115,7 @@ function qchatSend(u, i, at) {
 // 味方の言葉を右の欄に出す（敵の言葉は出さない）
 function chatLine(u, text) {
   if (!player || u.team !== player.team) return;
-  feed(`<span style="color:${TEAM[u.team].css}">${u.name}</span>：${text}`, 'chat');
+  feed(`<span style="color:${TEAM[u.team].css}">${htmlText(u.name)}</span>：${text}`, 'chat');
   sfx('chat');
 }
 // 地点の印：同じ陣営の味方にだけ、光の柱と、画面・ミニマップ・全体マップの印で見える。PING_TIME 秒で消え、1陣営 PING_MAX 個まで（古い物から消す）
@@ -7520,6 +7541,25 @@ function renderBuildTabs() {
 renderBuildTabs();
 for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
 // ---- メニュー（操作説明・マップ選択・武装選択） ----
+// プレイヤー名は猫・機体構成と別に保存し、表示へ入れるときは文字として扱う。
+const PLAYER_NAME_KEY = 'coreBreakerPlayerName';
+function normalizePlayerName(value) { return Array.from(String(value || '').replace(/[\u0000-\u001f\u007f]/g, '').trim()).slice(0, 20).join('') || 'あなた'; }
+function htmlText(value) { return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+let playerName = 'あなた';
+try { playerName = normalizePlayerName(localStorage.getItem(PLAYER_NAME_KEY)); } catch (_) {}
+$('playerName').value = playerName;
+function updatePlayerName(commit = false) {
+  playerName = normalizePlayerName($('playerName').value);
+  if (commit) $('playerName').value = playerName;
+  if (player?.isPlayer) player.name = playerName;
+  pilotHud(player);
+  try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
+}
+$('playerName').addEventListener('input', e => { if (!e.isComposing) updatePlayerName(); });
+$('playerName').addEventListener('compositionend', () => updatePlayerName(true));
+$('playerName').addEventListener('change', () => updatePlayerName(true));
+// 名前の入力中はN・M・G・Space・Tabなどをゲームの操作へ渡さない。
+for (const type of ['keydown', 'keyup']) $('playerName').addEventListener(type, e => e.stopPropagation());
 // 猫のパイロット。選択は機体構成とは別の1項目、Botの顔は乱数を使わず固定する。
 const PILOTS = [
   { id: 'tabby', name: 'キジトラ', trait: 'やさしい垂れ目' },
@@ -7540,9 +7580,9 @@ function pilotFace(id, decorative = false) {
 function pilotFor(u) { return u?.isPlayer ? pilotChoice : PILOTS[((u?.idx || 0) + (u?.team === 'R' ? 4 : 1)) % PILOTS.length].id; }
 function pilotHud(p) {
   const id = p ? pilotFor(p) : pilotChoice, cls = CLASSES[p?.cls || chosenCls], mark = $('pilotMark');
-  if (mark.dataset.pilot !== id) { mark.innerHTML = pilotFace(id) + '<i class="pilotRole" aria-hidden="true"></i>'; mark.dataset.pilot = id; }
-  mark.querySelector('.pilotRole').textContent = cls.name[0];
-  $('pilotCls').textContent = cls.name; $('pilotName').textContent = p?.name || 'あなた';
+  if (mark.dataset.pilot !== id) { mark.innerHTML = pilotFace(id); mark.dataset.pilot = id; }
+  $('pilotCls').textContent = cls.name; $('pilotName').textContent = p?.name || playerName;
+  $('pilotName').title = $('pilotName').textContent;
 }
 $('pilotList').innerHTML = PILOTS.map(c => `<button type="button" class="pilotCard" data-pilot-choice="${c.id}" aria-pressed="false">${pilotFace(c.id, true)}<b>${c.name}</b><small>${c.trait}</small></button>`).join('');
 function setPilot(id, save = true) {
@@ -8372,7 +8412,7 @@ function hud(timeLeft, dt) {
   if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を回復）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
   if (arcade) { // 菱形の武器枠：持っている武器は大きな数字と同じ値、ほかは弾倉の残り（剣は∞、SPを使う物は%）
-    SLOTS.forEach(k => { const sl = p.slots[k], el = $('w-' + k); el.dataset.n = k === p.weapon ? big : sl.w.mag ? sl.ammo : sl.w.type === 'sword' ? '∞' : Math.round(sl.heat) + '%'; el.dataset.name = sl.w.name; });
+    SLOTS.forEach((k, i) => { const sl = p.slots[k], el = $('w-' + k); el.dataset.n = k === p.weapon ? big : sl.w.mag ? sl.ammo : sl.w.type === 'sword' ? '∞' : Math.round(sl.heat) + '%'; el.dataset.name = `${i + 1} ${sl.w.name}`; });
     $('w-sp').style.setProperty('--fill', sps.heat + '%');
   }
   if (!p.alive) wsel.open = qc.open = false;
