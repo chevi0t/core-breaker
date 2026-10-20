@@ -1,0 +1,203 @@
+{
+  "baseline": "../../v4/final/battles.json",
+  "candidate": "battles.json",
+  "matchesPerVariant": 4,
+  "initializationMatchesAll12": true,
+  "controlMainMatchesOldAll4": true,
+  "controlFields": [
+    "initialization",
+    "seconds",
+    "ended",
+    "coreExact",
+    "kills",
+    "captureEvents",
+    "losses",
+    "layers",
+    "mobility",
+    "repairs",
+    "stalls",
+    "occupancy"
+  ],
+  "rows": [
+    {
+      "map": "tidal",
+      "before": {
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 23568.75
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 22950.0
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 0,
+          "R": 3,
+          "draw": 1
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 25256.25
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 23625.0
+          }
+        }
+      },
+      "mountain": {
+        "entries": {
+          "B": 10,
+          "R": 1
+        },
+        "crossings": {
+          "B": 9,
+          "R": 0
+        }
+      }
+    },
+    {
+      "map": "tidal-v2",
+      "before": {
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 23400.0
+          },
+          "R": {
+            "direct": 828,
+            "wreck": 21937.5
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 1,
+          "R": 3,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 982.9643494897691,
+            "wreck": 24693.75
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 24750.0
+          }
+        }
+      },
+      "mountain": {
+        "entries": {
+          "B": 15,
+          "R": 1
+        },
+        "crossings": {
+          "B": 19,
+          "R": 6
+        }
+      }
+    },
+    {
+      "map": "tidal-v3",
+      "before": {
+        "wins": {
+          "B": 0,
+          "R": 4,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 330,
+            "wreck": 25087.5
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 23006.25
+          }
+        }
+      },
+      "after": {
+        "wins": {
+          "B": 0,
+          "R": 4,
+          "draw": 0
+        },
+        "losses": {
+          "B": {
+            "direct": 0,
+            "wreck": 26550.0
+          },
+          "R": {
+            "direct": 0,
+            "wreck": 23737.5
+          }
+        }
+      },
+      "mountain": {
+        "entries": {
+          "B": 12,
+          "R": 0
+        },
+        "crossings": {
+          "B": 11,
+          "R": 1
+        }
+      }
+    }
+  ],
+  "totalBefore": {
+    "wins": {
+      "B": 2,
+      "R": 10,
+      "draw": 0
+    },
+    "losses": {
+      "B": {
+        "direct": 330,
+        "wreck": 72056.25
+      },
+      "R": {
+        "direct": 828,
+        "wreck": 67893.75
+      }
+    }
+  },
+  "totalAfter": {
+    "wins": {
+      "B": 1,
+      "R": 10,
+      "draw": 1
+    },
+    "losses": {
+      "B": {
+        "direct": 982.9643494897691,
+        "wreck": 76500.0
+      },
+      "R": {
+        "direct": 0,
+        "wreck": 72112.5
+      }
+    }
+  },
+  "limits": [
+    "山と青の潜行経由点・到達半径を一緒に変更した比較。山の地形だけの効果は分離していない。",
+    "各4戦で統計的な公平さは未確定。山の追加後も橙優勢は解消していない。",
+    "ridge entriesは同じ機体の再入場を含む。wall crossingsは指定した横断帯への進入で、コア攻撃成功ではない。"
+  ]
+}

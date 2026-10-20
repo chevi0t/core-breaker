@@ -1,0 +1,27 @@
+{
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal4"
+  },
+  "sources": {
+    "prototype/index.html": "11f454a831189377d686e55aff46135b8da3bed46830d4923fb10a91e30b4bb9",
+    "tools/mapgen.js": "106403a22e0887a5cf9abf565d879e2157e174804a2c6ca069dc4269541555d7",
+    "tools/generate_map.js": "568ea0cad67481a94c4bbb4f7db3deed667c11f4617975fdf0c6f7736c52157b",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/tidal_mapgen.js": "1760e82525ae13a0e9e1c7735920cf74ad7133c9a05f93e02361e6f20924401e"
+  },
+  "failures": [
+    {
+      "attempt": 1,
+      "seed": 20261020,
+      "reason": "page.evaluate: Error: B/heavy/pad5: 昇降経路を走破できません (-134.3859642707913,0,384.0786808958687) used=true\n    at driveMobility (eval at evaluate (:290:30), <anonymous>:24:23)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    }
+  ],
+  "status": "未合格"
+}

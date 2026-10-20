@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-20",
+  "revision": "tidal4",
+  "sha256": {
+    "prototype/index.html": "11f454a831189377d686e55aff46135b8da3bed46830d4923fb10a91e30b4bb9",
+    "prototype/maps/tidal.js": "1f0614d433fcc4573a25b858562229736a627c73abbc4853a588f4b4cff68d5f",
+    "prototype/maps.js": "939ccbf028bb2a6c02286383f3cbdae3724d626664f46bfc8c839f5194fce246",
+    "tools/test/make_dbg.py": "21e27e3342a4e49cded3be450e285db7d6925107c30e0df7c3612a34d0737d8b",
+    "tools/tidal_mapgen.js": "dfafea039eae3cc9c613ed99e804197ed412a02bcf5862c9776a83fbc76dd3d6",
+    "tools/generate_map.js": "6fb393e2fad05ae7ac7672d2f062558dd4ea7c03aeed1fb78bd1c073f16a07c8",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/test/map_battle.js": "fe5589c4eb5df11412d34c0ef4fb3bac8c56ed7048909e5622ed3c6511573404",
+    "tools/test/base_defense_check.js": "858c10df4871b451d6971d038c7c72bec9a82e134da8b595877e9efa2974227c",
+    "tools/test/tidal_raid_check.js": "8c521e3b6a1428e4a8a13a42001a705d9d8e21d47b1d04f2fbc691d95a6eefe9",
+    "tools/test/tidal_district_check.js": "78e64d882e823a8cf91c87ffa3c53a903bca76adb9ec7816711cc4c700449d54",
+    "tools/test/tidal_check.js": "df10d50e4f31a2dda79ebb293f9be2cca707bc40d648c0c80a5b6fcd49f76ddd",
+    "tools/test/mapgen.test.js": "7c3f8cb65169136b4069afb3c9d974c176235bbbde63ed701dce94ce43e25aaf",
+    "tools/test/mobility_schema.test.js": "980f4e8385307fa0c3f8e967d1e7cb6d29589eb00c79daec35b9e018d1f4baa9",
+    "tools/test/prepare_bot_battle.js": "2f75dc5ceb3275e0f49ef1c6cd169f3201194dd20283a80974865b70b5e69f6f",
+    "tools/test/record_battle.js": "196be125e65f92bdd2c0b575c3869a74c285026834caedc2e43eeb83d3717da6",
+    "tools/test/export_replay.js": "c78eb40a2b995a87ea7cd773b1a457e8dd47c9aa5f658134bc13d72c516b6bc0",
+    "tools/test/replay_check.js": "9f95e9ad2ccbabeb494143fcb32c8a79182dcb508d5ea23e4b611d261adb36c9",
+    "mapdesign/tidal/v4/baseline-map.js": "2e615ec78acbde22aee5303ab1875958da6c3bcafb40c2a547fed0ac13bce68b",
+    "mapdesign/tidal/v4/baseline-generator.js": "f5e5d9c9e3b03c26c13993d1e9b8b5e0fc07fefcd7b01e727cfa8cf005a99d72",
+    "mapdesign/tidal/sample_drawings.js": "dab0e822ada69e00200201144ec9bc7c6a7803ca4fa93a8b897d01a312046f24",
+    "mapdesign/tidal/render_drawings.py": "4fb3a2422fe2bcae364f31ff121c8f981d9dc242c2d62126272a179716d5fa07",
+    "mapdesign/tidal/render_views.js": "02b3e3c488bbd27db999ad45709595e604212e06baa8d77389f40990771adbd1",
+    "mapdesign/tidal/v4/final/battles.json": "31ec54454e8519ea3811ad4a649a380e158b72385070805c9000a10f3529c5f4",
+    "mapdesign/tidal/v4/replay/recorded.json": "60e2fbccef08d539dcb1e4d8ea1af8db00d93416b9d6a5f7ae2714ac2aa66580",
+    "mapdesign/tidal/v4/drawings/geometry.json": "3d37f5cf4fb02e2e2ee278fddee4db167b4017247712023ffb91090b1b7612b5"
+  },
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal4"
+  },
+  "generation": "../runs/2026-10-20T05-03-15-883Z-tidal4-FdoGwR/generation.json",
+  "battles": "battles.json",
+  "seedPairs": {
+    "tidal": [
+      20261410,
+      20261411
+    ],
+    "tidal-v2": [
+      20261412,
+      20261413
+    ],
+    "tidal-v3": [
+      20261414,
+      20261415
+    ]
+  },
+  "fixture": "通常Bot・無音・各seedで通常編成と陣営入替を1戦ずつ。600秒。",
+  "controls": {
+    "engineMatchesV3": true,
+    "existingMaps": "existing-maps.json",
+    "registeredFacilitiesPlantsAndPodsMatchV3": true,
+    "replayMatchesBatch": true,
+    "drawingHashesMatch": true
+  },
+  "note": "街区の通行・射線・単独攻略を確認。勝率未確定、橙10勝・青2勝。旧版との同条件の因果比較は未実施。"
+}

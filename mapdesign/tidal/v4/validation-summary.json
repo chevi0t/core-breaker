@@ -1,0 +1,57 @@
+{
+  "revision": "tidal4",
+  "size": [
+    370,
+    1136
+  ],
+  "team": 10,
+  "time": 600,
+  "balance": "勝率未確定。主配置・上層は青1勝・橙3勝、複路は青0勝・橙4勝。",
+  "generation": "v4/runs/2026-10-20T05-03-15-883Z-tidal4-FdoGwR/generation.json",
+  "facilities": [
+    {
+      "id": "tidal",
+      "walkRoutes": 100,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v2",
+      "walkRoutes": 100,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v3",
+      "walkRoutes": 104,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    }
+  ],
+  "baseDefenseCases": 8,
+  "isolatedRaids": 8,
+  "districtGroundRoutes": 8,
+  "districtSightlineCases": 6,
+  "roofRepairSamples": 397,
+  "spawnSamples": 1280,
+  "isolatedPlantCaptures": 40,
+  "unitTests": 12,
+  "battles": "v4/final/battles.json",
+  "manifest": "v4/final/manifest.json",
+  "replays": [
+    "v4/replay/replay.html"
+  ],
+  "replayMatchesBatch": true,
+  "limits": [
+    "単独到達性は敵と砲台の射撃を止めた検査。交戦下の生還率とは別。",
+    "射線は指定した観測者・対象と高さ、補給点は180m以内の397標本。",
+    "旧版との固定条件での因果比較は未実施。",
+    "各4戦の少数観測で公平さを断定しない。"
+  ]
+}

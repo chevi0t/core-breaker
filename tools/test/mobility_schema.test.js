@@ -25,3 +25,17 @@ test('危険な寸法・速度・高さと壊れた座標を登録しない',()=
   ];
   for(const change of cases){const r=validate(change);assert.notEqual(r.status,0,r.stdout+r.stderr);assert.match(r.stdout+r.stderr,/ジャンプパッド|リフト|jumpPads|lifts/);}
 });
+test('基地平坦化の例外は真偽値と正の高さを要求する',()=>{
+  const add=(d,h,keepBaseHeight)=>d.terrain.push({type:'mesa',x:100,z:180,r:5,slope:15,h,keepBaseHeight});
+  assert.equal(validate(d=>add(d,14,true)).status,0);
+  for(const [h,flag] of [[14,'true'],[-2,true],[0,true]]){
+    const r=validate(d=>add(d,h,flag));assert.notEqual(r.status,0);assert.match(r.stdout+r.stderr,/keepBaseHeight/);
+  }
+});
+test('侵入路の到達半径は陣営ごとに正の14m以下を要求する',()=>{
+  const add=(d,pointRadius)=>d.raidRoutes=[{kind:'covert',objective:'core',points:[[0,0,0]],pointRadius}];
+  assert.equal(validate(d=>add(d,{B:4})).status,0);
+  for(const v of [null,[],{B:0},{R:15},{B:'4'},{X:4}]){
+    const r=validate(d=>add(d,v));assert.notEqual(r.status,0);assert.match(r.stdout+r.stderr,/pointRadius/);
+  }
+});

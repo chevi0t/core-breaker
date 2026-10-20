@@ -14,7 +14,7 @@ const count=await p.evaluate(()=>__replay.data.matches.length);
 expect(await p.locator('#match option').count()===count && count>0,'試合数');
 for(let i=0;i<count;i++){
  await p.selectOption('#match',String(i));
- await p.evaluate(()=>__replay.seek(300));
+ await p.evaluate(i=>__replay.seek(__replay.data.matches[i].seconds),i);
  const s=await p.evaluate(()=>({actual:[document.querySelector('#coreB').textContent,document.querySelector('#coreR').textContent],expected:__replay.data.matches[Number(document.querySelector('#match').value)].finalCore.map(v=>Number(v.toFixed(2)).toLocaleString('ja-JP'))}));
  expect(JSON.stringify(s.actual)===JSON.stringify(s.expected),'終局HP表示');
 }
