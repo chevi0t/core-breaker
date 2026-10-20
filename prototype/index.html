@@ -561,7 +561,7 @@ body[data-console="mechanical"] #lockMark .info { display: none; }
 #mechAim .active { stroke: #a6ffcb; }
 #mechAim text { fill: #e5f1ed; font-size: 10px; font-family: var(--display); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
 #mechAim .selected { stroke-width: 3; }
-#mechBoost { left: 50%; bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); transform: translateX(-50%); width: min(34vw, 420px); color: #dce9e5; }
+#mechBoost { z-index: 1; left: 50%; bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); transform: translateX(-50%); width: min(34vw, 420px); color: #dce9e5; }
 #mechBoost .lbl { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .14em; margin-bottom: 4px; }
 #mechBoost .bar { height: 4px; border: 0; background: #dce9e533; }
 #mechBoost .bar > i { background: currentColor; }
