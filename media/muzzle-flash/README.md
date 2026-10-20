@@ -1,6 +1,6 @@
 # 主武器の発砲炎
 
-本体のHTML blob：`24819914037abd5f9d0df29372260c2a5edff66e`。土台：main `ce2e1bee5c009dcbaf5a6a7a11276082a7cefb51`。
+本体のHTML blob：`e4e630b0b1d1c1a15aac97f99f6d2637cf972a1a`。土台：ジップラインを含むmain `c3be53b`。
 
 [連射→射撃停止の動画（3秒）](firing.webm)／[実弾](ar.png)／[ガトリング](gatling.png)／[二丁拳銃](pistols.png)／[光学兵器](rail.png)。すべて本体のモデル・射撃処理・発砲炎の実描画。確認用の固定カメラのステージで撮影した。Canvasで描いた炎と光のテクスチャを使い、外部素材は追加していない。
 
