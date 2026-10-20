@@ -1,0 +1,67 @@
+{
+  "revision": "tidal5",
+  "size": [
+    370,
+    1136
+  ],
+  "team": 10,
+  "time": 600,
+  "balance": "未合格・勝率未確定。青1勝・橙10勝・引分1で、今回の12戦では橙優勢を改善せず。",
+  "generation": "v5/runs/2026-10-20T05-37-59-044Z-tidal5-bUdY9D/generation.json",
+  "facilities": [
+    {
+      "id": "tidal",
+      "walkRoutes": 110,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v2",
+      "walkRoutes": 110,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    },
+    {
+      "id": "tidal-v3",
+      "walkRoutes": 114,
+      "mobilityRides": 40,
+      "catapults": 8,
+      "maxLandingError": 0.9,
+      "errors": 0
+    }
+  ],
+  "mountainWalkRoutes": 4,
+  "baseDefenseCases": 8,
+  "isolatedRaids": 8,
+  "isolatedRaidControlCases": 8,
+  "districtGroundRoutes": 8,
+  "districtSightlineCases": 6,
+  "roofRepairSamples": 397,
+  "spawnSamples": 1280,
+  "isolatedPlantCaptures": 40,
+  "unitTests": 17,
+  "weapons": 250,
+  "legacyBotMaps": [
+    "city",
+    "wide",
+    "mesa",
+    "dock"
+  ],
+  "battles": "v5/final/battles.json",
+  "comparison": "v5/final/comparison.json",
+  "manifest": "v5/final/manifest.json",
+  "replays": [
+    "v5/replay/replay.html"
+  ],
+  "replayMatchesBatch": true,
+  "limits": [
+    "山と青の潜行経由点・到達半径を一緒に変更した比較。山の地形だけの効果は分離していない。",
+    "各4戦で統計的な公平さは未確定。山の追加後も橙優勢は解消していない。",
+    "ridge entriesは同じ機体の再入場を含む。wall crossingsは指定した横断帯への進入で、コア攻撃成功ではない。",
+    "単独到達性は固定編成、敵と砲台の射撃を止めた条件。全装備や迎撃下の成功率とは別。"
+  ]
+}

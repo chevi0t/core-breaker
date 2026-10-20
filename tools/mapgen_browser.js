@@ -3,7 +3,7 @@ const path = require('node:path');
 const {serialize} = require('./mapgen');
 const ROOT = path.resolve(__dirname, '..');
 
-async function openMap(browser, id, data, seed = 1, {silent=false} = {}) {
+async function openMap(browser, id, data, seed = 1, {silent=false,debugDir='dbg'} = {}) {
   const page = await browser.newPage({viewport:{width:800, height:500}});
   const errors = [];
   try {
@@ -22,7 +22,7 @@ async function openMap(browser, id, data, seed = 1, {silent=false} = {}) {
   }, {seed,silent});
   if (data) await page.route('**/maps.js', route => route.fulfill({contentType:'application/javascript; charset=utf-8', body:serialize(id.replace(/-v\d+$/,''), data)}));
   await page.route('**fonts.g*/**', route => route.fulfill({contentType:'text/css', body:''}));
-  await page.goto('file://' + path.join(ROOT, 'dbg/dbg.html'));
+  await page.goto('file://' + path.join(ROOT, debugDir, 'dbg.html'));
   await page.waitForFunction(() => !!window.__g);
   if (!await page.evaluate(id => Object.hasOwn(__g.MAPS,id),id)) throw new Error(`マップ ${id} は存在しません`);
   if (!data || await page.evaluate(id=>__g.mapId!==id,id)) await page.evaluate(id => __g.selectMap(id), id);
@@ -32,13 +32,14 @@ async function openMap(browser, id, data, seed = 1, {silent=false} = {}) {
 
 function candidateSites() {
   const g = __g, d = g.curMap, {west, east, pad} = d.generation;
-  const points = [[0, 0], [0, 60], [0, -60], [east, 0], [east, 60], [east, -60], [west, pad], [west, -pad]];
-  return points.flatMap(([x, z], key) => {
+  const points = d.generation.sites || [[0, 0], [0, 60], [0, -60], [east, 0], [east, 60], [east, -60], [west, pad], [west, -pad]].map(([x,z],key)=>({x,z,key}));
+  return points.flatMap(point => {
+    const {x,z}=point;
     const y = g.terrainH(x, z);
     const level = Array.from({length:16}, (_, i) => g.terrainH(x + 15 * Math.cos(i * Math.PI / 8), z + 15 * Math.sin(i * Math.PI / 8)));
     if (level.some(h => Math.abs(h - y) > 0.3)) return [];
     if (g.obstacles.some(o => o.bottom === undefined && x > o.minX - 17 && x < o.maxX + 17 && z > o.minZ - 17 && z < o.maxZ + 17 && o.top > y + 0.6)) return [];
-    return [{key, x, z, y}];
+    return [{...point,y}];
   });
 }
 
@@ -52,7 +53,8 @@ function navigation() {
     if (g.obstacles.some(o => x > o.minX - 1.8 && x < o.maxX + 1.8 && z > o.minZ - 1.8 && z < o.maxZ + 1.8 && o.top > y + 0.6 && (o.bottom === undefined || o.bottom < y + 4.1))) return;
     seen.add(key); nodes.push([x, z, y]);
   };
-  for (const x of [-125, west - 25, west, west + 25, -35, -8, 8, 35, east, 112]) {
+  if(d.generation.navPoints)for(const p of d.generation.navPoints)add(...p);
+  else for (const x of [-125, west - 25, west, west + 25, -35, -8, 8, 35, east, 112]) {
     for (const z of [-190, -165, -125, -105, -80, -60, -35, 0, 35, 60, 80, 105, 125, 165, 190]) add(x, z);
   }
   for (const z of [-35, 0, 35]) add(west, z, deck);
@@ -67,9 +69,13 @@ function navigation() {
     if(!g.clearPath(a[0],a[1],b[0],b[1],a[2]) || Math.abs(g.pathEndH-b[2])>=.8)return false;
     // physics は X/Z を別々に解く。斜め方向だけ緩い崖の側面を接続しない。
     const n=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1]));
+    let height=a[2];
     for(let i=0;i<=n;i++){
       const x=a[0]+(b[0]-a[0])*i/Math.max(1,n),z=a[1]+(b[1]-a[1])*i/Math.max(1,n);
-      if(Math.abs(g.terrainH(x+.5,z)-g.terrainH(x-.5,z))>.9 || Math.abs(g.terrainH(x,z+.5)-g.terrainH(x,z-.5))>.9)return false;
+      // 新テーマでは橋の上面を測る。下の急斜面を、平らな橋上の障害と誤認しない。
+      const surface=d.generation.theme==='tidal'?(px,pz)=>g.groundAt(px,pz,height):g.terrainH;
+      height=surface(x,z);
+      if(Math.abs(surface(x+.5,z)-surface(x-.5,z))>.9 || Math.abs(surface(x,z+.5)-surface(x,z-.5))>.9)return false;
     }
     return true;
   };
@@ -98,8 +104,9 @@ function navigation() {
 function driveRoutes() {
   const g = __g, d = g.curMap, N = g.NAV;
   const near = (x, z, y) => N.pts.reduce((best, p, i) => Math.hypot(p.x-x,p.z-z)+Math.abs(p.y-y)*4 < Math.hypot(N.pts[best].x-x,N.pts[best].z-z)+Math.abs(N.pts[best].y-y)*4 ? i : best, 0);
-  const baseB = near(8,190,0), baseR = near(8,-190,0), upper = near(d.generation.west,0,d.generation.deck), lower = near(d.generation.west,0,0);
-  const routes = [['青から橙ベース',baseB,baseR], ['橙から青ベース',baseR,baseB],
+  const baseB = near(8,d.generation.routeProbes?d.baseLine-8:190,0), baseR = near(8,d.generation.routeProbes?-d.baseLine+8:-190,0), upper = near(d.generation.west,0,d.generation.deck), lower = near(d.generation.west,0,0);
+  const probeNode=p=>{const i=near(...p),q=N.pts[i];if(Math.hypot(q.x-p[0],q.z-p[1])>9||Math.abs(q.y-p[2])>1.5)throw new Error(`実走目標 (${p}) の同じ階に節点がありません`);return i;};
+  const routes = d.generation.routeProbes?d.generation.routeProbes.map(([name,from,to])=>[name,probeNode(from),probeNode(to)]):[['青から橙ベース',baseB,baseR], ['橙から青ベース',baseR,baseB],
     ['青から高架',baseB,upper], ['高架から青',upper,baseB], ['橙から高架',baseR,upper], ['高架から橙',upper,baseR],
     ['青から高架下',baseB,lower], ['高架下から橙',lower,baseR]];
   for (const p of g.plants) {

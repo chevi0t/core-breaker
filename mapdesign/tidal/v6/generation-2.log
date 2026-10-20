@@ -1,0 +1,13 @@
+検査記録: mapdesign/tidal/v6/runs/2026-10-20T07-18-15-786Z-tidal6-Tv2ABD
+書き出し: /workspace/core-breaker/dbg/mapgen/tidal/runner/dbg.html
+tidal: 小山 10、くぼみ 5（seed 20261020）
+地形 seed=20261020、候補地点6、配置候補12、選抜3
+試行1/1: page.evaluate: Error: 実走目標 (-89.25,120,22) の同じ階に節点がありません
+    at probeNode (eval at evaluate (:290:30), <anonymous>:5:118)
+    at eval (eval at evaluate (:290:30), <anonymous>:6:112)
+    at Array.map (<anonymous>)
+    at driveRoutes (eval at evaluate (:290:30), <anonymous>:6:68)
+    at UtilityScript.evaluate (<anonymous>:292:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+Error: 予算内に合格候補なし（1地形）。既存の登録マップは保持しました
+    at generate (/workspace/core-breaker/tools/generate_map.js:129:11)

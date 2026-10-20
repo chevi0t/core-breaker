@@ -1,0 +1,55 @@
+{
+  "scope": "同seed通常編成1戦のB–C帯",
+  "bounds": {
+    "x": [
+      -145,
+      110
+    ],
+    "z": [
+      0,
+      168
+    ]
+  },
+  "samplingSeconds": 0.25,
+  "activeDefinition": "aliveフラグあり、downフラグなし。フレーム間隔で重み付けした延べ機体秒",
+  "rows": [
+    {
+      "version": "v5：変更前",
+      "teams": {
+        "B": {
+          "wreckCount": 32,
+          "activeSeconds": 906.75,
+          "wrecksPerActiveMinute": 2.117452440033085
+        },
+        "R": {
+          "wreckCount": 31,
+          "activeSeconds": 501.0,
+          "wrecksPerActiveMinute": 3.712574850299401
+        }
+      },
+      "winner": "R",
+      "seed": 20261410
+    },
+    {
+      "version": "v6：斜め橋＋遮蔽",
+      "teams": {
+        "B": {
+          "wreckCount": 65,
+          "activeSeconds": 1239.5,
+          "wrecksPerActiveMinute": 3.146430012101654
+        },
+        "R": {
+          "wreckCount": 52,
+          "activeSeconds": 1188.0,
+          "wrecksPerActiveMinute": 2.6262626262626263
+        }
+      },
+      "winner": "R",
+      "seed": 20261410
+    }
+  ],
+  "limits": [
+    "大破位置は被弾位置や発射地点ではない。",
+    "滞在量・占拠・戦線の変化を伴う1戦で、遮蔽単独の効果や集中攻撃の原因を示さない。"
+  ]
+}

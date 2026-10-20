@@ -59,9 +59,17 @@
 
 生成地形は `--seed`、施設配置は `--placement-seed` で分離して再現する。起伏は `tools/gen_rough.py`、施設検査は `map_check.js` を使い、地形・配置・実走行の検査に通った開発候補を保存する。現在の候補は**勝率未確定**で、完全自律生成の統計的な最終合格を意味しない。手順と検証結果は `mapdesign/circulation/README.md`。
 
+`--theme tidal` は10対10の「潮路搬送区」。既定はA–B間とC–E間の段積みコンテナ追加版 `tidal7`（370×1136m）。コンテナ追加前は `--revision tidal6`、高架変更前は `--revision tidal5`、山の追加前は `--revision tidal4`、街区追加前は `--revision tidal3`、旧710m版は `--revision tidal1`。地上中央の争奪・高所からの干渉・中央を分けた争奪の3配置を同じ工業港から生成する。青基地前は工場間・連絡橋下・10〜12mの屋根、橙拠点前は住宅の路地・庭壁・共同住宅の屋上から接近する。正面ゲートへの地上路も残す。屋根へは坂かジャンプパッドを使い、展望台にはリフトを置く。中央高架は20m高の斜め1本で、両端の坂と2基のリフトを接続する。B–C間には地上壁・橋上塔・積み荷を置く。A–B間には6群、C–E間には8群の段積みコンテナを前後左右へずらし、複数の地上路を残す。射線と実弾、上下の通行は `node tools/test/tidal_frontline_check.js dbg` で検査する。生成例は `node tools/generate_map.js --theme tidal --seed 20261020 --placement-seed 20261020 --placement-attempts 192`。両軍の再出撃と本体Botによる占拠は `node tools/test/tidal_check.js dbg`、街路・正面の実走と射線は `node tools/test/tidal_district_check.js dbg` でも検査する。設計・失敗履歴・対戦結果は [潮路搬送区の記録](../../mapdesign/tidal/README.md)。
+
 白煙循環区の修正実験は `--revision baseline|cover1|cover2|repair3|reviewed250` で再現する（既定値 `reviewed250` は最新本体で棄却した追加配置を戻した登録版）。プラント・共通地形・昇降設備を固定し、戦場別の `barricades`・`plantPods` と経路を生成し直す。高架縦断は対照として物理データを維持する。完全に隠す要件は両端プラントのポッドへ適用し、中央ポッドの視認数も検査ログに残す。失敗した案と次の設計で使う知識は [知識台帳](../../mapdesign/LESSONS.md)へ蓄積する。
 
 ### ジャンプパッドとリフト（任意）
+
+基地用の `layout` の見た目には `baseWall`（常設防壁）、`container`、`trailer`、`barracks`、`office`、`hesco`、`prefab` も指定できる。すべて通常の箱の衝突・射線判定を使う。色や建材によるダメージ倍率は無い。屋根には窓を繰り返さない。
+
+基地守備は任意の `baseDefense: {posts:[[x,z],…], gates:[[x,z],…], yard:[x,z,幅,奥行き], gateDepth:8, leash:150, alertRadius:340, responseRadius:600, reinforcements:2}`。地点は青側を記述し橙へ点対称に展開する。`posts` は基地内の常駐地点、`gates` は標識の場所、`yard` は舗装、`leash` はレーダー侵入者を追うコアからの距離。`alertRadius` は通常索敵による接近警戒範囲（省略時は侵入情報のみ）、`responseRadius` は帰還する占拠役を選ぶコアからの距離、`reinforcements` は人数上限。地形の防壁・侵入口そのものは `layout`・`bridges` へ書く。
+
+任意の `raidRoutes` は `[{kind:'rush'|'covert'|'radar'|'sprint', points:[[x,z,y],…], pointsR:[[x,z,y],…], objective:'core'|'radar'},…]`。攻め役へ順に割り当てる。橙の地点を省略すると青の点対称を使う。普通の武器・nav・昇降設備で通れる地点を指定し、上層地点は高さも検査する。経路ごとの任意の `pointRadius: {B:4, R:14}` は経由点の到達半径（0より大きく14m以下）。14m未満を指定した陣営では、進行方向だけで点を省略せず、指定した高さと半径まで通る。狭い足場の角で使う。省略時は従来の14mと奥行きによる省略。`botRepairRange` はBotが補給先を選ぶ距離で、省略時90m。
 
 どちらも中立の設備で、両陣営のプレイヤーとBotが同じ条件で使う。`asym: true` は全域を指定し、省略時は地形と同じ点対称で増やす。座標は nav と同じ **[x, z, 海抜y]**。高さも明記する。
 
@@ -80,6 +88,8 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 試せるマップは「昇降設備試験場 〜垂直射出と運搬〜」。設計と結果は `mapdesign/mobility/README.md`。施設の概要は[ユーザー指定の公式紹介](https://borderbreak.com/game/intro/facility/)を参照し、速度・寸法・外観は本作の仮置きとオリジナルモデルを使う。
 
 ### 地形の種類（`terrain` の `type`）
+
+正の地形には任意の `keepBaseHeight: true` を指定できる。基地境界より奥でも、その地形の高さを平坦化せず残す。基地脇の山や専用の下り坂に使い、射出台・ポッド・レーダー・建屋の基礎を持ち上げないことを検査する。指定なしでは従来どおり境界から25mで高さ0へ下げる。負の地形には指定しない。
 
 | 種類 | 項目 | 形 |
 |---|---|---|

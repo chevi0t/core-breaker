@@ -1,0 +1,29 @@
+AssertionError [ERR_ASSERTION]: tidalの出撃帯
++ actual - expected
+
++ [
++   {
++     d: 52,
++     dist: 51.44810693154039,
++     obstacle: 6,
++     plant: 'D',
++     pos: [
++       5.8336344630693935,
++       0,
++       -84.59752372502261
++     ],
++     side: 2,
++     slope: 0,
++     team: 'B'
++   }
++ ]
+- []
+
+    at /workspace/core-breaker/tools/test/tidal_respawn_band_check.js:29:63 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

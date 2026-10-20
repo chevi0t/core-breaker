@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const {execFileSync} = require('node:child_process');
 const {geometry, placements, selectDiverse, routeCover, serialize, facilitiesPass} = require('../mapgen');
 const {options,reportDirectory} = require('../generate_map');
+const tidal=require('../tidal_mapgen');
 const decode = text => {const c={window:{}};vm.runInNewContext(text,c);return JSON.parse(JSON.stringify(c.window.MAP_DATA.fixture));};
 const sites = data => [[0,0],[0,60],[0,-60],[data.generation.east,0],[data.generation.east,60],[data.generation.east,-60],[data.generation.west,data.generation.pad],[data.generation.west,-data.generation.pad]].map(([x,z],key)=>({key,x,z,y:x===data.generation.west||x===data.generation.east&&z===0?data.generation.deck:0}));
 
@@ -92,4 +93,79 @@ test('★が無くてもポッドが見える・片側未検査・ページエ�
   assert.equal(facilitiesPass(good+'\nポッド プラントC (38, -27)：300か所中 80か所から見える',['A','F']),true,'中央ポッドの視認は報告するが、完全遮蔽の要件は両端');
   assert.equal(facilitiesPass(good.replace('ポッドA','ポッドQ'),['A','F']),false,'必要な端ポッドの計測漏れは不合格');
   assert.equal(facilitiesPass(good.replace('中 0','中 1'),['A','F']),false,'端ポッドは見えると不合格');
+});
+
+test('港湾テーマ：地形を固定して地上争奪・高所干渉・分散の3配置を生成する',()=>{
+  const d=tidal.geometry(20261020),before=JSON.stringify(d);
+  assert.deepEqual(d,tidal.geometry(20261020));
+  assert.equal(d.team,10);assert.equal(d.time,600);
+  const sites=d.generation.sites.map(p=>({...p,y:p.x===72?22:0}));
+  const proposals=tidal.placements(sites,20261020,192),choices=tidal.select(proposals,3);
+  assert.equal(choices.length,3);
+  assert.deepEqual(choices.map(p=>p.name),['屈折前線','上層干渉','複路争奪']);
+  assert.equal(choices[0].metrics.elevated,0,'主配置の中央は地上');
+  assert.ok(choices[1].metrics.elevated>0);
+  assert.ok(choices[2].plants.length>choices[0].plants.length);
+  for(const choice of choices){
+    assert.equal(choice.plants[0][3],'B');assert.equal(choice.plants.at(-1)[3],'R');
+    const ids=new Set(choice.plants.map(p=>p[0]));
+    assert.ok(choice.plantPods.every(p=>ids.has(p[0])));
+    assert.equal(choice.plantPods.length,4,'両端と前線支点を補給点とし、中央争奪点へ足さない');
+    for(let i=0;i<choice.plants.length;i++)for(const q of choice.plants.slice(i+1))assert.ok(Math.hypot(choice.plants[i][1]-q[1],choice.plants[i][2]-q[2])>32);
+  }
+  assert.equal(JSON.stringify(d),before,'配置生成は共通地形を変更しない');
+  assert.deepEqual(tidal.select(tidal.placements(sites,20261020,192),3),choices);
+  assert.ok(tidal.select(tidal.placements(sites,20261020,1),3).length<3,'予算不足を成功扱いしない');
+  const config=options(['--theme','tidal']);assert.equal(config.id,'tidal');assert.equal(config.revision,'tidal7');
+  const fort=tidal.geometry(20261020,{revision:'tidal2'});
+  assert.deepEqual(fort.plants,d.plants);assert.deepEqual(fort.terrain.slice(0,d.terrain.length),d.terrain);
+  assert.deepEqual(fort.jumpPads.slice(0,d.jumpPads.length),d.jumpPads);assert.deepEqual(fort.lifts,d.lifts);
+  assert.deepEqual(fort.layout.slice(0,d.layout.length),d.layout);
+  assert.deepEqual(fort.bridges.slice(0,d.bridges.length),d.bridges);
+  assert.equal(fort.baseDefense.posts.length,2);assert.equal(fort.baseDefense.reinforcements,2);
+  assert.equal(options(['--theme','tidal','--revision','tidal1']).revision,'tidal1');
+  assert.throws(()=>options(['--theme','tidal','--revision','cover1']));
+  assert.throws(()=>options(['--theme','unknown']));
+});
+
+test('縦延長：隠した補給点の実寸・ジャンプ高を保ち、両軍の基地と侵入路を作り分ける',()=>{
+  const d=tidal.geometry(20261020,{revision:'tidal3'}),old=tidal.geometry(20261020);
+  assert.deepEqual(d.size,[185,568]);assert.equal(d.baseZ,512);assert.equal(d.baseLine,440);
+  assert.deepEqual(d.jumpPads.slice(0,2).map(p=>p.rise),old.jumpPads.map(p=>p.rise));
+  for(const sign of [1,-1]){
+    const bank=d.terrain.find(f=>f.x===0&&f.z===357*sign);
+    assert.equal(bank.h,5);assert.equal(bank.hz,3);
+    assert.ok(d.layout.some(b=>b[1]*sign>440&&b[5]===(sign>0?'office':'prefab')));
+    assert.ok(d.layout.some(b=>b[1]*sign>440&&b[5]===(sign>0?'baseWall':'hesco')));
+  }
+  const choices=tidal.select(tidal.placements(d.generation.sites.map(p=>({...p,y:p.x===72?22:0})),20261020,192),3);
+  for(const c of choices){assert.equal(c.plants[0][2],336);assert.equal(c.plantPods[0][2],369);}
+  assert.deepEqual(d.raidRoutes.map(r=>r.kind),['rush','covert','radar','sprint']);
+  assert.ok(d.raidRoutes[3].points.some(p=>p[2]===10));
+});
+
+test('街区追加：基地施設・配置候補を固定し、旧版の再生成と保存先を保つ',()=>{
+  const before=tidal.geometry(20261020,{revision:'tidal3'}),after=tidal.geometry(20261020,{revision:'tidal4'});
+  for(const key of ['size','baseZ','baseLine','team','time','plants','plantPods','basePods','radar','catapults','turrets'])assert.deepEqual(after[key],before[key],key);
+  assert.deepEqual(after.generation.sites,before.generation.sites);
+  const baseline={exports:{}};
+  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../../mapdesign/tidal/v4/baseline-generator.js'),'utf8'),
+    {module:baseline,require:require('node:module').createRequire(path.resolve(__dirname,'../tidal_mapgen.js'))});
+  assert.equal(JSON.stringify(baseline.exports.geometry(20261020,{revision:'tidal3'})),JSON.stringify(before),'旧版の保存データを変えない');
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'core-district-history-'));
+  try{assert.equal(path.dirname(reportDirectory(root,'tidal','tidal4')),path.join(root,'mapdesign/tidal/v4/runs'));}
+  finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('橙基地の山：旧街区・青基地・施設を保ち、徒歩の侵入候補を足す',()=>{
+  const before=tidal.geometry(20261020,{revision:'tidal4'}),after=tidal.geometry(20261020,{revision:'tidal5'});
+  const baseline={exports:{}};
+  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../../mapdesign/tidal/v5/baseline-generator.js'),'utf8'),
+    {module:baseline,require:require('node:module').createRequire(path.resolve(__dirname,'../tidal_mapgen.js'))});
+  assert.equal(JSON.stringify(baseline.exports.geometry(20261020,{revision:'tidal4'})),JSON.stringify(before));
+  for(const key of ['size','baseZ','baseLine','team','time','layout','plants','plantPods','basePods','radar','catapults','turrets','jumpPads','lifts','baseDefense'])assert.deepEqual(after[key],before[key],key);
+  assert.deepEqual(after.terrain.slice(0,before.terrain.length),before.terrain);
+  assert.ok(after.terrain.slice(before.terrain.length).every(f=>(f.z??Math.max(f.z0,f.z1))<0&&f.keepBaseHeight));
+  assert.ok(after.generation.mountain.summit>after.generation.mountain.wall);
+  assert.deepEqual(after.raidRoutes.map(r=>r.pointsR),before.raidRoutes.map(r=>r.pointsR),'橙の攻撃経由点は維持');
 });
