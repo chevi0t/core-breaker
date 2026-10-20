@@ -40,7 +40,9 @@ if(!process.argv[2])throw new Error('デバッグ版のディレクトリを指�
         const intruder=deploy(enemy,0,134*s,326*s),rd=g.radars.find(r=>r.team===team);
         check(reserves.every(u=>!g.baseDefenseTask(u)),`${team}: 検知前に敵位置を利用`);
         // 実際のセンサー設置処理から検知する。レーダー警報の外側。
-        const spec=Object.values(g.WEAPONS).find(w=>w.proj?.kind==='sensor'&&!w.proj.cone).proj;
+        // 追加された面状センサーと混同せず、このケースは通常の球形センサーを置く。
+        const spec=g.WEAPONS.sensor.proj;
+        check(spec.kind==='sensor'&&!spec.cone&&!spec.planar,'通常センサーの仕様が変わった');
         g.placeGadget({spec,owner:reserves[0],team},new T.Vector3(134*s,0,315*s),null);
         g.gadgetUpdate(.05);check(g.spotted[team].has(intruder),`${team}: センサー未検知`);
         const selected=reserves.filter(u=>g.baseDefenseTask(u));check(selected.length===2,`${team}: 応援数 ${selected.length}`);

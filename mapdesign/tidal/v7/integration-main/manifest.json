@@ -1,0 +1,83 @@
+{
+  "baseMain": "3afaa37eab232accaa8f37560f6f2927b8271864",
+  "integrationCommit": "d094ff1d5da4d08a48298ec8121498080741e558",
+  "sources": {
+    "prototype/index.html": "eb04764a986f42275fbed31b79ba956e49e0c28f940025f1125511ee2e21bbf7",
+    "prototype/maps.js": "1053d23b777d368aca6ccc8cd95b891a38a0e5a4a5560cfd7926e4a9078b4f4f",
+    "prototype/maps/tidal.js": "4942d0477644c3c5cd1630a77e05082ea76019da14b2fa1f4f07437b986ba7df",
+    "tools/tidal_mapgen.js": "ef7239c434c50a55ead535c8525b538a0f45a0f726f7aa5ca32739b5bc3085e5",
+    "tools/generate_map.js": "199b82f35ab765df872698e00836733bf19353a71c610278c6c6addbcb036e74",
+    "tools/mapgen_browser.js": "42f205248f1f1da8180aaa5a0dc5e31b8a8139d30136084f96e7add961bb8719",
+    "tools/test/make_dbg.py": "bbdb905c4d4ceb523614b65001a1c1f142067140836b1fc6965cc62e4217c66f",
+    "tools/test/base_defense_check.js": "797c87422e7795e418079ed441270cfe21b74483f3eadcd94ad573c22701dc5d",
+    "tools/test/tidal_check.js": "df10d50e4f31a2dda79ebb293f9be2cca707bc40d648c0c80a5b6fcd49f76ddd",
+    "tools/test/tidal_raid_check.js": "6b93834bf535e8996c778d4b7529a465cda56cd9c2458fcfe8d5e204a4c3db1d",
+    "tools/test/map_battle.js": "dabccd56e0819a68637e1fe4af9eab93ef40c0892daa83d4592c23a4c35d5115",
+    "tools/test/quick_check.js": "b23fc1e2df4534ee0a3086b988bc3b7d0c49c3e307d7ace945d071af7b83eea1",
+    "tools/test/zipline_check.js": "d8d19d70cb94e09f3fc59575e9128cbd588427889f98113c70f7d4a8d052a2ed",
+    "tools/test/weapons_check.js": "4814a8acfe002a78d0c1a89d74049a5f13b3d9fc63648c00a057fc4f91de3eee",
+    "tools/test/bot_battle.js": "8e1c3144d7922a433bddc353bb875976bfc32c56665adf21e069e1e7266c57ac"
+  },
+  "historicalBattleRecords": "v7/finalおよびaccess-diagnosticはmain統合前の本体で計測した履歴。現在の本体の勝率・到達時間の確定値ではない。",
+  "unresolved": [
+    "上層干渉のB→Cへの移動時間補填は未実装",
+    "配置ごとのバランスは未合格・勝率未確定"
+  ],
+  "validation": {
+    "unitTests": 17,
+    "unitFailures": 0,
+    "weaponsExercised": 286,
+    "facilityVariants": 3,
+    "baseDefenseCases": 8,
+    "respawnSamples": 1280,
+    "botCaptureRoutes": 40,
+    "isolatedRaidRoutes": 8,
+    "quickBattleSeconds": 60,
+    "extraVariantBattleSeconds": 60,
+    "legacyBattleRequestedSeconds": 150,
+    "legacyBattleResults": [
+      {
+        "map": "city",
+        "seconds": 154,
+        "core": [
+          6750,
+          6863
+        ],
+        "earlyEndByZeroCost": false,
+        "errors": 0
+      },
+      {
+        "map": "wide",
+        "seconds": 151,
+        "core": [
+          6469,
+          6356
+        ],
+        "earlyEndByZeroCost": false,
+        "errors": 0
+      },
+      {
+        "map": "mesa",
+        "seconds": 151,
+        "core": [
+          7706,
+          7875
+        ],
+        "earlyEndByZeroCost": false,
+        "errors": 0
+      },
+      {
+        "map": "dock",
+        "seconds": 29,
+        "core": [
+          0,
+          4000
+        ],
+        "earlyEndByZeroCost": true,
+        "errors": 0
+      }
+    ],
+    "zipline": "passed",
+    "balance": "未合格・勝率未確定。過去の各4戦は統合前の本体での履歴。"
+  }
+}
