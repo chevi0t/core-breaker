@@ -9,3 +9,5 @@ wiki（PS4版）の各系統の表（`../*.md`）から、本作の武器ごと�
 - `mech.json`（v0.15）は仕組みの要る7系統（wave・lec・explo・cls・omni・wide・glint）の型。追加のキー：`chargeTime`（満タンまでの秒）、`chargeDmg`（満タンの威力。グリントは光弾の威力）、`blast`（爆発半径）。ワイドショットは系統のページ（pages/680.html）、グリントは wiki の主武器性能比較（ps4borderbreakimage の pages/371.html、Ver.3.14）から取った（`source`）。グリントの基本の値は Codex 版の物。ワイドショットの拡散率（中・極小）は横の広がり `fan` の比（1・0.45）にした（Claude の判断）。ウェーブショットC の「弾幅が広い」は本作では表していない。
 
 - `secondary.json`（AC第4便）は副武器10系統33型。原典の現行性能と不明な再現値を区別し、射撃方式が違う型を除外。現行表は `../../arcade/weapons/secondary.md`、比較は `../secondary-comparison.md`。旧PS4版のJSONは変更しない。
+
+- 第5便の補助装備は `auxiliary.json`（AC11系統35型）。原表・再現上の値は `../../arcade/weapons/auxiliary.md`、比較は `../auxiliary-comparison.md`。
