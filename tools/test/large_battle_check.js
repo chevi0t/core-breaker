@@ -1,10 +1,12 @@
 // 潮路搬送区の50対50を、出撃画面・100機のスコア・本体のBot戦で確認する。
-// node tools/test/large_battle_check.js dbg/large-battle [出力フォルダ] [Bot戦の秒=120]
+// node tools/test/large_battle_check.js dbg/large-battle [出力フォルダ] [Bot戦の秒=120] [--smoke]
+// --smoke はUIの全項目と、基本配置の50対50だけを確認する。
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const dir = path.resolve(process.argv[2] || 'dbg/large-battle');
 const out = path.resolve(process.argv[3] || 'dbg/large-battle/results');
 const seconds = Number(process.argv[4] || 120);
+const smoke = process.argv.includes('--smoke');
 assert.ok(Number.isFinite(seconds) && seconds >= 30 && seconds <= 600, 'Bot戦は30〜600秒');
 const checks = [], errors = [], battles = [];
 const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
@@ -44,6 +46,7 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     await sw.check();
     yes((await p.locator('#mapNow').textContent()).includes('50対50（実験）'), '出撃前に実際の50対50を表示');
     await p.screenshot({ path: path.join(out, 'menu.png') });
+    await p.locator('#largeBattleControl').screenshot({ path: path.join(out, 'switch.png') });
     await p.setViewportSize({ width: 390, height: 844 });
     await p.locator('#largeBattleControl').scrollIntoViewIfNeeded();
     const box = await p.locator('#largeBattleControl').boundingBox();
@@ -58,13 +61,23 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     });
     yes(roster.count === 100 && roster.blue === 50 && roster.red === 50 && roster.players === 1, 'プレイヤー1機・味方49機・敵50機で出撃');
     yes(roster.indices && roster.defined && roster.mapTeam === 10, '100機の番号・兵装・役割が有効で、元のマップ定義は10のまま');
-    await p.evaluate(() => { const g = __g; g.keys.Tab = true; g.running = true; g.hud(240, .016); });
+    await p.evaluate(() => { const g = __g; g.keys.Tab = true; g.running = true; g.hud(g.timeLeft, .016); });
     await p.waitForTimeout(80);
     yes(await p.locator('#board tbody tr').count() === 100 && (await p.locator('#board caption').allTextContents()).every(t => t.includes('50機')), 'スコア表にも50機ずつ全100機を表示');
     await p.screenshot({ path: path.join(out, 'scoreboard-top.png') });
     await p.mouse.wheel(0, 1100);
     await p.waitForTimeout(80);
     yes(await p.evaluate(() => $('board').scrollTop > 0), 'Tabを押しながらホイールで下位のスコアを読める');
+    yes(await p.evaluate(() => {
+      const board = $('board'), before = board.scrollTop;
+      dispatchEvent(new WheelEvent('wheel', { deltaY: -2, deltaMode: 1 }));
+      return Math.abs(board.scrollTop - Math.max(0, before - 40)) < 1;
+    }), '行単位のホイールも20pxずつスクロール');
+    yes(await p.evaluate(() => {
+      const board = $('board'), before = board.scrollTop;
+      dispatchEvent(new WheelEvent('wheel', { deltaY: -1, deltaMode: 2 }));
+      return Math.abs(board.scrollTop - Math.max(0, before - board.clientHeight)) < 1;
+    }), 'ページ単位のホイールは表示領域ぶんスクロール');
     await p.evaluate(() => { __g.keys.Tab = false; __g.playerUpdate(__g.player, .016); });
     yes(await p.evaluate(() => __g.player.weapon === 'main'), 'スコア表のスクロールで武器が変わらない');
     await p.evaluate(() => { const g = __g; g.keys.Tab = true; $('board').scrollTop = $('board').scrollHeight; });
@@ -89,7 +102,8 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     await p.close();
 
     // 同じシードで通常人数と100機を比べる。本体のAI・物理・射撃・拠点・出撃をそのまま進める。
-    for (const [id, large] of [['tidal', false], ['tidal', true], ['tidal-v2', true], ['tidal-v3', true]]) {
+    const scenarios = smoke ? [['tidal', true]] : [['tidal', false], ['tidal', true], ['tidal-v2', true], ['tidal-v3', true]];
+    for (const [id, large] of scenarios) {
       const q = await page(true);
       await q.setViewportSize({ width: 1280, height: 720 });
       const initial = await q.evaluate(({ id, large }) => {
@@ -128,25 +142,31 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
           cpuLoopMs: { mean: battleTimes.reduce((a, b) => a + b, 0) / sorted.length, median: pct(.5), p95: pct(.95), max: sorted.at(-1), samples: sorted.length } };
       });
       yes(result.units === initial.units && result.moved >= initial.units / 2 && (result.elapsed + .01 >= seconds || result.ended), `${id}/${large ? '50' : '10'}対で指定時間を進め、半数以上が出撃位置から移動`);
+      if (seconds >= 90) yes(result.kills > 0, `${id}/${large ? '50' : '10'}対で実際の交戦と撃破が発生`);
       battles.push({ id, team: large ? 50 : 10, seed: 20261020, ...initial, ...result, wallMs: Date.now() - began });
-      fs.writeFileSync(path.join(out, 'battles.json'), JSON.stringify({ seconds, battles, errors }, null, 2) + '\n');
       if (id === 'tidal' && large) {
-        await q.evaluate(async () => {
-          const g = __g; g.running = false; g.keys.Tab = false; g.hud(240, .016); $('announce').replaceChildren();
+        const drawing = await q.evaluate(async () => {
+          const g = __g; g.running = false; g.keys.Tab = false;
           // 最初の陣営の生存Botの視点で、戦っている本体の3D画面を撮影する。
           const u = g.units.find(u => u.team === 'B' && u.alive && Math.abs(u.pos.z) < 230) || g.units.find(u => u.team === 'B' && u.alive);
           if (u) g.updateCamera(u, 1);
-          largeBattleRender(g.scene, g.camera); g.renderer.getContext().finish();
+          g.hud(g.timeLeft, .016); $('announce').replaceChildren();
+          const gl = g.renderer.getContext(), timings = [];
+          for (let i = 0; i < 5; i++) { const began = performance.now(); largeBattleRender(g.scene, g.camera); gl.finish(); timings.push(performance.now() - began); }
+          const ext = gl.getExtension('WEBGL_debug_renderer_info');
           const frame = new Image(); frame.src = g.renderer.domElement.toDataURL(); await frame.decode();
           frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none'; $('game').appendChild(frame); g.renderer.domElement.style.visibility = 'hidden';
+          return { renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), frameMs: timings, calls: g.renderer.info.render.calls, triangles: g.renderer.info.render.triangles };
         });
+        battles.at(-1).drawing = drawing;
         await q.screenshot({ path: path.join(out, 'battlefield.png') });
       }
+      fs.writeFileSync(path.join(out, 'battles.json'), JSON.stringify({ seconds, smoke, battles, errors }, null, 2) + '\n');
       console.log(`${id}/${large ? '50対50' : '10対10'}：撃破${result.kills}、CPU中央値${result.cpuLoopMs.median.toFixed(1)}ms・95%点${result.cpuLoopMs.p95.toFixed(1)}ms`);
       await q.close();
     }
     yes(errors.length === 0, 'ブラウザのエラーなし');
-    fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, seconds, battles, errors }, null, 2) + '\n');
+    fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, seconds, smoke, battles, errors }, null, 2) + '\n');
     console.log(`大人数実験：${checks.length}項目・${battles.length}試合、成功。ブラウザエラー0`);
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

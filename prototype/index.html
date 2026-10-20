@@ -183,6 +183,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .sb tr.me td { background: rgba(255, 211, 77, .16); color: #fff; }
 .sb tr.dead td { color: var(--dim); }
 #largeBattleControl[hidden] { display: none; }
+#largeBattleHint { display: block; margin: 4px 0 0; line-height: 1.6; }
 .card.wide { max-width: 940px; }
 /* キルカメラ（v0.16）：映している間は再出撃の画面を下の端へ寄せ、その一番上に倒した相手の名前 */
 #respawn.kc { top: calc(100% - 16px); transform: translate(-50%, -100%); }
@@ -7039,7 +7040,10 @@ let wheelDir = 0; // ホイール：下で次の枠、上で前の枠
 addEventListener('wheel', e => {
   if (!running) return;
   // 100機のスコアもTabを押しながらホイールで読めるようにする。
-  if (keys.Tab && !$('board').hidden) { $('board').scrollTop += e.deltaY; return; }
+  if (keys.Tab && !$('board').hidden) {
+    const board = $('board'), scale = e.deltaMode === 1 ? 20 : e.deltaMode === 2 ? board.clientHeight : 1;
+    board.scrollTop += e.deltaY * scale; board.scrollLeft += e.deltaX * scale; return;
+  }
   wheelDir = Math.sign(e.deltaY) || 1;
 }, { passive: true });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
