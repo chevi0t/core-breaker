@@ -1932,13 +1932,18 @@ energyShotGeo.translate(0, .5, 0);
 const energyShotMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false });
 // プラズマ砲は後方からも追えるピンクの砲弾と太い尾を描く（ユーザー指定、見た目だけ）。
 const PLASMA_COLOR = 0xff63cc;
+const CANNON_VISUAL_SCALE = 3; // プラズマ砲と蓄圧砲の先端・外周・尾の太さ。見た目だけを拡大する。
 const plasmaHeadGeo = new T.SphereGeometry(1, 12, 8);
-const plasmaHeadMat = new T.MeshBasicMaterial({ color: 0xff90dc });
-const plasmaHaloMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.BackSide });
-const plasmaTrailMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .9, depthWrite: false, side: T.DoubleSide });
-function plasmaShotMesh() {
-  const group = new T.Group(), trail = new T.Mesh(energyShotGeo, plasmaTrailMat), head = new T.Mesh(plasmaHeadGeo, plasmaHeadMat), halo = new T.Mesh(plasmaHeadGeo, plasmaHaloMat);
-  trail.name = 'plasmaTrail'; head.name = 'plasmaHead'; halo.name = 'plasmaHalo';
+const plasmaHeadMat = new T.MeshBasicMaterial({ color: 0xff90dc, fog: false });
+const plasmaHaloMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.BackSide, fog: false });
+const plasmaTrailMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .9, depthWrite: false, side: T.DoubleSide, fog: false });
+const chargeHeadMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, fog: false });
+const chargeHaloMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.BackSide, fog: false });
+const chargeTrailMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, transparent: true, opacity: .9, depthWrite: false, side: T.DoubleSide, fog: false });
+function cannonShotMesh(style) {
+  const plasma = style === 'plasma';
+  const group = new T.Group(), trail = new T.Mesh(energyShotGeo, plasma ? plasmaTrailMat : chargeTrailMat), head = new T.Mesh(plasmaHeadGeo, plasma ? plasmaHeadMat : chargeHeadMat), halo = new T.Mesh(plasmaHeadGeo, plasma ? plasmaHaloMat : chargeHaloMat);
+  trail.name = style + 'Trail'; head.name = style + 'Head'; halo.name = style + 'Halo';
   group.add(trail, head, halo);
   return group;
 }
@@ -1951,24 +1956,24 @@ function plasmaShotMesh() {
 function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visualStyle = '') {
   // 投げる物（spec.model）は武器の形（v0.11.1）。ロケット、重砲・プラズマ砲の弾、グレネードランチャーの弾はこれまでの形
   const energy = !spec.bladeWave && !spec.model && !spec.rocket && !spec.weak && !!(visualEnergy || spec.energy);
-  const plasmaVisual = energy && visualStyle === 'plasma';
-  const m = plasmaVisual ? plasmaShotMesh() : energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
+  const plasmaVisual = energy && visualStyle === 'plasma', chargeVisual = energy && visualStyle === 'charge';
+  const m = plasmaVisual || chargeVisual ? cannonShotMesh(visualStyle) : energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
   m.position.copy(from);
   if (spec.bladeWave) { m.scale.x = spec.width; m.lookAt(from.clone().sub(vel)); }
   if (spec.rocket) m.quaternion.setFromUnitVectors(UP, vel.clone().normalize());
   scene.add(m);
   const sh = { owner, team: owner.team, spec, pos: from.clone(), vel, mesh: m, life: spec.bladeWave ? spec.range / spec.speed : spec.fuse || spec.life || 3, stuck: false };
-  if (energy) { sh.energyFrom = from.clone(); sh.plasmaVisual = plasmaVisual; energyShotLook(sh); }
+  if (energy) { sh.energyFrom = from.clone(); sh.plasmaVisual = plasmaVisual; sh.chargeVisual = chargeVisual; energyShotLook(sh); }
   shells.push(sh);
 }
-// 飛翔する光学弾は先端から後ろへ尾を引く。プラズマ砲だけ先端と尾を太くする。
+// 飛翔する光学弾は先端から後ろへ尾を引く。プラズマ砲と蓄圧砲は大きな先端と太い尾で後方からも追える。
 function energyShotLook(sh) {
   const speed = sh.vel.length();
   if (speed > .0001) sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().multiplyScalar(-1 / speed));
   const width = energyTraceWidth(sh.pos), len = Math.min(10, speed * .06, sh.pos.distanceTo(sh.energyFrom));
-  if (sh.plasmaVisual) {
-    const distance = sh.pos.distanceTo(camera.position), radius = Math.max(.36, Math.min(.75, distance * .0032));
-    const tailWidth = Math.max(.12, Math.min(.32, distance * .002));
+  if (sh.plasmaVisual || sh.chargeVisual) {
+    const distance = sh.pos.distanceTo(camera.position), radius = CANNON_VISUAL_SCALE * Math.max(.36, Math.min(.75, distance * .0032));
+    const tailWidth = CANNON_VISUAL_SCALE * Math.max(.12, Math.min(.32, distance * .002));
     const [trail, head, halo] = sh.mesh.children;
     trail.scale.set(tailWidth, len, tailWidth); head.scale.setScalar(radius); halo.scale.setScalar(radius * 1.8);
   } else sh.mesh.scale.set(width, len, width);
@@ -6475,7 +6480,7 @@ function shot(u, sl, aim, spread) {
   const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
-    const P = w.proj, plasma = w.series === 'lp';
+    const P = w.proj, plasma = w.series === 'lp', charge = w.series === 'lq';
     for (const [hand, from] of (w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]).entries()) { // 二丁蓄積銃の光弾は左右から（v0.15）
       let v = P.grav ? lobTo(from, aim, P.speed, P.grav).vel : aim.clone().sub(from).normalize();
       if (!P.grav) {
@@ -6483,7 +6488,7 @@ function shot(u, sl, aim, spread) {
         if (ws) { v.x += (Math.random() - 0.5) * ws; v.y += (Math.random() - 0.5) * ws; v.z += (Math.random() - 0.5) * ws; v.normalize(); } // 連射ロケットはばらけて飛ぶ
         v.multiplyScalar(P.speed);
       }
-      shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : '');
+      shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : charge ? 'charge' : '');
       if (plasma) plasmaMuzzleRing(from, v);
       mainMuzzleFlash(u, !!hand, w);
       if (!P.grav) flash(from, plasma ? PLASMA_COLOR : P.energy ? 0xa0ffe8 : 0xffc080, 1.8, 0.08);
