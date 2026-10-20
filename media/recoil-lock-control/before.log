@@ -1,0 +1,21 @@
+反動とロック追従：14/22項目成功。失敗8、ブラウザエラー0
+横反動0：抑えた照準をロックが敵の外へ押し戻さない
+横反動0.1：抑えた照準をロックが敵の外へ押し戻さない
+横反動-0.1：抑えた照準をロックが敵の外へ押し戻さない
+横反動0.1：操作しなくても縦横とも敵へ引き戻す
+横反動-0.1：操作しなくても縦横とも敵へ引き戻す
+手で反動を抑えて頭へ置いた照準は、胴へ吸い付かない
+半分だけ反動を抑えても、残る上ずれを敵へ戻す
+横へ動く敵にも追従しながら縦横の反動を引き戻す
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+8 !== 0
+
+    at /workspace/core-breaker/tools/test/recoil_lock_check.js:113:12 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 8,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

@@ -69,7 +69,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       const e = g.units.find(v => v.team !== u.team); e.pos.set(0, 120, -40); e.alive = true;
       u.pitch = Math.atan2(-2.1, 40); u.recoil = 0; u.recoilYaw = 0; g.lock.down = false;
       const plain = g.lockStick(u, e, .05); u.recoil = .2; u.recoilYaw = .1; const kicked = g.lockStick(u, e, .05);
-      check(close(plain.pitch, kicked.pitch) && close(plain.yaw, kicked.yaw), 'ロックの引き戻しは縦横反動を自動相殺しない');
+      check(kicked.pitch < plain.pitch && kicked.yaw < plain.yaw, 'ロックの引き戻しは反動で上・横へ外れた照準を敵へ戻す');
       e.alive = false; e.group.visible = false;
       reset('gatling'); u.slots.main.w = { ...u.slots.main.w, spread: 0 }; u.slots.main.spin = 1;
       const begin = g.fx.length; g.weaponsTick(u, .05, true, new g.T.Vector3(0, 122.6, -100), 0);
