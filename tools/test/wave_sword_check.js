@@ -52,8 +52,8 @@ try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = requ
         scene.add(m); m.updateMatrixWorld(true); g.hittables.push(m); extras.push(m); return m;
       };
       reset();
-      const w = g.WEAPONS.waveSword, sword = g.WEAPONS.sword;
-      check(near(w.normal.dmg, sword.normal.dmg * .7) && near(w.strong.dmg, sword.strong.dmg * .7) && w.chargeWave.dmg === 2000, '指定威力：通常4200・強打7000・光波2000');
+      const w = g.WEAPONS.waveSword;
+      check(w.normal.dmg === 3000 && w.strong.dmg === 6000 && w.chargeWave.dmg === 2000, '指定威力：通常3000・強打6000・光波2000');
       check(w.model === 'LJ-6' && w.maker === 'lumina' && w.series === 'lj' && g.ARMORY.assault.aux.includes('waveSword'), '独立したシリーズ・型番で強襲補助に登録');
       hold(4); check(!u.swing && !g.shells.length && near(u.slots.aux.chargeT, 1.2), '満充填を保持中は振らず、過熱しない');
       tick(.02, false); tick(.08, false); check(!g.shells.length, '光波は離した瞬間より後、振りの途中で発生');
@@ -62,9 +62,9 @@ try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = requ
       check(u.waveFired === 1 && g.shells.length === 1, 'ダッシュ回転斬りも光波1発だけ');
       for (const strong of [false, true]) {
         reset(3.5); hold(.1); u.dashT = strong ? .2 : 0; tick(.02, false, aim(strong ? 2 : 2.6)); finish();
-        check(near(1e6 - e.hp, strong ? 7000 : 4200) && !u.waveFired, (strong ? '短押しの強打7000' : '短押しの通常斬り4200') + '、光波なし');
+        check(near(1e6 - e.hp, strong ? 6000 : 3000) && !u.waveFired, (strong ? '短押しの強打6000' : '短押しの通常斬り3000') + '、光波なし');
         reset(3.5); hold(1.2); u.dashT = strong ? .2 : 0; tick(.02, false, aim(strong ? 2 : 2.6)); finish(); fly();
-        check(near(1e6 - e.hp, strong ? 9000 : 6200) && u.waveFired === 1, '近距離の満充填' + (strong ? '強打は7000＋2000' : '通常斬りは4200＋2000'));
+        check(near(1e6 - e.hp, strong ? 8000 : 5000) && u.waveFired === 1, '近距離の満充填' + (strong ? '強打は6000＋2000' : '通常斬りは3000＋2000'));
       }
       reset(); hold(1.2); tick(.02, false); finish();
       const before = e.hp; g.shellUpdate(.1); check(e.hp === before, '光波は弾速に従って飛び、即着弾しない'); fly();

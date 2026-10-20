@@ -10,28 +10,27 @@
 パーツ：試す物なし
 武器 1種を撃つ: waveSword
 場所 [ -50, -48 ]
-assault/aux waveSword 光波剣: 発射0 弾減0 ダメ6599 崩れ=stagger SP100→100 味方HP3000
+assault/aux waveSword 光波剣: 発射0 弾減0 ダメ5190 崩れ=stagger SP100→100 味方HP3000
 エラー []
 Bot戦 city,dock 各60秒
-city: 36秒まで進行
-city: 64秒まで進行
-== city 64秒 コア/戦力 8213,8550 撃破26 蘇生2 エリア移動8 出撃44 使われた武器121種 フィールド作動14秒 弾の最大7
-  機体の型 standard,light,standard3,harrier2,heavy2,bastion2,harrier,prism2,prism3,prism,standard2,heavy,light2,light3,heavy3,bastion,harrier3,bastion3
-  追加特別装備 artillery,escort,barrierM,repairPost,artilleryR バリア作動6秒、自動銃作動29秒
-  榴弾砲 15発、飛翔中の最大9発
-  追加副武器の発射 {"jumpMineU":5,"flare":3,"detonatorR":1,"detonatorU":7,"detonator":2}
-  追加補助装備 {"jammerQ":2,"airTurretH":2,"stunGrenadeQ":1,"rodH":1,"jammerD":1,"airTurret":1} レーダー稼働秒 {}
-  設置 {"地雷":5,"リペアビーコン":1,"遠隔爆弾":10,"自動砲台":3}
-   B0:a1/2 B1:s0/1 B2:h0/0 B3:a1/2 B4:r1/1 B5:h1/3 B6:s4/2 B7:r0/0 B8:a1/2 B9:h1/2 R0:a2/1 R1:s2/1 R2:h0/0 R3:a2/1 R4:r1/1 R5:h0/1 R6:s3/3 R7:r0/1 R8:a1/1 R9:h3/1
+city: 30秒まで進行
+city: 61秒まで進行
+== city 61秒 コア/戦力 8156,8438 撃破29 蘇生0 エリア移動3 出撃43 使われた武器121種 フィールド作動34秒 弾の最大4
+  機体の型 standard,prism3,bastion,prism2,heavy,light,standard3,bastion2,light3,prism,harrier2,harrier,light2,heavy3,bastion3,standard2,harrier3,heavy2
+  追加特別装備 repairPostW,escortR,artilleryF,barrierL,artillery,barrier,repairPostG バリア作動61秒、自動銃作動20秒
+  榴弾砲 6発、飛翔中の最大6発
+  追加副武器の発射 {"detonatorR":3,"dart":2,"dartH":1,"lightSniper":9,"charge":1,"detonatorH":1,"chargeM":1}
+  追加補助装備 {"airTurretH":1,"planeSensor":1} レーダー稼働秒 {}
+  設置 {"遠隔爆弾":4,"リペアビーコン・広域型":2,"自動砲台":1,"索敵センサー":1,"リペアビーコン・高出力型":1}
+   B0:a1/3 B1:s3/2 B2:h0/0 B3:a0/3 B4:r2/2 B5:h4/2 B6:s0/2 B7:r1/0 B8:a1/0 B9:h0/3 R0:a0/3 R1:s1/1 R2:h1/0 R3:a3/2 R4:r1/0 R5:h1/2 R6:s2/2 R7:r1/0 R8:a3/0 R9:h4/2
   エラー なし
-dock: 30秒まで進行
-== dock 30秒 コア/戦力 0,2000 撃破7 蘇生0 エリア移動0 出撃8 使われた武器30種 フィールド作動4秒 弾の最大4
-  機体の型 standard,bastion2,heavy2,light3,bastion3,prism,prism3,standard2,prism2,bastion
-  追加特別装備 repairPost バリア作動0秒、自動銃作動0秒
+== dock 27秒 コア/戦力 0,2000 撃破6 蘇生0 エリア移動0 出撃8 使われた武器28種 フィールド作動3秒 弾の最大1
+  機体の型 standard,heavy3,light,prism2,harrier,bastion2,bastion3,prism3,prism
+  追加特別装備 repairPostG バリア作動0秒、自動銃作動0秒
   榴弾砲 0発、飛翔中の最大0発
-  追加副武器の発射 {"chain":1,"flareD":1,"detonatorH":1}
+  追加副武器の発射 {"chainL":2,"detonatorU":1}
   追加補助装備 {} レーダー稼働秒 {}
-  設置 {"遠隔爆弾":1}
-   B0:a1/2 B1:s2/2 R0:a4/2 R1:s0/1
+  設置 {"リペアビーコン・高出力型":1,"遠隔爆弾":1}
+   B0:a0/2 B1:s2/2 R0:a2/1 R1:s2/1
   エラー なし
 簡易テスト：成功
