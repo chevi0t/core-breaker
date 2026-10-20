@@ -541,8 +541,10 @@ body[data-console="flight"] #wpn > span.warn { color: #ffb4a2; }
 body[data-console="flight"] #wpn > .warn .flightBar i { background: var(--warn); }
 body[data-console="flight"] #lockRing { border-color: #91f1ff77; }
 body[data-console="flight"] #lockRing::before { content: ''; position: absolute; inset: 36% -18px; border-inline: 6px solid #91f1ff; }
-/* メカニカル：細い白線、左下の大きな耐久数値、武器4枠と方位計。 */
-body[data-console="mechanical"] .hud { --hud: #e1eceb; --dim: #b0c1c0; --panel: #0a131888; }
+/* メカニカル：淡い緑の計器に暗い輪郭を付け、明るい地形でも残量と文字を読めるようにする。 */
+body[data-console="mechanical"] .hud { --hud: #d7e8e0; --dim: #b0c9c3; --panel: #081119b8; text-shadow: -1px 0 #03090e, 1px 0 #03090e, 0 -1px #03090e, 0 1px #03090e, 0 2px 3px #000; }
+/* 下地は数値のある範囲だけに敷く。配置や中央の見通しは変えない。 */
+body[data-console="mechanical"] :is(#top, #ammoBox, #status .row, #mechBoost, #consoleHeading) { background: #07121a99; box-shadow: 0 0 8px 3px #07121a66; }
 body[data-console="mechanical"] #top { left: var(--console-edge); top: max(var(--console-edge), env(safe-area-inset-top, 0px)); transform: none; gap: 12px; }
 body[data-console="mechanical"] #timer { order: -1; font-size: 24px; }
 body[data-console="mechanical"] .core { width: min(19vw, 200px); }
@@ -551,19 +553,19 @@ body[data-console="mechanical"] .core .lbl { font-size: 10px; }
 body[data-console="mechanical"] #plantBar { top: 76px; gap: 6px; }
 body[data-console="mechanical"] .pl { width: 38px; padding: 1px 0 4px; background: #08131588; border-width: 0 0 1px; font-size: 12px; }
 body[data-console="mechanical"] #status { width: 280px; gap: 8px; padding: 0; background: none; }
-body[data-console="mechanical"] #status .row { grid-template-columns: 62px 1fr 62px; color: #d2e0df; }
+body[data-console="mechanical"] #status .row { grid-template-columns: 62px 1fr 62px; color: var(--dim); }
 body[data-console="mechanical"] #status .row:first-child { grid-template-columns: 62px 1fr; }
 body[data-console="mechanical"] #status .row:nth-child(2) { display: none; }
 body[data-console="mechanical"] #hp { grid-column: 1 / -1; grid-row: 2; }
 body[data-console="mechanical"] #hpT { grid-column: 2; grid-row: 1; font-size: 42px; font-weight: 500; line-height: 1; letter-spacing: .04em; }
 body[data-console="mechanical"] #status .bar { height: 3px; border: 0; }
-body[data-console="mechanical"] #hp > i { background: #e4eeec; }
+body[data-console="mechanical"] #hp > i { background: #c2ded0; }
 body[data-console="mechanical"] #status.low #hp > i { background: var(--warn); }
-body[data-console="mechanical"] #ammoBox { padding: 0; background: none; border: 0; }
+body[data-console="mechanical"] #ammoBox { padding: 0; border: 0; }
 body[data-console="mechanical"] #wpn { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; justify-items: stretch; text-align: left; }
 body[data-console="mechanical"] #wcls { grid-column: 1 / -1; }
-body[data-console="mechanical"] #wpn > span:not(#wcls) { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; border-top: 1px solid #b4c9c755; padding: 4px 0; align-content: start; }
-body[data-console="mechanical"] #wpn > .on { border-top-color: #efffff; box-shadow: none; color: #efffff; }
+body[data-console="mechanical"] #wpn > span:not(#wcls) { display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; border-top: 1px solid #a4bdb988; padding: 4px 0; align-content: start; }
+body[data-console="mechanical"] #wpn > .on { border-top-color: #dceee3; box-shadow: none; color: #dceee3; }
 body[data-console="mechanical"] #wpn > .act { color: #7dffb0; }
 body[data-console="mechanical"] #wpn .mechSlot { font-size: 10px; letter-spacing: .1em; }
 body[data-console="mechanical"] #wpn .mechCount { font-size: 15px; font-weight: 500; white-space: nowrap; }
@@ -571,23 +573,27 @@ body[data-console="mechanical"] #wpn .mechWeapon { grid-column: 1 / -1; font-siz
 body[data-console="mechanical"] #wpn .mechState { grid-column: 1 / -1; font-size: 10px; min-height: 13px; }
 body[data-console="mechanical"] #wpn .warn .mechState { color: var(--warn); }
 body[data-console="mechanical"] #ammo { display: none; }
-body[data-console="mechanical"] #ammoSub { font-size: 10px; margin-top: 6px; color: #bbcdca; }
-body[data-console="mechanical"] #lockRing { border-color: #c6d9d744; border-style: dashed; }
+body[data-console="mechanical"] #ammoSub { font-size: 10px; margin-top: 6px; color: var(--dim); }
+body[data-console="mechanical"] #lockRing { border-color: #a9c6be99; border-style: dashed; }
+body[data-console="mechanical"] :is(#cross, #lockRing, #lockMark .br) { filter: drop-shadow(0 0 1px #030a10) drop-shadow(0 1px 1px #030a10); }
+body[data-console="mechanical"] :is(.core .bar, #status .bar, #mechBoost .bar) { background: #08131bd9; box-shadow: 0 0 0 1px #030a10bb; }
 body[data-console="mechanical"] #aimGauge { display: none; }
 body[data-console="mechanical"] #lockMark .info { display: none; }
 #mechanicalHud[hidden] { display: none; }
-#mechAim { left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: visible; }
-#mechAim path, #mechAim circle { fill: none; stroke: #dce9e5; stroke-width: 2; }
-#mechAim .track { stroke: #dce9e544; stroke-width: 5; }
-#mechAim circle { stroke-width: 1; opacity: .55; }
+#mechAim { left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: visible; filter: drop-shadow(0 0 1px #030a10) drop-shadow(0 1px 1px #030a10); }
+#mechAim path, #mechAim circle { fill: none; stroke: #b9d5cb; stroke-width: 2; }
+/* 太い暗色のレールで、残量の明線と空の部分を見分ける。 */
+#mechAim .track { stroke: #07131cd9; stroke-width: 6; }
+#mechAim circle { stroke-width: 1.5; stroke: #a9c6be; }
 #mechAim.locked circle { stroke: var(--warn); opacity: 1; }
 #mechAim .warn { stroke: var(--warn); }
 #mechAim .reload { stroke: #93ceff; }
 #mechAim .charge { stroke: #7dffd8; }
 #mechAim .active { stroke: #a6ffcb; }
-#mechAim text { fill: #e5f1ed; font-size: 10px; font-family: var(--display); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
+#mechAim text { fill: #dceee3; stroke: #030a10; stroke-width: 3; stroke-linejoin: round; paint-order: stroke fill; font-size: 10px; font-family: var(--display); text-shadow: none; font-variant-numeric: tabular-nums; }
 #mechAim .selected { stroke-width: 3; }
-#mechBoost { z-index: 1; left: 50%; bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); transform: translateX(-50%); width: min(34vw, 420px); color: #dce9e5; }
+#mechAim .selected:not(.warn, .reload, .charge, .active) { stroke: #dceee3; }
+#mechBoost { z-index: 1; left: 50%; bottom: calc(max(var(--console-edge), env(safe-area-inset-bottom, 0px)) + 40px); transform: translateX(-50%); width: min(34vw, 420px); color: #c2ded0; }
 #mechBoost .lbl { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .14em; margin-bottom: 4px; }
 #mechBoost .bar { height: 4px; border: 0; background: #dce9e533; }
 #mechBoost .bar > i { background: currentColor; }
@@ -599,19 +605,19 @@ body[data-console="flight"] #lockRing.on, body[data-console="mechanical"] #lockR
 body[data-console="flight"] #consoleTelemetry::before { content: ''; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(56vw, 700px); height: 40vh; border: 1px solid #d8f7ff55; border-radius: 44px; }
 #consoleTelemetry .instrument { position: fixed; top: 50%; transform: translateY(-50%); width: 82px; color: #c6f8ff; font-size: 11px; }
 #consoleTelemetry .instrument b { display: block; font-size: 25px; line-height: 1.3; font-weight: 500; font-variant-numeric: tabular-nums; }
-body[data-console="mechanical"] #consoleSpeed { left: var(--console-edge); right: auto; text-align: left; border: 0; border-left: 1px solid #c4d8d666; padding: 20px 0 20px 8px; background: repeating-linear-gradient(#c4d8d666 0 1px, transparent 1px 10px) left / 4px 100% no-repeat; }
-body[data-console="mechanical"] #consoleAltitude { right: var(--console-edge); left: auto; text-align: right; border: 0; border-right: 1px solid #c4d8d666; padding: 20px 8px 20px 0; background: repeating-linear-gradient(#c4d8d666 0 1px, transparent 1px 10px) right / 4px 100% no-repeat; }
-body[data-console="mechanical"] #consoleTelemetry .instrument { width: 58px; color: #d5e9e2; font-size: 9px; }
+body[data-console="mechanical"] #consoleSpeed { left: var(--console-edge); right: auto; text-align: left; border: 0; border-left: 1px solid #adc9c0; padding: 20px 0 20px 8px; background: repeating-linear-gradient(#adc9c0 0 1px, transparent 1px 10px) left / 4px 100% no-repeat; }
+body[data-console="mechanical"] #consoleAltitude { right: var(--console-edge); left: auto; text-align: right; border: 0; border-right: 1px solid #adc9c0; padding: 20px 8px 20px 0; background: repeating-linear-gradient(#adc9c0 0 1px, transparent 1px 10px) right / 4px 100% no-repeat; }
+body[data-console="mechanical"] #consoleTelemetry .instrument { width: 58px; color: #c2ded0; font-size: 9px; background-color: #07121a99; box-shadow: 0 0 8px 3px #07121a66; }
 body[data-console="mechanical"] #consoleTelemetry .instrument b { font-size: 18px; }
 #consoleSpeed { right: calc(50% + var(--aim-sp-offset) + 24px); text-align: right; border-right: 2px solid #78edff; padding-right: 10px; }
 #consoleAltitude { left: calc(50% + var(--aim-sp-offset) + 24px); border-left: 2px solid #78edff; padding-left: 10px; }
 #consoleHeading { position: fixed; left: 50%; transform: translateX(-50%); text-align: center; font-size: 11px; letter-spacing: .16em; color: #d5e9e7; }
 #consoleHeading b { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
 body[data-console="flight"] #consoleHeading { top: calc(50% - var(--aim-sp-offset) - 36px); border-bottom: 1px solid #78edff66; padding: 2px 18px; }
-body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: min(34vw, 420px); padding-top: 16px; font-size: 9px; }
+body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: min(34vw, 420px); padding-top: 16px; font-size: 9px; color: #c2ded0; }
 body[data-console="mechanical"] #consoleHeading b { font-size: 12px; }
 #mechCompass { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 16px; overflow: hidden; border-top: 1px solid #c4d8d666; }
-body[data-console="mechanical"] #mechCompass { display: block; }
+body[data-console="mechanical"] #mechCompass { display: block; border-top-color: #adc9c0; }
 #mechCompass span { position: absolute; top: 0; transform: translateX(-50%); font-size: 8px; letter-spacing: 0; padding-top: 5px; }
 #mechCompass span::before { content: ''; position: absolute; top: 0; left: 50%; height: 3px; border-left: 1px solid #c4d8d6; }
 @media (max-width: 1000px) {
