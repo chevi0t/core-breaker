@@ -75,15 +75,14 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #agHeat.full.hot { stroke: var(--warn); animation: blink .25s steps(2) infinite; }
 #agBoost { stroke: var(--blue); }
 #agBoost.oh { stroke: var(--warn); }
-/* 持っている武器にかかわらず、照準円のすぐ下でSP残量を確認できる。位置は resize で円に合わせる。 */
-#aimSp { left: 50%; top: calc(50% + var(--aim-sp-offset)); transform: translateX(-50%); width: 144px; padding: 4px 6px; background: rgba(8, 14, 20, .78); border-radius: 2px; color: #ffd34d; font-size: 11px; line-height: 14px; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
-#aimSp .lbl { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-#aimSpState { color: var(--hud); font-size: 10px; }
-#aimSp .bar { height: 6px; border-color: rgba(255, 211, 77, .65); }
-#aimSp .bar > i { background: currentColor; }
+/* 持っている武器にかかわらず、照準円のすぐ下でSP残量を確認できる。位置は resize で円に合わせる。
+   文字や枠は出さず、黄色い棒だけ（ユーザー指定 2026-10-20「ＳＰゲージは黄色い棒だけでいいよ」） */
+#aimSp { left: 50%; top: calc(50% + var(--aim-sp-offset)); transform: translateX(-50%); width: 110px; height: 4px; }
+#aimSp .bar { height: 100%; border: 0; background: rgba(0, 0, 0, .35); }
+#aimSp .bar > i { background: #ffd34d; }
 #aimSp.oh .bar > i { background: #7a6a3a; }
-#aimSp.act { color: #a6ffcb; }
-#aimSp.act .bar { border-color: #7dffb0; animation: spGlow .7s ease-in-out infinite; }
+#aimSp.act .bar { animation: spGlow .7s ease-in-out infinite; }
+#aimSp.act .bar > i { background: #a6ffcb; }
 #aimSp.hit .bar > i { background: var(--warn); }
 @media (prefers-reduced-motion: reduce) { #aimSp.act .bar { animation: none; } }
 #lockMark { left: 0; top: 0; width: 54px; height: 54px; margin: -27px 0 0 -27px; --c: var(--warn); will-change: transform; }
@@ -257,7 +256,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .utag.far .hb { width: 48px; height: 5px; }
 .ping { position: absolute; left: 0; top: 0; font-size: 12px; color: #ffd34d; background: var(--panel); padding: 1px 6px; white-space: nowrap; text-shadow: 0 0 4px #000; will-change: transform; }
 #bigMapC { pointer-events: auto; cursor: crosshair; } /* マウスの固定が外れているときは、地図を直接クリックできる */
-#center { left: 50%; top: max(62%, calc(50% + var(--aim-sp-offset) + 42px)); transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; white-space: pre-line; }
+#center { left: 50%; top: max(62%, calc(50% + var(--aim-sp-offset) + 20px)); transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; white-space: pre-line; }
 #overlay[hidden] { display: none; }
 #overlay { position: fixed; inset: 0; display: flex; overflow-y: auto; padding-block: 24px; background: rgba(5, 9, 13, .82); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .card { margin: auto; max-width: 560px; display: grid; gap: 16px; }
@@ -413,9 +412,10 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .consoleMini .health { left: 8px; bottom: 8px; width: 54px; height: 16px; border-width: 0 0 3px; }
 .consoleMini .weapon { right: 8px; bottom: 8px; width: 48px; height: 22px; }
 .consoleMini[data-preview="arcade"] { --ink: #aaff64; }
-.consoleMini[data-preview="arcade"] .team { left: 8px; width: 52%; height: 9px; }
+.consoleMini[data-preview="arcade"] .team { left: 8px; width: 40%; height: 10px; background: linear-gradient(#3ec8ff 0 44%, transparent 44% 56%, #ff8a2a 56%); }
 .consoleMini[data-preview="arcade"] .map { left: auto; top: auto; right: 8px; bottom: 35px; }
-.consoleMini[data-preview="arcade"] .health { width: 55px; height: 23px; transform: skewX(-18deg); background: #aaff6466; }
+.consoleMini[data-preview="arcade"] .health { left: 40px; width: 14px; height: 36px; transform: skewX(-16deg); background: #aaff6488; border-width: 1px; }
+.consoleMini[data-preview="arcade"] .weapon { width: 30px; height: 30px; transform: rotate(45deg); right: 16px; bottom: 6px; }
 .consoleMini[data-preview="flight"] { --ink: #78edff; }
 .consoleMini[data-preview="flight"] .team { left: 35%; width: 30%; height: 10px; background: linear-gradient(#3ea6ff 0 44%, transparent 44% 56%, #ff8a2a 56%); }
 .consoleMini[data-preview="flight"] .map { left: auto; top: auto; right: 8px; bottom: 35px; }
@@ -437,29 +437,55 @@ body[data-console]:where(:not([data-console="standard"])) #status { left: max(va
 body[data-console]:where(:not([data-console="standard"])) #ammoBox { right: max(var(--console-edge), env(safe-area-inset-right, 0px)); bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: 320px; box-sizing: border-box; }
 body[data-console]:where(:not([data-console="standard"])) #ammoSub { line-height: 1.5; overflow-wrap: anywhere; }
 body[data-console]:where(:not([data-console="standard"])) #feed { left: var(--console-edge); right: auto; top: 112px; max-width: 32vw; justify-items: start; font-size: 12px; }
-body[data-console]:where(:not([data-console="standard"])) #aimSp { width: 160px; font-size: 12px; }
+body[data-console]:where(:not([data-console="standard"])) #aimSp { width: 120px; }
 body[data-console]:where(:not([data-console="standard"])) #lockAlert { top: calc(132px + env(safe-area-inset-top, 0px)); }
 body[data-console]:where(:not([data-console="standard"])) #baseAlert { top: calc(140px + var(--console-lock-height, 0px) + env(safe-area-inset-top, 0px)); }
-/* アーケード：左上に大きな時間と戦況、斜めの耐久表示、右下の戦術マップ。 */
-body[data-console="arcade"] #top { left: var(--console-edge); top: max(12px, env(safe-area-inset-top, 0px)); transform: none; padding: 5px 12px; gap: 12px; background: #081a27dd; border-left: 4px solid #85d7ff; }
-body[data-console="arcade"] #timer { order: -1; font-size: 40px; line-height: 1; }
-body[data-console="arcade"] .core { width: min(19vw, 210px); }
-body[data-console="arcade"] .core .bar { height: 12px; border: 0; }
-body[data-console="arcade"] .core .lbl { color: #e5f1f7; font-size: 11px; }
-body[data-console="arcade"] #plantBar { top: 82px; }
-body[data-console="arcade"] #mapHud { top: auto; bottom: calc(var(--console-ammo-height, 180px) + var(--console-edge) + 12px); }
-body[data-console="arcade"] #status { width: 304px; padding: 12px 16px; gap: 12px; background: linear-gradient(110deg, #092338ed, #0a1625cc); border-left: 4px solid #aaff64; border-top: 1px solid #9fceea88; }
-body[data-console="arcade"] #status .row { grid-template-columns: 58px 1fr 60px; font-size: 12px; }
-body[data-console="arcade"] #status .row:first-child { min-height: 36px; }
-body[data-console="arcade"] #hp { height: 24px; transform: skewX(-18deg); border: 1px solid #b7ff6e; }
-body[data-console="arcade"] #hp > i { background: #b4ff68; }
-body[data-console="arcade"] #hpT { font-size: 25px; }
-body[data-console="arcade"] #ammoBox { border-top: 3px solid #82d8ff; background: #091a2ae8; }
-body[data-console="arcade"] #wpn { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; text-align: left; justify-items: stretch; }
-body[data-console="arcade"] #wcls { grid-column: 1 / -1; color: #9fe0ff; }
-body[data-console="arcade"] #wpn > span:not(#wcls) { padding: 4px 6px; background: #ffffff0a; border-left: 2px solid #6c8ba0; }
-body[data-console="arcade"] #wpn > .on { background: #174b6a; border-left-color: #a8efff; }
-body[data-console="arcade"] #ammo { font-size: 40px; }
+/* アーケード（ユーザー指定 2026-10-20、参考画像に寄せる）：左上に重ねた両軍のコアと秒の残り時間、左に BATTLE の記録、
+   左下に機体の札と縦に伸びる斜めの耐久ゲージ、右下にマップと菱形の武器枠（並びは十字の持ち替えと同じ。特別装備はSPの黄色で満ちる）。 */
+body[data-console="arcade"] { --console-map-width: 176px; }
+body[data-console="arcade"] #top { left: var(--console-edge); top: max(12px, env(safe-area-inset-top, 0px)); transform: none; display: grid; gap: 4px; padding: 8px 44px 6px 12px; background: linear-gradient(90deg, #081a27f0, #081a27c0); border-left: 4px solid #85d7ff; clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%); }
+body[data-console="arcade"] .core { width: min(22vw, 250px); display: flex; align-items: center; gap: 8px; }
+body[data-console="arcade"] .core .bar { flex: 1; order: -1; height: 10px; border: 0; transform: skewX(-20deg); }
+body[data-console="arcade"] #coreB > i { background: #3ec8ff; }
+body[data-console="arcade"] #coreR > i { margin-left: 0; }
+body[data-console="arcade"] .core .lbl { min-width: 44px; justify-content: flex-end; color: #e5f1f7; font-size: 10px; letter-spacing: .04em; }
+body[data-console="arcade"] #coreBn, body[data-console="arcade"] #coreRn { display: none; }
+body[data-console="arcade"] #timer { order: 1; min-width: 0; text-align: left; font-size: 40px; line-height: 1; font-style: italic; letter-spacing: .02em; }
+body[data-console="arcade"] #plantBar { top: max(14px, env(safe-area-inset-top, 0px)); }
+body[data-console="arcade"] #feed { top: calc(122px + env(safe-area-inset-top, 0px)); gap: 2px; }
+body[data-console="arcade"] #feed::before { content: 'BATTLE'; justify-self: start; margin-bottom: 2px; padding: 1px 14px 1px 6px; font: 700 10px var(--display); letter-spacing: .14em; color: #cfe6f2; background: #0b1c2ad9; clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+body[data-console="arcade"] #feed div { background: linear-gradient(90deg, #0b1c2ab8, transparent); padding: 1px 28px 1px 6px; }
+body[data-console="arcade"] #mapHud { top: auto; bottom: calc(var(--console-ammo-height, 180px) + var(--console-edge) + 10px); }
+body[data-console="arcade"] #mini { border: 1px solid #9fe0ffaa; box-shadow: 0 0 0 3px #0b1c2acc; }
+#pilot { display: none; }
+body[data-console="arcade"] #status { width: 330px; padding: 10px 36px 10px 14px; display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 0 10px; align-items: end; background: linear-gradient(100deg, #092338f0 55%, #0a1625c0); border-left: 4px solid #aaff64; clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%); }
+body[data-console="arcade"] #pilot { display: grid; grid-column: 1; grid-row: 1; align-self: center; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+body[data-console="arcade"] #pilotMark { grid-row: 1 / 3; width: 52px; height: 52px; display: grid; place-items: center; font: 700 26px var(--display); color: #0b1c2a; background: linear-gradient(135deg, #b4ff68, #4fc0ff); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+body[data-console="arcade"] #pilotName { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 16px; color: #fff; }
+body[data-console="arcade"] #pilotCls { justify-self: start; padding: 1px 8px; font-size: 10px; letter-spacing: .08em; color: #cfe6f2; background: #ffffff1c; clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+body[data-console="arcade"] #status .row:not(:first-child) { display: none; }
+body[data-console="arcade"] #status .row:first-child { grid-column: 2; grid-row: 1; grid-template-columns: auto auto; grid-template-areas: "bar bar" "lbl num"; justify-content: space-between; align-items: baseline; gap: 4px 6px; font-size: 10px; }
+body[data-console="arcade"] #status .row:first-child > span { grid-area: lbl; white-space: nowrap; }
+body[data-console="arcade"] #hp { grid-area: bar; justify-self: center; width: 60px; height: 104px; display: flex; align-items: flex-end; transform: skewX(-16deg); background: #0b2a14b0; border: 1px solid #b7ff6e99; }
+body[data-console="arcade"] #hp > i { width: 100% !important; height: var(--fill, 100%); background: linear-gradient(#e2ff8a, #8ee83c); transition: height .15s; }
+body[data-console="arcade"] #status.low #hp > i { background: linear-gradient(#ffc27a, var(--warn)); }
+body[data-console="arcade"] #hpT { grid-area: num; font-size: 16px; }
+body[data-console="arcade"] #ammoBox { width: 340px; padding: 0; background: none; text-align: left; }
+body[data-console="arcade"] #wcls, body[data-console="arcade"] #ammo { display: none; }
+body[data-console="arcade"] #wpn { justify-items: stretch; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas: ". main main ." "sp sp sub sub" ". aux aux ."; gap: 4px 6px; margin: 0; }
+body[data-console="arcade"] #w-main { grid-area: main; }
+body[data-console="arcade"] #w-sub { grid-area: sub; }
+body[data-console="arcade"] #w-aux { grid-area: aux; }
+body[data-console="arcade"] #w-sp { grid-area: sp; }
+body[data-console="arcade"] #wpn > span[id^="w-"] { display: grid; align-content: center; min-width: 0; min-height: 40px; padding: 3px 18px; font-size: 0; color: #e8f4fa; background: #0b1c2ae6; box-shadow: none; clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+body[data-console="arcade"] #wpn > span[id^="w-"]::before { content: attr(data-n); font: 700 20px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+body[data-console="arcade"] #wpn > span[id^="w-"]::after { content: attr(data-name); min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; color: #a9c0cd; }
+body[data-console="arcade"] #wpn > span.on { color: #c4ff72; background: linear-gradient(90deg, #24601ef2, #0f3418e6); }
+body[data-console="arcade"] #wpn > span.on::before { font-size: 24px; }
+body[data-console="arcade"] #wpn > #w-sp { background: linear-gradient(90deg, #d9c21ae6 var(--fill, 0%), #0b1c2ae6 var(--fill, 0%)); text-shadow: 0 1px 2px #000; }
+body[data-console="arcade"] #wpn > #w-sp::after { color: #fff; }
+body[data-console="arcade"] #wpn > span.act { color: #7dffb0; }
+body[data-console="arcade"] #ammoSub { margin-top: 4px; padding: 3px 10px; background: #0b1c2acc; text-align: right; }
 body[data-console="arcade"] #lockRing { border-width: 2px; }
 /* フライト：上中央に積む戦況、丸みのある計器枠と中央下の装備パネル。 */
 body[data-console="flight"] .hud { --panel: #071f30cc; }
@@ -510,7 +536,6 @@ body[data-console="mechanical"] #wpn > span:not(#wcls) { border-top: 1px solid #
 body[data-console="mechanical"] #wpn > .on { border-top-color: #efffff; box-shadow: none; color: #efffff; }
 body[data-console="mechanical"] #wpn > .act { color: #7dffb0; }
 body[data-console="mechanical"] #ammo { font-size: 32px; }
-body[data-console="mechanical"] #aimSp { background: #07121899; border-bottom: 1px solid #c8d9d755; }
 body[data-console="mechanical"] #lockRing { border-color: #c6d9d744; }
 body[data-console="mechanical"] #lockRing::before { content: ''; position: absolute; inset: -9px; border: 1px solid #d9eeec88; clip-path: polygon(0 0, 22% 0, 22% 2%, 2% 2%, 2% 22%, 0 22%, 0 0, 100% 0, 100% 22%, 98% 22%, 98% 2%, 78% 2%, 78% 0, 100% 0, 100% 100%, 78% 100%, 78% 98%, 98% 98%, 98% 78%, 100% 78%, 100% 100%, 0 100%, 0 78%, 2% 78%, 2% 98%, 22% 98%, 22% 100%, 0 100%); }
 body[data-console="flight"] #lockRing.acq, body[data-console="mechanical"] #lockRing.acq { border-color: #ffc46e; }
@@ -532,6 +557,12 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
   body[data-console="flight"] #wpn { position: static; transform: none; width: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body[data-console="flight"] #wpn > span:not(#wcls) { padding: 4px; }
   body[data-console="mechanical"] #consoleHeading { width: clamp(64px, calc(16vw - 24px), 160px); letter-spacing: .02em; }
+  body[data-console="arcade"] #plantBar { left: auto; right: var(--console-edge); transform: none; }
+  body[data-console="arcade"] #status { padding: 8px 30px 8px 10px; grid-template-columns: minmax(0, 1fr) 80px; }
+  body[data-console="arcade"] #pilot { grid-template-columns: 40px minmax(0, 1fr); }
+  body[data-console="arcade"] #pilotMark { width: 40px; height: 40px; font-size: 20px; }
+  body[data-console="arcade"] #hp { width: 48px; height: 84px; }
+  body[data-console="arcade"] #ammoBox { padding: 0; }
 }
 @media (max-width: 700px), (max-height: 540px) {
   #consoleList { grid-template-columns: 1fr; }
@@ -541,18 +572,26 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
   body[data-console]:where(:not([data-console="standard"])) #status .row { grid-template-columns: 46px 1fr 60px; gap: 5px; font-size: 10px; letter-spacing: 0; }
   body[data-console="mechanical"] #status .row:first-child { grid-template-columns: 46px 1fr; }
   body[data-console="arcade"] #timer { min-width: 66px; font-size: 30px; }
-  body[data-console="arcade"] #hpT { font-size: 20px; }
+  body[data-console="arcade"] #hpT { font-size: 14px; }
+  body[data-console="arcade"] #hp { height: 64px; }
+  body[data-console="arcade"] #pilotName { font-size: 13px; }
+  body[data-console="arcade"] #wpn > span[id^="w-"] { min-height: 32px; padding: 2px 14px; }
+  body[data-console="arcade"] #wpn > span[id^="w-"]::before { font-size: 15px; }
   body[data-console="flight"] #hpT { font-size: 20px; }
   body[data-console="mechanical"] #hpT { font-size: 28px; }
   body[data-console]:where(:not([data-console="standard"])) #wpn { font-size: 10px; }
   body[data-console]:where(:not([data-console="standard"])) #ammo { font-size: 28px; }
   body[data-console]:where(:not([data-console="standard"])) #ammoSub { font-size: 10px; }
   body[data-console]:where(:not([data-console="standard"])) #feed { top: 86px; font-size: 10px; }
+  body[data-console="arcade"] #feed { top: calc(108px + env(safe-area-inset-top, 0px)); }
 }
 @media (max-width: 700px) {
   /* 中央のSPバーの左右に余白を確保し、縦に長い武器説明とも重ねない。 */
   body[data-console]:where(:not([data-console="standard"])) #status,
   body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: calc(50vw - 104px); }
+  body[data-console="arcade"] #pilot { grid-template-columns: minmax(0, 1fr); }
+  body[data-console="arcade"] #pilotMark { display: none; }
+  body[data-console="arcade"] #pilotCls { white-space: nowrap; }
 }
 @media (max-height: 640px) {
   body[data-console="flight"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
@@ -574,7 +613,7 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
-<div class="hud" id="aimSp" hidden><div class="lbl"><span>SP <b id="aimSpT">100%</b></span><span id="aimSpState"></span></div><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
+<div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
 <div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b></div></div>
 <div class="hud" id="tags"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
@@ -596,6 +635,7 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
   <div class="row"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
   <div class="row"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
+  <div id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
 </div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
@@ -646,7 +686,7 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
         <kbd>追加副武器</kbd><span>二段ズーム狙撃銃は右クリックで低倍率→高倍率→通常視点。蓄圧砲は左長押しで半充填・満充填、離して発射（保持しすぎると過熱）。熱球は炸裂後に一定時間残り、連鎖ボムは接地後に前方へ連続爆発します。跳躍地雷は敵を感知して上昇後に起爆。衝撃吸着地雷は壁にも設置でき、感知から1秒後に炸裂。遠隔ボムランチャーは射出した爆弾の吸着準備が済んだ後、右クリックで一括起爆します</span>
         <kbd>榴弾砲</kbd><span>重火力の特別装備で選ぶと、移動・旋回を止めて射撃モードへ。マウスで拡大マップの照準を動かし、左クリックで爆撃中心を指定するとSPが尽きるまで連射します。射程は緑の円、着弾誤差は黄色の円。射撃前・射撃中とも右クリックで中断して直前の武器へ戻れます。中断でSPを残すと再充填が早まります。着弾2秒前に火柱と落下音で予告します</span>
         <kbd>追加の特別装備</kbd><span>重火力の防護バリアと遊撃の背部自動銃は、選ぶと起動し、再選択で停止します。手持ち武器と同時に使えます。支援のリペアビーコンは左クリックで投げて地面に設置し、範囲内の味方を回復・蘇生します。特別装備を再選択し、持ち替えが終わると回収します。各3種類を機体カスタマイズで選べます</span>
-        <kbd>SP</kbd><span>特別装備はSPゲージを使います。残量は照準円のすぐ下でいつでも確認できます。使わない間に戻り、使い切ると満タンになるまで使えません（再充填中と表示）</span>
+        <kbd>SP</kbd><span>特別装備はSPゲージを使います。残量は照準円のすぐ下の黄色い棒でいつでも確認できます。使わない間に戻り、使い切ると満タンになるまで使えません（その間は棒が暗くなります）</span>
         <kbd>強襲</kbd><span>アサルトライフル、グレネード（当たると爆発）、ソード、加速装置（選ぶと作動し、持っている武器はそのまま。作動中は画面の特別装備の名前とSPゲージが緑に光って点滅。作動中はShift長押しでブーストの代わりにSPを使って前へ高速移動し、そのまま撃てる。短押しのショートダッシュはそのまま。もう一度選ぶと止まる）</span>
         <kbd>重火力</kbd><span>耐久14000（ほかは10000）。武器が重く、標準のパーツでは重量耐性を超えるので少し遅い。ガトリング、ロケットランチャー（弾速120m/s、爆発半径14m）、弱化グレネード（巻き込んだ敵の被ダメージを5秒間1.4倍）、重砲（構えて動けない。山なりの砲撃を6発）</span>
         <kbd>遊撃</kbd><span>二丁拳銃、狙撃銃、偵察機（屈んで打ち上げ、見つけた敵を味方のミニマップに映す）、光学迷彩（選ぶと姿を消し、持っている武器はそのまま。作動中は画面の特別装備の名前とSPゲージが緑に光って点滅。敵にロックされない。止まっているとだんだん見えにくくなり、動くと揺らぎ、撃つと大きく揺らぐ。被弾するとSPが大きく削られる。もう一度選ぶと解除）</span>
@@ -7185,7 +7225,7 @@ for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { co
 // コンソールは表示だけを切り替える。装備・兵装・試合の保存データとは独立させる。
 const CONSOLES = [
   { id: 'standard', name: '標準', desc: '現在の配置。左上のマップ、四隅の情報、照準の弧を使う基本の画面。' },
-  { id: 'arcade', name: 'アーケード', desc: '左上の大きな時間・戦況と斜めの耐久ゲージ。マップと装備は右下に集約。' },
+  { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右下にマップと菱形の武器枠。' },
   { id: 'flight', name: 'フライト', desc: '青緑の飛行計器。照準の左右に速度と対地高度、中央下に4枠の装備を配置。' },
   { id: 'mechanical', name: 'メカニカル', desc: '細い白線と大きな耐久数値。左下の機体情報、右下の装備、下中央の方位計。' },
 ];
@@ -7197,7 +7237,7 @@ function setConsole(id, save = true) {
   consoleMode = c.id;
   document.body.dataset.console = c.id;
   $('consoleNow').textContent = c.name;
-  $('consoleSelection').textContent = `選択中：${c.name}。照準の下のSP残量と、戦闘に必要な情報はすべての配置で確認できます。`;
+  $('consoleSelection').textContent = `選択中：${c.name}。照準の下のSPの棒と、戦闘に必要な情報はすべての配置で確認できます。`;
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
   consoleTelemetry(player);
@@ -7836,11 +7876,17 @@ function hud(timeLeft, dt) {
   const gauge = (k, pc) => VS ? String(Math.max(0, Math.round(cores[k].hp))) : pc.toFixed(1) + '%'; // コスト制は戦力の残りをそのまま出す
   $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge('B', pb);
   $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge('R', pr);
-  $('timer').textContent = fmt(timeLeft);
+  const arcade = consoleMode === 'arcade';
+  $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
   consoleTelemetry(p);
   $('status').classList.toggle('low', p.hp / p.maxHp <= .3);
   $('hp').firstChild.style.width = Math.max(0, p.hp / p.maxHp * 100) + '%'; $('hpT').textContent = Math.max(0, Math.round(p.hp));
+  if (arcade) { // 縦に伸びる耐久ゲージと機体の札
+    $('hp').style.setProperty('--fill', Math.max(0, p.hp / p.maxHp * 100) + '%');
+    const cn = CLASSES[p.cls].name;
+    if ($('pilotCls').textContent !== cn) { $('pilotCls').textContent = cn; $('pilotMark').textContent = cn[0]; $('pilotName').textContent = p.name; }
+  }
   $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = Math.round(p.boost);
   $('boost').classList.toggle('oh', p.overheat);
   const sps = p.slots.sp;
@@ -7854,8 +7900,6 @@ function hud(timeLeft, dt) {
   for (const state of ['oh', 'hit', 'act']) aimSp.classList.toggle(state, $('sp').classList.contains(state));
   $('aimSpBar').firstChild.style.width = sps.heat + '%';
   $('aimSpBar').setAttribute('aria-valuenow', Math.round(sps.heat));
-  $('aimSpT').textContent = Math.round(sps.heat) + '%';
-  $('aimSpState').textContent = sps.overheat ? '再充填中' : spOn ? '作動中' : '';
   const cur = p.slots[p.weapon], cw = cur.w;
   $('wcls').textContent = CLASSES[p.cls].name;
   SLOTS.forEach((k, i) => { const el = $('w-' + k); el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; el.classList.toggle('on', p.weapon === k); el.classList.toggle('act', k === 'sp' && spOn); });
@@ -7895,6 +7939,10 @@ function hud(timeLeft, dt) {
   if (p.post) small += ' · リペアビーコン 設置中（特別装備を再選択で回収）';
   if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を回復）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
+  if (arcade) { // 菱形の武器枠：持っている武器は大きな数字と同じ値、ほかは弾倉の残り（剣は∞、SPを使う物は%）
+    SLOTS.forEach(k => { const sl = p.slots[k], el = $('w-' + k); el.dataset.n = k === p.weapon ? big : sl.w.mag ? sl.ammo : sl.w.type === 'sword' ? '∞' : Math.round(sl.heat) + '%'; el.dataset.name = sl.w.name; });
+    $('w-sp').style.setProperty('--fill', sps.heat + '%');
+  }
   if (!p.alive) wsel.open = qc.open = false;
   $('qchat').hidden = !qc.open;
   if (qc.open) QCHAT.forEach((q, i) => $('qc' + i).classList.toggle('sel', qc.pick === i));

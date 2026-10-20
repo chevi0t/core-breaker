@@ -51,10 +51,11 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
         document.querySelector(`[data-console-choice="${mode}"]`).click();
         g.equip(u, 'raid'); u.alive = true; u.invulT = 0; u.hp = 2100; u.boost = u.maxBoost * .4; u.slots.sp.heat = 37; u.slots.sp.overheat = true;
         g.hud(240, .016);
-        const values = $('aimSpT').textContent === '37%' && $('spT').textContent === '37' && $('hpT').textContent === '2100' && $('status').classList.contains('low') && $('aimSpState').textContent === '再充填中';
+        const values = $('aimSpBar').getAttribute('aria-valuenow') === '37' && $('aimSpBar').firstChild.style.width === '37%' && !$('aimSp').textContent.trim() && $('spT').textContent === '37' && $('hpT').textContent === '2100' && $('status').classList.contains('low') && $('aimSp').classList.contains('oh')
+          && (mode !== 'arcade' || $('timer').textContent === '240' && $('hp').style.getPropertyValue('--fill') === '21%' && $('pilotCls').textContent === '遊撃' && $('w-sp').style.getPropertyValue('--fill') === '37%' && $('w-' + u.weapon).dataset.n === $('ammo').textContent && $('w-sub').dataset.n === String(u.slots.sub.ammo) && $('w-sp').dataset.n === '37%');
         u.slots.sp.overheat = false; g.toggleSp(u); const before = u.slots.sp.heat;
         g.weaponsTick(u, .5, false, u.pos.clone(), 0); g.hud(240, .016);
-        const active = u.slots.sp.heat < before && $('aimSpState').textContent === '作動中' && $('aimSp').classList.contains('act');
+        const active = u.slots.sp.heat < before && $('aimSp').classList.contains('act') && !$('aimSp').classList.contains('oh');
         u.slots.sp.cd = 0; g.toggleSp(u); const used = u.slots.sp.heat;
         g.weaponsTick(u, .5, false, u.pos.clone(), 0); g.hud(240, .016);
         const recovery = u.slots.sp.heat > used && $('aimSpBar').firstChild.style.width === $('sp').firstChild.style.width;
