@@ -472,7 +472,7 @@ body[data-console="arcade"] #status.low #hp > i { background: linear-gradient(#f
 body[data-console="arcade"] #hpT { grid-area: num; font-size: 16px; }
 body[data-console="arcade"] #ammoBox { width: 340px; padding: 0; background: none; text-align: left; }
 body[data-console="arcade"] #wcls, body[data-console="arcade"] #ammo { display: none; }
-body[data-console="arcade"] #wpn { justify-items: stretch; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas: ". main main ." "sp sp sub sub" ". aux aux ."; gap: 4px 6px; margin: 0; }
+body[data-console="arcade"] #wpn { justify-items: stretch; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas: ". main main ." "aux aux sub sub" ". sp sp ."; gap: 4px 6px; margin: 0; }
 body[data-console="arcade"] #w-main { grid-area: main; }
 body[data-console="arcade"] #w-sub { grid-area: sub; }
 body[data-console="arcade"] #w-aux { grid-area: aux; }
@@ -623,7 +623,7 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
 <div class="hud" id="scorePop"></div>
 <div class="hud" id="scope" hidden></div>
 <div class="hud" id="qchat" hidden></div>
-<div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-sp"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-aux"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
+<div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
 <div class="hud" id="announce" role="status" aria-live="polite"></div>
 <div class="hud" id="lockAlert" role="status" hidden><b>被ロックオン</b><small id="lockAlertInfo"></small></div>
@@ -675,7 +675,7 @@ body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge
         <kbd>Shift 長押し</kbd><span>ロングダッシュ（押している間ブーストを毎秒約11消費して高速移動。使い切るとオーバーヒート）</span>
         <kbd>Space</kbd><span>ジャンプ（ブースト8.8消費、約4m）。空中で押し続けるとブーストを使って滞空（毎秒9.6）。敵の回転斬りはジャンプで避けられます</span>
         <kbd>マウス</kbd><span>視点（矢印キーでも可）</span>
-        <kbd>サイドボタン</kbd><span>マウスの戻る・進むボタンを押している間、画面中央に武器選択が出ます。マウスを上（主武器）・右（副武器）・下（補助装備）・左（特別装備）に動かし、離して持ち替え。ホイールと1〜4キーでも持ち替えられます</span>
+        <kbd>サイドボタン</kbd><span>マウスの戻る・進むボタンを押している間、画面中央に武器選択が出ます。マウスを上（主武器）・右（副武器）・左（補助装備）・下（特別装備）に動かし、離して持ち替え。ホイールと1〜4キーでも持ち替えられます</span>
         <kbd>左クリック</kbd><span>選んでいる武器を使う（押しっぱなしで連射）</span>
         <kbd>右クリック</kbd><span>狙撃銃は押している間スコープ（覗かずに撃つと弾が大きくばらつき、動きながらだとさらに散る。覗いて止まっていると2.5秒で照準が収束し、撃つと乱れる）、リペアユニットは押している間自分を回復、重砲は構えをやめる、遠隔爆弾は置いた物を全部起爆</span>
         <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると1秒動けない。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
@@ -6687,7 +6687,7 @@ canvas.addEventListener('mousedown', e => {
   if (running && document.pointerLockElement !== canvas) grabPointer();
 });
 addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; if (e.button === 2) rightDown = false; });
-// 武器選択：サイドボタン（3：戻る、4：進む）を押している間だけ開き、マウスを上（主武器）・右（副武器）・下（補助装備）・左（特別装備）に動かして離すと持ち替える
+// 武器選択：サイドボタン（3：戻る、4：進む）を押している間だけ開き、マウスを上（主武器）・右（副武器）・左（補助装備）・下（特別装備）に動かして離すと持ち替える
 const wsel = { open: false, x: 0, y: 0, pick: 'main' };
 const SIDE = e => e.button === 3 || e.button === 4;
 addEventListener('mousedown', e => {
@@ -6727,7 +6727,7 @@ addEventListener('mousemove', e => {
     // 武器選択中はマウスで視点を動かさない
     wsel.x = Math.max(-60, Math.min(60, wsel.x + e.movementX));
     wsel.y = Math.max(-60, Math.min(60, wsel.y + e.movementY));
-    if (Math.max(Math.abs(wsel.x), Math.abs(wsel.y)) > 20) wsel.pick = Math.abs(wsel.y) >= Math.abs(wsel.x) ? (wsel.y < 0 ? 'main' : 'aux') : (wsel.x > 0 ? 'sub' : 'sp');
+    if (Math.max(Math.abs(wsel.x), Math.abs(wsel.y)) > 20) wsel.pick = Math.abs(wsel.y) >= Math.abs(wsel.x) ? (wsel.y < 0 ? 'main' : 'sp') : (wsel.x > 0 ? 'sub' : 'aux');
     return;
   }
   const sens = 0.0025 * camera.fov / 70 * (player.slots[player.weapon].w.turn || 1); // スコープ中は視点の動きも細かく。重砲は旋回が遅い
@@ -7953,7 +7953,7 @@ function hud(timeLeft, dt) {
     SLOTS.forEach((k, i) => {
       const sl = p.slots[k], el = $('ws-' + k);
       el.classList.toggle('sel', wsel.pick === k);
-      el.innerHTML = `${'▲▶▼◀'[i]} ${SLOT_NAMES[k]}　${sl.w.name}<small>${sl.w.mag ? `${sl.ammo} / 予備 ${sl.reserve}` : sl.w.type === 'sword' ? '弾数制限なし' : `SP ${Math.round(sl.heat)}%`}${p.weapon === k ? '　使用中' : ''}</small>`;
+      el.innerHTML = `${'▲▶◀▼'[i]} ${SLOT_NAMES[k]}　${sl.w.name}<small>${sl.w.mag ? `${sl.ammo} / 予備 ${sl.reserve}` : sl.w.type === 'sword' ? '弾数制限なし' : `SP ${Math.round(sl.heat)}%`}${p.weapon === k ? '　使用中' : ''}</small>`;
     });
   }
   $('jamView').hidden = !(p.alive && p.jamT>0);
