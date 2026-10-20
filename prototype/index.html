@@ -10,6 +10,8 @@
   --dim: #7d93a6;
   --blue: #3ea6ff;
   --orange: #ff8a2a;
+  --team-b: var(--blue);
+  --team-r: var(--orange);
   --warn: #ff4d4d;
   --panel: rgba(10, 18, 26, 0.72);
   --display: "Chakra Petch", "M PLUS 1p", system-ui, sans-serif;
@@ -137,8 +139,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 @media (prefers-reduced-motion: reduce) { #lockAlert, #spotAlert { animation: none; } }
 #plantBar { top: calc(50px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
 .pl { width: 46px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .18); text-align: center; padding: 2px 0 5px; font-size: 14px; font-weight: 700; color: var(--dim); }
-.pl.B { color: var(--blue); border-color: var(--blue); }
-.pl.R { color: var(--orange); border-color: var(--orange); }
+.pl.B { color: var(--team-b); border-color: var(--team-b); }
+.pl.R { color: var(--team-r); border-color: var(--team-r); }
 .pl.cap b { color: var(--hud); }
 .pl span { display: block; height: 3px; margin: 2px 6px 0; background: rgba(255, 255, 255, .12); }
 .pl span i { display: block; height: 100%; }
@@ -174,8 +176,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .sb table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .sb caption { text-align: left; font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: .1em; padding-bottom: 4px; }
 .sb caption b { float: right; }
-.sb .B caption { color: var(--blue); }
-.sb .R caption { color: var(--orange); }
+.sb .B caption { color: var(--team-b); }
+.sb .R caption { color: var(--team-r); }
 .sb th { font-weight: 400; font-size: 11px; color: var(--dim); text-align: right; padding: 2px 4px; border-bottom: 1px solid rgba(255, 255, 255, .18); white-space: nowrap; }
 .sb td { text-align: right; padding: 3px 4px; border-bottom: 1px solid rgba(255, 255, 255, .06); color: var(--hud); white-space: nowrap; }
 .sb th:nth-child(-n+3), .sb td:nth-child(-n+3) { text-align: left; }
@@ -197,8 +199,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .medal { flex: 1 1 150px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .14); padding: 6px 10px; display: grid; gap: 1px; }
 .medal small { font-size: 11px; color: var(--dim); letter-spacing: .12em; }
 .medal b { font-size: 15px; }
-.medal b.B { color: var(--blue); }
-.medal b.R { color: var(--orange); }
+.medal b.B { color: var(--team-b); }
+.medal b.R { color: var(--team-r); }
 .medal span { font-size: 12px; color: var(--hud); font-variant-numeric: tabular-nums; }
 .medal.mvp { flex-basis: 100%; border-color: rgba(255, 211, 77, .6); background: rgba(255, 211, 77, .1); }
 .medal.mvp small { color: #ffd34d; }
@@ -845,10 +847,11 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       </nav>
       <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
       <fieldset class="teamChoice" id="teamChoice">
-        <legend>出撃陣営</legend>
-        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>青陣営</label>
-        <label style="--team-color:var(--orange)"><input type="radio" name="team" value="R">橙陣営</label>
+        <legend>出撃側</legend>
+        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
+        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
       </fieldset>
+      <p class="note">自軍は青、敵軍は橙で表示します。地図の上が北、下が南です。</p>
       <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
       <button id="start" type="button">出撃する</button>
       <p class="note">PCのキーボードとマウス向けです。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
@@ -935,6 +938,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
     </section>
     <section class="page" id="pgMap" hidden>
       <div class="pgh"><h2>マップ選択</h2><button type="button" class="back">戻る</button></div>
+      <p class="note">自軍は青、敵軍は橙。地図の上が北、下が南です。左右の説明は南側から見た向きです。</p>
       <div id="mapList"></div>
     </section>
     <section class="page" id="pgCustom" hidden>
@@ -1575,6 +1579,11 @@ function navSteer(u, goal, gd, dt) {
   return navTo.set(P[path[u.navI]].x, 0, P[path[u.navI]].z);
 }
 
+const ALLY_COLORS = { color: 0x3ea6ff, css: '#3ea6ff', tracer: 0x8fd8ff, wave: 0x9eefff };
+const ENEMY_COLORS = { color: 0xff8a2a, css: '#ff8a2a', tracer: 0xffb35c, wave: 0xffc691 };
+// B/R は地理上の陣営ID。表示色は出撃側に合わせ、所有・占拠・索敵の判定には使わない。
+function sideColors(team, own = chosenTeam) { return team === own ? ALLY_COLORS : ENEMY_COLORS; }
+function teamMaterial(team, material) { material.userData.team = team; return material; }
 const TEAM = {
   B: { name: '自軍', color: 0x3ea6ff, css: '#3ea6ff', baseZ: 210, dir: -1 }, // baseZ はマップで決まる（buildMap）
   R: { name: '敵軍', color: 0xff8a2a, css: '#ff8a2a', baseZ: -210, dir: 1 },
@@ -1596,7 +1605,7 @@ for (const k of ['B', 'R']) {
   body.position.y = 9;
   // 結晶は横に広い八面体（v0.10.7、ユーザー指定「コアもっと大きく」：横の半径 3.4→8.5m、縦 3.4→4.2m）。支柱（上の半径5m）より外へ張り出すので、
   // 傘の下の近くからでも下面を撃てる。上の頂点（高さ23.2m）と縁は傘（頂点24m）の内側に収まる
-  const glow = new T.Mesh(new T.OctahedronGeometry(3.4), new T.MeshBasicMaterial({ color: t.color }));
+  const glow = new T.Mesh(new T.OctahedronGeometry(3.4), teamMaterial(k, new T.MeshBasicMaterial({ color: t.color })));
   glow.scale.set(2.5, 1.24, 2.5);
   glow.position.y = 19;
   g.add(pedestal, body, glow);
@@ -1611,7 +1620,7 @@ for (const k of ['B', 'R']) {
   obstacles.push({ minX: -6, maxX: 6, minZ: t.baseZ - 6, maxZ: t.baseZ + 6, top: 16 });
   cores[k] = core;
   // ベース床
-  const pad = new T.Mesh(new T.CircleGeometry(26, 40), new T.MeshLambertMaterial({ color: t.color, transparent: true, opacity: 0.18 }));
+  const pad = new T.Mesh(new T.CircleGeometry(26, 40), teamMaterial(k, new T.MeshLambertMaterial({ color: t.color, transparent: true, opacity: 0.18 })));
   pad.rotation.x = -Math.PI / 2;
   pad.position.set(0, 0.04, t.baseZ);
   mapRoot.add(pad);
@@ -1628,7 +1637,7 @@ function buildBaseMarkings() {
     const yard = config.yard || [0, 312, 224, 72];
     const floor = new T.Mesh(new T.PlaneGeometry(yard[2], yard[3]).rotateX(-Math.PI / 2), new T.MeshLambertMaterial({ color: 0x414b54 }));
     floor.position.set(s * yard[0], 0.025, s * yard[1]); group.add(floor);
-    const stripMat = new T.MeshBasicMaterial({ color: TEAM[team].color });
+    const stripMat = teamMaterial(team, new T.MeshBasicMaterial({ color: TEAM[team].color }));
     for (const [x, z] of config.gates) {
       for (const side of [-1, 1]) {
         const strip = new T.Mesh(new T.BoxGeometry(.4, .4, 8), stripMat);
@@ -1640,6 +1649,7 @@ function buildBaseMarkings() {
       ctx.strokeStyle = TEAM[team].css; ctx.lineWidth = 6; ctx.strokeRect(3, 3, 250, 58);
       ctx.fillStyle = '#e7f1f6'; ctx.font = 'bold 34px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('防衛区画', 128, 32);
       const sign = new T.Mesh(new T.PlaneGeometry(20, 5), new T.MeshBasicMaterial({ map: new T.CanvasTexture(canvas), side: T.DoubleSide }));
+      sign.userData.teamSign = team;
       sign.position.set(s * x, 15.2, s * (z - (config.gateDepth || 8) / 2 - .05)); group.add(sign);
       for (let i = 0; i < 5; i++) {
         const stripe = new T.Mesh(new T.PlaneGeometry(15, .6).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: i % 2 ? 0x29323b : 0xe5c169 }));
@@ -1752,7 +1762,7 @@ for (const [x, z] of list) for (const k of ['B', 'R']) {
   base.position.set(pos.x, pos.y + 1.2, pos.z);
   const head = new T.Group();
   head.position.set(pos.x, pos.y + 2.4, pos.z);
-  const dome = new T.Mesh(new T.BoxGeometry(2.2, 1.3, 2.2), new T.MeshLambertMaterial({ color: TEAM[k].color }));
+  const dome = new T.Mesh(new T.BoxGeometry(2.2, 1.3, 2.2), teamMaterial(k, new T.MeshLambertMaterial({ color: TEAM[k].color })));
   dome.position.y = 0.65;
   const barrel = new T.Mesh(new T.BoxGeometry(0.35, 0.35, 2.6), new T.MeshLambertMaterial({ color: 0x2a2d31 }));
   barrel.position.set(0, 0.7, -1.9);
@@ -1801,7 +1811,7 @@ for (const k of ['B', 'R']) {
   head.position.set(x, pos.y + 10.4, z);
   const dish = new T.Mesh(new T.BoxGeometry(6, 1.6, 0.3), new T.MeshLambertMaterial({ color: 0xc9ccd1 }));
   dish.rotation.x = -0.25;
-  const lamp = new T.Mesh(new T.SphereGeometry(0.45, 10, 8), new T.MeshBasicMaterial({ color: TEAM[k].color }));
+  const lamp = new T.Mesh(new T.SphereGeometry(0.45, 10, 8), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color })));
   lamp.position.y = 1.2;
   head.add(dish, lamp);
   for (const m of [base, mast, dish]) m.castShadow = true;
@@ -1811,7 +1821,7 @@ for (const k of ['B', 'R']) {
   for (const m of [base, mast, dish]) { m.userData.ref = rd; hittables.push(m); }
   radars.push(rd);
   // ベースの境目の線（ここより奥に入るとレーダーに探知される）
-  const line = new T.Mesh(new T.PlaneGeometry(MAP_X * 2, 0.6).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false }));
+  const line = new T.Mesh(new T.PlaneGeometry(MAP_X * 2, 0.6).rotateX(-Math.PI / 2), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false })));
   line.position.set(0, 0.08, BASE_LINE * s);
   mapRoot.add(line);
 }
@@ -2642,7 +2652,7 @@ function damageBarricade(br, dmg, by) {
 const UMBRELLA_R = 26, UMBRELLA_EDGE = 13, UMBRELLA_TOP = 24;
 function buildUmbrellas() {
 for (const k of ['B', 'R']) {
-  const mat = new T.MeshLambertMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false });
+  const mat = teamMaterial(k, new T.MeshLambertMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false }));
   const roof = new T.Mesh(new T.ConeGeometry(UMBRELLA_R, UMBRELLA_TOP - UMBRELLA_EDGE, 48, 1, true), mat);
   roof.position.set(0, (UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);
   const rim = new T.Mesh(new T.TorusGeometry(UMBRELLA_R, 0.15, 6, 64), new T.MeshLambertMaterial({ color: 0x9aa3ad }));
@@ -2685,7 +2695,7 @@ function buildMap(id) {
   buildPods(def.basePods, def.plantPods);
   buildBarricades(def.barricades);
   if (!VS) buildUmbrellas();
-  renderTeamLabels();
+  renderTeamView();
   resetPlants();
   resetBarricades();
   // 影はマップ全体に落とす
@@ -4675,7 +4685,8 @@ function scoreTick(dt) {
 // 両軍のスコア表。live：試合中（撃破されている機体を薄く）
 function boardHtml(live) {
   const row = (u, i) => `<tr class="${u.isPlayer ? 'me' : ''}${live && !u.alive ? ' dead' : ''}"><td>${i + 1}</td><td><span class="sbName">${pilotFace(pilotFor(u), true)}<span>${htmlText(u.name)}</span></span></td><td>${CLASSES[u.cls].name}</td><td>${u.sc.battle}</td><td>${u.sc.plant}</td><td>${u.sc.support}</td><td class="tot">${u.sc.total}</td><td>${u.sc.kills}</td><td>${u.sc.assists}</td><td>${u.sc.deaths}</td></tr>`;
-  return '<div class="sb">' + ['B', 'R'].map(k => {
+  const own = player ? player.team : chosenTeam;
+  return '<div class="sb">' + [own, own === 'B' ? 'R' : 'B'].map(k => {
     const us = units.filter(u => u.team === k).sort((a, b) => b.sc.total - a.sc.total || b.sc.kills - a.sc.kills);
     const sum = us.reduce((t, u) => t + u.sc.total, 0);
     return `<table class="${k}"><caption>${TEAM[k].name}${us.length > 10 ? `（${us.length}機）` : ''}<b>${sum}</b></caption><thead><tr><th>#</th><th>名前</th><th>兵装</th><th>戦闘</th><th>占拠</th><th>貢献</th><th>スコア</th><th>撃破</th><th>撃破支援</th><th>大破</th></tr></thead><tbody>${us.map(row).join('')}</tbody></table>`;
@@ -7721,14 +7732,37 @@ function renderBuildTabs() {
 renderBuildTabs();
 for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
 // ---- メニュー（操作説明・マップ選択・武装選択） ----
-// 陣営はマップ変更・再試合でも維持し、再読み込み時は青へ戻す。選択は次の試合から適用する。
+// 出撃側はマップ変更・再試合でも維持し、再読み込み時は南へ戻す。選択は次の試合から適用する。
 $('teamChoice').addEventListener('change', e => {
-  if (e.target.name === 'team' && ['B', 'R'].includes(e.target.value)) chosenTeam = e.target.value;
+  if (e.target.name === 'team' && ['B', 'R'].includes(e.target.value)) {
+    chosenTeam = e.target.value;
+    renderMapList(); // 出撃先の見取り図も自軍が青になる。
+  }
 });
-function renderTeamLabels(team = chosenTeam) {
-  for (const k of ['B', 'R']) TEAM[k].name = k === team ? '自軍' : '敵軍';
-  $('coreBn').textContent = TEAM.B.name + (VS ? '戦力' : 'コア');
-  $('coreRn').textContent = TEAM.R.name + (VS ? '戦力' : 'コア');
+function renderTeamView(team = chosenTeam) {
+  for (const k of ['B', 'R']) {
+    const palette = sideColors(k, team);
+    Object.assign(TEAM[k], { name: k === team ? '自軍' : '敵軍', color: palette.color, css: palette.css });
+    document.documentElement.style.setProperty('--team-' + k.toLowerCase(), palette.css);
+    shellMat[k].color.setHex(palette.color);
+    toolMat[k].color.setHex(palette.color).lerp(new T.Color(0xffffff), 0.5);
+    bladeWaveMat[k].color.setHex(palette.wave);
+    TRACER_COLOR[k] = palette.tracer;
+  }
+  // 地形・乱数・当たり判定を作り直さず、既存施設の色と門の標識だけを更新する。
+  mapRoot.traverse(o => {
+    const mat = o.material;
+    if (mat?.userData?.team) mat.color.setHex(TEAM[mat.userData.team].color);
+    if (o.userData.teamSign) {
+      const ctx = mat.map.image.getContext('2d');
+      ctx.strokeStyle = TEAM[o.userData.teamSign].css; ctx.lineWidth = 6; ctx.strokeRect(3, 3, 250, 58);
+      mat.map.needsUpdate = true;
+    }
+  });
+  for (const pl of plants) paintPlant(pl);
+  // coreB/R は表示枠。常に左/上が青の自軍、右/下が橙の敵軍。
+  $('coreBn').textContent = VS ? '自軍戦力' : '自軍コア';
+  $('coreRn').textContent = VS ? '敵軍戦力' : '敵軍コア';
 }
 // プレイヤー名は猫・機体構成と別に保存し、表示へ入れるときは文字として扱う。
 const PLAYER_NAME_KEY = 'coreBreakerPlayerName';
@@ -8162,7 +8196,7 @@ function renderCustom() {
   renderBuildTabs(); renderSlotList(); renderSeries(); renderDiff();
   $('cuPaint').innerHTML = PAINTS.map(pt => {
     const on = mechCfg.color === pt.id;
-    return `<button type="button" class="paint${on ? ' sel' : ''}" data-paint="${pt.id}" aria-pressed="${on}"><i style="background:${pt.color === null ? TEAM[chosenTeam].css : hexCss(pt.color)}"></i>${pt.name}</button>`;
+    return `<button type="button" class="paint${on ? ' sel' : ''}" data-paint="${pt.id}" aria-pressed="${on}"><i style="background:${pt.color === null ? ALLY_COLORS.css : hexCss(pt.color)}"></i>${pt.name}</button>`;
   }).join('');
   $('cuWeight').innerHTML = `<tr><th>兵装</th><th>武器</th><th>合計</th><th>重量耐性</th><th>超過</th><th>速さ</th></tr>` + CLASS_KEYS.map(k => {
     const st = mechStats(mechCfg, loadout[k]), o = st.excess > 0 ? ' class="over"' : '';
@@ -8216,7 +8250,7 @@ function mechPreview(dt) {
     if (key !== mechRigKey) {
       mechRigKey = key;
       if (r.m) { r.sc.remove(r.m.g); disposeMech(r.m.g); }
-      r.m = buildMech(TEAM[chosenTeam].color, cfg);
+      r.m = buildMech(ALLY_COLORS.color, cfg);
       weaponLook({ ...r.m, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(ld[k])])), weapon: wsel, isPlayer: false, recoil: 0, cannonDeploy: 0, swing: null }, 0);
       r.sc.add(r.m.g);
       r.m.g.updateMatrixWorld(true); r.bounds = new T.Box3();
@@ -8247,10 +8281,10 @@ function drawMapPreview(cv, d) {
   for (const [x, z, w, dd] of d.layout) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - w / 2), sz(z * k - dd / 2), Math.max(1, w / mx / 2 * W), Math.max(1, dd / mz / 2 * H));
   g.fillStyle = 'rgba(70, 150, 220, .7)';
   for (const [x, z, hx, hz] of d.water || []) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - hx), sz(z * k - hz), Math.max(1, hx / mx * W), Math.max(1, hz / mz * H));
-  for (const k of ['B', 'R']) { g.fillStyle = TEAM[k].css; g.beginPath(); g.arc(sx(0), sz(k === 'B' ? d.baseZ : -d.baseZ), 4, 0, 7); g.fill(); }
+  for (const k of ['B', 'R']) { g.fillStyle = sideColors(k).css; g.beginPath(); g.arc(sx(0), sz(k === 'B' ? d.baseZ : -d.baseZ), 4, 0, 7); g.fill(); }
   g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const [id, x, z, start] of d.plants) {
-    const c = start ? TEAM[start].css : '#b9c2c9';
+    const c = start ? sideColors(start).css : '#b9c2c9';
     g.strokeStyle = g.fillStyle = c; g.lineWidth = 1.2;
     g.beginPath(); g.arc(sx(x), sz(z), PLANT_R / mx / 2 * W, 0, 7); g.stroke();
     g.fillText(id, sx(x), sz(z));
@@ -8260,8 +8294,10 @@ function drawMapPreview(cv, d) {
 // 開いているまとまり。最初は閉じていて、閉じていても選んでいる配置の名前は見出しに出す
 const mapGroupsOpen = new Set();
 const mapCanvas = d => `<canvas width="90" height="${Math.round(90 * d.size[1] / d.size[0])}"></canvas>`;
+// 旧説明の固定色による場所名を、出撃側によらない方角で表示する。
+const mapDescription = text => text.replace(/青(?=基地|拠点|側)/g, '南側').replace(/橙(?=基地|拠点|側)/g, '北側');
 function mapCardHtml(id, d, label) {
-  return `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}">${mapCanvas(d)}<span><b>${label}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${d.desc}</em></span></button>`;
+  return `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}">${mapCanvas(d)}<span><b>${label}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${mapDescription(d.desc)}</em></span></button>`;
 }
 function renderMapList() {
   if (!largeBattleMap(curMap)) largeBattle = false;
@@ -8283,7 +8319,7 @@ function renderMapList() {
     const pn = ids.map(k => MAPS[k].plants.length), lo = Math.min(...pn), hi = Math.max(...pn);
     const info = cur || lo === hi ? mapInfo(show) : mapInfo(show).replace(`プラント${show.plants.length}`, `プラント${lo}〜${hi}`);
     rows.push(`<div class="mapGroup"><button type="button" class="mapCard mapHead${cur ? ' sel' : ''}" data-map-group="${d.group}" data-preview="${cur || ids[0]}" aria-expanded="${open}">${mapCanvas(show)}`
-      + `<span><b>${d.groupName}<i>${open ? '▾ 閉じる' : `▸ 配置${ids.length}種から選ぶ`}</i>${cur ? `<i>選択中：${MAPS[cur].variant}</i>` : ''}</b><small>${info}</small><em>${desc}</em></span></button>`
+      + `<span><b>${d.groupName}<i>${open ? '▾ 閉じる' : `▸ 配置${ids.length}種から選ぶ`}</i>${cur ? `<i>選択中：${MAPS[cur].variant}</i>` : ''}</b><small>${info}</small><em>${mapDescription(desc)}</em></span></button>`
       + (open ? `<div class="mapVariants">${ids.map(k => mapCardHtml(k, MAPS[k], MAPS[k].variant)).join('')}</div>` : '') + '</div>');
   }
   $('mapList').innerHTML = rows.join('');
@@ -8455,12 +8491,13 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
     const enemy = player && u.team !== player.team;
     const near = !enemy || (u.pos.distanceTo(player.pos) <= 80 && !u.cloak); // 敵は近くだけ映る（光学迷彩中はセンサーなどで見つけたときだけ）
     if (!near && !spotted[player.team].has(u)) continue;
-    mini.fillStyle = u.isPlayer ? '#ffffff' : TEAM[u.team].css;
+    mini.fillStyle = TEAM[u.team].css;
     mini.beginPath();
     if (near) mini.arc(sx(u.pos.x), sz(u.pos.z), (u.isPlayer ? 3.5 : 2.5) * k, 0, 7);
     else { const x = sx(u.pos.x), y = sz(u.pos.z); mini.moveTo(x, y - 3.5 * k); mini.lineTo(x + 3 * k, y); mini.lineTo(x, y + 3.5 * k); mini.lineTo(x - 3 * k, y); mini.closePath(); } // センサーや偵察機で見つけた敵は◇
     mini.fill();
     if (u.isPlayer) { // 自機は向いている方へ短い線（v0.15）
+      mini.strokeStyle = '#ffffff'; mini.lineWidth = k; mini.stroke(); // 青い自機に白い縁を付ける。
       mini.strokeStyle = '#ffffff'; mini.lineWidth = 1.2 * k; mini.beginPath();
       mini.moveTo(sx(u.pos.x), sz(u.pos.z)); mini.lineTo(sx(u.pos.x - Math.sin(u.yaw) * 14 * MAP_X / 120), sz(u.pos.z - Math.cos(u.yaw) * 14 * MAP_X / 120)); mini.stroke();
     }
@@ -8533,10 +8570,11 @@ function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
   if (showBoard && performance.now() - boardAt > 200) { boardAt = performance.now(); $('boardBody').innerHTML = boardHtml(true); }
-  const pb = cores.B.hp / coreMax * 100, pr = cores.R.hp / coreMax * 100;
+  const own = player.team, enemy = own === 'B' ? 'R' : 'B';
+  const pb = cores[own].hp / coreMax * 100, pr = cores[enemy].hp / coreMax * 100;
   const gauge = (k, pc) => VS ? String(Math.max(0, Math.round(cores[k].hp))) : pc.toFixed(1) + '%'; // コスト制は戦力の残りをそのまま出す
-  $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge('B', pb);
-  $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge('R', pr);
+  $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge(own, pb);
+  $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge(enemy, pr);
   const arcade = consoleMode === 'arcade';
   $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
@@ -8743,7 +8781,7 @@ function setup() {
   clearGadgets();
   for (const pp of pops) pp.el.remove();
   pops.length = 0;
-  renderTeamLabels();
+  renderTeamView();
   player = makeUnit(chosenTeam, true, 0);
   const count = battleTeamSize();
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;

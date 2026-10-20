@@ -35,8 +35,8 @@ const {openMap} = require('../mapgen_browser');
             }
             check(g.TEAM[team].name === '自軍' && g.TEAM[foe].name === '敵軍', 'スコア表の陣営名が逆');
             const suffix = g.curMap.vs ? '戦力' : 'コア';
-            check(document.getElementById('core' + team + 'n').textContent === '自軍' + suffix, '自軍ゲージの名前が逆');
-            check(document.getElementById('core' + foe + 'n').textContent === '敵軍' + suffix, '敵軍ゲージの名前が逆');
+            check(document.getElementById('coreBn').textContent === '自軍' + suffix, '自軍ゲージの名前が逆');
+            check(document.getElementById('coreRn').textContent === '敵軍' + suffix, '敵軍ゲージの名前が逆');
             const base = g.TEAM[team];
             const inBase = () => Math.abs(p.pos.z - base.baseZ) < 26 && Math.abs(p.yaw - (base.dir > 0 ? Math.PI : 0)) < .001;
             check(inBase(), '初期出撃の位置か向きが逆');
@@ -85,11 +85,11 @@ const {openMap} = require('../mapgen_browser');
       assert.deepEqual(await page.evaluate(() => ['B','R'].map(k => __g.units.filter(u => u.team === k).length)), [50,50]);
       assert.equal(await page.evaluate(() => __g.player.team), 'R');
       await page.reload();
-      assert.equal(await page.locator('input[name="team"]:checked').inputValue(), 'B', '再読み込みで既定の青に戻らない');
+      assert.equal(await page.locator('input[name="team"]:checked').inputValue(), 'B', '再読み込みで既定の南側に戻らない');
       await page.evaluate(() => document.getElementById('start').click());
       assert.equal(await page.evaluate(() => __g.player.team), 'B');
       assert.equal(errors.length, 0, errors.join('\n'));
-      console.log(`${report.length}通りの出撃・再出撃・勝敗、陣営維持、非対称マップ両陣営30秒、橙50対50に成功。ブラウザエラー0`);
+      console.log(`${report.length}通りの出撃・再出撃・勝敗、陣営維持、非対称マップ両陣営30秒、北側50対50に成功。ブラウザエラー0`);
     } finally { await page.close(); }
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
