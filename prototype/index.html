@@ -2212,15 +2212,15 @@ function buildWeaponGeo(id, part) {
     cyl(.12,.5,dark,0,0,.22);box(.7,.12,.15,accent,0,0,-.08);
     box(.22,.07,2.3,steel,0,0,-1.28);box(.08,.1,2,accent,.1,0,-1.16);box(.12,.09,.45,steel,.05,0,-2.45);
   } else if (f === 'dagger') {
-    // 短い両刃と面取り。保存キーrodは残し、電棍の棒・電極を短刀へ置き換える。
+    // 両刃と面取り。保存キーrodは残し、電棍の棒・電極を刃へ置き換える。長さは電棍と同じ（先端 -1.84。ユーザー指定 2026-10-20「長さ変えずに見た目と名前だけ」）
     const outline = new T.Shape();
-    outline.moveTo(-.11, 0); outline.lineTo(-.14, -.5); outline.lineTo(0, -.9);
-    outline.lineTo(.14, -.5); outline.lineTo(.11, 0); outline.closePath();
+    outline.moveTo(-.11, 0); outline.lineTo(-.15, -1.1); outline.lineTo(0, -1.7);
+    outline.lineTo(.15, -1.1); outline.lineTo(.11, 0); outline.closePath();
     const blade = new T.ExtrudeGeometry(outline, { depth: .035, bevelEnabled: true, bevelThickness: .02, bevelSize: .025, bevelSegments: 1, steps: 1, curveSegments: 1 });
     blade.rotateX(Math.PI / 2); add(blade, steel, 0, .0175, -.12);
     cyl(.095,.48,dark,0,0,.21,'z',.095,8); box(.46,.1,.12,accent,0,0,-.08);
     box(.2,.19,.09,shell,0,0,.48); box(.16,.08,.14,dark,0,0,-.16);
-    for (const y of [-.042, .042]) box(.035,.012,.4,accent,0,y,-.43);
+    for (const y of [-.042, .042]) box(.035,.012,1,accent,0,y,-.75);
     for (const z of [.08,.21,.34]) cyl(.102,.025,shell,0,0,z,'z',.102,8);
   } else if (f === 'claw') {
     box(.6,.32,.7,shell);box(.45,.13,.6,accent,0,.22,0);
@@ -6023,7 +6023,7 @@ function bladePose(u) {
     if (!b?.visible) continue;
     const bb = b.geometry.boundingBox, gripZ = family === 'sword' || family === 'waveSword' ? bb.max.z - .35 : family === 'spear' ? bb.max.z - .6 : .2;
     const held = bladeHeld.set(sd * (dual ? 1.05 : .8), thrust ? 2.3 : 2.45, thrust ? -.65 : -.55);
-    let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'dagger' ? .18 : family === 'claw' ? .15 : .62;
+    let angle = dual ? sd * -.28 : -.4, pitch = thrust ? .08 : family === 'claw' ? .15 : .62;
     let scale = 1; // 構え中は#13の形の寸法。間合いへの伸長は攻撃中だけ。
     if (!selected) { held.set(sd * 1.1, 3.15, .8); angle = sd * -.15; pitch = -1.22; scale = Math.min(1, 2.9 / (gripZ - bb.min.z)); }
     if (sw) {
@@ -6051,7 +6051,7 @@ function bladePose(u) {
         strikeHand.y += Math.hypot(strikeHand.x, strikeHand.z) * (sw.slope || 0); // 上下の斬り：手も同じ円すいの面に乗せる
         held.lerp(strikeHand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
         pitch += ((sw.tilt || 0) - pitch) * blend;
-        scale = family === 'pike' || family === 'claw' || family === 'dagger' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
+        scale = family === 'pike' || family === 'claw' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
         if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1 + (sw.tilt || 0) * .35 * blend; }
       }
     }
