@@ -6362,14 +6362,50 @@ function cloakHit(u, dmg) {
   spUse(u.slots.sp, dmg / u.slots.sp.w.hitHp * 100);
   if (u.isPlayer) spHitT = 0.3; // SPゲージを赤く光らせる
 }
-// 光学迷彩の見た目：見えやすさを不透明度にし、揺らいでいる間はちらつかせる。味方（自機を含む）には薄く見える。ブースターの炎は消えない（wiki）
+// 光学迷彩の見た目：機体の不透明度は見えやすさの2乗×0.8（止まっていればほぼ0、ダッシュで約0.24、撃った直後で約0.5）。揺らいでいる間はちらつかせる。
+// 味方（自機を含む）には最低0.3で薄く見える。ブースターの炎・発砲炎などの光る演出（加算合成）は消えない（wiki）。
+// 消えていても、機体の面の所は背景が歪んで見える（cloakPass。v0.21、ユーザー指定「効果最大だと背景が歪んでるからここにいるのがわかる」）
 function cloakLook(u, time) {
   const on = u.alive && u.vis < 0.999;
   if (!on && !u.cloakShown) return;
   u.cloakShown = on;
   const friend = player && u.team === player.team;
-  const op = on ? Math.min(1, Math.max(friend ? 0.3 : 0, u.vis) * (1 + 0.6 * u.shimmer * Math.sin(time * 31 + u.idx * 2.1))) : 1;
-  u.group.traverse(o => { if (o.isMesh && o !== u.flame) { o.material.transparent = on; o.material.opacity = op; o.castShadow = op > 0.6; } });
+  const op = on ? Math.min(1, Math.max(friend ? 0.3 : 0, u.vis * u.vis * 0.8) * (1 + 0.6 * u.shimmer * Math.sin(time * 31 + u.idx * 2.1))) : 1;
+  u.group.traverse(o => {
+    if (!o.isMesh || o === u.flame || o.material.blending === T.AdditiveBlending) return;
+    o.material.transparent = on; o.material.opacity = op; o.castShadow = op > 0.6;
+    if (on) o.layers.enable(CLOAK_LAYER); else o.layers.disable(CLOAK_LAYER);
+  });
+}
+// 光学迷彩の歪み：本描画のあと画面を写し取り、迷彩中の機体の面だけ、写した背景を面の向きへ少しずらして描き直す。
+// 正面を向いた面はほとんどずれず、輪郭に近い斜めの面ほど大きくずれる。壁の向こうの機体は深度で隠れる。迷彩中の機体が無いフレームは何もしない
+const CLOAK_LAYER = 5, cloakSize = new T.Vector2(), cloakAt = new T.Vector2();
+let cloakTex = null;
+const cloakMat = new T.ShaderMaterial({
+  uniforms: { tBg: { value: null }, res: { value: new T.Vector2(1, 1) }, time: { value: 0 } },
+  vertexShader: 'varying vec3 vN; void main() { vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tBg; uniform vec2 res; uniform float time; varying vec3 vN;
+    void main() {
+      float rim = 1.0 - abs(vN.z);
+      vec2 wave = vec2(sin(gl_FragCoord.y * 0.08 + time * 6.0), cos(gl_FragCoord.x * 0.06 + time * 4.5));
+      vec2 uv = gl_FragCoord.xy / res + vN.xy * (0.008 + 0.03 * rim) + wave * 0.004;
+      gl_FragColor = vec4(texture2D(tBg, clamp(uv, vec2(0.001), vec2(0.999))).rgb, 1.0);
+    }`,
+});
+function cloakPass() {
+  if (!units.some(u => u.cloakShown && u.group.visible)) return;
+  renderer.getDrawingBufferSize(cloakSize);
+  if (!cloakTex || cloakTex.image.width !== cloakSize.x || cloakTex.image.height !== cloakSize.y) {
+    if (cloakTex) cloakTex.dispose();
+    cloakTex = new T.DataTexture(new Uint8Array(cloakSize.x * cloakSize.y * 3), cloakSize.x, cloakSize.y, T.RGBFormat);
+    cloakTex.minFilter = cloakTex.magFilter = T.LinearFilter; cloakTex.needsUpdate = true;
+  }
+  renderer.copyFramebufferToTexture(cloakAt, cloakTex);
+  const U = cloakMat.uniforms; U.tBg.value = cloakTex; U.res.value.copy(cloakSize); U.time.value = performance.now() / 1000;
+  const bg = scene.background, auto = renderer.autoClear;
+  scene.background = null; scene.overrideMaterial = cloakMat; scene.autoUpdate = false; renderer.autoClear = false; camera.layers.set(CLOAK_LAYER);
+  renderer.render(scene, camera);
+  camera.layers.set(0); renderer.autoClear = auto; scene.autoUpdate = true; scene.overrideMaterial = null; scene.background = bg;
 }
 // 目標との間に遮るものがないか（壊れた砲台の残骸のように、当たり判定の持ち主がいない相手にも使える）
 function clearTo(u, p, target) {
@@ -7858,6 +7894,7 @@ function loop(now) {
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
   renderer.render(scene, camera);
+  cloakPass();
   mechPreview(dt);
   requestAnimationFrame(loop);
 }
