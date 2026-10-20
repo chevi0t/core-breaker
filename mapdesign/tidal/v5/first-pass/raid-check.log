@@ -1,0 +1,17 @@
+B/rush: 45.1秒、コア攻撃330、レーダー破壊null、パッドfalse
+B/covert: 51.2秒、コア攻撃330、レーダー破壊null、パッドfalse
+B/radar: 300.0秒、コア攻撃0、レーダー破壊null、パッドfalse
+B/sprint: 91.9秒、コア攻撃680、レーダー破壊null、パッドtrue
+R/rush: 36.5秒、コア攻撃1140、レーダー破壊null、パッドfalse
+R/covert: 50.3秒、コア攻撃420、レーダー破壊null、パッドfalse
+R/radar: 77.8秒、コア攻撃1026.0000000000002、レーダー破壊76.45、パッドfalse
+R/sprint: 107.9秒、コア攻撃680、レーダー破壊null、パッドtrue
+AssertionError [ERR_ASSERTION]: B/radar: コアへ到達できない
+    at /workspace/core-breaker/tools/test/tidal_raid_check.js:40:36 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

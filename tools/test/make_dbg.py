@@ -18,7 +18,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 P = ROOT / "prototype"
 CDN_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
 EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, cores, plants, turrets, pods, catapults, shells, barricades, fx, WEAPONS, CLASSES,
-  equip, selectWeapon, pickClass, destroyTurret, kill, spawn, setup, loop, get ended() { return ended; }, obstacles, TEAM, terrainH, terrainHit, castFrom, gadgets, drones, spotted, SLOTS,
+  equip, selectWeapon, pickClass, destroyTurret, kill, spawn, spawnPos, setup, loop, get ended() { return ended; }, obstacles, TEAM, terrainH, terrainHit, castFrom, gadgets, drones, spotted, SLOTS,
   physics, damage, radars, SC, impact, keys, blast, shoot, shot, repairTick, MAPS, buildMap, selectMap, showPage, PLANT_R, resetPlants,
   navPath, navNear, clearPath, buildNav, groundAt, botUpdate, launch, renderer, get pathEndH() { return pathEndH; }, get NAV() { return NAV; }, get bridges() { return bridges; }, get waters() { return waters; },
   get curMap() { return curMap; }, get mapId() { return mapId; }, get MATCH() { return MATCH; },
@@ -29,6 +29,8 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get botMech() { return botMech; }, get renderCustom() { return renderCustom; }, get weaponGeoBank() { return weaponGeoBank; }, get nearestPod() { return nearestPod; },
   get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get ziplines() { return ziplines; }, get zipGrab() { return zipGrab; }, get zipNear() { return zipNear; }, get zipDrop() { return zipDrop; }, get zipCan() { return zipCan; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
   get resetMobility() { return resetMobility; }, get botMobilityGoal() { return botMobilityGoal; },
+  get baseDefenseTask() { return baseDefenseTask; }, get raidGoal() { return raidGoal; }, get botTransfer() { return botTransfer; }, get radarUpdate() { return radarUpdate; }, get spot() { return spot; }, get camera() { return camera; }, get scene() { return scene; }, get targetPoint() { return targetPoint; },
+  get canSee() { return canSee; }, get areaTime() { return areaTime; }, get placeGadget() { return placeGadget; },
   get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
   get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; },
   get specialTick() { return specialTick; }, get barrierAbsorb() { return barrierAbsorb; }, get barrierReady() { return barrierReady; }, get postTick() { return postTick; }, get postFlightTick() { return postFlightTick; }, get postFieldTick() { return postFieldTick; }, get botAct() { return botAct; }, get removeGadget() { return removeGadget; }, get gadgetUpdate() { return gadgetUpdate; }, get revive() { return revive; }, get wreck() { return wreck; }, get canRevive() { return canRevive; }, get downTick() { return downTick; },

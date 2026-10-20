@@ -36,6 +36,7 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
           const g=__g;
           window.__battle={ticks:0,captures:0,events:[],mobility:[],owners:Object.fromEntries(g.plants.map(p=>[p.id,p.owner])),occupancy:{},layers:{upper:0,west:0,center:0,east:0},stalls:0,last:{},repairs:[],repairing:{}};
           __battle.initialCore=[g.cores.B.hp,g.cores.R.hp];
+          if(g.curMap.generation?.mountain)__battle.mountain={entries:[],crossings:[],ridge:{},wall:{}};
           if(window.__battleTraceVersion===1){
             __battle.losses={B:{direct:0,wreck:0},R:{direct:0,wreck:0}};
             window.__battleEvent=e=>{if(e.type==='coreHit'||e.type==='wreck')__battle.losses[e.team][e.type==='coreHit'?'direct':'wreck']+=e.amount;};
@@ -52,6 +53,14 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
                 const id=u.team+(u.idx+1);
                 if(u.repairing&&!s.repairing[id]){const pod=g.pods.find(p=>p.pos.distanceTo(u.pos)<5);s.repairs.push({t:Math.round((g.MATCH-g.timeLeft)*20)/20,unit:id,plant:pod?.plant?.id||null,pos:u.pos.toArray()});}
                 s.repairing[id]=u.repairing;
+                if(s.mountain){
+                  const ridge=u.alive&&u.onGround&&u.pos.x<-150&&u.pos.z<-395&&u.pos.z>-495&&u.pos.y>12;
+                  const wall=u.alive&&u.pos.x>-120&&u.pos.x<-108&&Math.abs(u.pos.z+480)<5&&u.pos.y>9;
+                  const entry=()=>({t:Math.round((g.MATCH-g.timeLeft)*20)/20,unit:id,role:u.role,pos:u.pos.toArray()});
+                  if(ridge&&!s.mountain.ridge[id])s.mountain.entries.push(entry());
+                  if(wall&&!s.mountain.wall[id])s.mountain.crossings.push(entry());
+                  s.mountain.ridge[id]=ridge;s.mountain.wall[id]=wall;
+                }
               }
               for(const p of g.plants) {
                 if(p.owner!==s.owners[p.id]) {s.events.push({t:Math.round((g.MATCH-g.timeLeft)*10)/10,id:p.id,from:s.owners[p.id],to:p.owner});s.owners[p.id]=p.owner;s.captures++;}
@@ -76,6 +85,7 @@ if(!Number.isInteger(seedStart) || seedStart<0 || seedStart+maps.length-1>0xffff
         });
         result.mobility=await page.evaluate(()=>__battle.mobility);
         result.repairs=await page.evaluate(()=>__battle.repairs);
+        result.mountain=await page.evaluate(()=>__battle.mountain?{entries:__battle.mountain.entries,crossings:__battle.mountain.crossings}:null);
         result.initialization=initialization;
         result.coreExact=await page.evaluate(()=>[__g.cores.B.hp,__g.cores.R.hp]);
         result.initialCore=await page.evaluate(()=>__battle.initialCore);

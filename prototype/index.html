@@ -1005,9 +1005,11 @@ function featureH(f, x, z) {
   return f.h * (1 - smooth(Math.hypot(Math.max(0, Math.abs(x - f.x) - f.w), dz) / f.slope));
 }
 function terrainShape(x, z, fs = features, flat = BASE_LINE) {
-  let up = 0, down = 0;
-  for (const f of fs) { const h = featureH(f, x, z); if (h > 0) up = Math.max(up, h); else down += h; }
-  return (up + down) * (1 - smooth((Math.abs(z) - flat) / 25)); // ベースの周り（境目より奥）は平ら
+  let up = 0, down = 0, kept = 0;
+  for (const f of fs) { const h = featureH(f, x, z); if (h > 0) up = Math.max(up, h); else down += h; if (f.keepBaseHeight) kept = Math.max(kept, h); }
+  const height = (up + down) * (1 - smooth((Math.abs(z) - flat) / 25)); // ベースの周り（境目より奥）は平ら
+  // 基地脇の山など、指定した正の地形だけ平坦化しない。指定なしの既存地形は同じ値を返す。
+  return kept > 0 ? Math.max(height, kept) : height;
 }
 // 高さは1m間隔の格子に焼いておき、間を補間して読む
 let TX0, TZ0, TW, TD, heights, TERRAIN_MAX = 0;
@@ -1088,9 +1090,10 @@ function addBox(x, z, w, d, h, mat = concrete) {
 }
 // 建物の見た目（layout の6番目の要素、任意。v0.10.3）：'house' 切妻屋根の家（窓つき。壁と屋根の色は位置で決まる）、'wall' 石壁、'tower' 石の塔（細い窓、上に胸壁）。
 // 当たり判定はどれも今までの箱のまま（屋根と胸壁は見た目だけ）。種類の無い箱は今までのコンクリートの箱
-const KINDS = ['house', 'wall', 'tower'];
+const KINDS = ['house', 'wall', 'tower', 'baseWall', 'container', 'trailer', 'barracks', 'office', 'hesco', 'prefab'];
 const WALL_COLORS = ['#e8dcc4', '#d8c09c', '#c9b6a2', '#efe8da', '#cfa88a', '#bfc4c2'], ROOF_COLORS = [0x8c3b2e, 0x6b4636, 0x4d5864, 0x9b5b3a];
 const STONE = { wall: '#9a968b', tower: '#8b867c' };
+const BASE_COLORS = { baseWall: '#697989', container: '#637968', trailer: '#b7b49f', barracks: '#68715e', office: '#8e9ba4', hesco: '#9b8b65', prefab: '#a1a68e' };
 const hash01 = (x, z) => Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
 const CELL = 3; // 窓や石積みの模様1マスの大きさ（m）。階の高さ
 const kindMats = {};
@@ -1104,6 +1107,21 @@ function kindMat(kind, color) {
     g.fillStyle = 'rgba(0,0,0,.16)'; g.fillRect(19, 15, 26, 32);
     g.fillStyle = '#41505c'; g.fillRect(21, 17, 22, 28);
     g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(31, 17, 2, 28); g.fillRect(21, 29, 22, 2);
+  } else if (BASE_COLORS[kind]) {
+    g.strokeStyle = kind === 'hesco' ? '#554f3b' : '#46545c'; g.lineWidth = 2;
+    if (kind === 'hesco') {
+      g.fillStyle = '#b1a47c';
+      for (let i=0;i<48;i++) g.fillRect((i*37)%64,(i*23)%64,3,2);
+      for (let i=0;i<=64;i+=8) {g.beginPath();g.moveTo(i,0);g.lineTo(i,64);g.moveTo(0,i);g.lineTo(64,i);g.stroke();}
+      g.lineWidth=4;g.strokeRect(1,1,62,62);
+    } else if (kind === 'container') {
+      for(let x=4;x<64;x+=8){g.beginPath();g.moveTo(x,0);g.lineTo(x,64);g.stroke();}
+      g.strokeRect(1,1,62,62);
+    } else {
+      g.strokeRect(1,1,62,62);g.fillStyle='#344957';
+      if (['office','barracks','prefab','trailer'].includes(kind)) {g.fillRect(13,17,38,24);g.fillStyle='#7d9ca7';g.fillRect(16,20,13,18);g.fillRect(34,20,13,18);}
+      if(kind==='baseWall'){g.fillStyle='#455563';g.fillRect(4,50,56,7);}
+    }
   } else {
     // 石積み：1マスに4段、段ごとに半分ずらす
     g.strokeStyle = 'rgba(40,38,34,.35)'; g.lineWidth = 2;
@@ -1156,11 +1174,22 @@ function buildBoxes(layout) {
   for (const [x, z, w, d, h, kind] of layout) for (const s of placementSigns(x, z)) {
     if (!KINDS.includes(kind)) { addBox(x * s, z * s, w, d, h); continue; }
     // 色は自軍側の座標で決める（敵軍側の点対称の建物も同じ色）
-    const color = kind === 'house' ? WALL_COLORS[Math.floor(hash01(x * 1.7 + 3, z * 2.3) * WALL_COLORS.length)] : STONE[kind];
+    const color = kind === 'house' ? WALL_COLORS[Math.floor(hash01(x * 1.7 + 3, z * 2.3) * WALL_COLORS.length)] : BASE_COLORS[kind] || STONE[kind];
     const bx = addBox(x * s, z * s, w, d, h, kindMat(kind, color));
+    if (['office','barracks','prefab','trailer'].includes(kind)) {
+      const side=bx.m.material,roof=new T.MeshLambertMaterial({color});
+      bx.m.material=[side,side,roof,roof,side,side]; // 窓は側面。屋根へ繰り返さない。
+    }
     tileUV(bx.m.geometry, w, bx.top - bx.bottom, d);
     if (kind === 'house') addRoof(roofs, x * s, z * s, w, d, bx.top, ROOF_COLORS[Math.floor(hash01(x * 0.7 - 5, z * 1.3) * ROOF_COLORS.length)], color);
     if (kind === 'tower') addParapet(x * s, z * s, w, d, bx.top, kindMat(kind, color));
+    if (kind === 'trailer') {
+      const tire = new T.MeshLambertMaterial({color:0x242a2e});
+      for(const side of [-1,1])for(const end of [-1,1]){
+        const wheel=new T.Mesh(new T.CylinderGeometry(.8,.8,.4,12),tire);wheel.rotation.z=Math.PI/2;
+        wheel.position.set(x*s+side*(w/2-.2),bx.bottom+.8,z*s+end*d*.3);mapRoot.add(wheel);
+      }
+    }
   }
   for (const [key, pos] of Object.entries(roofs)) {
     const geo = new T.BufferGeometry();
@@ -1423,6 +1452,38 @@ for (const k of ['B', 'R']) {
   pad.position.set(0, 0.04, t.baseZ);
   mapRoot.add(pad);
 }
+}
+
+// 基地の舗装・門の標識。防壁の衝突と射線はマップのlayout/bridgesを使う。
+function buildBaseMarkings() {
+  const config = curMap.baseDefense;
+  if (!config || VS) return;
+  for (const team of ['B', 'R']) {
+    const s = team === 'B' ? 1 : -1, group = new T.Group();
+    group.name = 'fortified-base-' + team;
+    const yard = config.yard || [0, 312, 224, 72];
+    const floor = new T.Mesh(new T.PlaneGeometry(yard[2], yard[3]).rotateX(-Math.PI / 2), new T.MeshLambertMaterial({ color: 0x414b54 }));
+    floor.position.set(s * yard[0], 0.025, s * yard[1]); group.add(floor);
+    const stripMat = new T.MeshBasicMaterial({ color: TEAM[team].color });
+    for (const [x, z] of config.gates) {
+      for (const side of [-1, 1]) {
+        const strip = new T.Mesh(new T.BoxGeometry(.4, .4, 8), stripMat);
+        strip.position.set(s * (x + side * 10), 13.3, s * z); group.add(strip);
+      }
+      const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#202a34'; ctx.fillRect(0, 0, 256, 64);
+      ctx.strokeStyle = TEAM[team].css; ctx.lineWidth = 6; ctx.strokeRect(3, 3, 250, 58);
+      ctx.fillStyle = '#e7f1f6'; ctx.font = 'bold 34px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('防衛区画', 128, 32);
+      const sign = new T.Mesh(new T.PlaneGeometry(20, 5), new T.MeshBasicMaterial({ map: new T.CanvasTexture(canvas), side: T.DoubleSide }));
+      sign.position.set(s * x, 15.2, s * (z - (config.gateDepth || 8) / 2 - .05)); group.add(sign);
+      for (let i = 0; i < 5; i++) {
+        const stripe = new T.Mesh(new T.PlaneGeometry(15, .6).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: i % 2 ? 0x29323b : 0xe5c169 }));
+        stripe.position.set(s * x, .045, s * (z - 8 + i * 2)); group.add(stripe);
+      }
+    }
+    mapRoot.add(group);
+  }
 }
 
 // ---- マップ要素：プラント、防衛砲台、カタパルト、リペアポッド ----
@@ -2335,7 +2396,7 @@ function podUpdate(pd, dt) {
   pd.beam.visible = active;
 }
 function nearestPod(u) {
-  let best = null, bd = 90;
+  let best = null, bd = curMap.botRepairRange || 90;
   for (const pd of pods) {
     if (podTeam(pd) !== u.team) continue;
     const d = pd.pos.distanceTo(u.pos);
@@ -2434,6 +2495,7 @@ function buildMap(id) {
   buildBridges(def.bridges);
   buildNav(def.nav);
   buildCores();
+  buildBaseMarkings();
   buildPlants(def.plants);
   if (!VS) { buildTurrets(def.turrets); buildRadars(def.radar); }
   buildCatapults(def.catapults);
@@ -3426,6 +3488,7 @@ function spawn(u, at = 'base') {
   Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
+  u.raidRoute = null;
   u.yaw = t.dir > 0 ? Math.PI : 0;
   u.pitch = 0;
   u.hp = u.maxHp; u.alive = true; u.overheat = false; // ブーストは equip で満タン
@@ -3460,6 +3523,7 @@ function startTransfer(u, at) {
 function cancelTransfer(u) { u.transfer = null; if (u.isPlayer) u.nextCls = null; }
 function doTransfer(u) {
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
+  u.raidRoute = null;
   const x = u.transfer;
   u.transfer = null;
   spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
@@ -3477,6 +3541,16 @@ function doTransfer(u) {
 function botTransfer(u) {
   if (VS || u.role === 'attack' || (u.xferCd || 0) > clock() || u.waypoint || u.order || u.healing || u.downT > 0) return;
   const t = TEAM[u.team], rd = radars.find(r => r.team === u.team);
+  if (curMap.baseDefense) {
+    if (u.role === 'defend') {
+      if (rd?.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      return; // 基地の守備役は被攻撃プラントへ転出しない。
+    }
+    if (baseDefenseTask(u)?.threat) {
+      if (Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      return;
+    }
+  }
   if (u.role === 'defend' && rd && rd.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) { startTransfer(u, 'base'); return; }
   const pl = plants.find(p => p.owner === u.team && p.capturing && Math.abs(p.gauge) < 100 && p.pos.distanceTo(u.pos) > AREA_FAR && units.some(e => e.alive && e.team !== u.team && inPlant(e, p)));
   if (pl) startTransfer(u, pl.id);
@@ -4435,22 +4509,83 @@ function canSee(u, target, tp) {
   const hit = castFrom(eye, dir.normalize(), u, dist + 2);
   return hit && hit.ref === target;
 }
+
+// 任意の基地守備設定。情報源は通常のレーダーと本人が見ている敵だけ。
+function baseDefenseTask(u) {
+  const config = curMap.baseDefense;
+  if (!config || VS || u.isPlayer) return null;
+  const s = u.team === 'B' ? 1 : -1, own = cores[u.team];
+  const distance = v => Math.hypot(v.pos.x - own.pos.x, v.pos.z - own.pos.z);
+  const radar = radars.find(r => r.team === u.team);
+  const intruders = radar?.alive ? radar.intruders.filter(e => e.alive && distance(e) <= config.leash) : [];
+  const warnings = config.alertRadius ? units.filter(e => e.alive && e.team !== u.team && spotted[u.team].has(e) && distance(e) <= config.alertRadius && e.pos.z * s > 0) : intruders;
+  const closest = enemies => enemies.reduce((best, e) => !best || e.pos.distanceToSquared(u.pos) < best.pos.distanceToSquared(u.pos) ? e : best, null);
+  if (u.role === 'defend') {
+    const visible = u.target?.kind === 'unit' && u.target.alive && u.target.team !== u.team && distance(u.target) <= config.leash && u.target.pos.z * s >= BASE_LINE - 12 ? u.target : null;
+    const threat = closest(intruders) || visible;
+    if (threat) return { pos: threat.pos, threat };
+    const guards = units.filter(v => v.team === u.team && v.role === 'defend');
+    const post = config.posts[Math.max(0, guards.indexOf(u)) % config.posts.length];
+    return { pos: new T.Vector3(post[0] * s, terrainH(post[0] * s, post[1] * s), post[1] * s), threat: null };
+  }
+  if (u.role !== 'plant' || !warnings.length || u.healing) return null;
+  const reserves = units.filter(v => v.team === u.team && !v.isPlayer && v.role === 'plant' && v.alive && !v.healing && v.hp >= v.maxHp * .35 && distance(v) <= config.responseRadius)
+    .sort((a, b) => distance(a) - distance(b) || a.idx - b.idx).slice(0, config.reinforcements);
+  if (!reserves.includes(u)) return null;
+  const threat = closest(intruders) || closest(warnings);
+  const post = config.posts[reserves.indexOf(u) % config.posts.length];
+  return { pos: intruders.length ? threat.pos : new T.Vector3(post[0] * s, 0, post[1] * s), threat };
+}
+
+// 攻撃役の経路。分岐点を通り、レーダー破壊役は門外から射線を試す。
+function raidRange(u) {
+  const w = u.slots.main.w;
+  return Math.min(w.range || 400, w.falloff?.[1] || 400); // fireの省略時400m。散弾は減衰距離まで接近。
+}
+function raidGoal(u, coreGoal) {
+  if (!curMap.raidRoutes || u.role !== 'attack' || u.isPlayer) return coreGoal;
+  const spec = curMap.raidRoutes[Math.floor(u.idx / 3) % curMap.raidRoutes.length], s = u.team === 'B' ? 1 : -1;
+  const points = s > 0 ? spec.points : spec.pointsR || spec.points.map(p => [-p[0], -p[1], p[2]]);
+  const radius = spec.pointRadius?.[u.team] ?? 14;
+  if (!u.raidRoute || u.raidRoute.kind !== spec.kind) u.raidRoute = { kind: spec.kind, index: 0 };
+  const state = u.raidRoute;
+  while (state.index < points.length) {
+    const p = points[state.index];
+    const sameLevel = Math.abs(u.pos.y - p[2]) < 2;
+    if (sameLevel && ((radius === 14 && u.pos.z * TEAM[u.team].dir > p[1] * TEAM[u.team].dir + 24) || Math.hypot(u.pos.x - p[0], u.pos.z - p[1]) < radius)) state.index++;
+    else return new T.Vector3(p[0], p[2], p[1]);
+  }
+  const radar = radars.find(r => r.team !== u.team);
+  if (spec.objective === 'radar' && radar?.alive) {
+    const range = raidRange(u);
+    // 射程外なら接近を選ぶ。警報前に破壊できるかは射線と装備に依存する。
+    return radar.pos.distanceTo(u.pos) > range || !canSee(u, radar, targetPoint(radar)) ? radar.pos : u.pos.clone();
+  }
+  return coreGoal;
+}
 function botUpdate(u, dt) {
   if (u.transfer) { physics(u, new T.Vector3(), false, false, dt); return; } // エリア移動の待機中は止まっている（v0.17）
   const t = TEAM[u.team];
   const enemyCore = cores[u.team === 'B' ? 'R' : 'B'];
   const ownCore = cores[u.team];
+  const baseTask = baseDefenseTask(u);
   u.think -= dt;
   if (u.think <= 0) {
     u.think = 0.3 + Math.random() * 0.2;
     u.target = nearestEnemy(u, 70);
     if (u.target && !canSee(u, u.target, tmp.copy(u.target.pos).setY(u.target.pos.y + 2.5))) u.target = null;
+    if (baseTask?.threat && baseTask.threat.pos.distanceTo(u.pos) < 70 * spotMul(u.team, baseTask.threat) && noticed(baseTask.threat, baseTask.threat.pos.distanceTo(u.pos)) && canSee(u, baseTask.threat, tmp.copy(baseTask.threat.pos).setY(baseTask.threat.pos.y + 2.5))) u.target = baseTask.threat;
     u.tReach = !!u.target && u.target.kind === 'unit' && clearPath(u.pos.x, u.pos.z, u.target.pos.x, u.target.pos.z, u.pos.y);
     // 自分を撃っている自動砲台が、狙っている敵機より近ければ先に壊す（v0.11.2）
     const sentry = botGadget(u, true);
     if (sentry && (!u.target || sentry.pos.distanceTo(u.pos) < u.target.pos.distanceTo(u.pos))) u.target = sentry;
     // 敵機が見えなければ近くの防衛砲台、無ければ設置物を狙う
     if (!u.target) u.target = turrets.find(tu => tu.alive && tu.team !== u.team && tu.pos.distanceTo(u.pos) < 55 && canSee(u, tu, targetPoint(tu))) || botGadget(u, false);
+    if (u.raidRoute?.kind === 'radar' && u.raidRoute.index >= (u.team === 'B' ? curMap.raidRoutes?.[2]?.points.length : curMap.raidRoutes?.[2]?.pointsR?.length)) {
+      const radar = radars.find(r => r.team !== u.team);
+      const range = raidRange(u);
+      if (radar?.alive && radar.pos.distanceTo(u.pos) < range && canSee(u, radar, targetPoint(radar))) u.target = radar;
+    }
     if (!u.target && u.onGround && !u.flying) botTransfer(u);
     if (u.transfer) return;
   }
@@ -4463,12 +4598,14 @@ function botUpdate(u, dt) {
     goal = pod.pos; hold = 1; // 損傷したらリペアポッドへ下がる
   } else if (canRevive(u) && downedAlly(u, REVIVE_CALL)) {
     goal = downedAlly(u, REVIVE_CALL).pos; hold = 10; // 行動不能の味方を起こしに行く（v0.17）。カタパルトへ向かう途中でも先に
-  } else if (u.waypoint) {
+  } else if (u.waypoint && !baseTask) {
     goal = u.waypoint; hold = 0.5;
     if (u.pos.distanceTo(goal) > 110) u.waypoint = null;
   } else if (botOrder(u)) {
     const o = u.order; // 味方からの指示（v0.17）
     goal = o.kind === 'cover' ? o.by.pos : o.pos; hold = QC_HOLD[o.kind];
+  } else if (baseTask) {
+    goal = baseTask.pos; hold = baseTask.threat ? 4 : 2;
   } else if (u.cls === 'support' && !u.target && hurtAlly(u, 60)) {
     goal = hurtAlly(u, 60).pos; hold = 8; // 支援は傷ついた味方のそばへ
   } else if (VS) {
@@ -4486,6 +4623,7 @@ function botUpdate(u, dt) {
     const pl = cand[Math.min(cand.length - 1, plants.length > 3 ? u.idx % 2 : 0)];
     goal = pl ? pl.pos.clone().add(new T.Vector3(u.idx % 2 ? 4 : -4, 0, 3))
       : new T.Vector3(enemyCore.pos.x + (u.idx % 5 - 2) * 5, 0, enemyCore.pos.z - t.dir * 12); // 傘の下、コアの前12m（結晶の張り出した下面を撃つ）
+    if (!pl) goal = raidGoal(u, goal);
   }
   if (jumpPads.length || lifts.length || ziplines.length) {
     goal = botMobilityGoal(u, goal);
@@ -4494,7 +4632,8 @@ function botUpdate(u, dt) {
   const gd = Math.hypot(goal.x - u.pos.x, goal.z - u.pos.z);
   const to = navSteer(u, goal, gd, dt); // 通り道のあるマップでは次の節点へ
   const wish = new T.Vector3(to.x - u.pos.x, 0, to.z - u.pos.z);
-  if (u.target && !pod && !u.waypoint) {
+  const sprint = u.raidRoute?.kind === 'sprint' && !baseTask && !pod;
+  if (u.target && !pod && !u.waypoint && !sprint) {
     const td = u.target.pos.distanceTo(u.pos);
     if (u.cls === 'assault' && u.target.kind === 'unit' && td < 16 && u.tReach) wish.set(u.target.pos.x - u.pos.x, 0, u.target.pos.z - u.pos.z); // ソードの間合いへ詰める
     else if (td < 22) wish.set(0, 0, 0); // 近すぎたら横移動
@@ -4521,8 +4660,8 @@ function botUpdate(u, dt) {
   // 遠ければロングダッシュで移動、交戦中はときどきショートダッシュで横に避ける。
   // 強襲は加速装置を作動させていれば、それで移動する（SPが6割以上あれば使い始め、使い切るか近づくか敵を見つけるまで）
   const chs = u.slots.sp;
-  const chargeGo = u.chargerOn && !u.target && !pod && !busy && !u.flying && !u.waypoint && gd > 60 && !chs.overheat && (u.charging || chs.heat >= 60);
-  const wantLong = !chargeGo && gd > 40 && !u.target && u.boost > 30;
+  const chargeGo = u.chargerOn && (!u.target || sprint) && !pod && !busy && !u.flying && !u.waypoint && gd > 60 && !chs.overheat && (u.charging || chs.heat >= 60);
+  const wantLong = !chargeGo && gd > 40 && (!u.target || sprint) && u.boost > 30;
   if (wantLong && !busy && !u.longDash && u.dashT <= 0) shortDash(u, wish);
   u.dodgeT -= dt;
   if (u.target && !busy && !atPod && !u.snipe && u.dodgeT <= 0) {
@@ -6982,7 +7121,7 @@ const LOCK_ZOOM = 1.3;
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
 const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
 const proj = new T.Vector3();
-function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 行動不能で倒れた機体は低い所 // 設置物は形の高さ（v0.11.2）
+function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());

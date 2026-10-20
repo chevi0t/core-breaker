@@ -1,0 +1,27 @@
+{
+  "configuration": {
+    "id": "tidal",
+    "theme": "tidal",
+    "seed": 20261020,
+    "placementSeed": 20261020,
+    "terrainAttempts": 1,
+    "placementAttempts": 192,
+    "variants": 3,
+    "revision": "tidal3"
+  },
+  "sources": {
+    "prototype/index.html": "07c748cf81ef0372b483858c216b6cb7832a004c69649bfc700dea4eab30d50a",
+    "tools/mapgen.js": "106403a22e0887a5cf9abf565d879e2157e174804a2c6ca069dc4269541555d7",
+    "tools/generate_map.js": "fc66c3bd7a627c334ae3e08fa3872da20ed3fef41e391a1225dad2364d116283",
+    "tools/mapgen_browser.js": "959c13bba4313cb92c96420671738941b86e3ef272e7858acb7e00ab0796ebf6",
+    "tools/tidal_mapgen.js": "f6f6a6f429b65be29f76ae1b16da3894e8c9b49a311cf00b389c064c783d5d0a"
+  },
+  "failures": [
+    {
+      "attempt": 1,
+      "seed": 20261020,
+      "reason": "page.evaluate: Error: 実走目標 (12,492.8,0) の同じ階に節点がありません\n    at probeNode (eval at evaluate (:290:30), <anonymous>:5:118)\n    at eval (eval at evaluate (:290:30), <anonymous>:6:112)\n    at Array.map (<anonymous>)\n    at driveRoutes (eval at evaluate (:290:30), <anonymous>:6:68)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+    }
+  ],
+  "status": "未合格"
+}

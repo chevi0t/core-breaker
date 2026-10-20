@@ -1,0 +1,61 @@
+{
+  "revision": "tidal6",
+  "size": [
+    370,
+    1136
+  ],
+  "team": 10,
+  "time": 600,
+  "balance": "勝率未確定。青4勝・橙7勝・引分1。偏りは縮小した観測だが、主配置の大破は改善していない。",
+  "generation": "v6/runs/2026-10-20T07-28-42-676Z-tidal6-Kx6iKf/generation.json",
+  "facilities": [
+    {
+      "id": "tidal",
+      "walkRoutes": 110,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    },
+    {
+      "id": "tidal-v2",
+      "walkRoutes": 110,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    },
+    {
+      "id": "tidal-v3",
+      "walkRoutes": 114,
+      "mobilityRides": 40,
+      "quickFacilitiesPassed": true
+    }
+  ],
+  "fullFacilityCheck": "v6/final/map-check-tidal.log",
+  "frontlineSightlineAndLiveShots": 15,
+  "frontlineWalkRoutesPerRevision": 84,
+  "warehouseHeadroom": 4.5,
+  "spawnSamples": 1280,
+  "isolatedPlantCaptures": 40,
+  "isolatedRaids": 8,
+  "districtGroundRoutes": 8,
+  "districtSightlineCases": 6,
+  "unitTests": 17,
+  "engineUnchangedFromV5": true,
+  "weaponAndLegacyChecks": {
+    "runThisRevision": false,
+    "reference": "v5/final/regression.log",
+    "reason": "本体・既存マップのソースは前回から変更していない。"
+  },
+  "battles": "v6/final/battles.json",
+  "comparison": "v6/final/comparison.json",
+  "manifest": "v6/final/manifest.json",
+  "replays": [
+    "v6/replay/replay.html"
+  ],
+  "replayMatchesBatch": true,
+  "diagnostic": "v6/drawings/frontline-diagnostic.png",
+  "limits": [
+    "橋の方向・高さ・アクセス・遮蔽・一部資材をまとめて変更し、遮蔽単独の効果は未分離。",
+    "各4戦で公平さ未確定。",
+    "大破位置・時刻の比較図は同seed通常編成1戦。滞在量も変化し、被弾位置や射撃方向を記録した図ではない。",
+    "単独到達性検査は敵・砲台の射撃を止めた条件。"
+  ]
+}
