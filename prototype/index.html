@@ -3334,6 +3334,60 @@ function flash(at, color, size, life = 0.12, delay = 0) {
   sp.position.copy(at);
   addFx(sp, life, { kind: 'flash', size }, delay);
 }
+// 主武器の発砲炎。正面の閃光と交差する二枚の炎を1メッシュにし、銃口ごとに使い回す。
+const muzzleFlameTex = [false, true].map(energy => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), edge = energy ? '80,235,220' : '255,128,24';
+  const jet = g.createLinearGradient(0, 116, 0, 0);
+  jet.addColorStop(0, '#ffffff'); jet.addColorStop(.22, energy ? '#d4ffff' : '#fff4b8');
+  jet.addColorStop(.55, `rgba(${edge},.85)`); jet.addColorStop(1, `rgba(${edge},0)`);
+  g.fillStyle = jet; g.beginPath(); g.moveTo(25, 126); g.lineTo(6, 63); g.lineTo(25, 83);
+  g.lineTo(19, 32); g.lineTo(29, 49); g.lineTo(34, 0); g.lineTo(41, 58); g.lineTo(55, 31);
+  g.lineTo(46, 91); g.lineTo(60, 77); g.lineTo(39, 126); g.closePath(); g.fill();
+  const core = g.createRadialGradient(32, 114, 1, 32, 114, 24);
+  core.addColorStop(0, '#ffffff'); core.addColorStop(.3, 'rgba(255,255,255,.95)'); core.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = core; g.fillRect(0, 80, 64, 48);
+  const halo = g.createRadialGradient(96, 64, 1, 96, 64, 31);
+  halo.addColorStop(0, '#ffffff'); halo.addColorStop(.2, '#ffffff'); halo.addColorStop(.45, `rgba(${edge},.8)`); halo.addColorStop(1, `rgba(${edge},0)`);
+  g.fillStyle = halo; g.fillRect(64, 32, 64, 64);
+  return new T.CanvasTexture(c);
+});
+const muzzleFlameGeo = (() => {
+  const p = [], uv = [], quad = (corners, u0, u1) => {
+    for (const i of [0, 1, 2, 0, 2, 3]) { p.push(...corners[i]); uv.push(i === 0 || i === 3 ? u0 : u1, i < 2 ? 0 : 1); }
+  };
+  quad([[-.5,0,0],[.5,0,0],[.5,0,-1.6],[-.5,0,-1.6]], 0, .5);
+  quad([[0,-.5,0],[0,.5,0],[0,.5,-1.6],[0,-.5,-1.6]], 0, .5);
+  quad([[-.5,-.5,-.02],[.5,-.5,-.02],[.5,.5,-.02],[-.5,.5,-.02]], .5, 1);
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(p, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); return geo;
+})();
+function mainMuzzleFlash(u, left, w) {
+  if (u.weapon !== 'main') return;
+  const gun = left ? u.gun2 : u.gun;
+  let f = gun.userData.muzzleFlame;
+  if (!f) {
+    const mesh = new T.Mesh(muzzleFlameGeo, new T.MeshBasicMaterial({ ...glow(0xffffff), map: muzzleFlameTex[0], side: T.DoubleSide }));
+    u.group.add(mesh); f = gun.userData.muzzleFlame = { mesh, time: 0, pulse: 0 };
+  }
+  f.key = w.key; f.life = w.pellets ? .1 : .08; f.time = f.life;
+  f.size = (w.pellets ? 1.25 : w.dual ? .75 : 1) * (.92 + (f.pulse++ % 3) * .08);
+  f.mesh.material.map = muzzleFlameTex[w.energy || w.proj?.energy ? 1 : 0];
+  mainMuzzleUpdate(u, 0);
+}
+function mainMuzzleUpdate(u, dt) {
+  for (let i = 0; i < 2; i++) {
+    const gun = i ? u.gun2 : u.gun, f = gun.userData.muzzleFlame;
+    if (!f) continue;
+    f.time = Math.max(0, f.time - dt);
+    f.mesh.visible = f.time > 0 && u.alive && u.weapon === 'main' && f.key === u.slots.main.w.key;
+    if (!f.mesh.visible) continue;
+    // 射撃と同じ壁際の補正済み銃口を、機体ローカルへ戻す。炎は移動・構え・反動に追従する。
+    f.mesh.position.copy(muzzle(u, !!i)).sub(u.pos).applyAxisAngle(UP, -u.yaw);
+    f.mesh.quaternion.copy(gun.quaternion);
+    const k = f.time / f.life, size = f.size * (.75 + .25 * k);
+    f.mesh.scale.set(size, size, size * (.6 + .4 * k)); f.mesh.material.opacity = k;
+  }
+}
 const ringTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d');
@@ -5534,7 +5588,7 @@ function shot(u, sl, aim, spread) {
   if (!u.isPlayer && u.recoil > 0) aim = recoilAim(muzzle(u), aim, u.recoil); // Botも同じだけ跳ね上がる（プレイヤーは視点が跳ね上がる）
   if (w.proj) {
     const P = w.proj;
-    for (const from of w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]) { // 二丁蓄積銃の光弾は左右から（v0.15）
+    for (const [hand, from] of (w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]).entries()) { // 二丁蓄積銃の光弾は左右から（v0.15）
       let v = P.grav ? lobTo(from, aim, P.speed, P.grav).vel : aim.clone().sub(from).normalize();
       if (!P.grav) {
         const ws = (w.spread || 0) * u.aimMul;
@@ -5542,6 +5596,7 @@ function shot(u, sl, aim, spread) {
         v.multiplyScalar(P.speed);
       }
       shoot(u, from, v, P);
+      mainMuzzleFlash(u, !!hand, w);
       if (!P.grav) flash(from, P.energy ? 0xa0ffe8 : 0xffc080, 1.8, 0.08);
     }
     recoilKick(u, w);
@@ -5553,6 +5608,7 @@ function shot(u, sl, aim, spread) {
   if (w.settle) sl.conv = Math.min(sl.conv, 0.15); // 撃つと照準が乱れる
   // 二丁拳銃は1回で左右から1発ずつ
   const froms = w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)];
+  froms.forEach((from, hand) => mainMuzzleFlash(u, !!hand, w));
   let res = false;
   volley = new Map();
   for (const from of froms) for (let i = 0; i < (w.pellets || 1); i++) {
@@ -7567,6 +7623,7 @@ function loop(now) {
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
     cloakLook(u, now / 1000);
     if (running && u.group.visible) weaponLook(u, dt);
+    mainMuzzleUpdate(u, dt);
     u.flame.visible = u.alive && !!u.dashState;
     u.barrierMesh.visible = barrierReady(u);
     if (u.barrierMesh.visible) {
