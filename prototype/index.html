@@ -7331,10 +7331,10 @@ function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
 // 照準（カメラの中心の線）が目標の機体（LOCK_BODY の範囲）から外れていれば、機体の端へ向けて最大 step だけ戻す角度
 function lockStick(u, t, step) {
   const pv = cameraPivot(u), dx = t.pos.x - pv.x, dz = t.pos.z - pv.z, flat = Math.hypot(dx, dz);
-  const off = wrapAngle(Math.atan2(-dx, -dz) - u.yaw), half = Math.atan2(LOCK_BODY.w, flat);
+  const off = wrapAngle(Math.atan2(-dx, -dz) - u.yaw - (u.recoilYaw || 0)), half = Math.atan2(LOCK_BODY.w, flat);
   const ey = Math.sign(off) * Math.max(0, Math.abs(off) - half);
   const lo = Math.atan2(t.pos.y + LOCK_BODY.lo - pv.y, flat), hi = Math.atan2(t.pos.y + LOCK_BODY.hi - pv.y, flat), top = Math.atan2(t.pos.y + LOCK_BODY.top - pv.y, flat);
-  const pitch = u.pitch; // 手で置いた照準を追従させ、射撃で生じた反動は引き戻しで消さない。
+  const pitch = u.pitch + u.recoil; // 反動込みの照準から敵へ戻す。手で抑えた分を引き戻しが打ち消さない。
   // 上に外れたら頭を通り越して肩（top）まで下ろす（lock.down の間は頭の高さでも止めない。v0.15、ユーザー指摘）。
   // 下ろし終わった後に自分で頭に置けば、今までどおり頭を追い続ける
   if (pitch > hi) lock.down = true;
