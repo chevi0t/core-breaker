@@ -395,6 +395,168 @@ canvas#view { display: block; width: 100%; height: 100%; }
 @media (max-width: 640px) { #cuWBar { grid-template-columns: minmax(0, 1fr); } }
 #cuMore summary { cursor: pointer; color: var(--dim); font-size: 13px; }
 #ovBuild { margin-bottom: -8px; }
+/* コンソールの選択。配置図もCSSで描き、外部の画像は使わない。 */
+#consoleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.consoleCard { padding: 14px; background: #101c27; border: 1px solid #456074; color: var(--hud); font: inherit; text-align: left; cursor: pointer; }
+.consoleCard[aria-pressed="true"] { border-color: #9fe0ff; box-shadow: inset 0 0 0 1px #9fe0ff; background: #152c3d; }
+.consoleCard:hover { border-color: #9fe0ff; }
+.consoleCard:focus-visible { outline: 3px solid #ffd34d; outline-offset: 3px; }
+.consoleCard b { display: block; margin: 10px 0 4px; font: 700 18px var(--display); }
+.consoleCard[aria-pressed="true"] b::after { content: '選択中'; margin-left: 10px; color: #9fe0ff; font-size: 11px; }
+.consoleCard small { display: block; color: #b4c7d6; font-size: 12px; line-height: 1.6; }
+.consoleMini { display: block; position: relative; height: 112px; overflow: hidden; background: linear-gradient(165deg, #31444d, #17242d 48%, #263d40 49%, #0e1d25); --ink: #7ecfff; }
+.consoleMini i { position: absolute; display: block; border: 1px solid var(--ink); background: #10212dcc; }
+.consoleMini .map { top: 8px; left: 8px; width: 20px; height: 32px; background: repeating-linear-gradient(0deg, transparent 0 9px, #91b1c333 9px 10px), repeating-linear-gradient(90deg, #162731 0 9px, #91b1c333 9px 10px); }
+.consoleMini .team { top: 8px; left: 30%; width: 40%; height: 5px; border-width: 0; background: linear-gradient(90deg, #3ea6ff 0 46%, transparent 46% 54%, #ff8a2a 54%); }
+.consoleMini .sight { left: calc(50% - 16px); top: 36px; width: 30px; height: 30px; border-radius: 50%; background: none; }
+.consoleMini .sp { left: calc(50% - 17px); top: 73px; width: 34px; height: 3px; border: 0; background: #ffd34d; }
+.consoleMini .health { left: 8px; bottom: 8px; width: 54px; height: 16px; border-width: 0 0 3px; }
+.consoleMini .weapon { right: 8px; bottom: 8px; width: 48px; height: 22px; }
+.consoleMini[data-preview="arcade"] { --ink: #aaff64; }
+.consoleMini[data-preview="arcade"] .team { left: 8px; width: 52%; height: 9px; }
+.consoleMini[data-preview="arcade"] .map { left: auto; top: auto; right: 8px; bottom: 35px; }
+.consoleMini[data-preview="arcade"] .health { width: 55px; height: 23px; transform: skewX(-18deg); background: #aaff6466; }
+.consoleMini[data-preview="flight"] { --ink: #78edff; }
+.consoleMini[data-preview="flight"] .team { left: 35%; width: 30%; height: 10px; background: linear-gradient(#3ea6ff 0 44%, transparent 44% 56%, #ff8a2a 56%); }
+.consoleMini[data-preview="flight"] .map { left: auto; top: auto; right: 8px; bottom: 35px; }
+.consoleMini[data-preview="flight"] .weapon { left: 36%; width: 28%; height: 20px; background: linear-gradient(transparent 47%, #78edff 47% 52%, transparent 52%), linear-gradient(90deg, #122633 47%, #78edff 47% 52%, #122633 52%); }
+.consoleMini[data-preview="flight"] .sight::before { content: ''; position: absolute; inset: 8px -20px; border-inline: 2px solid #78edff; }
+.consoleMini[data-preview="flight"] .sight::after { content: ''; position: absolute; inset: -8px -30px; border: 1px solid #d8f7ff55; border-radius: 10px; }
+.consoleMini[data-preview="mechanical"] { --ink: #dce4e4; }
+.consoleMini[data-preview="mechanical"] .map { left: auto; right: 8px; height: 24px; }
+.consoleMini[data-preview="mechanical"] .health { background: none; border-width: 1px 0; }
+.consoleMini[data-preview="mechanical"] .weapon { background: none; border-width: 1px 0; }
+.consoleMini[data-preview="mechanical"] .team { left: 8px; width: 52%; height: 2px; }
+/* 追加の3種類は同じHUD要素を再配置する。標準の見た目と情報の意味は保つ。 */
+body[data-console]:where(:not([data-console="standard"])) { --console-edge: max(16px, 2vw); --console-map-width: 144px; }
+body[data-console]:where(:not([data-console="standard"])) .hud { text-shadow: 0 1px 3px #000; }
+body[data-console]:where(:not([data-console="standard"])) #mapHud { position: fixed; right: max(var(--console-edge), env(safe-area-inset-right, 0px)); top: max(var(--console-edge), env(safe-area-inset-top, 0px)); width: var(--console-map-width); display: grid; gap: 8px; pointer-events: none; }
+body[data-console]:where(:not([data-console="standard"])) #mini { position: static; display: block; box-sizing: border-box; width: 100%; height: auto; max-height: 32vh; object-fit: contain; border-color: #9fe0ff66; }
+body[data-console]:where(:not([data-console="standard"])) #spotAlert { position: static; width: 100%; }
+body[data-console]:where(:not([data-console="standard"])) #status { left: max(var(--console-edge), env(safe-area-inset-left, 0px)); bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); box-sizing: border-box; }
+body[data-console]:where(:not([data-console="standard"])) #ammoBox { right: max(var(--console-edge), env(safe-area-inset-right, 0px)); bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: 320px; box-sizing: border-box; }
+body[data-console]:where(:not([data-console="standard"])) #ammoSub { line-height: 1.5; overflow-wrap: anywhere; }
+body[data-console]:where(:not([data-console="standard"])) #feed { left: var(--console-edge); right: auto; top: 112px; max-width: 32vw; justify-items: start; font-size: 12px; }
+body[data-console]:where(:not([data-console="standard"])) #aimSp { width: 160px; font-size: 12px; }
+body[data-console]:where(:not([data-console="standard"])) #lockAlert { top: calc(132px + env(safe-area-inset-top, 0px)); }
+body[data-console]:where(:not([data-console="standard"])) #baseAlert { top: calc(140px + var(--console-lock-height, 0px) + env(safe-area-inset-top, 0px)); }
+/* アーケード：左上に大きな時間と戦況、斜めの耐久表示、右下の戦術マップ。 */
+body[data-console="arcade"] #top { left: var(--console-edge); top: max(12px, env(safe-area-inset-top, 0px)); transform: none; padding: 5px 12px; gap: 12px; background: #081a27dd; border-left: 4px solid #85d7ff; }
+body[data-console="arcade"] #timer { order: -1; font-size: 40px; line-height: 1; }
+body[data-console="arcade"] .core { width: min(19vw, 210px); }
+body[data-console="arcade"] .core .bar { height: 12px; border: 0; }
+body[data-console="arcade"] .core .lbl { color: #e5f1f7; font-size: 11px; }
+body[data-console="arcade"] #plantBar { top: 82px; }
+body[data-console="arcade"] #mapHud { top: auto; bottom: calc(var(--console-ammo-height, 180px) + var(--console-edge) + 12px); }
+body[data-console="arcade"] #status { width: 304px; padding: 12px 16px; gap: 12px; background: linear-gradient(110deg, #092338ed, #0a1625cc); border-left: 4px solid #aaff64; border-top: 1px solid #9fceea88; }
+body[data-console="arcade"] #status .row { grid-template-columns: 58px 1fr 60px; font-size: 12px; }
+body[data-console="arcade"] #status .row:first-child { min-height: 36px; }
+body[data-console="arcade"] #hp { height: 24px; transform: skewX(-18deg); border: 1px solid #b7ff6e; }
+body[data-console="arcade"] #hp > i { background: #b4ff68; }
+body[data-console="arcade"] #hpT { font-size: 25px; }
+body[data-console="arcade"] #ammoBox { border-top: 3px solid #82d8ff; background: #091a2ae8; }
+body[data-console="arcade"] #wpn { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; text-align: left; justify-items: stretch; }
+body[data-console="arcade"] #wcls { grid-column: 1 / -1; color: #9fe0ff; }
+body[data-console="arcade"] #wpn > span:not(#wcls) { padding: 4px 6px; background: #ffffff0a; border-left: 2px solid #6c8ba0; }
+body[data-console="arcade"] #wpn > .on { background: #174b6a; border-left-color: #a8efff; }
+body[data-console="arcade"] #ammo { font-size: 40px; }
+body[data-console="arcade"] #lockRing { border-width: 2px; }
+/* フライト：上中央に積む戦況、丸みのある計器枠と中央下の装備パネル。 */
+body[data-console="flight"] .hud { --panel: #071f30cc; }
+body[data-console="flight"] #top { top: max(14px, env(safe-area-inset-top, 0px)); display: grid; grid-template-columns: 96px min(30vw, 320px); gap: 4px 14px; padding: 6px 12px; background: #061b29cc; }
+body[data-console="flight"] .core { width: 100%; grid-column: 2; }
+body[data-console="flight"] .core:first-child { grid-row: 1; }
+body[data-console="flight"] .core:last-child { grid-row: 2; }
+body[data-console="flight"] .core .lbl { color: #ddfaff; font-size: 10px; }
+body[data-console="flight"] .core .bar { height: 7px; }
+body[data-console="flight"] #timer { grid-column: 1; grid-row: 1 / 3; font-size: 36px; }
+body[data-console="flight"] #plantBar { top: 88px; }
+body[data-console="flight"] #mapHud { top: auto; bottom: calc(var(--console-ammo-height, 120px) + var(--console-edge) + 12px); padding: 6px; border: 1px solid #a6efff88; border-radius: 14px; background: #05273799; }
+body[data-console="flight"] #status { width: 280px; background: linear-gradient(110deg, #062e42e8, #061e2bcc); border-top: 2px solid #78edff; border-bottom: 1px solid #78edff55; }
+body[data-console="flight"] #status .row { color: #b5dce4; grid-template-columns: 58px 1fr 60px; }
+body[data-console="flight"] #status .row:first-child { min-height: 34px; }
+body[data-console="flight"] #hp { height: 14px; }
+body[data-console="flight"] #hp > i { background: #75ebff; }
+body[data-console="flight"] #hpT { font-size: 25px; color: #baf8ff; }
+body[data-console="flight"] #ammoBox { width: 280px; background: #061e2bdd; border-right: 2px solid #78edff; }
+body[data-console="flight"] #ammo { color: #c8f7ff; font-size: 42px; }
+body[data-console="flight"] #wpn { position: fixed; left: 50%; bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(32vw, 420px); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; text-align: left; justify-items: stretch; }
+body[data-console="flight"] #wcls { grid-column: 1 / -1; color: #c8f7ff; }
+body[data-console="flight"] #wpn > span:not(#wcls) { padding: 8px 6px; background: #052737e8; border-top: 2px solid #5c9dac; font-size: 11px; line-height: 1.5; }
+body[data-console="flight"] #wpn > .on { border-top-color: #e0fcff; background: #14596ade; box-shadow: inset 0 -2px #8cf0ff; }
+body[data-console="flight"] #lockRing { border-color: #91f1ff77; }
+body[data-console="flight"] #lockRing::before { content: ''; position: absolute; inset: 36% -18px; border-inline: 6px solid #91f1ff; }
+/* メカニカル：細い白線、左下の大きな耐久数値、武器4枠と方位計。 */
+body[data-console="mechanical"] .hud { --hud: #e1eceb; --dim: #b0c1c0; --panel: #0a131888; }
+body[data-console="mechanical"] #top { left: var(--console-edge); top: max(var(--console-edge), env(safe-area-inset-top, 0px)); transform: none; gap: 12px; }
+body[data-console="mechanical"] #timer { order: -1; font-size: 24px; }
+body[data-console="mechanical"] .core { width: min(19vw, 200px); }
+body[data-console="mechanical"] .core .bar { height: 3px; border: 0; }
+body[data-console="mechanical"] .core .lbl { font-size: 10px; }
+body[data-console="mechanical"] #plantBar { top: 76px; gap: 6px; }
+body[data-console="mechanical"] .pl { width: 38px; padding: 1px 0 4px; background: #08131588; border-width: 0 0 1px; font-size: 12px; }
+body[data-console="mechanical"] #status { width: 304px; gap: 12px; padding: 8px 0; background: linear-gradient(90deg, #06121899, transparent); }
+body[data-console="mechanical"] #status .row { grid-template-columns: 62px 1fr 62px; color: #d2e0df; }
+body[data-console="mechanical"] #status .row:first-child { grid-template-columns: 62px 1fr; }
+body[data-console="mechanical"] #hp { grid-column: 1 / -1; grid-row: 2; }
+body[data-console="mechanical"] #hpT { grid-column: 2; grid-row: 1; font-size: 36px; font-weight: 500; line-height: 1; }
+body[data-console="mechanical"] #status .bar { height: 4px; border: 0; }
+body[data-console="mechanical"] #hp > i { background: #e4eeec; }
+body[data-console="mechanical"] #status.low #hp > i { background: var(--warn); }
+body[data-console="mechanical"] #ammoBox { padding: 8px 10px; background: #07121888; border-top: 1px solid #cadad8; }
+body[data-console="mechanical"] #wpn { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; justify-items: stretch; text-align: left; }
+body[data-console="mechanical"] #wcls { grid-column: 1 / -1; }
+body[data-console="mechanical"] #wpn > span:not(#wcls) { border-top: 1px solid #b4c9c755; padding-top: 4px; }
+body[data-console="mechanical"] #wpn > .on { border-top-color: #efffff; box-shadow: none; color: #efffff; }
+body[data-console="mechanical"] #wpn > .act { color: #7dffb0; }
+body[data-console="mechanical"] #ammo { font-size: 32px; }
+body[data-console="mechanical"] #aimSp { background: #07121899; border-bottom: 1px solid #c8d9d755; }
+body[data-console="mechanical"] #lockRing { border-color: #c6d9d744; }
+body[data-console="mechanical"] #lockRing::before { content: ''; position: absolute; inset: -9px; border: 1px solid #d9eeec88; clip-path: polygon(0 0, 22% 0, 22% 2%, 2% 2%, 2% 22%, 0 22%, 0 0, 100% 0, 100% 22%, 98% 22%, 98% 2%, 78% 2%, 78% 0, 100% 0, 100% 100%, 78% 100%, 78% 98%, 98% 98%, 98% 78%, 100% 78%, 100% 100%, 0 100%, 0 78%, 2% 78%, 2% 98%, 22% 98%, 22% 100%, 0 100%); }
+body[data-console="flight"] #lockRing.acq, body[data-console="mechanical"] #lockRing.acq { border-color: #ffc46e; }
+body[data-console="flight"] #lockRing.on, body[data-console="mechanical"] #lockRing.on { border-color: var(--warn); }
+#consoleTelemetry[hidden], #consoleTelemetry .flightOnly[hidden] { display: none; }
+body[data-console="flight"] #consoleTelemetry::before { content: ''; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(56vw, 700px); height: 40vh; border: 1px solid #d8f7ff55; border-radius: 44px; }
+#consoleTelemetry .instrument { position: fixed; top: 50%; transform: translateY(-50%); width: 82px; color: #c6f8ff; font-size: 11px; }
+#consoleTelemetry .instrument b { display: block; font-size: 25px; line-height: 1.3; font-weight: 500; font-variant-numeric: tabular-nums; }
+#consoleSpeed { right: calc(50% + var(--aim-sp-offset) + 24px); text-align: right; border-right: 2px solid #78edff; padding-right: 10px; }
+#consoleAltitude { left: calc(50% + var(--aim-sp-offset) + 24px); border-left: 2px solid #78edff; padding-left: 10px; }
+#consoleHeading { position: fixed; left: 50%; transform: translateX(-50%); text-align: center; font-size: 11px; letter-spacing: .16em; color: #d5e9e7; }
+#consoleHeading b { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+body[data-console="flight"] #consoleHeading { top: calc(50% - var(--aim-sp-offset) - 36px); border-bottom: 1px solid #78edff66; padding: 2px 18px; }
+body[data-console="mechanical"] #consoleHeading { bottom: max(var(--console-edge), env(safe-area-inset-bottom, 0px)); width: 220px; padding: 8px 0 0; border-top: 1px solid #c4d8d6; background: repeating-linear-gradient(90deg, #c4d8d6 0 1px, transparent 1px 11px) top / 100% 4px no-repeat; }
+@media (max-width: 1000px) {
+  body[data-console]:where(:not([data-console="standard"])) { --console-edge: 12px; --console-map-width: 108px; }
+  body[data-console]:where(:not([data-console="standard"])) #status { width: min(280px, 42vw); padding: 10px; }
+  body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: min(300px, 42vw); padding: 8px 10px; }
+  body[data-console="flight"] #wpn { position: static; transform: none; width: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body[data-console="flight"] #wpn > span:not(#wcls) { padding: 4px; }
+  body[data-console="mechanical"] #consoleHeading { width: clamp(64px, calc(16vw - 24px), 160px); letter-spacing: .02em; }
+}
+@media (max-width: 700px), (max-height: 540px) {
+  #consoleList { grid-template-columns: 1fr; }
+  body[data-console]:where(:not([data-console="standard"])) #top { gap: 8px; }
+  body[data-console]:where(:not([data-console="standard"])) .core { width: 17vw; }
+  body[data-console="flight"] .core { width: 100%; }
+  body[data-console]:where(:not([data-console="standard"])) #status .row { grid-template-columns: 46px 1fr 60px; gap: 5px; font-size: 10px; letter-spacing: 0; }
+  body[data-console="mechanical"] #status .row:first-child { grid-template-columns: 46px 1fr; }
+  body[data-console="arcade"] #timer { min-width: 66px; font-size: 30px; }
+  body[data-console="arcade"] #hpT { font-size: 20px; }
+  body[data-console="flight"] #hpT { font-size: 20px; }
+  body[data-console="mechanical"] #hpT { font-size: 28px; }
+  body[data-console]:where(:not([data-console="standard"])) #wpn { font-size: 10px; }
+  body[data-console]:where(:not([data-console="standard"])) #ammo { font-size: 28px; }
+  body[data-console]:where(:not([data-console="standard"])) #ammoSub { font-size: 10px; }
+  body[data-console]:where(:not([data-console="standard"])) #feed { top: 86px; font-size: 10px; }
+}
+@media (max-width: 700px) {
+  /* 中央のSPバーの左右に余白を確保し、縦に長い武器説明とも重ねない。 */
+  body[data-console]:where(:not([data-console="standard"])) #status,
+  body[data-console]:where(:not([data-console="standard"])) #ammoBox { width: calc(50vw - 104px); }
+}
+@media (max-height: 640px) {
+  body[data-console="flight"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
+}
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -406,13 +568,14 @@ canvas#view { display: block; width: 100%; height: 100%; }
   <div class="core"><div class="lbl"><span id="coreRt">100%</span><span id="coreRn">敵軍コア</span></div><div class="bar" id="coreR"><i></i></div></div>
 </div>
 <div class="hud" id="plantBar"></div>
-<canvas class="hud" id="mini" width="108" height="192"></canvas>
+<div id="mapHud"><canvas class="hud" id="mini" width="108" height="192"></canvas><div class="hud" id="spotAlert" role="status" hidden><b>被索敵</b><small id="spotAlertInfo"></small></div></div>
 <div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる</span></div><canvas id="bigMapC"></canvas></div>
 <div class="hud" id="feed"></div>
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="lbl"><span>SP <b id="aimSpT">100%</b></span><span id="aimSpState"></span></div><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
+<div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b></div></div>
 <div class="hud" id="tags"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
@@ -427,7 +590,6 @@ canvas#view { display: block; width: 100%; height: 100%; }
 <div class="hud" id="lockAlert" role="status" hidden><b>被ロックオン</b><small id="lockAlertInfo"></small></div>
 <div class="hud" id="lockDirections" hidden></div>
 <div class="hud" id="baseAlert" hidden></div>
-<div class="hud" id="spotAlert" role="status" hidden><b>被索敵</b><small id="spotAlertInfo"></small></div>
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
 <div id="respawn" hidden><div id="rtXf" hidden></div><div id="killcam" hidden><small>あなたを撃破した相手</small><b></b><span></span></div><div class="rt" id="rtCls">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt" id="rtPt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
 <div class="hud" id="status">
@@ -447,6 +609,7 @@ canvas#view { display: block; width: 100%; height: 100%; }
         <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
         <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
+        <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
         <label class="sw"><span>戦闘中BGM<small id="bgmNote">試合中に曲を流す</small></span><input type="checkbox" role="switch" id="bgmSw" checked><i aria-hidden="true"></i></label>
         <label class="sw"><span>音声アナウンス<small>戦況をブラウザの音声で読み上げる（文字はいつも出る）</small></span><input type="checkbox" role="switch" id="voiceSw" checked><i aria-hidden="true"></i></label>
       </nav>
@@ -455,10 +618,18 @@ canvas#view { display: block; width: 100%; height: 100%; }
       <button id="start" type="button">出撃する</button>
       <p class="note">PCのキーボードとマウス向けです。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
     </section>
+    <section class="page" id="pgConsole" hidden>
+      <div class="pgh"><h2>コンソール</h2><button type="button" class="back">戻る</button></div>
+      <p>戦闘画面の配置を選びます。選択は自動で保存され、戦闘中も F2 キーで切り替えられます。</p>
+      <div id="consoleList" role="group" aria-label="コンソールの種類"></div>
+      <p class="note" id="consoleSelection" role="status"></p>
+      <button type="button" class="back">戻る</button>
+    </section>
     <section class="page" id="pgHelp" hidden>
       <div class="pgh"><h2>操作説明</h2><button type="button" class="back">戻る</button></div>
       <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
       <div class="keys">
+        <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。メニューの「コンソール」でも選べます</span>
         <kbd>WASD</kbd><span>移動</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
         <kbd>Shift 長押し</kbd><span>ロングダッシュ（押している間ブーストを毎秒約11消費して高速移動。使い切るとオーバーヒート）</span>
@@ -7011,9 +7182,63 @@ function renderBuildTabs() {
 renderBuildTabs();
 for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
 // ---- メニュー（操作説明・マップ選択・武装選択） ----
+// コンソールは表示だけを切り替える。装備・兵装・試合の保存データとは独立させる。
+const CONSOLES = [
+  { id: 'standard', name: '標準', desc: '現在の配置。左上のマップ、四隅の情報、照準の弧を使う基本の画面。' },
+  { id: 'arcade', name: 'アーケード', desc: '左上の大きな時間・戦況と斜めの耐久ゲージ。マップと装備は右下に集約。' },
+  { id: 'flight', name: 'フライト', desc: '青緑の飛行計器。照準の左右に速度と対地高度、中央下に4枠の装備を配置。' },
+  { id: 'mechanical', name: 'メカニカル', desc: '細い白線と大きな耐久数値。左下の機体情報、右下の装備、下中央の方位計。' },
+];
+const CONSOLE_KEY = 'coreBreakerConsole';
+let consoleMode = 'standard';
+$('consoleList').innerHTML = CONSOLES.map(c => `<button type="button" class="consoleCard" data-console-choice="${c.id}" aria-pressed="false"><span class="consoleMini" data-preview="${c.id}" aria-hidden="true"><i class="team"></i><i class="map"></i><i class="sight"></i><i class="sp"></i><i class="health"></i><i class="weapon"></i></span><b>${c.name}</b><small>${c.desc}</small></button>`).join('');
+function setConsole(id, save = true) {
+  const c = CONSOLES.find(c => c.id === id) || CONSOLES[0];
+  consoleMode = c.id;
+  document.body.dataset.console = c.id;
+  $('consoleNow').textContent = c.name;
+  $('consoleSelection').textContent = `選択中：${c.name}。照準の下のSP残量と、戦闘に必要な情報はすべての配置で確認できます。`;
+  for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
+  // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
+  consoleTelemetry(player);
+  if (save) { try { localStorage.setItem(CONSOLE_KEY, c.id); } catch (_) {} }
+}
+let savedConsole;
+try { savedConsole = localStorage.getItem(CONSOLE_KEY); } catch (_) {}
+setConsole(savedConsole, false);
+$('consoleList').addEventListener('click', e => {
+  const b = e.target.closest('[data-console-choice]');
+  if (b) setConsole(b.dataset.consoleChoice);
+});
+addEventListener('keydown', e => {
+  if (e.code !== 'F2' || e.repeat || e.altKey || e.ctrlKey || e.metaKey || !running || !$('overlay').hidden) return;
+  e.preventDefault();
+  const next = CONSOLES[(CONSOLES.findIndex(c => c.id === consoleMode) + 1) % CONSOLES.length];
+  setConsole(next.id);
+  feed('コンソール：' + next.name + '（F2で切り替え）');
+});
+// 長い装備説明や複数行の警告にも合わせ、マップと通知を重ねない。
+if (window.ResizeObserver) {
+  const observer = new ResizeObserver(() => {
+    document.body.style.setProperty('--console-ammo-height', $('ammoBox').offsetHeight + 'px');
+    document.body.style.setProperty('--console-lock-height', $('lockAlert').offsetHeight + 'px');
+  });
+  observer.observe($('ammoBox')); observer.observe($('lockAlert'));
+}
+function consoleTelemetry(p) {
+  const flight = consoleMode === 'flight', on = p && p.alive && !p.scoped && (flight || consoleMode === 'mechanical');
+  $('consoleTelemetry').hidden = !on;
+  if (!on) return;
+  $('consoleSpeed').hidden = $('consoleAltitude').hidden = !flight;
+  $('consoleHeadingT').textContent = String((Math.round(-p.yaw * 180 / Math.PI) % 360 + 360) % 360).padStart(3, '0') + '°';
+  if (flight) {
+    $('consoleSpeedT').textContent = Math.hypot(p.vel.x, p.vel.y, p.vel.z).toFixed(1);
+    $('consoleAltitudeT').textContent = Math.max(0, p.pos.y - groundAt(p.pos.x, p.pos.z, p.pos.y + .3)).toFixed(1);
+  }
+}
 function showPage(id) {
   for (const pg of document.querySelectorAll('#overlay .page')) pg.hidden = pg.id !== id;
-  $('ovCard').classList.toggle('wide', id === 'pgMenu' && !!$('ovBoard').innerHTML);
+  $('ovCard').classList.toggle('wide', id === 'pgConsole' || id === 'pgMenu' && !!$('ovBoard').innerHTML);
   $('ovCard').classList.toggle('xwide', id === 'pgCustom');
   $('overlay').scrollTop = 0;
 }
@@ -7613,6 +7838,8 @@ function hud(timeLeft, dt) {
   $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge('R', pr);
   $('timer').textContent = fmt(timeLeft);
   const p = player;
+  consoleTelemetry(p);
+  $('status').classList.toggle('low', p.hp / p.maxHp <= .3);
   $('hp').firstChild.style.width = Math.max(0, p.hp / p.maxHp * 100) + '%'; $('hpT').textContent = Math.max(0, Math.round(p.hp));
   $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = Math.round(p.boost);
   $('boost').classList.toggle('oh', p.overheat);
