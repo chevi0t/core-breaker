@@ -3609,7 +3609,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (r.isPlayer) flashDamage();
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0)); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
-  else if (!noJolt) jolt(r, by.pos, real, melee);
+  else if (!noJolt) jolt(r, melee ? origin : by.pos, real, melee); // 近接は刃が来た向きの逆へ（v0.21）
   return head ? 'head' : true;
 }
 // 自分が撃破・破壊した対象の頭上に大きく表示する
@@ -4631,7 +4631,7 @@ const WEAPONS = {
   blade: {
     name: 'ソード・大剣', type: 'sword', desc: 'ソード系の上位。重く遅いが、横なぎの一振りが重い。ダッシュ斬りの踏み込みは短く、隙が大きい',
     normal: { dmg: 8000, reach: 5.4, height: 2.6, from: 80, to: -80, windup: 0.25, sweep: 0.2, time: 0.85, step: 3, homing: 5 },
-    strong: { dmg: 11000, reach: 5.4, height: 2.0, from: 90, to: -630, spin: true, lunge: 11, windup: 0, sweep: 0.7, recover: 1.3, time: 1.9, homing: 1.5 },
+    strong: { dmg: 11000, reach: 5.4, height: 2.0, from: 90, to: -630, spin: true, lunge: 11, windup: 0, sweep: 0.7, recover: 1.3, time: 2.0, homing: 1.5 }, // time は振り0.7＋硬直1.3（v0.21。1.9だと構えに戻ってから0.1秒動けなかった）
   },
   // ロングスピアA11S相当（通常4000・特殊6000）：穂先だけの突き。横の範囲はほとんど無いが届く。ダッシュ中は長く踏み込んで突く
   spear: {
@@ -5453,7 +5453,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
       r = gunTick(u, sl, dt, t, aim, spread);
       if (on && alt && !u.altHeld && sl.w.proj && sl.w.proj.kind === 'remote') detonateRemotes(u); // 遠隔爆弾：持っている間に右クリックで全部起爆
     }
-    else if (type === 'sword') {if(sl.w.meleeCharge&&!on)sl.chargeT=sl.holdT=0;r=swordTick(u, sl, dt, t);}
+    else if (type === 'sword') {if(sl.w.meleeCharge&&!on)sl.chargeT=sl.holdT=0;r=swordTick(u, sl, dt, t, aim);}
     else if(type==='radarTool') radarToolTick(u,sl,dt,on);
     else if (type === 'repair') r = repairTick(u, sl, dt, t, aim, on && alt);
     else if (type === 'charger') chargerTick(u, sl, dt);
@@ -5579,6 +5579,22 @@ function recoilAim(from, aim, recoil) {
 // ソード：止まっているか歩いているときは横なぎ、ダッシュ中は回転斬り。ロック中の敵がいればその方向へ踏み込み、踏み込み中も追う（meleeHome）。
 // 刃は毎フレーム前のフレームの角度から今の角度まで振られ、その間に通った扇形にいる相手に1回ずつ当たる
 const DEG = Math.PI / 180, BLADE_IN = 1.4; // BLADE_IN：刃の根元（機体の中心から）
+// 上下の斬り（v0.21、#14）：振り始めの照準の高さへ刃を傾ける（上下 SWING_TILT まで）。刃は機体の中心から円すいの面を通り、離れるほど高さが変わる。
+// 振り始めで決まり、振っている間は変わらない。回転斬りはジャンプで避けられるように水平のまま（ユーザー指定）
+const SWING_TILT = 30 * DEG;
+function swingTilt(u, a, aim) {
+  if (a.spin || !aim) return 0;
+  const t = Math.atan2(aim.y - (u.pos.y + a.height), Math.max(1, Math.hypot(aim.x - u.pos.x, aim.z - u.pos.z)));
+  return Math.max(-SWING_TILT, Math.min(SWING_TILT, t));
+}
+// 近接で吹き飛ぶ向き（v0.21、#14、ユーザー「ダメージ食らった方向と逆に飛んだら自然」）：刃が来た向きの逆、つまり刃の進む向きへ、少し外へ押す。
+// 突きのように振りの幅（span 度）が狭いほど、まっすぐ外へ押す。返すのは jolt の from（押される元）。c は振りの中心、dir は振る向き（左が正）
+function swingPushFrom(c, p, dir, span) {
+  const th = Math.atan2(-(p.x - c.x), -(p.z - c.z)), k = Math.min(1, span / 90) * dir;
+  // 外向きは (-sin th, -cos th)、角度が増える向きの接線は (-cos th, sin th)
+  return new T.Vector3(p.x + Math.sin(th) * .6 + Math.cos(th) * k, p.y, p.z + Math.cos(th) * .6 - Math.sin(th) * k);
+}
+const meleeFrom = new Map(); // 連撃で1フレームに当てた相手ごとの押される元
 // 振りの今の角度（機体の向き基準、ラジアン。左が正）
 function swingRel(sw) {
   if(sw.a.strikes){const strike=sw.a.strikes.filter(x=>sw.t>=sw.a.windup+x.at).pop()||sw.a.strikes[0],k=Math.max(0,Math.min(1,(sw.t-sw.a.windup-strike.at)/strike.sweep));return (strike.from+(strike.to-strike.from)*k)*DEG;}
@@ -5600,7 +5616,7 @@ function meleeHome(u, sw, dt) {
   u.lungeDir.set(-Math.sin(y), 0, -Math.cos(y));
   if (!sw.a.spin) sw.yaw0 = y;
 }
-function swordTick(u, sl, dt, trigger) {
+function swordTick(u, sl, dt, trigger, aim) {
   sl.cd -= dt;
   const sw = u.swing;
   if (sw) {
@@ -5613,9 +5629,9 @@ function swordTick(u, sl, dt, trigger) {
         const start=a.windup+strike.at,end=start+strike.sweep;
         if(sw.t<=start || sw.t-dt>=end)return;
         const angle=t=>sw.yaw0+(strike.from+(strike.to-strike.from)*Math.max(0,Math.min(1,(t-start)/strike.sweep)))*DEG;
-        bladeSweep(u,{...sw,a:{...a,dmg:strike.dmg},offset:strike.side,hit:sw.hitSets[i]},angle(sw.t-dt),angle(sw.t));
+        bladeSweep(u,{...sw,a:{...a,dmg:strike.dmg},offset:strike.side,hit:sw.hitSets[i],span:Math.abs(strike.to-strike.from)},angle(sw.t-dt),angle(sw.t));
       });
-      for(const [target,amount] of volley)jolt(target,u.pos,amount,true);volley=null;
+      for(const [target,amount] of volley)jolt(target,meleeFrom.get(target)||u.pos,amount,true);volley=null;meleeFrom.clear();
     } else if (sw.t > a.windup && sw.t - dt < a.windup + a.sweep) bladeSweep(u, sw, sw.phi, phi);
     sw.phi = phi;
     if (a.recover && !sw.stopped && sw.t >= a.windup + a.sweep) {
@@ -5650,8 +5666,8 @@ function swordTick(u, sl, dt, trigger) {
   const td = tgt && tgt.alive && tgt.kind === 'unit' ? Math.hypot(tgt.pos.x - u.pos.x, tgt.pos.z - u.pos.z) : Infinity;
   if (td < (a.lunge || a.step || 0) + a.reach + R) dir.set(tgt.pos.x - u.pos.x, 0, tgt.pos.z - u.pos.z).normalize();
   else tgt = null;
-  const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt;
-  u.swing = { a, t: 0, yaw0, aimed, tgt, phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
+  const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt, tilt = swingTilt(u, a, aim);
+  u.swing = { a, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
   if(sl.w.acMelee)u.meleeFired=(u.meleeFired||0)+1;
   reveal(u);
   sfx(a.spin ? 'spin' : 'swing', u.pos, u);
@@ -5665,10 +5681,11 @@ function swordTick(u, sl, dt, trigger) {
   return false;
 }
 // 刃が phi0 から phi1 まで振られた扇形（中心は機体、半径 BLADE_IN〜reach、高さ hb）に、
-// 中心 p・半径 size・高さ y0〜y1 の相手がかかっていれば当たり。ジャンプで足元が刃より上なら当たらない
-function bladeHits(u, phi0, phi1, hb, reach, p, size, y0, y1) {
-  if (hb < y0 - 0.3 || hb > y1 + 0.3) return false;
-  const dx = p.x - u.pos.x, dz = p.z - u.pos.z, d = Math.hypot(dx, dz);
+// 中心 p・半径 size・高さ y0〜y1 の相手がかかっていれば当たり。ジャンプで足元が刃より上なら当たらない。
+// slope：上下の斬りの傾き（1mごとに上がる高さ）。刃の高さは相手の中心までの距離で決まる
+function bladeHits(u, phi0, phi1, hb, reach, p, size, y0, y1, slope = 0) {
+  const dx = p.x - u.pos.x, dz = p.z - u.pos.z, d = Math.hypot(dx, dz), h = hb + slope * Math.min(d, reach);
+  if (h < y0 - 0.3 || h > y1 + 0.3) return false;
   if (d - size > reach) return false;
   if (d <= size + 0.5) return true;
   const half = Math.asin(Math.min(1, size / d));
@@ -5678,20 +5695,24 @@ function bladeHits(u, phi0, phi1, hb, reach, p, size, y0, y1) {
   return s >= 0 ? a >= -half && a <= s + half : a <= half && a >= s - half;
 }
 function bladeSweep(u, sw, phi0, phi1) {
-  const a = sw.a, hb = u.pos.y + a.height;
-  // 刃の軌跡
+  const a = sw.a, hb = u.pos.y + a.height, slope = sw.slope || 0, span = sw.span ?? Math.abs(a.to - a.from), turn = Math.sign(phi1 - phi0);
+  // 刃の軌跡（上下の斬りは円すいの面）
   const geo = new T.RingGeometry(BLADE_IN, a.reach, 6, 1, Math.PI / 2 + Math.min(0, phi1 - phi0), Math.abs(phi1 - phi0) + 0.01).rotateX(-Math.PI / 2);
+  if (slope) { const q = geo.attributes.position; for (let i = 0; i < q.count; i++) q.setY(i, Math.hypot(q.getX(i), q.getZ(i)) * slope); }
   const m = new T.Mesh(geo, new T.MeshBasicMaterial(Object.assign(glow(0xcfefff), { side: T.DoubleSide })));
   m.position.copy(u.pos).setY(hb);
   m.rotation.y = phi0;
   addFx(m, 0.2, { kind: 'arc', ownGeo: true });
   let res = false;
   const tryHit = (r, p, size, y0, y1) => {
-    if (sw.hit.has(r) || !bladeHits(sw.offset?{pos:u.pos.clone().addScaledVector(new T.Vector3(Math.cos(u.yaw),0,-Math.sin(u.yaw)),sw.offset)}:u, phi0, phi1, hb, a.reach, p, size, y0, y1)) return;
+    const c = sw.offset ? u.pos.clone().addScaledVector(new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw)), sw.offset) : u.pos;
+    if (sw.hit.has(r) || !bladeHits({ pos: c }, phi0, phi1, hb, a.reach, p, size, y0, y1, slope)) return;
     sw.hit.add(r);
     sfx('slash', p);
-    impact(new T.Vector3(p.x, hb, p.z), 'hit', 0);
-    if (damage(r, u, a.dmg, false, true)) res = true; // 格闘
+    impact(new T.Vector3(p.x, hb + slope * Math.min(a.reach, Math.hypot(p.x - c.x, p.z - c.z)), p.z), 'hit', 0);
+    const from = swingPushFrom(c, p, turn, span);
+    if (volley) meleeFrom.set(r, from);
+    if (damage(r, u, a.dmg, false, true, null, from)) res = true; // 格闘
   };
   for (const e of units) if (e.alive && e.team !== u.team) tryHit(e, e.pos, R, e.pos.y, e.pos.y + UNIT_H);
   for (const tu of turrets) if (tu.alive && tu.team !== u.team) tryHit(tu, tu.pos, 1.5, tu.pos.y, tu.pos.y + 3.7);
@@ -5782,10 +5803,11 @@ function bladePose(u) {
         const strikeHand = thrust ? bladeHand.set(sd * (.65 - .4 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
           : family === 'claw' ? bladeHand.set(sd * (.95 - .45 * Math.sin(cut * Math.PI)), a.height, -.55 - .7 * Math.sin(cut * Math.PI))
           : bladeHand.set(-Math.sin(rel) * .55, a.height, -Math.cos(rel) * .55);
+        strikeHand.y += Math.hypot(strikeHand.x, strikeHand.z) * (sw.slope || 0); // 上下の斬り：手も同じ円すいの面に乗せる
         held.lerp(strikeHand, blend); angle += ((family === 'claw' ? sd * -.12 : rel) - angle) * blend;
-        pitch *= 1 - blend;
+        pitch += ((sw.tilt || 0) - pitch) * blend;
         scale = family === 'pike' || family === 'claw' ? 1 : ((family === 'spear' ? w.normal.reach : a.reach) - .55) / (gripZ - bb.min.z);
-        if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1; }
+        if (sd === 1) { twist += ((thrust ? -.12 - .22 * Math.sin(cut * Math.PI) : family === 'claw' ? Math.sin(rel) * .12 : Math.max(-.9, Math.min(.9, rel * .7))) - twist) * blend; power = Math.sin(cut * Math.PI) * blend; lean = -.035 - power * .1 + (sw.tilt || 0) * .35 * blend; }
       }
     }
     if (selected && w.meleeCharge && !sw) { const charge = Math.min(1, (u.slots.aux.chargeT || 0) / w.chargeTime); held.z += charge * .22; twist -= charge * .2; }
