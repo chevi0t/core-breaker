@@ -51,7 +51,7 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
         document.querySelector(`[data-console-choice="${mode}"]`).click();
         g.equip(u, 'raid'); u.alive = true; u.invulT = 0; u.hp = 2100; u.boost = u.maxBoost * .4; u.slots.sp.heat = 37; u.slots.sp.overheat = true;
         g.hud(240, .016);
-        const values = $('aimSpBar').getAttribute('aria-valuenow') === '37' && $('aimSpBar').firstChild.style.width === '37%' && !$('aimSp').textContent.trim() && $('spT').textContent === '37' && $('hpT').textContent === '2100' && $('status').classList.contains('low') && $('aimSp').classList.contains('oh')
+        const values = $('aimSpBar').getAttribute('aria-valuenow') === '37' && $('aimSpBar').firstChild.style.width === '37%' && !$('aimSp').textContent.trim() && $('spT').textContent === (mode === 'flight' ? '37%' : '37') && $('hpT').textContent === '2100' && $('status').classList.contains('low') && $('aimSp').classList.contains('oh')
           && (mode !== 'arcade' || $('timer').textContent === '240' && $('hp').style.getPropertyValue('--fill') === '21%' && $('pilotCls').textContent === '遊撃' && $('w-sp').style.getPropertyValue('--fill') === '37%' && $('w-' + u.weapon).dataset.n === $('ammo').textContent && $('w-sub').dataset.n === String(u.slots.sub.ammo) && $('w-sp').dataset.n === '37%');
         u.slots.sp.overheat = false; g.toggleSp(u); const before = u.slots.sp.heat;
         g.weaponsTick(u, .5, false, u.pos.clone(), 0); g.hud(240, .016);
@@ -92,13 +92,13 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
             document.getElementById('spotAlert').hidden = false; document.getElementById('spotAlertInfo').textContent = '索敵センサー・偵察機 残り15秒';
           }, mode);
           await p.waitForTimeout(50); // ResizeObserver の武器情報の高さを反映
-          const box = await p.evaluate(() => Object.fromEntries(['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn', 'consoleHeading', 'plantBar', 'lockAlert', 'baseAlert'].map(id => {
-            const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }];
-          })));
+          const box = await p.evaluate(mode => Object.fromEntries(['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn', 'consoleHeading', 'plantBar', 'lockAlert', 'baseAlert'].map(id => {
+            const r = document.getElementById(id === 'aimSp' && mode === 'flight' ? 'sp' : id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }];
+          })), mode);
           const inside = r => r.x >= -.5 && r.y >= -.5 && r.x + r.w <= width + .5 && r.y + r.h <= height + .5;
           const overlap = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1;
           const label = `${map}/${width}x${height}/${mode}`;
-          // 標準は元の配置。追加3種類で中央のSPと周辺パネルを重ねない。
+          // 標準は元の配置。追加3種類でSPと周辺パネルを重ねない（フライトは下中央）。
           if (mode !== 'standard') {
             for (const id of ['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn']) yes(inside(box[id]), label + '/' + id + 'が画面内');
             for (const id of ['mini', 'status', 'ammoBox', 'wpn']) yes(!overlap(box.aimSp, box[id]), label + '/SPと' + id + 'が重ならない');
