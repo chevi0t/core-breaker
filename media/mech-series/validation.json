@@ -1,0 +1,64 @@
+{
+  "dateJST": "2026-10-20",
+  "runner": "Codex",
+  "codeCommit": "4e15aeb84e7d509592a83d2acd6f782009b1639c",
+  "baselineCommit": "fcf2c742eb6e418461c2dcc4ef426cfe87ee2037",
+  "prototypeGitBlob": "5123f321530c514746d193fd974dfffce1d37c80",
+  "commands": [
+    {
+      "command": "node tools/test/mech_series_check.js dbg/mech-series media/mech-series <追加前stats.json>",
+      "result": "成功",
+      "adoptedParts": 36,
+      "unchangedParts": 36,
+      "unchangedWeapons": 285,
+      "runtimeChecks": 119,
+      "saveAndScreenshots": true
+    },
+    {
+      "command": "node tools/test/part_variants_check.js dbg/mech-series <画像出力先>",
+      "result": "成功",
+      "combinations": 104976,
+      "sets": 486,
+      "shapeVariants": 48,
+      "botChoices": 18
+    },
+    {
+      "command": "node tools/test/mech_shapes_check.js dbg/mech-series <画像出力先>",
+      "result": "成功",
+      "combinations": 1296,
+      "shots": 6480,
+      "maxBoxes": 48
+    },
+    {
+      "command": "node tools/test/bot_battle.js dbg/mech-series city,wide,mesa,dock 150",
+      "result": "成功",
+      "maps": [
+        {
+          "map": "city",
+          "seconds": 151,
+          "errors": 0,
+          "endedNormally": false
+        },
+        {
+          "map": "wide",
+          "seconds": 159,
+          "errors": 0,
+          "endedNormally": false
+        },
+        {
+          "map": "mesa",
+          "seconds": 156,
+          "errors": 0,
+          "endedNormally": false
+        },
+        {
+          "map": "dock",
+          "seconds": 33,
+          "errors": 0,
+          "endedNormally": true
+        }
+      ],
+      "newTypesObserved": "全9型をcityで確認"
+    }
+  ]
+}

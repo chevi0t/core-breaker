@@ -2315,6 +2315,15 @@ const PARTS = {
 // SP回復性能の基準値と巡航速度はAC表に無いので本作Ⅰ型を継承する。DEF・加速時間から値を作らない。
 const PART_VARIANTS = {
   head: {
+    harrier: ['standard', { weight: 500/600, armor: 1.19/1, aim: 1.16/1, lock: 90/80 }], // AC ヤクシャ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier2: ['standard', { weight: 500/600, armor: 1.19/1, aim: 1.16/1, lock: 120/80 }], // AC ヤクシャ・改 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier3: ['standard', { weight: 520/600, armor: 1.25/1, aim: 1.2/1, lock: 80/80 }], // AC ヤクシャ・弐 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    prism: ['standard', { weight: 550/600, armor: 1.32/1, aim: 1.3/1, lock: 60/80 }], // AC E.D.G.-α / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism2: ['standard', { weight: 560/600, armor: 1.32/1, aim: 1.33/1, lock: 30/80 }], // AC E.D.G.-β / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism3: ['standard', { weight: 570/600, armor: 1.32/1, aim: 1.3/1, lock: 80/80 }], // AC E.D.G.-δ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    bastion: ['standard', { weight: 750/600, armor: 0.85/1, aim: 0.84/1, lock: 100/80 }], // AC ケーファー42 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion2: ['standard', { weight: 730/600, armor: 0.85/1, aim: 0.84/1, lock: 120/80 }], // AC ケーファー44 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion3: ['standard', { weight: 770/600, armor: 0.9/1, aim: 1.04/1, lock: 90/80 }], // AC ケーファー45 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
     light2: ['light', { weight: 470/450, armor: 1.32/1.32, aim: 1/1, lock: 60/85 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     light3: ['light', { weight: 450/450, armor: 1.32/1.32, aim: 1.16/1, lock: 100/85 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     standard2: ['standard', { weight: 620/600, armor: 1/1, aim: 1/1, lock: 60/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
@@ -2323,6 +2332,15 @@ const PART_VARIANTS = {
     heavy3: ['heavy', { weight: 800/800, armor: 0.78/0.78, aim: 0.84/0.76, lock: 70/80 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   body: {
+    harrier: ['standard', { weight: 1150/1250, armor: 1.19/1, boost: 110/100, supply: 1/1 }], // AC ヤクシャ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier2: ['standard', { weight: 1160/1250, armor: 1.25/1, boost: 130/100, supply: 0.65/1 }], // AC ヤクシャ・改 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier3: ['standard', { weight: 1180/1250, armor: 1.19/1, boost: 105/100, supply: 1.2/1 }], // AC ヤクシャ・弐 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    prism: ['standard', { weight: 1250/1250, armor: 1.25/1, boost: 80/100, supply: 1.6/1 }], // AC E.D.G.-α / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism2: ['standard', { weight: 1280/1250, armor: 1.25/1, boost: 100/100, supply: 1.35/1 }], // AC E.D.G.-β / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism3: ['standard', { weight: 1250/1250, armor: 1.25/1, boost: 60/100, supply: 2/1 }], // AC E.D.G.-δ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    bastion: ['standard', { weight: 1380/1250, armor: 0.85/1, boost: 105/100, supply: 1.1/1 }], // AC ケーファー42 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion2: ['standard', { weight: 1420/1250, armor: 0.85/1, boost: 100/100, supply: 1.35/1 }], // AC ケーファー44 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion3: ['standard', { weight: 1450/1250, armor: 0.85/1, boost: 125/100, supply: 0.9/1 }], // AC ケーファー45 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
     light2: ['light', { weight: 1030/1000, armor: 1.32/1.32, boost: 115/95, supply: 0.5/0.9 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     light3: ['light', { weight: 1070/1000, armor: 1.25/1.32, boost: 90/95, supply: 1.2/0.9 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     standard2: ['standard', { weight: 1300/1250, armor: 1/1, boost: 110/100, supply: 1/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
@@ -2331,6 +2349,15 @@ const PART_VARIANTS = {
     heavy3: ['heavy', { weight: 1500/1430, armor: 0.78/0.78, boost: 120/100, supply: 1/1.2 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   arms: {
+    harrier: ['standard', { weight: 770/850, armor: 1.19/1, recoil: 0.9/1, reload: 0.91/1, swap: 1.3/1, ammo: 1.23/1 }], // AC ヤクシャ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier2: ['standard', { weight: 710/850, armor: 1.25/1, recoil: 0.75/1, reload: 0.82/1, swap: 1.5/1, ammo: 1.14/1 }], // AC ヤクシャ・改 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier3: ['standard', { weight: 790/850, armor: 1.19/1, recoil: 1.2/1, reload: 0.955/1, swap: 1.3/1, ammo: 1.27/1 }], // AC ヤクシャ・弐 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    prism: ['standard', { weight: 850/850, armor: 1.25/1, recoil: 1/1, reload: 0.78/1, swap: 1/1, ammo: 1.27/1 }], // AC E.D.G.-α / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism2: ['standard', { weight: 860/850, armor: 1.25/1, recoil: 0.75/1, reload: 0.64/1, swap: 1.05/1, ammo: 1.09/1 }], // AC E.D.G.-β / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism3: ['standard', { weight: 850/850, armor: 1.25/1, recoil: 1.35/1, reload: 0.82/1, swap: 1/1, ammo: 1.32/1 }], // AC E.D.G.-δ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    bastion: ['standard', { weight: 930/850, armor: 0.85/1, recoil: 1.2/1, reload: 1.09/1, swap: 0.9/1, ammo: 1.5/1 }], // AC ケーファー42 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion2: ['standard', { weight: 910/850, armor: 0.9/1, recoil: 1.1/1, reload: 1/1, swap: 1.1/1, ammo: 1.45/1 }], // AC ケーファー44 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion3: ['standard', { weight: 980/850, armor: 0.85/1, recoil: 1.45/1, reload: 1.18/1, swap: 0.9/1, ammo: 1.59/1 }], // AC ケーファー45 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
     light2: ['light', { weight: 620/660, armor: 1.32/1.25, recoil: 0.75/0.9, reload: 0.82/0.91, swap: 1.4/1.2, ammo: 1/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     light3: ['light', { weight: 700/660, armor: 1.25/1.25, recoil: 1/0.9, reload: 0.86/0.91, swap: 1.1/1.2, ammo: 1.18/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     standard2: ['standard', { weight: 860/850, armor: 1/1, recoil: 1.2/1, reload: 1.09/1, swap: 1/1, ammo: 1.32/1 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
@@ -2339,6 +2366,15 @@ const PART_VARIANTS = {
     heavy3: ['heavy', { weight: 1050/1000, armor: 0.78/0.78, recoil: 1.2/1.25, reload: 1.04/1.18, swap: 0.95/0.8, ammo: 1.59/1.5 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/313.html
   },
   legs: {
+    harrier: ['standard', { weight: 880/900, armor: 1.19/1, walk: 6.75/6.3, dash: 25.5/21.9, cap: 4550/4550 }], // AC ヤクシャ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier2: ['standard', { weight: 850/900, armor: 1.25/1, walk: 8.55/6.3, dash: 25.5/21.9, cap: 4550/4550 }], // AC ヤクシャ・改 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    harrier3: ['standard', { weight: 940/900, armor: 1.19/1, walk: 5.85/6.3, dash: 26.1/21.9, cap: 4550/4550 }], // AC ヤクシャ・弐 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/316.html
+    prism: ['standard', { weight: 880/900, armor: 1.19/1, walk: 6.97/6.3, dash: 24.3/21.9, cap: 4750/4550 }], // AC E.D.G.‐α / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism2: ['standard', { weight: 920/900, armor: 1.19/1, walk: 7.65/6.3, dash: 24.3/21.9, cap: 4750/4550 }], // AC E.D.G.‐β / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    prism3: ['standard', { weight: 970/900, armor: 1.25/1, walk: 6.3/6.3, dash: 25.5/21.9, cap: 4750/4550 }], // AC E.D.G.‐δ / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/311.html
+    bastion: ['standard', { weight: 1220/900, armor: 0.85/1, walk: 6.3/6.3, dash: 20.7/21.9, cap: 6350/4550 }], // AC ケーファー42 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion2: ['standard', { weight: 1210/900, armor: 0.9/1, walk: 7.65/6.3, dash: 20.7/21.9, cap: 6150/4550 }], // AC ケーファー44 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
+    bastion3: ['standard', { weight: 1320/900, armor: 0.85/1, walk: 5.21/6.3, dash: 21.9/21.9, cap: 6350/4550 }], // AC ケーファー45 / クーガーⅠ型。https://w.atwiki.jp/borderbreak/pages/314.html
     light2: ['light', { weight: 700/750, armor: 1.32/1.25, walk: 9.76/8.73, dash: 24.9/24.9, cap: 3800/3800 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     light3: ['light', { weight: 770/750, armor: 1.25/1.25, walk: 7.65/8.73, dash: 27/24.9, cap: 3800/3800 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/315.html
     standard2: ['standard', { weight: 920/900, armor: 1.05/1, walk: 7.65/6.3, dash: 22.5/21.9, cap: 4550/4550 }], // AC採用型 / ACⅠ型。https://w.atwiki.jp/borderbreak/pages/308.html
@@ -2363,6 +2399,9 @@ for (const [slot, variants] of Object.entries(PART_VARIANTS)) for (const [key, [
 // スウィフト＝シュライク（ブースター+5、歩行+0.45m/s）、ハウンド＝クーガー（射撃補正+5%、重量耐性+150）、
 // ブルワーク＝ヘヴィガード（装甲+3%を各部位。もう1つの DEF耐久+250 は本作に DEF が無いので入れない）
 const PART_SERIES = {
+  harrier: {"maker":"sylph","name":"ハリアー","desc":"薄い装甲で機動力を優先。Ⅱは歩行とブースト、ⅢはダッシュとSP回復に寄せる","types":["harrier","harrier2","harrier3"],"set":{"text":"ロック距離 +5m、ダッシュ +0.60m/s","fx":[["head","lock","add",5],["legs","dash","add",0.6]]}},
+  prism: {"maker":"lumina","name":"プリズム","desc":"射撃補正・再装填・SP回復に優れるが装甲が薄い。Ⅲ胴はブーストを削って回復を優先","types":["prism","prism2","prism3"],"set":{"text":"再装填速度 +4.5%（時間を1.045で割る）","fx":[["arms","reload","mul",0.9569377990430623]]}},
+  bastion: {"maker":"gard","name":"バスティオン","desc":"重装備を載せるための重量耐性と反動制御。Ⅱは取り回し、Ⅲは火力支援向け","types":["bastion","bastion2","bastion3"],"set":{"text":"反動吸収 +5%、歩行 +0.45m/s","fx":[["arms","recoil","mul",1.05],["legs","walk","add",0.45]]}},
   swift: { maker: 'sylph', name: 'スウィフト', desc: '軽く速いが打たれ弱い', types: ['light', 'light2', 'light3'], set: { text: 'ブースト +5、歩行 +0.45m/s', fx: [['body', 'boost', 'add', 5], ['legs', 'walk', 'add', 0.45]] } },
   hound: { maker: 'gard', name: 'ハウンド', desc: '釣り合いの取れた標準機', types: ['standard', 'standard2', 'standard3'], set: { text: '射撃補正 +5%（弾のばらつきが減る）、重量耐性 +150kg', fx: [['head', 'aim', 'mul', 1.05], ['legs', 'cap', 'add', 150]] } },
   bulwark: { maker: 'gard', name: 'ブルワーク', desc: '重く硬いが遅い', types: ['heavy', 'heavy2', 'heavy3'], set: { text: '装甲 +3%（各部位の被ダメージ −3%）', fx: PART_SLOTS.map(k => [k, 'armor', 'add', -0.03]) } },
@@ -2420,7 +2459,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   const paint = PAINTS.find(p => p.id === cfg.color) || PAINTS[0];
   const C = { armor: paint.color ?? color, frame: 0x26323d, metal: 0x71828e, trim: color, visor: 0xbdf5ff };
   const series = Object.fromEntries(PART_SLOTS.map(k => [k, PARTS[k][cfg[k]].series]));
-  const W = k => series[k] === 'swift' ? 0.84 : series[k] === 'bulwark' ? 1.12 : 1;
+  const W = k => series[k] === 'swift' ? 0.84 : series[k] === 'harrier' ? 0.9 : ['bulwark','bastion'].includes(series[k]) ? 1.12 : 1;
   const boxes = { head: [], body: [], arms: [], legs: [] };
   const part = (slot, w, h, d, c, x, y, z, tilt = 0, pitch = 0) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt, pitch]);
   const lw = W('legs'), bw = W('body'), hw = W('head'), aw = W('arms');
@@ -2428,7 +2467,29 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   for (const sd of [-1, 1]) {
     part('legs', 0.42, 1.7, 0.52, 'frame', sd * 0.58, 1.05, 0.04);
     part('legs', 0.82 * lw, 0.3, 1.22, 'frame', sd * 0.62, 0.15, -0.2);
-    if (series.legs === 'swift') {
+    if (series.legs === 'harrier') {
+      // ハリアー：前傾の膝、後ろへ伸びる踵、細い二枚の脛装甲。
+      part('legs', .5, .7, .58, 'armor', sd*.58, 1.48, -.07, sd*.08, -.12);
+      part('legs', .48, .3, .2, 'metal', sd*.62, 1.1, -.38, 0, -.18);
+      part('legs', .36, .75, .62, 'armor', sd*.52, .68, -.03, sd*.06);
+      part('legs', .18, .85, .38, 'armor', sd*.83, .72, .17, sd*-.1);
+      part('legs', .44, .2, .64, 'metal', sd*.62, .3, .5, 0, .12);
+      part('legs', .42, .1, .13, 'trim', sd*.62, .99, -.43);
+    } else if (series.legs === 'prism') {
+      // プリズム：外装の間にフレームが見える三段パネル。
+      part('legs', .62, .62, .64, 'armor', sd*.58, 1.48, 0);
+      for(const y of [.47,.77,1.07]) part('legs', .59, .22, .68, 'armor', sd*.62, y, -.06, 0, -.12);
+      part('legs', .16, .7, .22, 'metal', sd*.93, .75, .22);
+      part('legs', .52, .08, .14, 'trim', sd*.62, .77, -.43);
+    } else if (series.legs === 'bastion') {
+      // バスティオン：階段状の脛と外側の荷重支柱。
+      part('legs', .78, .68, .82, 'armor', sd*.6, 1.46, -.02);
+      part('legs', .86, .85, .9, 'armor', sd*.65, .67, .02);
+      part('legs', .75, .24, .24, 'metal', sd*.65, 1.03, -.5);
+      part('legs', .2, 1.1, .62, 'metal', sd*1.03, .86, .22);
+      part('legs', .76, .23, .44, 'armor', sd*.65, .38, -.55);
+      part('legs', .54, .1, .14, 'trim', sd*.65, .84, -.5);
+    } else if (series.legs === 'swift') {
       part('legs', 0.46, 0.68, 0.54, 'armor', sd * 0.58, 1.48, -0.04, sd * 0.12);
       part('legs', 0.36, 0.86, 0.56, 'armor', sd * 0.62, 0.7, 0.06, sd * -0.08);
       part('legs', 0.44, 0.22, 0.14, 'trim', sd * 0.62, 1.1, -0.34, sd * 0.08);
@@ -2445,7 +2506,31 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     }
   }
   part('body', 1.3, 0.5, 0.9, 'frame', 0, 1.9, 0);
-  if (series.body === 'swift') {
+  if (series.body === 'harrier') {
+    // 低い襟と斜めに割れた胸。背中は中央の平たい排気口。
+    part('body', 1.48, 1.12, 1.02, 'armor', 0, 2.62, .02);
+    for(const sd of [-1,1]) part('body', .66, .45, .26, 'metal', sd*.43, 2.87, -.6, sd*-.28);
+    part('body', .56, .38, .23, 'frame', 0, 2.38, -.6);
+    part('body', .66, .1, .13, 'trim', 0, 2.64, -.65);
+    part('body', 1.32, .42, .5, 'armor', 0, 2.85, .84);
+    part('body', .88, .2, .13, 'metal', 0, 2.85, 1.13);
+  } else if (series.body === 'prism') {
+    // 独立した胸の二本柱と、放熱の横桟。公式の形は参照しない。
+    part('body', 1.72, 1.08, 1.12, 'frame', 0, 2.63, 0);
+    for(const sd of [-1,1]) part('body', .54, 1.06, .34, 'armor', sd*.6, 2.66, -.58, sd*.08);
+    part('body', .58, .56, .24, 'armor', 0, 2.63, -.58);
+    for(const y of [2.35,2.6,2.85]) part('body', .4, .07, .14, 'trim', 0, y, -.76);
+    part('body', 1.35, .55, .58, 'armor', 0, 2.85, .85);
+    for(const sd of [-1,1]) part('body', .24, .5, .22, 'metal', sd*.46, 2.85, 1.18);
+  } else if (series.body === 'bastion') {
+    // 幅のある胸、中央の厚い段差、横置きの背部ユニット。
+    part('body', 2.2, 1.22, 1.44, 'armor', 0, 2.65, .04);
+    part('body', 1.08, .78, .28, 'metal', 0, 2.67, -.79);
+    for(const sd of [-1,1]) part('body', .42, .75, .26, 'armor', sd*.8, 2.66, -.77);
+    part('body', .75, .13, .14, 'trim', 0, 2.92, -.99);
+    part('body', 1.68, .6, .68, 'armor', 0, 2.85, .92);
+    part('body', 1.35, .24, .2, 'metal', 0, 2.85, 1.3);
+  } else if (series.body === 'swift') {
     part('body', 1.48, 1.18, 0.96, 'armor', 0, 2.63, -0.02);
     for (const sd of [-1, 1]) part('body', 0.67, 0.48, 0.26, 'metal', sd * 0.41, 2.92, -0.55, sd * 0.2);
     part('body', 0.76, 0.48, 0.24, 'frame', 0, 2.39, -0.58);
@@ -2467,7 +2552,23 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     } else for (const sd of [-1, 1]) part('body', 0.48, 0.48, 0.16, 'armor', sd * 0.68, 2.86, -0.73, sd * -0.1);
   }
   part('head', 0.5, 0.2, 0.5, 'frame', 0, 3.3, 0.05);
-  if (series.head === 'swift') {
+  if (series.head === 'harrier') {
+    part('head', .72, .46, .76, 'armor', 0, 3.65, .05);
+    part('head', .85, .14, .26, 'metal', 0, 3.82, -.31);
+    part('head', .58, .09, .13, 'visor', 0, 3.68, -.4);
+    for(const sd of [-1,1]) part('head', .15, .34, .54, 'armor', sd*.39, 3.6, .08, sd*-.18);
+  } else if (series.head === 'prism') {
+    part('head', .92, .46, .72, 'armor', 0, 3.66, .05);
+    part('head', .78, .28, .12, 'frame', 0, 3.66, -.36);
+    for(const x of [-.25,0,.25]) part('head', .16, .17, .15, 'visor', x, 3.69, -.43);
+    part('head', .55, .1, .42, 'metal', 0, 3.88, .11);
+  } else if (series.head === 'bastion') {
+    part('head', 1.02, .56, .94, 'armor', 0, 3.64, .07);
+    part('head', .82, .22, .15, 'frame', 0, 3.69, -.43);
+    part('head', .56, .1, .16, 'visor', 0, 3.7, -.52);
+    for(const sd of [-1,1]) part('head', .18, .4, .68, 'metal', sd*.56, 3.62, .09);
+    part('head', .92, .14, .2, 'armor', 0, 3.83, -.4);
+  } else if (series.head === 'swift') {
     part('head', 0.7, 0.48, 0.74, 'armor', 0, 3.64, 0.04);
     part('head', 0.78, 0.1, 0.16, 'metal', 0, 3.84, -0.33);
     part('head', 0.52, 0.08, 0.14, 'visor', 0, 3.67, -0.38);
@@ -2488,7 +2589,21 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   part('head', 0.32, 0.05, 0.1, 'trim', 0, 3.55, -0.5);
   for (const sd of [-1, 1]) {
     part('arms', 0.35, 0.72, 0.52, 'frame', sd * 1.48, 2.24, -0.18);
-    if (series.arms === 'swift') {
+    if (series.arms === 'harrier') {
+      part('arms', .5, .76, .72, 'armor', sd*1.34, 2.81, .01, sd*-.16);
+      part('arms', .18, .62, .5, 'metal', sd*1.61, 2.85, .16, sd*-.1);
+      part('arms', .42, .36, .17, 'armor', sd*1.48, 2.2, -.49);
+    } else if (series.arms === 'prism') {
+      part('arms', .56, .34, .84, 'armor', sd*1.35, 3.02, .02);
+      part('arms', .4, .34, .64, 'armor', sd*1.4, 2.59, .02);
+      part('arms', .48, .3, .22, 'metal', sd*1.48, 2.22, -.48);
+      part('arms', .12, .72, .34, 'armor', sd*1.68, 2.73, .15);
+    } else if (series.arms === 'bastion') {
+      part('arms', .68, .75, .98, 'armor', sd*1.36, 2.8, .02, sd*-.08);
+      part('arms', .16, .82, .96, 'metal', sd*1.75, 2.75, .03);
+      part('arms', .5, .38, .24, 'armor', sd*1.48, 2.22, -.5);
+      part('arms', .55, .2, .98, 'armor', sd*1.39, 3.1, .03);
+    } else if (series.arms === 'swift') {
       part('arms', 0.42, 0.72, 0.68, 'armor', sd * 1.3, 2.8, 0.02, sd * -0.2);
       part('arms', 0.14, 0.76, 0.58, 'metal', sd * 1.53, 2.87, 0.02, sd * -0.2);
       part('arms', 0.4, 0.32, 0.16, 'armor', sd * 1.48, 2.19, -0.48, sd * 0.06);

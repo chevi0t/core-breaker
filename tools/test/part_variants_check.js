@@ -30,7 +30,7 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
       const g = __g, check = (ok, msg) => { if (!ok) throw new Error(msg); };
       g.renderer.render = () => {};
       const slots = ['head','body','arms','legs'], keys = Object.keys(g.PARTS.head);
-      const bases = ['light','standard','heavy'];
+      const bases = keys.filter((k,i)=>keys.findIndex(x=>g.PARTS.head[x].series===g.PARTS.head[k].series)===i);
       let combinations = 0, sets = 0, shapes = 0;
       for (const head of keys) for (const body of keys) for (const arms of keys) for (const legs of keys) {
         const cfg = { head, body, arms, legs, color: 'team' }, st = g.mechStats(cfg, g.loadout.assault);
@@ -75,11 +75,12 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
           for (const k of slots) { check(!!g.PARTS[k][cfg[k]], 'Botの型'); seen[k].add(cfg[k]); }
         }
       } finally { Math.random = random; }
-      for (const slot of slots) check(seen[slot].size === 9, 'Botが全9型を使う: ' + slot);
+      for (const slot of slots) check(seen[slot].size === keys.length, 'Botが全部の型を使う: ' + slot);
       return { parts: g.PARTS, mech: g.mechCfg, combinations, sets, shapes, botTypes: Object.fromEntries(slots.map(k => [k,[...seen[k]]])) };
     });
     assert.deepEqual(result.mech, legacy, '古い機体の保存');
-    assert.equal(result.combinations, 6561); assert.equal(result.sets, 243); assert.equal(result.shapes, 24);
+    const types=Object.keys(result.parts.head).length,series=new Set(Object.values(result.parts.head).map(p=>p.series)).size;
+    assert.equal(result.combinations, types**4); assert.equal(result.sets, series*3**4); assert.equal(result.shapes, series*8);
     let added = 0;
     for (const slot of slots) for (const family of research[slot]) {
       const original = result.parts[slot][family.base];
@@ -90,7 +91,7 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
           const expected = +(original[field] * (value / family.baseRow[field])).toFixed(digits);
           assert.equal(actual[field], expected, slot + '/' + row.key + '/' + field);
         }
-        if (slot === 'body') assert.equal(actual.sp, original.sp, 'SP容量を継承');
+        if (slot === 'body') assert.equal(actual.sp, original.sp, 'SP回復性能の基準値を継承');
         if (slot === 'legs') assert.equal(actual.cruise, original.cruise, '巡航を継承');
         assert.equal(actual.series, original.series); assert.equal(actual.label, row.label);
         added++;
@@ -134,6 +135,6 @@ const legacy = { head: 'light', body: 'standard', arms: 'heavy', legs: 'heavy', 
     assert.deepEqual(await page.evaluate(() => __g.mechCfg), selected, '新しい型を保存して再読込');
     assert.deepEqual(errors,[]);
     fs.writeFileSync(path.join(output,'stats.json'),JSON.stringify(result.parts,null,2));
-    console.log('パーツ24追加・全36: AC比率一致、Ⅰ型保持。全6561構成・セット243・同じ形24・Bot全9型・旧保存/構成切替・新保存の再読込: 成功。エラーなし');
+    console.log('既存のAC24型と旧保存を保持。全'+result.combinations+'構成・セット'+result.sets+'・同じ形'+result.shapes+'・Bot全'+types+'型・旧構成切替/新保存再読込: 成功。エラーなし');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode=1; });
