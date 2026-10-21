@@ -7279,23 +7279,54 @@ function spatialBladePose(u,b,sd,gripZ,sw,melee){
     melee.lean=-.035-(active.single?.22:.12)*power*bodyBlend;melee.sink=.07+.09*power*bodyBlend;melee.oneHand=single*blend;
   }
 }
-// レーザー刃はガントレット本体を巨大化せず、手首から独立して伸ばす光。
-const meleeLaserGeo=new T.BoxGeometry(1,1,1);
-function meleeLaserLook(u){
-  const active=u.weapon==='aux'&&u.swing?.a.dashMotion==='claw';
-  for(const b of [u.blade,u.blade2]){
-    if(!b)continue;let light=b.userData.laserBlade;
-    if(active&&!light){
-      light=new T.Group();
-      for(const [color,width,height,opacity] of [[0xb8ff32,.34,.12,.65],[0xf2ffdb,.13,.045,1]]){
-        const edge=new T.Mesh(meleeLaserGeo,new T.MeshBasicMaterial({color,transparent:true,opacity,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
-        edge.scale.set(width,height,1);light.add(edge);
-      }
-      b.add(light);b.userData.laserBlade=light;
+// 三本の爪先から伸びる光。三本を一つの形にまとめ、外光/芯の2描画を維持する。
+const meleeLaserStyles = [[0xb8ff32, .18, .1, .65], [0xf2ffdb, .065, .035, 1]];
+const meleeLaserGeos = [0, Math.PI / 10].map(fan => meleeLaserStyles.map(([, width, height]) => {
+  const box = new T.BoxGeometry(1, 1, 1).toNonIndexed(), vertices = box.attributes.position;
+  const positions = [], extension = [];
+  for (const side of [-1, 0, 1]) {
+    const angle = side * fan, sin = Math.sin(angle), cos = Math.cos(angle);
+    for (let i = 0; i < vertices.count; i++) {
+      const x = vertices.getX(i) * width, y = vertices.getY(i) * height, t = .5 - vertices.getZ(i);
+      // 外側の光も各爪先(x=±.22, z=-1.42)を起点に開く。伸びても起点は動かさない。
+      positions.push(side * .22 + cos * x, y, -1.42 + sin * x);
+      extension.push(sin * t, 0, -cos * t);
     }
-    if(light){
-      const power=active?(b.userData.laserPower||0):0;light.visible=power>0;
-      if(power>0){const length=(u.swing.a.reach-.65)*power;light.position.z=.2-length/2;light.scale.z=length;}
+  }
+  box.dispose();
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geo.morphAttributes.position = [new T.Float32BufferAttribute(extension, 3)];
+  geo.morphTargetsRelative = true;
+  // モーフの最大長を含めておき、伸びた刃先が画面端で消えないようにする。
+  geo.boundingSphere = new T.Sphere(new T.Vector3(0, 0, -4), 6);
+  return geo;
+}));
+function meleeLaserLook(u) {
+  const active = u.weapon === 'aux' && u.swing?.a.dashMotion === 'claw';
+  const fan = u.slots.aux.w.key === 'clawM' ? 1 : 0;
+  for (const b of [u.blade, u.blade2]) {
+    if (!b) continue;
+    let light = b.userData.laserBlade;
+    if (active && !light) {
+      light = new T.Group();
+      meleeLaserStyles.forEach(([color, , , opacity], i) => {
+        const edge = new T.Mesh(meleeLaserGeos[fan][i], new T.MeshBasicMaterial({ color, transparent: true, opacity, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, morphTargets: true }));
+        light.add(edge);
+      });
+      b.add(light); b.userData.laserBlade = light;
+    }
+    if (light) {
+      const power = active ? (b.userData.laserPower || 0) : 0;
+      const length = active ? (u.swing.a.reach - .65) * power : 0;
+      // 従来の中心刃の先端(.2-length)を保ち、金属の爪先より先だけを発光させる。
+      const exposed = Math.max(0, length - 1.62);
+      light.visible = exposed > 0; light.userData.length = length;
+      if (light.visible) light.children.forEach((edge, i) => {
+        const geo = meleeLaserGeos[fan][i];
+        if (edge.geometry !== geo) { edge.geometry = geo; edge.updateMorphTargets(); }
+        edge.morphTargetInfluences[0] = exposed;
+      });
     }
   }
 }

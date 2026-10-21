@@ -53,8 +53,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   yes(top.tip.y>bottom.tip.y+5&&Math.abs(top.tip.x-bottom.tip.x)<.6,'面打ち：大きな縦軌道で振り下ろす');
   yes(top.left.distanceTo(top.grip)>.7&&down0.left.distanceTo(down0.grip)<.41,'日本刀：最終段だけ左手を離す');
   const laser=pose('clawM',.3),edge=laser.blade.userData.laserBlade;
-  yes(edge.visible&&edge.scale.z>7&&laser.blade.scale.z===1,'上位のレーザー刃だけが伸び、爪本体は元の寸法');
-  const laserLength=edge.scale.z;unit.swing=null;g.weaponLook(unit,.01);yes(!edge.visible,'中断でレーザー刃を消す');
+  yes(edge.visible&&edge.userData.length>7&&laser.blade.scale.z===1,'上位のレーザー刃だけが伸び、爪本体は元の寸法');
+  const laserLength=edge.userData.length;unit.swing=null;g.weaponLook(unit,.01);yes(!edge.visible,'中断でレーザー刃を消す');
   // 本体の物理で小跳躍を確認。残量0・過熱からでも無料、空中で二段跳躍しない。
   const hops=[];
   for(const dt of [1/30,1/60,1/120]){
