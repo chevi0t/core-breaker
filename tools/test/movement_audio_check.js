@@ -50,7 +50,8 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < 1e-5, label + 'の合成音に非数・無音・クリップ・直流成分がない');
         let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
         for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
-        yes(body / full > .05 && body / full < .75, label + 'に低域の空気圧と広い帯域の噴流がある');
+        if (buf === burst) yes(body / full < .15, '短い噴射は空気が抜ける音域を中心にし、低音の打撃に偏らない');
+        else yes(body / full > .05 && body / full < .75, '巡航に低域の空気圧と広い帯域の噴流がある');
         const periodicity = [50, 60, 80, 100, 120].map(hz => {
           const lag = Math.round(buf.sampleRate / hz); let dot = 0, a = 0, b = 0;
           for (let i = lag; i < data.length; i++) { dot += data[i] * data[i - lag]; a += data[i] ** 2; b += data[i - lag] ** 2; }

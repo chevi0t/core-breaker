@@ -1097,6 +1097,7 @@ function buildBoostSounds() {
   const sr = audio.sampleRate, tau = Math.PI * 2;
   let seed = 0x6b8f214d;
   const noise = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2147483648 - 1; };
+  // 開始音のサンプル数・乱数の消費順を保ち、採用済みの巡航波形を維持する。
   for (const sustained of [false, true]) {
     const overlap = sustained ? Math.round(.08 * sr) : 0, length = Math.round((sustained ? 1.2 : .32) * sr);
     const raw = new Float32Array(length + overlap);
@@ -1107,11 +1108,12 @@ function buildBoostSounds() {
       const t = i / sr, n = noise();
       sub += subK * (n - sub); low += lowK * (n - low); body += bodyK * (n - body); air += airK * (n - air); gust += gustK * (n - gust);
       // 音程・倍音・共鳴を付けず、圧力の低音と空気の乱流だけを重ねる。
-      const pressure = 2 * sub + 4 * (low - sub), exhaust = 1.2 * (body - low) + .45 * (air - body);
-      const attack = sustained ? 1 : 1 - Math.exp(-t / .008);
-      const push = sustained ? 1 + .5 * gust : Math.exp(-Math.max(0, t - .035) / .065);
-      const tail = sustained ? 1 : Math.exp(-Math.max(0, t - .02) / .11);
-      raw[i] = (pressure * push + exhaust * tail) * attack;
+      const pressure = 2 * sub + 4 * (low - sub);
+      const exhaust = sustained ? 1.2 * (body - low) + .45 * (air - body) : 1.1 * (body - low) + 1.8 * (air - body);
+      const attack = sustained ? 1 : 1 - Math.exp(-t / .004);
+      const push = sustained ? 1 + .5 * gust : Math.exp(-Math.max(0, t - .012) / .025);
+      const tail = sustained ? 1 : Math.exp(-Math.max(0, t - .045) / .09);
+      raw[i] = ((sustained ? pressure : .18 * pressure) * push + exhaust * tail) * attack;
     }
     const buf = audio.createBuffer(1, length, sr), dst = buf.getChannelData(0);
     let mean = 0, peak = 0;
