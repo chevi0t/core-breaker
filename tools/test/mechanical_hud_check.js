@@ -78,11 +78,11 @@ const dir = path.resolve(process.argv[2] || 'dbg/ac6-hud');
         g.radars.find(r => r.team === u.team).intruders = [e]; g.running = true; g.hud(240, .016); g.running = false;
       });
       await p.waitForTimeout(50);
-      const boxes = await p.evaluate(() => Object.fromEntries(['mechBoost', 'consoleHeading', 'status', 'ammoBox', 'aimSp', 'lockAlert', 'baseAlert', 'mechTargetName', 'mechTargetBg', 'mech-main-bg', 'mech-sub-bg', 'mech-aux-bg', 'mech-sp-bg'].map(id => {
+      const boxes = await p.evaluate(() => Object.fromEntries(['mechBoost', 'consoleHeading', 'status', 'ammoBox', 'aimSp', 'baseAlert', 'mechTargetName', 'mechTargetBg', 'mech-main-bg', 'mech-sub-bg', 'mech-aux-bg', 'mech-sp-bg'].map(id => {
         const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }];
       })));
       const overlap = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1;
-      for (const [a, b] of [['mechBoost', 'status'], ['mechBoost', 'ammoBox'], ['consoleHeading', 'status'], ['consoleHeading', 'ammoBox'], ['aimSp', 'mechBoost'], ['lockAlert', 'mechTargetName'], ['baseAlert', 'mechTargetName'], ['baseAlert', 'mechTargetBg']]) {
+      for (const [a, b] of [['mechBoost', 'status'], ['mechBoost', 'ammoBox'], ['consoleHeading', 'status'], ['consoleHeading', 'ammoBox'], ['aimSp', 'mechBoost'], ['baseAlert', 'mechTargetName'], ['baseAlert', 'mechTargetBg']]) {
         if (overlap(boxes[a], boxes[b])) throw Error(`${width}x${height}：${a}と${b}が重なる`);
       }
       for (const k of ['main', 'sub', 'aux', 'sp']) if (boxes['mech-' + k + '-bg'].y + boxes['mech-' + k + '-bg'].h >= boxes.aimSp.y - 2) throw Error('武器の弧がSPに重なる');

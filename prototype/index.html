@@ -127,16 +127,14 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #spotAlert { left: max(16px, env(safe-area-inset-left, 0px)); top: calc(216px + env(safe-area-inset-top, 0px)); width: 108px; box-sizing: border-box; padding: 3px 6px; font-size: 12px; letter-spacing: .1em; color: #ffd34d; background: var(--panel); border: 1px solid #ffd34d; text-align: center; animation: spotPulse 1.2s infinite; }
 #spotAlert small { display: block; font-size: 10px; letter-spacing: 0; color: #ffe9a8; line-height: 1.4; }
 @keyframes spotPulse { 50% { box-shadow: 0 0 10px #ffd34d88; } }
-#lockAlert { top: calc(92px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); font-size: 13px; letter-spacing: .14em; color: var(--warn); border: 2px solid var(--warn); background: var(--panel); padding: 5px 12px; text-align: center; box-shadow: 0 0 14px #ff4d4d55; animation: incomingPulse 1s infinite; }
-#lockAlert small { display: block; font-size: 11px; letter-spacing: .05em; color: #ffd5ad; }
 /* 被ロックオンの方向：照準の周りの輪に、ロックしている敵の方向（8方向）の矢印（v0.11.1、Codex 版から） */
-#lockDirections { top: 50%; left: 50%; transform: translate(-50%, -50%); width: clamp(180px, 34vh, 280px); aspect-ratio: 1; }
+#lockDirections { top: 50%; left: 50%; transform: translate(-50%, -50%); width: var(--lock-warning-diameter); aspect-ratio: 1; }
+body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning-diameter); }
 #lockDirections::before { content: ''; position: absolute; inset: 12px; border: 1px dashed #ff875133; border-radius: 50%; }
 .lockSector { position: absolute; inset: 0; transform: rotate(var(--bearing)); }
-.lockSector i { position: absolute; top: -3px; left: calc(50% - 9px); border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid #ff7f50; filter: drop-shadow(0 0 4px #ff4422); }
-.lockSector small { position: absolute; top: 17px; left: 50%; transform: translateX(-50%) rotate(calc(-1 * var(--bearing))); padding: 1px 4px; white-space: nowrap; color: #ffe1bf; font: 700 11px var(--display); background: #20120ddd; border: 1px solid #ff875188; }
-@keyframes incomingPulse { 50% { border-color: #ffae69; box-shadow: 0 0 18px #ff4d4d99; } }
-@media (prefers-reduced-motion: reduce) { #lockAlert, #spotAlert { animation: none; } }
+.lockSector i { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 16px solid #ff7f50; opacity: .55; filter: drop-shadow(0 1px 2px #20100d88); }
+.lockSector.firing i { border-bottom-color: #ff3434; border-left-width: 8px; border-right-width: 8px; border-bottom-width: 22px; opacity: .65; }
+@media (prefers-reduced-motion: reduce) { #spotAlert { animation: none; } }
 #plantBar { top: calc(50px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
 .pl { width: 46px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .18); text-align: center; padding: 2px 0 5px; font-size: 14px; font-weight: 700; color: var(--dim); }
 .pl.B { color: var(--team-b); border-color: var(--team-b); }
@@ -302,7 +300,9 @@ canvas#view { display: block; width: 100%; height: 100%; }
 .menu button:focus-visible, .back:focus-visible, .mapCard:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 .pgh { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .pgh h2 { margin: 0; font-family: var(--display); font-size: 26px; letter-spacing: .08em; }
-.back { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; justify-self: start; }
+.back, .optionAction { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; justify-self: start; }
+.optionAction:hover { border-color: var(--blue); }
+.optionAction:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 #mapList { display: grid; gap: 10px; }
 .mapCard { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; text-align: left; padding: 10px; background: rgba(255, 255, 255, .04); color: var(--hud); border: 1px solid rgba(255, 255, 255, .2); cursor: pointer; font: inherit; }
 .mapCard.sel { border-color: var(--blue); background: rgba(62, 166, 255, .16); }
@@ -405,6 +405,12 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #cuMore summary { cursor: pointer; color: var(--dim); font-size: 13px; }
 #ovBuild { margin-bottom: -8px; }
 /* コンソールの選択。配置図もCSSで描き、外部の画像は使わない。 */
+.optionSliders { display: grid; gap: 10px; margin: 24px 0; }
+.optionSliders label { display: flex; justify-content: space-between; gap: 16px; }
+.optionSliders output { color: var(--blue); font-variant-numeric: tabular-nums; }
+.optionSliders input { width: 100%; margin: 0 0 16px; accent-color: var(--blue); cursor: pointer; }
+#optionsResume { margin-top: 12px; border-color: var(--blue); }
+#overlay:has(#pgOptions:not([hidden])) { background: rgba(5, 9, 13, .96); }
 #consoleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .consoleCard { padding: 14px; background: #101c27; border: 1px solid #456074; color: var(--hud); font: inherit; text-align: left; cursor: pointer; }
 .consoleCard[aria-pressed="true"] { border-color: #9fe0ff; box-shadow: inset 0 0 0 1px #9fe0ff; background: #152c3d; }
@@ -453,8 +459,8 @@ body[data-console]:where(:not([data-console="standard"])) #ammoBox { right: max(
 body[data-console]:where(:not([data-console="standard"])) #ammoSub { line-height: 1.5; overflow-wrap: anywhere; }
 body[data-console]:where(:not([data-console="standard"])) #feed { left: var(--console-edge); right: auto; top: 112px; max-width: 32vw; justify-items: start; font-size: 12px; }
 body[data-console]:where(:not([data-console="standard"])) #aimSp { width: 120px; }
-body[data-console]:where(:not([data-console="standard"])) #lockAlert { top: calc(132px + env(safe-area-inset-top, 0px)); }
-body[data-console]:where(:not([data-console="standard"])) #baseAlert { top: calc(140px + var(--console-lock-height, 0px) + env(safe-area-inset-top, 0px)); }
+body[data-console]:where(:not([data-console="standard"])) #baseAlert { top: calc(118px + env(safe-area-inset-top, 0px)); }
+body[data-console="flight"] #baseAlert { top: calc(122px + env(safe-area-inset-top, 0px)); }
 /* アーケード（ユーザー指定 2026-10-20、参考画像に寄せる）：左上に重ねた両軍のコアと秒の残り時間、左に BATTLE の記録、
    左下に機体の札と縦に伸びる斜めの耐久ゲージ、右下にマップと菱形の武器枠（並びは十字の持ち替えと同じ。特別装備はSPの黄色で満ちる）。 */
 body[data-console="arcade"] { --console-map-width: 176px; }
@@ -678,7 +684,7 @@ body[data-console="mechanical"] #mechCompass { display: block; border-top-color:
   body[data-console="arcade"] #pilotCls { white-space: nowrap; }
 }
 @media (max-height: 640px) {
-  body[data-console="flight"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
+  body[data-console="flight"]:has(#lockDirections:not([hidden]), #baseAlert:not([hidden])) #consoleHeading { visibility: hidden; }
 }
 @media (max-height: 760px), (max-width: 1000px) {
   body[data-console="flight"] #wpn > span[id^="w-"] { padding: 6px 50px 6px 8px; gap: 2px 6px; }
@@ -709,11 +715,10 @@ body[data-console="mechanical"] #mechCompass { display: block; border-top-color:
   body[data-console="flight"] #consoleTelemetry .instrument b { font-size: 18px; }
 }
 /* 対象の耐久表示の前を空け、メカニカルの通知は左上へ積む。 */
-body[data-console="mechanical"] #lockAlert { top: 112px; left: var(--console-edge); transform: none; width: min(280px, calc(50vw - 104px)); box-sizing: border-box; text-align: left; font-size: 12px; }
-body[data-console="mechanical"] #baseAlert { top: calc(120px + var(--console-lock-height, 0px)); left: var(--console-edge); transform: none; max-width: min(280px, calc(50vw - 104px)); box-sizing: border-box; font-size: 12px; }
-body[data-console="mechanical"] #feed { top: calc(128px + var(--console-lock-height, 0px) + var(--console-base-height, 0px)); max-width: min(280px, calc(50vw - 104px)); }
+body[data-console="mechanical"] #baseAlert { top: 120px; left: var(--console-edge); transform: none; max-width: min(280px, calc(50vw - 104px)); box-sizing: border-box; font-size: 12px; }
+body[data-console="mechanical"] #feed { top: calc(128px + var(--console-base-height, 0px)); max-width: min(280px, calc(50vw - 104px)); }
 @media (max-height: 540px) {
-  body[data-console="mechanical"]:has(#lockAlert:not([hidden]), #baseAlert:not([hidden]), #feed:not(:empty)) #consoleSpeed { visibility: hidden; }
+  body[data-console="mechanical"]:has(#baseAlert:not([hidden]), #feed:not(:empty)) #consoleSpeed { visibility: hidden; }
 }
 /* 仮パイロット。猫8匹を1枚の画像から表示し、同じ画像を何度も読み込まない。 */
 .catFace { display: inline-block; flex: none; width: 48px; height: 48px; background-color: transparent; background-size: 400% 200%; background-position: var(--cat-x, 0%) var(--cat-y, 0%); background-repeat: no-repeat; border-radius: 8px; vertical-align: middle; }
@@ -811,7 +816,6 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
 <div class="hud" id="announce" role="status" aria-live="polite"></div>
-<div class="hud" id="lockAlert" role="status" hidden><b>被ロックオン</b><small id="lockAlertInfo"></small></div>
 <div class="hud" id="lockDirections" hidden></div>
 <div class="hud" id="baseAlert" hidden></div>
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
@@ -837,6 +841,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div id="ovBoard"></div>
       <nav class="menu" aria-label="メニュー">
         <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
+        <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
         <label class="sw" id="largeBattleControl" hidden><span>50対50（実験）<small id="largeBattleHint">通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機</small></span><input type="checkbox" role="switch" id="largeBattleSw" aria-label="50対50（実験）"><i aria-hidden="true"></i></label>
         <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
@@ -855,6 +860,24 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
       <button id="start" type="button">出撃する</button>
       <p class="note">PCのキーボードとマウス向けです。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
+    </section>
+    <section class="page" id="pgOptions" hidden>
+      <div class="pgh"><h2>オプション</h2><button type="button" class="back">戻る</button></div>
+      <p>設定は自動保存されます。戦闘中は F3 で開き、調整後に戦闘へ戻れます。</p>
+      <div class="optionSliders">
+        <label for="optMaster">全体音量 <output id="optMasterValue" for="optMaster"></output></label>
+        <input id="optMaster" type="range" min="0" max="100" step="1">
+        <label for="optSfx">効果音 <output id="optSfxValue" for="optSfx"></output></label>
+        <input id="optSfx" type="range" min="0" max="100" step="1">
+        <label for="optMusic">BGM <output id="optMusicValue" for="optMusic"></output></label>
+        <input id="optMusic" type="range" min="0" max="100" step="1">
+        <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
+        <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
+      </div>
+      <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
+      <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
+      <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
+      <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
     </section>
     <section class="page" id="pgPilot" hidden>
       <h2>パイロット</h2>
@@ -875,6 +898,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります（50対50では1/800）。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
       <div class="keys">
         <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。メニューの「コンソール」でも選べます</span>
+        <kbd>F3</kbd><span>オプション（音量・視野角）。開いている間は戦闘を一時停止</span>
         <kbd>WASD</kbd><span>移動</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
         <kbd>Shift 長押し</kbd><span>ロングダッシュ（押している間ブーストを毎秒約11消費して高速移動。使い切るとオーバーヒート）</span>
@@ -1030,17 +1054,61 @@ const SFX = {
   annInfo: { file: 'beep', vol: 0.45, rate: 0.9, ui: true, gap: 0.6 }, // 残り時間など
   chat: { file: 'beep', vol: 0.35, rate: 1.5, ui: true, gap: 0.2 }, // 指示出し（v0.17）
 };
-const MASTER_VOL = 0.8, MAX_VOICES = 32;
+// 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70 };
+const gameOptions = { ...OPTION_DEFAULTS };
+try {
+  const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY));
+  for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(k === 'fov' ? 60 : 0, Math.min(100, saved[k])));
+} catch (_) {}
+function renderOptions() {
+  for (const k of Object.keys(gameOptions)) {
+    const id = 'opt' + k[0].toUpperCase() + k.slice(1);
+    document.getElementById(id).value = gameOptions[k];
+    document.getElementById(id + 'Value').textContent = gameOptions[k] + (k === 'fov' ? '°' : '%');
+  }
+}
+function saveOptions() {
+  try { localStorage.setItem(OPTIONS_KEY, JSON.stringify(gameOptions)); } catch (_) {}
+  renderOptions(); applyAudioSettings();
+  if (!gameOptions.master) window.speechSynthesis?.cancel();
+}
+for (const k of Object.keys(gameOptions)) document.getElementById('opt' + k[0].toUpperCase() + k.slice(1)).addEventListener('input', e => { gameOptions[k] = +e.target.value; saveOptions(); });
+document.getElementById('optionsReset').addEventListener('click', () => { Object.assign(gameOptions, OPTION_DEFAULTS); saveOptions(); });
+renderOptions();
+const MASTER_VOL = 0.8;
 let audio = null, muted = false, voices = 0;
 const sfxBuf = {}, uiLast = {};
+const soundVoices = { world: new Set(), local: new Set(), ui: new Set() };
+function applyAudioSettings() {
+  if (!audio) return;
+  const t = audio.currentTime;
+  for (const [bus, value] of [[audio.out, MASTER_VOL * gameOptions.master / 100], [audio.effects, muted ? 0 : gameOptions.sfx / 100], [audio.music, gameOptions.music / 100], [audio.world, units.length >= 100 ? .5 : 1]]) {
+    bus.gain.cancelScheduledValues(t); bus.gain.setTargetAtTime(value, t, .025);
+  }
+}
 // ブラウザは操作の後でないと音を出せないので、最初のクリックかキー入力で準備する
 function initAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (audio || !AC) return;
   audio = new AC();
   audio.out = audio.createGain();
-  audio.out.gain.value = MASTER_VOL;
-  audio.out.connect(audio.destination);
+  audio.effects = audio.createGain(); audio.music = audio.createGain(); audio.world = audio.createGain();
+  // 周囲の銃声だけを圧縮し、自機と警告の音量を群衆の音数に巻き込まない。
+  audio.crowd = audio.createDynamicsCompressor();
+  audio.crowd.threshold.value = -16; audio.crowd.knee.value = 18; audio.crowd.ratio.value = 5;
+  audio.crowd.attack.value = .008; audio.crowd.release.value = .16;
+  audio.world.connect(audio.crowd).connect(audio.effects);
+  audio.effects.connect(audio.out); audio.music.connect(audio.out);
+  audio.limiter = audio.createDynamicsCompressor();
+  audio.limiter.threshold.value = -2; audio.limiter.knee.value = 0; audio.limiter.ratio.value = 20;
+  audio.limiter.attack.value = .003; audio.limiter.release.value = .1;
+  audio.out.connect(audio.limiter).connect(audio.destination);
+  // 起動時にも保存値から始め、音量0の最初の一音を漏らさない。
+  audio.out.gain.value = MASTER_VOL * gameOptions.master / 100;
+  audio.effects.gain.value = muted ? 0 : gameOptions.sfx / 100;
+  audio.music.gain.value = gameOptions.music / 100;
+  audio.world.gain.value = units.length >= 100 ? .5 : 1;
   for (const [k, b64] of Object.entries(window.SOUND_DATA || {})) {
     const bin = atob(b64), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -1051,10 +1119,10 @@ function initAudio() {
 addEventListener('pointerdown', initAudio);
 addEventListener('keydown', e => {
   initAudio();
-  if (e.code === 'KeyN' && !e.repeat) { muted = !muted; feed(muted ? '効果音と音声アナウンスをオフ（Nで戻す）' : '効果音と音声アナウンスをオン'); if (muted) window.speechSynthesis?.cancel(); } // v0.15から N（M は全体マップ）
+  if (e.code === 'KeyN' && !e.repeat && !/INPUT|TEXTAREA/.test(e.target.tagName)) { muted = !muted; applyAudioSettings(); feed(muted ? '効果音と音声アナウンスをオフ（Nで戻す）' : '効果音と音声アナウンスをオン'); if (muted) window.speechSynthesis?.cancel(); } // v0.15から N（M は全体マップ）
 });
 // ---- 戦闘中BGM（v0.10、ユーザー指定の曲。Author: Centurion_of_war さんの nightmareheavy.ogg、OpenGameArt.org「Nightmare(prototype)」、CC0。出典は sounds/CREDITS.md）----
-// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかメニューのスイッチで止まる。M の効果音オフとは別
+// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかメニューのスイッチで止まる。N の効果音オフとは別
 const BGM_VOL = 0.32, BGM_KEY = 'coreBreakerBgm';
 let bgmOn = true, bgmBuf = null, bgmNode = null, bgmFail = false;
 try { bgmOn = localStorage.getItem(BGM_KEY) !== 'off'; } catch (_) {}
@@ -1075,7 +1143,7 @@ function bgmTick() {
     const node = audio.createBufferSource(), g = audio.createGain();
     node.buffer = bgmBuf; node.loop = true;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(BGM_VOL, t + 1);
-    node.connect(g).connect(audio.out);
+    node.connect(g).connect(audio.music);
     node.start();
     bgmNode = { node, g };
   } else if (!want && bgmNode) {
@@ -1095,15 +1163,24 @@ bgmSw.addEventListener('change', e => {
 // rate：武器ごとの音の高さ（w.sfxRate、v0.11.3）
 function sfx(name, at, src, rate = 1) {
   const s = SFX[name];
-  if (!audio || muted || !s || !sfxBuf[s.file] || voices >= MAX_VOICES) return;
+  if (!audio || muted || !s || !sfxBuf[s.file] || !gameOptions.master || !gameOptions.sfx) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
-  if (t - (last[name] ?? -1) < s.gap) return;
+  if (t - (last[name] ?? -1e9) < s.gap) return;
   let vol = s.vol, pan = 0;
   if (!s.ui && at && player) {
     const dx = at.x - player.pos.x, dz = at.z - player.pos.z, d = Math.hypot(dx, dz, at.y - player.pos.y);
     if (d > s.range) return;
     vol *= (1 - d / s.range) ** 2;
     if (d > 1) pan = 0.8 * (dx * Math.cos(player.yaw) - dz * Math.sin(player.yaw)) / d;
+  }
+  // 24（大人数は16）枠の周囲音、4枠の自機音、4枠のUI音を確保。満杯なら遠く小さい音から譲る。
+  const bucket = s.ui ? 'ui' : src === player || !at ? 'local' : 'world', pool = soundVoices[bucket];
+  const priority = s.ui ? (['lockWarn', 'alert', 'hurt', 'annBad', 'annGood', 'annInfo'].includes(name) ? 2 : 1) : vol;
+  const cap = bucket === 'world' ? (units.length >= 100 ? 16 : 24) : 4;
+  if (pool.size >= cap) {
+    const quietest = [...pool].reduce((a, b) => a.priority <= b.priority ? a : b);
+    if (priority < quietest.priority || bucket === 'world' && priority === quietest.priority) return;
+    quietest.end(); quietest.node.stop();
   }
   last[name] = t;
   const node = audio.createBufferSource(), g = audio.createGain();
@@ -1112,9 +1189,12 @@ function sfx(name, at, src, rate = 1) {
   g.gain.value = vol;
   let out = node.connect(g);
   if (audio.createStereoPanner) { const pn = audio.createStereoPanner(); pn.pan.value = pan; out = out.connect(pn); }
-  out.connect(audio.out);
+  out.connect(bucket === 'world' ? audio.world : audio.effects);
+  const voice = { node, priority, end: null };
+  voice.end = () => { if (pool.delete(voice)) { voices--; node.disconnect(); g.disconnect(); if (out !== g) out.disconnect(); } };
+  pool.add(voice);
   voices++;
-  node.onended = () => voices--;
+  node.onended = voice.end;
   node.start();
 }
 
@@ -1904,6 +1984,7 @@ function turretUpdate(tu, dt) {
     tu.shots--;
     tu.fireCd = tu.shots > 0 ? BURST_GAP : TURRET_RELOAD;
     shoot(tu, muzzleAt, lead.sub(muzzleAt).normalize().multiplyScalar(SHELL_SPEED));
+    incomingFire(tu);
     sfx('cannon', muzzleAt, tu);
   }
 }
@@ -3679,6 +3760,7 @@ function spawnPos(u, at) {
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
 function spawn(u, at = 'base') {
+  if (u.isPlayer) incomingShots.clear();
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
@@ -3992,12 +4074,25 @@ const ray = new T.Raycaster();
 // ---- 弾道とヒットエフェクト ----
 // 弾は光る短い筋として銃口から着弾点まで飛ぶ（見た目だけ。当たり判定は撃った瞬間に決まる）。着弾点では閃光と火花が出る
 const fx = [];
-const TRACER_SPEED = 450, TRACER_LEN = 5;
+const TRACER_SPEED = 450;
 const TRACER_COLOR = { B: 0x8fd8ff, R: 0xffb35c };
 const ENERGY_TRACE_LEN = 18, ENERGY_TRACE_FADE = .06;
 const energyTraceWidth = at => Math.max(.014, Math.min(.055, at.distanceTo(camera.position) * .0005));
 const tracerGeo = new T.CylinderGeometry(1, 1, 1, 6, 1, true);
 tracerGeo.translate(0, 0.5, 0);
+let visualSeed = 0x43b17a92;
+// three.jsのUUID生成もMath.randomを使う。追加した描画物の生成は戦闘の乱数列から分ける。
+function visualAlloc(make) {
+  const random = Math.random;
+  Math.random = () => { visualSeed = Math.imul(1664525, visualSeed) + 1013904223 >>> 0; return visualSeed / 4294967296; };
+  try { return make(); } finally { Math.random = random; }
+}
+const bulletTraceGeo = visualAlloc(() => new T.CylinderGeometry(1, 1, 1, 6)); bulletTraceGeo.translate(0, .5, 0);
+// 連射中に次の筋とつながり過ぎない長さ。バースト銃も発射中のrpmを使う。
+function tracerProfile(w) {
+  const interval = 60 / Math.max(60, w?.rpm || 600);
+  return { segment: Math.max(4, Math.min(24, TRACER_SPEED * interval * .3)), fade: Math.max(.014, Math.min(.06, interval * .3)) };
+}
 const flashTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d');
@@ -4010,11 +4105,11 @@ const glow = color => ({ color, transparent: true, blending: T.AdditiveBlending,
 function addFx(obj, life, extra = {}, delay = 0) {
   fx.push(Object.assign({ obj, life, age: -delay, shown: false }, extra));
 }
-function tracer(from, end, team, energy = false) {
-  const len = from.distanceTo(end);
-  const m = new T.Mesh(tracerGeo, new T.MeshBasicMaterial(glow(energy ? ENERGY_COLOR : TRACER_COLOR[team])));
+function tracer(from, end, team, energy = false, weapon = null) {
+  const len = from.distanceTo(end), profile = tracerProfile(weapon);
+  const m = new T.Mesh(energy ? tracerGeo : bulletTraceGeo, new T.MeshBasicMaterial(energy ? glow(ENERGY_COLOR) : { color: TRACER_COLOR[team], transparent: true, depthWrite: false, fog: false }));
   m.quaternion.setFromUnitVectors(UP, end.clone().sub(from).normalize());
-  addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(0.03, len / TRACER_SPEED), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy });
+  addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team });
   return len / TRACER_SPEED;
 }
 // 光弾狙撃ライフルは射線全体を瞬時に光らせ、0.4秒かけてぼやけた緑の軌跡を消す。
@@ -4136,6 +4231,7 @@ function plasmaMuzzleRing(from, velocity) {
 }
 // kind: 'world'（地形）/ 'shield'（コアの傘）/ 'hit'（敵に命中）/ 'head'（ヘッドショット）
 // ヘッドショットはボディより派手に（v0.9.5、ユーザー指定）：白い芯と大きな金色の光、広がる輪、倍の数の速い火花
+let impactDetailCount = 0;
 function impact(at, kind, delay) {
   if (kind === 'shield') { flash(at, 0x9fd4ff, 2.4, 0.2, delay); kind = 'world'; }
   const head = kind === 'head';
@@ -4153,7 +4249,22 @@ function impact(at, kind, delay) {
   g.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 6), 3));
   const ls = new T.LineSegments(g, new T.LineBasicMaterial(glow(color)));
   ls.frustumCulled = false;
-  addFx(ls, head ? 0.34 : 0.22, { kind: 'sparks', vel, origin: at.clone() }, delay);
+  addFx(ls, head ? 0.34 : 0.26, { kind: 'sparks', vel, origin: at.clone(), trailTime: .085 }, delay);
+  // 1pxの線だけでは埋もれるので粒を重ねる。乱数を増やさず、既存の火花と同じ速度で動かす。
+  // 大人数戦では追加演出だけを96個までに制限する（命中・通常の火花は省かない）。
+  if (impactDetailCount < 96) visualAlloc(() => {
+    const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 3), 3));
+    const points = new T.Points(pg, new T.PointsMaterial({ color: kind === 'world' ? 0xffc078 : color, map: flashTex, size: 5, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false }));
+    points.frustumCulled = false;
+    addFx(points, .24, { kind: 'impactSparks', vel, origin: at.clone(), ownGeo: true, impactDetail: true }, delay); impactDetailCount++;
+    if (kind === 'world' && impactDetailCount < 96) {
+      const dust = new T.Sprite(new T.SpriteMaterial({ map: flashTex, color: 0x51432c, transparent: true, depthWrite: false, opacity: .55 }));
+      // 壁面への埋まりを避ける。視線方向へは漂わせず、奥行き判定は保つ。
+      const view = camera.position.clone().sub(at).normalize(), origin = at.clone().addScaledVector(view, .15), drift = vel[0].clone().multiplyScalar(.02);
+      drift.addScaledVector(view, -drift.dot(view)); dust.position.copy(origin);
+      addFx(dust, .36, { kind: 'impactDust', origin, drift, impactDetail: true }, delay); impactDetailCount++;
+    }
+  });
 }
 // 火花だけ（損傷の見た目。impact の火花と同じ動き）
 function sparkBurst(at, color, n, speed, life = 0.25) {
@@ -4249,11 +4360,12 @@ function fxUpdate(dt) {
     const k = Math.min(1, f.age / f.life);
     if (f.kind === 'tracer') {
       // 筋の先端を着弾点へ進め、遠くても見える太さにする
-      const head = Math.min(f.len, f.age * TRACER_SPEED), tail = Math.max(0, head - (f.energy ? ENERGY_TRACE_LEN : TRACER_LEN));
+      const head = Math.min(f.len, f.age * TRACER_SPEED), tail = Math.max(0, head - (f.energy ? ENERGY_TRACE_LEN : f.segment));
       f.obj.position.copy(f.from).lerp(f.end, f.len ? tail / f.len : 0);
-      const w = f.energy ? energyTraceWidth(f.obj.position) : Math.max(0.05, f.obj.position.distanceTo(camera.position) * 0.0022);
+      const pixels = player && f.team !== player.team ? 3.4 : 2.6;
+      const w = f.energy ? energyTraceWidth(f.obj.position) : Math.max(.045, f.obj.position.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * pixels);
       f.obj.scale.set(w, Math.max(0.01, head - tail), w);
-      f.obj.material.opacity = f.energy ? .95 * Math.max(0, 1 - Math.max(0, f.age - f.len / TRACER_SPEED) / ENERGY_TRACE_FADE) : 0.95;
+      f.obj.material.opacity = .95 * Math.max(0, 1 - Math.max(0, f.age - f.len / TRACER_SPEED) / (f.energy ? ENERGY_TRACE_FADE : f.fade));
     } else if (f.kind === 'laser') {
       laserLook(f);
     } else if (f.kind === 'smoke') {
@@ -4276,10 +4388,20 @@ function fxUpdate(dt) {
       f.obj.position.copy(f.origin).addScaledVector(f.dir, .8 * k);
       f.obj.scale.setScalar(.25 + 1.65 * k);
       f.obj.material.opacity = .9 * (1 - k) ** 2;
+    } else if (f.kind === 'impactDust') {
+      f.obj.position.copy(f.origin).addScaledVector(f.drift, k); f.obj.position.y += .8 * k;
+      f.obj.scale.setScalar(1 + 3 * Math.sqrt(k));
+      f.obj.material.opacity = .55 * (1 - k) ** 1.5;
+    } else if (f.kind === 'impactSparks') {
+      const a = f.obj.geometry.attributes.position;
+      f.vel.forEach((v, j) => a.setXYZ(j, f.origin.x + v.x * f.age, f.origin.y + v.y * f.age - 9 * f.age * f.age, f.origin.z + v.z * f.age));
+      a.needsUpdate = true;
+      f.obj.material.size = Math.max(5, Math.min(9, .24 * innerHeight / (2 * Math.max(1, f.origin.distanceTo(camera.position)))));
+      f.obj.material.opacity = (1 - k) ** .7;
     } else if (f.kind === 'sparks') {
       const a = f.obj.geometry.attributes.position;
       f.vel.forEach((v, j) => {
-        const t1 = f.age, t0 = Math.max(0, f.age - 0.05);
+        const t1 = f.age, t0 = Math.max(0, f.age - (f.trailTime || .05));
         a.setXYZ(j * 2, f.origin.x + v.x * t0, f.origin.y + v.y * t0 - 9 * t0 * t0, f.origin.z + v.z * t0);
         a.setXYZ(j * 2 + 1, f.origin.x + v.x * t1, f.origin.y + v.y * t1 - 9 * t1 * t1, f.origin.z + v.z * t1);
       });
@@ -4287,6 +4409,7 @@ function fxUpdate(dt) {
       f.obj.material.opacity = 1 - k;
     }
     if (f.age >= f.life) {
+      if (f.impactDetail) impactDetailCount--;
       scene.remove(f.obj);
       f.obj.material.dispose();
       if (f.kind === 'sparks' || f.ownGeo) f.obj.geometry.dispose();
@@ -4366,7 +4489,7 @@ function fire(u, aimPoint, spread, w, from = muzzle(u)) {
   dir.normalize();
   const hit = castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
-  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy);
+  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w);
   if (w.scope && !laser) smokeTrail(from, end);
   flash(from, laser ? ENERGY_COLOR : w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
   if (!hit) return false;
@@ -6476,6 +6599,7 @@ function shot(u, sl, aim, spread) {
   const w = sl.w;
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
+  incomingFire(u, w);
   // プレイヤーのaimには前の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
   const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
@@ -7522,8 +7646,8 @@ function updateCamera(u, dt) {
   u.cameraRecoil = u.recoil; u.cameraRecoilYaw = u.recoilYaw || 0;
   const pivot = cameraPivot(u);
   // ダッシュ中は画角を広げてスピード感を出す。ロックオン中は LOCK_ZOOM 倍にズーム
-  const base = u.dashState === 'short' || u.dashState === 'lunge' || u.dashState === 'charge' ? 82 : u.dashState === 'long' ? 77 : 70;
-  const fov = u.scoped ? 70 / scopePower(u) : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
+  const base = gameOptions.fov + (u.dashState === 'short' || u.dashState === 'lunge' || u.dashState === 'charge' ? 12 : u.dashState === 'long' ? 7 : 0);
+  const fov = u.scoped ? gameOptions.fov / scopePower(u) : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
   camera.fov += (fov - camera.fov) * Math.min(1, dt * (u.scoped ? 16 : 9));
   camera.updateProjectionMatrix();
   camera.position.copy(pivot).addScaledVector(dir, -CAM.back);
@@ -7582,11 +7706,11 @@ function announce(text, kind = 'info', key = text, gap = 0) {
   setTimeout(() => d.classList.add('out'), ANN_TIME * 1000);
   setTimeout(() => d.remove(), ANN_TIME * 1000 + 450);
   sfx(kind === 'good' ? 'annGood' : kind === 'bad' ? 'annBad' : 'annInfo');
-  if (voiceOn && !muted && window.speechSynthesis && window.SpeechSynthesisUtterance) {
+  if (voiceOn && !muted && gameOptions.master > 0 && window.speechSynthesis && window.SpeechSynthesisUtterance) {
     try {
       if (speechSynthesis.pending) speechSynthesis.cancel(); // 読み上げが溜まらないよう、待っている物は捨てる
       const u = new SpeechSynthesisUtterance(text.replace(/　/g, '、'));
-      u.lang = 'ja-JP'; u.rate = 1.15; u.volume = 0.9;
+      u.lang = 'ja-JP'; u.rate = 1.15; u.volume = 0.9 * gameOptions.master / 100;
       const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.startsWith('ja'));
       if (v) u.voice = v;
       speechSynthesis.speak(u);
@@ -7866,10 +7990,9 @@ addEventListener('keydown', e => {
 if (window.ResizeObserver) {
   const observer = new ResizeObserver(() => {
     document.body.style.setProperty('--console-ammo-height', $('ammoBox').offsetHeight + 'px');
-    document.body.style.setProperty('--console-lock-height', $('lockAlert').offsetHeight + 'px');
     document.body.style.setProperty('--console-base-height', $('baseAlert').offsetHeight + 'px');
   });
-  observer.observe($('ammoBox')); observer.observe($('lockAlert')); observer.observe($('baseAlert'));
+  observer.observe($('ammoBox')); observer.observe($('baseAlert'));
 }
 function consoleTelemetry(p) {
   const flight = consoleMode === 'flight', on = p && p.alive && !p.scoped && (flight || consoleMode === 'mechanical');
@@ -7975,11 +8098,31 @@ function showPage(id) {
   $('ovCard').classList.toggle('xwide', id === 'pgCustom');
   $('overlay').scrollTop = 0;
 }
+let optionsPaused = false;
+function openOptions() {
+  optionsPaused = running;
+  if (optionsPaused) {
+    running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = false;
+    for (const k in keys) delete keys[k];
+    for (const k in pressed) delete pressed[k];
+    document.exitPointerLock?.();
+  }
+  $('optionsResume').hidden = !optionsPaused;
+  $('overlay').hidden = false; showPage('pgOptions');
+}
+function closeOptions() {
+  if (!optionsPaused) { showPage('pgMenu'); return; }
+  optionsPaused = false; running = true; $('overlay').hidden = true;
+  for (const k in keys) delete keys[k];
+  for (const k in pressed) delete pressed[k];
+  grabPointer();
+}
+$('optionsResume').addEventListener('click', closeOptions);
 $('overlay').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.page) { if (b.dataset.page === 'pgCustom') { cuCls = chosenCls; renderCustom(); } showPage(b.dataset.page); if (b.dataset.page === 'pgMap') renderMapList(); }
-  else if (b.classList.contains('back')) showPage('pgMenu');
+  if (b.dataset.page) { if (b.dataset.page === 'pgOptions') { openOptions(); return; } if (b.dataset.page === 'pgCustom') { cuCls = chosenCls; renderCustom(); } showPage(b.dataset.page); if (b.dataset.page === 'pgMap') renderMapList(); }
+  else if (b.classList.contains('back')) { if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
   else if (b.dataset.cu) { cuCls = b.dataset.cu; cuHover = null; renderCustom(); }
   else if (b.dataset.build) { switchBuild(+b.dataset.build); cuHover = null; if (!$('pgCustom').hidden) renderCustom(); renderClsButtons(); renderBuildTabs(); }
   else if (b.dataset.cslot) { cuSlot = b.dataset.cslot; cuHover = null; renderCustom(); }
@@ -7998,7 +8141,10 @@ $('overlay').addEventListener('click', e => {
     renderMapList(); $('mapList').querySelector(`[data-map-group="${g}"]`)?.focus();
   } else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
 });
-addEventListener('keydown', e => { if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden) showPage('pgMenu'); });
+addEventListener('keydown', e => {
+  if (e.code === 'F3') { e.preventDefault(); if (!e.repeat) { if (!$('pgOptions').hidden) closeOptions(); else openOptions(); } }
+  if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden) { if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
+});
 // ---- 機体カスタマイズ（v0.11、ユーザー指定。v0.13で3列に作り直し、ユーザー決定）----
 // 左に部位（頭・胴・腕・脚）と武器の4枠、中に選んだ枠のシリーズ（メーカーごと。開くと型）、右にプレビューと今との差、下に重量のバー。
 // 型にマウスを乗せるか↑↓で動かすと右に差が出て、クリックかEnterで付ける。上で兵装と保存した構成（3つ）を切り替える
@@ -8525,9 +8671,14 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
 }
 function fmt(t) { t = Math.max(0, Math.ceil(t)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
 let boardAt = 0;
-// 被ロックオン警告（v0.11.1、Codex 版から）：自分をロックしている敵機と防衛砲台を数え、方向（8方向）ごとに矢印を出す。
+// 被ロックオン警告（v0.11.1、Codex 版から）：自分をロックしている敵機と防衛砲台を数え、小さい矢印だけで方向を示す。実射だけ赤く強調する。
 // ロックしない武器（狙撃銃・重砲・偵察機）で狙っている敵と、光学迷彩中の自分は数えない
-const LOCK_DIRS = ['前', '右前', '右', '右後', '後', '左後', '左', '左前'];
+const LOCK_DIRS = ['前', '右前', '右', '右後', '後', '左後', '左', '左前']; // 読み上げ用。画面には文字を出さない
+const incomingShots = new Map();
+const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => e.alive && e.team !== p.team && e.target === p && e.locked && !w?.noLock;
+function incomingFire(e, w) {
+  if (player?.alive && running && !ended && !player.cloak && locksPlayer(e, player, w)) incomingShots.set(e, .26);
+}
 let lockBeepT = 0;
 // 被索敵の警告（v0.11.2、ユーザー指定）：敵のレーダー・センサー・偵察機・索敵ソナーに映されている間、ミニマップの下に出す。
 // 索敵している物と残りの秒数（レーダーはベースにいる間ずっと）。映され始めたら1回鳴らす
@@ -8543,9 +8694,12 @@ function spotWarning(p) {
   if ($('spotAlertInfo').textContent !== info) $('spotAlertInfo').textContent = info;
 }
 function lockWarning(p, dt) {
-  const aimedBy = e => e.alive && e.team !== p.team && e.target === p && e.locked && !(e.slots && e.slots[e.weapon].w.noLock);
+  const aimedBy = e => locksPlayer(e, p);
   const src = p.alive && running && !ended && !p.cloak ? [...units, ...turrets].filter(aimedBy) : [];
-  $('lockAlert').hidden = $('lockDirections').hidden = !src.length;
+  $('lockDirections').hidden = !src.length;
+  for (const [e, t] of incomingShots) { if (!src.includes(e) || t <= 0) incomingShots.delete(e); else incomingShots.set(e, t - dt); }
+  const firing = src.some(e => incomingShots.has(e));
+  $('lockDirections').classList.toggle('firing', firing);
   if (!src.length) { lockBeepT = 0; return; }
   if ((lockBeepT -= dt) <= 0) { sfx('lockWarn'); lockBeepT = 1.4; }
   const groups = new Map();
@@ -8553,24 +8707,20 @@ function lockWarning(p, dt) {
     const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z;
     const a = Math.atan2(dx * Math.cos(p.yaw) - dz * Math.sin(p.yaw), -dx * Math.sin(p.yaw) - dz * Math.cos(p.yaw)); // 0 が前、右回りに正
     const k = (Math.round(a / (Math.PI / 4)) + 8) % 8;
-    if (!groups.has(k)) groups.set(k, { s: 0, c: 0, n: 0, up: 0, down: 0 });
+    if (!groups.has(k)) groups.set(k, { s: 0, c: 0, n: 0, firing: false });
     const g = groups.get(k); g.s += Math.sin(a); g.c += Math.cos(a); g.n++;
-    if (e.pos.y - p.pos.y > 8) g.up++; else if (e.pos.y - p.pos.y < -8) g.down++;
+    g.firing ||= incomingShots.has(e);
   }
-  const guns = src.filter(e => e.kind !== 'turret').length, tur = src.length - guns;
-  const ks = [...groups.keys()].sort((a, b) => a - b);
-  const info = [guns ? `敵機${guns}機` : '', tur ? `砲台${tur}基` : ''].filter(Boolean).join('・') + ' ｜ ' + ks.map(k => LOCK_DIRS[k]).join('・');
-  if ($('lockAlertInfo').textContent !== info) $('lockAlertInfo').textContent = info;
   for (let k = 0; k < 8; k++) {
     const el = $('lockDir' + k), g = groups.get(k);
     el.hidden = !g;
     if (!g) continue;
     el.style.setProperty('--bearing', Math.atan2(g.s, g.c).toFixed(3) + 'rad');
-    const t = LOCK_DIRS[k] + (g.n > 1 ? ' ×' + g.n : '') + (g.up === g.n ? ' ↑' : g.down === g.n ? ' ↓' : '');
-    if (el.lastChild.textContent !== t) el.lastChild.textContent = t;
+    el.classList.toggle('firing', g.firing);
+    el.setAttribute('aria-label', LOCK_DIRS[k] + '・' + (g.firing ? '被発砲' : '被ロックオン') + '・' + g.n);
   }
 }
-$('lockDirections').innerHTML = LOCK_DIRS.map((_, k) => `<div class="lockSector" id="lockDir${k}" hidden><i></i><small></small></div>`).join('');
+$('lockDirections').innerHTML = LOCK_DIRS.map((_, k) => `<div class="lockSector" id="lockDir${k}" hidden><i aria-hidden="true"></i></div>`).join('');
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
@@ -8770,6 +8920,7 @@ function hud(timeLeft, dt) {
 let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
 function setup() {
+  incomingShots.clear(); lockBeepT = 0;
   resetMobility();
   clearArtillery();
   clearSecondaryEffects();
@@ -8792,6 +8943,7 @@ function setup() {
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);
   for (let i = 0; i < count; i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
+  applyAudioSettings();
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
   firstStrike = null; holdNext = SC.holdFirst; killcam = null;
@@ -8838,6 +8990,7 @@ function resize() {
   // 照準円のすぐ外側に、左右の半円（上下に少し隙間）。どちらも下から上へ伸びる。その6px外側にもう1周（左は熱、右はブースト）
   const R = Math.round(ACQ_R * h / 2) + 7, R2 = R + 6, S = 2 * R2 + 8, c = S / 2, gap = 0.22;
   document.documentElement.style.setProperty('--aim-sp-offset', (R2 + 10) + 'px');
+  document.documentElement.style.setProperty('--lock-warning-diameter', (R2 * 3) + 'px'); // 三角の中心を照準の外周半径の1.5倍へ
   const pt = (a, r) => `${(c + r * Math.sin(a)).toFixed(1)} ${(c - r * Math.cos(a)).toFixed(1)}`;
   const left = r => `M ${pt(Math.PI + gap, r)} A ${r} ${r} 0 0 1 ${pt(2 * Math.PI - gap, r)}`, right = r => `M ${pt(Math.PI - gap, r)} A ${r} ${r} 0 0 0 ${pt(gap, r)}`;
   const ag = $('aimGauge');
@@ -8848,6 +9001,7 @@ function resize() {
   for (const id of ['agBoostBg', 'agBoost']) $(id).setAttribute('d', right(R2));
   // メカニカルの4枠の弧。左右の内側が主・副、外側が補助・特別。SP表示の上で止める。
   const r0 = R - 7, ms = 2 * (r0 + 48), mc = ms / 2;
+  document.documentElement.style.setProperty('--mech-lock-warning-diameter', ((r0 + 29) * 3) + 'px');
   $('mechAim').setAttribute('width', ms); $('mechAim').setAttribute('height', ms); $('mechAim').setAttribute('viewBox', `0 0 ${ms} ${ms}`);
   const mp = (a, r) => `${(mc + r * Math.sin(a * Math.PI / 180)).toFixed(1)} ${(mc - r * Math.cos(a * Math.PI / 180)).toFixed(1)}`;
   const ma = (r, a, b) => `M ${mp(a, r)} A ${r} ${r} 0 0 ${b > a ? 1 : 0} ${mp(b, r)}`;

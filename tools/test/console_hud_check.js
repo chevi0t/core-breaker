@@ -85,16 +85,16 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
             const g = __g, u = g.player, e = g.units.find(q => q.team !== u.team);
             document.querySelector(`[data-console-choice="${mode}"]`).click();
             g.equip(u, 'heavy'); u.slots.aux = g.slotOf('pike'); u.weapon = 'aux'; u.slots.aux.chargeT = 1.4; u.switchT = 0;
-            e.target = u; e.weapon = 'main'; e.locked = true; g.running = true;
+            e.slots.main = g.slotOf('ar'); e.target = u; e.weapon = 'main'; e.locked = true; g.running = true;
             const radar = g.radars.find(r => r.team === u.team); if (radar) radar.intruders = [e];
             g.hud(240, .016); g.running = false;
             // 被索敵の長い警告を配置検査の条件に加える。
             document.getElementById('spotAlert').hidden = false; document.getElementById('spotAlertInfo').textContent = '索敵センサー・偵察機 残り15秒';
           }, mode);
           await p.waitForTimeout(50); // ResizeObserver の武器情報の高さを反映
-          const box = await p.evaluate(mode => Object.fromEntries(['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn', 'consoleHeading', 'plantBar', 'lockAlert', 'baseAlert'].map(id => {
+          const box = await p.evaluate(mode => { const boxes = Object.fromEntries(['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn', 'consoleHeading', 'plantBar', 'baseAlert'].map(id => {
             const r = document.getElementById(id === 'aimSp' && mode === 'flight' ? 'sp' : id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }];
-          })), mode);
+          })); boxes.lockMarkers = [...document.querySelectorAll('#lockDirections:not([hidden]) .lockSector:not([hidden]) i')].map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }); return boxes; }, mode);
           const inside = r => r.x >= -.5 && r.y >= -.5 && r.x + r.w <= width + .5 && r.y + r.h <= height + .5;
           const overlap = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1;
           const label = `${map}/${width}x${height}/${mode}`;
@@ -103,7 +103,7 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
             for (const id of ['mini', 'spotAlert', 'status', 'ammoBox', 'aimSp', 'top', 'wpn']) yes(inside(box[id]), label + '/' + id + 'が画面内');
             for (const id of ['mini', 'status', 'ammoBox', 'wpn']) yes(!overlap(box.aimSp, box[id]), label + '/SPと' + id + 'が重ならない');
             yes(!overlap(box.spotAlert, box.ammoBox), label + '/被索敵と武器情報が重ならない');
-            yes(!overlap(box.plantBar, box.lockAlert) && (!box.baseAlert.h || !overlap(box.baseAlert, box.lockAlert)), label + '/プラントと警告が重ならない');
+            yes(box.lockMarkers.every(r => !overlap(r, box.plantBar) && !overlap(r, box.baseAlert)), label + '/方向の三角とプラント・基地警告が重ならない');
             if (mode === 'mechanical') yes(!overlap(box.consoleHeading, box.aimSp) && !overlap(box.consoleHeading, box.status) && !overlap(box.consoleHeading, box.ammoBox), label + '/方位計が重ならない');
           }
           layouts.push({ map, width, height, mode, box });
