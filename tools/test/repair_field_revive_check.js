@@ -18,7 +18,8 @@ const dir = path.resolve(process.argv[2] || 'dbg/repair-field');
       g.selectMap('city'); document.getElementById('start').click(); g.running = false; g.renderer.render = () => {};
       const u = g.player, [a, b] = g.units.filter(q => q.team === u.team && q !== u), enemy = g.units.find(q => q.team !== u.team);
       // 同じ高さの平床で、地形と移動経路による差を除く。
-      g.obstacles.push({ minX: -70, maxX: 70, minZ: -70, maxZ: 70, top: 100 });
+      const floor = { minX: -70, maxX: 70, minZ: -70, maxZ: 70, top: 100, bottom: 99 };
+      g.obstacles.push(floor); g.bridges.push(floor); // 経路の高さ判定にも同じ平床を使う。
       const sync = () => { for (const q of [u, a, b, enemy]) { q.group.position.copy(q.pos); q.group.visible = q.alive || q.downT > 0; } g.scene.updateMatrixWorld(true); };
       function reset(key = 'field') {
         for (const q of g.units) { q.alive = false; q.downT = 0; q.group.visible = false; q.frozen = true; q.isPlayer = false; }
@@ -100,6 +101,7 @@ const dir = path.resolve(process.argv[2] || 'dbg/repair-field');
         const sl = reset('fieldG'); down(a); a.pos.set(14, 100, 0); sync();
         u.isPlayer = false; u.frozen = false; u.think = 0; u.actCd = 0; u.sideT = 0; u.waypoint = null; u.target = null;
         const before = u.pos.distanceTo(a.pos);
+        yes(g.clearPath(u.pos.x, u.pos.z, a.pos.x, a.pos.z, u.pos.y), '検査用平床を経路計算でも直接歩ける');
         for (let i = 0; i < 800 && !a.alive; i++) {
           if (a.downT > 0) g.downTick(a, .01);
           g.botUpdate(u, .01); sync();
