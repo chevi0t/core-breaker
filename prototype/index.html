@@ -4082,11 +4082,12 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.dashT = 0; u.longDash = false; u.dashState = 'charge';
     spUse(ch, 100 / ch.w.use * dt);
   } else if (u.lungeT > 0) {
-    // 回転斬り・横なぎの踏み込み：振っている間に決まった距離を進む。ブーストは使わず、その間も回復する（ユーザー指定）。
-    // 出だしは平均の1.35倍で、終わりは0.65倍まで落ちる（距離は同じ）。終わったら勢いのまま滑る（slideT。v0.13.1、ユーザー指摘）
+    // 武器ごとの踏み込み速度。ダッシュ斬りは進入時の速度・方向を保ち、武器より速い間は滑りと同じ抵抗で減速する。
+    // 勢いを足し直さないので連続攻撃で加速し続けない。ブーストは使わず、その間も回復する（ユーザー指定）。
     const p = 1 - Math.max(0, u.lungeT) / (u.lungeT0 || 1);
     u.lungeT -= dt;
-    speed = u.lungeSpeed * (1.35 - 0.7 * p); dir = u.lungeDir; accel = 40; grav = GRAV * 0.35;
+    speed = u.lungeSpeed * (1.35 - 0.7 * p); dir = u.lungeDir;
+    accel = u.swing?.dashAttack && Math.hypot(u.vel.x, u.vel.z) > speed ? SLIDE_DECEL : 40; grav = GRAV * 0.35;
     u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt); u.boostIdle = 0.5; u.dashState = 'lunge';
     if (u.lungeT <= 0 && u.swing && u.swing.a.lunge) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
   } else if (u.dashT > 0) {
@@ -7021,7 +7022,8 @@ function swordTick(u, sl, dt, trigger, aim) {
   }
   if (sl.cd > 0 || !trigger) return false;
   let a = sl.w.normal;
-  if (u.dashT > 0 || u.longDash) {
+  const dashAttack = u.dashT > 0 || u.longDash;
+  if (dashAttack) {
     // 回転斬り：ダッシュ中ならブーストに関係なく出せる。ダッシュは踏み込みに切り替わる
     a = sl.w.strong;
     u.dashT = 0; u.longDash = false;
@@ -7034,7 +7036,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   if (td < (a.lunge || a.step || 0) + a.reach + R) dir.set(tgt.pos.x - u.pos.x, 0, tgt.pos.z - u.pos.z).normalize();
   else tgt = null;
   const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt, tilt = swingTilt(u, a, aim);
-  u.swing = { a, weaponName: sl.w.name, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
+  u.swing = { a, weaponName: sl.w.name, dashAttack, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
   if (waveReady) {
     const from = u.pos.clone().addScaledVector(UP, a.height), d = aim ? aim.clone().sub(from) : fwdOf(u);
     if (d.lengthSq() < .0001) d.copy(fwdOf(u));
@@ -7048,7 +7050,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   const go = a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
   if (go > 0.3) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
-    u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed;
+    if (!dashAttack) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
   }
   return false;
 }
