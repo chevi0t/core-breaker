@@ -63,7 +63,7 @@ const {chromium}=require('playwright');
    yes(second.right>first.right&&second.left>first.left,'双短刀：第2段は両手で左へ薙ぐ');
    yes(Math.abs(first.body)<.001&&Math.abs(second.body)<.001&&spin.body>Math.PI,'双短刀：最後の段だけ体ごと回る');
    for(const key of ['sabre','claw'])for(const t of [.05,.2,.3,.4,.6])yes(Math.abs(sample(key,t).body)<.001,key+' ソードの回転技を使わない');
-   sample('claw',.25);yes(u.blade.userData.laserBlade?.visible&&u.blade.userData.laserBlade.scale.z>4,'双爪：本体を巨大化せず独立したレーザー刃が伸びる');
+   sample('claw',.25);yes(u.blade.userData.laserBlade?.visible&&u.blade.userData.laserBlade.userData.length>4,'双爪：本体を巨大化せず独立したレーザー刃が伸びる');
    reset('sabre');sync();
    const left=u.rig.bones.handL.node.getWorldPosition(new T.Vector3()),grip=u.blade.userData.grip;
    yes(Math.abs(left.distanceTo(grip)-.38)<.025,'日本刀：左手も柄尻を握る刀の構え');
