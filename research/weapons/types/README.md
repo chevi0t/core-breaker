@@ -11,3 +11,5 @@ wiki（PS4版）の各系統の表（`../*.md`）から、本作の武器ごと�
 - `secondary.json`（AC第4便）は副武器10系統33型。原典の現行性能と不明な再現値を区別し、射撃方式が違う型を除外。現行表は `../../arcade/weapons/secondary.md`、比較は `../secondary-comparison.md`。旧PS4版のJSONは変更しない。
 
 - 第5便の補助装備は `auxiliary.json`（AC11系統35型）。原表・再現上の値は `../../arcade/weapons/auxiliary.md`、比較は `../auxiliary-comparison.md`。
+
+- 誘導ミサイルは `guided-missiles.json`（AC2系統8型）。原典の性能と本作の旋回・加速等の暫定値を区別し、通常射撃とは別の捕捉を使う。比較と操作は `../guided-missiles.md`。Godot版への自動反映はしない。
