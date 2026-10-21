@@ -3,6 +3,8 @@
 SEGA の「ボーダーブレイク」（2023年にサービス終了）の遊びをブラウザで再現する、非公式のファンメイド試作です。
 公式の素材・名称・ロゴ・音は使っていません。機体や武器の形はコードで組んだオリジナル、数値は攻略 wiki の値を参考にしています。
 
+ブラウザ版と並行して [Godot版](godot/README.md) を移植中です。両方の開発を続け、コード・保存・検証・配布は版ごとに分けています。
+
 ## 遊び方
 
 `prototype/index.html` をブラウザで開きます（three.js をネットから読むので接続が要ります）。
@@ -13,6 +15,7 @@ SEGA の「ボーダーブレイク」（2023年にサービス終了）の遊�
 | パス | 中身 |
 |---|---|
 | `prototype/index.html` | ゲーム本体（1ファイル、three.js r128、ビルド不要） |
+| `godot/` | Godot 4版。起動方法と移植状況は `godot/README.md`・`godot/PORTING.md` |
 | `prototype/maps/<id>.js` | マップのデータ。`prototype/maps.js` は `tools/build_maps.py` がここから作る |
 | `prototype/sounds.js`・`music.js` | 効果音と BGM（`tools/build_sounds.py` が `sounds/` から作る） |
 | `docs/DESIGN.md` | 設計書（コードの構成、データの約束事、数値の出典、決まっている仕様） |
