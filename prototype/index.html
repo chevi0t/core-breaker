@@ -885,7 +885,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
         <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
       </div>
-      <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
+      <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ロックオン・スコープの倍率はこの画角が基準です。</p>
       <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
       <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
       <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
@@ -934,7 +934,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
+        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを弱く追いますが、外れた照準を引き戻しません。弾は武器の反動・ばらつきを含めて飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・狙撃銃では通常ロックせず、置き撃ちや予測射撃ができます</span>
         <kbd>Q</kbd><span>ロック対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
@@ -946,7 +946,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>Tab</kbd><span>押している間、両軍のスコア表（戦闘・占拠・貢献の点と合計、撃破・撃破支援・大破の数）を表示。試合の結果画面にも出ます</span>
         <kbd>よろけ・ダウン</kbd><span>1回に3500以上（格闘は3000以上）のダメージを受けるとよろけて少し押され、7000以上（格闘は6000以上）だと吹き飛んで倒れます。吹き飛んでいる間に Space と Shift を同時に押すと、ブーストを32使って受け身</span>
         <kbd>着地硬直</kbd><span>高い所（約12m以上）から落ちて着地すると、少しの間動けません。着地の直前に Space を押すか、Space 長押しで降下を緩めれば出ません</span>
-        <kbd>誘導ミサイル</kbd><span>強襲・重火力の副武器。四角い照準に敵機か敵砲台を入れ続けて捕捉し、左クリックで連射。重火力は複数回の捕捉を同じ敵や複数の敵に配分できます。右クリックで捕捉解除。捕捉せず撃つと直進し、後から誘導はかかりません。飛来するミサイルは壁や建物で防げます</span>
+        <kbd>誘導ミサイル</kbd><span>強襲・重火力の副武器。四角い照準に敵機か敵砲台を入れ続けて捕捉し、左クリックで連射。重火力は複数回の捕捉を同じ敵や複数の敵に配分できます。専用照準は直進（水色）・捕捉中（黄）・誘導完了（黄緑）を区別し、発射する総数と連射中の残数を表示します。右クリックで捕捉解除。捕捉せず撃つと直進し、後から誘導はかかりません。飛来するミサイルは壁や建物で防げます</span>
         <kbd>ロック外し</kbd><span>橙の方向警告中は、ショートダッシュの切り返しで敵の照準を振り切れます。誘導ミサイルは捕捉させないか、発射後は障害物へ誘い込んで回避します</span>
       </div>
       <div class="keys">
@@ -5352,13 +5352,13 @@ function botAct(u, tracking, enemyCore) {
 }
 // Botと防衛砲台の照準：プレイヤーと同じく目標の動きを一部しか追えない。
 // BOT_TRACK は目標の動きを追う割合、BOT_SETTLE は遅れを詰める速さ（/秒）。ずれが BOT_LOCK_BREAK を超えると振り切られる
-const BOT_TRACK = 0.85, BOT_SETTLE = 2.5, BOT_LOCK_BREAK = 0.09, BOT_REACT = 0.35, BOT_REACQ = 0.7;
+const BOT_TRACK = 0.85, BOT_TRACK_SHAKEN = .35, BOT_SETTLE = 2.5, BOT_LOCK_BREAK = 0.09, BOT_REACT = 0.35, BOT_REACQ = 0.7;
 function trackAim(u, dt, eye) {
   u.locked = false;
   if (!u.target || !u.target.alive) { u.aimTarget = null; return false; }
   const tp = targetPoint(u.target);
   if (u.aimTarget !== u.target) { u.aimTarget = u.target; u.aimPos.copy(tp); u.aimPrev.copy(tp); u.reacq = BOT_REACT; }
-  const frac = u.jamT > 0 || u.target.dashState === 'short' || u.target.cloak ? LOCK_TRACK_SHAKEN : BOT_TRACK; // 妨害中も相手を追いにくくする。
+  const frac = u.jamT > 0 || u.target.dashState === 'short' || u.target.cloak ? BOT_TRACK_SHAKEN : BOT_TRACK; // Botの手動照準相当の追従は従来どおり。
   u.aimPos.addScaledVector(tp.clone().sub(u.aimPrev), frac);
   u.aimPos.lerp(tp, 1 - Math.exp(-BOT_SETTLE * dt));
   u.aimPrev.copy(tp);
@@ -5367,7 +5367,7 @@ function trackAim(u, dt, eye) {
   else if (off > BOT_LOCK_BREAK) u.reacq = BOT_REACQ; // 振り切られた
   // 狙いが合えば撃つ（ロック距離の外でも）。ロック（被ロックオン警告に出る）は頭部のロック距離の1.15倍まで
   const aimed = u.reacq <= 0;
-  u.locked = aimed && !(u.jamT>0) && u.target.pos.distanceTo(u.pos) <= u.lockRange * 1.15 * spotMul(u.team, u.target);
+  u.locked = aimed && normalLockAllowed(u) && !(u.jamT>0) && u.target.pos.distanceTo(u.pos) <= u.lockRange * 1.15 * spotMul(u.team, u.target);
   return aimed;
 }
 // ---- 設置物と索敵：地雷、索敵センサー、偵察機、遠隔爆弾、自動砲台 ----
@@ -6644,7 +6644,7 @@ function equip(u, cls) {
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
-    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
+    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
@@ -6691,6 +6691,7 @@ function selectWeapon(u, w) {
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
+  if (u.isPlayer && !normalLockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
   if (isArtilleryMode(u)) {
@@ -6904,8 +6905,8 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
   incomingFire(u, w);
-  // プレイヤーのaimには前の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
-  const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
+  // カメラは反動で回さない。銃口からの弾道には現在の反動を1回だけ加える（プレイヤー/Bot共通）。
+  const vertical = u.recoil, horizontal = u.recoilYaw || 0;
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
     const P = w.proj, plasma = w.series === 'lp', charge = w.series === 'lq';
@@ -7963,22 +7964,8 @@ function playerUpdate(u, dt) {
   u.scoped = !!cur.w.scope && (cur.w.scopeHigh ? (u.scopeStep||0)>0 : rightDown) && !busy && u.switchT <= 0;
   if(cur.w.type==='radarTool' && u.radarHeading!=null){const d=Math.atan2(Math.sin(u.yaw-u.radarHeading),Math.cos(u.yaw-u.radarHeading));u.yaw=u.radarHeading+Math.max(-Math.PI/6,Math.min(Math.PI/6,d));}
   lockUpdate(u, dt);
-  if (lock.target && lock.visible) {
-    // ロックオン中：目標が動いた角度だけ視点を動かし、照準が機体から外れたら機体の端まで引き戻す（中心へは寄せない）。
-    // 照準を頭に置けば頭を追い続ける。相手のショートダッシュ中は追い切れず引き戻しもしないので、外れることがある
-    const t = lock.target, a = anglesTo(u, targetPoint(t));
-    if (lock.prevAng) {
-      const shaken = t.dashState === 'short';
-      const frac = shaken ? LOCK_TRACK_SHAKEN : LOCK_TRACK;
-      const cap = LOCK_MAX_RATE * dt, clamp = v => Math.max(-cap, Math.min(cap, v));
-      let dYaw = wrapAngle(a.yaw - lock.prevAng.yaw) * frac, dPitch = (a.pitch - lock.prevAng.pitch) * frac;
-      if (!shaken) { const st = lockStick(u, t, LOCK_PULL * dt); dYaw += st.yaw; dPitch += st.pitch; }
-      u.yaw += clamp(dYaw);
-      u.pitch = Math.max(-0.9, Math.min(0.7, u.pitch + clamp(dPitch)));
-    }
-    lock.prevAng = a;
-  } else lock.prevAng = null;
-  // 弾は常にカメラ中心のレイが当たる点へ飛ぶ（ロック中も補正なし）
+  lockFollow(u, dt);
+  // カメラ中心のレイで基準の照準点を選ぶ。射撃時に銃の反動を適用し、ロック対象への弾道補正はしない。
   const camDir = new T.Vector3();
   camera.getWorldDirection(camDir);
   // レイは機体の手前から飛ばす（カメラと機体の間にある傘や壁を照準点にしないため）
@@ -7999,20 +7986,16 @@ function playerUpdate(u, dt) {
   if (res) hitMark(res === 'head');
 }
 function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
-// 照準（カメラの中心の線）が目標の機体（LOCK_BODY の範囲）から外れていれば、機体の端へ向けて最大 step だけ戻す角度
-function lockStick(u, t, step) {
-  const pv = cameraPivot(u), dx = t.pos.x - pv.x, dz = t.pos.z - pv.z, flat = Math.hypot(dx, dz);
-  const off = wrapAngle(Math.atan2(-dx, -dz) - u.yaw - (u.recoilYaw || 0)), half = Math.atan2(LOCK_BODY.w, flat);
-  const ey = Math.sign(off) * Math.max(0, Math.abs(off) - half);
-  const lo = Math.atan2(t.pos.y + LOCK_BODY.lo - pv.y, flat), hi = Math.atan2(t.pos.y + LOCK_BODY.hi - pv.y, flat), top = Math.atan2(t.pos.y + LOCK_BODY.top - pv.y, flat);
-  const pitch = u.pitch + u.recoil; // 反動込みの照準から敵へ戻す。手で抑えた分を引き戻しが打ち消さない。
-  // 上に外れたら頭を通り越して肩（top）まで下ろす（lock.down の間は頭の高さでも止めない。v0.15、ユーザー指摘）。
-  // 下ろし終わった後に自分で頭に置けば、今までどおり頭を追い続ける
-  if (pitch > hi) lock.down = true;
-  if (lock.down && pitch <= top) lock.down = false;
-  const ep = lock.down ? top - pitch : pitch < lo ? lo - pitch : 0;
-  const n = Math.hypot(ey, ep), k = n > step ? step / n : 1;
-  return { yaw: ey * k, pitch: ep * k };
+// 捕捉と照準を分離。目標の角移動だけを弱く追い、外れた照準を敵へ引き戻さない。
+function lockFollow(u, dt) {
+  if (!lock.target || !lock.visible) { lock.prevAng = null; return; }
+  const t = lock.target, a = anglesTo(u, targetPoint(t));
+  if (lock.prevAng) {
+    const frac = t.dashState === 'short' ? LOCK_TRACK_SHAKEN : LOCK_TRACK, cap = LOCK_MAX_RATE * dt;
+    u.yaw += Math.max(-cap, Math.min(cap, wrapAngle(a.yaw - lock.prevAng.yaw) * frac));
+    u.pitch = Math.max(-.9, Math.min(.7, u.pitch + Math.max(-cap, Math.min(cap, (a.pitch - lock.prevAng.pitch) * frac))));
+  }
+  lock.prevAng = a;
 }
 function anglesTo(u, p) {
   const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
@@ -8022,17 +8005,16 @@ function anglesTo(u, p) {
 // ---- ロックオン ----
 // 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。外側の円（KEEP_R）から外れるか、射程外・遮蔽で解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
-// ショートダッシュで振り切れる仕組み（LOCK_TRACK_SHAKEN）は変えていない
+// 捕捉の範囲と時間を保ち、照準の自動追従だけを弱める。
 const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42, ACQ_TIME = 0.15;
-// 追従の強さ：目標が動いた角度のうち視点が自動で追う割合。相手がショートダッシュ中は大きく落ちる。
-// LOCK_PULL は照準が機体から外れたときに引き戻す速さ（ラジアン/秒）、LOCK_BODY は機体とみなす範囲（横の半幅、足元からの高さ）。v0.9.1で強めた。
-// top：上に外れたときに引き戻す高さ（胴の上＝肩。頭は3.2〜3.95m）。v0.15まではてっぺんの hi へ戻していて、カメラ（4.6m）から水平に構えるだけで頭に吸い付いていた
-const LOCK_TRACK = 1, LOCK_TRACK_SHAKEN = 0.35, LOCK_MAX_RATE = 4, LOCK_PULL = 0.8, LOCK_BODY = { w: 1, lo: 0.4, hi: 3.9, top: 3.1 };
+// 自動追従は目標の角移動の25%、ショートダッシュ中は8%。捕捉を保っても手で狙い直す余地を残す。
+// 静止した相手への引き戻しと反動の自動補償は行わない。上限は毎秒0.8rad。
+const LOCK_TRACK = .25, LOCK_TRACK_SHAKEN = .08, LOCK_MAX_RATE = .8;
 // ロックオン中は画角を LOCK_ZOOM 分の1にして目標を大きく見せる（v0.10.2、ユーザー指定「1.3倍程度のズーム」）。視点の感度も画角に合わせて細かくなる
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
+const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8046,10 +8028,12 @@ function setLock(e) {
   Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null });
   sfx('lock');
 }
-function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false, down: false }); }
+function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false }); }
+// 副武器は自由に置き撃ちする。ミサイルも通常ロックではなく専用の捕捉だけを使う。
+const normalLockAllowed = u => u.weapon !== 'sub' && !u.slots?.[u.weapon]?.w.noLock;
 function lockUpdate(u, dt) {
   if(u.jamT>0){if(lock.target||lock.cand)releaseLock();return;}
-  if (u.slots[u.weapon].w.noLock) { if (lock.target || lock.cand) releaseLock(); return; }
+  if (!normalLockAllowed(u)) { if (lock.target || lock.cand) releaseLock(); return; }
   const seen = e => canSee(u, e, targetPoint(e));
   const list = [];
   for (const e of [...units, ...turrets]) {
@@ -8128,13 +8112,11 @@ function cameraPivot(u) {
   return u.pos.clone().add(new T.Vector3(0, CAM.up, 0)).addScaledVector(right, CAM.side);
 }
 function updateCamera(u, dt) {
-  const pitch = u.pitch + u.recoil; // 反動で視点が跳ね上がる
-  const yaw = u.yaw + (u.recoilYaw || 0);
+  const pitch = u.pitch, yaw = u.yaw; // 射撃反動は銃と弾道へ残し、景色を回さない。
   const dir = new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
-  u.cameraRecoil = u.recoil; u.cameraRecoilYaw = u.recoilYaw || 0;
   const pivot = cameraPivot(u);
-  // ダッシュ中は画角を広げてスピード感を出す。ロックオン中は LOCK_ZOOM 倍にズーム
-  const base = gameOptions.fov + (u.dashState === 'short' || u.dashState === 'lunge' || u.dashState === 'charge' ? 12 : u.dashState === 'long' ? 7 : 0);
+  // 移動や攻撃では画角を変えない。意図したロック/スコープのズームだけを維持する。
+  const base = gameOptions.fov;
   const fov = u.scoped ? gameOptions.fov / scopePower(u) : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
   camera.fov += (fov - camera.fov) * Math.min(1, dt * (u.scoped ? 16 : 9));
   camera.updateProjectionMatrix();
@@ -9175,7 +9157,7 @@ const LOCK_DIRS = ['前', '右前', '右', '右後', '後', '左後', '左', '�
 const incomingShots = new Map();
 const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => e.alive && e.team !== p.team && (w?.missile
   ? !e.transfer && !e.repairing && !e.stun && !(e.jamT > 0) && !(e.electricT > 0) && (e.slots[e.weapon].missileLocks || []).some(entry => entry.target === p && missileTargetValid(e, entry))
-  : e.target === p && e.locked && !w?.noLock);
+  : e.target === p && e.locked && normalLockAllowed(e));
 function incomingFire(e, w) {
   if (player?.alive && running && !ended && !player.cloak && locksPlayer(e, player, w)) incomingShots.set(e, .26);
 }
@@ -9230,28 +9212,53 @@ function missileHud(p) {
   canvas.hidden = !M || !p.alive || !running || ended || !!p.transfer;
   if (canvas.hidden) return;
   if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
-  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1;
-  ctx.clearRect(0, 0, w, h); ctx.lineWidth = 1.5; ctx.strokeStyle = '#7bdfd9';
-  ctx.strokeRect(w / 2 - r, h / 2 - r, r * 2, r * 2);
-  ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
-  ctx.fillStyle = '#b9f3ef';
-  const locks = sl.missileLocks || [], capacity = Math.min(M.locks, Math.floor(sl.ammo / M.shots));
-  ctx.fillText(`捕捉 ${locks.length}/${capacity}　左：発射　右：解除`, w / 2, h / 2 + r + 20);
-  const list = new Set([...(sl.missileCandidates || []), ...locks.map(entry => entry.target)]);
-  const labels = [];
+  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1, cx = w / 2, cy = h / 2;
+  const locks = (sl.missileLocks || []).filter(entry => missileTargetValid(p, entry));
+  const capacity = Math.min(M.locks, Math.floor(sl.ammo / M.shots));
+  const progress = Math.max(0, ...[...(sl.missileProgress?.values() || [])].map(t => Math.min(1, t / M.time)));
+  const firing = sl.bn > 0, guided = firing ? (sl.missileQueue || []).some(entry => entry && missileTargetValid(p, entry)) : locks.length > 0;
+  const shots = firing ? sl.bn : Math.min(sl.ammo, guided ? locks.length * M.shots : M.shots);
+  const jammed = p.jamT > 0;
+  const blocked = sl.reloadT > 0 ? '再装填中' : !sl.ammo ? '弾切れ' : p.switchT > 0 ? '持ち替え中' : p.repairing || p.stun && p.stun !== 'land' || p.electricT > 0 ? '発射待機' : '';
+  const mode = blocked || (jammed ? '誘導妨害中' : firing ? (guided ? '誘導弾' : '直進弾') + ' 連射中' : guided ? '誘導ロック完了' : progress > 0 ? '捕捉中 ' + Math.floor(progress * 100) + '%' : '直進射撃');
+  const color = blocked || jammed ? '#ff8c8c' : firing ? '#ffbb69' : guided ? '#bcff78' : progress > 0 ? '#ffe082' : '#86e9f5';
+  const count = blocked ? '発射不可' : jammed ? '誘導不可' : firing ? `残り ${shots}発` : `発射 ${shots}発`;
+  const detail = blocked ? (sl.reloadT > 0 ? `あと ${sl.reloadT.toFixed(1)}秒` : 'ミサイル照準') : jammed ? '左：直進発射 ／ 連射は中断されます' : firing ? '開始した連射は撃ち切ります' : guided ? `捕捉 ${locks.length}/${capacity}　左：発射　右：解除` : '敵を枠内に捉えると誘導 ／ 左：直進発射';
+  canvas.setAttribute('aria-label', `ミサイル：${mode}・${count}・${detail}`);
+  ctx.clearRect(0, 0, w, h); ctx.lineJoin = 'round'; ctx.textAlign = 'center';
+  // 通常ロックと見分けられる大きな四隅。黒い縁取りで明るい地形でも読める。
+  function corners(x, y, radius, length, tint, dashed = false) {
+    ctx.beginPath();
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) { ctx.moveTo(x + sx * (radius - length), y + sy * radius); ctx.lineTo(x + sx * radius, y + sy * radius); ctx.lineTo(x + sx * radius, y + sy * (radius - length)); }
+    ctx.setLineDash(dashed ? [5, 4] : []); ctx.lineWidth = 7; ctx.strokeStyle = '#07131c'; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = tint; ctx.stroke(); ctx.setLineDash([]);
+  }
+  corners(cx, cy, r, Math.min(24, r * .3), color);
+  ctx.font = 'bold 13px sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#07131c'; ctx.fillStyle = color;
+  ctx.strokeText('MISSILE', cx, cy - r - 10); ctx.fillText('MISSILE', cx, cy - r - 10);
+  // 発射前は予定総数、連射中はまだ銃口から出ていない数。直進/誘導を文字でも区別する。
+  const boxW = Math.min(350, w * .36), boxY = cy + r + 12, boxH = 83;
+  ctx.fillStyle = 'rgba(4,14,22,.88)'; ctx.fillRect(cx - boxW / 2, boxY, boxW, boxH);
+  ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.strokeRect(cx - boxW / 2, boxY, boxW, boxH);
+  ctx.fillStyle = color; ctx.font = 'bold 16px sans-serif'; ctx.fillText(mode, cx, boxY + 21);
+  ctx.font = 'bold 22px sans-serif'; ctx.fillText(count, cx, boxY + 47);
+  const pipW = 10, gap = 5, shown = blocked || jammed ? 0 : Math.min(12, shots), totalW = shown * (pipW + gap) - gap;
+  for (let i = 0; i < shown; i++) ctx.fillRect(cx - totalW / 2 + i * (pipW + gap), boxY + 54, pipW, 4);
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#e1edf2'; ctx.fillText(detail, cx, boxY + 74, boxW - 16);
+  const list = new Set([...(sl.missileCandidates || []), ...locks.map(entry => entry.target)]), labels = [];
   for (const e of list) {
     const s = screenOf(e);
     if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
-    const n = locks.filter(entry => entry.target === e).length, progress = (sl.missileProgress?.get(e) || 0) / M.time;
-    const x = (s.x + 1) * w / 2, y = (1 - s.y) * h / 2;
-    ctx.strokeStyle = ctx.fillStyle = n ? '#ffba64' : '#b0d7dc';
-    ctx.strokeRect(x - 19, y - 19, 38, 38);
-    if (progress > 0) { ctx.beginPath(); ctx.arc(x, y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke(); }
-    const label = n ? `LOCK ×${n} / ${n * M.shots}発` : `${Math.round(e.pos.distanceTo(p.pos))}m`, width = ctx.measureText(label).width;
-    const lx = Math.max(width / 2 + 4, Math.min(w - width / 2 - 4, x));
-    let ly = y + 36;
-    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 6 && Math.abs(a.y - ly) < 16)) ly += 18;
-    labels.push({ x: lx, y: ly, width }); ctx.fillText(label, lx, ly);
+    const n = locks.filter(entry => entry.target === e).length, q = (sl.missileProgress?.get(e) || 0) / M.time;
+    const x = (s.x + 1) * w / 2, y = (1 - s.y) * h / 2, tint = n ? '#bcff78' : q > 0 ? '#ffe082' : '#b0d7dc';
+    corners(x, y, n ? 29 : 23, 11, tint, !n);
+    if (q > 0) { ctx.beginPath(); ctx.arc(x, y, 35, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, q)); ctx.lineWidth = 7; ctx.strokeStyle = '#07131c'; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = tint; ctx.stroke(); }
+    const label = n ? `誘導 ${n * M.shots}発 / LOCK ×${n}` : q > 0 ? `捕捉 ${Math.floor(q * 100)}%` : `${Math.round(e.pos.distanceTo(p.pos))}m`;
+    ctx.font = n ? 'bold 14px sans-serif' : '12px sans-serif'; const width = ctx.measureText(label).width;
+    const lx = Math.max(width / 2 + 8, Math.min(w - width / 2 - 8, x));
+    let ly = y + 48;
+    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 12 && Math.abs(a.y - ly) < 23)) ly += 24;
+    ly = Math.min(h - 14, ly); labels.push({ x: lx, y: ly, width });
+    ctx.fillStyle = 'rgba(4,14,22,.9)'; ctx.fillRect(lx - width / 2 - 6, ly - 16, width + 12, 23); ctx.fillStyle = tint; ctx.fillText(label, lx, ly);
   }
 }
 function hud(timeLeft, dt) {
@@ -9356,7 +9363,7 @@ function hud(timeLeft, dt) {
   $('scope').hidden = !p.scoped;
   $('scope').textContent = p.scoped && cw.scopeHigh ? `×${scopePower(p).toFixed(1)}` : '';
   crossEl.style.visibility = p.scoped ? 'hidden' : '';
-  $('lockRing').style.visibility = cw.noLock ? 'hidden' : '';
+  $('lockRing').style.visibility = normalLockAllowed(p) ? '' : 'hidden';
   // 照準円の弧：左半分が残弾（リロード中は進み具合、弾倉のない装備はSP）、右半分が耐久。
   // その外側（v0.10.8、ユーザー指定）：左はオーバーヒートする武器（heat のある武器＝ガトリング）だけ熱（オーバーヒート中は撃てるまでの残り時間）、右はブースト残量。
   // チャージ撃ちの武器（v0.15）は左が溜め（青緑、満タンで白。満タンのまま長く持ってオーバーヒートが近いと点滅）
@@ -9396,7 +9403,7 @@ function hud(timeLeft, dt) {
   respawnPanel(p);
   missileHud(p);
   const ring = $('lockRing'), mk = $('lockMark');
-  const shown = p.alive && (lock.target || (lock.cand && lock.acqT > 0)) ? (lock.target || lock.cand) : null;
+  const shown = p.alive && normalLockAllowed(p) && (lock.target || (lock.cand && lock.acqT > 0)) ? (lock.target || lock.cand) : null;
   ring.classList.toggle('on', !!lock.target);
   ring.classList.toggle('acq', !lock.target && !!shown);
   const sp = shown && screenOf(shown);

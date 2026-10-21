@@ -1,4 +1,4 @@
-// 主武器の反動を、カメラ・実際の弾道・腕部・ロック・回復・既存値で確認する。
+// 主武器の反動・弾道・腕部・回復を維持し、カメラとロックの自動補償へ混ぜない。
 // node tools/test/primary_recoil_check.js dbg/recoil-after dbg/recoil-before media/primary-recoil
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
@@ -21,7 +21,8 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       });
       return p;
     }
-    const p = await page(after), old = JSON.parse(fs.readFileSync(path.join(out, 'before-stats.json'), 'utf8'));
+    const baseline=await page(before),old=await baseline.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));await baseline.close();
+    const p=await page(after);
     const data = await p.evaluate(() => ({ weapons: __g.WEAPONS, parts: __g.PARTS, armory: __g.ARMORY }));
     const primary = new Set(Object.values(data.armory).flatMap(c => c.main)), fields = new Set(['recoil', 'recoilH', 'recoilDelay', 'recoilRecovery']);
     for (const [key, w] of Object.entries(data.weapons)) {
@@ -31,7 +32,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       } else assert.deepEqual(w, old.weapons[key], key + 'の既存性能');
     }
     assert.deepEqual(data.armory, old.armory); assert.deepEqual(data.parts, old.parts);
-    yes(primary.size === 100, '主武器100種・ほか186種と機体/装備順の互換性');
+    yes(primary.size === 100, '主武器100種と他の武器・機体/装備順の互換性');
     const reference = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../research/weapons/primary-recoil.json'), 'utf8'));
     for (const [key, [v, h]] of Object.entries(reference.exactDegrees)) yes(Math.abs(data.weapons[key].recoil * 180 / Math.PI - v) < 1e-10 && Math.abs(data.weapons[key].recoilH * 180 / Math.PI - h) < 1e-10, key + 'の記録された縦横設定');
     const functional = await p.evaluate(() => {
@@ -39,8 +40,8 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       const check = (ok, text) => { if (!ok) throw Error(text); checks.push(text); };
       function reset(key = 'haggard') {
         const cls = Object.keys(g.ARMORY).find(c => g.ARMORY[c].main.includes(key));
-        Object.assign(u.mech, g.MECH_DEFAULT); g.equip(u, cls); u.slots.main = g.slotOf(key);
-        Object.assign(u, { isPlayer: true, alive: true, invulT: 0, weapon: 'main', switchT: 0, stun: '', repairing: false, transfer: null, onGround: true, yaw: 0, pitch: 0, recoil: 0, recoilYaw: 0, cameraRecoil: 0, cameraRecoilYaw: 0 });
+        Object.assign(u.mech, g.MECH_DEFAULT); u.isPlayer = true; g.equip(u, cls); u.slots.main = g.slotOf(key);
+        Object.assign(u, { isPlayer: true, alive: true, invulT: 0, weapon: 'main', switchT: 0, stun: '', repairing: false, transfer: null, onGround: true, yaw: 0, pitch: 0, recoil: 0, recoilYaw: 0 });
         u.pos.set(0, 120, 0); u.vel.set(0, 0, 0); u.group.position.copy(u.pos); u.group.visible = true; g.weaponLook(u, 0); g.scene.updateMatrixWorld(true);
       }
       reset();
@@ -65,11 +66,12 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       check(close(u.recoil, .2) && close(u.recoilYaw, .08), '副武器へ持ち替えても残った反動を切り詰めない');
       reset(); u.recoil = .04; u.recoilYaw = .02; g.updateCamera(u, .016);
       const dir = g.camera.getWorldDirection(new g.T.Vector3());
-      check(close(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)), .04) && close(Math.atan2(-dir.x, -dir.z), .02), 'カメラの縦横が実際の反動角に一致');
+      check(close(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)), 0) && close(Math.atan2(-dir.x, -dir.z), 0), '反動が残ってもカメラを上下左右へ回さない');
       const e = g.units.find(v => v.team !== u.team); e.pos.set(0, 120, -40); e.alive = true;
-      u.pitch = Math.atan2(-2.1, 40); u.recoil = 0; u.recoilYaw = 0; g.lock.down = false;
-      const plain = g.lockStick(u, e, .05); u.recoil = .2; u.recoilYaw = .1; const kicked = g.lockStick(u, e, .05);
-      check(kicked.pitch < plain.pitch && kicked.yaw < plain.yaw, 'ロックの引き戻しは反動で上・横へ外れた照準を敵へ戻す');
+      u.pitch=Math.atan2(-2.1,40);u.recoil=u.recoilYaw=0;Object.assign(g.lock,{target:e,visible:true,prevAng:null});g.lockFollow(u,.01);
+      const neutral=[u.yaw,u.pitch];u.recoil=.2;u.recoilYaw=.1;g.lockFollow(u,.01);
+      check(close(u.yaw,neutral[0])&&close(u.pitch,neutral[1]),'静止した敵のロックは射撃反動を自動で補償しない');
+      Object.assign(g.lock,{target:null,visible:false,prevAng:null});
       e.alive = false; e.group.visible = false;
       reset('gatling'); u.slots.main.w = { ...u.slots.main.w, spread: 0 }; u.slots.main.spin = 1;
       const begin = g.fx.length; g.weaponsTick(u, .05, true, new g.T.Vector3(0, 122.6, -100), 0);
@@ -80,12 +82,12 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       reset('gatling'); u.slots.main.w = { ...u.slots.main.w, spread: 0 }; u.recoil = .04; u.recoilYaw = .02; g.updateCamera(u, .016);
       const aim = g.camera.position.clone().addScaledVector(g.camera.getWorldDirection(new g.T.Vector3()), 300);
       const n = g.fx.length; g.shot(u, u.slots.main, aim, 0);
-      const ray = g.fx.slice(n).find(f => f.kind === 'tracer'), actual = ray.end.clone().sub(ray.from).normalize(), expected = aim.clone().sub(ray.from).normalize();
-      check(actual.distanceTo(expected) < 1e-7, '視点に含まれる反動を弾へ二重加算しない');
+      const ray = g.fx.slice(n).find(f => f.kind === 'tracer'), actual = ray.end.clone().sub(ray.from).normalize(), expected = g.recoilAim(ray.from,aim,.04,.02).sub(ray.from).normalize();
+      check(actual.distanceTo(expected) < 1e-7, '安定した視点からの弾へ現在の反動を1回だけ加える');
       reset('gatling'); const far = new g.T.Vector3(0, 122.6, -100); u.recoil = .1;
       check(!g.botRecoilReady(u, far), 'Botは体幅を外れる反動が残ると射撃を休む');
       g.recoilRecover(u, 3); check(g.botRecoilReady(u, far), '同じ回復規則で落ち着くとBotも射撃を再開できる');
-      g.spawn(u); check(u.recoil === 0 && u.recoilYaw === 0 && u.cameraRecoil === 0, '再出撃で反動と視点の記録をリセット');
+      g.spawn(u); check(u.recoil === 0 && u.recoilYaw === 0, '再出撃で縦横の反動をリセット');
       Math.random = random;
       return { checks, arms };
     });
@@ -95,8 +97,8 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       for (const [key, seconds, pause] of [['haggard', 2.5, false], ['haggard', 4, true], ['gatling', 3, false], ['ar', 3, false]]) {
         const sample = await q.evaluate(({ key, seconds, pause }) => {
           const g = __g, u = g.player, cls = Object.keys(g.ARMORY).find(c => g.ARMORY[c].main.includes(key));
-          Object.assign(u.mech, g.MECH_DEFAULT); g.equip(u, cls); u.slots.main = g.slotOf(key);
-          Object.assign(u, { isPlayer: false, alive: true, weapon: 'main', switchT: 0, stun: '', repairing: false, transfer: null, onGround: true, yaw: 0, pitch: 0, recoil: 0, recoilYaw: 0, cameraRecoil: 0, cameraRecoilYaw: 0 });
+          Object.assign(u.mech, g.MECH_DEFAULT); u.isPlayer = true; g.equip(u, cls); u.slots.main = g.slotOf(key);
+          Object.assign(u, { isPlayer: false, alive: true, weapon: 'main', switchT: 0, stun: '', repairing: false, transfer: null, onGround: true, yaw: 0, pitch: 0, recoil: 0, recoilYaw: 0 });
           u.pos.set(0, 120, 0); u.group.position.copy(u.pos); u.group.visible = true; u.vel.set(0, 0, 0);
           const random = Math.random; let seed = 7169; Math.random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
           const points = [], timeline = [], aim = new g.T.Vector3(0, 122.6, -100), dt = .01;
@@ -120,8 +122,8 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     }
     const plots = [...await samples(before, 'before'), ...await samples(after, 'after')];
     const a = (key, pause, version) => plots.find(s => s.key === key && s.pause === pause && s.version === version);
-    yes(a('haggard', false, 'after').maxVertical > a('haggard', false, 'before').maxVertical * 3, 'マグナムの実射で一発の跳ねが増える');
-    yes(a('gatling', false, 'after').horizontalRange > a('gatling', false, 'before').horizontalRange * 1.5, 'ガトリングの実射が横にも暴れる');
+    assert.deepEqual(a('haggard',false,'after').timeline,a('haggard',false,'before').timeline,'マグナムの反動蓄積・回復を維持');
+    assert.deepEqual(a('gatling',false,'after').points,a('gatling',false,'before').points,'Botのガトリング実射の縦横分布を維持');
     yes(a('haggard', false, 'after').maxVertical > a('haggard', true, 'after').maxVertical, '間をあけたマグナム射撃で蓄積を抑えられる');
     fs.writeFileSync(path.join(out, 'shots.json'), JSON.stringify({ seed: 7169, distance: 100, plots }, null, 2) + '\n');
     await p.bringToFront();
