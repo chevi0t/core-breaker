@@ -1030,9 +1030,9 @@ const SFX = {
   headshot: { file: 'slash', vol: 0.55, rate: 1.8, ui: true, gap: 0.05 }, // 自分の弾が頭に当たった：金属音を高く鳴らし、
   headping: { file: 'beep', vol: 0.3, rate: 2.2, ui: true, gap: 0.05 }, // 高い電子音を重ねる（v0.9.5、ユーザー指定）
   hurt: { file: 'hit', vol: 0.4, rate: 0.6, ui: true, gap: 0.12 }, // 自分が撃たれた
-  dash: { file: 'dash', vol: .72, range: 70, gap: 0.1, duration: .24, motion: true },
-  jump: { file: 'dash', vol: 0.4, rate: 1.25, range: 60, gap: 0.2, duration: .2, motion: true },
-  boostLoop: { file: 'boostLoop', vol: .26, range: 65, gap: 0, loop: true, lowpass: 1800, motion: true },
+  dash: { file: 'boostStart', vol: .72, range: 70, gap: 0.1, duration: .24, motion: true },
+  jump: { file: 'boostStart', vol: 0.4, rate: 1.25, range: 60, gap: 0.2, duration: .2, motion: true },
+  boostLoop: { file: 'boostLoop', vol: .26, range: 65, gap: 0, loop: true, lowpass: 3600, motion: true },
   step: { file: 'hit', vol: .11, rate: .65, range: 38, gap: .08, duration: .14, lowpass: 1500, nearPan: true, motion: true },
   catapult: { file: 'dash', vol: 0.8, rate: 0.6, range: 120, gap: 0.5 },
   reload: { file: 'reload', vol: 0.5, range: 25, gap: 0.3 },
@@ -1045,7 +1045,7 @@ const SFX = {
   gas: { file: 'explode', vol: 0.5, rate: 1.6, range: 160, gap: 0.1 }, // 弱化グレネード
   artilleryFall: { file: 'dash', vol: .7, rate: .65, range: 180, gap: .1 }, // 着弾予告の落下音（既存の風切り音）
   heavy: { file: 'rocket', vol: 0.9, rate: 0.7, range: 260, gap: 0.3 }, // 重砲
-  charge: { file: 'dash', vol: 0.7, rate: 0.75, range: 90, gap: 0.5, duration: .26, motion: true }, // 加速装置
+  charge: { file: 'boostStart', vol: 0.7, rate: 0.75, range: 90, gap: 0.5, duration: .26, motion: true }, // 加速装置
   drone: { file: 'dash', vol: 0.5, rate: 1.6, range: 60, gap: 0.5 }, // 偵察機
   camo: { file: 'heal', vol: 0.5, rate: 1.4, range: 60, gap: 0.3 }, // 光学迷彩（近くの敵にも聞こえる）
   sensor: { file: 'beep', vol: 0.4, rate: 1.3, range: 40, gap: 0.3 },
@@ -1092,19 +1092,38 @@ function applyAudioSettings() {
   }
   if (muted || !gameOptions.master || !gameOptions.sfx) stopMovementSounds();
 }
-// 既存CC0のロケット音の持続部分をクロスフェードで繋ぐ。全機で同じ短いバッファを共有する。
-function boostLoopBuffer(buf) {
-  const start = Math.floor(.12 * buf.sampleRate), count = Math.floor(.3 * buf.sampleRate), overlap = Math.floor(.04 * buf.sampleRate);
-  if (buf.length < start + count) return null;
-  const loop = audio.createBuffer(buf.numberOfChannels, count - overlap, buf.sampleRate);
-  for (let c = 0; c < buf.numberOfChannels; c++) {
-    const src = buf.getChannelData(c), dst = loop.getChannelData(c);
-    for (let i = 0; i < dst.length; i++) {
-      const k = Math.min(1, i / overlap);
-      dst[i] = i < overlap ? k * src[start + i] + (1 - k) * src[start + dst.length + i] : src[start + i];
+// 自機の噴射音を一度だけ合成して共有する。音作りの乱数はゲーム用乱数から独立。
+function buildBoostSounds() {
+  const sr = audio.sampleRate, tau = Math.PI * 2;
+  let seed = 0x6b8f214d;
+  const noise = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2147483648 - 1; };
+  for (const sustained of [false, true]) {
+    const overlap = sustained ? Math.round(.08 * sr) : 0, length = Math.round((sustained ? 1.2 : .32) * sr);
+    const raw = new Float32Array(length + overlap);
+    let low = 0, body = 0, air = 0, phase = 0;
+    const lowK = 1 - Math.exp(-tau * 140 / sr), bodyK = 1 - Math.exp(-tau * 650 / sr);
+    for (let i = 0; i < raw.length; i++) {
+      const t = i / sr, n = noise(), airK = 1 - Math.exp(-tau * (sustained ? 3200 : 900 + 3800 * Math.exp(-t / .055)) / sr);
+      low += lowK * (n - low); body += bodyK * (n - body); air += airK * (n - air);
+      phase += tau * (sustained ? 60 : 52 + 100 * Math.exp(-t / .035)) / sr;
+      const rumble = .24 * Math.sin(phase) + .12 * Math.sin(phase * 2) + 1.8 * low;
+      const pressure = 1.25 * (body - low) + .65 * (air - body);
+      const envelope = sustained ? 1 + .07 * Math.sin(tau * t * 5) : (1 - Math.exp(-t / .002)) * Math.exp(-t / .095);
+      const sample = (rumble + pressure) * envelope;
+      raw[i] = sample / (1 + Math.abs(sample));
     }
+    const buf = audio.createBuffer(1, length, sr), dst = buf.getChannelData(0);
+    let mean = 0, peak = 0;
+    for (let i = 0; i < length; i++) {
+      const k = overlap ? Math.min(1, i / overlap) : 1;
+      dst[i] = i < overlap ? k * raw[i] + (1 - k) * raw[length + i] : raw[i];
+      mean += dst[i];
+    }
+    mean /= length;
+    for (let i = 0; i < length; i++) { dst[i] -= mean; peak = Math.max(peak, Math.abs(dst[i])); }
+    for (let i = 0; i < length; i++) dst[i] *= .85 / Math.max(.001, peak);
+    sfxBuf[sustained ? 'boostLoop' : 'boostStart'] = buf;
   }
-  return loop;
 }
 // ブラウザは操作の後でないと音を出せないので、最初のクリックかキー入力で準備する
 function initAudio() {
@@ -1128,10 +1147,11 @@ function initAudio() {
   audio.effects.gain.value = muted ? 0 : gameOptions.sfx / 100;
   audio.music.gain.value = gameOptions.music / 100;
   audio.world.gain.value = units.length >= 100 ? .5 : 1;
+  buildBoostSounds();
   for (const [k, b64] of Object.entries(window.SOUND_DATA || {})) {
     const bin = atob(b64), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    audio.decodeAudioData(bytes.buffer).then(buf => { sfxBuf[k] = buf; if (k === 'rocket') sfxBuf.boostLoop = boostLoopBuffer(buf); }, () => {});
+    audio.decodeAudioData(bytes.buffer).then(buf => { sfxBuf[k] = buf; }, () => {});
   }
   loadBgm();
 }

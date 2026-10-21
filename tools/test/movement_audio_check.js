@@ -23,7 +23,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
   }
   try {
     const p = await page(); await p.evaluate(() => __g.initAudio());
-    await p.waitForFunction(() => __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash && __g.sfxBuf.ar && __g.sfxBuf.beep);
+    await p.waitForFunction(() => __g.sfxBuf.boostStart && __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash && __g.sfxBuf.ar && __g.sfxBuf.beep);
     const result = await p.evaluate(() => {
       const g = __g, T = g.T, u = g.player, checks = [], starts = [];
       const yes = (ok, label) => { if (!ok) throw Error(label); checks.push(label); };
@@ -44,10 +44,18 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         u.pos.set(0, 200, 0); u.vel.set(0, 0, -6); g.resetMechPose(u); g.weaponLook(u, 0); starts.length = 0;
       }
       reset();
-      const loop = g.sfxBuf.boostLoop, samples = loop.getChannelData(0);
-      yes(Math.abs(loop.duration - .26) < .001 && samples.some(x => Math.abs(x) > .01), '既存CC0音源から有音の共有ループを作る');
-      const original = g.sfxBuf.rocket.getChannelData(0), seam = Math.floor(.12 * loop.sampleRate) + samples.length;
-      yes(Math.abs(samples[0] - original[seam]) < 1e-6 && Math.abs(samples.at(-1) - original[seam - 1]) < 1e-6, '噴射ループの継ぎ目を元の隣接サンプルへクロスフェードで繋ぐ');
+      const loop = g.sfxBuf.boostLoop, samples = loop.getChannelData(0), burst = g.sfxBuf.boostStart, attack = burst.getChannelData(0);
+      for (const [label, buf] of [['短い噴射', burst], ['巡航', loop]]) {
+        const data = buf.getChannelData(0), mean = data.reduce((s, v) => s + v, 0) / data.length;
+        yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < 1e-5, label + 'の合成音に非数・無音・クリップ・直流成分がない');
+        let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
+        for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
+        yes(body / full > .2, label + 'に200Hz以下の低い噴射の厚みがある');
+      }
+      const rms = (data, a, b) => Math.sqrt(data.slice(a, b).reduce((s, v) => s + v * v, 0) / (b - a));
+      yes(rms(attack, .01 * burst.sampleRate, .06 * burst.sampleRate) > 2 * rms(attack, .18 * burst.sampleRate, .23 * burst.sampleRate), '短い噴射は開始直後に強い山があり、後半へ減衰する');
+      let delta = 0; for (let i = 1; i < samples.length; i++) delta += (samples[i] - samples[i - 1]) ** 2;
+      yes(loop.duration >= 1 && Math.abs(samples[0] - samples.at(-1)) < 4 * Math.sqrt(delta / (samples.length - 1)), '巡航は長い共有ループを使い、継ぎ目の跳びをノイズの通常変動内に収める');
       for (const dt of [1 / 30, 1 / 60, 1 / 120]) {
         reset();
         for (let i = 0; i < Math.round(1.25 / dt); i++) { u.pos.z -= 6 * dt; u.sfxT.step = -1e9; g.weaponLook(u, dt); }
@@ -74,6 +82,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       reset(); u.jumpBuf = .2; g.land(u, 36); yes(starts.length === 1 && !u.stun, '着地硬直を消す入力でも接地音は鳴る');
       reset(); const ok = g.shortDash(u, new T.Vector3(0, 0, -1));
       yes(ok && starts.length === 1 && starts[0].name === 'dash', '受理されたショートダッシュの踏み込みで発音');
+      yes(starts[0].node.buffer === burst, 'クイックブーストは専用の低音付き噴射バッファを使う');
       g.shortDash(u, new T.Vector3(0, 0, -1)); yes(starts.length === 1, '失敗した連続ダッシュでは発音しない');
       reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02);
       const first = u.boostVoice;
@@ -134,7 +143,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
 
     // 実際のオーディオ時計を進めて、接地・噴射・通常ジャンプの着地を8秒の音声に記録する。
     const demo = await page(); await demo.evaluate(() => __g.initAudio());
-    await demo.waitForFunction(() => __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash);
+    await demo.waitForFunction(() => __g.sfxBuf.boostStart && __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash);
     const clip = await demo.evaluate(async () => {
       const g = __g, u = g.player, T = g.T, ctx = g.audio, events = [], create = ctx.createBufferSource.bind(ctx);
       ctx.createBufferSource = () => {
