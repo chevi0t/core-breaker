@@ -183,6 +183,10 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 .sb tr.me td { background: rgba(255, 211, 77, .16); color: #fff; }
 .sb tr.dead td { color: var(--dim); }
 #largeBattleControl[hidden] { display: none; }
+.arenaWeapon { display: grid; gap: 5px; padding: 10px; font-family: var(--body); }
+.arenaWeapon[hidden] { display: none; }
+.arenaWeapon select { width: 100%; padding: 7px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
+#wpn .restricted { opacity: .3; }
 #largeBattleHint { display: block; margin: 4px 0 0; line-height: 1.6; }
 .card.wide { max-width: 940px; }
 /* キルカメラ（v0.16）：映している間は再出撃の画面を下の端へ寄せ、その一番上に倒した相手の名前 */
@@ -849,6 +853,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
         <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
+        <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
         <label class="sw" id="largeBattleControl" hidden><span>50対50（実験）<small id="largeBattleHint">通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機</small></span><input type="checkbox" role="switch" id="largeBattleSw" aria-label="50対50（実験）"><i aria-hidden="true"></i></label>
         <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
         <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
@@ -1293,8 +1298,12 @@ const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([i
   ...Object.entries(d.variants || {}).map(([k, v], i) => [`${id}-${k}`,
     { ...d, ...v, terrain: d.terrain, layout: d.layout, name: `${d.name} 〜${v.name}〜`, order: (d.order ?? 99) + (i + 1) / 100, group: id, groupName: d.name, variant: v.name }]),
 ]).sort((x, y) => (x[1].order ?? 99) - (y[1].order ?? 99)));
+// 同じアリーナの地形を使う別ルール。公開中の maps.js でも選べるよう、エンジン側で派生させる。
+if (MAPS.dock) MAPS['dock-melee'] = { ...MAPS.dock, name: '港の倉庫街 〜近接限定〜', order: (MAPS.dock.order || 4) + .01, meleeOnly: true,
+  desc: '2対2・近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
 const FIRST_MAP = Object.keys(MAPS)[0];
 let curMap = null, mapId = '';
+const meleeOnly = () => !!curMap?.meleeOnly;
 // 大人数は潮路搬送区の3配置だけで試す。選択はこのページを開いている間だけ有効。
 let largeBattle = false;
 const largeBattleMap = d => d?.group === 'tidal';
@@ -4725,7 +4734,7 @@ function downTick(u, dt) {
   if ((u.downT -= dt) <= 0) wreck(u);
 }
 // 起こせる機体：蘇生できる修理装備を持ち、使用可能なゲージがある。
-function canRevive(e) { const sp = e.slots && e.slots.sp; return !!sp && !sp.overheat && (['repair', 'repairPost'].includes(sp.w.type) || sp.w.type === 'field' && sp.heat > 0 && !e.repairing); }
+function canRevive(e) { const sp = e.slots && e.slots.sp; return !meleeOnly() && !!sp && !sp.overheat && (['repair', 'repairPost'].includes(sp.w.type) || sp.w.type === 'field' && sp.heat > 0 && !e.repairing); }
 function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
 // 起き上がる（修理装備で REVIVE_NEED 修理されたとき）
 function revive(v, by) {
@@ -5087,12 +5096,12 @@ function botUpdate(u, dt) {
     goal = o.kind === 'cover' ? o.by.pos : o.pos; hold = QC_HOLD[o.kind];
   } else if (baseTask) {
     goal = baseTask.pos; hold = baseTask.threat ? 4 : 2;
-  } else if (u.cls === 'support' && !u.target && hurtAlly(u, 60)) {
+  } else if (!meleeOnly() && u.cls === 'support' && !u.target && hurtAlly(u, 60)) {
     goal = hurtAlly(u, 60).pos; hold = 8; // 支援は傷ついた味方のそばへ
   } else if (VS) {
     // コスト制：プラントもコアも無いので、気づいている一番近い敵機へ。いなければ真ん中へ
     const e = nearestEnemy(u, 1e4);
-    goal = e ? e.pos : new T.Vector3((u.idx % 2 ? 1 : -1) * 12, 0, 0); hold = u.target ? 15 : 3; // 見えていない間は止まらずに回り込む
+    goal = e ? e.pos : new T.Vector3((u.idx % 2 ? 1 : -1) * 12, 0, 0); hold = meleeOnly() ? 1.5 : u.target ? 15 : 3; // 近接限定では斬れる距離まで詰める。
   } else if (u.role === 'defend') {
     // レーダーが生きていれば、ベースに入った敵機へ向かう（見えていなくても）
     const intr = radars.find(r => r.team === u.team).intruders;
@@ -5116,8 +5125,8 @@ function botUpdate(u, dt) {
   const sprint = u.raidRoute?.kind === 'sprint' && !baseTask && !pod;
   if (u.target && !pod && !u.waypoint && !sprint) {
     const td = u.target.pos.distanceTo(u.pos);
-    if (u.cls === 'assault' && u.target.kind === 'unit' && td < 16 && u.tReach) wish.set(u.target.pos.x - u.pos.x, 0, u.target.pos.z - u.pos.z); // ソードの間合いへ詰める
-    else if (td < 22) wish.set(0, 0, 0); // 近すぎたら横移動
+    if ((meleeOnly() || u.cls === 'assault') && u.target.kind === 'unit' && (meleeOnly() || td < 16) && u.tReach) wish.set(u.target.pos.x - u.pos.x, 0, u.target.pos.z - u.pos.z); // ソードの間合いへ詰める
+    else if (!meleeOnly() && td < 22) wish.set(0, 0, 0); // 近すぎたら横移動
   }
   if (gd < hold) wish.set(0, 0, 0);
   const atPod = pod && gd < POD_R - 0.8;
@@ -5171,7 +5180,7 @@ function botUpdate(u, dt) {
   // 装備を使う行動（投げる、置く、打ち上げる、構えて撃つ）。botAct が決め、done か時間切れで終わる
   u.actCd -= dt;
   if (u.act && ((u.act.t -= dt) <= 0 || u.act.done())) { u.act = null; u.actCd = 3 + Math.random() * 4; }
-  if (!u.act && u.actCd <= 0) {
+  if (!meleeOnly() && !u.act && u.actCd <= 0) {
     u.act = !busy && !pod && !u.swing && !u.flying ? botAct(u, tracking, enemyCore) : null;
     if (!u.act) u.actCd = 0.5;
   }
@@ -5185,7 +5194,7 @@ function botUpdate(u, dt) {
   const ready = !!aim && canFire && !busy && (isArtilleryMode(u) || Math.abs(dy) < 0.35);
   const td = tracking ? u.target.pos.distanceTo(u.pos) : Infinity;
   const sub = u.slots.sub, sword = u.slots.aux.w.type === 'sword' ? u.slots.aux : null;
-  let slot = 'main', trig = ready, alt = false;
+  let slot = meleeOnly() ? 'aux' : 'main', trig = meleeOnly() ? false : ready, alt = false;
   u.botRkT -= dt;
   if (!tracking || sub.ammo + sub.reserve <= 0) u.rkGo = false;
   if (u.cls === 'heavy' && !sub.w.missile && tracking && !u.rkGo && u.botRkT <= 0 && td < 70 && td > 16) { // 近すぎる相手には撃たない（自分も爆風を受ける。v0.11.3）
@@ -6540,6 +6549,8 @@ const loadout = (() => {
   try { saved = JSON.parse(localStorage.getItem(LOADOUT_KEY)) || {}; } catch (_) {}
   return normLoadout(saved);
 })();
+const MELEE_WEAPONS = Object.keys(WEAPONS).filter(key => WEAPONS[key].type === 'sword');
+let arenaMeleeKey = loadout.assault.aux;
 function saveLoadout() { try { localStorage.setItem(LOADOUT_KEY, JSON.stringify(loadout)); } catch (_) {} saveBuilds(); }
 // 保存した構成（v0.13、ユーザー決定）：機体（パーツと色）と4兵装の武器の組み合わせを3つまで保存し、カスタマイズの画面とメニューで切り替える。
 // 今の構成は mechCfg と loadout そのもので、変えるたびに builds.list[builds.cur] へ写して保存する
@@ -6582,12 +6593,16 @@ function equip(u, cls) {
   const c = CLASSES[cls], A = ARMORY[cls];
   // プレイヤーは機体カスタマイズで選んだ武器、Botは出撃ごとに枠ごとにランダム（v0.11）
   const pick = k => u.isPlayer ? loadout[cls][k] : A[k][Math.floor(Math.random() * A[k].length)];
-  const keys = Object.fromEntries(SLOTS.map(k => [k, pick(k)])), st = mechStats(u.mech, keys), P = st.P;
+  const keys = Object.fromEntries(SLOTS.map(k => [k, pick(k)]));
+  if (meleeOnly()) {
+    keys.aux = u.isPlayer ? arenaMeleeKey : MELEE_WEAPONS[Math.floor(Math.random() * MELEE_WEAPONS.length)];
+  }
+  const st = mechStats(u.mech, meleeOnly() ? { aux: keys.aux } : keys), P = st.P;
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
     lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
-    cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: 'main', prevWeapon: 'main', switchT: 0, maxHp: c.hp || 10000,
+    cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
   Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
@@ -6596,6 +6611,7 @@ function equip(u, cls) {
 // 光学迷彩と加速装置は、選んだ時点で作動し、もう一度選ぶと止まる。持っている武器はそのまま（v0.9.5、ユーザー指定）。リペアフィールドも同じ（v0.11）
 const TOGGLE_SP = ['charger', 'camo', 'field', 'barrier', 'escort'];
 function toggleSp(u) {
+  if (meleeOnly()) return false;
   const sl = u.slots.sp;
   if (sl.cd > 0 || u.repairing || !u.alive || (u.stun && u.stun !== 'land')) return false;
   sl.cd = 0.5;
@@ -6612,6 +6628,7 @@ function toggleSp(u) {
   return true;
 }
 function selectWeapon(u, w) {
+  if (meleeOnly() && w !== 'aux') return;
   if (u.swing) return;
   if (u.zip && (u.slots[w].w.plant || u.slots[w].w.type === 'artillery')) return; // ジップラインで昇る間は構えられない
   if (w !== u.weapon) {
@@ -6650,6 +6667,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
   let res = false;
   for (const k of SLOTS) {
     const sl = u.slots[k], type = sl.w.type;
+    if (meleeOnly() && (k !== 'aux' || type !== 'sword')) continue;
     // リペアポッドの上ではリペアユニットだけ使える（ポッドと効果が重なる。ユーザー指定、v0.9.3）
     const on = !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer) && (!sl.w.missile || u.alive && !u.transfer);
     const t = on && trigger;
@@ -7568,7 +7586,7 @@ const SIDE = e => e.button === 3 || e.button === 4;
 addEventListener('mousedown', e => {
   if (!SIDE(e)) return;
   e.preventDefault(); // ブラウザの戻る・進むを止める
-  if (running && player && player.alive && !wsel.open) Object.assign(wsel, { open: true, x: 0, y: 0, pick: player.weapon });
+  if (running && player && player.alive && !meleeOnly() && !wsel.open) Object.assign(wsel, { open: true, x: 0, y: 0, pick: player.weapon });
 });
 addEventListener('mouseup', e => {
   if (!SIDE(e)) return;
@@ -8123,10 +8141,10 @@ function pickClass(k) {
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
   const c = CLASSES[k];
-  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}">${withKey ? 'ZXCV'[i] + '　' : ''}${classMark(k)}${c.name}<small>${SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
+  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}">${withKey ? 'ZXCV'[i] + '　' : ''}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
 }).join('');
 // 重量超過の注記（パーツと選んだ武器で。v0.12）
-function overNote(k) { const st = mechStats(mechCfg, loadout[k]); return st.excess > 0 ? `<small class="over">重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）</small>` : ''; }
+function overNote(k) { const st = mechStats(mechCfg, meleeOnly() ? { aux: arenaMeleeKey } : loadout[k]); return st.excess > 0 ? `<small class="over">重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）</small>` : ''; }
 function renderClsButtons() { $('ovCls').innerHTML = clsButtons(false); $('rcls').innerHTML = clsButtons(true); }
 renderClsButtons();
 // 保存した構成の切り替え（メニューとカスタマイズの画面。v0.13）
@@ -8736,7 +8754,7 @@ function renderMapList() {
   $('largeBattleSw').checked = largeBattle;
   $('largeBattleHint').textContent = largeBattle ? 'あなた＋味方BOT49機 対 敵BOT50機。1大破でコアが1/800減ります。通常より動作が重くなります' : '通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機';
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
-  const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly), done = new Set(), rows = [];
+  const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
   for (const [id, d] of list) {
     if (!d.group) { rows.push(mapCardHtml(id, d, d.name)); continue; }
     if (done.has(d.group)) continue;
@@ -8756,7 +8774,11 @@ function renderMapList() {
   $('mapList').innerHTML = rows.join('');
   for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map || b.dataset.preview]);
   $('mapNow').textContent = `${curMap.name}（${mapInfo(curMap)}）`;
+  $('arenaWeaponControl').hidden = !meleeOnly();
+  $('arenaWeapon').innerHTML = MELEE_WEAPONS.map(key => `<option value="${key}"${key === arenaMeleeKey ? ' selected' : ''}>${WEAPONS[key].name}</option>`).join('');
+  renderClsButtons();
 }
+$('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
 $('largeBattleSw').addEventListener('change', () => { largeBattle = $('largeBattleSw').checked && largeBattleMap(curMap); renderMapList(); });
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
@@ -9066,7 +9088,7 @@ function hud(timeLeft, dt) {
   const spOn = p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
   $('sp').classList.toggle('act', spOn); $('sp').parentElement.classList.toggle('act', spOn);
   const aimSp = $('aimSp');
-  aimSp.hidden = !p.alive;
+  aimSp.hidden = !p.alive || meleeOnly();
   for (const state of ['oh', 'hit', 'act']) aimSp.classList.toggle(state, $('sp').classList.contains(state));
   $('aimSpBar').firstChild.style.width = sps.heat + '%';
   $('aimSpBar').setAttribute('aria-valuenow', Math.round(sps.heat));
@@ -9074,6 +9096,8 @@ function hud(timeLeft, dt) {
   $('wcls').textContent = CLASSES[p.cls].name;
   SLOTS.forEach((k, i) => {
     const el = $('w-' + k);
+    const restricted = meleeOnly() && k !== 'aux'; el.classList.toggle('restricted', restricted); el.setAttribute('aria-disabled', String(restricted));
+    el.title = restricted ? '近接限定ルールでは使用できません' : '';
     if (consoleMode !== 'flight') delete el.dataset.flightReadout;
     if (consoleMode !== 'mechanical') delete el.dataset.readout;
     if (consoleMode !== 'flight' && consoleMode !== 'mechanical') { el.textContent = `${i + 1} ${p.slots[k].w.name}${k === 'sp' && spOn ? '（作動中）' : ''}`; el.classList.remove('warn'); }
