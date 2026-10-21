@@ -50,7 +50,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < 1e-5, label + 'の合成音に非数・無音・クリップ・直流成分がない');
         let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
         for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
-        if (buf === burst) yes(body / full < .15, '短い噴射は空気が抜ける音域を中心にし、低音の打撃に偏らない');
+        if (buf === burst) yes(body / full > .2 && body / full < .85, '短い噴射は参考の火炎音に合わせた低中域の厚みを持つ');
         else yes(body / full > .05 && body / full < .75, '巡航に低域の空気圧と広い帯域の噴流がある');
         const periodicity = [50, 60, 80, 100, 120].map(hz => {
           const lag = Math.round(buf.sampleRate / hz); let dot = 0, a = 0, b = 0;
@@ -60,7 +60,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         yes(Math.max(...periodicity) < .25, label + 'に音程のある低音や倍音の強い周期振動が残らない');
       }
       const rms = (data, a, b) => Math.sqrt(data.slice(a, b).reduce((s, v) => s + v * v, 0) / (b - a));
-      yes(rms(attack, .01 * burst.sampleRate, .06 * burst.sampleRate) > 2 * rms(attack, .18 * burst.sampleRate, .23 * burst.sampleRate), '短い噴射は開始直後に強い山があり、後半へ減衰する');
+      yes(rms(attack, .04 * burst.sampleRate, .12 * burst.sampleRate) > 2 * rms(attack, .18 * burst.sampleRate, .23 * burst.sampleRate), '短い噴射は噴き上がる山を作り、後半へ減衰する');
       let delta = 0; for (let i = 1; i < samples.length; i++) delta += (samples[i] - samples[i - 1]) ** 2;
       yes(loop.duration >= 1 && Math.abs(samples[0] - samples.at(-1)) < 4 * Math.sqrt(delta / (samples.length - 1)), '巡航は長い共有ループを使い、継ぎ目の跳びをノイズの通常変動内に収める');
       for (const dt of [1 / 30, 1 / 60, 1 / 120]) {

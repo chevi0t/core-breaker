@@ -1101,19 +1101,26 @@ function buildBoostSounds() {
   for (const sustained of [false, true]) {
     const overlap = sustained ? Math.round(.08 * sr) : 0, length = Math.round((sustained ? 1.2 : .32) * sr);
     const raw = new Float32Array(length + overlap);
-    let sub = 0, low = 0, body = 0, air = 0, gust = 0;
+    let sub = 0, low = 0, body = 0, air = 0, gust = 0, flameDc = 0, flame1 = 0, flame2 = 0, flame3 = 0;
     const subK = 1 - Math.exp(-tau * 45 / sr), lowK = 1 - Math.exp(-tau * 220 / sr);
     const bodyK = 1 - Math.exp(-tau * 1000 / sr), airK = 1 - Math.exp(-tau * 4800 / sr), gustK = 1 - Math.exp(-tau * 8 / sr);
+    const flameHpK = 1 - Math.exp(-tau * 80 / sr), flameLpK = 1 - Math.exp(-tau * 400 / sr);
     for (let i = 0; i < raw.length; i++) {
       const t = i / sr, n = noise();
       sub += subK * (n - sub); low += lowK * (n - low); body += bodyK * (n - body); air += airK * (n - air); gust += gustK * (n - gust);
       // 音程・倍音・共鳴を付けず、圧力の低音と空気の乱流だけを重ねる。
-      const pressure = 2 * sub + 4 * (low - sub);
-      const exhaust = sustained ? 1.2 * (body - low) + .45 * (air - body) : 1.1 * (body - low) + 1.8 * (air - body);
-      const attack = sustained ? 1 : 1 - Math.exp(-t / .004);
-      const push = sustained ? 1 + .5 * gust : Math.exp(-Math.max(0, t - .012) / .025);
-      const tail = sustained ? 1 : Math.exp(-Math.max(0, t - .045) / .09);
-      raw[i] = ((sustained ? pressure : .18 * pressure) * push + exhaust * tail) * attack;
+      if (sustained) {
+        const pressure = 2 * sub + 4 * (low - sub), exhaust = 1.2 * (body - low) + .45 * (air - body);
+        raw[i] = pressure * (1 + .5 * gust) + exhaust;
+      } else {
+        // 参考の火炎噴射のように低中域を厚くし、短い噴き上がりと余韻を作る。
+        flameDc += flameHpK * (n - flameDc);
+        flame1 += flameLpK * (n - flameDc - flame1);
+        flame2 += flameLpK * (flame1 - flame2); flame3 += flameLpK * (flame2 - flame3);
+        const rise = Math.min(1, t / .075), swell = rise * rise * (3 - 2 * rise);
+        const envelope = swell * Math.exp(-Math.max(0, t - .075) / .055);
+        raw[i] = (5 * flame3 + .025 * (air - body) * Math.exp(-t / .025)) * envelope;
+      }
     }
     const buf = audio.createBuffer(1, length, sr), dst = buf.getChannelData(0);
     let mean = 0, peak = 0;
