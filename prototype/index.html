@@ -1030,8 +1030,10 @@ const SFX = {
   headshot: { file: 'slash', vol: 0.55, rate: 1.8, ui: true, gap: 0.05 }, // 自分の弾が頭に当たった：金属音を高く鳴らし、
   headping: { file: 'beep', vol: 0.3, rate: 2.2, ui: true, gap: 0.05 }, // 高い電子音を重ねる（v0.9.5、ユーザー指定）
   hurt: { file: 'hit', vol: 0.4, rate: 0.6, ui: true, gap: 0.12 }, // 自分が撃たれた
-  dash: { file: 'dash', vol: 0.5, range: 70, gap: 0.1 },
-  jump: { file: 'dash', vol: 0.4, rate: 1.25, range: 60, gap: 0.2 },
+  dash: { file: 'dash', vol: 0.5, range: 70, gap: 0.1, duration: .24, motion: true },
+  jump: { file: 'dash', vol: 0.4, rate: 1.25, range: 60, gap: 0.2, duration: .2, motion: true },
+  boostLoop: { file: 'boostLoop', vol: .16, range: 65, gap: 0, loop: true, lowpass: 1800, motion: true },
+  step: { file: 'hit', vol: .22, rate: .65, range: 38, gap: .08, duration: .14, lowpass: 1500, nearPan: true, motion: true },
   catapult: { file: 'dash', vol: 0.8, rate: 0.6, range: 120, gap: 0.5 },
   reload: { file: 'reload', vol: 0.5, range: 25, gap: 0.3 },
   switch: { file: 'reload', vol: 0.35, rate: 1.4, range: 20, gap: 0.2 },
@@ -1043,11 +1045,11 @@ const SFX = {
   gas: { file: 'explode', vol: 0.5, rate: 1.6, range: 160, gap: 0.1 }, // 弱化グレネード
   artilleryFall: { file: 'dash', vol: .7, rate: .65, range: 180, gap: .1 }, // 着弾予告の落下音（既存の風切り音）
   heavy: { file: 'rocket', vol: 0.9, rate: 0.7, range: 260, gap: 0.3 }, // 重砲
-  charge: { file: 'dash', vol: 0.7, rate: 0.75, range: 90, gap: 0.5 }, // 加速装置
+  charge: { file: 'dash', vol: 0.7, rate: 0.75, range: 90, gap: 0.5, duration: .26, motion: true }, // 加速装置
   drone: { file: 'dash', vol: 0.5, rate: 1.6, range: 60, gap: 0.5 }, // 偵察機
   camo: { file: 'heal', vol: 0.5, rate: 1.4, range: 60, gap: 0.3 }, // 光学迷彩（近くの敵にも聞こえる）
   sensor: { file: 'beep', vol: 0.4, rate: 1.3, range: 40, gap: 0.3 },
-  land: { file: 'explode', vol: 0.4, rate: 2.4, range: 70, gap: 0.3 }, // 着地硬直、ダウンで倒れる
+  land: { file: 'hit', vol: .42, rate: .55, range: 70, gap: .12, duration: .28, lowpass: 1100, motion: true }, // 軽い着地から重い落下・ダウンまで
   alert: { file: 'beep', vol: 0.7, rate: 0.55, ui: true, gap: 1 }, // ベースのレーダーの侵入警告
   lockWarn: { file: 'beep', vol: 0.55, rate: 0.65, ui: true, gap: 1.4 }, // 被ロックオン中の警告音（v0.11.1）
   spotWarn: { file: 'beep', vol: 0.45, rate: 1.7, ui: true, gap: 2 }, // 索敵され始めた（v0.11.2）
@@ -1088,6 +1090,21 @@ function applyAudioSettings() {
   for (const [bus, value] of [[audio.out, MASTER_VOL * gameOptions.master / 100], [audio.effects, muted ? 0 : gameOptions.sfx / 100], [audio.music, gameOptions.music / 100], [audio.world, units.length >= 100 ? .5 : 1]]) {
     bus.gain.cancelScheduledValues(t); bus.gain.setTargetAtTime(value, t, .025);
   }
+  if (muted || !gameOptions.master || !gameOptions.sfx) stopMovementSounds();
+}
+// 既存CC0のロケット音の持続部分をクロスフェードで繋ぐ。全機で同じ短いバッファを共有する。
+function boostLoopBuffer(buf) {
+  const start = Math.floor(.12 * buf.sampleRate), count = Math.floor(.3 * buf.sampleRate), overlap = Math.floor(.04 * buf.sampleRate);
+  if (buf.length < start + count) return null;
+  const loop = audio.createBuffer(buf.numberOfChannels, count - overlap, buf.sampleRate);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const src = buf.getChannelData(c), dst = loop.getChannelData(c);
+    for (let i = 0; i < dst.length; i++) {
+      const k = Math.min(1, i / overlap);
+      dst[i] = i < overlap ? k * src[start + i] + (1 - k) * src[start + dst.length + i] : src[start + i];
+    }
+  }
+  return loop;
 }
 // ブラウザは操作の後でないと音を出せないので、最初のクリックかキー入力で準備する
 function initAudio() {
@@ -1114,7 +1131,7 @@ function initAudio() {
   for (const [k, b64] of Object.entries(window.SOUND_DATA || {})) {
     const bin = atob(b64), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    audio.decodeAudioData(bytes.buffer).then(buf => { sfxBuf[k] = buf; }, () => {});
+    audio.decodeAudioData(bytes.buffer).then(buf => { sfxBuf[k] = buf; if (k === 'rocket') sfxBuf.boostLoop = boostLoopBuffer(buf); }, () => {});
   }
   loadBgm();
 }
@@ -1163,18 +1180,23 @@ bgmSw.addEventListener('change', e => {
 });
 // name の音を at の位置で鳴らす（at が無ければ自分の耳元）。src は鳴らした機体や砲台。自機から遠いほど小さく、左右に振り分ける
 // rate：武器ごとの音の高さ（w.sfxRate、v0.11.3）
-function sfx(name, at, src, rate = 1) {
+function soundMix(s, at, level = 1) {
+  let vol = s.vol * level, pan = 0;
+  if (!s.ui && at && player) {
+    const dx = at.x - player.pos.x, dz = at.z - player.pos.z, d = Math.hypot(dx, dz, at.y - player.pos.y);
+    if (d >= s.range) return { vol: 0, pan: 0 };
+    vol *= (1 - d / s.range) ** 2;
+    if (d > 1 || s.nearPan) pan = .8 * (dx * Math.cos(player.yaw) - dz * Math.sin(player.yaw)) / Math.max(1, d);
+  }
+  return { vol, pan };
+}
+function sfx(name, at, src, rate = 1, level = 1) {
   const s = SFX[name];
   if (!audio || muted || !s || !sfxBuf[s.file] || !gameOptions.master || !gameOptions.sfx) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
   if (t - (last[name] ?? -1e9) < s.gap) return;
-  let vol = s.vol, pan = 0;
-  if (!s.ui && at && player) {
-    const dx = at.x - player.pos.x, dz = at.z - player.pos.z, d = Math.hypot(dx, dz, at.y - player.pos.y);
-    if (d > s.range) return;
-    vol *= (1 - d / s.range) ** 2;
-    if (d > 1) pan = 0.8 * (dx * Math.cos(player.yaw) - dz * Math.sin(player.yaw)) / d;
-  }
+  const { vol, pan } = soundMix(s, at, level);
+  if (vol <= 0) return;
   // 24（大人数は16）枠の周囲音、4枠の自機音、4枠のUI音を確保。満杯なら遠く小さい音から譲る。
   const bucket = s.ui ? 'ui' : src === player || !at ? 'local' : 'world', pool = soundVoices[bucket];
   const priority = s.ui ? (['lockWarn', 'alert', 'hurt', 'annBad', 'annGood', 'annInfo'].includes(name) ? 2 : 1) : vol;
@@ -1187,17 +1209,63 @@ function sfx(name, at, src, rate = 1) {
   last[name] = t;
   const node = audio.createBufferSource(), g = audio.createGain();
   node.buffer = sfxBuf[s.file];
-  node.playbackRate.value = (s.rate || 1) * rate * (0.95 + Math.random() * 0.1); // 同じ音の連続が単調にならないよう少し揺らす
+  node.playbackRate.value = (s.rate || 1) * rate * (s.motion ? 1 : 0.95 + Math.random() * 0.1); // 移動音はゲーム用乱数を消費しない。
+  node.loop = !!s.loop;
   g.gain.value = vol;
   let out = node.connect(g);
-  if (audio.createStereoPanner) { const pn = audio.createStereoPanner(); pn.pan.value = pan; out = out.connect(pn); }
+  const filter = s.lowpass ? audio.createBiquadFilter() : null;
+  if (filter) { filter.type = 'lowpass'; filter.frequency.value = s.lowpass; out = out.connect(filter); }
+  const pn = audio.createStereoPanner ? audio.createStereoPanner() : null;
+  if (pn) { pn.pan.value = pan; out = out.connect(pn); }
   out.connect(bucket === 'world' ? audio.world : audio.effects);
-  const voice = { node, priority, end: null };
-  voice.end = () => { if (pool.delete(voice)) { voices--; node.disconnect(); g.disconnect(); if (out !== g) out.disconnect(); } };
+  const voice = { name, node, g, pn, priority, ended: false, stopping: false, end: null };
+  voice.end = () => { if (pool.delete(voice)) { voice.ended = true; voices--; node.disconnect(); g.disconnect(); filter?.disconnect(); pn?.disconnect(); } };
   pool.add(voice);
   voices++;
   node.onended = voice.end;
+  if (s.loop || s.duration) {
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + (s.loop ? .04 : .004));
+    if (s.duration) { g.gain.setValueAtTime(vol, t + s.duration - .025); g.gain.linearRampToValueAtTime(0, t + s.duration); }
+  }
   node.start();
+  if (s.duration) node.stop(t + s.duration + .005);
+  return voice;
+}
+function stopMovementSound(u) {
+  const v = u.boostVoice;
+  if (v && !v.ended && !v.stopping) {
+    const t = audio.currentTime; v.stopping = true;
+    v.g.gain.cancelScheduledValues(t); v.g.gain.setValueAtTime(v.g.gain.value, t); v.g.gain.linearRampToValueAtTime(0, t + .04);
+    v.node.stop(t + .045);
+  }
+  u.boostVoice = null; u.boostAudioRetry = 0;
+}
+function stopMovementSounds() { for (const u of units) stopMovementSound(u); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopMovementSounds(); });
+function movementAudioTick(u, dt) {
+  u.stepQuiet = Math.max(0, (u.stepQuiet || 0) - dt);
+  const state = u.dashState;
+  const on = running && !document.hidden && audio && !muted && gameOptions.master > 0 && gameOptions.sfx > 0 && u.alive && !(u.downT > 0) && !u.stun && !u.repairing && !u.transfer && !u.planted && !u.zip;
+  const mode = on && ((state === 'long' && u.longDash && u.boost > 0 && !u.overheat) || (state === 'hover' && !u.onGround && u.boost > 0 && !u.overheat) || (state === 'charge' && u.charging && u.chargerOn && !u.slots.sp.overheat)) ? state : '';
+  if (!mode) { stopMovementSound(u); return; }
+  if (u.boostVoice?.ended) u.boostVoice = null;
+  u.boostAudioRetry = Math.max(0, (u.boostAudioRetry || 0) - dt);
+  const rate = mode === 'charge' ? 1.15 : mode === 'hover' ? .85 : 1, level = mode === 'charge' ? 1.15 : mode === 'hover' ? .65 : 1;
+  const mix = soundMix(SFX.boostLoop, u.pos, level);
+  if (mix.vol <= .001) { stopMovementSound(u); return; }
+  if (!u.boostVoice && !u.boostAudioRetry) { u.boostVoice = sfx('boostLoop', u.pos, u, rate, level); u.boostAudioRetry = .12; }
+  const v = u.boostVoice;
+  if (v) {
+    const t = audio.currentTime; v.priority = mix.vol;
+    v.g.gain.setTargetAtTime(mix.vol, t, .04); v.node.playbackRate.setTargetAtTime(rate, t, .04);
+    if (v.pn) v.pn.pan.setTargetAtTime(mix.pan, t, .04);
+  }
+}
+function movementStep(u, foot) {
+  if (!running || u.kind !== 'unit' || u.stepQuiet > 0) return;
+  const at = u.pos.clone(); at.x += foot * .62 * Math.cos(u.yaw); at.z -= foot * .62 * Math.sin(u.yaw);
+  const weight = Math.max(.8, Math.min(1.15, Math.sqrt(4700 / (u.stats?.weight || 4700))));
+  sfx('step', at, u, weight * (foot > 0 ? 1.025 : .975));
 }
 
 // ---- マップ ----
@@ -3675,7 +3743,11 @@ function mechPose(u, dt) {
   r.last.copy(p); r.hasLast = true;
   const walking = grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
   r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
-  if (walking) r.phase += Math.min(distance, dt * 9) / 3.6 * Math.PI * 2;
+  if (walking) {
+    const before = Math.floor(r.phase / Math.PI);
+    r.phase += Math.min(distance, dt * 9) / 3.6 * Math.PI * 2;
+    if (Math.floor(r.phase / Math.PI) > before) movementStep(u, Math.floor(r.phase / Math.PI) % 2 ? -1 : 1);
+  }
   const yaw = u.yaw || 0, cs = Math.cos(yaw), sn = Math.sin(yaw), speed = Math.max(1, Math.hypot(velocity.x, velocity.z));
   const forward = (-velocity.x * sn - velocity.z * cs) / speed, side = (velocity.x * cs - velocity.z * sn) / speed;
   r.landT = Math.max(0, r.landT - dt);
@@ -3785,6 +3857,7 @@ function spawnPos(u, at) {
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
 function spawn(u, at = 'base') {
+  stopMovementSound(u); u.stepQuiet = 0;
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
   if (u.isPlayer) { incomingShots.clear(); resetBlastShake(); }
   clearAttached(u);
@@ -4069,11 +4142,14 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
 function land(u, v) {
   if (u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
-  if (u.stun === 'down') { sfx('land', u.pos, u); return; }
+  if (v >= 3 || u.stun === 'down') {
+    const power = Math.min(1, Math.max(.15, v / 32));
+    sfx('land', u.pos, u, 1.1 - power * .25, .3 + power * .7); u.stepQuiet = .12;
+  }
+  if (u.stun === 'down') return;
   if (v < LAND_SPEED || u.stun || u.jumpBuf > 0) return;
   u.stun = 'land'; u.stunT = Math.min(LAND_TIME[1], LAND_TIME[0] + (v - LAND_SPEED) * 0.05);
   u.dashT = 0; u.lungeT = 0;
-  sfx('land', u.pos, u);
 }
 // よろけ・ダウン：1回の攻撃のダメージ（amount）で決まる。from は押される元（爆心か撃った機体の位置）
 function jolt(u, from, amount, melee) {
@@ -8296,6 +8372,7 @@ function openOptions() {
   optionsPaused = running;
   if (optionsPaused) {
     running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = false;
+    stopMovementSounds();
     for (const k in keys) delete keys[k];
     for (const k in pressed) delete pressed[k];
     document.exitPointerLock?.();
@@ -8678,6 +8755,7 @@ const MAP_KEY = 'coreBreakerMap';
 function selectMap(id) {
   if (id !== mapId) {
     resetBlastShake();
+    stopMovementSounds();
     clearArtillery();
     clearSecondaryEffects();
     for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
@@ -9153,6 +9231,7 @@ let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
 function setup() {
   resetBlastShake();
+  stopMovementSounds();
   incomingShots.clear(); lockBeepT = 0;
   resetMobility();
   clearArtillery();
@@ -9188,6 +9267,7 @@ function setup() {
 function finish() {
   $('missileHud').hidden = true;
   ended = true; running = false; mapOpen = false;
+  stopMovementSounds();
   document.exitPointerLock?.();
   const own = cores[player.team].hp, enemy = cores[player.team === 'B' ? 'R' : 'B'].hp;
   const win = enemy <= 0 || (own > 0 && own > enemy);
@@ -9301,6 +9381,7 @@ function loop(now) {
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
     cloakLook(u, now / 1000);
+    movementAudioTick(u, dt);
     if (running && u.group.visible) weaponLook(u, dt);
     mainMuzzleUpdate(u, dt);
     u.flame.visible = u.alive && !!u.dashState;

@@ -134,7 +134,8 @@ const { chromium } = require('playwright');
       return {weaponPoses,meleeFrames,rayHits,maxVertices,maxGripError,floorChecks,minLegY,idleBlades,cpuMsFor20:ms,checks:log};
     });
     console.log(JSON.stringify(result, null, 2));
-    assert.equal(result.weaponPoses, 7*285); assert.equal(result.rayHits, 7*4);
+    const weaponCount = Object.values(stats.armory).flatMap(slots => Object.values(slots)).flat().length;
+    assert.equal(result.weaponPoses, 7*weaponCount); assert.equal(result.rayHits, 7*4);
     await page.setViewportSize({width:1360,height:900});
     await page.evaluate(async () => { await document.exitPointerLock?.(); __g.renderCustom(); __g.showPage('pgCustom'); document.getElementById('overlay').hidden=false; });
     for (const [cls,key] of [['assault','sword'],['assault','blade'],['assault','spear'],['assault','sabre'],['assault','rod'],['assault','clawB'],['heavy','pikeM']]) {

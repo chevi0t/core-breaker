@@ -32,6 +32,10 @@
 | beep | ロックオン・プラント占拠 | Beep Short | [florianreichelt](https://freesound.org/people/florianreichelt) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/florianreichelt/sounds/459992 |
 | heal | リペア | Heal Up | [Rickplayer](https://freesound.org/people/Rickplayer) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/Rickplayer/sounds/530488 |
 
+## 移動音への再利用（2026-10-21）
+
+歩行・着地には coolguy244e さんの「Bullet Hit Metal」を短く低くし、フィルターとフェードを加えて使っています。巡航・滞空・加速装置の持続音には Jarusca さんの「Rocket Launch」の0.12〜0.42秒をクロスフェードで繋ぎ、小さく繰り返して使っています。噴射の開始は従来どおり Joao_Janz さんの「Boomy Whoosh 1_1」です。いずれも上の表に記載した既存CC0素材の再利用で、新しい外部素材は追加していません。機体の動きを支える音を公開してくださった皆さま、ありがとうございます。
+
 ## 戦闘中BGM（v0.10）
 
 ユーザーが指定した OpenGameArt.org の曲を1つ（2026-10-18 にページでライセンスを確認済み。CC0 なので表示義務はないが、礼儀として操作説明の謝辞に「Author: Centurion_of_war さんの nightmareheavy.ogg を使わせていただいています。ありがとうございます」と載せる。ユーザー指定）、試合中だけ繰り返し流す（メニューのスイッチでオン・オフ）。手を加えずに `sounds/music/bgm.ogg` に置き、`python3 tools/build_sounds.py --music` で `prototype/music.js` にしている。
