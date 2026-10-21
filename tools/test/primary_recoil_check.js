@@ -1,4 +1,4 @@
-// 主武器の反動・弾道・腕部・回復を維持し、カメラとロックの自動補償へ混ぜない。
+// 主武器の反動・弾道・腕部・回復を維持し、視点への二重加算やロックの自動補償を防ぐ。
 // node tools/test/primary_recoil_check.js dbg/recoil-after dbg/recoil-before media/primary-recoil
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
@@ -66,7 +66,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       check(close(u.recoil, .2) && close(u.recoilYaw, .08), '副武器へ持ち替えても残った反動を切り詰めない');
       reset(); u.recoil = .04; u.recoilYaw = .02; g.updateCamera(u, .016);
       const dir = g.camera.getWorldDirection(new g.T.Vector3());
-      check(close(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)), 0) && close(Math.atan2(-dir.x, -dir.z), 0), '反動が残ってもカメラを上下左右へ回さない');
+      check(close(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)), .04) && close(Math.atan2(-dir.x, -dir.z), .02), '縦横の反動で以前と同じ角度だけ視点が動く');
       const e = g.units.find(v => v.team !== u.team); e.pos.set(0, 120, -40); e.alive = true;
       u.pitch=Math.atan2(-2.1,40);u.recoil=u.recoilYaw=0;Object.assign(g.lock,{target:e,visible:true,prevAng:null});g.lockFollow(u,.01);
       const neutral=[u.yaw,u.pitch];u.recoil=.2;u.recoilYaw=.1;g.lockFollow(u,.01);
@@ -82,12 +82,12 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       reset('gatling'); u.slots.main.w = { ...u.slots.main.w, spread: 0 }; u.recoil = .04; u.recoilYaw = .02; g.updateCamera(u, .016);
       const aim = g.camera.position.clone().addScaledVector(g.camera.getWorldDirection(new g.T.Vector3()), 300);
       const n = g.fx.length; g.shot(u, u.slots.main, aim, 0);
-      const ray = g.fx.slice(n).find(f => f.kind === 'tracer'), actual = ray.end.clone().sub(ray.from).normalize(), expected = g.recoilAim(ray.from,aim,.04,.02).sub(ray.from).normalize();
-      check(actual.distanceTo(expected) < 1e-7, '安定した視点からの弾へ現在の反動を1回だけ加える');
+      const ray = g.fx.slice(n).find(f => f.kind === 'tracer'), actual = ray.end.clone().sub(ray.from).normalize(), expected = aim.clone().sub(ray.from).normalize();
+      check(actual.distanceTo(expected) < 1e-7, '視点へ反映済みの反動を弾道へ二重に加えない');
       reset('gatling'); const far = new g.T.Vector3(0, 122.6, -100); u.recoil = .1;
       check(!g.botRecoilReady(u, far), 'Botは体幅を外れる反動が残ると射撃を休む');
       g.recoilRecover(u, 3); check(g.botRecoilReady(u, far), '同じ回復規則で落ち着くとBotも射撃を再開できる');
-      g.spawn(u); check(u.recoil === 0 && u.recoilYaw === 0, '再出撃で縦横の反動をリセット');
+      g.spawn(u); check(u.recoil === 0 && u.recoilYaw === 0 && u.cameraRecoil === 0 && u.cameraRecoilYaw === 0, '再出撃で縦横と視点に反映済みの反動をリセット');
       Math.random = random;
       return { checks, arms };
     });

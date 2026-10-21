@@ -230,8 +230,8 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 #jamView b { position:absolute; top:24%; left:50%; transform:translateX(-50%); color:#d8e4ff; letter-spacing:.2em; }
 #scope { box-sizing: border-box; padding: 12vh 8vw; text-align: right; font-size: 24px; inset: 0; background: radial-gradient(circle at 50% 50%, transparent 0 34vmin, rgba(0, 0, 0, .9) 34.4vmin); }
 #scope::before, #scope::after { content: ""; position: absolute; background: rgba(0, 0, 0, .75); }
-#scope::before { left: var(--aim-x, 50%); top: calc(var(--aim-y, 50%) - 34vmin); width: 1px; height: 68vmin; }
-#scope::after { top: var(--aim-y, 50%); left: calc(var(--aim-x, 50%) - 34vmin); height: 1px; width: 68vmin; }
+#scope::before { left: 50%; top: calc(50% - 34vmin); width: 1px; height: 68vmin; }
+#scope::after { top: 50%; left: calc(50% - 34vmin); height: 1px; width: 68vmin; }
 #wsel { left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 0; }
 #wsel[hidden] { display: none; }
 #wsel .opt { min-width: 200px; padding: 6px 14px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .22); text-align: center; font-size: 16px; color: var(--dim); }
@@ -783,13 +783,6 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
   .playerProfile { grid-template-columns: minmax(0, 1fr); }
   .playerProfile small { grid-column: 1; }
 }
-/* 反動で動くのは実射線の照準と付属メーターだけ。景色とスコープの外枠は固定する。 */
-#cross, #aimGauge, #mechAim, #headMark { left: var(--aim-x, 50%); top: var(--aim-y, 50%); }
-#aimSp { left: var(--aim-x, 50%); top: calc(var(--aim-y, 50%) + var(--aim-sp-offset)); }
-#headTxt { left: var(--aim-x, 50%); top: calc(var(--aim-y, 50%) + 8vh + 16px); }
-#aimEdge { width: 24px; height: 24px; color: #ffc46e; filter: drop-shadow(0 0 2px #000); }
-#aimEdge[hidden] { display: none; }
-#aimEdge svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -829,7 +822,6 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 <div class="hud" id="headTxt">HEADSHOT</div>
 <div class="hud" id="scorePop"></div>
 <div class="hud" id="scope" hidden></div>
-<div class="hud" id="aimEdge" hidden role="img" aria-label="照準が視界外"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 12 6 20 17"/></svg></div>
 <div class="hud" id="qchat" hidden></div>
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
@@ -942,7 +934,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを弱く追いますが、外れた照準を引き戻しません。照準は反動を含む実際の射線を示し、弾はその周りに武器の精度に応じて散ります（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・狙撃銃では通常ロックせず、置き撃ちや予測射撃ができます</span>
+        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを弱く追いますが、外れた照準を引き戻しません。照準は画面中央に固定し、射撃反動で視点が跳ね上がります。弾は照準方向の周りに武器の精度に応じて散ります（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・狙撃銃では通常ロックせず、置き撃ちや予測射撃ができます</span>
         <kbd>Q</kbd><span>ロック対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
@@ -6652,7 +6644,7 @@ function equip(u, cls) {
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
-    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04,
+    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
@@ -6913,8 +6905,8 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
   incomingFire(u, w);
-  // カメラは反動で回さない。銃口からの弾道には現在の反動を1回だけ加える（プレイヤー/Bot共通）。
-  const vertical = u.recoil, horizontal = u.recoilYaw || 0;
+  // プレイヤーのaimには現在の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
+  const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
     const P = w.proj, plasma = w.series === 'lp', charge = w.series === 'lq';
@@ -8012,8 +8004,7 @@ function playerUpdate(u, dt) {
   const P = cur.w.proj;
   aimMark.visible = !!(P && P.grav) && u.switchT <= 0 && !busy;
   if (aimMark.visible) {
-    const from = muzzle(u), to = recoilAim(from, aim, u.recoil, u.recoilYaw || 0);
-    const at = lobTo(from, to, P.speed, P.grav).at;
+    const at = lobTo(muzzle(u), aim, P.speed, P.grav).at;
     aimMark.position.set(at.x, at.y + 0.3, at.z);
     aimMark.scale.setScalar(P.blast || 2);
   }
@@ -8155,8 +8146,10 @@ function cameraPivot(u) {
   return u.pos.clone().add(new T.Vector3(0, CAM.up, 0)).addScaledVector(right, CAM.side);
 }
 function updateCamera(u, dt) {
-  const pitch = u.pitch, yaw = u.yaw; // 射撃反動は銃と弾道へ残し、景色を回さない。
+  const pitch = u.pitch + u.recoil; // 反動で視点が跳ね上がる
+  const yaw = u.yaw + (u.recoilYaw || 0);
   const dir = new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+  u.cameraRecoil = u.recoil; u.cameraRecoilYaw = u.recoilYaw || 0;
   const pivot = cameraPivot(u);
   // 移動や攻撃では画角を変えない。意図したロック/スコープのズームだけを維持する。
   const base = gameOptions.fov;
@@ -9304,37 +9297,6 @@ function missileHud(p) {
     ctx.fillStyle = 'rgba(4,14,22,.9)'; ctx.fillRect(lx - width / 2 - 6, ly - 16, width + 12, 23); ctx.fillStyle = tint; ctx.fillText(label, lx, ly);
   }
 }
-// カメラを揺らす代わりに、照準を実際の反動込みの射線へ移す。弾の散らばりは予測しない。
-function reticlePoint(u) {
-  const w = u.slots[u.weapon].w;
-  if (w.type !== 'gun') return null;
-  const from = muzzle(u), aim = recoilAim(from, viewAim(u), u.recoil, u.recoilYaw || 0);
-  if (w.proj?.grav) return lobTo(from, aim, w.proj.speed, w.proj.grav).at;
-  const dir = aim.clone().sub(from).normalize(), range = w.range || w.proj?.range;
-  const hit = castFrom(from, dir, u, range || 400);
-  return hit ? hit.point : from.addScaledVector(dir, range || 300);
-}
-function reticleHud(u) {
-  const active = u.alive && running && !ended && !u.transfer;
-  const point = active ? reticlePoint(u) : null, edge = $('aimEdge');
-  let x = innerWidth / 2, y = innerHeight / 2;
-  if (point) {
-    const at = point.project(camera);
-    if (Number.isFinite(at.x) && Number.isFinite(at.y)) { x = (at.x + 1) * innerWidth / 2; y = (1 - at.y) * innerHeight / 2; }
-  }
-  document.body.style.setProperty('--aim-x', x + 'px');
-  document.body.style.setProperty('--aim-y', y + 'px');
-  // 高倍率スコープで射線が視野を出たら、架空の照準点を置かず、方向だけを示す。
-  const dx = x - innerWidth / 2, dy = y - innerHeight / 2;
-  const limit = u.scoped ? Math.min(innerWidth, innerHeight) * .315 : Infinity;
-  const scale = Math.min(1, (innerWidth / 2 - 24) / Math.max(1e-6, Math.abs(dx)), (innerHeight / 2 - 24) / Math.max(1e-6, Math.abs(dy)), limit / Math.max(1e-6, Math.hypot(dx, dy)));
-  edge.hidden = !point || scale >= 1;
-  if (!edge.hidden) {
-    edge.style.left = (innerWidth / 2 + dx * scale) + 'px'; edge.style.top = (innerHeight / 2 + dy * scale) + 'px';
-    edge.style.transform = `translate(-50%, -50%) rotate(${Math.atan2(dy, dx) + Math.PI / 2}rad)`;
-    edge.setAttribute('aria-label', u.scoped ? '照準はスコープ外・矢印の方向' : '照準は画面外・矢印の方向');
-  }
-}
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
@@ -9347,7 +9309,6 @@ function hud(timeLeft, dt) {
   const arcade = consoleMode === 'arcade';
   $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
-  reticleHud(p);
   consoleTelemetry(p);
   pilotHud(p);
   $('status').classList.toggle('low', p.hp / p.maxHp <= .3);
