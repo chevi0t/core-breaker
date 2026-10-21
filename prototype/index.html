@@ -2271,7 +2271,7 @@ function blast(sh, at, ref) {
     u.hp -= real;
     noteDmg(u, sh.owner, real);
     cloakHit(u, fall(d));
-    if (u.isPlayer) flashDamage();
+    if (u.isPlayer) { flashDamage(); kickBlastShake(real); }
     if (u.hp <= 0) kill(u, sh.owner, false, real);
     else jolt(u, at, real * (S.knockMult || 1), false); // 爆風は1つずつ判定（wiki）
   }
@@ -3786,7 +3786,7 @@ function spawnPos(u, at) {
 }
 function spawn(u, at = 'base') {
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
-  if (u.isPlayer) incomingShots.clear();
+  if (u.isPlayer) { incomingShots.clear(); resetBlastShake(); }
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
@@ -4525,7 +4525,11 @@ function fire(u, aimPoint, spread, w, from = muzzle(u)) {
     const head = r && r.kind === 'unit' && hit.slot === 'head';
     let res = false;
     const direct = r && r.team !== u.team && r.kind !== 'umbrella';
-    if (direct) res = damage(r,u,w.dmg*(head ? w.head || HEADSHOT_MULT : 1),head,false,hit.slot,from,false);
+    if (direct) {
+      const hp = r.hp;
+      res = damage(r,u,w.dmg*(head ? w.head || HEADSHOT_MULT : 1),head,false,hit.slot,from,false);
+      if (r.isPlayer) kickBlastShake(hp - r.hp); // 直撃対象は重複爆風から除くため、ここで揺らす。
+    }
     blast({owner:u,team:u.team,skip:direct?r:null,spec:{dmg:w.dmg,blast:w.directBlast,core:false,linear:true,bodyLinear:true,occluded:true,small:true}},hit.point.clone().addScaledVector(dir,-.2),null);
     return res;
   }
@@ -7790,6 +7794,36 @@ const aimMark = new T.Mesh(new T.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2)
 aimMark.visible = false;
 scene.add(aimMark);
 const CAM = { back: 8, up: 4.6, side: 2.2 };
+// 爆風の被弾で視界を短く揺らす（ユーザー指定）。描画時だけ回し、照準・反動・ロックの計算へ残さない。
+const BLAST_SHAKE_TIME = .45;
+const blastShake = { power: 0, age: 0, phase: 0 };
+const blastViewBase = new T.Quaternion(), blastViewOffset = new T.Quaternion(), blastViewEuler = new T.Euler(0, 0, 0, 'YXZ');
+function resetBlastShake() { blastShake.power = blastShake.age = blastShake.phase = 0; }
+function kickBlastShake(amount) {
+  if (!(amount > 0)) return;
+  const fade = Math.max(0, 1 - blastShake.age / BLAST_SHAKE_TIME);
+  blastShake.power = Math.min(1, blastShake.power * fade * fade + Math.min(1, amount / 6000));
+  blastShake.age = 0;
+}
+function updateBlastShake(dt) {
+  blastShake.age += dt;
+  if (blastShake.power > 0) blastShake.phase += dt;
+  if (blastShake.age >= BLAST_SHAKE_TIME || !player?.alive) resetBlastShake();
+}
+function renderView() {
+  const shaken = running && player?.alive && blastShake.power > 0;
+  if (shaken) {
+    const t = blastShake.phase, fade = Math.max(0, 1 - blastShake.age / BLAST_SHAKE_TIME);
+    // スコープでも画面上の揺れ幅を揃える。波形は乱数を使わず、連続被弾でも強さを1以内に抑える。
+    const a = blastShake.power * fade * fade * Math.tan(camera.fov * Math.PI / 360) / Math.tan(70 * Math.PI / 360);
+    blastViewBase.copy(camera.quaternion);
+    blastViewEuler.set(.014 * a * Math.cos(t * 71), .01 * a * Math.sin(t * 89), .018 * a * Math.cos(t * 57));
+    camera.quaternion.multiply(blastViewOffset.setFromEuler(blastViewEuler));
+    camera.updateMatrixWorld();
+  }
+  try { renderer.render(scene, camera); cloakPass(); }
+  finally { if (shaken) { camera.quaternion.copy(blastViewBase); camera.updateMatrixWorld(); } }
+}
 function cameraPivot(u) {
   const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
   return u.pos.clone().add(new T.Vector3(0, CAM.up, 0)).addScaledVector(right, CAM.side);
@@ -8640,6 +8674,7 @@ const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id) {
   if (id !== mapId) {
+    resetBlastShake();
     clearArtillery();
     clearSecondaryEffects();
     for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
@@ -9114,6 +9149,7 @@ function hud(timeLeft, dt) {
 let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
 function setup() {
+  resetBlastShake();
   incomingShots.clear(); lockBeepT = 0;
   resetMobility();
   clearArtillery();
@@ -9295,6 +9331,7 @@ function loop(now) {
   for (const pl of plants) pl.beacon.scale.setScalar(pl.capturing ? 1 + 0.25 * Math.sin(now / 90) : 1);
   for (const k of ['B', 'R']) if (cores[k].glow) { cores[k].glow.rotation.y += dt; cores[k].glow.material.color.setHex(cores[k].hp < CORE_MAX * 0.25 && Math.sin(now / 120) > 0 ? 0xff3030 : TEAM[k].color); }
   hitT -= dt; dmgT -= dt; spHitT -= dt;
+  updateBlastShake(dt);
   if (player) {
     if (killcamOn()) killcamCamera(dt);
     else { if (killcam) endKillcam(); updateCamera(player, dt); }
@@ -9302,8 +9339,7 @@ function loop(now) {
   }
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
-  renderer.render(scene, camera);
-  cloakPass();
+  renderView();
   mechPreview(dt);
   requestAnimationFrame(loop);
 }
