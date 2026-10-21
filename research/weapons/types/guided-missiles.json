@@ -1,0 +1,216 @@
+{
+  "retrieved": "2026-10-21",
+  "engine": "ブラウザ版のみ。Godot版へ自動反映しない",
+  "sources": {
+    "missile": "https://w.atwiki.jp/borderbreak/pages/341.html",
+    "mlrs": "https://w.atwiki.jp/borderbreak/pages/359.html"
+  },
+  "families": {
+    "missile": {
+      "class": "assault",
+      "slot": "sub",
+      "source": "https://w.atwiki.jp/borderbreak/pages/341.html",
+      "adopted": [
+        {
+          "label": "",
+          "sourceName": "ミサイルスロアー",
+          "dmg": 2600,
+          "rpm": 360,
+          "mag": 4,
+          "mags": 4,
+          "reload": 2.4,
+          "kg": 350,
+          "blast": 11,
+          "speed": 30,
+          "rank": "D",
+          "turn": 0.55,
+          "maxSpeed": 30,
+          "accel": 0,
+          "shots": 4,
+          "locks": 1,
+          "recoilV": 0.4,
+          "recoilH": 0.2
+        },
+        {
+          "label": "強装型",
+          "sourceName": "MSL-ハイヴ",
+          "dmg": 3100,
+          "rpm": 240,
+          "mag": 3,
+          "mags": 4,
+          "reload": 2.6,
+          "kg": 360,
+          "blast": 13,
+          "speed": 30,
+          "rank": "C-",
+          "turn": 1,
+          "maxSpeed": 30,
+          "accel": 0,
+          "shots": 3,
+          "locks": 1,
+          "recoilV": 0.5,
+          "recoilH": 0.2
+        },
+        {
+          "label": "高速型",
+          "sourceName": "MSL-ナイダス",
+          "dmg": 2700,
+          "rpm": 480,
+          "mag": 4,
+          "mags": 4,
+          "reload": 2.6,
+          "kg": 380,
+          "blast": 10,
+          "speed": 50,
+          "rank": "E",
+          "turn": 0.25,
+          "maxSpeed": 50,
+          "accel": 0,
+          "shots": 4,
+          "locks": 1,
+          "recoilV": 0.4,
+          "recoilH": 0.2
+        },
+        {
+          "label": "大容量型",
+          "sourceName": "MSL-スウォーム",
+          "dmg": 2200,
+          "rpm": 540,
+          "mag": 6,
+          "mags": 3,
+          "reload": 3.4,
+          "kg": 420,
+          "blast": 11,
+          "speed": 30,
+          "rank": "D+",
+          "turn": 0.75,
+          "maxSpeed": 30,
+          "accel": 0,
+          "shots": 6,
+          "locks": 1,
+          "recoilV": 0.3,
+          "recoilH": 0.2
+        }
+      ],
+      "skipped": [
+        {
+          "sourceName": "MSL-ホード",
+          "reason": "1系統4型まで。今回は標準・誘導重視・高速・弾数重視を採用。"
+        }
+      ]
+    },
+    "mlrs": {
+      "class": "heavy",
+      "slot": "sub",
+      "source": "https://w.atwiki.jp/borderbreak/pages/359.html",
+      "adopted": [
+        {
+          "label": "",
+          "sourceName": "試験型MLRS",
+          "dmg": 2600,
+          "rpm": 480,
+          "mag": 6,
+          "mags": 3,
+          "reload": 3,
+          "kg": 500,
+          "blast": 12,
+          "speed": 30,
+          "rank": "C+",
+          "turn": 1.25,
+          "maxSpeed": 90,
+          "accel": 40,
+          "shots": 2,
+          "locks": 3,
+          "recoilV": 0.1,
+          "recoilH": 0.2
+        },
+        {
+          "label": "高速型",
+          "sourceName": "高速型MLRS",
+          "dmg": 2000,
+          "rpm": 600,
+          "mag": 6,
+          "mags": 4,
+          "reload": 3,
+          "kg": 520,
+          "blast": 11,
+          "speed": 30,
+          "rank": "D+",
+          "turn": 0.75,
+          "maxSpeed": 110,
+          "accel": 80,
+          "shots": 2,
+          "locks": 3,
+          "recoilV": 0.1,
+          "recoilH": 0.2
+        },
+        {
+          "label": "強装型",
+          "sourceName": "強化型MLRS",
+          "dmg": 4200,
+          "rpm": 320,
+          "mag": 4,
+          "mags": 3,
+          "reload": 4,
+          "kg": 570,
+          "blast": 14,
+          "speed": 30,
+          "rank": "A+",
+          "turn": 2.8,
+          "maxSpeed": 50,
+          "accel": 10,
+          "shots": 1,
+          "locks": 4,
+          "recoilV": 0.2,
+          "recoilH": 0.2
+        },
+        {
+          "label": "大容量型",
+          "sourceName": "多連装型MLRS",
+          "dmg": 2300,
+          "rpm": 480,
+          "mag": 8,
+          "mags": 3,
+          "reload": 4,
+          "kg": 590,
+          "blast": 9,
+          "speed": 30,
+          "rank": "B+",
+          "turn": 2,
+          "maxSpeed": 85,
+          "accel": 35,
+          "shots": 2,
+          "locks": 4,
+          "recoilV": 0.1,
+          "recoilH": 0.2
+        }
+      ],
+      "skipped": [
+        {
+          "sourceName": "斉射型MLRS",
+          "reason": "1系統4型まで。今回は標準・誘導重視・高速・弾数重視を採用。"
+        }
+      ]
+    }
+  },
+  "reconstruction": {
+    "note": "turn/maxSpeed/accel/delay/rampは原典の定量値ではなく本作の暫定値。rankは原典の等級。MLRS最高速は不明、180mの到達時間目安のみある。",
+    "lockSeconds": {
+      "missile": 0.39,
+      "mlrs": 0.26
+    },
+    "headRangeScale": {
+      "missile": "1.25（本作の暫定値。AC本文は頭部性能依存のみ）",
+      "mlrs": "1.5（AC本文の目安）"
+    },
+    "occlusionGraceSeconds": 0.5,
+    "outOfRangeGraceSeconds": 2,
+    "offscreenGraceSeconds": ".5（本作の暫定値）",
+    "throwerRange": 250,
+    "unguidedMlrsExtraGap": ".8秒（本作の暫定値）",
+    "projectileTarget": "発射時の捕捉を保持。捕捉解除・持替・発射者大破でも追尾は続く。目標の行動不能・大破・再出撃・追い越しで誘導を終了し再捕捉しない。飛行中に目標が迷彩になっても追尾継続は本作の暫定仕様。",
+    "damage": "原典爆発100%。新規爆発副武器と同じ線形減衰・体の縦線までの距離・遮蔽判定。既存武器は変更しない。",
+    "launchSpread": ".006rad（本作の暫定値）",
+    "core": "コアに直撃した時だけ、既存の爆発副武器と同じCORE_RATEで損傷する。傘は通常の障害物。"
+  }
+}
