@@ -107,16 +107,21 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange'));
       yes(!u.boostVoice, 'タブが隠れたら次の描画を待たずに継続音を止める'); delete document.hidden;
       reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); g.spawn(u); yes(!u.boostVoice, '再出撃で古い噴射音を止める');
-      reset(); const enemy = g.units.find(v => v.team !== u.team);
-      enemy.sfxT = {}; Object.assign(enemy, { alive: true, dashState: 'long', longDash: true, boost: 100, overheat: false, stun: '', downT: 0, repairing: false, transfer: null, planted: false, zip: null });
-      enemy.pos.copy(u.pos).add(new T.Vector3(8, 0, 0)); g.movementAudioTick(enemy, .02);
-      const near = enemy.boostVoice, gain = near.priority, pan = near.pn.pan.value;
-      enemy.pos.copy(u.pos).add(new T.Vector3(-28, 0, 0)); g.movementAudioTick(enemy, .02);
-      yes(enemy.boostVoice === near && near.priority < gain && pan > 0, 'Botの継続音も移動と距離に応じて更新する');
-      enemy.pos.x = u.pos.x + 100; g.movementAudioTick(enemy, .02); yes(!enemy.boostVoice && near.stopping, '可聴範囲を出た音を解放する');
-      clear(); for (let i = 0; i < 24; i++) g.sfx('boostLoop', u.pos, {});
+      for (const [label, other] of [['味方', g.units.find(v => v !== u && v.team === u.team)], ['敵', g.units.find(v => v.team !== u.team)]]) {
+        reset();
+        other.sfxT = {}; Object.assign(other, { alive: true, longDash: true, boost: 100, overheat: false, stun: '', downT: 0, repairing: false, transfer: null, planted: false, zip: null, stepQuiet: 0, chargerOn: true, charging: true });
+        other.pos.copy(u.pos); other.slots.sp.overheat = false;
+        g.movementStep(other, -1);
+        for (const name of ['step', 'dash', 'jump', 'boostLoop', 'charge', 'land']) g.sfx(name, other.pos, other);
+        for (const mode of ['long', 'hover', 'charge']) { other.dashState = mode; other.onGround = mode !== 'hover'; g.movementAudioTick(other, .02); }
+        yes(!starts.length && !other.boostVoice && !g.soundVoices.world.size, label + 'が至近距離でも足音・噴射・ジャンプ・着地音を鳴らさない');
+        g.sfx('ar', other.pos, other);
+        yes(starts.length === 1 && starts[0].name === 'ar' && g.soundVoices.world.size === 1, label + 'の射撃音は距離減衰付きで残す');
+      }
+      reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); const localBoost = u.boostVoice;
+      for (let i = 0; i < 24; i++) g.sfx('ar', u.pos, {}, 1, .1);
       const quiet = [...g.soundVoices.world]; g.sfx('ar', u.pos, {}); g.sfx('ar', u.pos, u); g.sfx('lockWarn');
-      yes(g.soundVoices.world.size <= 24 && quiet.some(v => v.ended) && [...g.soundVoices.local].some(v => v.name === 'ar') && [...g.soundVoices.ui].some(v => v.name === 'lockWarn'), '音数上限を守り、噴射音より銃声と警告を優先する');
+      yes(g.soundVoices.world.size <= 24 && quiet.some(v => v.ended) && g.soundVoices.local.has(localBoost) && [...g.soundVoices.local].some(v => v.name === 'ar') && [...g.soundVoices.ui].some(v => v.name === 'lockWarn'), '周囲の音数が上限でも自機の継続噴射・銃声・警告を保つ');
       reset(); const random = Math.random; let calls = 0;
       try { Math.random = () => { calls++; return .5; }; g.movementStep(u, -1); g.land(u, 12); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); } finally { Math.random = random; }
       yes(calls === 0, '追加した移動音はゲーム用乱数を消費しない');

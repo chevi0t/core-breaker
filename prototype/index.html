@@ -1030,10 +1030,10 @@ const SFX = {
   headshot: { file: 'slash', vol: 0.55, rate: 1.8, ui: true, gap: 0.05 }, // 自分の弾が頭に当たった：金属音を高く鳴らし、
   headping: { file: 'beep', vol: 0.3, rate: 2.2, ui: true, gap: 0.05 }, // 高い電子音を重ねる（v0.9.5、ユーザー指定）
   hurt: { file: 'hit', vol: 0.4, rate: 0.6, ui: true, gap: 0.12 }, // 自分が撃たれた
-  dash: { file: 'dash', vol: 0.5, range: 70, gap: 0.1, duration: .24, motion: true },
+  dash: { file: 'dash', vol: .72, range: 70, gap: 0.1, duration: .24, motion: true },
   jump: { file: 'dash', vol: 0.4, rate: 1.25, range: 60, gap: 0.2, duration: .2, motion: true },
-  boostLoop: { file: 'boostLoop', vol: .16, range: 65, gap: 0, loop: true, lowpass: 1800, motion: true },
-  step: { file: 'hit', vol: .22, rate: .65, range: 38, gap: .08, duration: .14, lowpass: 1500, nearPan: true, motion: true },
+  boostLoop: { file: 'boostLoop', vol: .26, range: 65, gap: 0, loop: true, lowpass: 1800, motion: true },
+  step: { file: 'hit', vol: .11, rate: .65, range: 38, gap: .08, duration: .14, lowpass: 1500, nearPan: true, motion: true },
   catapult: { file: 'dash', vol: 0.8, rate: 0.6, range: 120, gap: 0.5 },
   reload: { file: 'reload', vol: 0.5, range: 25, gap: 0.3 },
   switch: { file: 'reload', vol: 0.35, rate: 1.4, range: 20, gap: 0.2 },
@@ -1192,6 +1192,7 @@ function soundMix(s, at, level = 1) {
 }
 function sfx(name, at, src, rate = 1, level = 1) {
   const s = SFX[name];
+  if (s?.motion && src !== player) return; // 移動音は自機を操縦する手応えとして鳴らす。
   if (!audio || muted || !s || !sfxBuf[s.file] || !gameOptions.master || !gameOptions.sfx) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
   if (t - (last[name] ?? -1e9) < s.gap) return;
@@ -1243,6 +1244,7 @@ function stopMovementSound(u) {
 function stopMovementSounds() { for (const u of units) stopMovementSound(u); }
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopMovementSounds(); });
 function movementAudioTick(u, dt) {
+  if (u !== player) { stopMovementSound(u); return; }
   u.stepQuiet = Math.max(0, (u.stepQuiet || 0) - dt);
   const state = u.dashState;
   const on = running && !document.hidden && audio && !muted && gameOptions.master > 0 && gameOptions.sfx > 0 && u.alive && !(u.downT > 0) && !u.stun && !u.repairing && !u.transfer && !u.planted && !u.zip;
@@ -1262,7 +1264,7 @@ function movementAudioTick(u, dt) {
   }
 }
 function movementStep(u, foot) {
-  if (!running || u.kind !== 'unit' || u.stepQuiet > 0) return;
+  if (!running || u !== player || u.kind !== 'unit' || u.stepQuiet > 0) return;
   const at = u.pos.clone(); at.x += foot * .62 * Math.cos(u.yaw); at.z -= foot * .62 * Math.sin(u.yaw);
   const weight = Math.max(.8, Math.min(1.15, Math.sqrt(4700 / (u.stats?.weight || 4700))));
   sfx('step', at, u, weight * (foot > 0 ? 1.025 : .975));
