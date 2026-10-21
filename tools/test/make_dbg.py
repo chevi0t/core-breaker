@@ -44,6 +44,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get tracer() { return tracer; },
   get tracerProfile() { return tracerProfile; }, get lockWarning() { return lockWarning; }, get incomingShots() { return incomingShots; }, get incomingFire() { return incomingFire; }, get turretUpdate() { return turretUpdate; },
   get gameOptions() { return gameOptions; }, get audio() { return audio; }, get sfx() { return sfx; }, get sfxBuf() { return sfxBuf; }, get soundVoices() { return soundVoices; }, get applyAudioSettings() { return applyAudioSettings; }, get bgmTick() { return bgmTick; }, get initAudio() { return initAudio; }, get openOptions() { return openOptions; }, get closeOptions() { return closeOptions; },
+  get movementAudioTick() { return movementAudioTick; }, get movementStep() { return movementStep; }, get stopMovementSounds() { return stopMovementSounds; },
   get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get running() { return running; }, set running(v) { running = v; } };"""
 
 
