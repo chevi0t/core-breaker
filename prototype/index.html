@@ -4261,13 +4261,15 @@ function impact(at, kind, delay) {
   // 大人数戦では追加演出だけを96個までに制限する（命中・通常の火花は省かない）。
   if (impactDetailCount < 96) visualAlloc(() => {
     const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 3), 3));
-    const points = new T.Points(pg, new T.PointsMaterial({ color: kind === 'world' ? 0xffc078 : color, map: flashTex, size: .2, transparent: true, depthWrite: false, fog: false }));
+    const points = new T.Points(pg, new T.PointsMaterial({ color: kind === 'world' ? 0xffc078 : color, map: flashTex, size: 5, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false }));
     points.frustumCulled = false;
     addFx(points, .24, { kind: 'impactSparks', vel, origin: at.clone(), ownGeo: true, impactDetail: true }, delay); impactDetailCount++;
     if (kind === 'world' && impactDetailCount < 96) {
-      const dust = new T.Sprite(new T.SpriteMaterial({ map: flashTex, color: 0x9c8b73, transparent: true, depthWrite: false, opacity: .45 }));
-      dust.position.copy(at);
-      addFx(dust, .36, { kind: 'impactDust', origin: at.clone(), drift: vel[0].clone().multiplyScalar(.035), impactDetail: true }, delay); impactDetailCount++;
+      const dust = new T.Sprite(new T.SpriteMaterial({ map: flashTex, color: 0x51432c, transparent: true, depthWrite: false, opacity: .55 }));
+      // 壁面への埋まりを避ける。視線方向へは漂わせず、奥行き判定は保つ。
+      const view = camera.position.clone().sub(at).normalize(), origin = at.clone().addScaledVector(view, .15), drift = vel[0].clone().multiplyScalar(.02);
+      drift.addScaledVector(view, -drift.dot(view)); dust.position.copy(origin);
+      addFx(dust, .36, { kind: 'impactDust', origin, drift, impactDetail: true }, delay); impactDetailCount++;
     }
   });
 }
@@ -4395,13 +4397,13 @@ function fxUpdate(dt) {
       f.obj.material.opacity = .9 * (1 - k) ** 2;
     } else if (f.kind === 'impactDust') {
       f.obj.position.copy(f.origin).addScaledVector(f.drift, k); f.obj.position.y += .8 * k;
-      f.obj.scale.setScalar(.8 + 2.4 * Math.sqrt(k));
-      f.obj.material.opacity = .45 * (1 - k) ** 1.5;
+      f.obj.scale.setScalar(1 + 3 * Math.sqrt(k));
+      f.obj.material.opacity = .55 * (1 - k) ** 1.5;
     } else if (f.kind === 'impactSparks') {
       const a = f.obj.geometry.attributes.position;
       f.vel.forEach((v, j) => a.setXYZ(j, f.origin.x + v.x * f.age, f.origin.y + v.y * f.age - 9 * f.age * f.age, f.origin.z + v.z * f.age));
       a.needsUpdate = true;
-      f.obj.material.size = Math.max(.16, f.origin.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * 5);
+      f.obj.material.size = Math.max(5, Math.min(9, .24 * innerHeight / (2 * Math.max(1, f.origin.distanceTo(camera.position)))));
       f.obj.material.opacity = (1 - k) ** .7;
     } else if (f.kind === 'sparks') {
       const a = f.obj.geometry.attributes.position;

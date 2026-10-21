@@ -139,8 +139,30 @@ const after = path.resolve(process.argv[2] || 'dbg'), before = path.resolve(proc
     const old = await simulation(before), now = await simulation(after);
     assert.deepEqual(now, old, '射撃・着弾の変更前後比較');
     yes(now.rows.some(r => r.damage > 0), '変更前後で実射の着弾位置・威力・乱数列と着弾演出の乱数消費が一致');
+    async function impactImage(dir, version) {
+      const q = await page(dir);
+      const result = await q.evaluate(() => {
+        const g = __g, T = g.T, scene = new T.Scene(); scene.background = new T.Color(0xc6d2da);
+        g.fxUpdate(20);
+        const wall = new T.Mesh(new T.PlaneGeometry(100, 100), new T.MeshBasicMaterial({ color: 0x76838c }));
+        wall.position.set(0, 200, -56); scene.add(wall);
+        g.camera.position.set(0, 204, 0); g.camera.lookAt(0, 203, -55); g.camera.fov = 70; g.camera.updateProjectionMatrix(); g.camera.updateMatrixWorld();
+        let seed = 12; Math.random = () => { seed = Math.imul(seed, 1664525) + 1013904223 >>> 0; return seed / 4294967296; };
+        g.impact(new T.Vector3(0, 203, -55.99), 'world', 0); g.fxUpdate(.08);
+        for (const f of g.fx) scene.add(f.obj); g.renderer.render(scene, g.camera);
+        const gl = g.renderer.getContext(), pixels = new Uint8Array(64 * 64 * 4);
+        gl.readPixels(innerWidth / 2 - 32, innerHeight / 2 - 32, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        let visible = 0;
+        for (let i = 0; i < pixels.length; i += 4) if (Math.max(Math.abs(pixels[i] - pixels[0]), Math.abs(pixels[i + 1] - pixels[1]), Math.abs(pixels[i + 2] - pixels[2])) > 15) visible++;
+        return { visible, png: g.renderer.domElement.toDataURL('image/png').split(',')[1] };
+      });
+      fs.writeFileSync(path.join(out, 'impact-wall-' + version + '.png'), Buffer.from(result.png, 'base64'));
+      await q.close(); return result.visible;
+    }
+    const impactBefore = await impactImage(before, 'before'), impactAfter = await impactImage(after, 'after');
+    yes(impactAfter > impactBefore * 1.2, '壁際の着弾も粉塵と火花が埋もれず、見える画素の面積が増える');
     yes(errors.length === 0, 'ブラウザエラーなし');
-    fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, visuals, old, now, errors }, null, 2));
+    fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, visuals, old, now, impactBefore, impactAfter, errors }, null, 2));
     console.log(JSON.stringify({ passed: checks.length, rows: visuals.rows, errors })); await p.close();
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
