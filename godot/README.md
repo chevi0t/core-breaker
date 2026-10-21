@@ -6,7 +6,25 @@ Godot 4への移植作業中の版。出撃から移動・射撃・BOT戦・占�
 
 ## 起動
 
-Godot **4.6.3通常版**で検証（C#/.NET版は不要）。Godotのプロジェクト一覧から、このフォルダの `project.godot` をインポートし、F6ではなく **F5でプロジェクトを実行**する。
+**`project.godot` 単体では起動できない。** これはプロジェクトの設定ファイルで、ゲーム本体や素材を含む実行ファイルではない。次のフォルダ一式を同じ場所に置く必要がある。
+
+```text
+godot/
+├── project.godot
+├── scenes/
+├── scripts/
+├── data/
+└── assets/
+```
+
+1. リポジトリを取得する。PR #37が未マージの間は、`main` ではなく `codex/godot-offline-port` ブランチを選ぶ。[作業ブランチのZIP](https://github.com/chevi0t/core-breaker/archive/refs/heads/codex/godot-offline-port.zip)からも取得できる（非公開リポジトリのためGitHubへのログインが必要）。
+2. ZIPの場合は**すべて展開**する。ZIPの中から直接開いたり、`project.godot` だけ別の場所に移したりしない。
+3. Godot **4.6.3通常版**（C#/.NET版は不要）のプロジェクト一覧で「インポート」を押し、展開先の `godot/project.godot` を選ぶ。
+4. 初回の素材インポートが終わるまで待ち、**F5でプロジェクトを実行**する（F6はシーン単体の実行）。
+
+`godot/` フォルダ一式だけを別の場所へコピーしても動く。`.godot/` はGodotが生成するキャッシュなので、配布やコピーには不要。
+
+「ファイルが見つからない」と出る場合は、`project.godot` と同じ場所に `scripts/main.gd`、`scenes/main.tscn`、`data/catalog.json` があるか確認する。揃っている場合は、エラーに表示されたファイル名とGodotのバージョンを確認する。
 
 リポジトリ直下からのコマンド：
 
