@@ -13,3 +13,5 @@ node tools/test/guided_missiles_check.js dbg/missiles --screenshots
 ```
 
 原典の数値と暫定の誘導調整は [採用記録](../../research/weapons/types/guided-missiles.json)、既存副武器との比較と操作は [調査記録](../../research/weapons/guided-missiles.md)。ブラウザ版の追加で、Godot版のデータは更新しない。
+
+ブースト回避は [120条件の比較](dodge-check.json) と [読み方](../../research/weapons/guided-missiles.md#ブースト回避と弾速の追加確認2026-10-21) に記録した。`node tools/test/missile_dodge_check.js dbg/missiles` で再実行できる。
