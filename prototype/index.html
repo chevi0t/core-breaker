@@ -4640,10 +4640,10 @@ function downTick(u, dt) {
   else if (!u.isPlayer && u.downT > 1 && !reviverNear(u)) u.downT = 1;
   if ((u.downT -= dt) <= 0) wreck(u);
 }
-// 起こせる機体：リペアユニットを持ち、ゲージが残っている
-function canRevive(e) { const sp = e.slots && e.slots.sp; return !!sp && ['repair', 'repairPost'].includes(sp.w.type) && !sp.overheat; }
+// 起こせる機体：蘇生できる修理装備を持ち、使用可能なゲージがある。
+function canRevive(e) { const sp = e.slots && e.slots.sp; return !!sp && !sp.overheat && (['repair', 'repairPost'].includes(sp.w.type) || sp.w.type === 'field' && sp.heat > 0 && !e.repairing); }
 function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
-// 起き上がる（リペアユニットで REVIVE_NEED 修理されたとき）
+// 起き上がる（修理装備で REVIVE_NEED 修理されたとき）
 function revive(v, by) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
   Object.assign(v, { alive: true, downT: 0, hp: v.maxHp * REVIVE_HP, invulT: REVIVE_INVUL, stun: '', yaw: v.downYaw, dashT: 0, longDash: false, dashState: '', target: null, aimTarget: null, waypoint: null, navPath: null, navW: null, navVia: null, navRc: 0, healing: false });
@@ -4993,7 +4993,8 @@ function botUpdate(u, dt) {
   if (pod) {
     goal = pod.pos; hold = 1; // 損傷したらリペアポッドへ下がる
   } else if (canRevive(u) && downedAlly(u, REVIVE_CALL)) {
-    goal = downedAlly(u, REVIVE_CALL).pos; hold = 10; // 行動不能の味方を起こしに行く（v0.17）。カタパルトへ向かう途中でも先に
+    goal = downedAlly(u, REVIVE_CALL).pos;
+    hold = u.slots.sp.w.type === 'field' ? Math.min(10, u.slots.sp.w.radius - 2) : 10; // 狭いフィールドも範囲内まで近づく。
   } else if (u.waypoint && !baseTask) {
     goal = u.waypoint; hold = 0.5;
     if (u.pos.distanceTo(goal) > 110) u.waypoint = null;
@@ -5226,10 +5227,10 @@ function botAct(u, tracking, enemyCore) {
     }
     if (s.sp.w.type === 'camo' && !tracking && !u.cloak && s.sp.heat >= 100 && Math.random() < 0.3) return { slot: 'sp', aim: ahead(10), t: 2.5, done: () => u.cloak };
   } else if (u.cls === 'support') {
-    // リペアフィールド：自分か周りの味方が傷ついていれば作動させ、いなくなれば止める（交戦中も）
+    // リペアフィールド：傷ついた自分・味方や行動不能の味方がいれば作動させ、いなくなれば止める（交戦中も）
     const f = s.sp.w.type === 'field' ? s.sp.w : null;
     if (f) {
-      const hurt = units.some(e => e.alive && e.team === u.team && e.hp < e.maxHp * 0.9 && e.pos.distanceTo(u.pos) < f.radius); // 自分も入る（v0.11.3）
+      const hurt = units.some(e => e.team === u.team && (e.downT > 0 || e.alive && e.hp < e.maxHp * 0.9) && e.pos.distanceTo(u.pos) < f.radius); // 行動不能の味方と自分も対象。
       if (hurt !== !!u.fieldOn && (u.fieldOn || s.sp.heat > 30)) toggleSp(u);
     }
     if (s.sp.w.type === 'repairPost') {
@@ -5746,8 +5747,8 @@ const WEAPONS = {
   // 支援・特別装備
   // リペアユニットγ（FXU-C）相当：毎秒1700、射程50m、連続6秒、満タンまで23秒（使い切らなければ18秒）
   repairG: { name: 'リペアユニット・高出力型', type: 'repair', heal: 1700, range: 50, use: 6, charge: 23, chargeKeep: 18, desc: '回復が速いが、続けて使えるのは短い' },
-  // リペアフィールドFXF-A相当：選ぶと作動し、自機の周り12mの味方を毎秒1000回復（自機は除く）。連続50秒、満タンまで45秒（40秒）。持っている武器はそのまま
-  field: { name: 'リペアフィールド', type: 'field', heal: 1000, radius: 12, use: 50, charge: 45, chargeKeep: 40, desc: '選ぶと自分と周り12mの味方を回復し続ける。撃ちながら使える。回復する味方が多いほどSPが早く減る' },
+  // リペアフィールドFXF-A相当：選ぶと作動し、自機と周り12mの味方を毎秒1000修理。連続50秒、満タンまで45秒（40秒）。持っている武器はそのまま
+  field: { name: 'リペアフィールド', type: 'field', heal: 1000, radius: 12, use: 50, charge: 45, chargeKeep: 40, desc: '選ぶと自分と周り12mの味方を修理し、行動不能の味方も蘇生する。撃ちながら使える。対象の味方が多いほどSPが早く減る' },
   // ---- Codex 版の主武器の系統（v0.14、ユーザー指定「主武器バリエーションに関してはCodex版からある程度移植できると思うので検討願います」）----
   // Codex 版の weapons.js の主武器のうち、本作の撃ち方のまま数値だけで作れる7系統。数値は wiki（PS4版）の各系統の最初の型の強化前の値で、形は Codex 版のもの。
   // ばらつき（spread）と反動（recoil）は、wiki の精度・反動のランクを本作の近い武器から1段0.88倍で換算した。energy：光学兵器（弾の光が青緑寄りになる）。
@@ -7249,7 +7250,7 @@ function chargerTick(u, sl, dt) {
   if (u.chargerOn && sl.overheat) u.chargerOn = false;
   if (!u.charging) spRegen(sl, dt);
 }
-// リペアフィールド：選ぶと作動、もう一度選ぶと停止（toggleSp）。作動中はSPを使い、自機と周り radius m の味方機を毎秒 heal 回復する。
+// リペアフィールド：選ぶと作動、もう一度選ぶと停止（toggleSp）。自機・周囲の味方を修理し、行動不能の味方は同じ修復量で蘇生する。
 // SPは誰も回復していなくても use 秒で尽き、回復している味方（自機は数えない）1機ごとに FIELD_PER_ALLY 倍ぶん早く減る（v0.11.3、ユーザー指定。倍率は仮）
 const FIELD_PER_ALLY = 0.5;
 const fieldGeo = new T.SphereGeometry(1, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -7257,13 +7258,15 @@ const fieldMat = new T.MeshBasicMaterial({ color: 0x7dffb0, transparent: true, o
 function fieldTick(u, sl, dt) {
   const w = sl.w;
   sl.cd -= dt;
-  if (u.fieldOn && (sl.overheat || !u.alive)) u.fieldOn = false;
+  u.fieldN = 0;
+  if (u.fieldOn && (sl.overheat || !u.alive || u.repairing)) u.fieldOn = false;
   if (!u.fieldOn) { spRegen(sl, dt); return; }
   let n = 0;
   for (const e of units) {
-    if (!e.alive || e.team !== u.team || e.hp >= e.maxHp || e.pos.distanceTo(u.pos) > w.radius) continue;
-    const h = Math.min(e.maxHp - e.hp, w.heal * dt);
-    e.hp += h;
+    if (e.team !== u.team || e.pos.distanceTo(u.pos) > w.radius || (!e.alive && !(e.downT > 0)) || (e.alive && e.hp >= e.maxHp)) continue;
+    const h = e.alive ? Math.min(e.maxHp - e.hp, w.heal * dt) : w.heal * dt;
+    if (e.alive) e.hp += h;
+    else if ((e.reviveAcc += h) >= REVIVE_NEED) revive(e, u);
     if (e !== u) { scoreHeal(u, e, h); n++; } // 自分の回復はスコアにならない
   }
   u.fieldN = n;
@@ -9026,7 +9029,7 @@ function hud(timeLeft, dt) {
   if (p.barrierOn) small += ' · 防護バリア 作動中';
   if (p.escortOn) small += ` · 背部自動銃 作動中（${p.slots.sp.ammo}/${p.slots.sp.w.mag}発${p.slots.sp.reloadT > 0 ? '・再装填中' : ''}）`;
   if (p.post) small += ' · リペアビーコン 設置中（特別装備を再選択で回収）';
-  if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を回復）`;
+  if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を修理・蘇生）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
   if (arcade) { // 菱形の武器枠：持っている武器は大きな数字と同じ値、ほかは弾倉の残り（剣は∞、SPを使う物は%）
     SLOTS.forEach((k, i) => { const sl = p.slots[k], el = $('w-' + k); el.dataset.n = k === p.weapon ? big : sl.w.mag ? sl.ammo : sl.w.type === 'sword' ? '∞' : Math.round(sl.heat) + '%'; el.dataset.name = `${i + 1} ${sl.w.name}`; });
