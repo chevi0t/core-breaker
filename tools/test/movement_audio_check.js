@@ -50,7 +50,13 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < 1e-5, label + 'の合成音に非数・無音・クリップ・直流成分がない');
         let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
         for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
-        yes(body / full > .2, label + 'に200Hz以下の低い噴射の厚みがある');
+        yes(body / full > .05 && body / full < .75, label + 'に低域の空気圧と広い帯域の噴流がある');
+        const periodicity = [50, 60, 80, 100, 120].map(hz => {
+          const lag = Math.round(buf.sampleRate / hz); let dot = 0, a = 0, b = 0;
+          for (let i = lag; i < data.length; i++) { dot += data[i] * data[i - lag]; a += data[i] ** 2; b += data[i - lag] ** 2; }
+          return Math.abs(dot / Math.sqrt(a * b));
+        });
+        yes(Math.max(...periodicity) < .25, label + 'に音程のある低音や倍音の強い周期振動が残らない');
       }
       const rms = (data, a, b) => Math.sqrt(data.slice(a, b).reduce((s, v) => s + v * v, 0) / (b - a));
       yes(rms(attack, .01 * burst.sampleRate, .06 * burst.sampleRate) > 2 * rms(attack, .18 * burst.sampleRate, .23 * burst.sampleRate), '短い噴射は開始直後に強い山があり、後半へ減衰する');
