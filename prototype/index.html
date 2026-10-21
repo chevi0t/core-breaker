@@ -1009,7 +1009,7 @@ Object.assign(sun.shadow.camera, { left: -270, right: 270, top: 270, bottom: -27
 scene.add(sun);
 
 // ---- 効果音 ----
-// N で効果音と音声アナウンスをオン・オフ（v0.15まで M）。音のデータは sounds.js の window.SOUND_DATA（音の名前: mp3 を base64 にした文字列）から読む。入っていない音は鳴らないだけ。
+// N で効果音と音声アナウンスをオン・オフ（v0.15まで M）。音のデータは sounds.js の window.SOUND_DATA（音の名前: 音声ファイルを base64 にした文字列）から読む。入っていない音は鳴らないだけ。
 // sounds.js は tools/build_sounds.py が sounds/ の音から作る。出典とライセンスは sounds/CREDITS.md
 // file：使う音、vol：音量、rate：再生速度（高さ）、range：聞こえる距離（m）、gap：同じ機体が同じ音を続けて鳴らす最短間隔（秒）、ui：距離に関係なく鳴らす
 const SFX = {
@@ -1092,48 +1092,34 @@ function applyAudioSettings() {
   }
   if (muted || !gameOptions.master || !gameOptions.sfx) stopMovementSounds();
 }
-// 自機の噴射音を一度だけ合成して共有する。音作りの乱数はゲーム用乱数から独立。
-function buildBoostSounds() {
+// 採用済みの巡航音を一度だけ合成して共有する。短い噴射は sounds.js の実音サンプルから読む。
+function buildBoostLoop() {
   const sr = audio.sampleRate, tau = Math.PI * 2;
   let seed = 0x6b8f214d;
   const noise = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2147483648 - 1; };
-  // 開始音のサンプル数・乱数の消費順を保ち、採用済みの巡航波形を維持する。
-  for (const sustained of [false, true]) {
-    const overlap = sustained ? Math.round(.08 * sr) : 0, length = Math.round((sustained ? 1.2 : .32) * sr);
-    const raw = new Float32Array(length + overlap);
-    let sub = 0, low = 0, body = 0, air = 0, gust = 0, flameDc = 0, flame1 = 0, flame2 = 0, flame3 = 0;
-    const subK = 1 - Math.exp(-tau * 45 / sr), lowK = 1 - Math.exp(-tau * 220 / sr);
-    const bodyK = 1 - Math.exp(-tau * 1000 / sr), airK = 1 - Math.exp(-tau * 4800 / sr), gustK = 1 - Math.exp(-tau * 8 / sr);
-    const flameHpK = 1 - Math.exp(-tau * 80 / sr), flameLpK = 1 - Math.exp(-tau * 400 / sr);
-    for (let i = 0; i < raw.length; i++) {
-      const t = i / sr, n = noise();
-      sub += subK * (n - sub); low += lowK * (n - low); body += bodyK * (n - body); air += airK * (n - air); gust += gustK * (n - gust);
-      // 音程・倍音・共鳴を付けず、圧力の低音と空気の乱流だけを重ねる。
-      if (sustained) {
-        const pressure = 2 * sub + 4 * (low - sub), exhaust = 1.2 * (body - low) + .45 * (air - body);
-        raw[i] = pressure * (1 + .5 * gust) + exhaust;
-      } else {
-        // 参考の火炎噴射のように低中域を厚くし、短い噴き上がりと余韻を作る。
-        flameDc += flameHpK * (n - flameDc);
-        flame1 += flameLpK * (n - flameDc - flame1);
-        flame2 += flameLpK * (flame1 - flame2); flame3 += flameLpK * (flame2 - flame3);
-        const rise = Math.min(1, t / .075), swell = rise * rise * (3 - 2 * rise);
-        const envelope = swell * Math.exp(-Math.max(0, t - .075) / .055);
-        raw[i] = (5 * flame3 + .025 * (air - body) * Math.exp(-t / .025)) * envelope;
-      }
-    }
-    const buf = audio.createBuffer(1, length, sr), dst = buf.getChannelData(0);
-    let mean = 0, peak = 0;
-    for (let i = 0; i < length; i++) {
-      const k = overlap ? Math.min(1, i / overlap) : 1;
-      dst[i] = i < overlap ? k * raw[i] + (1 - k) * raw[length + i] : raw[i];
-      mean += dst[i];
-    }
-    mean /= length;
-    for (let i = 0; i < length; i++) { dst[i] -= mean; peak = Math.max(peak, Math.abs(dst[i])); }
-    for (let i = 0; i < length; i++) dst[i] *= .85 / Math.max(.001, peak);
-    sfxBuf[sustained ? 'boostLoop' : 'boostStart'] = buf;
+  // 従来の開始音が消費した乱数を進め、採用済み巡航波形を完全に保つ。
+  for (let i = 0; i < Math.round(.32 * sr); i++) noise();
+  const overlap = Math.round(.08 * sr), length = Math.round(1.2 * sr), raw = new Float32Array(length + overlap);
+  let sub = 0, low = 0, body = 0, air = 0, gust = 0;
+  const subK = 1 - Math.exp(-tau * 45 / sr), lowK = 1 - Math.exp(-tau * 220 / sr);
+  const bodyK = 1 - Math.exp(-tau * 1000 / sr), airK = 1 - Math.exp(-tau * 4800 / sr), gustK = 1 - Math.exp(-tau * 8 / sr);
+  for (let i = 0; i < raw.length; i++) {
+    const n = noise();
+    sub += subK * (n - sub); low += lowK * (n - low); body += bodyK * (n - body); air += airK * (n - air); gust += gustK * (n - gust);
+    const pressure = 2 * sub + 4 * (low - sub), exhaust = 1.2 * (body - low) + .45 * (air - body);
+    raw[i] = pressure * (1 + .5 * gust) + exhaust;
   }
+  const buf = audio.createBuffer(1, length, sr), dst = buf.getChannelData(0);
+  let mean = 0, peak = 0;
+  for (let i = 0; i < length; i++) {
+    const k = Math.min(1, i / overlap);
+    dst[i] = i < overlap ? k * raw[i] + (1 - k) * raw[length + i] : raw[i];
+    mean += dst[i];
+  }
+  mean /= length;
+  for (let i = 0; i < length; i++) { dst[i] -= mean; peak = Math.max(peak, Math.abs(dst[i])); }
+  for (let i = 0; i < length; i++) dst[i] *= .85 / Math.max(.001, peak);
+  sfxBuf.boostLoop = buf;
 }
 // ブラウザは操作の後でないと音を出せないので、最初のクリックかキー入力で準備する
 function initAudio() {
@@ -1157,7 +1143,7 @@ function initAudio() {
   audio.effects.gain.value = muted ? 0 : gameOptions.sfx / 100;
   audio.music.gain.value = gameOptions.music / 100;
   audio.world.gain.value = units.length >= 100 ? .5 : 1;
-  buildBoostSounds();
+  buildBoostLoop();
   for (const [k, b64] of Object.entries(window.SOUND_DATA || {})) {
     const bin = atob(b64), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);

@@ -47,11 +47,14 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       const loop = g.sfxBuf.boostLoop, samples = loop.getChannelData(0), burst = g.sfxBuf.boostStart, attack = burst.getChannelData(0);
       for (const [label, buf] of [['短い噴射', burst], ['巡航', loop]]) {
         const data = buf.getChannelData(0), mean = data.reduce((s, v) => s + v, 0) / data.length;
-        yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < 1e-5, label + 'の合成音に非数・無音・クリップ・直流成分がない');
+        yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < (buf === burst ? .001 : 1e-5), label + 'の音声に非数・無音・クリップ・大きな直流成分がない');
+        if (buf === burst) {
+          yes(atob(window.SOUND_DATA.boostStart).startsWith('RIFF'), '短い噴射は動画から切り出したPCM音源を読み込む');
+          continue;
+        }
         let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
         for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
-        if (buf === burst) yes(body / full > .2 && body / full < .85, '短い噴射は参考の火炎音に合わせた低中域の厚みを持つ');
-        else yes(body / full > .05 && body / full < .75, '巡航に低域の空気圧と広い帯域の噴流がある');
+        yes(body / full > .05 && body / full < .75, '巡航に低域の空気圧と広い帯域の噴流がある');
         const periodicity = [50, 60, 80, 100, 120].map(hz => {
           const lag = Math.round(buf.sampleRate / hz); let dot = 0, a = 0, b = 0;
           for (let i = lag; i < data.length; i++) { dot += data[i] * data[i - lag]; a += data[i] ** 2; b += data[i - lag] ** 2; }
@@ -60,7 +63,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         yes(Math.max(...periodicity) < .25, label + 'に音程のある低音や倍音の強い周期振動が残らない');
       }
       const rms = (data, a, b) => Math.sqrt(data.slice(a, b).reduce((s, v) => s + v * v, 0) / (b - a));
-      yes(rms(attack, .04 * burst.sampleRate, .12 * burst.sampleRate) > 2 * rms(attack, .18 * burst.sampleRate, .23 * burst.sampleRate), '短い噴射は噴き上がる山を作り、後半へ減衰する');
+      yes(rms(attack, .02 * burst.sampleRate, .10 * burst.sampleRate) > 2 * rms(attack, .22 * burst.sampleRate, .24 * burst.sampleRate), '短い噴射は実音の立ち上がりを保ち、末尾へフェードする');
       let delta = 0; for (let i = 1; i < samples.length; i++) delta += (samples[i] - samples[i - 1]) ** 2;
       yes(loop.duration >= 1 && Math.abs(samples[0] - samples.at(-1)) < 4 * Math.sqrt(delta / (samples.length - 1)), '巡航は長い共有ループを使い、継ぎ目の跳びをノイズの通常変動内に収める');
       for (const dt of [1 / 30, 1 / 60, 1 / 120]) {
@@ -89,7 +92,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       reset(); u.jumpBuf = .2; g.land(u, 36); yes(starts.length === 1 && !u.stun, '着地硬直を消す入力でも接地音は鳴る');
       reset(); const ok = g.shortDash(u, new T.Vector3(0, 0, -1));
       yes(ok && starts.length === 1 && starts[0].name === 'dash', '受理されたショートダッシュの踏み込みで発音');
-      yes(starts[0].node.buffer === burst, 'クイックブーストは専用の低音付き噴射バッファを使う');
+      yes(starts[0].node.buffer === burst, 'クイックブーストは切り出した実音のバッファを使う');
       g.shortDash(u, new T.Vector3(0, 0, -1)); yes(starts.length === 1, '失敗した連続ダッシュでは発音しない');
       reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02);
       const first = u.boostVoice;
