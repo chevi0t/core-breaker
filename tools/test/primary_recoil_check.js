@@ -1,4 +1,4 @@
-// 主武器の反動・弾道・腕部・回復を維持し、視点への二重加算やロックの自動補償を防ぐ。
+// 高レート時の反動軽減と、主武器の基準値・弾道・腕部・回復、視点への二重加算を確認する。
 // node tools/test/primary_recoil_check.js dbg/recoil-after dbg/recoil-before media/primary-recoil
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
@@ -52,6 +52,20 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
         arms.push({ arm, absorb: u.recoilAbsorb, v: u.recoil, h: u.recoilYaw });
         check(close(u.recoil * u.recoilAbsorb, w.recoil) && close(u.recoilYaw * u.recoilAbsorb, w.recoilH * .5), arm + '腕は縦横の反動吸収を同じ倍率で適用');
       }
+      for (const arm of ['light', 'standard', 'heavy']) for (const [rpm, factor] of [[300, 1], [600, 1], [900, 2/3], [1200, .5], [1500, .4], [3000, .2]]) {
+        reset('gatling'); u.mech.arms = arm; g.equip(u, 'heavy');
+        const w = { ...g.WEAPONS.gatling, rpm }; g.recoilKick(u, w);
+        check(close(u.recoil * u.recoilAbsorb, w.recoil * factor) && close(u.recoilYaw * u.recoilAbsorb, w.recoilH * .5 * factor), `${arm}腕/${rpm}発：1発の縦横反動が${factor}倍`);
+      }
+      for (const variant of [{ semi: true }, { chargeTime: 1 }, { type: 'cannon' }]) {
+        reset(); const w = { ...g.WEAPONS.haggard, rpm: 1500, ...variant }; g.recoilKick(u, w);
+        check(close(u.recoil * u.recoilAbsorb, w.recoil) && close(u.recoilYaw * u.recoilAbsorb, w.recoilH * .5), '単発・充填・重砲はレートで反動を軽減しない ' + JSON.stringify(variant));
+      }
+      reset(); u.isPlayer = false; g.recoilKick(u, g.WEAPONS.gatling);
+      const botKick = [u.recoil, u.recoilYaw]; reset(); g.recoilKick(u, g.WEAPONS.gatling);
+      check(close(u.recoil, botKick[0]) && close(u.recoilYaw, botKick[1]), 'プレイヤーとBotに同じレート補正を適用');
+      const nums = g.itemNums('main', 'gatling');
+      check(close(nums.find(n => n[0] === '縦反動')[1], .12) && close(nums.find(n => n[0] === '横反動')[1], .6), 'カスタマイズはガトリングの補正後の縦0.12°・横±0.60°を表示');
       reset(); g.recoilKick(u, g.WEAPONS.haggard); const start = u.recoil;
       g.recoilRecover(u, .099); check(close(u.recoil, start), '撃った直後の0.1秒は反動を保持');
       g.recoilRecover(u, .151); check(close(u.recoil, start - .06 * .15), '保持時間をまたぐフレームでも回復の時間を正しく数える');
@@ -78,7 +92,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       const burst = g.fx.slice(begin).filter(f => f.kind === 'tracer');
       check(burst.length >= 2, '低いfpsの1フレームでガトリングを複数発射');
       const pitches = burst.map(f => { const d = f.end.clone().sub(f.from); return Math.atan2(d.y, Math.hypot(d.x, d.z)); });
-      check(pitches[1] > pitches[0] + .003, '同じフレームの2発目にも増えた反動を反映');
+      check(pitches[1] > pitches[0] + .001, '同じフレームの2発目にも軽減後の反動を反映');
       reset('gatling'); u.slots.main.w = { ...u.slots.main.w, spread: 0 }; u.recoil = .04; u.recoilYaw = .02; g.updateCamera(u, .016);
       const aim = g.camera.position.clone().addScaledVector(g.camera.getWorldDirection(new g.T.Vector3()), 300);
       const n = g.fx.length; g.shot(u, u.slots.main, aim, 0);
@@ -98,14 +112,18 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
         const sample = await q.evaluate(({ key, seconds, pause }) => {
           const g = __g, u = g.player, cls = Object.keys(g.ARMORY).find(c => g.ARMORY[c].main.includes(key));
           Object.assign(u.mech, g.MECH_DEFAULT); u.isPlayer = true; g.equip(u, cls); u.slots.main = g.slotOf(key);
+          u.slots.main.w = { ...u.slots.main.w, spread: 0 }; // 武器固有の散布と分け、反動による実射線の変化を比べる。
           Object.assign(u, { isPlayer: false, alive: true, weapon: 'main', switchT: 0, stun: '', repairing: false, transfer: null, onGround: true, yaw: 0, pitch: 0, recoil: 0, recoilYaw: 0 });
           u.pos.set(0, 120, 0); u.group.position.copy(u.pos); u.group.visible = true; u.vel.set(0, 0, 0);
           const random = Math.random; let seed = 7169; Math.random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
           const points = [], timeline = [], aim = new g.T.Vector3(0, 122.6, -100), dt = .01;
+          g.updateCamera(u, 1); let cameraTurn = 0;
           for (let i = 0; i < seconds / dt; i++) {
             g.weaponLook(u, dt); g.scene.updateMatrixWorld(true);
             const n = g.fx.length, trigger = !pause || i % 100 < 1;
             g.weaponsTick(u, dt, trigger, aim, 0);
+            const previous = g.camera.quaternion.clone(); g.updateCamera(u, dt);
+            cameraTurn = Math.max(cameraTurn, previous.angleTo(g.camera.quaternion));
             for (const f of g.fx.slice(n)) if (f.kind === 'tracer') {
               const d = f.end.clone().sub(f.from), t = (-100 - f.from.z) / d.z, hit = f.from.clone().addScaledVector(d, t);
               points.push({ time: i * dt, x: hit.x, y: hit.y - 122.6 });
@@ -114,31 +132,36 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
             g.fxUpdate(dt);
           }
           Math.random = random;
-          return { key, seconds, pause, points, timeline, maxVertical: Math.max(...timeline.map(v => v.v)), horizontalRange: Math.max(...points.map(v => v.x)) - Math.min(...points.map(v => v.x)) };
+          return { key, seconds, pause, points, timeline, cameraTurn, maxVertical: Math.max(...timeline.map(v => v.v)), horizontalRange: Math.max(...points.map(v => v.x)) - Math.min(...points.map(v => v.x)) };
         }, { key, seconds, pause });
         rows.push({ version, ...sample });
       }
       await q.close(); return rows;
     }
     const plots = [...await samples(before, 'before'), ...await samples(after, 'after')];
+    fs.writeFileSync(path.join(out, 'shots.json'), JSON.stringify({ seed: 7169, distance: 100, spread: 0, plots }, null, 2) + '\n');
     const a = (key, pause, version) => plots.find(s => s.key === key && s.pause === pause && s.version === version);
     assert.deepEqual(a('haggard',false,'after').timeline,a('haggard',false,'before').timeline,'マグナムの反動蓄積・回復を維持');
-    assert.deepEqual(a('gatling',false,'after').points,a('gatling',false,'before').points,'Botのガトリング実射の縦横分布を維持');
+    for (const key of ['gatling', 'ar']) {
+      const prior = a(key, false, 'before'), now = a(key, false, 'after');
+      yes(now.points.length === prior.points.length, key + 'の実際の発射数と連射速度を維持');
+      yes(now.maxVertical < prior.maxVertical * .8 && now.horizontalRange < prior.horizontalRange * .8, key + 'の3秒実射で反動による縦横の散りを軽減');
+      yes(now.cameraTurn < prior.cameraTurn * .8, key + 'の射撃による1フレームの視点の跳ねを軽減');
+    }
     yes(a('haggard', false, 'after').maxVertical > a('haggard', true, 'after').maxVertical, '間をあけたマグナム射撃で蓄積を抑えられる');
-    fs.writeFileSync(path.join(out, 'shots.json'), JSON.stringify({ seed: 7169, distance: 100, plots }, null, 2) + '\n');
     await p.bringToFront();
     await p.evaluate(() => { document.exitPointerLock?.(); __g.renderCustom(); __g.showPage('pgCustom'); document.getElementById('overlay').hidden = false; });
     await p.waitForFunction(() => !document.pointerLockElement);
-    await p.locator('[data-cu="support"]').click(); await p.locator('[data-cslot="main"]').click();
+    await p.locator('[data-cu="heavy"]').click(); await p.locator('[data-cslot="main"]').click();
     // 系統キーはカタログから探す。
-    const series = data.weapons.haggard.series, row = p.locator(`[data-series="${series}"]`);
+    const series = data.weapons.gatling.series, row = p.locator(`[data-series="${series}"]`);
     if (await row.getAttribute('aria-expanded') !== 'true') await row.click();
-    await p.locator('[data-pick="haggardH"]').hover();
-    yes((await p.locator('#cuDiff').textContent()).includes('縦反動') && (await p.locator('#cuDiff').textContent()).includes('横反動'), 'カスタマイズで縦横反動を比較できる');
+    await p.locator('[data-pick="gatlingH"]').hover();
+    const comparison = await p.locator('#cuDiff').textContent();
+    yes(comparison.includes('縦反動') && comparison.includes('横反動') && comparison.includes('0.12°') && comparison.includes('0.60°'), 'カスタマイズで軽減後の縦横反動を比較できる');
     await p.screenshot({ path: path.join(out, 'customization.png') });
     yes(errors.length === 0, 'ブラウザエラーなし');
     fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, functional, errors }, null, 2) + '\n');
-    fs.writeFileSync(path.join(out, 'shots.json'), JSON.stringify({ seed: 7169, distance: 100, plots }, null, 2) + '\n');
     console.log(`主武器反動：${checks.length}項目、実射の比較${plots.length}ケース、成功。ブラウザエラー0`);
   } finally { await b.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });

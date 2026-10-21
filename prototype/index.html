@@ -6953,6 +6953,8 @@ function botRecoilReady(u, aim) {
   return u.recoil <= margin && Math.abs(u.recoilYaw || 0) <= margin;
 }
 function baseKick(w) { return w.recoil ?? (w.type === 'cannon' ? 0.02 : w.proj ? (w.proj.rocket ? 0.014 : 0) : w.scope ? 0.018 : w.pellets ? 0.014 : w.dual ? 0.006 : w.spin ? 0.002 : 0.004); }
+// 高速連射は1発の縦横反動を抑える。600発/分以下・単発・充填撃ちは元の跳ねを保つ（本作調整）。
+function recoilRateScale(w) { return w.type === 'gun' && !w.semi && !w.chargeTime && w.rpm > 600 ? 600 / w.rpm : 1; }
 function recoilRecover(u, dt) {
   const wait = u.recoilWait || 0, recoverDt = Math.max(0, dt - wait), step = (u.recoilRecovery || .04) * recoverDt;
   u.recoilWait = Math.max(0, wait - dt);
@@ -6961,7 +6963,7 @@ function recoilRecover(u, dt) {
   u.recoilYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - step);
 }
 function recoilKick(u, w) {
-  const kick = baseKick(w), sideways = w.recoilH || 0, absorb = u.recoilAbsorb || 1;
+  const scale = recoilRateScale(w), kick = baseKick(w) * scale, sideways = (w.recoilH || 0) * scale, absorb = u.recoilAbsorb || 1;
   if (!kick && !sideways) return;
   const cap = (w.recoilH !== undefined ? .24 : .08) / absorb;
   // 持ち替えた直後も、残っている大きな反動を小さい上限へ瞬間的に切り詰めない。
@@ -8747,7 +8749,7 @@ function itemNums(sl, key) {
     r.push(['重量', x.weight, u('kg'), false]);
     return r;
   }
-  const P = x.proj || {}, dmg = x.dmg ?? P.dmg ?? (x.normal && x.normal.dmg) ?? (P.gun && P.gun.dmg);
+  const P = x.proj || {}, recoilScale = recoilRateScale(x), dmg = x.dmg ?? P.dmg ?? (x.normal && x.normal.dmg) ?? (P.gun && P.gun.dmg);
   if (x.missile) r.push(['捕捉時間',x.missile.time,u('秒'),false],['最大捕捉',x.missile.locks,n0,true],['旋回率（暫定）',P.turn,u('rad/s'),true],['弾速',P.maxSpeed,u('m/s'),true]);
   if (dmg) r.push(['威力', dmg * (x.pellets || (P.gun && P.gun.pellets) || 1) * (x.dual ? 2 : 1), n0, true]);
   if(P.jamSeconds||P.stunSeconds)r.push(['効果時間',P.jamSeconds||P.stunSeconds,u('秒'),true],['起爆時間',P.fuse,u('秒'),false]);
@@ -8764,8 +8766,8 @@ function itemNums(sl, key) {
   if (x.type === 'cannon') r.push(['発数', x.shots, n0, true]);
   if (x.type === 'gun' && !x.drone && x.rpm > 60) r.push(['連射', x.rpm, u('発/分'), true]);
   if (x.type === 'gun' && !x.proj && !x.drone) r.push(['弾のばらつき', x.spread * 57.3, v => v.toFixed(2) + '°', false]);
-  if (x.recoilH !== undefined) r.push(['縦反動', baseKick(x) * 180 / Math.PI, v => v.toFixed(2) + '°', false], ['横反動', x.recoilH * 180 / Math.PI, v => '±' + v.toFixed(2) + '°', false]);
-  else if (x.type === 'gun' && !x.proj && !x.drone) r.push(['反動', baseKick(x) * 57.3, v => v.toFixed(2) + '°', false]);
+  if (x.recoilH !== undefined) r.push(['縦反動', baseKick(x) * recoilScale * 180 / Math.PI, v => v.toFixed(2) + '°', false], ['横反動', x.recoilH * recoilScale * 180 / Math.PI, v => '±' + v.toFixed(2) + '°', false]);
+  else if (x.type === 'gun' && !x.proj && !x.drone) r.push(['反動', baseKick(x) * recoilScale * 57.3, v => v.toFixed(2) + '°', false]);
   if (P.heatDps) r.push(['熱の毎秒威力',P.heatDps,n0,true],['熱の持続',P.heatDur,u('秒'),true]);
   if (P.chainCount) r.push(['連鎖回数',P.chainCount,n0,true],['連鎖の間隔',P.chainGap,u('秒'),false]);
   if (P.jumpDelay) r.push(['上昇時間',P.jumpDelay,u('秒'),false]);
