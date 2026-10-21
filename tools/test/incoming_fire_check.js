@@ -29,23 +29,27 @@ const after = path.resolve(process.argv[2] || 'dbg'), before = path.resolve(proc
       function enemy(u, x, z) { g.equip(u, 'assault'); u.slots.main = g.slotOf('ar'); Object.assign(u, { alive: true, target: p, locked: true, weapon: 'main', switchT: 0, recoil: 0, recoilYaw: 0, invulT: 0, stun: '', repairing: false, transfer: null }); u.pos.set(x, 200, z); u.group.position.copy(u.pos); }
       enemy(e, 0, -40); enemy(other, 40, 0);
       g.lockWarning(p, .016);
-      ok(!$('lockAlert').hidden && !$('lockDirections').classList.contains('firing'), 'ロック中だけなら橙の警告');
-      ok(!$('lockDirections').textContent.trim() && !/[前後左右]/.test($('lockAlertInfo').textContent), '方向を示す文字を画面に出さない');
-      ok($('lockDirections').getBoundingClientRect().width <= 144, '円環を144px以下へ縮小');
+      ok(!$('lockDirections').hidden && !$('lockDirections').classList.contains('firing'), 'ロック中だけなら橙の警告');
+      ok(!$('lockDirections').textContent.trim() && !$('lockAlert') && !$('lockAlertInfo'), '方向の文字・上部の警告文・機数を画面に出さない');
+      const orbit = $('lockDirections').getBoundingClientRect().width, aimRadius = (+$('aimGauge').getAttribute('width') - 8) / 2;
+      ok(Math.abs(orbit / 2 / aimRadius - 1.5) < .01, '三角の配置半径を照準外周の1.5倍にする');
       const aim = new g.T.Vector3(0, 202, -150);
       e.slots.main.reloadT = 1; g.weaponsTick(e, .01, true, aim, 0); g.lockWarning(p, .016);
       ok(!g.incomingShots.size, 'トリガーを押していても再装填中には被発砲にしない');
       e.slots.main.reloadT = 0; e.slots.main.cd = 0; g.weaponsTick(e, .01, true, aim, 0); g.lockWarning(p, .016);
-      ok($('lockDir0').classList.contains('firing') && !$('lockDir2').classList.contains('firing') && $('lockAlert').firstElementChild.textContent === '被発砲', '実射した方向だけ赤、別方向のロックは橙');
-      ok($('lockDirections').classList.contains('firing'), '発砲中だけ円環を拡大');
+      ok($('lockDir0').classList.contains('firing') && !$('lockDir2').classList.contains('firing'), '実射した方向だけ赤、別方向のロックは橙');
+      const fired = getComputedStyle($('lockDir0').firstElementChild), idle = getComputedStyle($('lockDir2').firstElementChild);
+      ok(parseFloat(fired.borderBottomWidth) > parseFloat(idle.borderBottomWidth) && parseFloat(fired.borderLeftWidth) > parseFloat(idle.borderLeftWidth), 'ロック中の三角を発砲時より一回り小さくする');
+      ok([idle, fired].every(s => +s.opacity > 0 && +s.opacity < 1 && parseFloat(s.borderLeftWidth) * 2 < parseFloat(s.borderBottomWidth)), '両方の三角を細め・半透明にする');
+      ok($('lockDirections').getBoundingClientRect().width === orbit, '発砲しても他方向のロック表示の配置半径を動かさない');
       g.lockWarning(p, .3); g.lockWarning(p, .016);
       ok(!$('lockDirections').classList.contains('firing'), '発砲の強調は短時間でロック表示へ戻る');
       e.locked = false; other.alive = false; g.shot(e, e.slots.main, aim, 0); g.lockWarning(p, .016);
-      ok($('lockAlert').hidden && !g.incomingShots.size, 'ロックなしの実射では警告を出さない');
+      ok($('lockDirections').hidden && !g.incomingShots.size, 'ロックなしの実射では警告を出さない');
       e.locked = true; g.equip(e, 'raid'); e.slots.sub = g.slotOf('sniper'); e.weapon = 'sub'; g.shot(e, e.slots.sub, aim, 0); g.lockWarning(p, .016);
-      ok($('lockAlert').hidden && !g.incomingShots.size, '狙撃銃は古いロック状態が残っていても無警告');
+      ok($('lockDirections').hidden && !g.incomingShots.size, '狙撃銃は古いロック状態が残っていても無警告');
       enemy(e, 0, -40); p.cloak = true; g.shot(e, e.slots.main, aim, 0); g.lockWarning(p, .016);
-      ok($('lockAlert').hidden, '光学迷彩中の自機には警告を出さない'); p.cloak = false;
+      ok($('lockDirections').hidden, '光学迷彩中の自機には警告を出さない'); p.cloak = false;
       e.alive = false;
       const tu = g.turrets.find(t => t.team !== p.team);
       Object.assign(tu, { alive: true, hp: tu.maxHp || 1e4, target: p, locked: true, think: 10, fireCd: 0, shots: 3, yaw: Math.PI });
@@ -62,8 +66,15 @@ const after = path.resolve(process.argv[2] || 'dbg'), before = path.resolve(proc
     for (const size of [{ width: 1280, height: 720 }, { width: 640, height: 480 }]) {
       await p.setViewportSize(size);
       for (const mode of ['standard', 'arcade', 'flight', 'mechanical']) {
-        const bounds = await p.evaluate(mode => { document.querySelector(`[data-console-choice="${mode}"]`).click(); __g.hud(240, .016); const r = document.getElementById('lockDirections').getBoundingClientRect(); return { w: r.width, left: r.left, top: r.top, right: r.right, bottom: r.bottom, text: document.getElementById('lockDirections').textContent }; }, mode);
-        yes(bounds.w <= 145 && bounds.left >= 0 && bounds.top >= 0 && bounds.right <= size.width && bounds.bottom <= size.height && !bounds.text.trim(), `${mode} ${size.width}pxで小さい円環と文字なしを維持`);
+        const bounds = await p.evaluate(mode => {
+          document.querySelector(`[data-console-choice="${mode}"]`).click(); __g.hud(240, .016);
+          const $ = id => document.getElementById(id), r = $('lockDirections').getBoundingClientRect();
+          const aimRadius = mode === 'mechanical' ? +$('mech-sp-bg').getAttribute('d').match(/A ([\d.]+)/)[1] : (+$('aimGauge').getAttribute('width') - 8) / 2;
+          const cx = innerWidth / 2, cy = innerHeight / 2;
+          const outside = [...document.querySelectorAll('.lockSector:not([hidden]) i')].every(el => { const b = el.getBoundingClientRect(); return Math.hypot(Math.max(b.left - cx, 0, cx - b.right), Math.max(b.top - cy, 0, cy - b.bottom)) > aimRadius; });
+          return { ratio: r.width / 2 / aimRadius, outside, left: r.left, top: r.top, right: r.right, bottom: r.bottom, text: $('lockDirections').textContent, header: !!$('lockAlert') };
+        }, mode);
+        yes(Math.abs(bounds.ratio - 1.5) < .01 && bounds.outside && bounds.left >= 0 && bounds.top >= 0 && bounds.right <= size.width && bounds.bottom <= size.height && !bounds.text.trim() && !bounds.header, `${mode} ${size.width}pxで配置半径1.5倍・照準外側・文字なしを維持`);
         if (size.width === 1280 && mode === 'standard') {
           await p.screenshot({ path: path.join(out, 'locked.png') });
           await p.evaluate(() => { const g = __g; g.shot(warningActors.e, warningActors.e.slots.main, new g.T.Vector3(0, 202, -100), 0); g.lockWarning(g.player, .016); });
