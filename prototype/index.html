@@ -922,7 +922,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動。倒れて行動不能の味方は約3秒当てると蘇生）。ゲージを使い切ると満タンに戻るまで使えません</span>
         <kbd>R</kbd><span>選んでいる武器のリロード</span>
         <kbd>光波剣</kbd><span>左長押しで1.2秒充填し、離すと斬撃。満充填なら振りに合わせて威力2000の光波を1発放ちます。短押しは斬撃のみ。直接斬る威力は通常3000・ダッシュ6000。持ち替え・被弾硬直・エリア移動で充填を取り消します</span>
-        <kbd>追加補助装備</kbd><span>連撃細剣・双短刀・双爪は一度押すと各段の連撃。蓄圧杭は左長押しで二段階充填、離す瞬間にダッシュすると強打。電子妨害弾は敵の視界・敵名・ロックと他者への修理を妨害し、電撃弾は敵を硬直させます。浮遊自動銃は投げた空中で停滞、巡航自動銃は前進しながら下方を攻撃。索敵カーテンは設置時の真横の面を通る敵を検出します。展開式レーダーは選ぶと静止して索敵し、持ち替えで解除。補給コンテナは接地後に敵味方・自機が拾え、主副武器を全補給します（補助・SPは対象外）</span>
+        <kbd>追加補助装備</kbd><span>日本刀・双短刀・双爪は一度押すと各段の連撃。蓄圧杭は左長押しで二段階充填、離す瞬間にダッシュすると強打。電子妨害弾は敵の視界・敵名・ロックと他者への修理を妨害し、電撃弾は敵を硬直させます。浮遊自動銃は投げた空中で停滞、巡航自動銃は前進しながら下方を攻撃。索敵カーテンは設置時の真横の面を通る敵を検出します。展開式レーダーは選ぶと静止して索敵し、持ち替えで解除。補給コンテナは接地後に敵味方・自機が拾え、主副武器を全補給します（補助・SPは対象外）</span>
         <kbd>追加副武器</kbd><span>二段ズーム狙撃銃は右クリックで低倍率→高倍率→通常視点。蓄圧砲は左長押しで半充填・満充填、離して発射（保持しすぎると過熱）。熱球は炸裂後に一定時間残り、連鎖ボムは接地後に前方へ連続爆発します。跳躍地雷は敵を感知して上昇後に起爆。衝撃吸着地雷は壁にも設置でき、感知から1秒後に炸裂。遠隔ボムランチャーは射出した爆弾の吸着準備が済んだ後、右クリックで一括起爆します</span>
         <kbd>榴弾砲</kbd><span>重火力の特別装備で選ぶと、移動・旋回を止めて射撃モードへ。マウスで拡大マップの照準を動かし、左クリックで爆撃中心を指定するとSPが尽きるまで連射します。射程は緑の円、着弾誤差は黄色の円。射撃前・射撃中とも右クリックで中断して直前の武器へ戻れます。中断でSPを残すと再充填が早まります。着弾2秒前に火柱と落下音で予告します</span>
         <kbd>追加の特別装備</kbd><span>重火力の防護バリアと遊撃の背部自動銃は、選ぶと起動し、再選択で停止します。手持ち武器と同時に使えます。支援のリペアビーコンは左クリックで投げて地面に設置し、範囲内の味方を回復・蘇生します。特別装備を再選択し、持ち替えが終わると回収します。各3種類を機体カスタマイズで選べます</span>
@@ -3799,6 +3799,7 @@ function mechPose(u, dt) {
     if (MODEL_OF[cur.key]?.[0] === 'sabre') {
       // 柄尻を左手で支える両手持ち。右手の柄と同じ回転に追従する。
       poseHands[0].set(0,0,.38).applyQuaternion(u.blade.quaternion).add(poseHands[1]);
+      poseHands[0].lerp(posePoint(poseFoot,-.85,2.35,-.5),u.meleePose.oneHand||0);
     }
   }
   if (u.zip) posePoint(poseHands[0], -.3, ZIP_HAND - .05, -.1); // ジップラインの綱を左手で掴む
@@ -4110,6 +4111,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.slideT > 0) { u.slideT -= dt; if (!u.dashState) accel = Math.min(accel, SLIDE_DECEL); }
   // よろけ・ダウンで押された勢いは、地上ではすぐ、空中ではほとんど落ちない
   if (u.stun) accel = u.stun === 'land' ? 10 : u.onGround ? (u.stun === 'stagger' ? 4 : 6) : u.stun === 'stagger' ? 1 : 0.3;
+  if(u.swing?.hopped)grav=GRAV; // 日本刀の小跳躍。通常重力で約1.2m、再加速や滞空を足さない。
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
   const hover = !u.dashState && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover) u.dashState = 'hover';
@@ -5618,19 +5620,30 @@ function ammoBoxTick(g,dt){
 // ---- 兵装と武器 ----
 // 既存武器はPS4版の初期武器を基準にした値を保持。新しい系統はアーケード版wikiの現行表に合わせる。
 // rpm：毎分の発射数、mag：1マガジンの弾数、mags：マガジン数、reload：秒、spread：ばらつき、look：銃身の見た目の拡大率、sfx：発射音（SFX の名前）
-// AC追加近接：hits は各段の実威力。間合い・動作秒は本作の再現値（採用記録参照）。
-function auxiliaryMelee(hits, profile, strong=false) {
-  // ユーザー指定 2026-10-22：ダッシュ技は系統ごとに別の殺陣。総威力と間合いは従来値。
+// AC追加近接：hits は原典の各段威力。専用ダッシュの追加・再配分は今回の指定（採用記録参照）。
+function auxiliaryMelee(hits, profile, strong=false, rank=0) {
+  // ユーザー指定 2026-10-22：日本刀は跳躍4段、爪は長いレーザーの左右袈裟、短刀は3段。
   const dmg=hits.reduce((n,x)=>n+x,0);
   if(strong) {
     let strikes,windup,sweep,recover;
     if(profile==='sabre') {
-      windup=.14;sweep=.24;recover=.28;
-      strikes=hits.map(dmg=>({dmg,at:0,from:-72,to:68,sweep,hand:1}));
+      // 日本刀：袈裟→逆袈裟→横薙ぎ→小跳躍から片手の面打ち。最後は旧ダッシュの全威力。
+      windup=.14;sweep=1.47;recover=.45;
+      const cuts=rank===0?[2500,2500,2500]:rank===1?[3000,3500,3500]:[3500,3500,4000];
+      strikes=[
+        {dmg:cuts[0],at:0,sweep:.22,from:-55,to:55,pitchFrom:48,pitchTo:-32,gripFrom:[.4,2.9,-.55],gripTo:[-.3,2.25,-.65],motion:'kesa'},
+        {dmg:cuts[1],at:.31,sweep:.22,from:55,to:-55,pitchFrom:-32,pitchTo:48,gripFrom:[-.3,2.25,-.65],gripTo:[.4,2.9,-.55],motion:'reverse'},
+        {dmg:cuts[2],at:.62,sweep:.24,from:-75,to:75,pitchFrom:0,pitchTo:0,gripFrom:[.35,2.4,-.65],gripTo:[-.35,2.4,-.65],motion:'horizontal'},
+        {dmg,at:1.09,sweep:.38,from:0,to:0,pitchFrom:78,pitchTo:-62,gripFrom:[.35,3.45,-.15],gripTo:[.25,2.2,-.7],motion:'men',single:true}
+      ].map(s=>({...s,hand:1}));
     } else if(profile==='claw') {
-      windup=.18;sweep=.26;recover=.32;
-      // 両爪を開いて前方へ交差させる一撃。従来の各判定を同時に束ねる。
-      strikes=hits.map((dmg,i)=>({dmg,at:0,side:(i%2?1:-1)*.35,hand:i%2?1:-1,from:i%2?-78:78,to:i%2?38:-38,sweep}));
+      windup=.14+rank*.03;const cut=.22+rank*.04,gap=.12+rank*.04;
+      sweep=cut*2+gap;recover=.32+rank*.11;
+      const span=58+rank*8;
+      strikes=[
+        {dmg:dmg/2,at:0,sweep:cut,hand:1,from:-span,to:span,pitchFrom:48,pitchTo:-32,gripFrom:[.9,2.9,-.45],gripTo:[.35,2.25,-.75],motion:'right-kesa'},
+        {dmg:dmg/2,at:cut+gap,sweep:cut,hand:-1,from:span,to:-span,pitchFrom:48,pitchTo:-32,gripFrom:[-.9,2.9,-.45],gripTo:[-.35,2.25,-.75],motion:'left-kesa'}
+      ];
     } else if(profile==='rod') {
       windup=.1;sweep=.68;recover=.28;
       // 右手→両手→両手の回転。総威力を1:1:2に分け、左右同時命中は合算。
@@ -5640,8 +5653,10 @@ function auxiliaryMelee(hits, profile, strong=false) {
         ...[1,-1].map(hand=>({dmg:dmg*.25,at:.43,hand,side:hand*.35,from:70,to:430,sweep:.25,motion:'spin'}))
       ];
     }
-    if(strikes)return {dmg,reach:profile==='claw'?3.5:profile==='rod'?4:4.6,height:2.4,from:strikes[0].from,to:strikes[0].to,
-      windup,sweep,recover,time:windup+sweep+recover,step:2.5,homing:5,lunge:5,dashMotion:profile,dashName:profile==='sabre'?'刀風の斬り抜き':profile==='claw'?'虎の一撃':'右薙ぎ→両手左薙ぎ→回転',strikes};
+    if(strikes)return {dmg:strikes.reduce((n,s)=>n+s.dmg,0),reach:profile==='claw'?5.6+rank*.9:profile==='rod'?4:4.6,height:2.4,from:strikes[0].from,to:strikes[0].to,
+      windup,sweep,recover,time:windup+sweep+recover,step:2.5,homing:5,lunge:5,dashMotion:profile,
+      ...(profile==='sabre'?{hop:{at:windup+.9,speed:9}}:{}),
+      dashName:profile==='sabre'?'袈裟→逆袈裟→横薙ぎ→跳躍面打ち':profile==='claw'?'レーザー刃の右袈裟→左袈裟':'右薙ぎ→両手左薙ぎ→回転',strikes};
   }
   const pair = profile==='rod' && !strong || profile==='claw';
   const strikes=hits.map((dmg,i)=>({dmg,at:pair?Math.floor(i/2)*.22:i*.22,side:pair?(i%2?1:-1)*.35:0,from:i%2?-65:65,to:i%2?65:-65,sweep:.16}));
@@ -5660,11 +5675,11 @@ const WEAPONS = {
     strong: { dmg: 6000, reach: 4.8, height: 2, from: 90, to: -630, spin: true, lunge: 16, windup: 0, sweep: .6, recover: 1, time: 1.6, homing: 1.8 },
     desc: '左長押しで充填し、離すと斬る。満充填なら振りに合わせて光波を1発放つ。短押しは斬撃のみ。直接威力は通常3000・ダッシュ6000' },
   // AC リヒトメッサー系統 pages/346：{"kg": 180, "normalHits": [2000, 3500], "strongHits": [4500]}。原典と再現値の区別は auxiliary.json。
-  sabre: {"name":"連撃細剣","type":"sword","acMelee":"sabre","normal":auxiliaryMelee([2000, 3500],"sabre"),"strong":auxiliaryMelee([4500],"sabre",true),"desc":"一度の入力で素早い連続斬撃。ダッシュ中は両手で斬り抜く刀風の踏み込み斬り"},
+  sabre: {"name":"日本刀","type":"sword","acMelee":"sabre","normal":auxiliaryMelee([2000, 3500],"sabre"),"strong":auxiliaryMelee([4500],"sabre",true),"desc":"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"},
   // AC スパークロッド系統 pages/411：{"kg": 190, "normalHits": [2500, 2500], "strongHits": [4500, 3500]}。原典と再現値の区別は auxiliary.json。
   rod: {"name":"双短刀","type":"sword","acMelee":"rod","normal":auxiliaryMelee([2500, 2500],"rod"),"strong":auxiliaryMelee([4500, 3500],"rod",true),"desc":"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃","meleeDual":true},
   // AC ダブルクロー系統 pages/568：{"kg": 200, "normalHits": [2500, 2500], "strongHits": [3000, 3000]}。原典と再現値の区別は auxiliary.json。
-  claw: {"name":"双爪ガントレット","type":"sword","acMelee":"claw","normal":auxiliaryMelee([2500, 2500],"claw"),"strong":auxiliaryMelee([3000, 3000],"claw",true),"desc":"左右の爪で近距離を連撃。ダッシュ中は巨大な両爪で前方を薙ぐ虎の一撃","meleeDual":true},
+  claw: {"name":"双爪ガントレット","type":"sword","acMelee":"claw","normal":auxiliaryMelee([2500, 2500],"claw"),"strong":auxiliaryMelee([3000, 3000],"claw",true),"desc":"左右の爪で近距離を連撃。ダッシュ中は伸びるレーザー刃で右袈裟→左袈裟の二段攻撃。上位型ほどリーチ・薙ぐ幅・隙が大きい","meleeDual":true},
   // AC パイク系統 pages/362：{"kg": 210, "normalLevels": [4500, 6750, 9000], "strongLevels": [6000, 9000, 12000], "chargeTime": 2}。原典と再現値の区別は auxiliary.json。
   pike: {"name":"蓄圧杭","type":"sword","acMelee":"pike","meleeCharge":true,"chargeTime":2,"chargeHold":8,"ohTime":2,"normalLevels":[4500,6750,9000],"strongLevels":[6000,9000,12000],"normal":{"dmg":4500,"reach":2.9,"height":2.4,"to":-7,"from":7,"windup":0.15,"sweep":0.12,"time":0.72,"step":1.2,"homing":4},"strong":{"dmg":6000,"reach":2.9,"height":2.4,"to":-7,"from":7,"windup":0.15,"sweep":0.12,"time":0.72,"step":1.2,"homing":4,"lunge":4,"recover":0.3},"desc":"左長押しで二段階に蓄圧、離して突く。離す瞬間にダッシュすると強打。満充填は8秒保持できる"},
   // AC ECM系統 pages/361：{"kg": 140, "count": 3, "jamSeconds": 5, "blast": 25, "fuse": 2.5}。原典と再現値の区別は auxiliary.json。
@@ -6032,17 +6047,17 @@ const WEAPON_TYPES = {
   missile: {"w0":{"dmg":2600,"rpm":360,"mag":4,"mags":4,"reload":2.4,"kg":350,"blast":11,"speed":30,"rank":"D","turn":0.55,"maxSpeed":30,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"types":[["強装型",{"dmg":3100,"rpm":240,"mag":3,"mags":4,"reload":2.6,"kg":360,"blast":13,"speed":30,"rank":"C-","turn":1,"maxSpeed":30,"accel":0,"shots":3,"locks":1,"recoilV":0.5,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["高速型",{"dmg":2700,"rpm":480,"mag":4,"mags":4,"reload":2.6,"kg":380,"blast":10,"speed":50,"rank":"E","turn":0.25,"maxSpeed":50,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2200,"rpm":540,"mag":6,"mags":3,"reload":3.4,"kg":420,"blast":11,"speed":30,"rank":"D+","turn":0.75,"maxSpeed":30,"accel":0,"shots":6,"locks":1,"recoilV":0.3,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
   mlrs: {"w0":{"dmg":2600,"rpm":480,"mag":6,"mags":3,"reload":3,"kg":500,"blast":12,"speed":30,"rank":"C+","turn":1.25,"maxSpeed":90,"accel":40,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"types":[["高速型",{"dmg":2000,"rpm":600,"mag":6,"mags":4,"reload":3,"kg":520,"blast":11,"speed":30,"rank":"D+","turn":0.75,"maxSpeed":110,"accel":80,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["強装型",{"dmg":4200,"rpm":320,"mag":4,"mags":3,"reload":4,"kg":570,"blast":14,"speed":30,"rank":"A+","turn":2.8,"maxSpeed":50,"accel":10,"shots":1,"locks":4,"recoilV":0.2,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2300,"rpm":480,"mag":8,"mags":3,"reload":4,"kg":590,"blast":9,"speed":30,"rank":"B+","turn":2,"maxSpeed":85,"accel":35,"shots":2,"locks":4,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
   sabre: { w0: {"kg":180,"normalHits":[2000,3500],"strongHits":[4500]}, types: [
-    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},"一度の入力で素早い連続斬撃。ダッシュ中は両手で斬り抜く刀風の踏み込み斬り"],
-    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は両手で斬り抜く刀風の踏み込み斬り"],
+    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
+    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
   ] },
   rod: { w0: {"kg":190,"normalHits":[2500,2500],"strongHits":[4500,3500]}, types: [
     ["強装型",{"kg":310,"normalHits":[2500,2500,3000],"strongHits":[4500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃"],
     ["重装型",{"kg":420,"normalHits":[2500,2500,3000,4500],"strongHits":[2500,4500,2500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃"],
   ] },
   claw: { w0: {"kg":200,"normalHits":[2500,2500],"strongHits":[3000,3000]}, types: [
-    ["強装型",{"kg":300,"normalHits":[2500,2500,2250,2250],"strongHits":[3500,3500]},"左右の爪で近距離を連撃。ダッシュ中は巨大な両爪で前方を薙ぐ虎の一撃"],
-    ["連撃型",{"kg":400,"normalHits":[2500,2500,2500,2500],"strongHits":[2500,2500,3000,3000,4500]},"左右の爪で近距離を連撃。ダッシュ中は巨大な両爪で前方を薙ぐ虎の一撃"],
-    ["重装型",{"kg":500,"normalHits":[3500,3500],"strongHits":[4500,4500]},"左右の爪で近距離を連撃。ダッシュ中は巨大な両爪で前方を薙ぐ虎の一撃"],
+    ["強装型",{"kg":300,"normalHits":[2500,2500,2250,2250],"strongHits":[3500,3500]},"左右の爪で近距離を連撃。ダッシュ中は伸びるレーザー刃で右袈裟→左袈裟の二段攻撃。上位型ほどリーチ・薙ぐ幅・隙が大きい"],
+    ["連撃型",{"kg":400,"normalHits":[2500,2500,2500,2500],"strongHits":[2500,2500,3000,3000,4500]},"左右の爪で近距離を連撃。ダッシュ中は伸びるレーザー刃で右袈裟→左袈裟の二段攻撃。上位型ほどリーチ・薙ぐ幅・隙が大きい"],
+    ["重装型",{"kg":500,"normalHits":[3500,3500],"strongHits":[4500,4500]},"左右の爪で近距離を連撃。ダッシュ中は伸びるレーザー刃で右袈裟→左袈裟の二段攻撃。上位型ほどリーチ・薙ぐ幅・隙が大きい"],
   ] },
   pike: { w0: {"kg":210,"normalLevels":[4500,6750,9000],"strongLevels":[6000,9000,12000],"chargeTime":2}, types: [
     ["強装型",{"kg":240,"normalLevels":[5000,8750,12500],"strongLevels":[7000,12250,17500],"chargeTime":2.5},"左長押しで二段階に蓄圧、離して突く。離す瞬間にダッシュすると強打。満充填は8秒保持できる"],
@@ -6415,7 +6430,7 @@ function makeType(base, w0, t) {
       by('chargeTime',w,'chargeTime',.01);
     } else {
       w.normal=auxiliaryMelee(t.normalHits,w.acMelee);
-      w.strong=auxiliaryMelee(t.strongHits,w.acMelee,true);
+      w.strong=auxiliaryMelee(t.strongHits,w.acMelee,true,w.acMelee==='claw'?Math.max(0,Math.round((t.kg-200)/100)):w.acMelee==='sabre'?(t.kg>=390?2:1):0);
     }
     return w;
   }
@@ -7006,6 +7021,10 @@ function swordTick(u, sl, dt, trigger, aim) {
     sw.t += dt;
     if (sw.tgt && u.lungeT > 0) meleeHome(u, sw, dt);
     const a = sw.a, phi = swingPhi(u, sw);
+    if(a.hop && !sw.hopDone && sw.t>=a.hop.at){
+      sw.hopDone=true;
+      if(u.onGround && !u.flying && !u.stun && !u.repairing && u.ctrlLockT<=0){u.vel.y=a.hop.speed;u.onGround=false;sw.hopped=true;}
+    }
     if (sw.wave && sw.t >= a.windup + a.sweep * .5) {
       const from = u.pos.clone().addScaledVector(UP, a.height);
       shoot(u, from, sw.waveDir.clone().multiplyScalar(sw.wave.speed), sw.wave, false, '', sw.weaponName);
@@ -7017,6 +7036,10 @@ function swordTick(u, sl, dt, trigger, aim) {
       a.strikes.forEach((strike,i)=>{
         const start=a.windup+strike.at,end=start+strike.sweep;
         if(sw.t<=start || sw.t-dt>=end)return;
+        if(strike.pitchFrom!=null){
+          const cut=t=>Math.max(0,Math.min(1,(t-start)/strike.sweep));
+          slashSweep(u,sw,strike,sw.hitSets[i],cut(sw.t-dt),cut(sw.t));return;
+        }
         const angle=t=>sw.yaw0+(strike.from+(strike.to-strike.from)*Math.max(0,Math.min(1,(t-start)/strike.sweep)))*DEG;
         bladeSweep(u,{...sw,a:{...a,dmg:strike.dmg},offset:strike.side,hit:sw.hitSets[i],span:Math.abs(strike.to-strike.from)},angle(sw.t-dt),angle(sw.t));
       });
@@ -7093,6 +7116,53 @@ function bladeHits(u, phi0, phi1, hb, reach, p, size, y0, y1, slope = 0) {
   const s = phi1 - phi0;
   return s >= 0 ? a >= -half && a <= s + half : a <= half && a >= s - half;
 }
+// 新しい斜め/縦の斬撃だけに使う3Dの刃。描画と命中判定で同じ柄・刃先を共有する。
+const slashFrame={grip:new T.Vector3(),tip:new T.Vector3(),yaw:0,pitch:0};
+const slashGrip0=new T.Vector3(),slashTip0=new T.Vector3(),slashGrip1=new T.Vector3(),slashTip1=new T.Vector3();
+function meleeSlashFrame(sw,s,k){
+  const f=slashFrame,g=s.gripFrom,h=s.gripTo;
+  f.yaw=(s.from+(s.to-s.from)*k)*DEG;f.pitch=(s.pitchFrom+(s.pitchTo-s.pitchFrom)*k)*DEG+(sw.tilt||0);
+  f.grip.set(g[0]+(h[0]-g[0])*k,g[1]+(h[1]-g[1])*k,g[2]+(h[2]-g[2])*k);
+  f.tip.set(-Math.sin(f.yaw)*Math.cos(f.pitch),Math.sin(f.pitch),-Math.cos(f.yaw)*Math.cos(f.pitch)).multiplyScalar(sw.a.reach-.65).add(f.grip);
+  return f;
+}
+// 線分と有限の縦円柱。刃の高さの区間を先に絞り、XZ面で最短距離を調べる。
+function slashSegmentHits(a,b,p,r,y0,y1){
+  const dy=b.y-a.y;let lo=0,hi=1;
+  if(Math.abs(dy)<1e-8){if(a.y<y0-.12||a.y>y1+.12)return false;}
+  else {const t0=(y0-.12-a.y)/dy,t1=(y1+.12-a.y)/dy;lo=Math.max(0,Math.min(t0,t1));hi=Math.min(1,Math.max(t0,t1));if(lo>hi)return false;}
+  const dx=b.x-a.x,dz=b.z-a.z,d=dx*dx+dz*dz;
+  const t=Math.max(lo,Math.min(hi,d?((p.x-a.x)*dx+(p.z-a.z)*dz)/d:lo));
+  return (a.x+dx*t-p.x)**2+(a.z+dz*t-p.z)**2<=(r+.12)**2;
+}
+function slashSweep(u,sw,strike,hit,k0,k1){
+  // 3度以下で補間し、低FPSでも細い縦斬りの途中を飛び越さない。
+  const steps=Math.max(1,Math.ceil((Math.abs(strike.to-strike.from)+Math.abs(strike.pitchTo-strike.pitchFrom))*(k1-k0)/3));
+  const vertices=new Float32Array(steps*18),yaw=sw.yaw0,cy=Math.cos(yaw),sy=Math.sin(yaw);
+  const world=v=>{const x=v.x,z=v.z;v.set(u.pos.x+cy*x+sy*z,u.pos.y+v.y,u.pos.z-sy*x+cy*z);};
+  const start=meleeSlashFrame(sw,strike,k0);slashGrip0.copy(start.grip);slashTip0.copy(start.tip);world(slashGrip0);world(slashTip0);
+  let res=false;
+  for(let n=1;n<=steps;n++){
+    const f=meleeSlashFrame(sw,strike,k0+(k1-k0)*n/steps);slashGrip1.copy(f.grip);slashTip1.copy(f.tip);world(slashGrip1);world(slashTip1);
+    let vi=(n-1)*18;for(const v of [slashGrip0,slashTip0,slashTip1,slashGrip0,slashTip1,slashGrip1]){vertices[vi++]=v.x;vertices[vi++]=v.y;vertices[vi++]=v.z;}
+    const tryHit=(target,p,size,y0,y1)=>{
+      if(hit.has(target)||!slashSegmentHits(slashGrip1,slashTip1,p,size,y0,y1))return;
+      hit.add(target);const from=strike.from===strike.to?u.pos:swingPushFrom(u.pos,p,Math.sign(strike.to-strike.from),Math.abs(strike.to-strike.from));
+      if(volley)meleeFrom.set(target,from);
+      sfx('slash',p);impact(new T.Vector3(p.x,Math.max(y0,Math.min(y1,slashTip1.y)),p.z),'hit',0);
+      if(damage(target,u,strike.dmg,false,true,null,from,true,false,sw.weaponName))res=true;
+    };
+    for(const e of units)if(e.alive&&e.team!==u.team)tryHit(e,e.pos,R,e.pos.y,e.pos.y+UNIT_H);
+    for(const t of turrets)if(t.alive&&t.team!==u.team)tryHit(t,t.pos,1.5,t.pos.y,t.pos.y+3.7);
+    for(const r of radars)if(r.alive&&r.team!==u.team)tryHit(r,r.pos,1.5,r.pos.y,r.pos.y+11);
+    for(const br of barricades)if(br.alive){const o=br.ob;tryHit(br,new T.Vector3(Math.max(o.minX,Math.min(u.pos.x,o.maxX)),0,Math.max(o.minZ,Math.min(u.pos.z,o.maxZ))),0,br.base,o.top);}
+    slashGrip0.copy(slashGrip1);slashTip0.copy(slashTip1);
+  }
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(vertices,3));
+  const m=new T.Mesh(geo,new T.MeshBasicMaterial({...glow(sw.a.dashMotion==='claw'?0xb8ff32:0xcfefff),side:T.DoubleSide}));addFx(m,.16,{kind:'arc',ownGeo:true});
+  if(res&&u.isPlayer)hitMark(false);
+}
+
 function bladeSweep(u, sw, phi0, phi1) {
   const a = sw.a, hb = u.pos.y + a.height, slope = sw.slope || 0, span = sw.span ?? Math.abs(a.to - a.from), turn = Math.sign(phi1 - phi0);
   // 刃の軌跡（上下の斬りは円すいの面）
@@ -7145,6 +7215,7 @@ function weaponLook(u, dt) {
   }
   if (u.blade2) { u.blade2.visible = !!S.aux.w.meleeDual; if (u.blade2.visible) setWeaponGeo(u.blade2, S.aux.w.key); }
   bladePose(u);
+  meleeLaserLook(u);
   if (S.aux.w.chargeWave && !u.blade.userData.chargeGlow) {
     const effect = new T.Mesh(u.blade.geometry, new T.MeshBasicMaterial({ color: 0x75e5ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
     effect.scale.setScalar(1.035); u.blade.add(effect); u.blade.userData.chargeGlow = effect;
@@ -7176,15 +7247,67 @@ function weaponLook(u, dt) {
 // 実際の攻撃時刻・角度は swing の値に合わせ、判定・威力・硬直は変えない。出典は research/animation/README.md。
 const bladeHeld = new T.Vector3(), bladeHand = new T.Vector3(), bladeOffset = new T.Vector3();
 const bladeOtherPose={twist:0,lean:0,sink:0};
+const spatialGrip=new T.Vector3();
+function spatialBladePose(u,b,sd,gripZ,sw,melee){
+  const a=sw.a,katana=a.dashMotion==='sabre';let prev=null,next=null,first=null;
+  for(const s of a.strikes){if(!katana&&s.hand!==sd)continue;first ||= s;if(sw.t>=a.windup+s.at)prev=s;else {next=s;break;}}
+  const strike=prev||first,start=a.windup+strike.at,end=start+strike.sweep;
+  let k=Math.max(0,Math.min(1,(sw.t-start)/strike.sweep)),f=meleeSlashFrame(sw,strike,k),yaw=f.yaw,pitch=f.pitch,single=!!strike.single;
+  spatialGrip.copy(f.grip);
+  if(next&&sw.t>end){
+    const t=Math.min(1,(sw.t-end)/(a.windup+next.at-end)),q=t*t*(3-2*t);f=meleeSlashFrame(sw,next,0);
+    spatialGrip.lerp(f.grip,q);yaw+=(f.yaw-yaw)*q;pitch+=(f.pitch-pitch)*q;single=next.single?q:0;
+  }
+  const prep=Math.max(0,Math.min(1,(sw.t-start+a.windup)/a.windup));
+  const back=!next?Math.max(0,Math.min(1,(sw.t-end)/(katana?a.recover:.2))):0;
+  const blend=prep*(1-back*back*(3-2*back));
+  bladeHeld.set(sd*(katana?.3:1.05),katana?2.25:2.45,-.55).lerp(spatialGrip,blend);
+  const idleYaw=katana?-.4:sd*-.28,idlePitch=katana?.62:.15;
+  b.rotation.set(idlePitch+(pitch-idlePitch)*blend,idleYaw+(yaw-idleYaw)*blend,0,'YXZ');
+  const length=(a.reach-.65)/(gripZ-b.geometry.boundingBox.min.z),scale=katana?1+(length-1)*blend:1;
+  b.scale.set(1,1,scale);b.position.copy(bladeHeld).sub(bladeOffset.set(0,0,gripZ*scale).applyQuaternion(b.quaternion));
+  (b.userData.grip ||= new T.Vector3()).copy(bladeHeld);b.userData.laserPower=katana?0:blend;
+  (u.group||u.g).rotation.y=sw.yaw0;
+  if(sd===1){
+    // 胴は各斬撃に合わせて小さくひねり、刀の最終段だけ左手を離す。
+    let active=strike;for(const s of a.strikes)if(sw.t>=a.windup+s.at)active=s;
+    const cut=Math.max(0,Math.min(1,(sw.t-a.windup-active.at)/active.sweep)),power=Math.sin(cut*Math.PI);
+    const bodyBlend=katana?blend:Math.min(1,sw.t/a.windup)*(1-Math.max(0,Math.min(1,(sw.t-a.windup-a.sweep)/a.recover)));
+    melee.twist=-.25+Math.max(-.8,Math.min(.8,(active.from+(active.to-active.from)*cut)*DEG*.55))*bodyBlend;
+    melee.lean=-.035-(active.single?.22:.12)*power*bodyBlend;melee.sink=.07+.09*power*bodyBlend;melee.oneHand=single*blend;
+  }
+}
+// レーザー刃はガントレット本体を巨大化せず、手首から独立して伸ばす光。
+const meleeLaserGeo=new T.BoxGeometry(1,1,1);
+function meleeLaserLook(u){
+  const active=u.weapon==='aux'&&u.swing?.a.dashMotion==='claw';
+  for(const b of [u.blade,u.blade2]){
+    if(!b)continue;let light=b.userData.laserBlade;
+    if(active&&!light){
+      light=new T.Group();
+      for(const [color,width,height,opacity] of [[0xb8ff32,.34,.12,.65],[0xf2ffdb,.13,.045,1]]){
+        const edge=new T.Mesh(meleeLaserGeo,new T.MeshBasicMaterial({color,transparent:true,opacity,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false}));
+        edge.scale.set(width,height,1);light.add(edge);
+      }
+      b.add(light);b.userData.laserBlade=light;
+    }
+    if(light){
+      const power=active?(b.userData.laserPower||0):0;light.visible=power>0;
+      if(power>0){const length=(u.swing.a.reach-.65)*power;light.position.z=.2-length/2;light.scale.z=length;}
+    }
+  }
+}
+
 // 専用ダッシュ技。判定の各段と同じ角度・時刻で腕と刃を動かす。
 function dashBladePose(u, b, sd, gripZ, sw, melee) {
   const a=sw.a, profile=a.dashMotion;
-  const idle=bladeHeld.set(sd*(profile==='sabre'?.3:1.05),profile==='sabre'?2.25:2.45,-.55);
-  let angle=profile==='sabre'?-.4:sd*-.28,pitch=profile==='claw'?.15:.62,scale=1,width=1;
+  if(profile==='sabre'||profile==='claw'){spatialBladePose(u,b,sd,gripZ,sw,melee);return;}
+  const idle=bladeHeld.set(sd*1.05,2.45,-.55);
+  let angle=sd*-.28,pitch=.62;
   let strike=null,first=null,spin=null;
   for(const s of a.strikes){
     if(s.motion==='spin')spin ||= s;
-    if(profile!=='sabre'&&s.hand!==sd)continue;
+    if(s.hand!==sd)continue;
     first ||= s;if(sw.t>=a.windup+s.at)strike=s;
   }
   strike ||= first;
@@ -7195,25 +7318,13 @@ function dashBladePose(u, b, sd, gripZ, sw, melee) {
   const blend=prep*(1-back*back*(3-2*back));
   let rel=(strike.from+(strike.to-strike.from)*cut)*DEG;
   let body=0;
-  if(profile==='rod') {
+  {
     // 回転するのは最終段だけ。左右の刃と判定が同じ角度で一周する。
     body=Math.max(0,Math.min(1,(sw.t-a.windup-spin.at)/spin.sweep))*Math.PI*2;
     rel-=body;
   }
   (u.group||u.g).rotation.y=sw.yaw0+body;
-  if(profile==='sabre') {
-    // 右腰で溜め、両手で斬り上げて左肩へ抜く。上下の準備・戻しは判定外。
-    const rise=sw.t<start?-.25*(1-prep):sw.t>end?.3*(1-back):0;
-    bladeHand.set(-Math.sin(rel)*.42,a.height+rise,-Math.cos(rel)*.6);
-    angle+=(rel-angle)*blend;pitch+=((sw.tilt||0)-pitch)*blend;
-    melee.twist=-.25+(-.45+1.4*cut)*blend;melee.lean=-.035-(.025+.12*Math.sin(cut*Math.PI))*blend;melee.sink=.07+.06*blend;
-  } else if(profile==='claw') {
-    // 虎の一撃：外へ開いた巨大な爪を前方で交差させる。胴体は回転させない。
-    bladeHand.set(sd*(1.25-.8*cut),a.height,-.4-.55*Math.sin(cut*Math.PI));
-    angle+=(rel-angle)*blend;pitch+=((sw.tilt||0)-pitch)*blend;
-    width=1+.8*blend;
-    melee.twist=-.25*(1-blend);melee.lean=-.035+(.08*(1-prep)-.2*Math.sin(cut*Math.PI))*blend;melee.sink=.07+.11*blend;
-  } else {
+  {
     // 初段で使わない左手は溜めておき、第2段で右手と一緒に左へ払う。
     const waiting=sw.t<start;
     bladeHand.set(-Math.sin(rel)*.55+(sd===1?.18:-.18),a.height,-Math.cos(rel)*.65);
@@ -7222,17 +7333,16 @@ function dashBladePose(u, b, sd, gripZ, sw, melee) {
     idle.lerp(bladeHand,handBlend);angle+=(rel-angle)*handBlend;pitch+=((sw.tilt||0)-pitch)*handBlend;
     melee.twist=-.25+(Math.max(-.8,Math.min(.8,rel*.65))+.25)*blend;melee.lean=-.035-(.045+.1*Math.sin(cut*Math.PI))*blend;melee.sink=.07+.05*blend;
   }
-  if(profile!=='rod'){bladeHand.y+=Math.hypot(bladeHand.x,bladeHand.z)*(sw.slope||0);idle.lerp(bladeHand,blend);}
   const length=(a.reach-.6)/(gripZ-b.geometry.boundingBox.min.z);
-  scale=1+(length-1)*blend;
-  b.scale.set(width,1,scale);b.rotation.set(pitch,angle,0,'YXZ');
+  const scale=1+(length-1)*blend;
+  b.scale.set(1,1,scale);b.rotation.set(pitch,angle,0,'YXZ');
   b.position.copy(idle).sub(bladeOffset.set(0,0,gripZ*scale).applyQuaternion(b.quaternion));
   (b.userData.grip ||= new T.Vector3()).copy(idle);
 }
 function bladePose(u) {
   const w = u.slots.aux.w, selected = u.weapon === 'aux' && w.type === 'sword', sw = selected ? u.swing : null;
   const family = MODEL_OF[w.key]?.[0], thrust = family === 'spear' || family === 'pike', dual = !!w.meleeDual;
-  const melee = u.meleePose ||= { twist: 0, lean: 0, sink: 0 }; melee.twist = melee.lean = melee.sink = 0;
+  const melee = u.meleePose ||= { twist: 0, lean: 0, sink: 0 }; melee.twist = melee.lean = melee.sink = melee.oneHand = 0;
   if (w.type !== 'sword') return;
   let twist = -.25, lean = -.035, power = 0;
   for (let hand = 0; hand < 2; hand++) {

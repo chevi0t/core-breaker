@@ -22,7 +22,7 @@ const {chromium}=require('playwright');
     const old=before[key];
     if(!keys.includes(key)){yes(equal(w,old),key+' 他系統の性能・形の指定を維持');continue;}
     yes(equal(w.normal,old.normal),key+' 通常攻撃の全数値を維持');
-    yes(w.strong.dmg===old.strong.dmg&&w.kg===old.kg&&w.strong.reach===old.strong.reach&&w.strong.lunge===old.strong.lunge,key+' ダッシュ総威力・重量・間合い・踏み込み距離を維持');
+    yes(w.strong.dmg===({sabre:12000,sabreH:18000,sabreM:20000}[key]||old.strong.dmg)&&w.kg===old.kg&&w.strong.lunge===old.strong.lunge,key+' 日本刀は4段の威力、他は総威力と重量・踏み込み距離を維持');
    }
    const sync=()=>{for(const q of [u,e]){q.group.position.copy(q.pos);q.group.rotation.set(0,q.yaw,0);g.weaponLook(q,1/120);}g.scene.updateMatrixWorld(true);};
    function reset(key,strong=true){
@@ -44,7 +44,7 @@ const {chromium}=require('playwright');
      yes(Math.abs(1e6-e.hp-a.dmg)<1e-6,key+'/'+kind+' 各段の実損傷合計 '+(1e6-e.hp));
      if(kind!=='normal'){
       const groups=stages.filter((s,i)=>i===0||s.t-stages[i-1].t>.08);
-      yes(groups.length===(key.startsWith('rod')?3:1),key+' 一撃/三段の発生が重複しない '+JSON.stringify(stages));damage[key]=stages;
+      yes(groups.length===(key.startsWith('rod')?3:key.startsWith('sabre')?4:2),key+' 各系統の連撃が重複しない '+JSON.stringify(stages));damage[key]=stages;
       for(const b of [u.blade,u.blade2])if(b?.visible)yes(b.scale.x===1&&b.scale.z===1,key+' 終了後は刃を元の寸法へ戻す');
      }
     }
@@ -63,10 +63,10 @@ const {chromium}=require('playwright');
    yes(second.right>first.right&&second.left>first.left,'双短刀：第2段は両手で左へ薙ぐ');
    yes(Math.abs(first.body)<.001&&Math.abs(second.body)<.001&&spin.body>Math.PI,'双短刀：最後の段だけ体ごと回る');
    for(const key of ['sabre','claw'])for(const t of [.05,.2,.3,.4,.6])yes(Math.abs(sample(key,t).body)<.001,key+' ソードの回転技を使わない');
-   const tiger=sample('claw',.3);yes(tiger.scale[0]>1.5&&tiger.scale[2]>1.5,'虎の一撃：攻撃中は幅も長さもある巨大な爪');
+   sample('claw',.25);yes(u.blade.userData.laserBlade?.visible&&u.blade.userData.laserBlade.scale.z>4,'双爪：本体を巨大化せず独立したレーザー刃が伸びる');
    reset('sabre');sync();
    const left=u.rig.bones.handL.node.getWorldPosition(new T.Vector3()),grip=u.blade.userData.grip;
-   yes(Math.abs(left.distanceTo(grip)-.38)<.025,'細剣：左手も柄尻を握る刀の構え');
+   yes(Math.abs(left.distanceTo(grip)-.38)<.025,'日本刀：左手も柄尻を握る刀の構え');
    // 持ち替えで巨大化と回転を残さない。
    for(const key of ['sabre','rod','claw']){
     reset(key);g.swordTick(u,u.slots.aux,1/120,true,aim());u.swing.t=.3;sync();g.selectWeapon(u,'main');
