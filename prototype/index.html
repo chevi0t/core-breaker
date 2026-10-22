@@ -1414,10 +1414,20 @@ const cityRoadMaterial = new T.MeshLambertMaterial({color:0x46515a});
 function buildRoads(list = []) {
   if (!list.length) return;
   const positions = [];
-  for (const [x, z, w, d] of list) {
+  for (const [x, z, w, d, level] of list) {
     const x0=x-w/2, x1=x+w/2, z0=z-d/2, z1=z+d/2;
-    positions.push(x0,.025,z0, x0,.025,z1, x1,.025,z1,
-                   x0,.025,z0, x1,.025,z1, x1,.025,z0);
+    if(curMap.roadsFollowTerrain && level===undefined){
+      const nx=Math.ceil(w/2),nz=Math.ceil(d/2),height=(px,pz)=>terrainH(px,pz)+.035;
+      for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
+        const a=x0+w*i/nx,b=x0+w*(i+1)/nx,c=z0+d*j/nz,e=z0+d*(j+1)/nz;
+        positions.push(a,height(a,c),c,a,height(a,e),e,b,height(b,e),e,
+                       a,height(a,c),c,b,height(b,e),e,b,height(b,c),c);
+      }
+      continue;
+    }
+    const y=(level||0)+.025;
+    positions.push(x0,y,z0, x0,y,z1, x1,y,z1,
+                   x0,y,z0, x1,y,z1, x1,y,z0);
   }
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
@@ -1659,7 +1669,14 @@ function clearPath(ax, az, bx, bz, ay) {
     hs[i] = ph = h;
   }
   for (const o of obstacles) {
-    if (o.bottom !== undefined) continue;
+    if (o.bottom !== undefined) {
+      // 橋の下の坂で頭が床へ入る経路は、歩行の候補にしない。
+      const t=segBox(ax,az,bx,bz,o.minX-R,o.maxX+R,o.minZ-R,o.maxZ+R);
+      if(t)for(let i=Math.floor(t[0]*n);i<=Math.min(n,Math.ceil(t[1]*n));i++){
+        if(hs[i]<o.top-.25 && hs[i]+UNIT_H>o.bottom+.05)return false;
+      }
+      continue;
+    }
     const t = segBox(ax, az, bx, bz, o.minX - R * 0.8, o.maxX + R * 0.8, o.minZ - R * 0.8, o.maxZ + R * 0.8);
     if (!t) continue;
     let low = Infinity;
@@ -1791,6 +1808,19 @@ const TEAM = {
   B: { name: '自軍', color: 0x3ea6ff, css: '#3ea6ff', baseZ: 210, dir: -1 }, // baseZ はマップで決まる（buildMap）
   R: { name: '敵軍', color: 0xff8a2a, css: '#ff8a2a', baseZ: -210, dir: 1 },
 };
+// 任意の基地座標。従来のマップは x=0・z=±baseZ のまま扱う。
+function baseAt(team, d = curMap) { return d.bases?.[team]?.at || [0,team==='B'?d.baseZ:-d.baseZ]; }
+function baseCoords(team, x, z) {
+  const s=team==='B'?1:-1,p=baseAt(team);
+  return curMap.bases?[p[0]+x*s,p[1]+(z-curMap.baseZ)*s]:[x*s,z*s];
+}
+function inBase(pos, team) {
+  const def=curMap.bases?.[team];
+  return def?Math.hypot(pos.x-def.at[0],pos.z-def.at[1])<def.radius:pos.z*(team==='B'?1:-1)>BASE_LINE;
+}
+function baseDistance(pos, team) {
+  const t=TEAM[team];return curMap.bases?Math.hypot(pos.x-t.baseX,pos.z-t.baseZ):Math.abs(pos.z-t.baseZ);
+}
 const CORE_MAX = 9000;
 const cores = {};
 // コスト制（v0.10.9、マップの vs 項目。ユーザー指定 2026-10-18「コスト制」、ガンダムVSシリーズ風）：コア・傘・ベース床・防衛砲台・レーダーは作らず、
@@ -1800,7 +1830,7 @@ let VS = null, coreMax = CORE_MAX;
 function buildCores() {
 for (const k of ['B', 'R']) {
   const t = TEAM[k];
-  if (VS) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(0, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
+  if (VS) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(t.baseX, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
   const g = new T.Group();
   const pedestal = new T.Mesh(new T.CylinderGeometry(9, 10, 2, 24), new T.MeshLambertMaterial({ color: 0x55534d }));
   pedestal.position.y = 1;
@@ -1812,20 +1842,20 @@ for (const k of ['B', 'R']) {
   glow.scale.set(2.5, 1.24, 2.5);
   glow.position.y = 19;
   g.add(pedestal, body, glow);
-  g.position.set(0, 0, t.baseZ);
+  g.position.set(t.baseX, 0, t.baseZ);
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   mapRoot.add(g);
   // ダメージが入るのは上の色の付いた結晶（glow）だけ。黒い支柱と台座は弾を止めるが無敵（v0.10.6、ユーザー指定「黒い部分は無敵、上の色付いてるトコだけ」）。
   // pos は結晶の中心（Botはここを狙う）
-  const core = { kind: 'core', team: k, hp: CORE_MAX, group: g, glow, pos: new T.Vector3(0, 19, t.baseZ) };
+  const core = { kind: 'core', team: k, hp: CORE_MAX, group: g, glow, pos: new T.Vector3(t.baseX, 19, t.baseZ) };
   glow.userData.ref = core;
   hittables.push(body, glow, pedestal);
-  obstacles.push({ minX: -6, maxX: 6, minZ: t.baseZ - 6, maxZ: t.baseZ + 6, top: 16 });
+  obstacles.push({ minX: t.baseX-6, maxX: t.baseX+6, minZ: t.baseZ - 6, maxZ: t.baseZ + 6, top: 16 });
   cores[k] = core;
   // ベース床
   const pad = new T.Mesh(new T.CircleGeometry(26, 40), teamMaterial(k, new T.MeshLambertMaterial({ color: t.color, transparent: true, opacity: 0.18 })));
   pad.rotation.x = -Math.PI / 2;
-  pad.position.set(0, 0.04, t.baseZ);
+  pad.position.set(t.baseX, 0.04, t.baseZ);
   mapRoot.add(pad);
 }
 }
@@ -1945,6 +1975,7 @@ function plantUpdate(pl, dt) {
 // 自軍ベースに近い順
 function plantsFrom(team) {
   const z = TEAM[team].baseZ;
+  if(curMap.bases){const x=TEAM[team].baseX;return plants.slice().sort((a,b)=>Math.hypot(a.pos.x-x,a.pos.z-z)-Math.hypot(b.pos.x-x,b.pos.z-z));}
   return plants.slice().sort((a, b) => Math.abs(a.pos.z - z) - Math.abs(b.pos.z - z));
 }
 function spawnPoints(team) {
@@ -1959,7 +1990,7 @@ const turrets = [];
 function buildTurrets(list) {
 for (const [x, z] of list) for (const k of ['B', 'R']) {
   const s = k === 'B' ? 1 : -1;
-  const pos = new T.Vector3(x * s, terrainH(x * s, z * s), z * s);
+  const [px,pz]=baseCoords(k,x,z),pos = new T.Vector3(px, terrainH(px,pz), pz);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 2.4, 3), baseMat);
   base.position.set(pos.x, pos.y + 1.2, pos.z);
@@ -2003,7 +2034,7 @@ let BASE_LINE = 150;
 const radars = [];
 function buildRadars([rx, rz]) {
 for (const k of ['B', 'R']) {
-  const s = k === 'B' ? 1 : -1, x = rx * s, z = rz * s;
+  const s = k === 'B' ? 1 : -1, [x,z] = baseCoords(k,rx,rz);
   const pos = new T.Vector3(x, terrainH(x, z), z);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 1.2, 3), baseMat);
@@ -2024,8 +2055,10 @@ for (const k of ['B', 'R']) {
   for (const m of [base, mast, dish]) { m.userData.ref = rd; hittables.push(m); }
   radars.push(rd);
   // ベースの境目の線（ここより奥に入るとレーダーに探知される）
-  const line = new T.Mesh(new T.PlaneGeometry(MAP_X * 2, 0.6).rotateX(-Math.PI / 2), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false })));
-  line.position.set(0, 0.08, BASE_LINE * s);
+  const zone=curMap.bases?.[k];
+  const geometry=zone?new T.RingGeometry(zone.radius-.3,zone.radius+.3,64):new T.PlaneGeometry(MAP_X*2,.6);
+  const line = new T.Mesh(geometry.rotateX(-Math.PI / 2), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false })));
+  line.position.set(zone?zone.at[0]:0, .08, zone?zone.at[1]:BASE_LINE*s);
   mapRoot.add(line);
 }
 }
@@ -2054,7 +2087,7 @@ function radarUpdate(rd, dt) {
   if (!rd.alive) return;
   rd.head.rotation.y += dt * 1.8;
   const s = rd.team === 'B' ? 1 : -1;
-  const now = units.filter(u => u.alive && u.team !== rd.team && u.pos.z * s > BASE_LINE);
+  const now = units.filter(u => u.alive && u.team !== rd.team && inBase(u.pos,rd.team));
   for (const u of now) spot(rd.team, u, 1, null, 'レーダー');
   const fresh = now.some(u => !rd.intruders.includes(u));
   rd.intruders = now;
@@ -2515,11 +2548,14 @@ function catModel(cp, acc, dots) {
 // マップの catapults（自軍側を書き、敵軍側は点対称）から作る。5番目にプラントの名前があればプラントの台（Botがそこから出たときに使う）
 function buildCatapults(list) {
 const acc = {}, dots = [];
-for (const [x, z, lx, lz, pid] of list) for (const k of ['B', 'R']) {
+const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
+for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true});
+for (const {row:[x,z,lx,lz,pid],k,absolute} of entries) {
   const s = k === 'B' ? 1 : -1;
   const own = pid ? plants.find(p => p.id === pid) : null;
   const plant = own ? (k === 'B' ? own : mirrorPlant(own)) : null;
-  const pos = new T.Vector3(x * s, terrainH(x * s, z * s), z * s), land = new T.Vector3(lx * s, terrainH(lx * s, lz * s), lz * s);
+  const [px,pz]=absolute?[x,z]:pid?[x*s,z*s]:baseCoords(k,x,z),[tx,tz]=absolute?[lx,lz]:[lx*s,lz*s];
+  const pos = new T.Vector3(px, terrainH(px,pz), pz), land = new T.Vector3(tx, terrainH(tx,tz), tz);
   const cp = { side: k, plant, pos, land, flash: 0, phase: Math.random() * 6.3 };
   catModel(cp, acc, dots);
   catapults.push(cp);
@@ -2763,7 +2799,7 @@ const POD_R = 3, POD_HEAL = 1200;
 const pods = [];
 function buildPods(basePods, plantPods) {
 const podSpots = [];
-for (const [x, z] of basePods) for (const k of ['B', 'R']) { const s = k === 'B' ? 1 : -1; podSpots.push({ team: k, x: x * s, z: z * s }); }
+for (const [x, z] of basePods) for (const k of ['B', 'R']) { const [px,pz]=baseCoords(k,x,z); podSpots.push({ team:k,x:px,z:pz }); }
 for (const [id, x, z] of plantPods) podSpots.push({ plant: plants.find(p => p.id === id), x, z });
 for (const spot of podSpots) {
   const pos = new T.Vector3(spot.x, terrainH(spot.x, spot.z), spot.z);
@@ -2874,10 +2910,10 @@ function buildUmbrellas() {
 for (const k of ['B', 'R']) {
   const mat = teamMaterial(k, new T.MeshLambertMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false }));
   const roof = new T.Mesh(new T.ConeGeometry(UMBRELLA_R, UMBRELLA_TOP - UMBRELLA_EDGE, 48, 1, true), mat);
-  roof.position.set(0, (UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);
+  roof.position.set(TEAM[k].baseX, (UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);
   const rim = new T.Mesh(new T.TorusGeometry(UMBRELLA_R, 0.15, 6, 64), new T.MeshLambertMaterial({ color: 0x9aa3ad }));
   rim.rotation.x = Math.PI / 2;
-  rim.position.set(0, UMBRELLA_EDGE, TEAM[k].baseZ);
+  rim.position.set(TEAM[k].baseX, UMBRELLA_EDGE, TEAM[k].baseZ);
   roof.userData.ref = rim.userData.ref = { kind: 'umbrella', team: k };
   mapRoot.add(roof, rim);
   hittables.push(roof, rim);
@@ -2899,7 +2935,7 @@ function buildMap(id) {
   [MAP_X, MAP_Z] = def.size;
   BASE_LINE = def.baseLine;
   VS = def.vs || null; coreMax = VS ? VS.cost : CORE_MAX;
-  TEAM.B.baseZ = def.baseZ; TEAM.R.baseZ = -def.baseZ;
+  for(const k of ['B','R'])[TEAM[k].baseX,TEAM[k].baseZ]=baseAt(k,def);
   bakeTerrain(def.terrain);
   buildGround();
   buildRoads(def.roads);
@@ -3910,10 +3946,10 @@ function spawnPos(u, at) {
   const pl = plants.find(p => p.id === at && p.owner === u.team);
   if (pl) {
     // プラントの中心から自軍ベース側へ46〜52m離れた所に出る（真ん中に出ると守りやすすぎ、近いと激戦の中に降りるため。ユーザー指定、v0.9.2で22〜26mから遠ざけた）
-    const back = new T.Vector3(-pl.pos.x, 0, t.baseZ - pl.pos.z).normalize();
+    const back = new T.Vector3(t.baseX-pl.pos.x, 0, t.baseZ - pl.pos.z).normalize();
     const d = SPAWN_BACK[0] + Math.random() * (SPAWN_BACK[1] - SPAWN_BACK[0]), side = (Math.random() - 0.5) * 16;
     u.pos.set(pl.pos.x + back.x * d - back.z * side, 0, pl.pos.z + back.z * d + back.x * side);
-  } else u.pos.set((Math.random() - 0.5) * 36, 0, t.baseZ + t.dir * (14 + Math.random() * 10));
+  } else u.pos.set(t.baseX+(Math.random() - 0.5) * 36, 0, t.baseZ + t.dir * (14 + Math.random() * 10));
   resolve(u);
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
@@ -3948,7 +3984,7 @@ function spawn(u, at = 'base') {
 // 移った先では出撃と同じく2秒無敵。ダウンすると取り消し。Botは1度使うと AREA_CD 秒は使わない。コスト制のマップ（ベースもプラントも無い）では使えない
 const AREA_T0 = 2.5, AREA_KG0 = 4700, AREA_SLOPE = 4.5 / 730, AREA_MAX = 10, AREA_FAR = 150, AREA_CD = 40;
 function areaTime(u) { return Math.min(AREA_MAX, AREA_T0 + Math.max(0, u.stats.weight - AREA_KG0) * AREA_SLOPE); }
-function inOwnBase(u) { return !VS && u.pos.z * TEAM[u.team].dir < -BASE_LINE; }
+function inOwnBase(u) { return !VS && inBase(u.pos,u.team); }
 function startTransfer(u, at) {
   if (isArtilleryMode(u)) return false;
   if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
@@ -3982,15 +4018,15 @@ function botTransfer(u) {
   const t = TEAM[u.team], rd = radars.find(r => r.team === u.team);
   if (curMap.baseDefense) {
     if (u.role === 'defend') {
-      if (rd?.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      if (rd?.intruders.length && baseDistance(u.pos,u.team) > AREA_FAR) startTransfer(u, 'base');
       return; // 基地の守備役は被攻撃プラントへ転出しない。
     }
     if (baseDefenseTask(u)?.threat) {
-      if (Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      if (baseDistance(u.pos,u.team) > AREA_FAR) startTransfer(u, 'base');
       return;
     }
   }
-  if (u.role === 'defend' && rd && rd.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) { startTransfer(u, 'base'); return; }
+  if (u.role === 'defend' && rd && rd.intruders.length && baseDistance(u.pos,u.team) > AREA_FAR) { startTransfer(u, 'base'); return; }
   const pl = plants.find(p => p.owner === u.team && p.capturing && Math.abs(p.gauge) < 100 && p.pos.distanceTo(u.pos) > AREA_FAR && units.some(e => e.alive && e.team !== u.team && inPlant(e, p)));
   if (pl) startTransfer(u, pl.id);
 }
@@ -4888,7 +4924,7 @@ function scoreKill(v, by, head) {
 }
 // 撃破された敵が自軍ベース（境目の線より奥）か自軍プラントの円の中にいた
 function scoreDefend(a, v) {
-  if (!VS && v.pos.z * TEAM[a.team].dir < -BASE_LINE) addScore(a, 'support', SC.baseDef, 'ベース防衛');
+  if (!VS && inBase(v.pos,a.team)) addScore(a, 'support', SC.baseDef, 'ベース防衛');
   else if (plants.some(p => p.owner === a.team && inPlant(v, p))) addScore(a, 'support', SC.plantDef, 'プラント防衛');
 }
 function scoreCore(by, raw) {
@@ -4971,7 +5007,7 @@ function scoreTick(dt) {
   for (const u of units) {
     const x = u.sx;
     if (x.capPl && !(u.alive && inPlant(u, x.capPl))) { x.capPl = null; x.capAcc = 0; }
-    const inside = !VS && u.alive && u.pos.z * TEAM[u.team].dir > BASE_LINE; // コスト制にはベースが無い
+    const inside = !VS && u.alive && inBase(u.pos,u.team==='B'?'R':'B'); // コスト制にはベースが無い
     if (inside) {
       if (!x.inBase && x.outT >= SC.intrudeGap && x.intrN < SC.intrudeCap) { x.intrN++; addScore(u, 'support', SC.intrude, '敵ベース侵入'); }
       x.outT = 0;
@@ -5153,7 +5189,7 @@ function botUpdate(u, dt) {
     // レーダーが生きていれば、ベースに入った敵機へ向かう（見えていなくても）
     const intr = radars.find(r => r.team === u.team).intruders;
     const threat = intr.length ? intr.reduce((a, b) => a.pos.distanceTo(u.pos) < b.pos.distanceTo(u.pos) ? a : b) : nearestEnemy(u, 90);
-    goal = threat && Math.abs(threat.pos.z - t.baseZ) < 110 ? threat.pos : new T.Vector3((u.idx % 5 - 2) * 14, 0, t.baseZ + t.dir * 60);
+    goal = threat && baseDistance(threat.pos,u.team) < 110 ? threat.pos : new T.Vector3(t.baseX+(u.idx % 5 - 2) * 14, 0, t.baseZ + t.dir * 60);
   } else {
     // プラント役は自軍のものでない最も近いプラントへ。プラントが4つ以上のマップでは、番号で1つ先のプラントにも分かれる
     const cand = u.role === 'plant' ? plantsFrom(u.team).filter(p => p.owner !== u.team) : [];
@@ -9042,7 +9078,7 @@ function drawMapPreview(cv, d) {
   for (const [x, z, w, dd] of d.layout) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - w / 2), sz(z * k - dd / 2), Math.max(1, w / mx / 2 * W), Math.max(1, dd / mz / 2 * H));
   g.fillStyle = 'rgba(70, 150, 220, .7)';
   for (const [x, z, hx, hz] of d.water || []) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - hx), sz(z * k - hz), Math.max(1, hx / mx * W), Math.max(1, hz / mz * H));
-  for (const k of ['B', 'R']) { g.fillStyle = sideColors(k).css; g.beginPath(); g.arc(sx(0), sz(k === 'B' ? d.baseZ : -d.baseZ), 4, 0, 7); g.fill(); }
+  for (const k of ['B', 'R']) { const [x,z]=baseAt(k,d);g.fillStyle = sideColors(k).css; g.beginPath(); g.arc(sx(x), sz(z), 4, 0, 7); g.fill(); }
   g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const [id, x, z, start] of d.plants) {
     const c = start ? sideColors(start).css : '#b9c2c9';
@@ -9217,10 +9253,10 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
   const sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H;
   mini.fillStyle = 'rgba(255,255,255,.18)';
   for (const o of obstacles) mini.fillRect(sx(o.minX), sz(o.minZ), Math.max(1, sx(o.maxX) - sx(o.minX)), Math.max(1, sz(o.maxZ) - sz(o.minZ)));
-  for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(0), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
+  for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(TEAM[t].baseX), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
   if (big && player) {
     mini.font = `bold ${Math.round(6.5 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle'; mini.fillStyle = '#fff';
-    for (const t of ['B', 'R']) mini.fillText(t === player.team ? '自軍ベース' : '敵軍ベース', sx(0), sz(TEAM[t].baseZ) + (TEAM[t].baseZ > 0 ? -9 : 9) * k);
+    for (const t of ['B', 'R']) mini.fillText(t === player.team ? '自軍ベース' : '敵軍ベース', sx(TEAM[t].baseX), sz(TEAM[t].baseZ) + (TEAM[t].baseZ > 0 ? -9 : 9) * k);
   }
   mini.setLineDash([2 * k, 2 * k]); mini.strokeStyle = 'rgba(255,255,255,.35)'; mini.lineWidth = k;
   for (const c of catapults) { mini.beginPath(); mini.moveTo(sx(c.pos.x), sz(c.pos.z)); mini.lineTo(sx(c.land.x), sz(c.land.z)); mini.stroke(); }

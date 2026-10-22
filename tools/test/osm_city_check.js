@@ -34,7 +34,26 @@ fs.mkdirSync(outputDir, {recursive:true});
         g.equip(u,'assault');u.pos.set(p[0],p[2]||0,p[1]);u.vel.set(0,0,0);
         Object.assign(u,{alive:true,onGround:true,zip:null,zipCd:0,flying:false,repairing:false,planted:false,stun:'',electricT:0,downT:0,ctrlLockT:0,swing:null,transfer:null,dashT:0,longDash:false,charging:false,overheat:false,boost:u.maxBoost});
       };
-      assert(d.terrain.length===0,'地面に起伏を付けない');
+      const revised=d.generation.version>=2;
+      if(!revised)assert(d.terrain.length===0,'地面に起伏を付けない');
+      else{
+        assert(g.terrainH(-188,-20)>17.9,'公園の盛り土18m');
+        assert(d.size[1]*2<700,'上下の余白を削る');
+        for(const team of ['B','R']){
+          const [x,z]=d.bases[team].at;
+          assert(Math.abs(g.cores[team].pos.x-x)<.01&&Math.abs(g.cores[team].pos.z-z)<.01,'コアの新しい座標 '+team);
+          u.team=team;u.pos.set(x+10,0,z);
+          assert(g.inOwnBase(u),'移動先の基地内判定 '+team);
+          const e=g.units.find(v=>v!==u&&v.team!==team),rd=g.radars.find(r=>r.team===team);
+          e.alive=true;e.pos.set(x+40,0,z);g.radarUpdate(rd,.1);
+          assert(rd.intruders.includes(e),'移動先のレーダー検知 '+team);
+          e.pos.set(x+55,0,z);g.radarUpdate(rd,.1);
+          assert(!rd.intruders.includes(e),'基地半径の外で検知を解除 '+team);
+          const score=u.sc.support;e.pos.set(x+10,0,z);g.scoreDefend(u,e);
+          assert(u.sc.support===score+g.SC.baseDef,'移動先の基地防衛得点 '+team);
+          e.pos.set(d.size[0]-6,0,d.size[1]-6);
+        }
+      }
       assert(d.attribution.license==='ODbL-1.0'&&d.desc.includes('OpenStreetMap'),'地理データの出典');
       assert(d.layout.length<1000&&N.pts.length<800,'形状と経路の上限');
       const roadMeshes=[];g.scene.traverse(o=>{if(o.name==='city-road-surface')roadMeshes.push(o);});
@@ -44,7 +63,7 @@ fs.mkdirSync(outputDir, {recursive:true});
       assert(buildings.length===2,'建物の壁と屋根を2メッシュへ統合');
       g.scene.updateMatrixWorld(true);
       for(const [x,z,w] of d.generation.roadCover){
-        const hit=g.castFrom(new T.Vector3(x-w/2-5,2.4,z),new T.Vector3(1,0,0),u,w+10);
+        const hit=g.castFrom(new T.Vector3(x-w/2-5,g.terrainH(x,z)+2.4,z),new T.Vector3(1,0,0),u,w+10);
         assert(hit&&Math.abs(hit.point.x-(x-w/2))<.05,'道路の遮蔽 '+[x,z]);
       }
       for(const {center,cover} of d.generation.roofs){
@@ -52,18 +71,22 @@ fs.mkdirSync(outputDir, {recursive:true});
         assert(hit&&Math.abs(hit.point.x-(cover[0]-3.5))<.05,'屋上の遮蔽 '+center);
       }
       for(const p of g.plants){
-        assert(g.groundAt(p.pos.x,p.pos.z,0)<.1,'プラント'+p.id+'は地上');
-        for(const side of [-1,1]) for(const dx of [-6,0,6]) for(const dist of [46,49,52]){
-          const x=p.pos.x+dx,z=p.pos.z+side*dist;
-          assert(!g.obstacles.some(o=>o.top>.6&&(o.bottom===undefined||o.bottom<4)&&x>o.minX-1.2&&x<o.maxX+1.2&&z>o.minZ-1.2&&z<o.maxZ+1.2),'出撃帯 '+[p.id,side,dx,dist]);
+        assert(Math.abs(p.pos.y-g.terrainH(p.pos.x,p.pos.z))<.1,'プラント'+p.id+'は地面に接する');
+        for(const team of ['B','R']){
+          const [bx,bz]=revised?d.bases[team].at:[0,team==='B'?d.baseZ:-d.baseZ],len=Math.hypot(bx-p.pos.x,bz-p.pos.z),ux=(bx-p.pos.x)/len,uz=(bz-p.pos.z)/len;
+          if(revised)assert(len>=180,'基地から離れた争奪点 '+[p.id,team,len]);
+          for(const dx of [-8,0,8]) for(const dist of [46,49,52]){
+            const x=p.pos.x+ux*dist-uz*dx,z=p.pos.z+uz*dist+ux*dx,y=g.terrainH(x,z);
+            assert(!g.obstacles.some(o=>o.top>y+.6&&(o.bottom===undefined||o.bottom<y+4)&&x>o.minX-1.2&&x<o.maxX+1.2&&z>o.minZ-1.2&&z<o.maxZ+1.2),'出撃帯 '+[p.id,team,dx,dist]);
+          }
         }
       }
       for(const l of N.links){
         const a=N.pts[l.a],b=N.pts[l.b];
         assert(g.clearPath(a.x,a.z,b.x,b.z,a.y)&&g.clearPath(b.x,b.z,a.x,a.z,b.y),'経路 '+l.a+'–'+l.b);
       }
-      const near=(p)=>N.pts.reduce((best,q,i)=>Math.hypot(q.x-p[0],q.z-p[1])<Math.hypot(N.pts[best].x-p[0],N.pts[best].z-p[1])?i:best,0);
-      const goals=[[8,d.baseZ-20],[8,-d.baseZ+20],...g.plants.map(p=>[p.pos.x+6,p.pos.z+3])];
+      const near=(p)=>N.pts.reduce((best,q,i)=>Math.hypot(q.x-p[0],q.z-p[1])+Math.abs(q.y-(p[2]||0))*3<Math.hypot(N.pts[best].x-p[0],N.pts[best].z-p[1])+Math.abs(N.pts[best].y-(p[2]||0))*3?i:best,0);
+      const goals=[...(revised?['B','R'].map(team=>{const[x,z]=d.bases[team].at;return[x+8,z+(team==='B'?-20:20),0];}):[[8,d.baseZ-20],[8,-d.baseZ+20]]),...g.plants.map(p=>[p.pos.x+6,p.pos.z+3,g.terrainH(p.pos.x+6,p.pos.z+3)])];
       for(const chassis of ['light','heavy']) for(const team of ['B','R']){
         u.team=team;u.mech={head:chassis,body:chassis,arms:chassis,legs:chassis,color:'team'};g.equip(u,'assault');
         u.navW=N.links.map(()=>1);
@@ -78,13 +101,30 @@ fs.mkdirSync(outputDir, {recursive:true});
             const q=N.pts[i];let reached=false;
             for(let n=0;n<600;n++){
               const delta=new T.Vector3(q.x-u.pos.x,0,q.z-u.pos.z);
-              if(delta.length()<1.2){reached=true;break;}
+              if(delta.length()<1.2&&Math.abs(u.pos.y-q.y)<1.3){reached=true;break;}
               g.physics(u,delta.normalize(),false,false,.05);ticks++;
             }
             assert(reached,'徒歩 '+[chassis,team,i,JSON.stringify(u.pos.toArray())]);
           }
           routes.push({chassis,team,goal,seconds:ticks*.05,arrived:true});
         }
+      }
+      const crossings=[];
+      for(const chassis of ['light','heavy'])for(const c of d.generation.crossings||[])for(const upper of [false,true])for(const sign of [-1,1]){
+        u.mech={head:chassis,body:chassis,arms:chassis,legs:chassis,color:'team'};
+        // 下段は中央の資材を避けるレーン。道路の横幅と桁下を実物理で確かめる。
+        const start=upper?[c.x+7,c.z-48*sign,0]:[c.x-54*sign,c.z+7,-8],goal=upper?[c.x+7,c.z+48*sign,0]:[c.x+54*sign,c.z+7,-8];
+        reset(start);let n=0,reached=false;
+        for(;n<500;n++){
+          const delta=new T.Vector3(goal[0]-u.pos.x,0,goal[1]-u.pos.z);
+          if(delta.length()<1.2&&Math.abs(u.pos.y-goal[2])<.3){reached=true;break;}
+          g.physics(u,delta.normalize(),false,false,.05);
+          assert(Math.abs(u.pos.y-start[2])<.5,'交差点で階を移らない '+[chassis,c.x,c.z,upper]);
+        }
+        assert(reached,'立体交差の実走 '+[chassis,c.x,c.z,upper,sign,JSON.stringify(u.pos.toArray())]);
+        crossings.push({chassis,x:c.x,z:c.z,upper,sign,seconds:n*.05});
+        const hit=g.castFrom(new T.Vector3(c.x,-5.6,c.z),new T.Vector3(0,1,0),u,8);
+        assert(hit&&Math.abs(hit.point.y+1)<.05,'下段から上段へ撃ち抜けない '+[c.x,c.z]);
       }
       for(const chassis of ['light','heavy'])for(let i=0;i<g.ziplines.length;i++){
         const zip=g.ziplines[i];u.mech={head:chassis,body:chassis,arms:chassis,legs:chassis,color:'team'};
@@ -105,7 +145,7 @@ fs.mkdirSync(outputDir, {recursive:true});
         assert(u.onGround&&miss<6,'カタパルトの着地 '+[chassis,cp.side,cp.pos.x,miss]);
         catapults.push({chassis,team:cp.side,from:cp.pos.toArray(),landing:u.pos.toArray(),miss});
       }
-      return {checks:checks.length,routes,roofs,catapults,boxes:d.layout.length,nav:N.pts.length,links:N.links.length};
+      return {checks:checks.length,routes,roofs,catapults,crossings,boxes:d.layout.length,nav:N.pts.length,links:N.links.length};
     });
     console.log('施設・徒歩・屋上',JSON.stringify(result));
     if(mode==='--features-only'){

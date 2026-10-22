@@ -228,7 +228,7 @@ def navigation(boxes, half, extras):
     return {'nodes':[nodes[i] for i in ordered], 'links':[[remap[a],remap[b]] for a,b in links if a in seen and b in seen]}
 
 
-def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), cell=4):
+def make_flat_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), cell=4):
     cells, roads, info = load_osm(source,center,rotation,half,cell)
     layout = [box+['office'] for box in rectangles(cells,cell)]
     if not layout:
@@ -323,6 +323,162 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
     return data,roads
 
 
+def terrain_height(features,x,z):
+    def smooth(t):
+        t=max(0,min(1,t));return t*t*(3-2*t)
+    up=down=0
+    for f in features:
+        if f['type']=='mesa':h=f['h']*(1-smooth((math.hypot(x-f['x'],z-f['z'])-f['r'])/f['slope']))
+        elif f['type']=='hill':
+            d=math.hypot(x-f['x'],z-f['z']);h=0 if d>=f['r'] else f['h']*(1+math.cos(math.pi*d/f['r']))/2
+        else:
+            d=math.hypot(max(0,abs(x-f['x'])-f['w']),max(0,min(f['z0'],f['z1'])-z,z-max(f['z0'],f['z1'])))
+            h=f['h']*(1-smooth(d/f['slope']))
+        if h>0:up=max(up,h)
+        else:down+=h
+    return up+down
+
+
+def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), cell=4, revision=2):
+    if revision==1:return make_flat_map(source,center,rotation,half,cell)
+    if tuple(center)!=(139.6918,35.68975) or rotation!=12 or half[0]!=300 or half[1]<300:
+        raise ValueError('新版は都庁周辺の補正プロファイルです。別の範囲は --revision 1 を指定してください')
+    half=(half[0],min(300,half[1]))
+    d,roads=make_flat_map(source,center,rotation,half,cell)
+    info=d['generation'];layout=d['layout'][:info['buildingBoxes']]
+    terrain=[{'type':'mesa','x':-188,'z':-20,'r':28,'h':18,'slope':62},
+             {'type':'mesa','x':-208,'z':-155,'r':23,'h':9,'slope':37},
+             {'type':'hill','x':-180,'z':195,'r':45,'h':7}]
+    # 横道は8m下、縦道は地上。入口は歩いて往復できる勾配にする。
+    crossings=[]
+    for z in [-75,114]:
+        terrain.append({'type':'trench','x':100,'z0':z-10,'z1':z+10,'w':190,'h':-8,'slope':24})
+        for x in [44,168]:crossings.append({'x':x,'z':z,'lower':-8,'upper':0,'width':28,'length':76})
+    H=lambda x,z:terrain_height(terrain,x,z)
+    # 議事堂の接続部は上層。平面の建物輪郭で縦道を塞がず、下を通せる形へ分ける。
+    concourses=[]
+    for cx,cz in [(44,-34),(44,86)]:
+        changed=[]
+        for bx,bz,bw,bd,bh,*kind in layout:
+            x0,x1,z0,z1=bx-bw/2,bx+bw/2,bz-bd/2,bz+bd/2
+            a,b,c,e=max(x0,cx-14),min(x1,cx+14),max(z0,cz-6),min(z1,cz+6)
+            if a>=b or c>=e or bh<=12:
+                changed.append([bx,bz,bw,bd,bh,*kind]);continue
+            for left,right,top,bottom in [(x0,a,z0,z1),(b,x1,z0,z1),(a,b,z0,c),(a,b,e,z1)]:
+                if right-left>.01 and bottom-top>.01:changed.append([(left+right)/2,(top+bottom)/2,right-left,bottom-top,bh,*kind])
+            height=bh+max(H(x0,z0),H(x0,z1),H(x1,z0),H(x1,z1),H(bx,bz))
+            concourses.append([(a+b)/2,(c+e)/2,b-a,e-c,height,height-8])
+        layout=changed
+    building_boxes=len(layout)
+    bases={'B':{'at':[-236,250],'radius':50},'R':{'at':[54,-234],'radius':50}}
+    collision=Collision(layout)
+    plants=[]
+    targets=[(-188,-20),(90,5),(-208,-155),(235,-130)]
+    for label,(tx,tz) in zip('ABCD',targets):
+        candidates=[]
+        for x in range(int(tx)-60,int(tx)+61,4):
+            for z in range(int(tz)-60,int(tz)+61,4):
+                if abs(x)>half[0]-28 or abs(z)>half[1]-60:continue
+                if any(math.dist([x,z],b['at'])<180 for b in bases.values()):continue
+                if any(math.hypot(x-px,z-pz)<110 for _,px,pz,_ in plants):continue
+                h=H(x,z)
+                if not all(collision.free(x+dx,z+dz) and abs(H(x+dx,z+dz)-h)<.4 for dx,dz in [(0,0),(-17,0),(17,0),(0,-17),(0,17),(-12,-12),(12,-12),(-12,12),(12,12)]):continue
+                good=True
+                for base in bases.values():
+                    bx,bz=base['at'];length=math.hypot(bx-x,bz-z);ux,uz=(bx-x)/length,(bz-z)/length
+                    for dist in [46,49,52]:
+                        for side in [-8,0,8]:
+                            sx,sz=x+ux*dist-uz*side,z+uz*dist+ux*side
+                            if not collision.free(sx,sz) or abs(sx)>half[0]-4 or abs(sz)>half[1]-4:good=False
+                if good:candidates.append((math.hypot(x-tx,z-tz),x,z))
+        if not candidates:raise ValueError('新配置のプラント'+label+'を安全に設置できません')
+        _,x,z=min(candidates);plants.append([label,x,z,None])
+    # 旧版で落としていた縦道の高架区間・横道の下層も取り込む。
+    raw=ET.parse(source).getroot();nodes={e.get('id'):(float(e.get('lon')),float(e.get('lat')))for e in raw.findall('node')}
+    c,s=math.cos(math.radians(rotation)),math.sin(math.radians(rotation))
+    def point(ref):
+        lon,lat=nodes[ref];x=math.radians(lon-center[0])*6371008.8*math.cos(math.radians(center[1]));z=-math.radians(lat-center[1])*6371008.8
+        return [x*c-z*s,x*s+z*c]
+    names={'ふれあい通り','中央通り','都庁通り','議事堂通り'}
+    for e in raw.findall('way'):
+        t=tags(e)
+        if t.get('name')not in names or t.get('highway')!='secondary':continue
+        refs=[v.get('ref')for v in e.findall('nd')]
+        if all(ref in nodes for ref in refs) and not any(r['id']==e.get('id')for r in roads):roads.append({'id':e.get('id'),'points':[point(ref)for ref in refs],'kind':'secondary'})
+    paint=road_paint(roads,half,cell)
+    on_road=lambda x,z:any(abs(x-rx)<=rw/2 and abs(z-rz)<=rd/2 for rx,rz,rw,rd,*_ in paint)
+    covers=[]
+    for tx,tz in [(-75,40),(80,-75),(220,114),(-270,-100),(-270,120),(190,260)]:
+        candidates=[]
+        for dx in range(-40,41,4):
+            for dz in range(-40,41,4):
+                x,z=tx+dx,tz+dz;h=H(x,z)
+                if abs(x)>half[0]-16 or abs(z)>half[1]-16:continue
+                if any(math.hypot(x-px,z-pz)<65 for _,px,pz,_ in plants):continue
+                if any(math.dist([x,z],b['at'])<65 for b in bases.values()):continue
+                if all(collision.free(x+a,z+b) and abs(H(x+a,z+b)-h)<.15 and on_road(x+a,z+b) for a in [-8,0,8] for b in [-3,0,3]):candidates.append((math.hypot(dx,dz),x,z))
+        if candidates:
+            _,x,z=min(candidates);covers.append([x,z,12,5,4.5,'container'])
+    layout.extend(covers)
+    roofs=info['roofs'];bridges=[[r['cover'][0],r['cover'][1],7,5,r['cover'][2],3]for r in roofs]+concourses
+    for crossing in crossings:
+        x,z=crossing['x'],crossing['z'];bridges.append([x,z,28,76,0,1]);paint.append([x,z,28,76,0,.025])
+    # 屋上からも補給点を狙いにくい、屋根つきの中立補給所。
+    pods=[]
+    for p in [plants[0],plants[2]]:
+        label,x,z,_=p;choices=[]
+        for dx,dz in [(-38,0),(38,0),(0,38),(0,-38)]:
+            px,pz=x+dx,z+dz
+            if all(collision.free(px+a,pz+b) for a in [-13,0,13]for b in [-13,0,13]):choices.append((px,pz))
+        if not choices:continue
+        px,pz=choices[0];pods.append([label,px,pz]);floor=H(px,pz)
+        layout.extend([[px,pz-10,26,3,8,'baseWall'],[px-14,pz,3,22,8,'baseWall'],[px+14,pz,3,22,8,'baseWall']])
+        bridges.append([px,pz,30,25,floor+8,1])
+    # 射出台の飛行弧を建物・盛り土と照合し、街区の中へ飛ばす。
+    def clear_flight(start,end):
+        for i in range(1,56):
+            t=i/56;x=start[0]+(end[0]-start[0])*t;z=start[1]+(end[1]-start[1])*t
+            y=H(*start)+(H(*end)-H(*start))*t+(.5*34*2.8**2)*t*(1-t)
+            if y<H(x,z)-.1:return False
+            if any(abs(x-bx)<bw/2+2 and abs(z-bz)<bd/2+2 and y<H(bx,bz)+bh for bx,bz,bw,bd,bh,*_ in layout):return False
+        return True
+    for team,goals in [('B',[(-265,145),(-100,180)]),('R',[(44,-110),(180,-225)])]:
+        base=bases[team];bx,bz=base['at'];sign=1 if team=='B'else-1;cats=[]
+        for off,target in zip([-18,18],goals):
+            start=[bx+off,bz-sign*20];candidates=[]
+            for dx in range(-40,41,4):
+                for dz in range(-40,41,4):
+                    x,z=target[0]+dx,target[1]+dz
+                    if all(collision.free(x+a,z+b)for a in [-6,0,6]for b in [-6,0,6]) and clear_flight(start,[x,z]):candidates.append((math.hypot(dx,dz),x,z))
+            if not candidates:raise ValueError('射出台の着地点を確保できません '+team)
+            _,x,z=min(candidates);cats.append([*start,x,z])
+        base['catapults']=cats
+    navpoints=[]
+    for x in range(-int(half[0])+12,int(half[0]),32):
+        for z in range(-int(half[1])+12,int(half[1]),32):navpoints.append([x,z,H(x,z)])
+    for crossing in crossings:
+        x,z=crossing['x'],crossing['z']
+        navpoints.extend([[x,z+dz,0]for dz in [-42,-20,0,20,42]])
+        navpoints.extend([[x+dx,z,-8]for dx in [-42,-20,0,20,42]])
+    for base in bases.values():
+        x,z=base['at'];navpoints.append([x+8,z+(20 if z<0 else-20),0])
+        for ax,az,lx,lz in base['catapults']:navpoints.extend([[ax,az,H(ax,az)],[lx,lz,H(lx,lz)]])
+    for _,x,z,_ in plants:navpoints.append([x+6,z+3,H(x+6,z+3)])
+    info.update({'version':2,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
+                 'roadCover':covers,'roadPaintBoxes':len(paint),'baseApproaches':[],'crossings':crossings,
+                 'roadWays':len(roads),'concourses':concourses,
+                 'navPoints':navpoints,'minimumPlantBaseDistance':180,'parkPeaks':[[-188,-20,18],[-208,-155,9]],
+                 'routeProbes':[]})
+    d.update({'size':[half[0]+24,half[1]+16],'baseZ':half[1]+8,'baseLine':half[1]-8,'bases':bases,
+              'terrain':terrain,'layout':layout,'plants':plants,'turrets':[[-18,half[1]+8-31],[18,half[1]+8-31]],
+              'radar':[-21,half[1]+8+18],'catapults':[],'basePods':[[-15,half[1]+8-12],[15,half[1]+8-12]],
+              'plantPods':pods,'bridges':bridges,'roads':[],'roadsFollowTerrain':True,'nav':{'nodes':[],'links':[]},
+              'subtitle':'公園高地と立体街路','desc':'公園の盛り土と都心の立体街路。基地は街区内に置き、街路と公園の中立プラントを奪い合う。地理データ © OpenStreetMap contributors / ODbL。'})
+    for b in paint:
+        d['roads'].append(b[:4]+([0]if len(b)>5 and b[4]==0 else[]))
+    return d,roads
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('source',type=pathlib.Path)
@@ -332,12 +488,13 @@ def main():
     p.add_argument('--rotation',type=float,default=12)
     p.add_argument('--half',nargs=2,type=float,default=[300,350])
     p.add_argument('--cell',type=int,default=4)
+    p.add_argument('--revision',type=int,choices=[1,2],default=2)
     args=p.parse_args()
     if not re.fullmatch('[a-z][a-z0-9_]*',args.id):p.error('マップIDは英小文字・数字・_にしてください')
     if not all(math.isfinite(v) for v in [*args.center,*args.half,args.rotation]) or not (-180<=args.center[0]<=180 and -85<=args.center[1]<=85):p.error('中心・回転・範囲は有限の数、緯度は±85度以内にしてください')
     if args.cell<2 or args.cell>8 or any(h<100 or h>600 for h in args.half):p.error('セルは2〜8m、範囲は各辺200〜1200mにしてください')
     try:
-        data,roads=make_map(args.source,tuple(args.center),args.rotation,tuple(args.half),args.cell)
+        data,roads=make_map(args.source,tuple(args.center),args.rotation,tuple(args.half),args.cell,args.revision)
     except (ValueError,ET.ParseError,OSError) as error:
         p.error(str(error))
     args.output.parent.mkdir(parents=True,exist_ok=True)
