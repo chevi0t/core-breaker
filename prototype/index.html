@@ -1409,6 +1409,24 @@ const obstacles = [];
 const hittables = [];
 const concrete = new T.MeshLambertMaterial({ color: 0xb7b1a2 });
 // 斜面に置くときは低い側の地面まで埋め、高い側の地面から h の高さにする。メッシュと上面・底の高さを返す
+const cityRoadMaterial = new T.MeshLambertMaterial({color:0x46515a});
+// 任意の平坦な街路。矩形を1メッシュへまとめ、段差や移動の障害物は増やさない。
+function buildRoads(list = []) {
+  if (!list.length) return;
+  const positions = [];
+  for (const [x, z, w, d] of list) {
+    const x0=x-w/2, x1=x+w/2, z0=z-d/2, z1=z+d/2;
+    positions.push(x0,.025,z0, x0,.025,z1, x1,.025,z1,
+                   x0,.025,z0, x1,.025,z1, x1,.025,z0);
+  }
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  const mesh = new T.Mesh(geometry, cityRoadMaterial);
+  mesh.name='city-road-surface'; mesh.receiveShadow=true;
+  mapRoot.add(mesh);
+}
+
 function addBox(x, z, w, d, h, mat = concrete) {
   const hs = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]].map(([a, b]) => terrainH(x + a * w / 2, z + b * d / 2));
   const bottom = Math.min(...hs), top = Math.max(...hs) + h;
@@ -1501,18 +1519,34 @@ function addParapet(x, z, w, d, top, mat) {
 }
 // 障害物（中央をはさんで点対称に置く）と外周の壁
 const wallMat = new T.MeshLambertMaterial({ color: 0x6c6a63 });
+const cityOfficeRoofMaterial = new T.MeshLambertMaterial({color:BASE_COLORS.office});
 function buildBoxes(layout) {
-  const roofs = {};
+  const roofs = {}, city = {side:{p:[],n:[],uv:[]}, roof:{p:[],n:[],uv:[]}};
+  let citySideMaterial = null;
   for (const [x, z, w, d, h, kind] of layout) for (const s of placementSigns(x, z)) {
     if (!KINDS.includes(kind)) { addBox(x * s, z * s, w, d, h); continue; }
     // 色は自軍側の座標で決める（敵軍側の点対称の建物も同じ色）
     const color = kind === 'house' ? WALL_COLORS[Math.floor(hash01(x * 1.7 + 3, z * 2.3) * WALL_COLORS.length)] : BASE_COLORS[kind] || STONE[kind];
     const bx = addBox(x * s, z * s, w, d, h, kindMat(kind, color));
     if (['office','barracks','prefab','trailer'].includes(kind)) {
-      const side=bx.m.material,roof=new T.MeshLambertMaterial({color});
+      const side=bx.m.material,roof=curMap.batchBuildings&&kind==='office'?cityOfficeRoofMaterial:new T.MeshLambertMaterial({color});
       bx.m.material=[side,side,roof,roof,side,side]; // 窓は側面。屋根へ繰り返さない。
     }
     tileUV(bx.m.geometry, w, bx.top - bx.bottom, d);
+    if (curMap.batchBuildings && kind === 'office') {
+      // 箱ごとの衝突は残し、同じ材質の表示と射撃面だけをまとめる。
+      const geo=bx.m.geometry.toNonIndexed(), p=geo.attributes.position, n=geo.attributes.normal, uv=geo.attributes.uv;
+      citySideMaterial=bx.m.material[0];
+      for(const group of geo.groups){
+        const out=group.materialIndex===2||group.materialIndex===3?city.roof:city.side;
+        for(let i=group.start;i<group.start+group.count;i++){
+          out.p.push(p.getX(i)+bx.m.position.x,p.getY(i)+bx.m.position.y,p.getZ(i)+bx.m.position.z);
+          out.n.push(n.getX(i),n.getY(i),n.getZ(i)); out.uv.push(uv.getX(i),uv.getY(i));
+        }
+      }
+      mapRoot.remove(bx.m); hittables.splice(hittables.indexOf(bx.m),1);
+      bx.m.geometry.dispose(); geo.dispose();
+    }
     if (kind === 'house') addRoof(roofs, x * s, z * s, w, d, bx.top, ROOF_COLORS[Math.floor(hash01(x * 0.7 - 5, z * 1.3) * ROOF_COLORS.length)], color);
     if (kind === 'tower') addParapet(x * s, z * s, w, d, bx.top, kindMat(kind, color));
     if (kind === 'trailer') {
@@ -1522,6 +1556,11 @@ function buildBoxes(layout) {
         wheel.position.set(x*s+side*(w/2-.2),bx.bottom+.8,z*s+end*d*.3);mapRoot.add(wheel);
       }
     }
+  }
+  if(citySideMaterial)for(const key of ['side','roof']){
+    const mesh=accMesh(city[key],key==='side'?citySideMaterial:cityOfficeRoofMaterial);
+    mesh.name='city-building-'+key; mesh.castShadow=mesh.receiveShadow=true;
+    mapRoot.add(mesh); hittables.push(mesh);
   }
   for (const [key, pos] of Object.entries(roofs)) {
     const geo = new T.BufferGeometry();
@@ -2863,6 +2902,7 @@ function buildMap(id) {
   TEAM.B.baseZ = def.baseZ; TEAM.R.baseZ = -def.baseZ;
   bakeTerrain(def.terrain);
   buildGround();
+  buildRoads(def.roads);
   buildBoxes(def.layout);
   buildWater(def.water);
   buildBridges(def.bridges);

@@ -60,6 +60,14 @@ function check(d) {
   }
   // 任意の項目
   if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
+  if (d.batchBuildings !== undefined && typeof d.batchBuildings !== 'boolean') E('batchBuildings は true か false');
+  if (d.roads !== undefined) {
+    if (!Array.isArray(d.roads)) E('roads は [x,z,幅,奥行き] の配列');
+    else for (const r of d.roads) {
+      if (!Array.isArray(r) || r.length!==4 || !r.every(num) || r[2]<=0 || r[3]<=0) E('道路は [x,z,正の幅,正の奥行き]');
+      else inMap(r[0],r[1],'道路');
+    }
+  }
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
   if (d.baseDefense !== undefined) {
     const cfg=d.baseDefense;
