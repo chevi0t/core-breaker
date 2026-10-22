@@ -8065,35 +8065,49 @@ function viewAim(u) {
   return hit ? hit.point : from.addScaledVector(dir, 300);
 }
 function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
-// 捕捉と照準を分離。目標の角移動だけを弱く追い、外れた照準を敵へ引き戻さない。
+// 捕捉と射線を分離。目標の角移動を短い遅れで追い、手動の照準ずれや射撃反動は打ち消さない。
 function lockFollow(u, dt) {
-  if (!lock.target || !lock.visible) { lock.prevAng = null; return; }
+  if (!lock.target || !lock.visible) { lock.prevAng = null; lock.lagYaw = lock.lagPitch = 0; return; }
   const t = lock.target, a = anglesTo(u, targetPoint(t));
-  if (lock.prevAng) {
-    const frac = t.dashState === 'short' ? LOCK_TRACK_SHAKEN : LOCK_TRACK, cap = LOCK_MAX_RATE * dt;
-    u.yaw += Math.max(-cap, Math.min(cap, wrapAngle(a.yaw - lock.prevAng.yaw) * frac));
-    u.pitch = Math.max(-.9, Math.min(.7, u.pitch + Math.max(-cap, Math.min(cap, (a.pitch - lock.prevAng.pitch) * frac))));
+  if (lock.prevAng && dt > 0) {
+    const dy = wrapAngle(a.yaw - lock.prevAng.yaw), dp = a.pitch - lock.prevAng.pitch;
+    const tau = t.dashState === 'short' ? LOCK_DASH_TIME : LOCK_FOLLOW_TIME, x = dt / tau;
+    const decay = Math.exp(-x), weight = -Math.expm1(-x) / x;
+    const oldY = lock.lagYaw || 0, oldP = lock.lagPitch || 0;
+    // 角速度が一定なら時間刻みを変えても同じ遅れになる。遠近で避け幅が変わり過ぎないようmで制限。
+    let nextY = oldY * decay + dy * weight, nextP = oldP * decay + dp * weight;
+    const limit = Math.atan2(LOCK_LAG_METERS, Math.max(1, u.pos.distanceTo(t.pos))), length = Math.hypot(nextY, nextP);
+    if (length > limit) { nextY *= limit / length; nextP *= limit / length; }
+    const sy = dy + oldY - nextY, sp = dp + oldP - nextP;
+    const scale = Math.min(1, LOCK_MAX_RATE * dt / Math.max(1e-9, Math.hypot(sy, sp)));
+    const yaw = sy * scale, pitch = Math.max(-.9, Math.min(.7, u.pitch + sp * scale)) - u.pitch;
+    u.yaw += yaw; u.pitch += pitch;
+    lock.lagYaw = wrapAngle(oldY + dy - yaw); lock.lagPitch = oldP + dp - pitch;
+  } else if (!lock.prevAng) {
+    lock.lagYaw = lock.lagPitch = 0;
   }
   lock.prevAng = a;
 }
 function anglesTo(u, p) {
   const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
-  return { yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)) };
+  // 肩越しの横幅を含む基準角。実際の視点角を読まず、マウス入力や反動を追従へ混ぜない。
+  const range = Math.max(.01, Math.hypot(d.x, d.z)), side = Math.min(CAM.side / range, .99);
+  return { yaw: wrapAngle(Math.atan2(-d.x, -d.z) + Math.asin(side)), pitch: Math.atan2(d.y, range * Math.sqrt(1 - side * side)) };
 }
 
 // ---- ロックオン ----
-// 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。外側の円（KEEP_R）から外れるか、射程外・遮蔽で解除。
+// 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。保持円の範囲外は0.25秒の猶予、射程外・遮蔽などは通常の条件で解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
-// 捕捉の範囲と時間を保ち、照準の自動追従だけを弱める。
+// 捕捉の範囲と時間を保ち、短い切り返しで保持範囲をはみ出しても即解除しない。
 const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42, ACQ_TIME = 0.15;
-// 自動追従は目標の角移動の25%、ショートダッシュ中は8%。捕捉を保っても手で狙い直す余地を残す。
-// 静止した相手への引き戻しと反動の自動補償は行わない。上限は毎秒0.8rad。
-const LOCK_TRACK = .25, LOCK_TRACK_SHAKEN = .08, LOCK_MAX_RATE = .8;
+// 移動を追う遅れは通常0.06秒、ショートダッシュ0.12秒。遅れは目標位置で1.7mを目安に抑える。
+// 静止した相手への引き戻しと反動の自動補償は行わない。旋回上限4rad/秒、範囲外の猶予0.25秒。
+const LOCK_FOLLOW_TIME = .06, LOCK_DASH_TIME = .12, LOCK_LAG_METERS = 1.7, LOCK_MAX_RATE = 4, LOCK_KEEP_GRACE = .25;
 // ロックオン中は画角を LOCK_ZOOM 分の1にして目標を大きく見せる（v0.10.2、ユーザー指定「1.3倍程度のズーム」）。視点の感度も画角に合わせて細かくなる
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null };
+const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, lagYaw: 0, lagPitch: 0, edgeT: 0 };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8104,10 +8118,10 @@ function screenOf(e) {
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
 function setLock(e) {
-  Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null });
+  Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null, lagYaw: 0, lagPitch: 0, edgeT: 0 });
   sfx('lock');
 }
-function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false }); }
+function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false, prevAng: null, lagYaw: 0, lagPitch: 0, edgeT: 0 }); }
 // 副武器は自由に置き撃ちする。ミサイルも通常ロックではなく専用の捕捉だけを使う。
 const normalLockAllowed = u => u.weapon !== 'sub' && !u.slots?.[u.weapon]?.w.noLock;
 function lockUpdate(u, dt) {
@@ -8129,7 +8143,8 @@ function lockUpdate(u, dt) {
     lock.losT -= dt;
     if (lock.losT <= 0) { lock.losT = 0.15; lock.visible = seen(lock.target); }
     lock.lostT = lock.visible ? 0 : lock.lostT + dt;
-    if (!cur || cur.d > KEEP_R * keepScale() || lock.lostT > 0.6) releaseLock();
+    lock.edgeT = cur && cur.d > KEEP_R * keepScale() ? (lock.edgeT || 0) + dt : 0;
+    if (!cur || lock.edgeT > LOCK_KEEP_GRACE || lock.lostT > 0.6) releaseLock();
   }
   if (pressed.KeyQ) {
     // 外側の円の中で、次に照準に近い敵へ切り替え
