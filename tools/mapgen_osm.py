@@ -370,10 +370,11 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
             concourses.append([(a+b)/2,(c+e)/2,b-a,e-c,height,height-8])
         layout=changed
     building_boxes=len(layout)
-    bases={'B':{'at':[-236,250],'radius':50},'R':{'at':[54,-234],'radius':50}}
+    # 橙基地は右上角。Dは北側街路へ移し、基地との180mと再出撃帯を保つ。
+    bases={'B':{'at':[-236,250],'radius':50},'R':{'at':[270,-260],'radius':50}}
     collision=Collision(layout)
     plants=[]
-    targets=[(-188,-20),(90,5),(-208,-155),(235,-130)]
+    targets=[(-188,-20),(90,5),(-208,-155),(86,-196)]
     for label,(tx,tz) in zip('ABCD',targets):
         candidates=[]
         for x in range(int(tx)-60,int(tx)+61,4):
@@ -442,7 +443,7 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
             if y<H(x,z)-.1:return False
             if any(abs(x-bx)<bw/2+2 and abs(z-bz)<bd/2+2 and y<H(bx,bz)+bh for bx,bz,bw,bd,bh,*_ in layout):return False
         return True
-    for team,goals in [('B',[(-265,145),(-100,180)]),('R',[(44,-110),(180,-225)])]:
+    for team,goals in [('B',[(-265,145),(-100,180)]),('R',[(180,-265),(280,-120)])]:
         base=bases[team];bx,bz=base['at'];sign=1 if team=='B'else-1;cats=[]
         for off,target in zip([-18,18],goals):
             start=[bx+off,bz-sign*20];candidates=[]
@@ -464,7 +465,7 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
         x,z=base['at'];navpoints.append([x+8,z+(20 if z<0 else-20),0])
         for ax,az,lx,lz in base['catapults']:navpoints.extend([[ax,az,H(ax,az)],[lx,lz,H(lx,lz)]])
     for _,x,z,_ in plants:navpoints.append([x+6,z+3,H(x+6,z+3)])
-    info.update({'version':2,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
+    info.update({'version':2,'placementRevision':3,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
                  'roadCover':covers,'roadPaintBoxes':len(paint),'baseApproaches':[],'crossings':crossings,
                  'roadWays':len(roads),'concourses':concourses,
                  'navPoints':navpoints,'minimumPlantBaseDistance':180,'parkPeaks':[[-188,-20,18],[-208,-155,9]],
