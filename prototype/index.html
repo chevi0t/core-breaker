@@ -6644,7 +6644,7 @@ function equip(u, cls) {
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
   Object.assign(u, {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
-    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
+    lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, recoilDamping: 0, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
     swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
@@ -6956,11 +6956,14 @@ function baseKick(w) { return w.recoil ?? (w.type === 'cannon' ? 0.02 : w.proj ?
 // 高速連射は1発の縦横反動を抑える。600発/分以下・単発・充填撃ちは元の跳ねを保つ（本作調整）。
 function recoilRateScale(w) { return w.type === 'gun' && !w.semi && !w.chargeTime && w.rpm > 600 ? 600 / w.rpm : 1; }
 function recoilRecover(u, dt) {
-  const wait = u.recoilWait || 0, recoverDt = Math.max(0, dt - wait), step = (u.recoilRecovery || .04) * recoverDt;
+  const wait = u.recoilWait || 0, recoverDt = Math.max(0, dt - wait), rate = u.recoilRecovery || .04, damping = u.recoilDamping || 0;
   u.recoilWait = Math.max(0, wait - dt);
-  u.recoil = Math.max(0, u.recoil - step);
+  // 高レートの主武器は連射中も蓄積量に比例して戻す（本作調整、係数2/秒）。
+  // 待機後の定速回復も含めて積分し、時間刻みで戻り方が変わらず、0を越えて振動しない。
+  const factor = Math.exp(-damping * dt), step = damping ? rate * -Math.expm1(-damping * recoverDt) / damping : rate * recoverDt;
+  u.recoil = Math.max(0, u.recoil * factor - step);
   const yaw = u.recoilYaw || 0;
-  u.recoilYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - step);
+  u.recoilYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) * factor - step);
 }
 function recoilKick(u, w) {
   const scale = recoilRateScale(w), kick = baseKick(w) * scale, sideways = (w.recoilH || 0) * scale, absorb = u.recoilAbsorb || 1;
@@ -6970,6 +6973,7 @@ function recoilKick(u, w) {
   u.recoil = Math.min(Math.max(cap, u.recoil), u.recoil + kick / absorb);
   if (sideways) u.recoilYaw = Math.max(-.14 / absorb, Math.min(.14 / absorb, (u.recoilYaw || 0) + (Math.random() * 2 - 1) * sideways / absorb));
   u.recoilWait = w.recoilDelay || 0; u.recoilRecovery = w.recoilRecovery || .04;
+  u.recoilDamping = scale < 1 && w.recoilH !== undefined ? 2 : 0;
 }
 // 弾の照準を反動のぶん上下・左右へずらす。プレイヤーとBotで同じ角度の計算を使う。
 function recoilAim(from, aim, recoil, sideways = 0) {
