@@ -1,0 +1,143 @@
+{
+  "checkedAt": "2026-10-22",
+  "areaCode": "13104",
+  "areaName": "新宿区",
+  "year": 2025,
+  "officialDatasetUrl": "https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025",
+  "viewerMetadataUrl": "https://plateauview.mlit.go.jp/data.json",
+  "publicCatalogUrl": "https://api.plateau.reearth.io/datacatalog/graphql",
+  "referenceCenter": [
+    139.6918,
+    35.68975
+  ],
+  "tilesets": [
+    {
+      "type": "bldg",
+      "status": 200,
+      "bytes": 422113,
+      "sha256": "95cf280a817c068a777d5a233d60a2184d6cfd18d35c7f3a1db10bb84443a9bf",
+      "asset": {
+        "version": "1.0"
+      },
+      "rootBounds": {
+        "region": [
+          2.4377588330358337,
+          0.6226205702118042,
+          2.4390006371603223,
+          0.6236013588036484,
+          53.00080678268509,
+          332.2867915324242
+        ]
+      },
+      "transform": null,
+      "children": 4,
+      "content": {
+        "boundingVolume": {
+          "region": [
+            2.437986992791212,
+            0.6226205702118042,
+            2.4387438498147476,
+            0.6233283778185209,
+            53.00080678268509,
+            332.2867915324242
+          ]
+        },
+        "uri": "data/data708.b3dm"
+      },
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/tileset.json"
+    },
+    {
+      "type": "tran",
+      "status": 200,
+      "bytes": 102342,
+      "sha256": "a894709a4e320bf801816fb701010448ddda0556afae6c5e3fc562085392ebf6",
+      "asset": {
+        "version": "1.0"
+      },
+      "rootBounds": {
+        "region": [
+          2.4379710702879858,
+          0.6225005206794891,
+          2.4388841371015793,
+          0.6235252607939761,
+          45.88037909203264,
+          103.57510172836945
+        ]
+      },
+      "transform": null,
+      "children": 3,
+      "content": {
+        "boundingVolume": {
+          "region": [
+            2.4379823742738043,
+            0.6226893796487948,
+            2.4388841371015793,
+            0.6230374950769194,
+            45.88037909203264,
+            103.57510172836945
+          ]
+        },
+        "uri": "data/data172.b3dm"
+      },
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/tileset.json"
+    },
+    {
+      "type": "brid",
+      "status": 200,
+      "bytes": 3932,
+      "sha256": "9686dff4be5526d3de9a9d8820d8e6f9dc92aa68f88f95364ca60122b63c16c2",
+      "asset": {
+        "version": "1.0"
+      },
+      "rootBounds": {
+        "region": [
+          2.438000369141225,
+          0.622573021980888,
+          2.439257352186196,
+          0.6231834125886777,
+          36.00499336668209,
+          106.65765007600211
+        ]
+      },
+      "transform": null,
+      "children": 3,
+      "content": {
+        "boundingVolume": {
+          "region": [
+            2.4380625307667634,
+            0.6227091852277035,
+            2.439257352186196,
+            0.6231834125886777,
+            36.00499336668209,
+            106.65765007600211
+          ]
+        },
+        "uri": "data/data6.b3dm"
+      },
+      "url": "https://assets.cms.plateau.reearth.io/assets/b6/517a79-3af1-4c70-b7e1-01accf55e3f5/13104_shinjuku-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/tileset.json"
+    }
+  ],
+  "buildingSample": {
+    "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data647.b3dm",
+    "bytes": 334632,
+    "sha256": "472438cbbaad20b060740dbab67b8ba85c2a48af1ca192126a99edccacdf229a",
+    "boundsRadians": [
+      2.4380656722131895,
+      0.6228903078154883,
+      2.438112192124098,
+      0.622929262204768,
+      71.28106920285931,
+      332.2867915324242
+    ],
+    "gltfExtensions": [
+      "CESIUM_RTC",
+      "KHR_draco_mesh_compression"
+    ],
+    "meshes": 1
+  },
+  "gsiReference": {
+    "elevation": 35,
+    "hsrc": "1m（レーザ）"
+  },
+  "status": "取得と形式確認のみ。ゲームへの取り込み・形状復号・地形プレビューは未実装。"
+}
