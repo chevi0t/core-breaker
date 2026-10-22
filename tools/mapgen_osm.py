@@ -374,7 +374,7 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
     bases={'B':{'at':[-236,250],'radius':50},'R':{'at':[270,-260],'radius':50}}
     collision=Collision(layout)
     plants=[]
-    targets=[(240,220),(0,0),(-208,-155)]
+    targets=[(240,220),(60,44),(-208,-155)]
     for label,(tx,tz) in zip('ABC',targets):
         candidates=[]
         for x in range(int(tx)-60,int(tx)+61,4):
@@ -474,7 +474,7 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
         x,z=base['at'];navpoints.append([x+8,z+(20 if z<0 else-20),0])
         for ax,az,lx,lz in base['catapults']:navpoints.extend([[ax,az,H(ax,az)],[lx,lz,H(lx,lz)]])
     for _,x,z,_ in plants:navpoints.append([x+6,z+3,H(x+6,z+3)])
-    info.update({'version':2,'placementRevision':5,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
+    info.update({'version':2,'placementRevision':6,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
                  'roadCover':covers,'roadPaintBoxes':len(paint),'baseApproaches':[],'crossings':crossings,
                  'roadWays':len(roads),'concourses':concourses,
                  'navPoints':navpoints,'minimumPlantBaseDistance':180,'parkPeaks':[[-188,-20,18],[-208,-155,9]],

@@ -96,7 +96,7 @@ const d=JSON.parse(fs.readFileSync(mapFile)).map;
     }catch(e){row.ok=false;row.reason=e.message;}
     runs.push(row);
    }
-   return{plant:b.pos.toArray(),plantSiteChecks:'占拠域9点、両軍の出撃帯各9点に成功',goal:goal.toArray(),conditions:'初期の強襲装備を固定。全身軽量/重量各1回。基地前の固定点→B付近。徒歩、射出中は入力なし、ブーストなし。着地硬直を含む。候補は未採用。',runs};
+   return{plant:b.pos.toArray(),plantSiteChecks:'占拠域9点、両軍の出撃帯各9点に成功',goal:goal.toArray(),conditions:'初期の強襲装備を固定。全身軽量/重量各1回。基地前の固定点→B付近。徒歩、射出中は入力なし、ブーストなし。着地硬直を含む。射出先の試行はマップへ保存しない。',runs};
   },process.argv.includes('--existing-only'));
   result.errors=errors;
   fs.mkdirSync(path.dirname(path.resolve(outFile)),{recursive:true});fs.writeFileSync(outFile,JSON.stringify(result,null,2));
