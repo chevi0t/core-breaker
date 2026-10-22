@@ -1,0 +1,346 @@
+{
+  "date": "2026-10-22",
+  "basis": "ユーザー委任による本作独自の操作感調整。AC転記はprimary-recoil.jsonに保存。角度はレート・腕部補正前の度。",
+  "categories": {
+    "rifle": {
+      "delay": 0.08,
+      "recovery": 0.075,
+      "damping": 2.2
+    },
+    "burst": {
+      "delay": 0.08,
+      "recovery": 0.08,
+      "damping": 2.4
+    },
+    "machine": {
+      "delay": 0.08,
+      "recovery": 0.075,
+      "damping": 2.2
+    },
+    "energy": {
+      "delay": 0.06,
+      "recovery": 0.08,
+      "damping": 2.4
+    },
+    "cannon": {
+      "delay": 0.1,
+      "recovery": 0.09,
+      "damping": 1.6
+    },
+    "dual": {
+      "delay": 0.07,
+      "recovery": 0.08,
+      "damping": 2.2
+    },
+    "marks": {
+      "delay": 0.06,
+      "recovery": 0.12,
+      "damping": 0.0
+    },
+    "magnum": {
+      "delay": 0.1,
+      "recovery": 0.06,
+      "damping": 0.0
+    },
+    "scatter": {
+      "delay": 0.07,
+      "recovery": 0.11,
+      "damping": 0.0
+    },
+    "charge": {
+      "delay": 0.08,
+      "recovery": 0.1,
+      "damping": 0.0
+    }
+  },
+  "families": {
+    "ar": [
+      "rifle",
+      0.2,
+      0.1
+    ],
+    "carbine": [
+      "rifle",
+      0.28,
+      0.12
+    ],
+    "nail": [
+      "rifle",
+      0.2,
+      0.1
+    ],
+    "burst": [
+      "burst",
+      0.55,
+      0.1
+    ],
+    "pulse": [
+      "burst",
+      0.18,
+      0.08
+    ],
+    "coyote": [
+      "burst",
+      0.28,
+      0.1
+    ],
+    "gatling": [
+      "machine",
+      0.3,
+      0.65
+    ],
+    "mg": [
+      "machine",
+      0.36,
+      0.4
+    ],
+    "vulcan": [
+      "energy",
+      0.18,
+      0.1
+    ],
+    "rail": [
+      "energy",
+      0.25,
+      0.1
+    ],
+    "coil": [
+      "energy",
+      0.35,
+      0.16
+    ],
+    "gemini": [
+      "energy",
+      0.2,
+      0.08
+    ],
+    "acannon": [
+      "cannon",
+      0.85,
+      0.32
+    ],
+    "explo": [
+      "cannon",
+      0.8,
+      0.32
+    ],
+    "pistols": [
+      "dual",
+      0.6,
+      0.18
+    ],
+    "dualmg": [
+      "dual",
+      0.25,
+      0.18
+    ],
+    "wide": [
+      "dual",
+      0.65,
+      0.18
+    ],
+    "marks": [
+      "marks",
+      1.1,
+      0.12
+    ],
+    "margay": [
+      "marks",
+      0.4,
+      0.14
+    ],
+    "haggard": [
+      "magnum",
+      2.75,
+      0.3
+    ],
+    "shotgun": [
+      "scatter",
+      0.9,
+      0.1
+    ],
+    "autosg": [
+      "scatter",
+      0.7,
+      0.1
+    ],
+    "gale": [
+      "scatter",
+      1.2,
+      0.06
+    ],
+    "aurora": [
+      "scatter",
+      0.75,
+      0.08
+    ],
+    "wave": [
+      "charge",
+      0.6,
+      0.1
+    ],
+    "lec": [
+      "charge",
+      0.9,
+      0.14
+    ],
+    "glint": [
+      "charge",
+      0.55,
+      0.1
+    ],
+    "cls": [
+      "charge",
+      0.85,
+      0.12
+    ]
+  },
+  "variants": {
+    "標準型": [
+      1.0,
+      1.0
+    ],
+    "精密型": [
+      0.8,
+      0.6
+    ],
+    "強装型": [
+      1.2,
+      1.1
+    ],
+    "大容量型": [
+      0.95,
+      1.0
+    ],
+    "連射型": [
+      0.88,
+      0.9
+    ],
+    "持続型": [
+      0.9,
+      0.85
+    ],
+    "高出力型": [
+      1.25,
+      1.15
+    ],
+    "瞬発型": [
+      0.85,
+      0.8
+    ],
+    "広域型": [
+      0.95,
+      1.1
+    ],
+    "速装型": [
+      0.9,
+      0.9
+    ],
+    "重装型": [
+      1.15,
+      1.05
+    ]
+  },
+  "weapons": [
+    {"key": "ar","family": "ar","category": "rifle","variant": "標準型","degrees": [0.2,0.1],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "arH","family": "ar","category": "rifle","variant": "強装型","degrees": [0.24,0.11],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "arX","family": "ar","category": "rifle","variant": "大容量型","degrees": [0.19,0.1],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "arP","family": "ar","category": "rifle","variant": "精密型","degrees": [0.16,0.06],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "burst","family": "burst","category": "burst","variant": "標準型","degrees": [0.55,0.1],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "burstX","family": "burst","category": "burst","variant": "大容量型","degrees": [0.5225,0.1],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "burstP","family": "burst","category": "burst","variant": "精密型","degrees": [0.44,0.06],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "burstH","family": "burst","category": "burst","variant": "強装型","degrees": [0.66,0.11],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "marks","family": "marks","category": "marks","variant": "標準型","degrees": [1.1,0.12],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "marksX","family": "marks","category": "marks","variant": "大容量型","degrees": [1.045,0.12],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "marksP","family": "marks","category": "marks","variant": "精密型","degrees": [0.88,0.072],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "marksH","family": "marks","category": "marks","variant": "強装型","degrees": [1.32,0.132],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "carbine","family": "carbine","category": "rifle","variant": "標準型","degrees": [0.28,0.12],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "carbineP","family": "carbine","category": "rifle","variant": "精密型","degrees": [0.224,0.072],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "carbineX","family": "carbine","category": "rifle","variant": "大容量型","degrees": [0.266,0.12],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "carbineH","family": "carbine","category": "rifle","variant": "強装型","degrees": [0.336,0.132],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "gale","family": "gale","category": "scatter","variant": "標準型","degrees": [1.2,0.06],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "galeS","family": "gale","category": "scatter","variant": "瞬発型","degrees": [1.02,0.048],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "galeH","family": "gale","category": "scatter","variant": "強装型","degrees": [1.44,0.066],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "wave","family": "wave","category": "charge","variant": "標準型","degrees": [0.6,0.1],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "waveW","family": "wave","category": "charge","variant": "広域型","degrees": [0.57,0.11],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "waveH","family": "wave","category": "charge","variant": "強装型","degrees": [0.72,0.11],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "rail","family": "rail","category": "energy","variant": "標準型","degrees": [0.25,0.1],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "railX","family": "rail","category": "energy","variant": "大容量型","degrees": [0.2375,0.1],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "railR","family": "rail","category": "energy","variant": "連射型","degrees": [0.22,0.09],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "pulse","family": "pulse","category": "burst","variant": "標準型","degrees": [0.18,0.08],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "pulseX","family": "pulse","category": "burst","variant": "大容量型","degrees": [0.171,0.08],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "pulseH","family": "pulse","category": "burst","variant": "強装型","degrees": [0.216,0.088],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "gatling","family": "gatling","category": "machine","variant": "標準型","degrees": [0.3,0.65],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "gatlingH","family": "gatling","category": "machine","variant": "強装型","degrees": [0.36,0.715],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "gatlingD","family": "gatling","category": "machine","variant": "持続型","degrees": [0.27,0.5525],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "gatlingG","family": "gatling","category": "machine","variant": "高出力型","degrees": [0.375,0.7475],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "mg","family": "mg","category": "machine","variant": "標準型","degrees": [0.36,0.4],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "mgR","family": "mg","category": "machine","variant": "連射型","degrees": [0.3168,0.36],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "mgP","family": "mg","category": "machine","variant": "精密型","degrees": [0.288,0.24],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "mgX","family": "mg","category": "machine","variant": "大容量型","degrees": [0.342,0.4],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "acannon","family": "acannon","category": "cannon","variant": "標準型","degrees": [0.85,0.32],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "acannonP","family": "acannon","category": "cannon","variant": "精密型","degrees": [0.68,0.192],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "acannonX","family": "acannon","category": "cannon","variant": "大容量型","degrees": [0.8075,0.32],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "acannonR","family": "acannon","category": "cannon","variant": "連射型","degrees": [0.748,0.288],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "vulcan","family": "vulcan","category": "energy","variant": "標準型","degrees": [0.18,0.1],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "vulcanR","family": "vulcan","category": "energy","variant": "連射型","degrees": [0.1584,0.09],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "vulcanH","family": "vulcan","category": "energy","variant": "強装型","degrees": [0.216,0.11],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "vulcanP","family": "vulcan","category": "energy","variant": "精密型","degrees": [0.144,0.06],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "lec","family": "lec","category": "charge","variant": "標準型","degrees": [0.9,0.14],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "lecS","family": "lec","category": "charge","variant": "瞬発型","degrees": [0.765,0.112],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "lecH","family": "lec","category": "charge","variant": "強装型","degrees": [1.08,0.154],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "explo","family": "explo","category": "cannon","variant": "標準型","degrees": [0.8,0.32],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "exploX","family": "explo","category": "cannon","variant": "大容量型","degrees": [0.76,0.32],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "exploH","family": "explo","category": "cannon","variant": "強装型","degrees": [0.96,0.352],"return": {"delay": 0.1,"recovery": 0.09,"damping": 1.6}},
+    {"key": "coil","family": "coil","category": "energy","variant": "標準型","degrees": [0.35,0.16],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coilP","family": "coil","category": "energy","variant": "精密型","degrees": [0.28,0.096],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coilR","family": "coil","category": "energy","variant": "連射型","degrees": [0.308,0.144],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coilD","family": "coil","category": "energy","variant": "持続型","degrees": [0.315,0.136],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "pistols","family": "pistols","category": "dual","variant": "標準型","degrees": [0.6,0.18],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "pistolsX","family": "pistols","category": "dual","variant": "大容量型","degrees": [0.57,0.18],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "pistolsR","family": "pistols","category": "dual","variant": "連射型","degrees": [0.528,0.162],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "pistolsH","family": "pistols","category": "dual","variant": "強装型","degrees": [0.72,0.198],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "dualmg","family": "dualmg","category": "dual","variant": "標準型","degrees": [0.25,0.18],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "dualmgP","family": "dualmg","category": "dual","variant": "精密型","degrees": [0.2,0.108],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "dualmgH","family": "dualmg","category": "dual","variant": "強装型","degrees": [0.3,0.198],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "dualmgR","family": "dualmg","category": "dual","variant": "連射型","degrees": [0.22,0.162],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "coyote","family": "coyote","category": "burst","variant": "標準型","degrees": [0.28,0.1],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coyoteH","family": "coyote","category": "burst","variant": "強装型","degrees": [0.336,0.11],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coyoteR","family": "coyote","category": "burst","variant": "連射型","degrees": [0.2464,0.09],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "coyoteS","family": "coyote","category": "burst","variant": "瞬発型","degrees": [0.238,0.08],"return": {"delay": 0.08,"recovery": 0.08,"damping": 2.4}},
+    {"key": "margay","family": "margay","category": "marks","variant": "標準型","degrees": [0.4,0.14],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "margayX","family": "margay","category": "marks","variant": "大容量型","degrees": [0.38,0.14],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "margayH","family": "margay","category": "marks","variant": "強装型","degrees": [0.48,0.154],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "margayP","family": "margay","category": "marks","variant": "精密型","degrees": [0.32,0.084],"return": {"delay": 0.06,"recovery": 0.12,"damping": 0}},
+    {"key": "gemini","family": "gemini","category": "energy","variant": "標準型","degrees": [0.2,0.08],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "geminiX","family": "gemini","category": "energy","variant": "大容量型","degrees": [0.19,0.08],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "geminiH","family": "gemini","category": "energy","variant": "強装型","degrees": [0.24,0.088],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "geminiP","family": "gemini","category": "energy","variant": "精密型","degrees": [0.16,0.048],"return": {"delay": 0.06,"recovery": 0.08,"damping": 2.4}},
+    {"key": "wide","family": "wide","category": "dual","variant": "標準型","degrees": [0.65,0.18],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "wideP","family": "wide","category": "dual","variant": "精密型","degrees": [0.52,0.108],"return": {"delay": 0.07,"recovery": 0.08,"damping": 2.2}},
+    {"key": "glint","family": "glint","category": "charge","variant": "標準型","degrees": [0.55,0.1],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "glintS","family": "glint","category": "charge","variant": "瞬発型","degrees": [0.4675,0.08],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "glintH","family": "glint","category": "charge","variant": "強装型","degrees": [0.66,0.11],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "glintM","family": "glint","category": "charge","variant": "重装型","degrees": [0.6325,0.105],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "shotgun","family": "shotgun","category": "scatter","variant": "標準型","degrees": [0.9,0.1],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "shotgunW","family": "shotgun","category": "scatter","variant": "広域型","degrees": [0.855,0.11],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "shotgunH","family": "shotgun","category": "scatter","variant": "強装型","degrees": [1.08,0.11],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "shotgunQ","family": "shotgun","category": "scatter","variant": "速装型","degrees": [0.81,0.09],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "autosg","family": "autosg","category": "scatter","variant": "標準型","degrees": [0.7,0.1],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "autosgR","family": "autosg","category": "scatter","variant": "連射型","degrees": [0.616,0.09],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0.0}},
+    {"key": "nail","family": "nail","category": "rifle","variant": "標準型","degrees": [0.2,0.1],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "nailR","family": "nail","category": "rifle","variant": "連射型","degrees": [0.176,0.09],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "nailX","family": "nail","category": "rifle","variant": "大容量型","degrees": [0.19,0.1],"return": {"delay": 0.08,"recovery": 0.075,"damping": 2.2}},
+    {"key": "haggard","family": "haggard","category": "magnum","variant": "標準型","degrees": [2.75,0.3],"return": {"delay": 0.1,"recovery": 0.06,"damping": 0}},
+    {"key": "haggardX","family": "haggard","category": "magnum","variant": "大容量型","degrees": [1.375,0.21],"return": {"delay": 0.1,"recovery": 0.06,"damping": 0}},
+    {"key": "haggardH","family": "haggard","category": "magnum","variant": "強装型","degrees": [3.3,0.33],"return": {"delay": 0.1,"recovery": 0.06,"damping": 0}},
+    {"key": "aurora","family": "aurora","category": "scatter","variant": "標準型","degrees": [0.75,0.08],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "auroraW","family": "aurora","category": "scatter","variant": "広域型","degrees": [0.7125,0.088],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "auroraP","family": "aurora","category": "scatter","variant": "精密型","degrees": [0.6,0.048],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "auroraH","family": "aurora","category": "scatter","variant": "強装型","degrees": [0.9,0.088],"return": {"delay": 0.07,"recovery": 0.11,"damping": 0}},
+    {"key": "cls","family": "cls","category": "charge","variant": "標準型","degrees": [0.85,0.12],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "clsX","family": "cls","category": "charge","variant": "大容量型","degrees": [0.8075,0.12],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "clsS","family": "cls","category": "charge","variant": "瞬発型","degrees": [0.7225,0.096],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}},
+    {"key": "clsH","family": "cls","category": "charge","variant": "強装型","degrees": [1.02,0.132],"return": {"delay": 0.08,"recovery": 0.1,"damping": 0}}
+  ]
+}

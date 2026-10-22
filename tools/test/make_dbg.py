@@ -25,7 +25,7 @@ EXPOSE = """window.__g = { get player() { return player; }, units, lock, T, core
   get timeLeft() { return timeLeft; }, set timeLeft(v) { timeLeft = v; },
   get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
   get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
-  get baseKick() { return baseKick; }, get recoilKick() { return recoilKick; }, get recoilRecover() { return recoilRecover; }, get recoilAim() { return recoilAim; }, get lockStick() { return lockStick; }, get botRecoilReady() { return botRecoilReady; },
+  get baseKick() { return baseKick; }, get recoilRateScale() { return recoilRateScale; }, get recoilKick() { return recoilKick; }, get recoilRecover() { return recoilRecover; }, get recoilAim() { return recoilAim; }, get viewAim() { return viewAim; }, get lockFollow() { return lockFollow; }, get botRecoilReady() { return botRecoilReady; },
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
   get botMech() { return botMech; }, get renderCustom() { return renderCustom; }, get weaponGeoBank() { return weaponGeoBank; }, get nearestPod() { return nearestPod; },
   get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get ziplines() { return ziplines; }, get zipGrab() { return zipGrab; }, get zipNear() { return zipNear; }, get zipDrop() { return zipDrop; }, get zipCan() { return zipCan; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
