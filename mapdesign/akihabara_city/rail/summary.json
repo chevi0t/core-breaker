@@ -121,6 +121,19 @@
         18.15999984741211,
         300.0
       ]
+    },
+    "station": {
+      "triangles": 536,
+      "min": [
+        -135.25999450683594,
+        8.0,
+        -122.58000183105469
+      ],
+      "max": [
+        98.72000122070312,
+        25.5,
+        141.16000366210938
+      ]
     }
   },
   "missingDEMVertices": 1322,
@@ -131,8 +144,8 @@
   "plants": 0,
   "simplification": {
     "originalTriangles": 187604,
-    "triangles": 49569,
-    "reductionFraction": 0.7357785548282553,
+    "triangles": 50105,
+    "reductionFraction": 0.7329214728897038,
     "minimumPassageWidth": 8,
     "unitRadius": 1.3,
     "unitHeight": 4,
@@ -164,7 +177,7 @@
         ],
         "maximumRoofChange": 3,
         "originalRoof": 17.139039446509127,
-        "simplifiedRoof": 8.079999923706055
+        "simplifiedRoof": 25.5
       },
       {
         "name": "ヨドバシAkiba",
@@ -21232,6 +21245,142 @@
       "color": "#9da7b0"
     }
   ],
+  "stationColorRanges": [
+    {
+      "start": 0,
+      "count": 84,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 84,
+      "count": 96,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 180,
+      "count": 108,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 288,
+      "count": 204,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 492,
+      "count": 132,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 624,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 660,
+      "count": 264,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 924,
+      "count": 180,
+      "color": "#c2cbd0"
+    },
+    {
+      "start": 1104,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1140,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1176,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1212,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1248,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1284,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1320,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1356,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1392,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1428,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1464,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1500,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1536,
+      "count": 36,
+      "color": "#74858e"
+    },
+    {
+      "start": 1572,
+      "count": 36,
+      "color": "#74858e"
+    }
+  ],
+  "station": {
+    "sourceGeometrySHA256": "ee49ed6ea11731444f66e3de26254b471a17709196490a4af023d595b5870cb7",
+    "sourceFootprintsRestored": true,
+    "heightsAdjustedForHeadroom": true,
+    "roofs": [
+      {
+        "line": "local",
+        "roofArea": 2081.37,
+        "roofBottom": 14.4,
+        "roofTop": 15,
+        "headroomAboveRails": 6.24,
+        "supports": 1
+      },
+      {
+        "line": "cross",
+        "roofArea": 5978.89,
+        "roofBottom": 24.8,
+        "roofTop": 25.5,
+        "headroomAboveRails": 6.64,
+        "supports": 14
+      }
+    ],
+    "triangles": 536
+  },
   "railways": {
     "profile": {
       "title": "秋葉原・高架線路を延長した案",
@@ -21372,11 +21521,51 @@
         "https://maps.gsi.go.jp/#17/35.698600/139.773400/",
         "https://maps.gsi.go.jp/development/ichiran.html",
         "https://maps.gsi.go.jp/development/vt.html"
-      ]
+      ],
+      "station": {
+        "minimumRoofArea": 80,
+        "outlineTolerance": 0.4,
+        "platformSupportSize": 1.5,
+        "supportSpacing": 36,
+        "roofs": [
+          {
+            "line": "local",
+            "bounds": [
+              -70,
+              -125,
+              10,
+              142
+            ],
+            "sourceRoofRange": [
+              8,
+              15
+            ],
+            "sourceWidth": 36,
+            "top": 15,
+            "thickness": 0.6
+          },
+          {
+            "line": "cross",
+            "bounds": [
+              -136,
+              -20,
+              101,
+              90
+            ],
+            "sourceRoofRange": [
+              14,
+              21
+            ],
+            "sourceWidth": 36,
+            "top": 25.5,
+            "thickness": 0.7
+          }
+        ]
+      }
     },
     "piers": 46,
     "railTriangles": 2904,
-    "triangles": 49569,
+    "triangles": 50105,
     "sourceGeometrySHA256": "3d73ddd3824a28b3402b9797abb7027ebb8972ef23528ea9e840369cc294b59f",
     "removedBuildingAreaWithOverlappingLevels": 22338.27,
     "dimensionsAreGameEstimates": true,

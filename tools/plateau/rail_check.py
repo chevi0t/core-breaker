@@ -40,18 +40,37 @@ def main():
         assert minimum_clearance>=profile['minimumHeadroom'],(name,minimum_clearance)
         samples.append({'line':name,'samples':count,'minimumGroundHeadroomMeters':minimum_clearance})
     corridors=shapely.union_all(list(decks.values())).buffer(profile['buildingClearance']-.01)
-    building_overlap=0;piers=0
+    building_overlap=0;piers=0;station_roofs=[];station_supports=0
     for v in volumes:
         p=Polygon(v['rings'][0],v['rings'][1:]);assert p.is_valid
         if v['kind']=='rail-pier':
             assert p.buffer(-.002).intersection(roads.buffer(profile['roadPierClearance']-.002)).area<.01
             assert not any(p.intersects(d.buffer(3.99)) for name,d in decks.items() if name!=v['line'])
             piers+=1
+        elif v['kind']=='station-roof':
+            spec=specs[v['line']];clearance=v['bottom']-spec['top']-.16
+            assert clearance>=profile['minimumHeadroom']-.001
+            if v['line']=='local':assert p.distance(decks['cross'])>=7.99
+            point=p.representative_point();cap=geo['station'].reshape(-1,3,3)
+            cap=cap[np.all(np.abs(cap[:,:,1]-v['top'])<.001,axis=1)].reshape(-1,3)
+            assert vertical_height(cap,point.x,point.y) is not None,'駅の屋根が描画メッシュに存在する'
+            station_roofs.append({'line':v['line'],'area':p.area,'headroom':clearance})
+        elif v['kind']=='station-support':
+            spec=specs[v['line']];assert abs(v['bottom']-spec['top'])<.001
+            assert p.distance(paths[v['line']])>max(map(abs,spec['tracks']))+1.3+.75,'柱が線路の通行帯を塞がない'
+            station_supports+=1
         elif v['kind']!='rail-deck':building_overlap+=p.intersection(corridors).area
     assert building_overlap<.01,building_overlap
     assert piers==meta['railways']['piers']
     assert meta['bases']==meta['plants']==0 and meta['railways']['decorativeRailsHaveCollision'] is False
-    result={'triangles':total,'railTriangles':meta['railways']['railTriangles'],'continuousDecksToMapEdges':3,'trackCounts':{k:len(v['tracks']) for k,v in specs.items()},'crossingClearances':gaps,'parallelDeckGapMeters':parallel_gap,'deckSurfaceSamples':samples,'buildingCorridorOverlapSquareMeters':building_overlap,'piersClearOfRoadsAndOtherLines':piers,'sourceGroundRoadsBridgesUnchanged':True,'decorativeRailsHaveCollision':False,'bases':0,'plants':0,'gamePhysicsTested':False}
+    station_result=None
+    if 'station' in profile:
+        assert set(v['line'] for v in station_roofs)=={'local','cross'}
+        assert sum(v['area'] for v in station_roofs if v['line']=='cross')>3000
+        assert sum(v['area'] for v in station_roofs if v['line']=='local')>500
+        assert vertical_height(geo['station'],-25,40)==25.5,'元の駅の確認点に屋根を復元'
+        station_result={'roofRegions':len(station_roofs),'roofArea':round(sum(v['area'] for v in station_roofs),2),'minimumHeadroomMeters':min(v['headroom'] for v in station_roofs),'supportsClearOfTracks':station_supports,'originalStationWitnessRoofHeight':25.5}
+    result={'triangles':total,'railTriangles':meta['railways']['railTriangles'],'continuousDecksToMapEdges':3,'trackCounts':{k:len(v['tracks']) for k,v in specs.items()},'crossingClearances':gaps,'parallelDeckGapMeters':parallel_gap,'deckSurfaceSamples':samples,'buildingCorridorOverlapSquareMeters':building_overlap,'piersClearOfRoadsAndOtherLines':piers,'station':station_result,'sourceGroundRoadsBridgesUnchanged':True,'decorativeRailsHaveCollision':False,'bases':0,'plants':0,'gamePhysicsTested':False}
     (out/'geometry-check.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');print(json.dumps(result,ensure_ascii=False))
 
 if __name__=='__main__':main()
