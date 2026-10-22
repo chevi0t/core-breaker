@@ -6571,7 +6571,40 @@ const PRIMARY_RECOIL_DEG = {
   dualmgH: [0.4, 0.8],
   haggard: [2.75, 0.6],
 };
-// 型の生成が済んでから反動を設定し、既存の威力・発数・精度などは変えない。
+// 主武器の撃ち味（2026-10-22ユーザー委任）。ACの基準表と分けた本作独自の調整。
+// 戻り方はカテゴリ内で共有し、縦横の基本角（度、レート/腕の補正前）は系統で決める。
+const PRIMARY_RECOIL_RETURN = {
+  rifle:   { delay: .08, recovery: .075, damping: 2.2 },
+  burst:   { delay: .08, recovery: .08,  damping: 2.4 },
+  machine: { delay: .08, recovery: .075, damping: 2.2 },
+  energy:  { delay: .06, recovery: .08,  damping: 2.4 },
+  cannon:  { delay: .10, recovery: .09,  damping: 1.6 },
+  dual:    { delay: .07, recovery: .08,  damping: 2.2 },
+  marks:   { delay: .06, recovery: .12,  damping: 0 },
+  magnum:  { delay: .10, recovery: .06,  damping: 0 },
+  scatter: { delay: .07, recovery: .11,  damping: 0 },
+  charge:  { delay: .08, recovery: .10,  damping: 0 },
+};
+const PRIMARY_RECOIL_FEEL = {
+  ar: ['rifle', .20, .10], carbine: ['rifle', .28, .12], nail: ['rifle', .20, .10],
+  burst: ['burst', .55, .10], pulse: ['burst', .18, .08], coyote: ['burst', .28, .10],
+  gatling: ['machine', .30, .65], mg: ['machine', .36, .40],
+  vulcan: ['energy', .18, .10], rail: ['energy', .25, .10], coil: ['energy', .35, .16], gemini: ['energy', .20, .08],
+  acannon: ['cannon', .85, .32], explo: ['cannon', .80, .32],
+  pistols: ['dual', .60, .18], dualmg: ['dual', .25, .18], wide: ['dual', .65, .18],
+  marks: ['marks', 1.10, .12], margay: ['marks', .40, .14], haggard: ['magnum', 2.75, .30],
+  shotgun: ['scatter', .90, .10], autosg: ['scatter', .70, .10], gale: ['scatter', 1.20, .06], aurora: ['scatter', .75, .08],
+  wave: ['charge', .60, .10], lec: ['charge', .90, .14], glint: ['charge', .55, .10], cls: ['charge', .85, .12],
+};
+// 精密は横を優先して抑え、強装は縦の重さ、速射/持続は小さい跳ねの反復を持たせる。
+const PRIMARY_RECOIL_VARIANT = {
+  標準型: [1, 1], 精密型: [.80, .60], 強装型: [1.20, 1.10], 大容量型: [.95, 1],
+  連射型: [.88, .90], 持続型: [.90, .85], 高出力型: [1.25, 1.15], 瞬発型: [.85, .80],
+  広域型: [.95, 1.10], 速装型: [.90, .90], 重装型: [1.15, 1.05],
+};
+// 大容量マグナムは従来の軽い一発を継続する。
+const PRIMARY_RECOIL_OVERRIDE = { haggardX: [.50, .70] };
+// 型の生成が済んでから設定し、威力・発数・精度などは変えない。未知の系統は元の基準へ戻す。
 const primaryKickBefore = Object.fromEntries(Object.values(ARMORY).flatMap(s => s.main).map(k => [k, baseKick(WEAPONS[k])]));
 for (const slots of Object.values(ARMORY)) for (const key of slots.main) {
   const w = WEAPONS[key], base = SERIES[w.series].types[0][0], oldBase = primaryKickBefore[base];
@@ -6579,6 +6612,12 @@ for (const slots of Object.values(ARMORY)) for (const key of slots.main) {
   const ratio = oldBase > 0 ? primaryKickBefore[key] / oldBase : 1;
   const [v, h] = PRIMARY_RECOIL_DEG[key] || reference.map(x => x * ratio);
   Object.assign(w, { recoil: v * Math.PI / 180, recoilH: h * Math.PI / 180, recoilDelay: .1, recoilRecovery: .06 });
+  const feel = PRIMARY_RECOIL_FEEL[base];
+  if (feel) {
+    const ret = PRIMARY_RECOIL_RETURN[feel[0]], variant = PRIMARY_RECOIL_OVERRIDE[key] || PRIMARY_RECOIL_VARIANT[w.label] || [1, 1];
+    Object.assign(w, { recoil: feel[1] * variant[0] * Math.PI / 180, recoilH: feel[2] * variant[1] * Math.PI / 180,
+      recoilDelay: ret.delay, recoilRecovery: ret.recovery, recoilDamping: w.semi || w.chargeTime ? 0 : ret.damping });
+  }
 }
 
 // プレイヤーが選んだ武器（兵装ごと・枠ごと）。このブラウザに保存する。読めなければ初期装備
@@ -6946,7 +6985,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   recoilKick(u, w);
   return res;
 }
-// 反動：主武器は縦・横を持ち、撃ち止めて0.1秒後から毎秒0.06radずつ戻す。腕部の反動吸収で割る。
+// 反動：主武器は縦・横とカテゴリごとの回復を持つ。腕部の反動吸収で加算角を割る。
 // 設定のない副武器などは従来の縦反動・回復速度・上限を使う。
 function botRecoilReady(u, aim) {
   const margin = Math.atan2(1.2, Math.max(1, u.pos.distanceTo(aim)));
@@ -6958,7 +6997,7 @@ function recoilRateScale(w) { return w.type === 'gun' && !w.semi && !w.chargeTim
 function recoilRecover(u, dt) {
   const wait = u.recoilWait || 0, recoverDt = Math.max(0, dt - wait), rate = u.recoilRecovery || .04, damping = u.recoilDamping || 0;
   u.recoilWait = Math.max(0, wait - dt);
-  // 高レートの主武器は連射中も蓄積量に比例して戻す（本作調整、係数2/秒）。
+  // 主武器はカテゴリごとの係数で、連射中も蓄積量に比例して戻す（本作調整）。
   // 待機後の定速回復も含めて積分し、時間刻みで戻り方が変わらず、0を越えて振動しない。
   const factor = Math.exp(-damping * dt), step = damping ? rate * -Math.expm1(-damping * recoverDt) / damping : rate * recoverDt;
   u.recoil = Math.max(0, u.recoil * factor - step);
@@ -6973,7 +7012,7 @@ function recoilKick(u, w) {
   u.recoil = Math.min(Math.max(cap, u.recoil), u.recoil + kick / absorb);
   if (sideways) u.recoilYaw = Math.max(-.14 / absorb, Math.min(.14 / absorb, (u.recoilYaw || 0) + (Math.random() * 2 - 1) * sideways / absorb));
   u.recoilWait = w.recoilDelay || 0; u.recoilRecovery = w.recoilRecovery || .04;
-  u.recoilDamping = scale < 1 && w.recoilH !== undefined ? 2 : 0;
+  u.recoilDamping = w.recoilH !== undefined && !w.semi && !w.chargeTime ? w.recoilDamping ?? (scale < 1 ? 2 : 0) : 0;
 }
 // 弾の照準を反動のぶん上下・左右へずらす。プレイヤーとBotで同じ角度の計算を使う。
 function recoilAim(from, aim, recoil, sideways = 0) {

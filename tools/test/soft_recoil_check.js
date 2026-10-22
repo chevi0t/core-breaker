@@ -76,7 +76,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     for (const now of after.rows) {
       const prior = before.rows.find(v => v.key === now.key && v.fps === now.fps);
       yes(now.shots === prior.shots, `${now.key}/${now.fps}fps：4.5秒の実射数を維持（${now.shots}発）`);
-      if (now.key === 'haggard') { assert.deepEqual(now.timeline, prior.timeline); checks.push(`マグナム/${now.fps}fps：連射と回復を完全に維持`); continue; }
+      if (now.key === 'haggard') { assert.deepEqual(now.timeline.map(v=>[v.t,v.v]), prior.timeline.map(v=>[v.t,v.v])); checks.push(`マグナム/${now.fps}fps：縦の連射反動と回復を維持`); continue; }
       yes(now.peak < prior.peak * .3, `${now.key}/${now.fps}fps：長い連射の押し上げが従来の30%未満`);
       const mean = (start, end) => { const a = now.timeline.filter(v => v.t > start && v.t <= end); return a.reduce((s, v) => s + v.v, 0) / a.length; };
       const early = mean(3, 3.5), late = mean(4, 4.5);
@@ -96,7 +96,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     }
     yes(after.botDamping > 0 && after.botDamping === after.playerDamping, 'プレイヤーとBotで同じ比例回復');
     yes(after.semiDamping === 0 && after.subDamping === 0, '単発・副武器の発射後は従来の定速回復');
-    yes(after.exceptions.every(v => v === 0), '600発/分以下・単発・充填・主武器反動の未設定は比例回復を適用しない');
+    yes(after.exceptions[0] > 0 && after.exceptions.slice(1).every(v => v === 0), '低レートの連射主武器にも比例回復、単発・充填・未設定は従来の定速回復');
     assert.deepEqual(after.spawn, [0, 0, 0]); checks.push('再出撃で蓄積量と比例回復を初期化');
     assert.deepEqual(errors, []); checks.push('ブラウザエラー0');
     fs.mkdirSync(out, { recursive: true }); fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, before, after, errors }, null, 2) + '\n');

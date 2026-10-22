@@ -4,6 +4,8 @@
 
 2026-10-22追記：本家の跳ね方・復元・照準との関係を調べた[仕組みの調査](recoil-system.md)を参照。以下の待機時間・回復速度・上限・度数への換算は本作の解釈で、本家と同じ内部処理を確認したものではない。
 
+2026-10-22のユーザー委任による**現在の主武器100種の調整**は [撃ち味の採用記録](primary-recoil-tuning.md) と [採用値JSON](primary-recoil-tuning.json) を参照。以下は初回の基準と調整の経緯。AC転記は維持し、現在の調整値とは区別する。
+
 ## 出典と不明値
 
 - [強襲のAC表](../arcade/weapons/assault.md)、[重火力のAC表](../arcade/weapons/heavy.md)、[遊撃のAC表](../arcade/weapons/raid.md)、[支援のAC表](../arcade/weapons/support.md)。2026-10-19取得の記録から、型の名前が一致し縦横の実数が明記された行を使った。

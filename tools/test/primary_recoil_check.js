@@ -24,7 +24,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     const baseline=await page(before),old=await baseline.evaluate(()=>({weapons:__g.WEAPONS,parts:__g.PARTS,armory:__g.ARMORY}));await baseline.close();
     const p=await page(after);
     const data = await p.evaluate(() => ({ weapons: __g.WEAPONS, parts: __g.PARTS, armory: __g.ARMORY }));
-    const primary = new Set(Object.values(data.armory).flatMap(c => c.main)), fields = new Set(['recoil', 'recoilH', 'recoilDelay', 'recoilRecovery']);
+    const primary = new Set(Object.values(data.armory).flatMap(c => c.main)), fields = new Set(['recoil', 'recoilH', 'recoilDelay', 'recoilRecovery', 'recoilDamping']);
     for (const [key, w] of Object.entries(data.weapons)) {
       if (primary.has(key)) {
         yes(Number.isFinite(w.recoil) && w.recoil > 0 && Number.isFinite(w.recoilH) && w.recoilH >= 0 && w.recoilDelay >= 0 && w.recoilRecovery > 0, key + 'の縦横反動と回復が有効');
@@ -33,8 +33,8 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     }
     assert.deepEqual(data.armory, old.armory); assert.deepEqual(data.parts, old.parts);
     yes(primary.size === 100, '主武器100種と他の武器・機体/装備順の互換性');
-    const reference = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../research/weapons/primary-recoil.json'), 'utf8'));
-    for (const [key, [v, h]] of Object.entries(reference.exactDegrees)) yes(Math.abs(data.weapons[key].recoil * 180 / Math.PI - v) < 1e-10 && Math.abs(data.weapons[key].recoilH * 180 / Math.PI - h) < 1e-10, key + 'の記録された縦横設定');
+    const reference = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../research/weapons/primary-recoil-tuning.json'), 'utf8'));
+    for (const { key, degrees: [v, h] } of reference.weapons) yes(Math.abs(data.weapons[key].recoil * 180 / Math.PI - v) < 1e-10 && Math.abs(data.weapons[key].recoilH * 180 / Math.PI - h) < 1e-10, key + 'の採用記録にある縦横設定');
     const functional = await p.evaluate(() => {
       const g = __g, u = g.player, checks = [], close = (a, b) => Math.abs(a - b) < 1e-7;
       const check = (ok, text) => { if (!ok) throw Error(text); checks.push(text); };
@@ -65,7 +65,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
       const botKick = [u.recoil, u.recoilYaw]; reset(); g.recoilKick(u, g.WEAPONS.gatling);
       check(close(u.recoil, botKick[0]) && close(u.recoilYaw, botKick[1]), 'プレイヤーとBotに同じレート補正を適用');
       const nums = g.itemNums('main', 'gatling');
-      check(close(nums.find(n => n[0] === '縦反動')[1], .12) && close(nums.find(n => n[0] === '横反動')[1], .6), 'カスタマイズはガトリングの補正後の縦0.12°・横±0.60°を表示');
+      check(close(nums.find(n => n[0] === '縦反動')[1], .12) && close(nums.find(n => n[0] === '横反動')[1], .26), 'カスタマイズはガトリングの補正後の縦0.12°・横±0.26°を表示');
       reset(); g.recoilKick(u, g.WEAPONS.haggard); const start = u.recoil;
       g.recoilRecover(u, .099); check(close(u.recoil, start), '撃った直後の0.1秒は反動を保持');
       g.recoilRecover(u, .151); check(close(u.recoil, start - .06 * .15), '保持時間をまたぐフレームでも回復の時間を正しく数える');
@@ -141,7 +141,9 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     const plots = [...await samples(before, 'before'), ...await samples(after, 'after')];
     fs.writeFileSync(path.join(out, 'shots.json'), JSON.stringify({ seed: 7169, distance: 100, spread: 0, plots }, null, 2) + '\n');
     const a = (key, pause, version) => plots.find(s => s.key === key && s.pause === pause && s.version === version);
-    assert.deepEqual(a('haggard',false,'after').timeline,a('haggard',false,'before').timeline,'マグナムの反動蓄積・回復を維持');
+    assert.deepEqual(a('haggard',false,'after').timeline.map(v=>[v.t,v.v]),a('haggard',false,'before').timeline.map(v=>[v.t,v.v]),'マグナムの縦反動の蓄積・回復を維持');
+    const magYaw = version => Math.max(...a('haggard',false,version).timeline.map(v => Math.abs(v.h)));
+    yes(magYaw('after') < magYaw('before') * .8, 'マグナムは一発の縦の重さを保ち、発射後の横の跳ね角を軽減');
     for (const key of ['gatling', 'ar']) {
       const prior = a(key, false, 'before'), now = a(key, false, 'after');
       yes(now.points.length === prior.points.length, key + 'の実際の発射数と連射速度を維持');
@@ -158,7 +160,7 @@ const yes = (ok, label) => { assert.ok(ok, label); checks.push(label); };
     if (await row.getAttribute('aria-expanded') !== 'true') await row.click();
     await p.locator('[data-pick="gatlingH"]').hover();
     const comparison = await p.locator('#cuDiff').textContent();
-    yes(comparison.includes('縦反動') && comparison.includes('横反動') && comparison.includes('0.12°') && comparison.includes('0.60°'), 'カスタマイズで軽減後の縦横反動を比較できる');
+    yes(comparison.includes('縦反動') && comparison.includes('横反動') && comparison.includes('0.12°') && comparison.includes('0.26°'), 'カスタマイズで調整後の縦横反動を比較できる');
     await p.screenshot({ path: path.join(out, 'customization.png') });
     yes(errors.length === 0, 'ブラウザエラーなし');
     fs.writeFileSync(path.join(out, 'validation.json'), JSON.stringify({ passed: checks.length, checks, functional, errors }, null, 2) + '\n');
