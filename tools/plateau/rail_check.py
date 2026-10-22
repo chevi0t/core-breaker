@@ -17,6 +17,7 @@ def main():
     volumes=json.loads((out/'collision-volumes.json').read_text())['volumes'];decks={v['line']:Polygon(v['rings'][0],v['rings'][1:]) for v in volumes if v['kind']=='rail-deck'}
     assert len(decks)==3 and all(p.is_valid and p.geom_type=='Polygon' for p in decks.values())
     features=json.loads((source/'footprints.geojson').read_text())['features'];roads=next(shape(f['geometry']) for f in features if f['properties']['kind']=='roads')
+    land=next(shape(f['geometry']) for f in features if f['properties']['kind']=='land')
     gaps=[]
     for lower in ['local','highspeed']:
         intersection=paths[lower].intersection(paths['cross']);assert intersection.geom_type=='Point'
@@ -38,15 +39,24 @@ def main():
             if floors:minimum_clearance=min(minimum_clearance,spec['top']-spec['thickness']-max(floors))
             count+=1
         assert minimum_clearance>=profile['minimumHeadroom'],(name,minimum_clearance)
-        samples.append({'line':name,'samples':count,'minimumGroundHeadroomMeters':minimum_clearance})
+        samples.append({'line':name,'samples':count,'minimumGroundToDeckDistanceMeters':minimum_clearance})
     corridors=shapely.union_all(list(decks.values())).buffer(profile['buildingClearance']-.01)
-    building_overlap=0;piers=0;station_roofs=[];station_supports=0
+    building_overlap=0;piers=0;station_roofs=[];station_supports=0;shops=[];pier_shapes=[]
     for v in volumes:
         p=Polygon(v['rings'][0],v['rings'][1:]);assert p.is_valid
         if v['kind']=='rail-pier':
             assert p.buffer(-.002).intersection(roads.buffer(profile['roadPierClearance']-.002)).area<.01
             assert not any(p.intersects(d.buffer(3.99)) for name,d in decks.items() if name!=v['line'])
             piers+=1
+            pier_shapes.append(p)
+        elif v['kind']=='rail-shop':
+            assert v['line'] in ('local','highspeed'),'店舗は南北高架だけ'
+            assert abs(v['top']-(specs[v['line']]['top']-specs[v['line']]['thickness']))<.001
+            assert p.buffer(-.002).intersection(roads.buffer(profile['underpassShops']['roadClearance']-.002)).area<.01,'道路の横断部を保持'
+            assert p.difference(land.buffer(.002)).area<.01,'川・欠測域は埋めない'
+            point=p.representative_point();height=vertical_height(geo['shops'],point.x,point.y)
+            assert height is not None and abs(height-v['top'])<.001,'店舗の実体が描画にも存在する'
+            shops.append((v['line'],p))
         elif v['kind']=='station-roof':
             spec=specs[v['line']];clearance=v['bottom']-spec['top']-.16
             assert clearance>=profile['minimumHeadroom']-.001
@@ -70,7 +80,16 @@ def main():
         assert sum(v['area'] for v in station_roofs if v['line']=='local')>500
         assert vertical_height(geo['station'],-25,40)==25.5,'元の駅の確認点に屋根を復元'
         station_result={'roofRegions':len(station_roofs),'roofArea':round(sum(v['area'] for v in station_roofs),2),'minimumHeadroomMeters':min(v['headroom'] for v in station_roofs),'supportsClearOfTracks':station_supports,'originalStationWitnessRoofHeight':25.5}
-    result={'triangles':total,'railTriangles':meta['railways']['railTriangles'],'continuousDecksToMapEdges':3,'trackCounts':{k:len(v['tracks']) for k,v in specs.items()},'crossingClearances':gaps,'parallelDeckGapMeters':parallel_gap,'deckSurfaceSamples':samples,'buildingCorridorOverlapSquareMeters':building_overlap,'piersClearOfRoadsAndOtherLines':piers,'station':station_result,'sourceGroundRoadsBridgesUnchanged':True,'decorativeRailsHaveCollision':False,'bases':0,'plants':0,'gamePhysicsTested':False}
+    shop_result=None
+    if 'underpassShops' in profile:
+        assert set(name for name,p in shops)=={'local','highspeed'}
+        for name in ['local','highspeed']:assert sum(p.area for n,p in shops if n==name)>2000
+        solid=shapely.union_all([p for name,p in shops])
+        local=shapely.union_all([p for name,p in shops if name=='local']);highspeed=shapely.union_all([p for name,p in shops if name=='highspeed'])
+        shop_gap=local.distance(highspeed);assert shop_gap>=8,'並行する店舗の間に8m以上を残す'
+        assert all(p.intersection(solid).area<.01 for p in pier_shapes),'店舗内部に隠れる高架柱を省く'
+        shop_result={'blocks':len(shops),'areaSquareMeters':round(solid.area,2),'minimumGapBetweenParallelShopsMeters':shop_gap,'roadsAndRiverRemainOpen':True,'hiddenPiersRemoved':True,'facadePanelsHaveCollision':False}
+    result={'triangles':total,'railTriangles':meta['railways']['railTriangles'],'continuousDecksToMapEdges':3,'trackCounts':{k:len(v['tracks']) for k,v in specs.items()},'crossingClearances':gaps,'parallelDeckGapMeters':parallel_gap,'deckSurfaceSamples':samples,'buildingCorridorOverlapSquareMeters':building_overlap,'piersClearOfRoadsAndOtherLines':piers,'station':station_result,'underpassShops':shop_result,'sourceGroundRoadsBridgesUnchanged':True,'decorativeRailsHaveCollision':False,'bases':0,'plants':0,'gamePhysicsTested':False}
     (out/'geometry-check.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');print(json.dumps(result,ensure_ascii=False))
 
 if __name__=='__main__':main()

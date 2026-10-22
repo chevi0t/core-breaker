@@ -2,14 +2,16 @@
   "source": "../compact/README.md",
   "sourceGeometrySHA256": "3d73ddd3824a28b3402b9797abb7027ebb8972ef23528ea9e840369cc294b59f",
   "toolsSHA256": {
-    "tools/plateau/add_rail.py": "d63714990a65a8d892309746c548a7c1e5b52e25fdd895c27a84ee4fb7c06db6",
-    "tools/plateau/rail_check.py": "90bc00eb51165f68650e51ba4c0cd57b429885b45eb6082434e58eb4e491bec9",
+    "tools/plateau/add_rail.py": "776b9b054f436084bc75baabcf2de4be7639a56380e0dd49cbdde7a25d3a0dd9",
+    "tools/plateau/rail_check.py": "8b9b41886c264ea4c3323e2abf6675687fdeefe04e9feef58d5353659a7d0637",
     "tools/plateau/simplify.py": "5fa8f253b4b52b229daf84525337fe90dad75db96d7c68203c164a6096f2507c",
-    "tools/plateau/build.py": "ec4512b68870cfef129044bf06aed1e4e8130b46bde75db39d48abf687c214cf",
-    "tools/plateau/viewer.html": "fbb1e3796479eb2faa697c47a8435ec79d7f9e100e0561025a5a2810152f79a3",
-    "tools/test/plateau_preview_check.cjs": "1d676fd7d8af16e3a631c7f78c0586e189137c55762ee7b73e70aec04186ff13",
-    "research/maps/akihabara-rail.json": "7a2b576f15e3864a586e2cfc08ce39b79acf60aab5243510ab6608fd6ddabc7a",
-    "research/maps/akihabara-rail-references.json": "8b1540036d1852c53f522810f489a16079df82ae7032f78dbcab01fd6642e292"
+    "tools/plateau/build.py": "9436ee722f6c049db6e494186b05e6d3f5734c3e3bfdfd054bfa77c8c7b53fda",
+    "tools/plateau/viewer.html": "49a35109b856f964f6f63eff78e73b6182f6353808dad5295b556a30d4b687fb",
+    "tools/test/plateau_preview_check.cjs": "45a1b1533bd63c09470137ff30df688920ef2dd9890330db04c676c28058ee94",
+    "research/maps/akihabara-rail.json": "e3f5c9aad60fb4ae1f050e592a2ba112cefb49a54b90224f15b9c0066d9fe66a",
+    "research/maps/akihabara-rail-references.json": "8b1540036d1852c53f522810f489a16079df82ae7032f78dbcab01fd6642e292",
+    "tools/plateau/rail_shops.py": "59119caf17bcb44a25179e5eb354722a1aaec481ee533e55946819983a590420",
+    "tools/test/plateau_pack_check.cjs": "58f2b2b6207f8203e0d17152c1ca2e664ad81c0adf9630cb22f0ca567da190fc"
   },
   "dependencies": {
     "numpy": "2.3.5",
@@ -20,5 +22,8 @@
   },
   "gamePhysicsTested": false,
   "stationSourceGeometrySHA256": "ee49ed6ea11731444f66e3de26254b471a17709196490a4af023d595b5870cb7",
-  "stationHeightsAdjusted": true
+  "stationHeightsAdjusted": true,
+  "previewCodec": "gzip+base64",
+  "losslessPacking": true,
+  "packedHTMLSHA256": "f638c33501b366d96a94480cc5fe5defa356bb13f9a90b16957d90c17aa56288"
 }

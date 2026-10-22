@@ -1,6 +1,6 @@
 {
-  "triangles": 50105,
-  "railTriangles": 2904,
+  "triangles": 51376,
+  "railTriangles": 2496,
   "continuousDecksToMapEdges": 3,
   "trackCounts": {
     "local": 4,
@@ -30,27 +30,35 @@
     {
       "line": "local",
       "samples": 76,
-      "minimumGroundHeadroomMeters": 7.567917501961765
+      "minimumGroundToDeckDistanceMeters": 7.567917501961765
     },
     {
       "line": "highspeed",
       "samples": 76,
-      "minimumGroundHeadroomMeters": 9.944214638732879
+      "minimumGroundToDeckDistanceMeters": 9.944214638732879
     },
     {
       "line": "cross",
       "samples": 76,
-      "minimumGroundHeadroomMeters": 18.079799110859653
+      "minimumGroundToDeckDistanceMeters": 18.079799110859653
     }
   ],
   "buildingCorridorOverlapSquareMeters": 0.0,
-  "piersClearOfRoadsAndOtherLines": 46,
+  "piersClearOfRoadsAndOtherLines": 12,
   "station": {
     "roofRegions": 7,
     "roofArea": 8060.26,
     "minimumHeadroomMeters": 6.24,
     "supportsClearOfTracks": 15,
     "originalStationWitnessRoofHeight": 25.5
+  },
+  "underpassShops": {
+    "blocks": 16,
+    "areaSquareMeters": 21020.96,
+    "minimumGapBetweenParallelShopsMeters": 14.679816467451726,
+    "roadsAndRiverRemainOpen": true,
+    "hiddenPiersRemoved": true,
+    "facadePanelsHaveCollision": false
   },
   "sourceGroundRoadsBridgesUnchanged": true,
   "decorativeRailsHaveCollision": false,

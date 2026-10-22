@@ -6,6 +6,7 @@ import shapely
 from shapely.geometry import LineString,Polygon,box
 from build import write_preview
 from simplify import extrusion,parts,rings,vertical_height,projection
+import rail_shops
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('source',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path);ap.add_argument('--profile',required=True,type=pathlib.Path);ap.add_argument('--manifest',required=True,type=pathlib.Path);ap.add_argument('--station-source',type=pathlib.Path);args=ap.parse_args()
@@ -13,10 +14,15 @@ def main():
     profile=json.loads(args.profile.read_text());raw=np.load(source/'geometry.npz');meta=json.loads((source/'summary.json').read_text())
     features=json.loads((source/'footprints.geojson').read_text())['features']
     roads=next(shapely.geometry.shape(f['geometry']) for f in features if f['properties']['kind']=='roads')
+    land=next(shapely.geometry.shape(f['geometry']) for f in features if f['properties']['kind']=='land')
     half=meta['extentMeters']/2;bounds=box(-half,-half,half,half)
     routes={v['id']:LineString(v['points']) for v in profile['lines']}
+    specs={v['id']:v for v in profile['lines']}
     decks={v['id']:routes[v['id']].buffer(v['width']/2,cap_style='flat',join_style='mitre').intersection(bounds) for v in profile['lines']}
     corridor=shapely.union_all(list(decks.values())).buffer(profile['buildingClearance'],join_style='mitre')
+    shop_settings=profile.get('underpassShops')
+    shop_shapes=rail_shops.footprints(decks,land,roads,bounds,profile['buildingClearance'],shop_settings) if shop_settings else {}
+    shop_solid=shapely.union_all([p for polygons in shop_shapes.values() for p in polygons])
     # 線路帯の厚い箱を退ける。駅は後で元の屋根外形から中空の形へ戻す。
     volumes=[];building_mesh=[];removed_area=0;infill_triangles=0
     for v in json.loads((source/'collision-volumes.json').read_text())['volumes']:
@@ -58,6 +64,7 @@ def main():
                 x,z=np.array([point.x,point.y])+normal*sign*(spec['width']/2-2)
                 radius=profile['pierSize']/2;p=box(x-radius,z-radius,x+radius,z+radius)
                 if not bounds.covers(p) or p.intersects(other) or p.intersects(roads.buffer(profile['roadPierClearance'])):continue
+                if p.intersects(shop_solid):continue # 店舗内部に隠れる柱を重ねない。
                 ground=vertical_height(raw['dem'],x,z)
                 if ground is None or bottom-ground<profile['minimumHeadroom']:continue
                 add(p,ground-1,bottom,'#9da7b0','rail-pier',spec['id']);pier_count+=1
@@ -66,7 +73,7 @@ def main():
         if args.station_source is None:ap.error('駅の外形復元には --station-source で初版の出力フォルダを指定してください')
         original=np.load(args.station_source/'geometry.npz')['bldg'].reshape(-1,3,3)
         centers=original.mean(axis=1);normals=np.cross(original[:,1]-original[:,0],original[:,2]-original[:,0]);up=normals[:,1]>.7*np.linalg.norm(normals,axis=1)
-        station=profile['station'];specs={v['id']:v for v in profile['lines']}
+        station=profile['station']
         def add_station(poly,lo,hi,color,kind,line):
             nonlocal station_cursor
             for piece in parts(poly):
@@ -93,6 +100,11 @@ def main():
             station_stats.append({'line':name,'roofArea':round(footprint.area,2),'roofBottom':bottom,'roofTop':roof['top'],'headroomAboveRails':round(bottom-spec['top']-.16,2),'supports':supports})
     layers={k:raw[k] for k in ['bldg','tran','brid','dem']};layers['bldg']=np.concatenate(building_mesh);layers['rail']=np.concatenate(rail_mesh)
     if station_mesh:layers['station']=np.concatenate(station_mesh)
+    shop_volumes=[]
+    if shop_settings:
+        shops,shop_colors,shop_volumes,shop_stats=rail_shops.build(shop_shapes,specs,raw['dem'],shop_settings,half)
+        layers['shops']=shops;meta['shopsColorRanges']=shop_colors
+        meta['underpassShops']={'lines':shop_stats,'triangles':len(shops)//3,'facadePanelsHaveCollision':False,'roadsAndRiverRemainOpen':True}
     stats={k:{'triangles':len(v)//3,'min':v.min(axis=0).round(3).tolist(),'max':v.max(axis=0).round(3).tolist()} for k,v in layers.items()}
     meta['layers']=stats;meta['display']['title']=profile['title'];meta['display']['railTarget']=[-9,10,28]
     meta['railColorRanges']=color_ranges;meta['infillVolumes']=[v for v in volumes if v['kind']=='infill']
@@ -104,7 +116,7 @@ def main():
     for spec in meta['simplification']['landmarks']:
         spec['simplifiedRoof']=vertical_height(np.concatenate([layers['bldg'],layers['rail'],*([layers['station']] if station_mesh else [])]),*spec['at'])
     (out/'summary.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n')
-    (out/'collision-volumes.json').write_text(json.dumps({'unitRadius':1.3,'unitHeight':4,'volumes':volumes+rail_volumes+station_volumes},ensure_ascii=False,indent=2)+'\n')
+    (out/'collision-volumes.json').write_text(json.dumps({'unitRadius':1.3,'unitHeight':4,'volumes':volumes+rail_volumes+station_volumes+shop_volumes},ensure_ascii=False,indent=2)+'\n')
     np.savez_compressed(out/'geometry.npz',**layers,**{k:raw[k] for k in raw.files if k not in layers})
     write_preview(layers,meta,json.loads(args.manifest.read_text()),out)
     print(json.dumps(meta['railways'],ensure_ascii=False),flush=True)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """復号済みPLATEAUと地理院DEMから、地形確認専用のHTMLを作る。"""
-import argparse, base64, hashlib, html, json, math, pathlib
+import argparse, base64, gzip, hashlib, html, json, math, pathlib
 import numpy as np
 from PIL import Image
 from scipy.ndimage import minimum_filter
@@ -43,13 +43,18 @@ def clip(tris,half=300):
     t=result.reshape(-1,3,3);keep=np.linalg.norm(np.cross(t[:,1]-t[:,0],t[:,2]-t[:,0]),axis=1)>1e-5
     return t[keep].reshape(-1,3).astype('<f4')
 
-def write_preview(layers,meta,manifest,out):
+def write_preview(layers,meta,manifest,out,compress=True):
     blob={k:base64.b64encode(v.tobytes()).decode() for k,v in layers.items()}
+    # 座標と表示設定を可逆圧縮。量子化・面削減はせず、標準APIで展開する。
+    payload={'data':blob,'meta':meta}
+    if compress:
+        encoded=json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode('utf-8')
+        payload=base64.b64encode(gzip.compress(encoded,compresslevel=9,mtime=0)).decode('ascii')
     template=(ROOT/'tools/plateau/viewer.html').read_text();three=(ROOT/'vendor/three-r128/three.min.js').read_text();license=(ROOT/'vendor/three-r128/LICENSE').read_text()
     links=list({v['url']:v for v in manifest.get('sourceLinks',[{'url':'https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025','label':'東京都・PLATEAU 新宿区2025年度3D都市モデル'}])}.values())
     source_links='・'.join('<a href="'+html.escape(v['url'],quote=True)+'">'+html.escape(v['label'])+'</a>' for v in links)
     title=html.escape(meta['display'].get('title','都市地形プレビュー'));area=html.escape(meta['display'].get('areaName','都庁周辺'))
-    html_output=template.replace('/*__THREE__*/',three).replace('/*__DATA__*/',json.dumps(blob,separators=(',',':'))).replace('/*__META__*/',json.dumps(meta)).replace('__THREE_LICENSE__',license).replace('__TITLE__',title).replace('__AREA__',area).replace('__EXTENT__',str(meta['extentMeters'])).replace('__SOURCE_LINKS__',source_links)
+    html_output=template.replace('/*__THREE__*/',three).replace('/*__PAYLOAD__*/',json.dumps(payload,ensure_ascii=False,separators=(',',':'))).replace('__THREE_LICENSE__',license).replace('__TITLE__',title).replace('__AREA__',area).replace('__EXTENT__',str(meta['extentMeters'])).replace('__SOURCE_LINKS__',source_links)
     (out/'preview.html').write_text(html_output)
 
 

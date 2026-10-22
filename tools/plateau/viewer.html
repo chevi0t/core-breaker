@@ -4,22 +4,29 @@
 #controls-toggle{display:none;position:absolute;left:10px;top:10px;z-index:2}@media(max-width:700px){#controls-toggle{display:block}#panel{display:none;left:10px;top:56px;width:225px;padding:12px}#panel.open{display:block}h1{font-size:17px}#footer{left:10px;bottom:10px;max-width:70%;font-size:10px}#status{right:10px;top:auto;bottom:90px}.small{font-size:10px}}
 </style>
 <button id="controls-toggle" aria-expanded="false" aria-controls="panel">表示設定</button><aside id="panel"><div class="tag">地形確認 · 第1版</div><h1>__TITLE__</h1><p>__AREA__・__EXTENT__ × __EXTENT__m<br>建物と道路の立体形状、実際の地面の起伏</p><div class="buttons"><button id="oblique">斜め</button><button id="top">俯瞰</button><button id="street">道路を見る</button><button id="scale">機体の尺度</button><button id="railview" style="display:none">高架の交差</button></div>
-<label><input id="bldg" type="checkbox" checked><i class="swatch" style="background:#c6cace"></i>建物</label><label><input id="tran" type="checkbox" checked><i class="swatch" style="background:#7494a8"></i>道路</label><label><input id="brid" type="checkbox" checked><i class="swatch" style="background:#d8ad71"></i>橋梁</label><label id="rail-label" style="display:none"><input id="rail" type="checkbox" checked><i class="swatch" style="background:#8ed4e2"></i>高架線路</label><label id="station-label" style="display:none"><input id="station" type="checkbox" checked><i class="swatch" style="background:#c2cbd0"></i>駅舎・ホーム屋根</label><label><input id="dem" type="checkbox" checked><i class="swatch" style="background:#728b6b"></i>標高地形</label><label><input id="edges" type="checkbox" checked>建物の輪郭線</label><label id="infill-label" style="display:none"><input id="infill" type="checkbox"><i class="swatch" style="background:#ff966c"></i>塞いだ隙間を表示</label><div id="compact-note"></div><div id="note"><p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>寸法・高さは実寸。基地・プラント未配置。<br>形状確認用（移動・戦闘は未実装）。<br>地面は道路面が埋まらないよう補正。<span id="missing-note"></span></p><div id="error"></div></div></aside>
+<label><input id="bldg" type="checkbox" checked><i class="swatch" style="background:#c6cace"></i>建物</label><label><input id="tran" type="checkbox" checked><i class="swatch" style="background:#7494a8"></i>道路</label><label><input id="brid" type="checkbox" checked><i class="swatch" style="background:#d8ad71"></i>橋梁</label><label id="rail-label" style="display:none"><input id="rail" type="checkbox" checked><i class="swatch" style="background:#8ed4e2"></i>高架線路</label><label id="station-label" style="display:none"><input id="station" type="checkbox" checked><i class="swatch" style="background:#c2cbd0"></i>駅舎・ホーム屋根</label><label id="shops-label" style="display:none"><input id="shops" type="checkbox" checked><i class="swatch" style="background:#9ba5a8"></i>高架下店舗</label><label><input id="dem" type="checkbox" checked><i class="swatch" style="background:#728b6b"></i>標高地形</label><label><input id="edges" type="checkbox" checked>建物の輪郭線</label><label id="infill-label" style="display:none"><input id="infill" type="checkbox"><i class="swatch" style="background:#ff966c"></i>塞いだ隙間を表示</label><div id="compact-note"></div><div id="note"><p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>寸法・高さは実寸。基地・プラント未配置。<br>形状確認用（移動・戦闘は未実装）。<br>地面は道路面が埋まらないよう補正。<span id="missing-note"></span></p><div id="error"></div></div></aside>
 <div id="status">1単位 = 1m · 高さの誇張なし<br><span id="count"></span></div><div id="ruler">100m</div>
 <footer id="footer">出典：__SOURCE_LINKS__、<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院 標高タイル</a>・ジオイド高（切り出し・座標変換・地面加工）<br>整備・公開に携わる皆さまに感謝します。<a href="https://www.mlit.go.jp/plateau/site-policy/">利用条件</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></footer>
 <!-- three.js MIT License: __THREE_LICENSE__ -->
 <script>/*__THREE__*/</script><script>
 'use strict';
-const DATA=/*__DATA__*/;
-const META=/*__META__*/;
-const VIEW=META.display||{},ROBOT_POINT=VIEW.robotPoint||[-210,50],TARGET_Y=VIEW.cameraTargetY??55;
+(async()=>{
+document.getElementById('count').textContent='地形データを展開中…';
 try{
+let payload=/*__PAYLOAD__*/;
+if(typeof payload==='string'){
+ if(typeof DecompressionStream==='undefined')throw new Error('このブラウザは圧縮した地形の展開に対応していません。最新版のブラウザで開いてください。');
+ const bytes=Uint8Array.from(atob(payload),c=>c.charCodeAt(0));
+ payload=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+}
+const {data:DATA,meta:META}=payload;
+const VIEW=META.display||{},ROBOT_POINT=VIEW.robotPoint||[-210,50],TARGET_Y=VIEW.cameraTargetY??55;
 if(META.missingDEMVertices)document.getElementById('missing-note').textContent=' 標高欠測の場所は地面を表示しません。';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#253541');
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=THREE.sRGBEncoding;renderer.localClippingEnabled=true;document.body.prepend(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-500,500,400,-400,.1,5000);const target=new THREE.Vector3(0,55,0);let yaw=.62,pitch=.78,span=1030;
 scene.add(new THREE.HemisphereLight(0xe4f2ff,0x514a3c,.82));const sun=new THREE.DirectionalLight(0xfff4df,.9);sun.position.set(-350,700,100);scene.add(sun);
-const groups={};let outlines;const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b,rail:0xffffff,station:0xffffff};
+const groups={};let outlines;const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b,rail:0xffffff,station:0xffffff,shops:0xffffff};
 for(const key of Object.keys(DATA)){
  const raw=atob(DATA[key]),buffer=new ArrayBuffer(raw.length),u8=new Uint8Array(buffer);for(let i=0;i<raw.length;i++)u8[i]=raw.charCodeAt(i);
  const positions=new Float32Array(buffer),geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));geo.computeVertexNormals();
@@ -27,8 +34,8 @@ for(const key of Object.keys(DATA)){
   const c=new Float32Array(positions.length),low=new THREE.Color('#718878').convertSRGBToLinear(),high=new THREE.Color('#a8b488').convertSRGBToLinear();
   for(let i=0;i<positions.length;i+=3){const color=low.clone().lerp(high,Math.max(0,Math.min(1,(positions[i+1]+5)/16)));c.set([color.r,color.g,color.b],i);}geo.setAttribute('color',new THREE.BufferAttribute(c,3));
  }
- if(key==='rail'||key==='station'){const c=new Float32Array(positions.length);for(const range of META[key+'ColorRanges']){const color=new THREE.Color(range.color).convertSRGBToLinear();for(let i=range.start;i<range.start+range.count;i++)c.set([color.r,color.g,color.b],i*3);}geo.setAttribute('color',new THREE.BufferAttribute(c,3));document.getElementById(key+'-label').style.display='flex';}
- const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:key==='dem'?0xffffff:new THREE.Color(colors[key]).convertSRGBToLinear(),vertexColors:key==='dem'||key==='rail'||key==='station',roughness:1,metalness:0,side:THREE.DoubleSide,polygonOffset:key==='tran'||key==='brid',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+ if(key==='rail'||key==='station'||key==='shops'){const c=new Float32Array(positions.length);for(const range of META[key+'ColorRanges']){const color=new THREE.Color(range.color).convertSRGBToLinear();for(let i=range.start;i<range.start+range.count;i++)c.set([color.r,color.g,color.b],i*3);}geo.setAttribute('color',new THREE.BufferAttribute(c,3));document.getElementById(key+'-label').style.display='flex';}
+ const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:key==='dem'?0xffffff:new THREE.Color(colors[key]).convertSRGBToLinear(),vertexColors:key==='dem'||key==='rail'||key==='station'||key==='shops',roughness:1,metalness:0,side:THREE.DoubleSide,polygonOffset:key==='tran'||key==='brid',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
  mesh.name=key;scene.add(mesh);groups[key]=mesh;document.getElementById(key).onchange=e=>{mesh.visible=e.target.checked;if(key==='bldg')outlines.visible=mesh.visible&&document.getElementById('edges').checked;render();};
  if(key==='bldg'){outlines=new THREE.LineSegments(new THREE.EdgesGeometry(geo,27),new THREE.LineBasicMaterial({color:0x495b67,transparent:true,opacity:.55}));scene.add(outlines);}
 }
@@ -42,6 +49,7 @@ if(META.simplification){document.querySelector('.tag').textContent='地形確認
 document.getElementById('infill').onchange=e=>{infillOverlay.visible=e.target.checked;render();};
 if(META.railways){document.getElementById('railview').style.display='inline-block';document.getElementById('compact-note').textContent+=' 高架の幅・高さはゲーム用の仮値です。';document.getElementById('footer').append(document.createTextNode(' 線路の位置は地理院地図を参考に模式化。'));}
 if(META.station){document.getElementById('railview').textContent='駅と高架';document.getElementById('compact-note').textContent+=' 駅の屋根の外形を復元し、高さは通行空間に合わせて調整。';}
+if(META.underpassShops)document.getElementById('compact-note').textContent+=' 南北高架下は店舗で埋め、道路と川は空けています。';
 document.getElementById('edges').onchange=e=>{outlines.visible=e.target.checked&&groups.bldg.visible;render();};
 const grid=new THREE.GridHelper(META.extentMeters,12,0x718690,0x526773);grid.position.y=-20;scene.add(grid);
 // 実寸4mの比較用機体（オリジナルの簡略形）。
@@ -54,7 +62,7 @@ const badge=document.createElement('canvas');badge.width=256;badge.height=64;let
 const placeLabels=[];
 for(const entry of VIEW.labels||[]){
  const c=document.createElement('canvas');c.width=512;c.height=96;const context=c.getContext('2d');context.fillStyle='#182530e8';context.fillRect(0,0,512,96);context.fillStyle='#e5eff2';context.font='38px sans-serif';context.textAlign='center';context.fillText(entry.text,256,63);
- const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));ray.set(new THREE.Vector3(entry.at[0],500,entry.at[1]),new THREE.Vector3(0,-1,0));const hit=ray.intersectObjects([groups.bldg,groups.tran,groups.dem,groups.rail,groups.station].filter(Boolean))[0];label.position.set(entry.at[0],(hit?.point.y||0)+8,entry.at[1]);scene.add(label);placeLabels.push(label);
+ const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));ray.set(new THREE.Vector3(entry.at[0],500,entry.at[1]),new THREE.Vector3(0,-1,0));const hit=ray.intersectObjects([groups.bldg,groups.tran,groups.dem,groups.rail,groups.station,groups.shops].filter(Boolean))[0];label.position.set(entry.at[0],(hit?.point.y||0)+8,entry.at[1]);scene.add(label);placeLabels.push(label);
 }
 function render(){const ratio=innerWidth/innerHeight;camera.left=-span*ratio/2;camera.right=span*ratio/2;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(span<60?(VIEW.scaleDistance||65):Math.max(65,span*1.5)));camera.lookAt(target);camera.updateMatrixWorld();spr.scale.set(span*.1,span*.025,1);for(const label of placeLabels)label.scale.set(span*.12,span*.0225,1);renderer.render(scene,camera);document.getElementById('ruler').style.width=(100*innerHeight/span)+'px';}
 document.getElementById('controls-toggle').onclick=e=>{const open=document.getElementById('panel').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',String(open));};
@@ -67,4 +75,5 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);render()
 document.getElementById('count').textContent=Object.values(META.layers).reduce((a,v)=>a+v.triangles,0).toLocaleString()+' 三角形';
 window.preview={scene,camera,renderer,groups,preset,meta:META,robot,infillOverlay,render};preset('oblique');
 }catch(e){document.getElementById('error').textContent='表示に失敗しました：'+e.message;throw e;}
+})();
 </script></html>
