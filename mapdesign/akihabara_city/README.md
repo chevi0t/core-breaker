@@ -6,6 +6,8 @@
 
 ユーザー指定の大胆な単純化と細い隙間の整理は、別の[簡略化案](compact/README.md)に保存した。[簡略化版3D](compact/preview.html) / [塞いだ隙間の俯瞰図](compact/infill.png)。元の形状との比較用に、このフォルダの初版は保持する。
 
+その後のユーザー指定で、在来線・新幹線・東西線の高架を足した[線路延長案](rail/README.md)も作成した。[線路付き3D](rail/preview.html) / [高架の交差部](rail/railview.png)。
+
 ![秋葉原の地形](oblique.png)
 
 [俯瞰図](top.png) / [建物を隠した道路・橋梁](street.png)

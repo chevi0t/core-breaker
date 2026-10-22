@@ -1,0 +1,47 @@
+{
+  "title": "秋葉原・高架線路を延長した案",
+  "note": "地理院地図・航空写真・鉄道中心線を参考に線形を丸めた。幅・高さ・本数はゲーム用の模式設定。トンネル・勾配・架線・列車は省略。",
+  "maximumTriangles": 55000,
+  "buildingClearance": 1,
+  "minimumHeadroom": 6,
+  "pierSpacing": 40,
+  "pierSize": 2,
+  "roadPierClearance": 4,
+  "lines": [
+    {
+      "id": "local",
+      "label": "南北・在来線",
+      "points": [[12,-330],[-5,-240],[-17,-120],[-28,0],[-44,140],[-60,220],[-84,330]],
+      "width": 30,
+      "top": 8,
+      "thickness": 1.25,
+      "tracks": [-9,-3,3,9],
+      "accent": "#8fbc99"
+    },
+    {
+      "id": "highspeed",
+      "label": "南北・新幹線",
+      "points": [[52,-330],[36,-240],[24,-120],[12,0],[-2,140],[-18,220],[-42,330]],
+      "width": 16,
+      "top": 10,
+      "thickness": 1.25,
+      "tracks": [-3,3],
+      "accent": "#8ed4e2"
+    },
+    {
+      "id": "cross",
+      "label": "東西・中央総武線",
+      "points": [[-330,-5],[-134,15],[24,31],[99,38],[145,43],[330,62]],
+      "width": 18,
+      "top": 18,
+      "thickness": 1.5,
+      "tracks": [-3,3],
+      "accent": "#e8bc72"
+    }
+  ],
+  "references": [
+    "https://maps.gsi.go.jp/#17/35.698600/139.773400/",
+    "https://maps.gsi.go.jp/development/ichiran.html",
+    "https://maps.gsi.go.jp/development/vt.html"
+  ]
+}
