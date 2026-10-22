@@ -1,0 +1,463 @@
+{
+  "baseline": "292ae94",
+  "conditions": "初期の強襲装備を固定。全身軽量/重量各1回。基地前の固定点→B付近。徒歩、射出中は入力なし、ブーストなし。着地硬直を含む。候補は未採用。",
+  "pathGeometry": {
+    "B": {
+      "start": [
+        -228,
+        230,
+        0
+      ],
+      "direct": 369.655244788979,
+      "walk": {
+        "length": 517.392085495693,
+        "points": [
+          [
+            -228,
+            230,
+            0
+          ],
+          [
+            -218,
+            230,
+            0
+          ],
+          [
+            -160,
+            256,
+            0
+          ],
+          [
+            -128,
+            256,
+            0
+          ],
+          [
+            -64,
+            256,
+            0
+          ],
+          [
+            0,
+            256,
+            0
+          ],
+          [
+            32,
+            224,
+            0
+          ],
+          [
+            32,
+            192,
+            0
+          ],
+          [
+            44,
+            134,
+            0
+          ],
+          [
+            44,
+            94,
+            0
+          ],
+          [
+            64,
+            32,
+            0
+          ],
+          [
+            54,
+            -9,
+            0
+          ]
+        ]
+      }
+    },
+    "R": {
+      "start": [
+        278,
+        -240,
+        0
+      ],
+      "direct": 321.7716581677137,
+      "walk": {
+        "length": 402.2469423957358,
+        "points": [
+          [
+            278,
+            -240,
+            0
+          ],
+          [
+            288,
+            -192,
+            0
+          ],
+          [
+            288,
+            -160,
+            0
+          ],
+          [
+            280,
+            -120,
+            0
+          ],
+          [
+            224,
+            -96,
+            -4.498842716217041
+          ],
+          [
+            168,
+            -75,
+            -8
+          ],
+          [
+            148,
+            -75,
+            -8
+          ],
+          [
+            96,
+            -64,
+            -7.959490776062012
+          ],
+          [
+            44,
+            -33,
+            0
+          ],
+          [
+            54,
+            -9,
+            0
+          ]
+        ]
+      }
+    }
+  },
+  "scenarios": {
+    "currentWalk": {
+      "B": {
+        "average": 39.725,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 29.75
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 49.7
+          }
+        ]
+      },
+      "R": {
+        "average": 30.875,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 23.1
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 38.650000000000006
+          }
+        ]
+      }
+    },
+    "currentCat": {
+      "B": {
+        "average": 36.575,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 28.35
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 44.800000000000004
+          }
+        ]
+      },
+      "R": {
+        "average": 26.025,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 20.450000000000003
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 31.6
+          }
+        ]
+      }
+    },
+    "catLandingChange": {
+      "B": {
+        "average": 25.825,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 20.35
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 31.3
+          }
+        ]
+      },
+      "R": {
+        "average": 26.025,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 20.450000000000003
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 31.6
+          }
+        ]
+      }
+    },
+    "plantShiftWalk": {
+      "B": {
+        "average": 35.4,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 26.5
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 44.300000000000004
+          }
+        ]
+      },
+      "R": {
+        "average": 35.45,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 26.55
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 44.35
+          }
+        ]
+      }
+    },
+    "plantShiftCat": {
+      "B": {
+        "average": 32.25,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 25.1
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 39.400000000000006
+          }
+        ]
+      },
+      "R": {
+        "average": 30.6,
+        "runs": [
+          {
+            "chassis": "light",
+            "walkSpeed": 17.441666666666666,
+            "weight": 3660,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 23.900000000000002
+          },
+          {
+            "chassis": "heavy",
+            "walkSpeed": 10.4,
+            "weight": 5420,
+            "weapons": {
+              "main": "ar",
+              "sub": "grenade",
+              "aux": "sword",
+              "sp": "charger"
+            },
+            "seconds": 37.300000000000004
+          }
+        ]
+      }
+    }
+  },
+  "candidatePlant": [
+    60,
+    44
+  ],
+  "candidateCatapult": [
+    -218,
+    230,
+    32,
+    250
+  ],
+  "siteChecks": "占拠域9点、両軍の出撃帯各9点に成功",
+  "errors": [],
+  "status": "候補。採用済みマップの配置は変更していない。ブースト移動と対戦全体の公平さは未検証。",
+  "sha256": {
+    "map": "87afdf839b2b94b182b9e28ea5802d86c8e20d4461b566da4f0747c08962c79d",
+    "engine": "b850a65a88b659628a67aba2efd22ec9dfde94b504a59136b383fa4e35d8b9cf",
+    "checker": "10d63c162717646f35979bcc8c91ddbeb0f33a4d6ba398d50941ea04d7af4da3",
+    "candidate": "c77f9bb175472000c72d64c58cf82e16d202e35b6e491445c648e0351667eeb5"
+  }
+}
