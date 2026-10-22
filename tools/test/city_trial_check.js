@@ -47,7 +47,8 @@ const {chromium} = require('playwright');
         return highest;
       }
       ok(g.units.length===1&&g.plants.length===0,'プレイヤー1機だけ');
-      ok(!g.mapRoot.children.some(m=>m.userData.ref),'基地などの施設を置かない');
+      ok(city.district.bases.length===2&&Object.values(g.cores).every(c=>c.glow),'指定位置に両基地のコアがある');
+      ok(g.jumpPads.length===2,'両陣に屋上用ジャンプパッド');
       for(let i=0;i<city.spawns.length;i++){
         document.getElementById('trialSpawn').value=i;g.spawn(u);
         const start=u.pos.toArray();tick(2);
@@ -141,7 +142,7 @@ const {chromium} = require('playwright');
         checks.push({name:'機体 '+type,walk:u.walkV,dash:u.dashV,end:u.pos.toArray()});
       }
       u.mech=savedMech;g.equip(u,u.cls);
-      return {checks,singlePlayer:g.units.length,bases:0,plants:g.plants.length,nativeMovement:true,volumes:city.volumes.length,
+      return {checks,singlePlayer:g.units.length,bases:city.district.bases.length,plants:g.plants.length,nativeMovement:true,volumes:city.volumes.length,
         river:city.river.bed,meshTriangles:Object.fromEntries(Object.entries(city.arrays).map(([k,v])=>[k,v.length/9]))};
     });
     for(const [i,name] of [[0,'street'],[1,'station'],[2,'rail'],[4,'river']]){

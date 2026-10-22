@@ -46,7 +46,7 @@ async function createCityTrial(T, packed) {
     }
     return result;
   }
-  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons']));
+  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas']));
   const bridgeTriangles = triangles(['brid']);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
@@ -171,15 +171,27 @@ async function createCityTrial(T, packed) {
   function drawMap(g,W,H,u) {
     if (!mapCanvas) {
       mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = 600;
-      const c = mapCanvas.getContext('2d'); c.fillStyle = '#324743'; c.fillRect(0,0,600,600);
+      const c = mapCanvas.getContext('2d'); c.fillStyle = '#858b85'; c.fillRect(0,0,600,600);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
+      c.fillStyle='#3e4b54';
+      const road=arrays.tran;
+      c.beginPath();for(let i=0;i<road.length;i+=9){for(let j=0;j<9;j+=3)j?c.lineTo(road[i+j]+half,road[i+j+2]+half):c.moveTo(road[i]+half,road[i+2]+half);c.closePath();}c.fill();
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
-      for (const v of volumes) { path(v.rings); c.fillStyle = v.kind === 'rail-deck' ? '#a0c8d3' : '#7c8c92'; c.fill('evenodd'); }
+      for (const v of [...volumes].sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'; c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
       for(const exit of data.river.exits){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
       }
       c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,598,598);
+      for(const b of data.district.bases){
+        c.beginPath();c.arc(b.at[0]+half,b.at[1]+half,b.radius,0,Math.PI*2);
+        c.fillStyle=b.team==='B'?'#389bee66':'#fa8b3b66';c.fill();c.strokeStyle=b.team==='B'?'#64c9ff':'#ffaf68';c.lineWidth=2;c.stroke();
+        c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.fillText(b.team==='B'?'青基地':'橙基地',b.at[0]+half,b.at[1]+half+4);
+      }
+      for(const p of data.district.roofPads){
+        c.fillStyle='#97ffd3';c.beginPath();c.arc(p.at[0]+half,p.at[1]+half,5,0,Math.PI*2);c.fill();
+        c.strokeStyle='#71f5bd';c.lineWidth=2;c.beginPath();c.moveTo(p.at[0]+half,p.at[1]+half);c.lineTo(p.exit[0]+half,p.exit[1]+half);c.stroke();
+      }
     }
     g.clearRect(0,0,W,H); g.drawImage(mapCanvas,0,0,W,H);
     if (u) {
@@ -189,7 +201,7 @@ async function createCityTrial(T, packed) {
     }
   }
   function mount(root,hittables) {
-    const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b,fill:0x728b6b,ramps:0x93b883,aprons:0x93b883,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xffffff,tran:0x424d58,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
       if (data.colors[k]) {
@@ -199,6 +211,22 @@ async function createCityTrial(T, packed) {
       }
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color:colors[k],vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+      if(k==='bldg'){
+        // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。
+        mesh.material.onBeforeCompile=shader=>{
+          const declarations='varying vec3 cityPoint; varying vec3 cityNormal;\n';
+          shader.vertexShader=declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);');
+          shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            float side=1.0-step(0.45,abs(cityNormal.y));
+            float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
+            vec2 pane=fract(vec2(horizontal/2.8,cityPoint.y/3.5));
+            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0,cityPoint.y);
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
+            diffuseColor.rgb*=mix(0.70,1.0,side);
+          `);
+        };
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v1';
+      }
       mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops'].includes(k); root.add(mesh);
       if(k!=='water'&&k!=='exitMarks') {
         // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
@@ -225,6 +253,12 @@ async function createCityTrial(T, packed) {
     root.updateMatrixWorld(true);
   }
   return {mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,spawns:data.spawns,river:data.river,half,
+    district:data.district,base:team=>data.district.bases.find(b=>b.team===team),
+    addCameraGeometry:meshes=>{for(const m of meshes){
+      m.updateWorldMatrix(true,false);
+      const geometry=m.geometry.clone().applyMatrix4(m.matrixWorld);geometry.computeBoundingBox();geometry.computeBoundingSphere();
+      const proxy=new T.Mesh(geometry,m.material);proxy.updateMatrixWorld(true);cameraSolids.push(proxy);
+    }},
     groundMaximum:data.groundMaximum,contact,nearby,cameraPose:cameraController.solve,cameraTooClose:cameraController.tooClose,
     get cameraState(){return cameraController.state;},cameraFree};
 }

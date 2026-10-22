@@ -18,6 +18,7 @@ from shapely.geometry import LineString, Point, box
 
 from simplify import extrusion, parts, projection, rings
 from trial_river import add_exits
+from trial_district import refine, building_colors, access_routes
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -57,6 +58,8 @@ def make_payload(source):
     # DEMの境界辺をそのまま下へ延ばし、川岸の隙間を閉じる（外周の切断辺は除く）。
     dem = np.round(meshes['dem'].reshape(-1, 3, 3), 3)
     volumes = json.loads((source/'collision-volumes.json').read_text())['volumes']
+    profile = json.loads((ROOT/'research/maps/akihabara-trial.json').read_text())
+    district, cross_colors = refine(meshes, volumes, land, profile)
     exits,ramp_cut=add_exits(meshes,volumes,land,river,bed)
     edges = {}
     for tri in dem:
@@ -83,7 +86,7 @@ def make_payload(source):
             aa,bb=endpoints;c,d=aa.copy(),bb.copy();c[1]=d[1]=bed
             bank.extend([aa,bb,c,bb,d,c])
     meshes['bank'] = np.array(bank, dtype='<f4')
-    # 再生地点は地形確認用。基地・プラント・経路を仮配置しない。
+    # 地形確認の開始地点を維持し、今回指定された両基地と登り口を追加する。
     spawns = [
         {'name':'大通り', 'at':[-185,0,-50], 'surface':'ground'},
         {'name':'駅の屋根', 'at':[-25,25.5,40], 'surface':'roof'},
@@ -91,8 +94,18 @@ def make_payload(source):
         {'name':'東西の高架', 'at':[-160,18,12], 'surface':'rail'},
         {'name':'川底', 'at':[-150,bed,176], 'surface':'river'},
     ]
+    spawns += [{'name': b['name'], 'at': b['spawn'], 'surface': 'ground'} for b in district['bases']]
+    spawns += [{'name': p['name']+'・乗り場', 'at': [p['at'][0]+5,p['at'][2],p['at'][1]], 'surface': 'ground'} for p in district['roofPads']]
+    colors = {k:meta[k+'ColorRanges'] for k in ['rail','station','shops']}
+    colors.update(crossShops=cross_colors, bldg=building_colors(meshes,volumes))
+    # コアの台座・支柱は本体のモデルを描き、都市の接触判定にも同じ位置を登録する。
+    for b in district['bases']:
+        x,z=b['at'];y=b['height']
+        for footprint, top in [(Point(x,z).buffer(10,quad_segs=6),2),(box(x-6,z-6,x+6,z+6),16)]:
+            volumes.append({'kind':'base-core','team':b['team'],'bottom':y,'top':y+top,'rings':rings(footprint)})
+    district['accessRoutes']=access_routes(meshes,volumes,land,district)
     result = {'half':half,'meshes':{k:base64.b64encode(a.astype('<f4').tobytes()).decode() for k,a in meshes.items()},
-        'colors':{k:meta[k+'ColorRanges'] for k in ['rail','station','shops']},'volumes':volumes,'spawns':spawns,
+        'colors':colors,'volumes':volumes,'spawns':spawns,'district':district,
         'river':{'bed':bed,'water':water,'rings':[rings(p) for p in river_parts],'area':round(river.area,2),'exits':exits},
         'groundMaximum':max(float(meshes[k][:,1].max()) for k in ['dem','tran'])+.5}
     return result
@@ -108,9 +121,9 @@ def build(source, out):
                      ('sounds.js','prototype/sounds.js'),('music.js','prototype/music.js')]:
         s = replace(s,f'<script src="{url}"></script>','<script>'+inline_js((ROOT/path).read_text())+'</script>')
     definition = dict(name='星路駅前試験区',size=[300,300],team=1,time=86400,baseZ=280,baseLine=300,
-        desc='地形の試走。基地・プラント・敵機なし。道路・屋根・高架・川底の移動を確認できます。',
+        desc='地形と両基地の位置確認。高層棟へは緑のジャンプパッドから。',
         terrain=[],layout=[],plants=[],turrets=[],radar=[],catapults=[],basePods=[],plantPods=[],barricades=[],
-        asym=True,vs={'cost':20000,'death':2000})
+        asym=True,bases={b['team']:{'at':b['at'],'radius':b['radius']} for b in data['district']['bases']},jumpPads=data['district']['roofPads'])
     s=replace(s,'<script src="maps.js"></script>','<script>window.MAP_DATA={city_trial:'+json.dumps(definition,ensure_ascii=False)+'};</script>')
     s=replace(s,'function terrainH(x, z) {','function terrainH(x, z) {\n  return CITY.terrainH(x,z);')
     s=replace(s,'function resolve(u) {','function resolve(u) {\n  return CITY.resolve(u);')
@@ -122,8 +135,15 @@ def build(source, out):
     s=replace(s,"function spawnPos(u, at) {", "function spawnPos(u, at) {\n  const point=CITY.spawns[Number(document.getElementById('trialSpawn').value)||0];\n  u.pos.fromArray(point.at);\n  if(point.surface==='ground')u.pos.y=terrainH(u.pos.x,u.pos.z);\n  resolve(u);\n  return;")
     s=replace(s,'  for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);\n  for (let i = 0; i < count; i++) makeUnit(chosenTeam === \'B\' ? \'R\' : \'B\', false, i);','  // 地形確認が終わるまではプレイヤー1機だけ。')
     s=replace(s,'    timeLeft -= dt;','    // 試走では制限時間を進めない。')
+    s=replace(s,'  if (!VS) { buildTurrets(def.turrets); buildRadars(def.radar); }','  // 基地の位置確認段階。防衛・補給施設は配置確定後に置く。')
+    s=replace(s,'  if (!VS) buildUmbrellas();','  if (!VS) buildUmbrellas();\n  CITY.addCameraGeometry(hittables.filter(m=>!m.name.startsWith("city-collision-")));')
+    s=replace(s,'  g.position.set(t.baseX, 0, t.baseZ);','  g.position.set(t.baseX, CITY.base(k).height, t.baseZ);')
+    s=replace(s,'pos: new T.Vector3(t.baseX, 19, t.baseZ)','pos: new T.Vector3(t.baseX, CITY.base(k).height+19, t.baseZ)')
+    s=replace(s,'  pad.position.set(t.baseX, 0.04, t.baseZ);','  pad.position.set(t.baseX, CITY.base(k).height+0.04, t.baseZ);')
+    s=replace(s,'roof.position.set(TEAM[k].baseX, (UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);','roof.position.set(TEAM[k].baseX, CITY.base(k).height+(UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);')
+    s=replace(s,'rim.position.set(TEAM[k].baseX, UMBRELLA_EDGE, TEAM[k].baseZ);','rim.position.set(TEAM[k].baseX, CITY.base(k).height+UMBRELLA_EDGE, TEAM[k].baseZ);')
     s=replace(s,'function drawMapOn(mini, W, H, bg, k, big = false) {','function drawMapOn(mini, W, H, bg, k, big = false) {\n  return CITY.drawMap(mini,W,H,player);')
-    s=re.sub(r'^const mapInfo = d => .*?;$',"const mapInfo = d => '地形試走・敵機なし・時間制限なし・600×600m';",s,flags=re.M)
+    s=re.sub(r'^const mapInfo = d => .*?;$',"const mapInfo = d => '地形・基地試走・敵機なし・時間制限なし・600×600m';",s,flags=re.M)
     s=replace(s,'function drawMapPreview(cv, d) {',"function drawMapPreview(cv, d) {\n  CITY.drawMap(cv.getContext('2d'),cv.width,cv.height,null); return;")
     s=replace(s,"  const g = c.getContext('2d'), img = g.createImageData(W, H);", "  CITY.drawMap(c.getContext('2d'),W,H,null); return c;\n  const g = c.getContext('2d'), img = g.createImageData(W, H);")
     # 地形の対比を保ち、遠くの高層棟も試走中に確認できるようにする。
@@ -138,8 +158,8 @@ def build(source, out):
     s=replace(s,'<title>','<title>地形試走 — ')
     s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_camera.js').read_text()+'\n'+(ROOT/'tools/plateau/trial_runtime.js').read_text()+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
     options=''.join(f'<option value="{i}">{p["name"]}</option>' for i,p in enumerate(data['spawns']))
-    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
-    panel='<div id="trialPanel">地形試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>川からは緑のスロープで街路へ戻れます。四辺に落下防止境界あり。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
+    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。路地の充填を一部除去し、東西高架下の店舗と両基地の広場を追加しています。建物の色と窓は制作側の模式表現です。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
+    panel='<div id="trialPanel">地形・基地位置の試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>南東に青基地、北西に橙基地。緑のジャンプパッドで上昇後、空中操作で高層棟の屋上へ。川からは緑のスロープで復帰。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
     s=replace(s,'</body>',panel+'</body>') if '</body>' in s else s # 本体はbody閉じタグを省略している版もある。
     if 'id="trialSpawn"' not in s:s=replace(s,'<script>\n(async () => {',panel+'<script>\n(async () => {')
     css='<style>#trialPanel{position:fixed;left:14px;top:14px;z-index:300;background:#142330ed;border:1px solid #80b7ca;padding:12px;border-radius:7px;color:#dceef4;font:13px system-ui;max-width:390px}#trialPanel label{margin-left:8px}#trialPanel small{display:block;margin:7px 0;line-height:1.6}#trialPanel a{color:#b6d8e5}#trialPanel select,#trialPanel button{padding:5px;margin:3px;background:#294458;color:white;border:1px solid #719db0}body.trialRunning #trialPanel{opacity:.28;pointer-events:none}body.trialRunning #trialPanel small,body.trialRunning #trialPanel a,body.trialRunning #trialPanel button,body.trialRunning #trialPanel label{display:none}</style>'
@@ -162,8 +182,8 @@ addEventListener('keydown',e=>{if(e.code==='Escape')pauseTrial();});
 window.__cityTrial={city:CITY,T,physics,resolve,groundAt,ceilingAt,terrainH,castFrom,spawn,shortDash,keys,units,scene,camera,renderer,setup,
  get player(){return player;},get running(){return running;},set running(v){running=v;},get mapRoot(){return mapRoot;},get hittables(){return hittables;},
  get plants(){return plants;},get curMap(){return curMap;},get cores(){return cores;},updateCamera,renderView,playerUpdate,selectWeapon,shoot,
- get mechCfg(){return mechCfg;},mechStats,equip,viewAim};
-document.getElementById('ovText').textContent='道路・屋根・高架・川底を、いつもの機体で試走できます。開始地点を選び、出撃してください。';
+ get mechCfg(){return mechCfg;},mechStats,equip,viewAim,jumpPadUpdate,get jumpPads(){return jumpPads;}};
+document.getElementById('ovText').textContent='道路・路地・両基地を試走できます。緑のジャンプパッドで上昇後、空中操作で高層棟の屋上へ。開始地点を選んで出撃してください。';
 document.getElementById('start').textContent='試走を始める';
 """
     s=replace(s,'\nrequestAnimationFrame(loop);\n','\n'+expose+'\nrequestAnimationFrame(loop);\n')
@@ -174,11 +194,13 @@ document.getElementById('start').textContent='試走を始める';
         'runtimeSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_runtime.js').read_bytes()).hexdigest(),
         'cameraSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_camera.js').read_bytes()).hexdigest(),
         'riverSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_river.py').read_bytes()).hexdigest(),
+        'districtSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_district.py').read_bytes()).hexdigest(),
+        'profileSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-trial.json').read_bytes()).hexdigest(),
         'builderSHA256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
         'htmlBytes':len(s.encode()),'htmlSHA256':hashlib.sha256(s.encode()).hexdigest(),
         'triangles':{k:len(base64.b64decode(v))//36 for k,v in data['meshes'].items()},
         'collisionVolumes':len(data['volumes']),'river':{k:v for k,v in data['river'].items() if k!='rings'},
-        'spawns':data['spawns'],'bases':0,'plants':0,'bots':0,'nativeMovement':True,'edgeClamp':298.7}
+        'spawns':data['spawns'],'district':data['district'],'bases':2,'plants':0,'bots':0,'nativeMovement':True,'edgeClamp':298.7}
     (out/'generation.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(record,ensure_ascii=False,indent=2))
 
