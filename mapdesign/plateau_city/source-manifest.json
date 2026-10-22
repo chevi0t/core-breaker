@@ -1,0 +1,440 @@
+{
+  "geoid": {
+    "url": "https://vldb.gsi.go.jp/sokuchi/surveycalc/geoid/calcgh/cgi/geoidcalc.pl?outputType=json&latitude=35.68975&longitude=139.6918",
+    "file": "geoid.txt",
+    "bytes": 181,
+    "sha256": "909f95ea9ac73287a9b2dfc7a9ba9f9d1ffe3024e3cc88c7bba572e087fe7ecd"
+  },
+  "referenceElevation": {
+    "url": "https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=139.6918&lat=35.68975&outtype=JSON",
+    "file": "gsi-elevation.json",
+    "bytes": 58,
+    "sha256": "9b597a34cfb33ab30d5b084c68b73b202c407d5fa22ce4ef654c4bf3d23331ba"
+  },
+  "center": [
+    139.6918,
+    35.68975
+  ],
+  "rotationDegrees": 12,
+  "halfExtent": 300,
+  "tilesets": [
+    {
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/tileset.json",
+      "file": "bldg-tileset.json",
+      "bytes": 422113,
+      "sha256": "95cf280a817c068a777d5a233d60a2184d6cfd18d35c7f3a1db10bb84443a9bf"
+    },
+    {
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/tileset.json",
+      "file": "tran-tileset.json",
+      "bytes": 102342,
+      "sha256": "a894709a4e320bf801816fb701010448ddda0556afae6c5e3fc562085392ebf6"
+    },
+    {
+      "url": "https://assets.cms.plateau.reearth.io/assets/b6/517a79-3af1-4c70-b7e1-01accf55e3f5/13104_shinjuku-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/tileset.json",
+      "file": "brid-tileset.json",
+      "bytes": 3932,
+      "sha256": "9686dff4be5526d3de9a9d8820d8e6f9dc92aa68f88f95364ca60122b63c16c2"
+    }
+  ],
+  "models": [
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data632.b3dm",
+      "file": "bldg-data632.b3dm",
+      "bytes": 644088,
+      "sha256": "2eef896b8d306d6ca67d541c6fb49ba774154bf5eede088de2f776cebde3d5eb"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data634.b3dm",
+      "file": "bldg-data634.b3dm",
+      "bytes": 328840,
+      "sha256": "4812f85dbedc04f36be2c5e7d56c3615b673736f55e4dbe4cd53f12cd6a8c0f6"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data636.b3dm",
+      "file": "bldg-data636.b3dm",
+      "bytes": 923888,
+      "sha256": "a075fa99a3826d0f146ba683cd3245e8a2b808c5ef8d72ef6c759b07a1709a1a"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data637.b3dm",
+      "file": "bldg-data637.b3dm",
+      "bytes": 550172,
+      "sha256": "7b9e218f7cad7af1bdb507fbba6c423f5d1708fca3fe04971a303641959690dc"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data638.b3dm",
+      "file": "bldg-data638.b3dm",
+      "bytes": 226176,
+      "sha256": "de7f41938e48e083eb256e92edd96d8fb9beb92fb870ace6ee6ab5b40da9e179"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data639.b3dm",
+      "file": "bldg-data639.b3dm",
+      "bytes": 507128,
+      "sha256": "06e459a46db6dcdf4aa758fa923a1df5f9323696979ad1c455098bada41ff101"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data642.b3dm",
+      "file": "bldg-data642.b3dm",
+      "bytes": 1136468,
+      "sha256": "ae78f25c87d4b167bd86cc865b85d130ef19695d3df71547c5b63ad3815ad844"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data644.b3dm",
+      "file": "bldg-data644.b3dm",
+      "bytes": 1438208,
+      "sha256": "97c96514b00ae9572d403646dcb8bf9db19e012b093bac3e03648b2386bc6ee4"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data646.b3dm",
+      "file": "bldg-data646.b3dm",
+      "bytes": 790424,
+      "sha256": "c0abc1dab62104e925a08206a2b569b4a7744a4f258cd18bc7dfd06d0942edf3"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data647.b3dm",
+      "file": "bldg-data647.b3dm",
+      "bytes": 334632,
+      "sha256": "472438cbbaad20b060740dbab67b8ba85c2a48af1ca192126a99edccacdf229a"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data648.b3dm",
+      "file": "bldg-data648.b3dm",
+      "bytes": 318660,
+      "sha256": "d965a84d74c7772ef7743fadeefae0733cb8fbf8fe2c9dc2d7e15f39c6e58063"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data649.b3dm",
+      "file": "bldg-data649.b3dm",
+      "bytes": 243812,
+      "sha256": "56f59e569e862be73bf2c96e5e7841bfa7a39bac9e7850453b81ce80025fcb58"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data665.b3dm",
+      "file": "bldg-data665.b3dm",
+      "bytes": 687108,
+      "sha256": "4a485df741d9b9bbb566ec1becbc7d9fe787eaaf7c3b7830e9b4b639c915b378"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data666.b3dm",
+      "file": "bldg-data666.b3dm",
+      "bytes": 544776,
+      "sha256": "5cf1a7a105e9b0448bf9799a8b81f7d792fdf2bff5c23d812917c817ae026609"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data667.b3dm",
+      "file": "bldg-data667.b3dm",
+      "bytes": 210580,
+      "sha256": "140d609d20a1753066275c4e7527273d4bf526c30429b928252aeb4cde0aee77"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data668.b3dm",
+      "file": "bldg-data668.b3dm",
+      "bytes": 883572,
+      "sha256": "5a008b91e3ae78ad86d6155fd2fbbab857406061f4f69610526ee22aa93633da"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data674.b3dm",
+      "file": "bldg-data674.b3dm",
+      "bytes": 47484,
+      "sha256": "ecb1bccf7c409b86bd0178fc4f07290c075db6784b27d3bc83db0328fc9ab82b"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data675.b3dm",
+      "file": "bldg-data675.b3dm",
+      "bytes": 861252,
+      "sha256": "78b257bf2020dff60042980e390a2fb922d5e33c99650983435a35b80e3bb499"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data676.b3dm",
+      "file": "bldg-data676.b3dm",
+      "bytes": 51264,
+      "sha256": "67eb606f7fdeb921f32bbf98bd0c2d72deced7fdbf2420a3a9b5720223aaf300"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data677.b3dm",
+      "file": "bldg-data677.b3dm",
+      "bytes": 1170924,
+      "sha256": "b71ce085e3ac59bae4e6441ef6ee7e73c64ebc86df2f09a0f0e44a6df794ad67"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data687.b3dm",
+      "file": "bldg-data687.b3dm",
+      "bytes": 494900,
+      "sha256": "9b7ef4deed18903f2f76692e28a0234fbfc7f6c1c38087fb3cf12172d75b17c3"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data688.b3dm",
+      "file": "bldg-data688.b3dm",
+      "bytes": 703680,
+      "sha256": "7fb6c191d3d992ea105fa8e84e448a5fdf41848fd601442cbe76349541fd410f"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data693.b3dm",
+      "file": "bldg-data693.b3dm",
+      "bytes": 440580,
+      "sha256": "0dee97099622276587130c6fcd498045ba7bcd6dec04d476195bd4b9fbec28e2"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/2f/d4f9a7-13ad-43cb-b984-033803199eab/13104_shinjuku-ku_pref_2025_citygml_1_op_bldg_3dtiles_13104_shinjuku-ku_lod2_no_texture/data/data694.b3dm",
+      "file": "bldg-data694.b3dm",
+      "bytes": 635708,
+      "sha256": "3c9720863ac678b7dc9899a2c7c4c819fefb8e7da17e8700942fd0d01590b291"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data108.b3dm",
+      "file": "tran-data108.b3dm",
+      "bytes": 73904,
+      "sha256": "2f91ac6b78ba2d2a829053c8f4884f65cef9c1ea621933ab30efab673b7f935d"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data112.b3dm",
+      "file": "tran-data112.b3dm",
+      "bytes": 247548,
+      "sha256": "076c3dd94af6332518900a198f3ee8f59b00d10c09a6661ef9f4fd3674b99b82"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data113.b3dm",
+      "file": "tran-data113.b3dm",
+      "bytes": 96064,
+      "sha256": "117dcb4f6dd9bb466e16e44c499a2be745650e98a9891eb1edee33da9a48e686"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data116.b3dm",
+      "file": "tran-data116.b3dm",
+      "bytes": 260476,
+      "sha256": "82d059f1371657a86853718958736988433fddcecc6bc86deb02a7da87ac5d40"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data118.b3dm",
+      "file": "tran-data118.b3dm",
+      "bytes": 275396,
+      "sha256": "dff11fc278cb23923ac19cf6734790caf4d473cdcb2b36891a2bcfc5d283d6ee"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data120.b3dm",
+      "file": "tran-data120.b3dm",
+      "bytes": 177196,
+      "sha256": "df62172587e048116062ca05e98e6aaffb3f4e4a639ba6d55187cb48fb6e7408"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data121.b3dm",
+      "file": "tran-data121.b3dm",
+      "bytes": 297068,
+      "sha256": "d68326c22f9f017d80b3fb12ef376889a7100e3fe439f05d9e8b077aa08c19c1"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data122.b3dm",
+      "file": "tran-data122.b3dm",
+      "bytes": 322412,
+      "sha256": "b72a1000774e9b42bf1d8ac8f77b166605dcc1f453896870c501248a74dfd82f"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data123.b3dm",
+      "file": "tran-data123.b3dm",
+      "bytes": 257656,
+      "sha256": "7a314cd9680847d86f6a69d6fe79c04b5d1548ddac9155fed7de082d4f3fb82b"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data128.b3dm",
+      "file": "tran-data128.b3dm",
+      "bytes": 69816,
+      "sha256": "d1bd2349d0ef6568b96c4bb5467e0975f8106363c6a3773327f36f59169051f8"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data129.b3dm",
+      "file": "tran-data129.b3dm",
+      "bytes": 260212,
+      "sha256": "c2da80a38a58ae79ecd82610f6c31da5d7758bac01a38ca8ecf768f7124514ce"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data133.b3dm",
+      "file": "tran-data133.b3dm",
+      "bytes": 103724,
+      "sha256": "e9c56013b6221338ca5fb9514b9641261a53344565376c25b40495c573f5ffcb"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data136.b3dm",
+      "file": "tran-data136.b3dm",
+      "bytes": 338116,
+      "sha256": "cb5108671c2c0b507d24fe87d605685d8a72d660aa0f67e8d02aaba181087123"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data137.b3dm",
+      "file": "tran-data137.b3dm",
+      "bytes": 169936,
+      "sha256": "e4019834f7a0e4dd78c464ad9b543dbc144543ba530051dd6ee0a07b0f010a11"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data138.b3dm",
+      "file": "tran-data138.b3dm",
+      "bytes": 88504,
+      "sha256": "94d1baf18fa2b191540297b9c3328dd93611b24082a5150212bc6022a1b371a6"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data139.b3dm",
+      "file": "tran-data139.b3dm",
+      "bytes": 8232,
+      "sha256": "585eddf103a8a35c9b3e10e51c0f9666a8b9ba94dedf85335a8c1d5b02c816d6"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data141.b3dm",
+      "file": "tran-data141.b3dm",
+      "bytes": 165484,
+      "sha256": "8d7a144277b8eea686689edff4f9a6f8da68fbe7b91513ce8e035aa6adaf75cc"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data143.b3dm",
+      "file": "tran-data143.b3dm",
+      "bytes": 96824,
+      "sha256": "61ab83aaee8ea488c339ff800d3679aae0cd82a13ef601159f06a907cf0cb304"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data147.b3dm",
+      "file": "tran-data147.b3dm",
+      "bytes": 402276,
+      "sha256": "a68bd8b9d269ab3661ffa36114e9dde43907250dbca270f266b7c95915e6913f"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data149.b3dm",
+      "file": "tran-data149.b3dm",
+      "bytes": 253396,
+      "sha256": "c5f17b1291aeb443f472c634d0a32095098bc6cea3ebdab71febf4bbda658f6c"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data150.b3dm",
+      "file": "tran-data150.b3dm",
+      "bytes": 242920,
+      "sha256": "c590b9f6b733c593501e0f7cb48c6768267b9fad97adedad2a3b12214d5cf4da"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data151.b3dm",
+      "file": "tran-data151.b3dm",
+      "bytes": 121328,
+      "sha256": "a72ed2732b182a7e0bed18eccfbf9b906045307a62867886327f5a573a7ad381"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data152.b3dm",
+      "file": "tran-data152.b3dm",
+      "bytes": 236212,
+      "sha256": "1642652d07102044ba59f726fda274f8bb3ea27b68f183581c0637f30000bb24"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data155.b3dm",
+      "file": "tran-data155.b3dm",
+      "bytes": 250228,
+      "sha256": "10e2723b53d7e4776eeab65c8a0805bf1a16cacdfcb70d2dc43275a3483339ba"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data156.b3dm",
+      "file": "tran-data156.b3dm",
+      "bytes": 100780,
+      "sha256": "ce74f4f46a602c17171b54a8b39ea2057ee9a51a2c18a6f2b110d098a0640e4a"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data157.b3dm",
+      "file": "tran-data157.b3dm",
+      "bytes": 107476,
+      "sha256": "dd898511dfe29aae56be4e95de64d3d6f4a91003b0f2b56530889b562b00b235"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data158.b3dm",
+      "file": "tran-data158.b3dm",
+      "bytes": 230552,
+      "sha256": "5669dceb3e36ff3a0658f1bd859d9f5401f1a13ce248dc82cc0a93d06856b3c1"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/5d/8e46a6-98de-4829-8e4f-656c7cc89348/13104_shinjuku-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data160.b3dm",
+      "file": "tran-data160.b3dm",
+      "bytes": 151308,
+      "sha256": "0b03be1b4de42c84bbf4deea99bab99bdebf7952a58060df1bca6f59bb34e54e"
+    },
+    {
+      "kind": "brid",
+      "url": "https://assets.cms.plateau.reearth.io/assets/b6/517a79-3af1-4c70-b7e1-01accf55e3f5/13104_shinjuku-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/data/data1.b3dm",
+      "file": "brid-data1.b3dm",
+      "bytes": 2643644,
+      "sha256": "f23bc2a5aef6cc50585ee3475bc127b3bdbdad5d85d7247e5dbfdaa61887eee2"
+    },
+    {
+      "kind": "brid",
+      "url": "https://assets.cms.plateau.reearth.io/assets/b6/517a79-3af1-4c70-b7e1-01accf55e3f5/13104_shinjuku-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/data/data3.b3dm",
+      "file": "brid-data3.b3dm",
+      "bytes": 2040100,
+      "sha256": "ef8bcf043c9d74bcb0f9fe01df461a1c820a862dbc3bc8dacda31e669448dcfc"
+    }
+  ],
+  "dem": [
+    {
+      "x": 29098,
+      "y": 12902,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/29098/12902.png",
+      "file": "dem5a_png-15-29098-12902.png",
+      "bytes": 66718,
+      "sha256": "fe46362470a81e4e59d76469d3508bf95f803d490d2d03ed410e7e461c4ddd28"
+    },
+    {
+      "x": 29099,
+      "y": 12902,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/29099/12902.png",
+      "file": "dem5a_png-15-29099-12902.png",
+      "bytes": 58854,
+      "sha256": "ba468502b2fd5cb8b29b8168aadcb16e5023e48c3c3b5090e6503de88b99c2df"
+    }
+  ]
+}

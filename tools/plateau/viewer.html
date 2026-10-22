@@ -1,0 +1,51 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>都市地形プレビュー</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#17222d;color:#e6eef1;font:14px/1.6 system-ui,sans-serif;overflow:hidden}canvas{display:block;touch-action:none}#panel{position:absolute;left:24px;top:22px;width:280px;padding:20px;background:#172530eb;border:1px solid #506875;border-radius:12px;box-shadow:0 8px 30px #0004}h1{font-size:20px;line-height:1.35;margin:5px 0 12px;font-weight:650}.tag{font-size:11px;letter-spacing:.16em;color:#95c6b4}p{margin:8px 0;color:#b8c9d0;font-size:12px}.buttons{display:flex;gap:7px;margin:14px 0;flex-wrap:wrap}button{border:1px solid #64808b;border-radius:5px;background:#293f4d;color:#e7f2f6;padding:7px 12px;cursor:pointer}button:hover{background:#416576}label{display:flex;align-items:center;gap:9px;padding:4px 0;cursor:pointer}input{accent-color:#94d5b2}.swatch{width:10px;height:10px;border-radius:2px;display:inline-block}.small{font-size:11px;color:#9fb4bd}#footer{position:absolute;left:24px;bottom:18px;font-size:11px;color:#b5c7cb;max-width:640px;background:#172530db;padding:9px 13px;border-radius:6px}a{color:#a3d3d4}#status{position:absolute;right:24px;top:24px;text-align:right;font-size:12px;color:#c7dadd}#ruler{position:absolute;bottom:24px;right:24px;border-bottom:2px solid #d0e0e6;text-align:center;font-size:12px;text-shadow:0 1px 3px #000}#note{margin-top:12px;padding-top:10px;border-top:1px solid #3a515c}#error{color:#ffb9a5}
+#controls-toggle{display:none;position:absolute;left:10px;top:10px;z-index:2}@media(max-width:700px){#controls-toggle{display:block}#panel{display:none;left:10px;top:56px;width:225px;padding:12px}#panel.open{display:block}h1{font-size:17px}#footer{left:10px;bottom:10px;max-width:70%;font-size:10px}#status{right:10px;top:auto;bottom:90px}.small{font-size:10px}}
+</style>
+<button id="controls-toggle" aria-expanded="false" aria-controls="panel">表示設定</button><aside id="panel"><div class="tag">地形確認 · 第1版</div><h1>都市地形プレビュー</h1><p>都庁周辺・600 × 600m<br>建物と道路の立体形状、実際の地面の起伏</p><div class="buttons"><button id="oblique">斜め</button><button id="top">俯瞰</button><button id="street">道路を見る</button><button id="scale">機体の尺度</button></div>
+<label><input id="bldg" type="checkbox" checked><i class="swatch" style="background:#c6cace"></i>建物</label><label><input id="tran" type="checkbox" checked><i class="swatch" style="background:#7494a8"></i>道路</label><label><input id="brid" type="checkbox" checked><i class="swatch" style="background:#d8ad71"></i>橋梁</label><label><input id="dem" type="checkbox" checked><i class="swatch" style="background:#728b6b"></i>標高地形</label><label><input id="edges" type="checkbox" checked>建物の輪郭線</label><div id="note"><p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>寸法・高さは実寸。基地・プラント未配置。<br>形状確認用（移動・戦闘は未実装）。<br>地面は道路面が埋まらないよう補正。</p><div id="error"></div></div></aside>
+<div id="status">1単位 = 1m · 高さの誇張なし<br><span id="count"></span></div><div id="ruler">100m</div>
+<footer id="footer">出典：<a href="https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025">東京都・PLATEAU 新宿区2025年度3D都市モデル</a>、<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院 標高タイル</a>・ジオイド高（切り出し・座標変換・地面加工）<br>整備・公開に携わる皆さまに感謝します。<a href="https://www.mlit.go.jp/plateau/site-policy/">利用条件</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></footer>
+<!-- three.js MIT License: __THREE_LICENSE__ -->
+<script>/*__THREE__*/</script><script>
+'use strict';
+const DATA=/*__DATA__*/;
+const META=/*__META__*/;
+try{
+const scene=new THREE.Scene();scene.background=new THREE.Color('#253541');
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=THREE.sRGBEncoding;renderer.localClippingEnabled=true;document.body.prepend(renderer.domElement);
+const camera=new THREE.OrthographicCamera(-500,500,400,-400,.1,5000);const target=new THREE.Vector3(0,55,0);let yaw=.62,pitch=.78,span=1030;
+scene.add(new THREE.HemisphereLight(0xe4f2ff,0x514a3c,.82));const sun=new THREE.DirectionalLight(0xfff4df,.9);sun.position.set(-350,700,100);scene.add(sun);
+const groups={};let outlines;const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b};
+for(const key of Object.keys(DATA)){
+ const raw=atob(DATA[key]),buffer=new ArrayBuffer(raw.length),u8=new Uint8Array(buffer);for(let i=0;i<raw.length;i++)u8[i]=raw.charCodeAt(i);
+ const positions=new Float32Array(buffer),geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));geo.computeVertexNormals();
+ if(key==='dem'){
+  const c=new Float32Array(positions.length),low=new THREE.Color('#718878').convertSRGBToLinear(),high=new THREE.Color('#a8b488').convertSRGBToLinear();
+  for(let i=0;i<positions.length;i+=3){const color=low.clone().lerp(high,Math.max(0,Math.min(1,(positions[i+1]+5)/16)));c.set([color.r,color.g,color.b],i);}geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+ }
+ const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:key==='dem'?0xffffff:new THREE.Color(colors[key]).convertSRGBToLinear(),vertexColors:key==='dem',roughness:1,metalness:0,side:THREE.DoubleSide,polygonOffset:key==='tran'||key==='brid',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+ mesh.name=key;scene.add(mesh);groups[key]=mesh;document.getElementById(key).onchange=e=>{mesh.visible=e.target.checked;if(key==='bldg')outlines.visible=mesh.visible&&document.getElementById('edges').checked;render();};
+ if(key==='bldg'){outlines=new THREE.LineSegments(new THREE.EdgesGeometry(geo,27),new THREE.LineBasicMaterial({color:0x495b67,transparent:true,opacity:.55}));scene.add(outlines);}
+}
+document.getElementById('edges').onchange=e=>{outlines.visible=e.target.checked&&groups.bldg.visible;render();};
+const grid=new THREE.GridHelper(600,12,0x718690,0x526773);grid.position.y=-20;scene.add(grid);
+// 実寸4mの比較用機体（オリジナルの簡略形）。
+const robot=new THREE.Group(),mat=new THREE.MeshStandardMaterial({color:0xffc66b,roughness:.8});
+function box(w,h,d,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);robot.add(m);}
+box(.95,1.15,.65,0,2.6,0);box(.7,.55,.65,0,3.725,0);box(.45,2,.5,-.48,1,0);box(.45,2,.5,.48,1,0);box(.4,.5,.4,0,3.3,0);box(.45,1.25,.5,-.8,2.4,0);box(.45,1.25,.5,.8,2.4,0);
+const ray=new THREE.Raycaster();ray.set(new THREE.Vector3(-210,500,50),new THREE.Vector3(0,-1,0));let hit=ray.intersectObjects([groups.tran,groups.dem]).find(h=>h.point.y<40);robot.position.set(-210,hit?hit.point.y:0,50);scene.add(robot);
+const badge=document.createElement('canvas');badge.width=256;badge.height=64;let ctx=badge.getContext('2d');ctx.fillStyle='#182530';ctx.fillRect(0,0,256,64);ctx.fillStyle='#ffcf80';ctx.font='28px sans-serif';ctx.textAlign='center';ctx.fillText('機体 4m',128,43);const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(badge),depthTest:false}));spr.scale.set(26,6.5,1);spr.position.copy(robot.position).add(new THREE.Vector3(0,7,0));scene.add(spr);
+function render(){const ratio=innerWidth/innerHeight;camera.left=-span*ratio/2;camera.right=span*ratio/2;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(Math.max(65,span*1.5)));camera.lookAt(target);camera.updateMatrixWorld();spr.scale.set(span*.1,span*.025,1);renderer.render(scene,camera);document.getElementById('ruler').style.width=(100*innerHeight/span)+'px';}
+document.getElementById('controls-toggle').onclick=e=>{const open=document.getElementById('panel').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',String(open));};
+function preset(name){if(name!=='street'){groups.bldg.visible=true;document.getElementById('bldg').checked=true;outlines.visible=document.getElementById('edges').checked;}if(name==='top'){target.set(0,20,0);yaw=0;pitch=Math.PI/2-.00001;span=800*Math.max(1,.85*innerHeight/innerWidth);}else if(name==='street'){target.set(45,2,-100);yaw=-.25;pitch=.65;span=330;groups.bldg.visible=false;outlines.visible=false;document.getElementById('bldg').checked=false;}else if(name==='scale'){target.copy(robot.position).add(new THREE.Vector3(0,4,0));yaw=.65;pitch=.35;span=24;}else{target.set(0,55,0);yaw=.62;pitch=.78;span=1030*Math.max(1,.85*innerHeight/innerWidth);}render();}
+for(const k of ['top','oblique','street','scale'])document.getElementById(k).onclick=()=>preset(k);
+let drag=null;const canvas=renderer.domElement;canvas.oncontextmenu=e=>e.preventDefault();canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,button:e.button};canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>drag=null;canvas.onpointercancel=()=>drag=null;
+canvas.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;if(drag.button===2||e.shiftKey){const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);target.addScaledVector(right,-dx*span/innerHeight).addScaledVector(up,dy*span/innerHeight);}else{yaw-=dx*.006;pitch=Math.max(.08,Math.min(Math.PI/2-.00001,pitch+dy*.006));}render();};
+canvas.addEventListener('wheel',e=>{e.preventDefault();span=Math.max(15,Math.min(2000,span*Math.exp(e.deltaY*.001)));render();},{passive:false});canvas.ondblclick=e=>{ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);const hits=ray.intersectObjects(Object.values(groups).filter(m=>m.visible));if(hits[0]){target.copy(hits[0].point);span=Math.min(span,250);render();}};
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);render();});
+document.getElementById('count').textContent=Object.values(META.layers).reduce((a,v)=>a+v.triangles,0).toLocaleString()+' 三角形';
+window.preview={scene,camera,renderer,groups,preset,meta:META,robot,render};preset('oblique');
+}catch(e){document.getElementById('error').textContent='表示に失敗しました：'+e.message;throw e;}
+</script></html>
