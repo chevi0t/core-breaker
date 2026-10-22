@@ -4,6 +4,8 @@
 
 [単体HTMLの3Dプレビュー](preview.html) / [俯瞰](top.png) / [駅と高架の拡大図](railview.png)
 
+この形状で実機体を動かす[試走版](../trial/README.md) / [試走HTML](../trial/index.html)も用意した。川底・水面・護岸と、四辺の落下防止境界は試走版に追加している。
+
 ![高架を延ばした街区](oblique.png)
 
 ## 形と尺度
