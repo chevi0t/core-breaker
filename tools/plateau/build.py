@@ -43,6 +43,16 @@ def clip(tris,half=300):
     t=result.reshape(-1,3,3);keep=np.linalg.norm(np.cross(t[:,1]-t[:,0],t[:,2]-t[:,0]),axis=1)>1e-5
     return t[keep].reshape(-1,3).astype('<f4')
 
+def write_preview(layers,meta,manifest,out):
+    blob={k:base64.b64encode(v.tobytes()).decode() for k,v in layers.items()}
+    template=(ROOT/'tools/plateau/viewer.html').read_text();three=(ROOT/'vendor/three-r128/three.min.js').read_text();license=(ROOT/'vendor/three-r128/LICENSE').read_text()
+    links=list({v['url']:v for v in manifest.get('sourceLinks',[{'url':'https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025','label':'東京都・PLATEAU 新宿区2025年度3D都市モデル'}])}.values())
+    source_links='・'.join('<a href="'+html.escape(v['url'],quote=True)+'">'+html.escape(v['label'])+'</a>' for v in links)
+    title=html.escape(meta['display'].get('title','都市地形プレビュー'));area=html.escape(meta['display'].get('areaName','都庁周辺'))
+    html_output=template.replace('/*__THREE__*/',three).replace('/*__DATA__*/',json.dumps(blob,separators=(',',':'))).replace('/*__META__*/',json.dumps(meta)).replace('__THREE_LICENSE__',license).replace('__TITLE__',title).replace('__AREA__',area).replace('__EXTENT__',str(meta['extentMeters'])).replace('__SOURCE_LINKS__',source_links)
+    (out/'preview.html').write_text(html_output)
+
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('cache',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path);args=ap.parse_args();cache=args.cache;out=args.output;out.mkdir(parents=True,exist_ok=True)
     manifest=json.loads((cache/'inputs.json').read_text());frame=Frame(manifest['center'],manifest['rotationDegrees']);half=manifest['halfExtent']
@@ -105,12 +115,6 @@ def main():
     stats={k:{'triangles':len(v)//3,'min':v.astype(float).min(axis=0).round(3).tolist() if len(v) else None,'max':v.astype(float).max(axis=0).round(3).tolist() if len(v) else None} for k,v in layers.items()}
     meta={'center':manifest['center'],'rotationDegrees':manifest['rotationDegrees'],'extentMeters':half*2,'display':manifest.get('display',{}),'referenceElevation':reference,'geoidHeight':gh,'demElevationRange':[float(np.nanmin(h)),float(np.nanmax(h))],'layers':stats,'missingDEMVertices':int(np.count_nonzero(~valid)),'groundAdjustedVertices':int(np.count_nonzero((ground[:,:,1]<raw_ground[:,:,1]-.01)&valid)),'groundMaxLowering':float(np.max((raw_ground[:,:,1]-ground[:,:,1])[valid])),'sourceModelTiles':len(manifest['models']),'bases':0,'plants':0}
     (out/'summary.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n')
-    blob={k:base64.b64encode(v.tobytes()).decode() for k,v in layers.items()}
-    template=(ROOT/'tools/plateau/viewer.html').read_text();three=(ROOT/'vendor/three-r128/three.min.js').read_text();license=(ROOT/'vendor/three-r128/LICENSE').read_text()
-    links=list({v['url']:v for v in manifest.get('sourceLinks',[{'url':'https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025','label':'東京都・PLATEAU 新宿区2025年度3D都市モデル'}])}.values())
-    source_links='・'.join('<a href="'+html.escape(v['url'],quote=True)+'">'+html.escape(v['label'])+'</a>' for v in links)
-    title=html.escape(meta['display'].get('title','都市地形プレビュー'));area=html.escape(meta['display'].get('areaName','都庁周辺'))
-    html_output=template.replace('/*__THREE__*/',three).replace('/*__DATA__*/',json.dumps(blob,separators=(',',':'))).replace('/*__META__*/',json.dumps(meta)).replace('__THREE_LICENSE__',license).replace('__TITLE__',title).replace('__AREA__',area).replace('__EXTENT__',str(half*2)).replace('__SOURCE_LINKS__',source_links)
-    (out/'preview.html').write_text(html_output)
+    write_preview(layers,meta,manifest,out)
     print(json.dumps(meta,ensure_ascii=False))
 if __name__=='__main__':main()

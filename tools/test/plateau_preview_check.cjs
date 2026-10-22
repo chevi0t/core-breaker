@@ -10,7 +10,7 @@ const {chromium}=require('playwright');
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
   await page.goto(pathToFileURL(file).href);await page.waitForFunction(()=>window.preview);
   const initial=await page.evaluate(()=>({triangles:preview.renderer.info.render.triangles,layers:Object.keys(preview.groups),height:new THREE.Box3().setFromObject(preview.robot).getSize(new THREE.Vector3()).y}));
-  assert.deepEqual(initial.layers.sort(),['bldg','brid','dem','tran']);assert(initial.triangles>50000);assert(Math.abs(initial.height-4)<.001);
+  assert.deepEqual(initial.layers.sort(),['bldg','brid','dem','tran']);assert(initial.triangles>1000);assert(Math.abs(initial.height-4)<.001);
   for(const name of ['oblique','top','street','scale']){await page.locator('#'+name).click();if(name==='scale'){const blocked=await page.evaluate(()=>{const target=preview.robot.position.clone().add(new THREE.Vector3(0,2,0)),ndc=target.clone().project(preview.camera),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(ndc.x,ndc.y),preview.camera);const hit=ray.intersectObject(preview.groups.bldg)[0];return !!hit&&hit.distance<ray.ray.origin.distanceTo(target)-.2;});assert.equal(blocked,false,'比較機体が建物に隠れていない');}await page.screenshot({path:path.join(output,name+'.png')});}
   for(const name of initial.layers){await page.locator('#'+name).uncheck();assert.equal(await page.evaluate(n=>preview.groups[n].visible,name),false);await page.locator('#'+name).check();assert.equal(await page.evaluate(n=>preview.groups[n].visible,name),true);}
   await page.locator('#top').click();const before=await page.evaluate(()=>preview.camera.position.toArray());
@@ -19,6 +19,8 @@ const {chromium}=require('playwright');
   const targetBefore=await page.evaluate(()=>preview.camera.position.toArray());await page.mouse.down({button:'right'});await page.mouse.move(1020,580,{steps:4});await page.mouse.up({button:'right'});assert.notDeepEqual(await page.evaluate(()=>preview.camera.position.toArray()),targetBefore);
   await page.setViewportSize({width:390,height:844});await page.locator('#controls-toggle').click();await page.locator('#top').click();await page.locator('#controls-toggle').click();await page.screenshot({path:path.join(output,'mobile.png')});
   assert.deepEqual(requests,[]);assert.deepEqual(errors,[]);
-  const result={offline:true,externalRequests:requests.length,browserErrors:errors.length,presets:4,layerToggles:4,rotationZoomPan:true,scaleReferenceVisible:true,mobile:true,robotHeightMeters:initial.height,drawnTriangles:initial.triangles};fs.writeFileSync(path.join(output,'browser-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
+  let infillToggle=false;await page.setViewportSize({width:1440,height:1000});if(await page.locator('#infill-label').isVisible()){await page.locator('#infill').check();assert.equal(await page.evaluate(()=>preview.infillOverlay.visible),true);await page.locator('#top').click();await page.screenshot({path:path.join(output,'infill.png')});await page.locator('#infill').uncheck();infillToggle=true;}
+  assert.deepEqual(requests,[]);assert.deepEqual(errors,[]);
+  const result={infillToggle,offline:true,externalRequests:requests.length,browserErrors:errors.length,presets:4,layerToggles:4,rotationZoomPan:true,scaleReferenceVisible:true,mobile:true,robotHeightMeters:initial.height,drawnTriangles:initial.triangles};fs.writeFileSync(path.join(output,'browser-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

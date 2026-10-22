@@ -4,7 +4,7 @@
 #controls-toggle{display:none;position:absolute;left:10px;top:10px;z-index:2}@media(max-width:700px){#controls-toggle{display:block}#panel{display:none;left:10px;top:56px;width:225px;padding:12px}#panel.open{display:block}h1{font-size:17px}#footer{left:10px;bottom:10px;max-width:70%;font-size:10px}#status{right:10px;top:auto;bottom:90px}.small{font-size:10px}}
 </style>
 <button id="controls-toggle" aria-expanded="false" aria-controls="panel">表示設定</button><aside id="panel"><div class="tag">地形確認 · 第1版</div><h1>__TITLE__</h1><p>__AREA__・__EXTENT__ × __EXTENT__m<br>建物と道路の立体形状、実際の地面の起伏</p><div class="buttons"><button id="oblique">斜め</button><button id="top">俯瞰</button><button id="street">道路を見る</button><button id="scale">機体の尺度</button></div>
-<label><input id="bldg" type="checkbox" checked><i class="swatch" style="background:#c6cace"></i>建物</label><label><input id="tran" type="checkbox" checked><i class="swatch" style="background:#7494a8"></i>道路</label><label><input id="brid" type="checkbox" checked><i class="swatch" style="background:#d8ad71"></i>橋梁</label><label><input id="dem" type="checkbox" checked><i class="swatch" style="background:#728b6b"></i>標高地形</label><label><input id="edges" type="checkbox" checked>建物の輪郭線</label><div id="note"><p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>寸法・高さは実寸。基地・プラント未配置。<br>形状確認用（移動・戦闘は未実装）。<br>地面は道路面が埋まらないよう補正。<span id="missing-note"></span></p><div id="error"></div></div></aside>
+<label><input id="bldg" type="checkbox" checked><i class="swatch" style="background:#c6cace"></i>建物</label><label><input id="tran" type="checkbox" checked><i class="swatch" style="background:#7494a8"></i>道路</label><label><input id="brid" type="checkbox" checked><i class="swatch" style="background:#d8ad71"></i>橋梁</label><label><input id="dem" type="checkbox" checked><i class="swatch" style="background:#728b6b"></i>標高地形</label><label><input id="edges" type="checkbox" checked>建物の輪郭線</label><label id="infill-label" style="display:none"><input id="infill" type="checkbox"><i class="swatch" style="background:#ff966c"></i>塞いだ隙間を表示</label><div id="compact-note"></div><div id="note"><p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>寸法・高さは実寸。基地・プラント未配置。<br>形状確認用（移動・戦闘は未実装）。<br>地面は道路面が埋まらないよう補正。<span id="missing-note"></span></p><div id="error"></div></div></aside>
 <div id="status">1単位 = 1m · 高さの誇張なし<br><span id="count"></span></div><div id="ruler">100m</div>
 <footer id="footer">出典：__SOURCE_LINKS__、<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院 標高タイル</a>・ジオイド高（切り出し・座標変換・地面加工）<br>整備・公開に携わる皆さまに感謝します。<a href="https://www.mlit.go.jp/plateau/site-policy/">利用条件</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></footer>
 <!-- three.js MIT License: __THREE_LICENSE__ -->
@@ -31,6 +31,14 @@ for(const key of Object.keys(DATA)){
  mesh.name=key;scene.add(mesh);groups[key]=mesh;document.getElementById(key).onchange=e=>{mesh.visible=e.target.checked;if(key==='bldg')outlines.visible=mesh.visible&&document.getElementById('edges').checked;render();};
  if(key==='bldg'){outlines=new THREE.LineSegments(new THREE.EdgesGeometry(geo,27),new THREE.LineBasicMaterial({color:0x495b67,transparent:true,opacity:.55}));scene.add(outlines);}
 }
+// 追加した低層棟の上面を強調し、どの隙間を閉じたか確認できる。
+const infillOverlay=new THREE.Group();infillOverlay.visible=false;scene.add(infillOverlay);
+for(const volume of META.infillVolumes||[]){
+ const shape=new THREE.Shape(volume.rings[0].map(p=>new THREE.Vector2(...p)));for(const ring of volume.rings.slice(1))shape.holes.push(new THREE.Path(ring.map(p=>new THREE.Vector2(...p))));
+ const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),new THREE.MeshBasicMaterial({color:0xff966c,side:THREE.DoubleSide,transparent:true,opacity:.8}));mesh.rotation.x=Math.PI/2;mesh.position.y=volume.top+.04;infillOverlay.add(mesh);
+}
+if(META.simplification){document.querySelector('.tag').textContent='地形確認 · 簡略化案';document.querySelector('#panel h1+p').textContent='建物を角柱にまとめ、狭い隙間を整理。600 × 600mの地形確認用。';document.getElementById('infill-label').style.display='flex';document.getElementById('compact-note').textContent='通路幅'+META.simplification.minimumPassageWidth+'mを目安に整理。主要道路を保持し、塞いだ部分も建物として表示します。';document.getElementById('compact-note').className='small';document.querySelector('#footer').append(document.createTextNode(' 建物の単純化・隙間の充填・地面と道路の面削減を実施。'));}
+document.getElementById('infill').onchange=e=>{infillOverlay.visible=e.target.checked;render();};
 document.getElementById('edges').onchange=e=>{outlines.visible=e.target.checked&&groups.bldg.visible;render();};
 const grid=new THREE.GridHelper(META.extentMeters,12,0x718690,0x526773);grid.position.y=-20;scene.add(grid);
 // 実寸4mの比較用機体（オリジナルの簡略形）。
@@ -54,6 +62,6 @@ canvas.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-
 canvas.addEventListener('wheel',e=>{e.preventDefault();span=Math.max(15,Math.min(2000,span*Math.exp(e.deltaY*.001)));render();},{passive:false});canvas.ondblclick=e=>{ray.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);const hits=ray.intersectObjects(Object.values(groups).filter(m=>m.visible));if(hits[0]){target.copy(hits[0].point);span=Math.min(span,250);render();}};
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);render();});
 document.getElementById('count').textContent=Object.values(META.layers).reduce((a,v)=>a+v.triangles,0).toLocaleString()+' 三角形';
-window.preview={scene,camera,renderer,groups,preset,meta:META,robot,render};preset('oblique');
+window.preview={scene,camera,renderer,groups,preset,meta:META,robot,infillOverlay,render};preset('oblique');
 }catch(e){document.getElementById('error').textContent='表示に失敗しました：'+e.message;throw e;}
 </script></html>

@@ -1,0 +1,54 @@
+{
+  "title": "秋葉原・大胆な簡略化案",
+  "minimumPassageWidth": 8,
+  "unitRadius": 1.3,
+  "unitHeight": 4,
+  "sealHeight": 8,
+  "minimumSealArea": 2,
+  "footprintPrecision": 0.02,
+  "sealSimplifyTolerance": 0.25,
+  "keepFraction": {
+    "tran": 0.28,
+    "brid": 1,
+    "dem": 0.2
+  },
+  "aggressiveness": {
+    "tran": 5,
+    "brid": 0,
+    "dem": 5
+  },
+  "maximumTriangles": 50000,
+  "landmarks": [
+    {
+      "name": "秋葉原UDX",
+      "at": [
+        -80,
+        -200
+      ],
+      "maximumRoofChange": 3
+    },
+    {
+      "name": "秋葉原駅",
+      "at": [
+        -25,
+        40
+      ],
+      "maximumRoofChange": 3
+    },
+    {
+      "name": "ヨドバシAkiba",
+      "at": [
+        95,
+        -40
+      ],
+      "maximumRoofChange": 3
+    }
+  ],
+  "minimumBuildingArea": 12,
+  "minimumRoofArea": 25,
+  "roofHeightStep": 1,
+  "outlineTolerance": 0.6,
+  "tieredBuildingArea": 1200,
+  "roadHeadroom": 6,
+  "maximumSampledGroundError": 0.25
+}
