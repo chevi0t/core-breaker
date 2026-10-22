@@ -9,6 +9,7 @@ from shapely.ops import nearest_points
 from simplify import clip_footprint, extrusion, parts, projection, rings, vertical_height
 import rail_shops
 from trial_simplify import clear_bases
+from trial_blocks import close_pockets
 
 BUILDINGS = {'grounded', 'infill', 'upper', 'elevated'}
 
@@ -76,6 +77,8 @@ def refine(meshes, volumes, land, profile, rail_gap):
         assert not blocking, f'ジャンプパッドに機体が立てること: {spec}, {blocking}'
         pads.append({**spec, 'at': [x, z, y], 'exit': [ex, ez, roof], 'radius': 3, 'rise': roof-y+spec['riseAboveRoof']})
 
+    pocket_repairs = close_pockets(volumes,land,profile)
+
     # 実走検査用に、元は充填に埋まっていた区間を通る代表経路を採る。
     passages = []
     final_solid = shapely.union_all([shape(v) for v in volumes if v['bottom'] < 3 and v['top'] > 3])
@@ -104,7 +107,7 @@ def refine(meshes, volumes, land, profile, rail_gap):
     assert len(passages) >= 8, '路地の実走確認地点が不足'
     return {'minimumPassageWidth': radius*2, 'reopenedArea': round(restored.area, 2),
         'remainingInfillAreaBeforeBaseClearing': round(old_infill.difference(reopen).area, 2),
-        'passages': passages, 'shops': shop_stats, 'bases': bases, 'roofPads': pads, 'clearing': clearing}, colors
+        'passages': passages, 'shops': shop_stats, 'bases': bases, 'roofPads': pads, 'clearing': clearing, 'pocketRepairs': pocket_repairs}, colors
 
 
 def mark_landmarks(volumes, specs):

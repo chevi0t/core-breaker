@@ -20,7 +20,8 @@ from simplify import clip_footprint, extrusion, parts, projection, rings
 from trial_river import add_exits
 from trial_district import refine, building_colors, access_routes, mark_landmarks
 from trial_streets import repair, smooth_heritage
-from trial_simplify import flatten_ground, floor_mesh, join_railways
+from trial_simplify import flatten_ground, floor_mesh, join_railways, unify_ground
+from trial_blocks import reshape
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -75,11 +76,14 @@ def make_payload(source):
     heritage=smooth_heritage(meshes,volumes,land,profile['heritage'],original_ground)
     heritage['trimmedShoreArea']=round(trimmed_area,2)
     rail_gap, link_colors=join_railways(meshes,volumes,land,profile)
+    block_edits=reshape(meshes,volumes,land,profile)
     district, cross_colors = refine(meshes, volumes, land, profile, rail_gap)
+    district['blockEdits']=block_edits
     district['groundSimplification']=simplification
     district['railGap']=rail_gap
     dem = np.round(np.concatenate([meshes['dem'],meshes['historicGround'],meshes['plazas']]).reshape(-1,3,3),3)
     exits,ramp_cut=add_exits(meshes,volumes,land,river,bed)
+    district['unifiedGround']=unify_ground(meshes,river,profile['groundSimplification'])
     edges = {}
     for tri in dem:
         for a, b in zip(tri, np.roll(tri, -1, axis=0)):
@@ -223,6 +227,7 @@ document.getElementById('start').textContent='試走を始める';
         'cameraSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_camera.js').read_bytes()).hexdigest(),
         'riverSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_river.py').read_bytes()).hexdigest(),
         'districtSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_district.py').read_bytes()).hexdigest(),
+        'blocksSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_blocks.py').read_bytes()).hexdigest(),
         'simplifySHA256':hashlib.sha256((ROOT/'tools/plateau/trial_simplify.py').read_bytes()).hexdigest(),
         'streetsSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_streets.py').read_bytes()).hexdigest(),
         'landmarksSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-landmarks.json').read_bytes()).hexdigest(),

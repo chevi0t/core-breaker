@@ -1,7 +1,7 @@
 {
   "minimumPassageWidth": 5,
   "shopRoadClearance": 2,
-  "heritage": {"outline":[[-300,139],[-244,179],[-265,193],[-300,168]],"shoreCut":[[-300,110],[-244,150],[-244,179],[-300,139]],"height":5.2,"baseHeight":-1.3,"blend":18,"color":"#858178"},
+  "heritage": {"outline":[[-300,139],[-244,179],[-265,193],[-300,168]],"shoreCut":[[-300,110],[-244,150],[-244,179],[-300,139]],"height":5.2,"baseHeight":-1.3,"blend":18,"color":"#556168"},
   "streetRepairs": [
     {"id":"north_underpass","points":[[-110,-108],[-42,-103],[-28,-102],[22,-99],[80,-94]],"width":12,"shoulder":4,"endBlend":12},
     {"id":"south_underpass","points":[[-118,114],[-70,116],[30,117],[94,118]],"width":18,"shoulder":4,"endBlend":12},
@@ -14,10 +14,13 @@
   "roofPads": [
     {"team":"R","name":"北西の高層棟へ","at":[-231,-184],"exit":[-231,-164],"riseAboveRoof":50}
   ],
-  "groundSimplification": {"height":-2,"roadOutlineTolerance":0.4},
+  "groundSimplification": {"height":-2,"roadOutlineTolerance":0.4,"color":"#556168"},
   "railGap": {"thickness":1.25},
   "baseClearings": [
     {"team":"R","outline":[[-300,-300],[-152,-300],[-164,-171],[-300,-189]]},
     {"team":"B","outline":[[168,170],[300,170],[300,300],[168,300]]}
-  ]
+  ],
+  "sideAlleys": {"width":12,"x":[-300,-180],"centerline":[[-294,-1.3265306122],[-184,9.8979591837]]},
+  "mergedBlock": {"outline":[[232,-300],[300,-300],[300,-100],[201,-118]],"setback":4,"rows":[[-296,-268],[-256,-228],[-216,-188],[-176,-148],[-136,-114]],"columns":[[202,247],[259,296]],"heights":[22,28,18,30,24,34,20,26,18,24]},
+  "pocketRepair": {"bounds":[-78,42,-28,125],"height":8,"maximumArea":500}
 }

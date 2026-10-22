@@ -171,11 +171,8 @@ async function createCityTrial(T, packed) {
   function drawMap(g,W,H,u) {
     if (!mapCanvas) {
       mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = 600;
-      const c = mapCanvas.getContext('2d'); c.fillStyle = '#858b85'; c.fillRect(0,0,600,600);
+      const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround.color; c.fillRect(0,0,600,600);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
-      c.fillStyle='#3e4b54';
-      const road=new Float32Array([...arrays.tran,...arrays.streets]);
-      c.beginPath();for(let i=0;i<road.length;i+=9){for(let j=0;j<9;j+=3)j?c.lineTo(road[i+j]+half,road[i+j+2]+half):c.moveTo(road[i]+half,road[i+2]+half);c.closePath();}c.fill();
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
       for(const rings of data.heritage.rings){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
       path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();
@@ -205,6 +202,7 @@ async function createCityTrial(T, packed) {
   function mount(root,hittables) {
     const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
+      if(!a.length)continue;
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
       if(k==='historicGround'){
         // 上面と斜面の陰影もつなぎ、格子ごとの三角形が斑点に見えないようにする。
@@ -222,7 +220,8 @@ async function createCityTrial(T, packed) {
           geo.setAttribute('cityGlass',new T.BufferAttribute(glass,1));
         }
       }
-      const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color:colors[k],vertexColors:!!data.colors[k],side:T.DoubleSide,
+      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:colors[k];
+      const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
         // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。

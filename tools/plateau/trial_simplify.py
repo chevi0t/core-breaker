@@ -27,6 +27,23 @@ def flatten_ground(meshes, land, spec):
             'afterTriangles': {k: len(meshes[k])//3 for k in before}}
 
 
+def unify_ground(meshes, river, spec):
+    """生成に使った舗装・空地の区分を捨て、試走へ渡す平らな床を一面にまとめる。"""
+    keys = ['dem','tran','streets','plazas','fill']
+    before = sum(len(meshes[k])//3 for k in keys)
+    old = projection(np.concatenate([meshes[k] for k in keys]),precision=.001)
+    # 意味のある高低差・復帰斜面は別の面として残し、平面を重ねない。
+    graded = projection(np.concatenate([meshes[k] for k in ['historicGround','ramps','aprons']]),precision=.001)
+    dry = box(-300,-300,300,300).difference(river)
+    flat = dry.difference(graded)
+    assert flat.symmetric_difference(old).area<1, '床の統合で通行域を変えない'
+    assert flat.intersection(river).area<.01 and flat.intersection(graded).area<.01, '川や斜面へ平面を重ねない'
+    meshes['dem'] = floor_mesh(flat,spec['height'])
+    for k in keys[1:]: meshes[k] = np.empty((0,3),dtype='<f4')
+    return {'height':spec['height'],'color':spec['color'],'beforeTriangles':before,
+            'afterTriangles':len(meshes['dem'])//3,'flatArea':round(flat.area,2),'layersBefore':len(keys),'layersAfter':1}
+
+
 def clear_bases(meshes, volumes, land, profile, bases, building_kinds):
     """赤枠の陸地だけを更地にする。川へ張り出す枠も水域を増築しない。"""
     areas = []; outlines = []; floors = []
