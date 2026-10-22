@@ -1,6 +1,12 @@
 {
   "minimumPassageWidth": 5,
   "shopRoadClearance": 2,
+  "heritage": {"outline":[[-300,139],[-244,179],[-265,193],[-300,168]],"shoreCut":[[-300,110],[-244,150],[-244,179],[-300,139]],"height":5.2,"baseHeight":-1.3,"blend":18,"color":"#858178"},
+  "streetRepairs": [
+    {"id":"north_underpass","points":[[-110,-108],[-42,-103],[-28,-102],[22,-99],[80,-94]],"width":12,"shoulder":4,"endBlend":12},
+    {"id":"south_underpass","points":[[-118,114],[-70,116],[30,117],[94,118]],"width":18,"shoulder":4,"endBlend":12},
+    {"id":"avenue_crossing","points":[[-184,-80],[-191,0],[-199,85]],"width":24,"shoulder":4,"endBlend":12}
+  ],
   "bases": [
     {"team": "B", "name": "青基地・南東", "at": [190, 250], "radius": 28},
     {"team": "R", "name": "橙基地・北西", "at": [-238, -243], "radius": 28}

@@ -46,7 +46,7 @@ async function createCityTrial(T, packed) {
     }
     return result;
   }
-  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas']));
+  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas','streets','historicGround']));
   const bridgeTriangles = triangles(['brid']);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
@@ -174,10 +174,11 @@ async function createCityTrial(T, packed) {
       const c = mapCanvas.getContext('2d'); c.fillStyle = '#858b85'; c.fillRect(0,0,600,600);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
       c.fillStyle='#3e4b54';
-      const road=arrays.tran;
+      const road=new Float32Array([...arrays.tran,...arrays.streets]);
       c.beginPath();for(let i=0;i<road.length;i+=9){for(let j=0;j<9;j+=3)j?c.lineTo(road[i+j]+half,road[i+j+2]+half):c.moveTo(road[i]+half,road[i+2]+half);c.closePath();}c.fill();
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
-      for (const v of [...volumes].sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'; c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for(const rings of data.heritage.rings){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
+      for (const v of [...volumes].sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
       for(const exit of data.river.exits){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
@@ -201,21 +202,32 @@ async function createCityTrial(T, packed) {
     }
   }
   function mount(root,hittables) {
-    const colors={bldg:0xffffff,tran:0x424d58,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
+      if(k==='historicGround'){
+        // 上面と斜面の陰影もつなぎ、格子ごとの三角形が斑点に見えないようにする。
+        const normals=geo.attributes.normal.array,sums=new Map(),ids=[];
+        for(let i=0;i<a.length;i+=3){const id=[a[i],a[i+1],a[i+2]].map(v=>Math.round(v*1000)).join(',');ids.push(id);if(!sums.has(id))sums.set(id,new T.Vector3());sums.get(id).add(new T.Vector3(normals[i],normals[i+1],normals[i+2]));}
+        for(const n of sums.values())n.normalize();for(let i=0;i<ids.length;i++)sums.get(ids[i]).toArray(normals,i*3);
+      }
       if (data.colors[k]) {
         const c=new Float32Array(a.length);
         for (const range of data.colors[k]) { const col=new T.Color(range.color); for(let i=range.start;i<range.start+range.count;i++) col.toArray(c,i*3); }
         geo.setAttribute('color',new T.BufferAttribute(c,3));
+        if(k==='bldg'){
+          const glass=new Float32Array(a.length/3);
+          for(const range of data.colors[k])if(range.glass)glass.fill(1,range.start,range.start+range.count);
+          geo.setAttribute('cityGlass',new T.BufferAttribute(glass,1));
+        }
       }
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color:colors[k],vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
         // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。
         mesh.material.onBeforeCompile=shader=>{
-          const declarations='varying vec3 cityPoint; varying vec3 cityNormal;\n';
-          shader.vertexShader=declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);');
+          const declarations='varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
+          shader.vertexShader='attribute float cityGlass;\n'+declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);glassFacade=cityGlass;');
           shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
             float side=1.0-step(0.45,abs(cityNormal.y));
             float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
@@ -223,9 +235,30 @@ async function createCityTrial(T, packed) {
             float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0,cityPoint.y);
             diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
             diffuseColor.rgb*=mix(0.70,1.0,side);
+            float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
+            float reflection=0.5+0.5*sin(cityPoint.y*0.11+horizontal*0.012);
+            vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
+            float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
           `);
         };
-        mesh.material.customProgramCacheKey=()=> 'city-facade-v1';
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v2';
+      }
+      if(k==='historicWall'){
+        mesh.material.onBeforeCompile=shader=>{
+          const d='varying vec3 brickPoint;\n';
+          shader.vertexShader=d+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nbrickPoint=(modelMatrix*vec4(transformed,1.0)).xyz;');
+          shader.fragmentShader=d+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            float along=dot(brickPoint.xz,vec2(0.814,0.581));float row=floor(brickPoint.y/0.34);
+            vec2 tile=fract(vec2(along/0.9+row*0.5,brickPoint.y/0.34));
+            float joint=max(1.0-step(0.07,tile.x),1.0-step(0.09,tile.y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.40,0.34,0.29),joint*0.65);
+            float x=abs(fract(along/6.4)-0.5)*6.4,y=brickPoint.y+1.3;
+            float arch=(1.0-step(2.1,x))*step(0.0,y)*(1.0-step(2.2+sqrt(max(0.0,4.41-x*x)),y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.12,0.18,0.20),arch*0.85);
+          `);
+        };
+        mesh.material.customProgramCacheKey=()=> 'city-historic-wall-v1';
       }
       mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops'].includes(k); root.add(mesh);
       if(k!=='water'&&k!=='exitMarks') {
@@ -253,7 +286,7 @@ async function createCityTrial(T, packed) {
     root.updateMatrixWorld(true);
   }
   return {mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,spawns:data.spawns,river:data.river,half,
-    district:data.district,base:team=>data.district.bases.find(b=>b.team===team),
+    district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
     addCameraGeometry:meshes=>{for(const m of meshes){
       m.updateWorldMatrix(true,false);
       const geometry=m.geometry.clone().applyMatrix4(m.matrixWorld);geometry.computeBoundingBox();geometry.computeBoundingSphere();

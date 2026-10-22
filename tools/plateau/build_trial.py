@@ -14,11 +14,12 @@ import re
 
 import numpy as np
 import shapely
-from shapely.geometry import LineString, Point, box
+from shapely.geometry import LineString, Point, Polygon, box
 
-from simplify import extrusion, parts, projection, rings
+from simplify import clip_footprint, extrusion, parts, projection, rings
 from trial_river import add_exits
-from trial_district import refine, building_colors, access_routes
+from trial_district import refine, building_colors, access_routes, mark_landmarks
+from trial_streets import repair, smooth_heritage
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -40,7 +41,14 @@ def make_payload(source):
     meta = payload['meta']
     meshes = {k: np.frombuffer(base64.b64decode(v), dtype='<f4').reshape(-1, 3).copy() for k, v in payload['data'].items()}
     half = meta['extentMeters'] / 2
+    profile = json.loads((ROOT/'research/maps/akihabara-trial.json').read_text())
+    original_ground=np.concatenate([meshes['dem'],meshes['tran']])
     land = projection(meshes['dem'], precision=.001)
+    shore_cut=Polygon(profile['heritage']['shoreCut'])
+    trimmed_area=land.intersection(shore_cut).area
+    land=land.difference(shore_cut)
+    # 河道を埋めず、旧駅側の岸を少し切り下げて格子状の輪郭を直線へそろえる。
+    for k in ['dem','tran']:meshes[k]=clip_footprint(meshes[k],box(-half,-half,half,half).difference(shore_cut))
     gaps = sorted(parts(box(-half,-half,half,half).difference(land)),key=lambda p:-p.area)
     river, edge_gaps = gaps[0], gaps[1:]
     river_parts = [river]
@@ -56,10 +64,14 @@ def make_payload(source):
     water_mesh = np.concatenate([extrusion(p, water-.01, water, floor=False) for p in river_parts]).reshape(-1,3,3)
     meshes['water'] = water_mesh[np.all(np.abs(water_mesh[:,:,1]-water)<.0001,axis=1)].reshape(-1,3)
     # DEMの境界辺をそのまま下へ延ばし、川岸の隙間を閉じる（外周の切断辺は除く）。
-    dem = np.round(meshes['dem'].reshape(-1, 3, 3), 3)
     volumes = json.loads((source/'collision-volumes.json').read_text())['volumes']
-    profile = json.loads((ROOT/'research/maps/akihabara-trial.json').read_text())
+    landmark_specs=json.loads((ROOT/'research/maps/akihabara-landmarks.json').read_text())['landmarks']
+    landmarks=mark_landmarks(volumes,landmark_specs)
+    street_repairs=repair(meshes,volumes,land,profile)
+    heritage=smooth_heritage(meshes,volumes,land,profile['heritage'],original_ground)
+    heritage['trimmedShoreArea']=round(trimmed_area,2)
     district, cross_colors = refine(meshes, volumes, land, profile)
+    dem = np.round(np.concatenate([meshes['dem'],meshes['historicGround']]).reshape(-1,3,3),3)
     exits,ramp_cut=add_exits(meshes,volumes,land,river,bed)
     edges = {}
     for tri in dem:
@@ -85,7 +97,11 @@ def make_payload(source):
                 endpoints.append(np.array([x,a[1]+t*(b[1]-a[1]),z]))
             aa,bb=endpoints;c,d=aa.copy(),bb.copy();c[1]=d[1]=bed
             bank.extend([aa,bb,c,bb,d,c])
-    meshes['bank'] = np.array(bank, dtype='<f4')
+    bank=np.array(bank,dtype='<f4').reshape(-1,3,3)
+    historic=shapely.union_all([Polygon(r[0],r[1:]) for r in heritage['rings']])
+    brick=shapely.distance(historic,shapely.points(bank.mean(axis=1)[:,[0,2]]))<12
+    meshes['bank']=bank[~brick].reshape(-1,3)
+    meshes['historicWall']=bank[brick].reshape(-1,3)
     # 地形確認の開始地点を維持し、今回指定された両基地と登り口を追加する。
     spawns = [
         {'name':'大通り', 'at':[-185,0,-50], 'surface':'ground'},
@@ -96,6 +112,7 @@ def make_payload(source):
     ]
     spawns += [{'name': b['name'], 'at': b['spawn'], 'surface': 'ground'} for b in district['bases']]
     spawns += [{'name': p['name']+'・乗り場', 'at': [p['at'][0]+5,p['at'][2],p['at'][1]], 'surface': 'ground'} for p in district['roofPads']]
+    spawns += [{'name':'川沿いの高架店舗','at':[-248,0,198],'surface':'ground'}]
     colors = {k:meta[k+'ColorRanges'] for k in ['rail','station','shops']}
     colors.update(crossShops=cross_colors, bldg=building_colors(meshes,volumes))
     # コアの台座・支柱は本体のモデルを描き、都市の接触判定にも同じ位置を登録する。
@@ -105,7 +122,7 @@ def make_payload(source):
             volumes.append({'kind':'base-core','team':b['team'],'bottom':y,'top':y+top,'rings':rings(footprint)})
     district['accessRoutes']=access_routes(meshes,volumes,land,district)
     result = {'half':half,'meshes':{k:base64.b64encode(a.astype('<f4').tobytes()).decode() for k,a in meshes.items()},
-        'colors':colors,'volumes':volumes,'spawns':spawns,'district':district,
+        'colors':colors,'volumes':volumes,'spawns':spawns,'district':district,'landmarks':landmarks,'streetRepairs':street_repairs,'heritage':heritage,
         'river':{'bed':bed,'water':water,'rings':[rings(p) for p in river_parts],'area':round(river.area,2),'exits':exits},
         'groundMaximum':max(float(meshes[k][:,1].max()) for k in ['dem','tran'])+.5}
     return result
@@ -158,7 +175,7 @@ def build(source, out):
     s=replace(s,'<title>','<title>地形試走 — ')
     s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_camera.js').read_text()+'\n'+(ROOT/'tools/plateau/trial_runtime.js').read_text()+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
     options=''.join(f'<option value="{i}">{p["name"]}</option>' for i,p in enumerate(data['spawns']))
-    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。路地の充填を一部除去し、東西高架下の店舗と両基地の広場を追加しています。建物の色と窓は制作側の模式表現です。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
+    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。路地の充填を一部除去し、東西高架下の店舗と両基地の広場を追加しています。建物の色・窓・ガラス面・レンガ壁は制作側の模式表現です。道路の継ぎ目・歩道橋の下面・旧駅付近の地面を整形しています。位置照合ではOpenStreetMap contributorsの施設点と国土地理院の住所検索を参照しました。参照点の記録はresearch/maps/akihabara-landmarks.json。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
     panel='<div id="trialPanel">地形・基地位置の試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>南東に青基地、北西に橙基地。緑のジャンプパッドで上昇後、空中操作で高層棟の屋上へ。川からは緑のスロープで復帰。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
     s=replace(s,'</body>',panel+'</body>') if '</body>' in s else s # 本体はbody閉じタグを省略している版もある。
     if 'id="trialSpawn"' not in s:s=replace(s,'<script>\n(async () => {',panel+'<script>\n(async () => {')
@@ -195,12 +212,15 @@ document.getElementById('start').textContent='試走を始める';
         'cameraSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_camera.js').read_bytes()).hexdigest(),
         'riverSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_river.py').read_bytes()).hexdigest(),
         'districtSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_district.py').read_bytes()).hexdigest(),
+        'streetsSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_streets.py').read_bytes()).hexdigest(),
+        'landmarksSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-landmarks.json').read_bytes()).hexdigest(),
         'profileSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-trial.json').read_bytes()).hexdigest(),
         'builderSHA256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
         'htmlBytes':len(s.encode()),'htmlSHA256':hashlib.sha256(s.encode()).hexdigest(),
         'triangles':{k:len(base64.b64decode(v))//36 for k,v in data['meshes'].items()},
         'collisionVolumes':len(data['volumes']),'river':{k:v for k,v in data['river'].items() if k!='rings'},
-        'spawns':data['spawns'],'district':data['district'],'bases':2,'plants':0,'bots':0,'nativeMovement':True,'edgeClamp':298.7}
+        'spawns':data['spawns'],'district':data['district'],'landmarks':data['landmarks'],'streetRepairs':data['streetRepairs'],'heritage':data['heritage'],
+        'bases':2,'plants':0,'bots':0,'nativeMovement':True,'edgeClamp':298.7}
     (out/'generation.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(record,ensure_ascii=False,indent=2))
 

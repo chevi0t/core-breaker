@@ -17,7 +17,7 @@ def shape(v):
 
 
 def refine(meshes, volumes, land, profile):
-    roads = projection(meshes['tran'], precision=.001)
+    roads = projection(np.concatenate([meshes['tran'],meshes['streets']]), precision=.001)
     occupied = shapely.union_all([shape(v) for v in volumes
         if v['kind'] != 'infill' and v['bottom'] < 3 and v['top'] > 3])
     radius = profile['minimumPassageWidth'] / 2
@@ -55,7 +55,7 @@ def refine(meshes, volumes, land, profile):
     volumes.extend(shop_volumes)
 
     def ground(x, z):
-        return max(h for k in ['dem', 'tran', 'plazas'] if k in meshes and (h := vertical_height(meshes[k], x, z)) is not None)
+        return max(h for k in ['dem', 'tran', 'plazas','streets','historicGround'] if k in meshes and (h := vertical_height(meshes[k], x, z)) is not None)
 
     bases = []
     clear = []
@@ -131,6 +131,27 @@ def refine(meshes, volumes, land, profile):
         'passages': passages, 'shops': shop_stats, 'bases': bases, 'roofPads': pads}, colors
 
 
+def mark_landmarks(volumes, specs):
+    """研究用の施設点をPLATEAUの棟に照合。実名・出典は表示データへ持ち込まない。"""
+    grounded=[v for v in volumes if v['kind']=='grounded']
+    result=[]
+    for spec in specs:
+        point=Point(*spec['at'])
+        seed=min(grounded,key=lambda v:(shape(v).distance(point),-shape(v).area))
+        footprint=shape(seed)
+        assert footprint.distance(point)<3, f'ランドマークを別の棟へ割り当てない: {spec["id"]}'
+        count=0
+        for v in volumes:
+            if v['kind'] not in BUILDINGS or v['kind']=='infill':continue
+            p=shape(v)
+            if p.intersection(footprint).area/p.area<.65:continue
+            v.update(landmark=spec['id'],landmarkColor=spec['color'],facade=spec.get('style','solid'))
+            count+=1
+        result.append({'id':spec['id'],'at':spec['at'],'color':spec['color'],'style':spec.get('style','solid'),
+            'bounds':list(footprint.bounds),'volumes':count})
+    return result
+
+
 def building_colors(meshes, volumes):
     """棟ごとの落ち着いた配色。屋根と窓の帯は描画側で同じ材質のまま付ける。"""
     palette = ['#889da8', '#a69f90', '#aab0ae', '#7f929a', '#9d9181', '#8b8785', '#8c9da0', '#a6a39b']
@@ -141,7 +162,8 @@ def building_colors(meshes, volumes):
         center = p.centroid
         seed = abs(round(center.x*7) + round(center.y*13))
         color = '#7b94a0' if v['top'] > 50 else palette[seed % len(palette)]
-        meshes_out.append(a); ranges.append({'start': cursor, 'count': len(a), 'color': color}); cursor += len(a)
+        color = v.get('landmarkColor',color)
+        meshes_out.append(a); ranges.append({'start': cursor, 'count': len(a), 'color': color,'glass':v.get('facade')=='glass'}); cursor += len(a)
     meshes['bldg'] = np.concatenate(meshes_out)
     return ranges
 
@@ -177,7 +199,7 @@ def access_routes(meshes, volumes, land, district):
             simple.append(path[nxt]);cursor=nxt
         at=[]
         for x,z in simple:
-            y=max(h for k in ['dem','tran','plazas','ramps','aprons'] if (h:=vertical_height(meshes[k],x,z)) is not None)
+            y=max(h for k in ['dem','tran','plazas','ramps','aprons','streets','historicGround'] if (h:=vertical_height(meshes[k],x,z)) is not None)
             at.append([x,y,z])
         result.append({'team':base['team'],'points':at,'length':round(LineString(simple).length,2)})
     return result

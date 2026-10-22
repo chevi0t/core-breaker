@@ -1,37 +1,42 @@
 {
   "sourcePreviewSHA256": "f638c33501b366d96a94480cc5fe5defa356bb13f9a90b16957d90c17aa56288",
   "engineSHA256": "b850a65a88b659628a67aba2efd22ec9dfde94b504a59136b383fa4e35d8b9cf",
-  "runtimeSHA256": "204228d11d10fb4bcea93393cd39bcb6f52879972c953215ff452f633c886408",
+  "runtimeSHA256": "a9a2bc37a4da41ff551faa9630966301808851abd012bb62198647f8737062cd",
   "cameraSHA256": "cc7e1c2974c402361a8b9a6f72f67a0e143c8ed8bbb0f0bfbf304ad4b99ae837",
-  "riverSHA256": "63b5e9506e7c521444feabd86b963b13b3f0128478d898729d1e37153f844295",
-  "districtSHA256": "72f327f4c2fc48b7964f869f8826afae2cc67cea81f5c58c24fe2ade7901dec8",
-  "profileSHA256": "4245b4af0b0f69b9bf4a628ad698c32f17520324f457bacba5529d8eddae5757",
-  "builderSHA256": "1bcbaf47284b03bc378b92771929453a7ebd871cb9b97a8e79bd5a525d125c38",
-  "htmlBytes": 3527105,
-  "htmlSHA256": "e2dd2450e09a7c1fdf3994cfadf7b2464ad0d0e94680020977246ab122033f3d",
+  "riverSHA256": "287c04e47823a3035980d801387c167c71ccde4a37e3e8a1abe644a236a03e44",
+  "districtSHA256": "e241bd64fb6ec3bd23062d10c3e9c36665231fc26136f27900624ab00587efe9",
+  "streetsSHA256": "7549aa227a830190721c41a682671d3e083780df22b3ad0fb3faaa8bbcab11ab",
+  "landmarksSHA256": "dcc3ec721cefb57537784741851616baac512f210c01b4fdd0a549df3f0ac227",
+  "profileSHA256": "3dfc285167e7a96cb3273618f61d07a5e19d2879fdfa67354ca1d0bc09dfdf2d",
+  "builderSHA256": "171aa5f4f15ff08b8c4c48262e972e570cb98a5631302d1cd5b90ab206262815",
+  "htmlBytes": 3546362,
+  "htmlSHA256": "c1f69ab372740ee6d560af5a50e9f30bcecefa64a80d8c3bb19b9fd98cb56190",
   "triangles": {
-    "bldg": 22420,
-    "tran": 8752,
-    "brid": 2272,
-    "dem": 8570,
+    "bldg": 21875,
+    "tran": 8358,
+    "brid": 2260,
+    "dem": 8555,
     "rail": 2496,
     "station": 536,
     "shops": 1679,
     "fill": 37,
-    "bed": 784,
-    "water": 195,
-    "crossShops": 1001,
+    "bed": 708,
+    "water": 176,
+    "streets": 2205,
+    "historicGround": 453,
+    "crossShops": 996,
     "plazas": 316,
     "ramps": 96,
     "exitMarks": 24,
     "aprons": 160,
-    "bank": 372
+    "bank": 332,
+    "historicWall": 60
   },
-  "collisionVolumes": 979,
+  "collisionVolumes": 954,
   "river": {
     "bed": -9.0,
     "water": -5.5,
-    "area": 24052.47,
+    "area": 24536.47,
     "exits": [
       {
         "bank": "north",
@@ -70,11 +75,11 @@
         "width": 8,
         "slope": 0.2718140018677657,
         "street": [
-          -74.51815046683042,
-          -2.6179719232281013,
-          125.41423232256592
+          -78.64777382280293,
+          -2.8501679268918516,
+          127.14954438635368
         ],
-        "clearedArea": 404.27,
+        "clearedArea": 397.96,
         "id": "north-2"
       },
       {
@@ -92,11 +97,11 @@
         "width": 8,
         "slope": 0.26111060432167926,
         "street": [
-          80.76179786602533,
-          -2.8833071899138987,
-          127.82319026130332
+          80.41401955755138,
+          -2.991485879895375,
+          129.28906080314204
         ],
-        "clearedArea": 325.2,
+        "clearedArea": 323.94,
         "id": "north-3"
       },
       {
@@ -292,12 +297,21 @@
         -184
       ],
       "surface": "ground"
+    },
+    {
+      "name": "川沿いの高架店舗",
+      "at": [
+        -248,
+        0,
+        198
+      ],
+      "surface": "ground"
     }
   ],
   "district": {
     "minimumPassageWidth": 5.0,
-    "reopenedArea": 7178.38,
-    "remainingInfillAreaBeforeBaseClearing": 10215.21,
+    "reopenedArea": 7090.86,
+    "remainingInfillAreaBeforeBaseClearing": 9545.16,
     "passages": [
       {
         "start": [
@@ -496,7 +510,7 @@
       {
         "line": "cross",
         "blocks": 6,
-        "area": 7750.08,
+        "area": 7671.7,
         "top": 16.5
       }
     ],
@@ -612,6 +626,769 @@
         "length": 81.89
       }
     ]
+  },
+  "landmarks": [
+    {
+      "id": "white_commercial",
+      "at": [
+        115.07,
+        -25.65
+      ],
+      "color": "#eeeeeb",
+      "style": "solid",
+      "bounds": [
+        92.32,
+        -77.1,
+        146.45,
+        33.096
+      ],
+      "volumes": 5
+    },
+    {
+      "id": "black_west_tower",
+      "at": [
+        -235.86,
+        -156.63
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -257.22,
+        -174.46,
+        -204.42,
+        -136.24
+      ],
+      "volumes": 4
+    },
+    {
+      "id": "black_east_tower",
+      "at": [
+        118.6,
+        -168.57
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        105.0,
+        -196.26,
+        136.14,
+        -133.22
+      ],
+      "volumes": 3
+    },
+    {
+      "id": "glass_tower",
+      "at": [
+        -80.98,
+        -189.58
+      ],
+      "color": "#72a5b4",
+      "style": "glass",
+      "bounds": [
+        -105.12,
+        -270.32,
+        -35.5,
+        -126.5
+      ],
+      "volumes": 8
+    },
+    {
+      "id": "red_arcade_1",
+      "at": [
+        -207.79,
+        -17.42
+      ],
+      "color": "#d22c39",
+      "style": "solid",
+      "bounds": [
+        -224.04,
+        -21.1,
+        -209.94,
+        -6.12
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "red_arcade_4",
+      "at": [
+        -90.51,
+        66.91
+      ],
+      "color": "#d22c39",
+      "style": "solid",
+      "bounds": [
+        -97.98,
+        56.2,
+        -84.18,
+        84.66
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "red_arcade_2",
+      "at": [
+        -176.56,
+        94.86
+      ],
+      "color": "#d22c39",
+      "style": "solid",
+      "bounds": [
+        -180.76,
+        82.32,
+        -156.62,
+        102.62
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "red_arcade_3",
+      "at": [
+        -219.08,
+        -74.42
+      ],
+      "color": "#d22c39",
+      "style": "solid",
+      "bounds": [
+        -232.58,
+        -84.42,
+        -213.4,
+        -63.98
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "red_arcade_5",
+      "at": [
+        -248.08,
+        -16.81
+      ],
+      "color": "#d22c39",
+      "style": "solid",
+      "bounds": [
+        -256.153,
+        -27.6,
+        -239.14,
+        -8.36
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "black_store",
+      "at": [
+        -138.17,
+        -237.49
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -154.74,
+        -253.84,
+        -117.1,
+        -219.84
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "black_pc_1",
+      "at": [
+        -269.86,
+        -24.65
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -276.82,
+        -29.7,
+        -263.8,
+        -22.62
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "black_pc_2",
+      "at": [
+        -281.7,
+        -37.44
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -286.06,
+        -38.5,
+        -276.42,
+        -24.1
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "black_pc_3",
+      "at": [
+        -243.76,
+        -95.86
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -247.5,
+        -102.74,
+        -234.34,
+        -95.22
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "black_pc_ex",
+      "at": [
+        -143.97,
+        -272.84
+      ],
+      "color": "#242930",
+      "style": "solid",
+      "bounds": [
+        -150.08,
+        -279.96,
+        -137.6,
+        -269.78
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "blue_shop_1",
+      "at": [
+        -90.25,
+        129.94
+      ],
+      "color": "#246aca",
+      "style": "solid",
+      "bounds": [
+        -98.032,
+        126.86,
+        -68.12,
+        164.0
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "blue_shop_2",
+      "at": [
+        -199.12,
+        -191.59
+      ],
+      "color": "#246aca",
+      "style": "solid",
+      "bounds": [
+        -228.46,
+        -204.9,
+        -194.06,
+        -185.16
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "blue_shop_3",
+      "at": [
+        -210.35,
+        -35.4
+      ],
+      "color": "#246aca",
+      "style": "solid",
+      "bounds": [
+        -224.66,
+        -43.84,
+        -209.08,
+        -25.9
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "blue_shop_4",
+      "at": [
+        -102.62,
+        60.91
+      ],
+      "color": "#246aca",
+      "style": "solid",
+      "bounds": [
+        -110.58,
+        54.96,
+        -94.72,
+        67.36
+      ],
+      "volumes": 1
+    },
+    {
+      "id": "lime_shop",
+      "at": [
+        -85.73,
+        99.18
+      ],
+      "color": "#b5ee28",
+      "style": "solid",
+      "bounds": [
+        -92.32,
+        88.24,
+        -84.32,
+        102.36
+      ],
+      "volumes": 1
+    }
+  ],
+  "streetRepairs": {
+    "roads": [
+      {
+        "id": "north_underpass",
+        "points": [
+          [
+            -110,
+            -108
+          ],
+          [
+            -42,
+            -103
+          ],
+          [
+            -28,
+            -102
+          ],
+          [
+            22,
+            -99
+          ],
+          [
+            80,
+            -94
+          ]
+        ],
+        "width": 12,
+        "shoulder": 4,
+        "endBlend": 12,
+        "heights": [
+          -2.3780102664276552,
+          -2.699736056000852
+        ],
+        "length": 190.52428203932564
+      },
+      {
+        "id": "south_underpass",
+        "points": [
+          [
+            -118,
+            114
+          ],
+          [
+            -70,
+            116
+          ],
+          [
+            30,
+            117
+          ],
+          [
+            94,
+            118
+          ]
+        ],
+        "width": 18,
+        "shoulder": 4,
+        "endBlend": 12,
+        "heights": [
+          -2.5771349711934444,
+          -2.734635733299555
+        ],
+        "length": 212.05446049608452
+      },
+      {
+        "id": "avenue_crossing",
+        "points": [
+          [
+            -184,
+            -80
+          ],
+          [
+            -191,
+            0
+          ],
+          [
+            -199,
+            85
+          ]
+        ],
+        "width": 24,
+        "shoulder": 4,
+        "endBlend": 12,
+        "heights": [
+          -2.436657837432443,
+          -1.966287833931101
+        ],
+        "length": 165.6813066056214
+      }
+    ],
+    "removedBridgeFragments": [
+      {
+        "bounds": [
+          [
+            22.282,
+            -5.502,
+            -113.879
+          ],
+          [
+            32.209,
+            -2.211,
+            -90.018
+          ]
+        ],
+        "triangles": 20
+      }
+    ],
+    "regularizedBridgeDecks": [
+      {
+        "bounds": [
+          [
+            -94.828,
+            -2.641,
+            -147.57
+          ],
+          [
+            -27.214,
+            7.139,
+            -34.543
+          ]
+        ],
+        "beforeTriangles": 348,
+        "afterTriangles": 356,
+        "thickness": 0.35
+      }
+    ],
+    "removedBuildingShards": [
+      {
+        "kind": "grounded",
+        "top": 10.0,
+        "area": 21.690659000000004,
+        "bounds": [
+          -173.328,
+          0.42,
+          -138.36,
+          4.496
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 22.0,
+        "area": 34.80300799999994,
+        "bounds": [
+          -175.22,
+          20.881,
+          -165.324,
+          25.44
+        ]
+      },
+      {
+        "kind": "upper",
+        "top": 17.0,
+        "area": 66.93757649999998,
+        "bounds": [
+          -16.582,
+          36.988,
+          -0.898,
+          46.806
+        ]
+      },
+      {
+        "kind": "upper",
+        "top": 18.0,
+        "area": 4.279847999999998,
+        "bounds": [
+          -0.26,
+          10.46,
+          1.889,
+          13.676
+        ]
+      },
+      {
+        "kind": "elevated",
+        "top": 34.0,
+        "area": 9.797724999999977,
+        "bounds": [
+          -81.732,
+          198.88,
+          -72.127,
+          200.0
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 31.0,
+        "area": 43.847493999999905,
+        "bounds": [
+          -82.74,
+          224.68,
+          -77.48,
+          240.015
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 6.0,
+        "area": 24.12053950000004,
+        "bounds": [
+          -85.94,
+          245.66,
+          -82.035,
+          255.861
+        ]
+      },
+      {
+        "kind": "elevated",
+        "top": 16.0,
+        "area": 16.16684400000001,
+        "bounds": [
+          -68.24,
+          160.0,
+          -64.317,
+          164.776
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 13.0,
+        "area": 16.070748000000037,
+        "bounds": [
+          -21.42,
+          271.42,
+          -18.2,
+          277.893
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 6.0,
+        "area": 10.557745499999987,
+        "bounds": [
+          14.514,
+          50.522,
+          16.74,
+          65.38
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 28.0,
+        "area": 2.850247500000001,
+        "bounds": [
+          12.309,
+          66.789,
+          14.64,
+          87.361
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 17.0,
+        "area": 73.53313849999992,
+        "bounds": [
+          148.507,
+          30.28,
+          168.349,
+          35.345
+        ]
+      },
+      {
+        "kind": "grounded",
+        "top": 13.0,
+        "area": 70.47683500000024,
+        "bounds": [
+          295.635,
+          27.7,
+          300.0,
+          48.866
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 14.86842999999982,
+        "bounds": [
+          -162.141,
+          22.18,
+          -148.213,
+          36.481
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 12.89978600000006,
+        "bounds": [
+          -175.234,
+          21.856,
+          -165.16,
+          26.66
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 68.26651649999997,
+        "bounds": [
+          -48.76,
+          -9.46,
+          -43.234,
+          9.262
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 115.47605000000028,
+        "bounds": [
+          -96.141,
+          224.574,
+          -80.743,
+          257.948
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 20.585393000000074,
+        "bounds": [
+          -93.804,
+          257.572,
+          -86.288,
+          265.499
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 8,
+        "area": 91.04003599999993,
+        "bounds": [
+          -101.596,
+          264.757,
+          -87.679,
+          299.927
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 6,
+        "area": 149.11198599999992,
+        "bounds": [
+          91.52,
+          14.402,
+          139.32,
+          32.207
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 6,
+        "area": 143.33461699999992,
+        "bounds": [
+          10.577,
+          48.89,
+          47.934,
+          105.307
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 6,
+        "area": 3.4725619999999853,
+        "bounds": [
+          226.117,
+          39.203,
+          229.94,
+          41.656
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 6,
+        "area": 97.18804399999968,
+        "bounds": [
+          283.394,
+          12.744,
+          299.927,
+          48.418
+        ]
+      },
+      {
+        "kind": "infill",
+        "top": 6,
+        "area": 22.70104400000051,
+        "bounds": [
+          266.469,
+          24.513,
+          274.211,
+          45.823
+        ]
+      }
+    ]
+  },
+  "heritage": {
+    "rings": [
+      [
+        [
+          [
+            -300.0,
+            139.0
+          ],
+          [
+            -300.0,
+            140.0
+          ],
+          [
+            -300.0,
+            156.0
+          ],
+          [
+            -300.0,
+            160.0
+          ],
+          [
+            -300.0,
+            164.0
+          ],
+          [
+            -300.0,
+            168.0
+          ],
+          [
+            -265.0,
+            193.0
+          ],
+          [
+            -244.0,
+            179.0
+          ]
+        ]
+      ]
+    ],
+    "height": 5.2,
+    "removedSmallMasses": [
+      {
+        "kind": "grounded",
+        "top": 10.0,
+        "area": 85.1285999999999
+      }
+    ],
+    "access": [
+      [
+        -248,
+        198
+      ],
+      [
+        -263,
+        184
+      ],
+      [
+        -290,
+        153
+      ]
+    ],
+    "surfaceColor": "#858178",
+    "trimmedShoreArea": 484.0
   },
   "bases": 2,
   "plants": 0,
