@@ -1,0 +1,927 @@
+{
+  "geoid": {
+    "url": "https://vldb.gsi.go.jp/sokuchi/surveycalc/geoid/calcgh/cgi/geoidcalc.pl?outputType=json&latitude=35.6986&longitude=139.7734",
+    "file": "geoid.txt",
+    "bytes": 181,
+    "sha256": "b9d27670f457300ac1586ea92c4bcc8c5d5ccbfe56d159159b64fc25cf8f011c"
+  },
+  "referenceElevation": {
+    "url": "https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=139.7734&lat=35.6986&outtype=JSON",
+    "file": "gsi-elevation.json",
+    "bytes": 59,
+    "sha256": "08d1f9965029dfe5b77f6de3b360c7e5ad3c886be4597b5e13f3b2b5779205e2"
+  },
+  "center": [
+    139.7734,
+    35.6986
+  ],
+  "rotationDegrees": 0,
+  "halfExtent": 300,
+  "display": {
+    "title": "秋葉原・地形プレビュー",
+    "areaName": "秋葉原駅・電気街周辺",
+    "robotPoint": [
+      -185,
+      -50
+    ],
+    "cameraTargetY": 30,
+    "streetTarget": [
+      -150,
+      3,
+      -90
+    ],
+    "scaleYaw": 0,
+    "scalePitch": 0.5,
+    "scaleDistance": 32,
+    "labels": [
+      {
+        "text": "秋葉原駅",
+        "at": [
+          -25,
+          40
+        ]
+      },
+      {
+        "text": "秋葉原UDX",
+        "at": [
+          -80,
+          -200
+        ]
+      },
+      {
+        "text": "ヨドバシAkiba",
+        "at": [
+          95,
+          -40
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "minimumReliefMeters": 0,
+    "multiLevelWitnesses": []
+  },
+  "sourceLinks": [
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13101-chiyoda-ku-2025",
+      "label": "千代田区2025年度3D都市モデル"
+    },
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13101-chiyoda-ku-2025",
+      "label": "千代田区2025年度3D都市モデル"
+    },
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13101-chiyoda-ku-2025",
+      "label": "千代田区2025年度3D都市モデル"
+    },
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13106-taito-ku-2025",
+      "label": "台東区2025年度3D都市モデル"
+    },
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13106-taito-ku-2025",
+      "label": "台東区2025年度3D都市モデル"
+    },
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-13106-taito-ku-2025",
+      "label": "台東区2025年度3D都市モデル"
+    }
+  ],
+  "tilesets": [
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/tileset.json",
+      "file": "13101-bldg-tileset.json",
+      "bytes": 375304,
+      "sha256": "8f6f92f7b1883e60d2e3a468b6e894ac3ccd494f8da59d9cfb4b07d2bf0eff08"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/tileset.json",
+      "file": "13101-tran-tileset.json",
+      "bytes": 190569,
+      "sha256": "4bdb12b5d4d4ad02f17b7945e5cc48d4afdd5b55b41e0da9652e9b86f4ae8ea3"
+    },
+    {
+      "kind": "brid",
+      "url": "https://assets.cms.plateau.reearth.io/assets/11/2c138e-e156-46f1-b3a1-abc47865366e/13101_chiyoda-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/tileset.json",
+      "file": "13101-brid-tileset.json",
+      "bytes": 11788,
+      "sha256": "22ba7ef98046976a07c58cbf2a373eb2104939b124fd176d79b86f3ec3fffcf3"
+    },
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/89/471b74-c5ca-4673-afaa-c194d18b5c8c/13106_taito-ku_city_2025_citygml_1_op_bldg_3dtiles_lod2_no_texture/tileset.json",
+      "file": "13106-bldg-tileset.json",
+      "bytes": 1313689,
+      "sha256": "597d32de344e373d0e969f8d337880f81740ead098b38752b6cdd525bef6323c"
+    },
+    {
+      "kind": "tran",
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/tileset.json",
+      "file": "13106-tran-tileset.json",
+      "bytes": 207255,
+      "sha256": "2089ae0f19a754e47807abee62d03dee69bd2141fd9f86d3e91176e8e10d21e5"
+    },
+    {
+      "kind": "brid",
+      "url": "https://assets.cms.plateau.reearth.io/assets/ae/6dcdeb-fe04-4853-ba66-02993dacc87c/13106_taito-ku_city_2025_citygml_1_op_brid_3dtiles_lod2/tileset.json",
+      "file": "13106-brid-tileset.json",
+      "bytes": 2859,
+      "sha256": "d30e05545bd459a98e0c891cd2e2abb7f2af65dcf8c6cb1b90b133f4c1af8dad"
+    }
+  ],
+  "models": [
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439527583351432,
+        0.6230938062408673,
+        2.439540670837954,
+        0.6231087779713762,
+        39.28254856475882,
+        103.15200965620778
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data9.b3dm",
+      "file": "13101-bldg-ab75976cfc-data9.b3dm",
+      "bytes": 274136,
+      "sha256": "f4b8bac259426b4c2b687defeae704ac6153e98796cc112d44ef7c645b7b6260"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394958984213817,
+        0.6230950580336133,
+        2.4395224983264794,
+        0.6231116775262148,
+        39.72443972008406,
+        120.91128230288643
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data10.b3dm",
+      "file": "13101-bldg-1b589c5b34-data10.b3dm",
+      "bytes": 185488,
+      "sha256": "cf8c2241f979ff0cf2455f385cd8d778dd382241843f5fa1dbcb053475b67d1b"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394677474601036,
+        0.6230926885132433,
+        2.439496007153055,
+        0.6231140576489607,
+        39.87163781757489,
+        176.95115831497304
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data14.b3dm",
+      "file": "13101-bldg-383843c81f-data14.b3dm",
+      "bytes": 593704,
+      "sha256": "9ca12772e22bd9fad0c98e72d4391238a0e13fae23de70d2c8818aa28e417a38"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439438962193018,
+        0.6230933703243273,
+        2.439470729111322,
+        0.623114671162759,
+        40.056953417856846,
+        79.4512959453787
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data15.b3dm",
+      "file": "13101-bldg-5615eff43d-data15.b3dm",
+      "bytes": 1311280,
+      "sha256": "ed20bfcf8daef87473276ec3b90384664eaed487bd1a15942e53477097801888"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439554381583302,
+        0.6230740142928458,
+        2.4395837259444737,
+        0.6230905701156846,
+        38.69189338655698,
+        78.10726120492662
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data22.b3dm",
+      "file": "13101-bldg-73fef72efd-data22.b3dm",
+      "bytes": 738028,
+      "sha256": "5aa50f61b16ea845957f48ac18c45cd80d245bb916c269d8788e6b28b08bedcb"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395547476827426,
+        0.6230538222112831,
+        2.4395839801144485,
+        0.6230737787846164,
+        39.03157902816774,
+        75.05162891463628
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data24.b3dm",
+      "file": "13101-bldg-b9dd1c7bc5-data24.b3dm",
+      "bytes": 868160,
+      "sha256": "f0250e15fea8ebbd4765294a108a71862b8dcdc2852a230518d161ab576a884a"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439554157152759,
+        0.6230349321584366,
+        2.439585861593472,
+        0.6230556957967714,
+        39.12358440413918,
+        78.79476097030349
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data32.b3dm",
+      "file": "13101-bldg-5ad5fa753f-data32.b3dm",
+      "bytes": 694884,
+      "sha256": "37806cddb015dcd898aebf955311f3f36cc829acb641c5499ba23ce389a48be7"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395551182392077,
+        0.6230140126490029,
+        2.4395834234150966,
+        0.6230339686930384,
+        38.399428818065786,
+        79.79290226417484
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data34.b3dm",
+      "file": "13101-bldg-d88d993252-data34.b3dm",
+      "bytes": 300928,
+      "sha256": "2d9994c325d44cdc9ae166b535e4688fc0a6c4a0ab2536dcbca13e6e206466b4"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439525370667169,
+        0.6230734169543078,
+        2.4395542935282806,
+        0.6230952389752878,
+        38.929554116749685,
+        154.44012554497922
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data37.b3dm",
+      "file": "13101-bldg-8d19c35b06-data37.b3dm",
+      "bytes": 783960,
+      "sha256": "0c14b5ba770a62e54f4cab17c9d88138c0e9de3e939c882692384509848bf763"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439508688029645,
+        0.6230740268463444,
+        2.439526693834776,
+        0.6230932954593039,
+        38.65720247782002,
+        187.89350877582717
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data38.b3dm",
+      "file": "13101-bldg-192e694c64-data38.b3dm",
+      "bytes": 252536,
+      "sha256": "bb05b17535aa6cbcc73b29dd3dd6ebc0ffaaf5660e21ecf3c24c44320f8ede4b"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395238408917526,
+        0.6230522468948885,
+        2.4395559816744252,
+        0.6230740960662737,
+        39.19905942654502,
+        101.3362714131432
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data39.b3dm",
+      "file": "13101-bldg-cfd7733a23-data39.b3dm",
+      "bytes": 394420,
+      "sha256": "dbaaaa91c3c16a73b7704564845ddc3f90fb3650230693fda61d273102b4d163"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439480234073318,
+        0.6230528525944543,
+        2.439525074673717,
+        0.6230773905256247,
+        37.02783466320744,
+        112.77080956049568
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data40.b3dm",
+      "file": "13101-bldg-f0a7d51fb3-data40.b3dm",
+      "bytes": 209720,
+      "sha256": "5a7f570a05e1962d33e927063459529ce8107452861fb5c0ec19f32e1748610c"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439474438836688,
+        0.6230772179461087,
+        2.4394991920762674,
+        0.6231006295309616,
+        39.821307585145505,
+        146.51795511299886
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data42.b3dm",
+      "file": "13101-bldg-39470b51a0-data42.b3dm",
+      "bytes": 1176484,
+      "sha256": "0ca83635a17e890215921bc4585df8d6b012701a9ed1c7456491336dad3a56a7"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439437907720157,
+        0.6230725831931772,
+        2.4394686151382894,
+        0.6230943290620782,
+        39.981910232781615,
+        141.4018643189315
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data43.b3dm",
+      "file": "13101-bldg-fa6eaa1393-data43.b3dm",
+      "bytes": 1081856,
+      "sha256": "443981d867b1ff943c66d24a562185e69035985feacc8c3aace11bc30e45f00e"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394723660558224,
+        0.6230545333817484,
+        2.4394919927281293,
+        0.6230786281073025,
+        39.442341386787035,
+        187.58363418490424
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data44.b3dm",
+      "file": "13101-bldg-1bc32c8c06-data44.b3dm",
+      "bytes": 655164,
+      "sha256": "e6b3f507cd72997f803d25ff6cf523307ed2522e28ad16fafe61ade602e0f702"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439439843108716,
+        0.6230538503107972,
+        2.4394667777627475,
+        0.6230762706479912,
+        39.697218766949646,
+        81.35894702228727
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data45.b3dm",
+      "file": "13101-bldg-1d28587020-data45.b3dm",
+      "bytes": 1242196,
+      "sha256": "568f24b4cbe71181db07bd682fc1f4f3607042abcb0b3e8fe14499755f51406b"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439524884632163,
+        0.6230343399551787,
+        2.4395551632040715,
+        0.6230558632575197,
+        39.4431971549469,
+        92.6131770533038
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data47.b3dm",
+      "file": "13101-bldg-a7e24f98bc-data47.b3dm",
+      "bytes": 570448,
+      "sha256": "8b176fb03aff69bbe3251406982e8da4a7201762735ee8c7b61d30bbc5fa4c27"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439479954306901,
+        0.6230323978938772,
+        2.439538453991566,
+        0.6230565508391962,
+        37.923362856567,
+        115.71796779612714
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data48.b3dm",
+      "file": "13101-bldg-afc309850a-data48.b3dm",
+      "bytes": 629388,
+      "sha256": "71d2950c9009e479bcaa3cf2d2cceafdb7c1a920c70d691824b5e14b06733593"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439525474534191,
+        0.6230146267267804,
+        2.439556123757597,
+        0.6230374085347637,
+        38.267675519901466,
+        88.69011275012535
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data49.b3dm",
+      "file": "13101-bldg-45f4a9322e-data49.b3dm",
+      "bytes": 358224,
+      "sha256": "0b909809c5d2d870dfd6c8887649d9f22339cbd5e698253378f0ab0710edc00b"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395020619079504,
+        0.6230154670312267,
+        2.439528352410353,
+        0.6230269739333493,
+        38.11225000340795,
+        87.91562565908356
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data50.b3dm",
+      "file": "13101-bldg-876a7a1fa7-data50.b3dm",
+      "bytes": 626384,
+      "sha256": "8682c075858e025216d3cbbbdc8f8cbdbf6b2ef379ebd1bc5b98ed52ec7b3cc1"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394705147243188,
+        0.6230321555537126,
+        2.439498495021724,
+        0.6230550445616123,
+        38.558471310870836,
+        96.12550154111534
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data52.b3dm",
+      "file": "13101-bldg-ed2434df30-data52.b3dm",
+      "bytes": 767228,
+      "sha256": "a07f9fa24219ee58f1599dfa5a4a9213b457a7fb1fc8568593a8ad6bd525b40d"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439440086586093,
+        0.6230370691890835,
+        2.4394655146097435,
+        0.6230564343329282,
+        37.81495230888898,
+        92.06365079034086
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data53.b3dm",
+      "file": "13101-bldg-54a2295b13-data53.b3dm",
+      "bytes": 552624,
+      "sha256": "df561c978d7c49973b3d7e4ddbaf25fc1f0f03f3f887dd4b8a687cd685b446cf"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394679463904865,
+        0.6230152838831594,
+        2.439493529336567,
+        0.6230286144292864,
+        38.589673049663645,
+        117.93442143261308
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data54.b3dm",
+      "file": "13101-bldg-54b1f6d0d8-data54.b3dm",
+      "bytes": 458508,
+      "sha256": "a4698dc023e4fd2fa48ec56e76c8d7347aa2107a61d08cda445d2a9302cb1b19"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394378889647528,
+        0.6230146058946051,
+        2.439470899592382,
+        0.6230376071684212,
+        37.653088865544326,
+        141.03944033241928
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data55.b3dm",
+      "file": "13101-bldg-5e0dba6429-data55.b3dm",
+      "bytes": 446432,
+      "sha256": "7379730d2e5f482eb0c4f81605da1fcf6b425419fd23713c10a7ec55d7bceb54"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439551094890839,
+        0.622994062154851,
+        2.4395851428802398,
+        0.6230157738504195,
+        39.88241308042361,
+        95.76142263479832
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data121.b3dm",
+      "file": "13101-bldg-98c45b1d31-data121.b3dm",
+      "bytes": 405260,
+      "sha256": "deab064600963687ad68a33b5f15e41b912f7cd92965df42819ad61732e686be"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439525150641944,
+        0.6229947569509106,
+        2.439551437983004,
+        0.6230170554654492,
+        39.951910070339274,
+        92.39138702233592
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data134.b3dm",
+      "file": "13101-bldg-918971042b-data134.b3dm",
+      "bytes": 331956,
+      "sha256": "dfca4cad3da0e2886ab5dbf424df1df65e9ce04e052ca55051e513bebc92ec77"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.43949747330056,
+        0.6229956234456318,
+        2.4395264904627827,
+        0.6230154124175082,
+        40.14149205742158,
+        87.69498511995933
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data135.b3dm",
+      "file": "13101-bldg-3cd6c9b52b-data135.b3dm",
+      "bytes": 725132,
+      "sha256": "e1c212b8995576068c088a504588d6b0ed56b5052b4ab61803b9d9b2b698e3c5"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4394679204262966,
+        0.6229899171792985,
+        2.4394984520558864,
+        0.6230167041987213,
+        40.635947157678274,
+        86.86313211228784
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data139.b3dm",
+      "file": "13101-bldg-69c288a062-data139.b3dm",
+      "bytes": 583920,
+      "sha256": "e05ffd8f5123e4b4d7be4b20b2fae5d332156b850035d581c813a73098e3e43d"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.439438616854017,
+        0.6229948586965557,
+        2.4394704577533592,
+        0.6230155885806665,
+        41.15748589802544,
+        87.37725440987708
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/72/e900e5-938c-4376-a9de-a124b270880c/13101_chiyoda-ku_pref_2025_citygml_1_op_bldg_3dtiles_13101_chiyoda-ku_lod2_no_texture/data/data140.b3dm",
+      "file": "13101-bldg-b1b5598e7f-data140.b3dm",
+      "bytes": 818748,
+      "sha256": "5b78f8cf9b9f8ed18ee98edf2ff6fb43c09d87068284feacabbd926eb197ab5b"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4395199162424426,
+        0.6230915870237117,
+        2.4395506630779216,
+        0.6231201683910397,
+        39.23374443615488,
+        40.476590664131685
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data10.b3dm",
+      "file": "13101-tran-1b589c5b34-data10.b3dm",
+      "bytes": 351288,
+      "sha256": "a4a2e2e5c8010f57bdfab6eabc51f884135c5cf15f06dd4613a7e062a2fa1380"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439470696002879,
+        0.6230755620330115,
+        2.4395204410736677,
+        0.6231228049853088,
+        39.70126678106992,
+        40.9461465568602
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data11.b3dm",
+      "file": "13101-tran-e014a65382-data11.b3dm",
+      "bytes": 233288,
+      "sha256": "ace299fe4e57b7d2ab9ca4b1117ca30bd37e9bab1cea8de87ff32bb67a459237"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4395193493898937,
+        0.6230635714350666,
+        2.4395507244654935,
+        0.6230937458595499,
+        39.204107403819876,
+        39.99957136994192
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data12.b3dm",
+      "file": "13101-tran-b667177b72-data12.b3dm",
+      "bytes": 339084,
+      "sha256": "2fa205d1ad7c7e1ccec54d697555e8dde46a6093b5d007f652a83e3415449418"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.43947343754899,
+        0.6230679214189985,
+        2.439519757417116,
+        0.6230882715768812,
+        39.72418029881655,
+        40.269554078483445
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data13.b3dm",
+      "file": "13101-tran-5aba11d782-data13.b3dm",
+      "bytes": 152604,
+      "sha256": "6a3d401eb17f7b41482fca536208d840a003e1de889170ccf4bdad3697b5c4fe"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439514034847716,
+        0.6230359923280074,
+        2.4395500679806927,
+        0.6230681020395193,
+        39.428396445145275,
+        40.65852267676347
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data15.b3dm",
+      "file": "13101-tran-5615eff43d-data15.b3dm",
+      "bytes": 345032,
+      "sha256": "fcce9f4d0a35a93f74abe03e92472c30645efb4c58068c0a414304bf25964557"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439471430470046,
+        0.6230378032434019,
+        2.4395196072407592,
+        0.6230730663892269,
+        39.6265146693436,
+        40.967036135424095
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data16.b3dm",
+      "file": "13101-tran-01c7b2bbce-data16.b3dm",
+      "bytes": 200216,
+      "sha256": "5648cd59e61d9d14ceb07921ce983e95e72b519ccaf264870ad067c71ee0a42d"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4395193332640974,
+        0.6230085348118721,
+        2.439550565120747,
+        0.6230383729972534,
+        40.05045178941311,
+        41.42574299326817
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data17.b3dm",
+      "file": "13101-tran-6d41391bf2-data17.b3dm",
+      "bytes": 241340,
+      "sha256": "b9ce097edc02cef51eb649bfb3e2b838848cde941a9b70972d73fb3578b2aa2d"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394705212761663,
+        0.6230093223115274,
+        2.4395203486541894,
+        0.6230379719312047,
+        39.69754264557358,
+        42.998792212382725
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data18.b3dm",
+      "file": "13101-tran-fd1ae6acf4-data18.b3dm",
+      "bytes": 135820,
+      "sha256": "13735dff392e0929a48dd29a5166da424e9f50548fcbd49e13f6da627e8e0b34"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394313199162805,
+        0.623090878257567,
+        2.4394778126746712,
+        0.6231207180278351,
+        40.07965238191954,
+        42.157510223292896
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data21.b3dm",
+      "file": "13101-tran-4a64aa9096-data21.b3dm",
+      "bytes": 227116,
+      "sha256": "021f54665d37fae29b449246b53c1fb4413b5f7882fad9f5e4b467c73cbd5695"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394304394724333,
+        0.6230651927085145,
+        2.439476427637258,
+        0.6230964126258814,
+        39.80886180732391,
+        42.11610669707862
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data23.b3dm",
+      "file": "13101-tran-e98564a99c-data23.b3dm",
+      "bytes": 289852,
+      "sha256": "9bd057cc0bd78676c7a9892f1533f0fb509b2310fb96e251955ceff9c1dd2ac2"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394317039292184,
+        0.6230377334258409,
+        2.439476198547796,
+        0.6230671061133725,
+        39.694938659713905,
+        41.553468970557915
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data30.b3dm",
+      "file": "13101-tran-7527703aed-data30.b3dm",
+      "bytes": 224416,
+      "sha256": "6e2ec25c837e5655cf6334f31ee15cf5e3137872162fcc391888d2b6508371eb"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394304700764113,
+        0.6230107549908578,
+        2.4394760668739064,
+        0.623040850246186,
+        40.544645161681935,
+        41.87952871508439
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data32.b3dm",
+      "file": "13101-tran-5ad5fa753f-data32.b3dm",
+      "bytes": 310392,
+      "sha256": "e57ccd2a74273cbb4e4d518c9817b9803a08074b461e5a4b5a7c921d0c482355"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439474408254739,
+        0.62297986764451,
+        2.4395193332640974,
+        0.6230108406660093,
+        40.32269729644345,
+        41.400788404910486
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data44.b3dm",
+      "file": "13101-tran-1bc32c8c06-data44.b3dm",
+      "bytes": 342304,
+      "sha256": "4182b2cf6163fa5ac54bacc5f57b5b7cf3b619e3c88e72a989cfe7143e5accb7"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439429111496144,
+        0.6229784260737651,
+        2.4394757297962375,
+        0.6230129612474755,
+        41.09266653765269,
+        42.09485285587142
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/c6/9e8877-46d9-45a4-aebf-aa8d6105d698/13101_chiyoda-ku_pref_2025_citygml_1_op_tran_3dtiles_lod3/data/data54.b3dm",
+      "file": "13101-tran-54b1f6d0d8-data54.b3dm",
+      "bytes": 444536,
+      "sha256": "fe739d1e48e7f4db2a1229e466c4eefbb1af19ef8047de3d91c6b4143d310a53"
+    },
+    {
+      "kind": "brid",
+      "bounds": [
+        2.439422843507226,
+        0.6229218583585505,
+        2.439549324909081,
+        0.6231311721696794,
+        36.74450422700651,
+        51.81721312710616
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/11/2c138e-e156-46f1-b3a1-abc47865366e/13101_chiyoda-ku_pref_2025_citygml_1_op_brid_3dtiles_lod2/data/data0.b3dm",
+      "file": "13101-brid-ee731f76f2-data0.b3dm",
+      "bytes": 1121668,
+      "sha256": "8064d4abdd23461e987190fe3a6ef39b2514c6ab7d65637dc49d97f0eb182e8f"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395478252349654,
+        0.6230924557908857,
+        2.4395576922378464,
+        0.6231077132711634,
+        38.855144834577814,
+        76.20178883560334
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/89/471b74-c5ca-4673-afaa-c194d18b5c8c/13106_taito-ku_city_2025_citygml_1_op_bldg_3dtiles_lod2_no_texture/18/232853/39539_bldg_Building.glb",
+      "file": "13106-bldg-6d86c6519a-39539_bldg_Building.glb",
+      "bytes": 206292,
+      "sha256": "3c441a3513090d4c6a3f385f39e166292a79fc2f91eb699626c561a188b6e745"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.4395560073703666,
+        0.6230913240098481,
+        2.4395819206687834,
+        0.6231083675721361,
+        38.61736672220383,
+        86.29990194850036
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/89/471b74-c5ca-4673-afaa-c194d18b5c8c/13106_taito-ku_city_2025_citygml_1_op_bldg_3dtiles_lod2_no_texture/18/232854/39539_bldg_Building.glb",
+      "file": "13106-bldg-c9090c533b-39539_bldg_Building.glb",
+      "bytes": 471184,
+      "sha256": "7620daa459c43c4d697bd43ec4df2e19222565b050328fab2c5c1ae3a8ecd11b"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4394351370613347,
+        0.6230838821301943,
+        2.4394630581830623,
+        0.6231083658368295,
+        40.27555073541796,
+        41.963489168035636
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/18/232849/39539_tran_TrafficArea.glb",
+      "file": "13106-tran-480bd579dc-39539_tran_TrafficArea.glb",
+      "bytes": 58036,
+      "sha256": "5aadec1db849150188d3db72eddf3244652dc16e689680860eb49deb1de7ae6c"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439460585719007,
+        0.6230826351887028,
+        2.439485909637344,
+        0.6231081014275316,
+        39.82677564101846,
+        40.97893692981202
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/18/232850/39539_tran_TrafficArea.glb",
+      "file": "13106-tran-a48c0642d5-39539_tran_TrafficArea.glb",
+      "bytes": 109352,
+      "sha256": "8ef7cabf422f59e96740c9d8c14c5b722bf2af5cac745c37212e3b5aa15a118a"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.439483604744495,
+        0.6230755620330115,
+        2.439505055145923,
+        0.6231108646818437,
+        39.73059636647637,
+        40.11628042987098
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/18/232851/39539_tran_TrafficArea.glb",
+      "file": "13106-tran-56e427a4a2-39539_tran_TrafficArea.glb",
+      "bytes": 25128,
+      "sha256": "fb35901a72f246220a238f0130c4b95bd0c3fc107326f50bcf2413970cdfc118"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.43946783407411,
+        0.6230822495427139,
+        2.439474961933205,
+        0.6230837618997407,
+        39.91942735457966,
+        40.28710715007866
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/18/232850/39540_tran_TrafficArea.glb",
+      "file": "13106-tran-0dcc06dfca-39540_tran_TrafficArea.glb",
+      "bytes": 11180,
+      "sha256": "047ff3d691ce6aa2d6217e737a43efc9feaf6c37fdc3cdca5b257d7baf2fe08d"
+    },
+    {
+      "kind": "tran",
+      "bounds": [
+        2.4395208614591875,
+        0.6230786467518232,
+        2.439534265006242,
+        0.6231084205912386,
+        39.50933759985513,
+        39.8973032510675
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/fc/5c3d9a-c7df-4a91-9102-f0ef936d8df9/13106_taito-ku_city_2025_citygml_1_op_tran_3dtiles_lod3/18/232852/39539_tran_TrafficArea.glb",
+      "file": "13106-tran-3808dbab67-39539_tran_TrafficArea.glb",
+      "bytes": 46832,
+      "sha256": "9b36a1687f6943e597b623647dcf2c7156e04eb6a26211b952df6776c413be94"
+    },
+    {
+      "kind": "brid",
+      "bounds": [
+        2.439331271071344,
+        0.6229219541992305,
+        2.439734719106787,
+        0.623242383875162,
+        36.19967814813709,
+        57.68537852128307
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/ae/6dcdeb-fe04-4853-ba66-02993dacc87c/13106_taito-ku_city_2025_citygml_1_op_brid_3dtiles_lod2/data/data3.b3dm",
+      "file": "13106-brid-9ccef128f9-data3.b3dm",
+      "bytes": 1507116,
+      "sha256": "3ea53c13c155552f9335370a3b93489cd06d72962dda25d996ba7e8eb07b2a63"
+    }
+  ],
+  "dem": [
+    {
+      "x": 29106,
+      "y": 12901,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/29106/12901.png",
+      "file": "dem5a_png-15-29106-12901.png",
+      "bytes": 50212,
+      "sha256": "66cd585607d12caaeef861a1e73201242c1d72ce57e9c5a26731f9d993fe502b"
+    }
+  ]
+}

@@ -1,33 +1,38 @@
 #!/usr/bin/env python3
 """復号済みPLATEAUと地理院DEMから、地形確認専用のHTMLを作る。"""
-import argparse, base64, hashlib, json, math, pathlib
+import argparse, base64, hashlib, html, json, math, pathlib
 import numpy as np
 from PIL import Image
 from scipy.ndimage import minimum_filter
 ROOT=pathlib.Path(__file__).resolve().parents[2]
-LON,LAT=map(math.radians,(139.6918,35.68975));ANG=math.radians(12);CA,SA=math.cos(ANG),math.sin(ANG)
-EAST=np.array([-math.sin(LON),math.cos(LON),0]);UP=np.array([math.cos(LAT)*math.cos(LON),math.cos(LAT)*math.sin(LON),math.sin(LAT)]);NORTH=np.cross(UP,EAST)
 A=6378137.;E2=.0066943799901413165
 
 def ecef(lon,lat,h):
     n=A/np.sqrt(1-E2*np.sin(lat)**2)
     return np.stack(((n+h)*np.cos(lat)*np.cos(lon),(n+h)*np.cos(lat)*np.sin(lon),(n*(1-E2)+h)*np.sin(lat)),axis=-1)
-REF=ecef(LON,LAT,0)
 
-def local(v,base):
-    q=v-REF;e=q@EAST;s=-q@NORTH
-    return np.stack((e*CA-s*SA,q@UP-base,e*SA+s*CA),axis=-1)
+class Frame:
+    def __init__(self,center,rotation):
+        lon,lat=map(math.radians,center);angle=math.radians(rotation)
+        self.ca,self.sa=math.cos(angle),math.sin(angle)
+        self.east=np.array([-math.sin(lon),math.cos(lon),0])
+        self.up=np.array([math.cos(lat)*math.cos(lon),math.cos(lat)*math.sin(lon),math.sin(lat)])
+        self.north=np.cross(self.up,self.east);self.reference=ecef(lon,lat,0)
 
-def clip(tris):
-    """境界を横切る面も600m四方へ切断。切断面の蓋は作らない。"""
-    valid=(tris[:,:,[0,2]].min(axis=1)<=300).all(axis=1)&(tris[:,:,[0,2]].max(axis=1)>=-300).all(axis=1)
-    tris=tris[valid];inside=(np.abs(tris[:,:,[0,2]])<=300).all(axis=(1,2));out=[tris[inside].reshape(-1,3)]
+    def local(self,v,base):
+        q=v-self.reference;e=q@self.east;s=-q@self.north
+        return np.stack((e*self.ca-s*self.sa,q@self.up-base,e*self.sa+s*self.ca),axis=-1)
+
+def clip(tris,half=300):
+    """境界を横切る面も指定範囲へ切断。切断面の蓋は作らない。"""
+    valid=(tris[:,:,[0,2]].min(axis=1)<=half).all(axis=1)&(tris[:,:,[0,2]].max(axis=1)>=-half).all(axis=1)
+    tris=tris[valid];inside=(np.abs(tris[:,:,[0,2]])<=half).all(axis=(1,2));out=[tris[inside].reshape(-1,3)]
     for tri in tris[~inside]:
         poly=list(tri)
         for axis,sign in [(0,1),(0,-1),(2,1),(2,-1)]:
             result=[]
             for i,a in enumerate(poly):
-                b=poly[(i+1)%len(poly)];da=300-sign*a[axis];db=300-sign*b[axis]
+                b=poly[(i+1)%len(poly)];da=half-sign*a[axis];db=half-sign*b[axis]
                 if da>=0:result.append(a)
                 if (da>=0)!=(db>=0):result.append(a+(b-a)*(da/(da-db)))
             poly=result
@@ -40,7 +45,8 @@ def clip(tris):
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('cache',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path);args=ap.parse_args();cache=args.cache;out=args.output;out.mkdir(parents=True,exist_ok=True)
-    manifest=json.loads((cache/'inputs.json').read_text())
+    manifest=json.loads((cache/'inputs.json').read_text());frame=Frame(manifest['center'],manifest['rotationDegrees']);half=manifest['halfExtent']
+    LON,LAT=map(math.radians,manifest['center']);CA,SA=frame.ca,frame.sa;local=frame.local
     for record in [*manifest['models'],*manifest['tilesets'],*manifest['dem'],manifest['geoid'],manifest['referenceElevation']]:
         if hashlib.sha256((cache/record['file']).read_bytes()).hexdigest()!=record['sha256']:raise ValueError('入力のハッシュ不一致: '+record['file'])
     geoid=json.loads((cache/'geoid.txt').read_text())['OutputData'];gh=float(geoid['geoidHeight']);reference=float(json.loads((cache/'gsi-elevation.json').read_text())['elevation']);base=reference+gh
@@ -51,8 +57,8 @@ def main():
         v=local(ps[:,[0,2,1]]*np.array([1,-1,1])+m['rtc'],base)
         idx=np.fromfile(cache/'decoded'/(m['name']+'.idx'),dtype='<u4').reshape(-1,3)
         if idx.max()>=len(v):raise ValueError('頂点番号が範囲外')
-        layers[m['kind']].append(clip(v[idx]))
-    layers={k:np.concatenate(v) for k,v in layers.items()}
+        layers[m['kind']].append(clip(v[idx],half))
+    layers={k:np.concatenate(v) if v else np.empty((0,3),dtype='<f4') for k,v in layers.items()}
     tiles={}
     for d in manifest['dem']:
         rgb=np.array(Image.open(cache/d['file']).convert('RGB'),dtype=np.int32);h=rgb[:,:,0]*65536+rgb[:,:,1]*256+rgb[:,:,2];nodata=h==2**23;h=np.where(h>=2**23,h-2**24,h)/100.;h[nodata]=np.nan;tiles[(d['x'],d['y'])]=h
@@ -68,21 +74,24 @@ def main():
             vals.append(a)
         return vals[0]*(1-fx)*(1-fy)+vals[1]*fx*(1-fy)+vals[2]*(1-fx)*fy+vals[3]*fx*fy
     # 4m格子へ再標本化（原データは5mメッシュ）。地面は誇張しない。
-    steps=np.linspace(-300,300,151);xx,zz=np.meshgrid(steps,steps);east=xx*CA+zz*SA;south=-xx*SA+zz*CA
+    cells=round(half*2/4);stride=cells+1;steps=np.linspace(-half,half,stride);xx,zz=np.meshgrid(steps,steps);east=xx*CA+zz*SA;south=-xx*SA+zz*CA
     n0=A/math.sqrt(1-E2*math.sin(LAT)**2);m0=A*(1-E2)/(1-E2*math.sin(LAT)**2)**1.5
     lon=LON+east/(n0*math.cos(LAT));lat=LAT-south/m0
     h=sample_dem(lon,lat)
-    if not np.isfinite(h).all():raise ValueError('DEMに欠測あり')
-    ground=local(ecef(lon,lat,h+gh),base);ground[:,:,0]=xx;ground[:,:,2]=zz
-    tri=np.array([[a,b,c] for z in range(150) for x in range(150) for a,b,c in [(z*151+x,(z+1)*151+x,z*151+x+1),(z*151+x+1,(z+1)*151+x,(z+1)*151+x+1)]])
+    valid=np.isfinite(h)
+    if not valid.any():raise ValueError('DEMが全域欠測')
+    # 欠測の頂点は地面を作らない。内部配列用の代替値は描画面に使わない。
+    ground=local(ecef(lon,lat,np.where(valid,h,reference)+gh),base);ground[:,:,0]=xx;ground[:,:,2]=zz
+    tri=np.array([[a,b,c] for z in range(cells) for x in range(cells) for a,b,c in [(z*stride+x,(z+1)*stride+x,z*stride+x+1),(z*stride+x+1,(z+1)*stride+x,(z+1)*stride+x+1)]])
+    tri=tri[valid.ravel()[tri].all(axis=1)]
     # DEMは橋の下を表現できない。道路の実メッシュより高い地面だけを下げる。
     # 上下の道路が重なる場所では最下層を使い、橋そのものは別メッシュのまま保つ。
     raw_ground=ground.copy();roadbed=np.full(xx.shape,np.inf)
     for t in layers['tran'].reshape(-1,3,3):
         a,b,c=t;den=(b[2]-c[2])*(a[0]-c[0])+(c[0]-b[0])*(a[2]-c[2])
         if abs(den)<.01:continue
-        x0=max(0,int(math.ceil((t[:,0].min()+300)/4)));x1=min(150,int(math.floor((t[:,0].max()+300)/4)))
-        z0=max(0,int(math.ceil((t[:,2].min()+300)/4)));z1=min(150,int(math.floor((t[:,2].max()+300)/4)))
+        x0=max(0,int(math.ceil((t[:,0].min()+half)/4)));x1=min(cells,int(math.floor((t[:,0].max()+half)/4)))
+        z0=max(0,int(math.ceil((t[:,2].min()+half)/4)));z1=min(cells,int(math.floor((t[:,2].max()+half)/4)))
         if x1<x0 or z1<z0:continue
         gx=xx[z0:z1+1,x0:x1+1];gz=zz[z0:z1+1,x0:x1+1]
         u=((b[2]-c[2])*(gx-c[0])+(c[0]-b[0])*(gz-c[2]))/den
@@ -92,13 +101,16 @@ def main():
     # 4m格子の補間が道路へ食い込まないための1格子分の余白。
     roadbed=minimum_filter(roadbed,size=3,mode='nearest');ground[:,:,1]=np.minimum(ground[:,:,1],roadbed)
     layers['dem']=ground.reshape(-1,3)[tri].reshape(-1,3).astype('<f4')
-    np.savez_compressed(out/'geometry.npz',**layers,heights=h,rawGround=raw_ground,ground=ground)
-    stats={k:{'triangles':len(v)//3,'min':v.min(axis=0).round(3).tolist(),'max':v.max(axis=0).round(3).tolist()} for k,v in layers.items()}
-    meta={'center':[139.6918,35.68975],'rotationDegrees':12,'extentMeters':600,'referenceElevation':reference,'geoidHeight':gh,'demElevationRange':[float(h.min()),float(h.max())],'layers':stats,'groundAdjustedVertices':int(np.count_nonzero(ground[:,:,1]<raw_ground[:,:,1]-.01)),'groundMaxLowering':float(np.max(raw_ground[:,:,1]-ground[:,:,1])),'sourceModelTiles':len(manifest['models']),'bases':0,'plants':0}
+    np.savez_compressed(out/'geometry.npz',**layers,heights=h,rawGround=raw_ground,ground=ground,groundValid=valid)
+    stats={k:{'triangles':len(v)//3,'min':v.astype(float).min(axis=0).round(3).tolist() if len(v) else None,'max':v.astype(float).max(axis=0).round(3).tolist() if len(v) else None} for k,v in layers.items()}
+    meta={'center':manifest['center'],'rotationDegrees':manifest['rotationDegrees'],'extentMeters':half*2,'display':manifest.get('display',{}),'referenceElevation':reference,'geoidHeight':gh,'demElevationRange':[float(np.nanmin(h)),float(np.nanmax(h))],'layers':stats,'missingDEMVertices':int(np.count_nonzero(~valid)),'groundAdjustedVertices':int(np.count_nonzero((ground[:,:,1]<raw_ground[:,:,1]-.01)&valid)),'groundMaxLowering':float(np.max((raw_ground[:,:,1]-ground[:,:,1])[valid])),'sourceModelTiles':len(manifest['models']),'bases':0,'plants':0}
     (out/'summary.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n')
     blob={k:base64.b64encode(v.tobytes()).decode() for k,v in layers.items()}
     template=(ROOT/'tools/plateau/viewer.html').read_text();three=(ROOT/'vendor/three-r128/three.min.js').read_text();license=(ROOT/'vendor/three-r128/LICENSE').read_text()
-    html=template.replace('/*__THREE__*/',three).replace('/*__DATA__*/',json.dumps(blob,separators=(',',':'))).replace('/*__META__*/',json.dumps(meta)).replace('__THREE_LICENSE__',license)
-    (out/'preview.html').write_text(html)
+    links=list({v['url']:v for v in manifest.get('sourceLinks',[{'url':'https://www.geospatial.jp/ckan/dataset/plateau-13104-shinjuku-ku-2025','label':'東京都・PLATEAU 新宿区2025年度3D都市モデル'}])}.values())
+    source_links='・'.join('<a href="'+html.escape(v['url'],quote=True)+'">'+html.escape(v['label'])+'</a>' for v in links)
+    title=html.escape(meta['display'].get('title','都市地形プレビュー'));area=html.escape(meta['display'].get('areaName','都庁周辺'))
+    html_output=template.replace('/*__THREE__*/',three).replace('/*__DATA__*/',json.dumps(blob,separators=(',',':'))).replace('/*__META__*/',json.dumps(meta)).replace('__THREE_LICENSE__',license).replace('__TITLE__',title).replace('__AREA__',area).replace('__EXTENT__',str(half*2)).replace('__SOURCE_LINKS__',source_links)
+    (out/'preview.html').write_text(html_output)
     print(json.dumps(meta,ensure_ascii=False))
 if __name__=='__main__':main()

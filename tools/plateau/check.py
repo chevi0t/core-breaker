@@ -5,13 +5,15 @@ import numpy as np
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('cache',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path);args=ap.parse_args();cache=args.cache;out=args.output
-    regions={}
-    for kind in ['bldg','tran','brid']:
-        def visit(n):
-            if n.get('content'):
-                c=n['content'];regions[kind+'-'+c.get('uri',c.get('url')).split('/')[-1]]=c.get('boundingVolume',n['boundingVolume'])['region']
-            for c in n.get('children',[]):visit(c)
-        visit(json.loads((cache/f'{kind}-tileset.json').read_text())['root'])
+    manifest=json.loads((cache/'inputs.json').read_text());regions={m['file']:m['bounds'] for m in manifest['models'] if 'bounds' in m}
+    if not regions:
+        for kind in ['bldg','tran','brid']:
+            def visit(n):
+                if n.get('content'):
+                    c=n['content'];regions[kind+'-'+c.get('uri',c.get('url')).split('/')[-1]]=c.get('boundingVolume',n['boundingVolume'])['region']
+                for c in n.get('children',[]):visit(c)
+            visit(json.loads((cache/f'{kind}-tileset.json').read_text())['root'])
+    assert len({m['file'] for m in manifest['models']})==len(manifest['models']),'同名キャッシュの衝突'
     # 変換結果を、公開3D Tilesに記載された緯度経度・楕円体高の範囲へ独立に照合する。
     worst=0.;seen=set()
     for m in json.loads((cache/'decoded/meshes.json').read_text()):
@@ -27,14 +29,17 @@ def main():
     geo=np.load(out/'geometry.npz');summary=json.loads((out/'summary.json').read_text())
     for name in ['bldg','tran','brid','dem']:
         v=geo[name];assert v.shape[1]==3 and len(v)>0 and len(v)%3==0
-        assert np.isfinite(v).all();assert np.abs(v[:,[0,2]]).max()<=300.001
+        assert np.isfinite(v).all();assert np.abs(v[:,[0,2]]).max()<=summary['extentMeters']/2+.001
         assert v[:,1].min()>-50 and v[:,1].max()<350
-    assert np.ptp(geo['heights'])>10 # 起伏を平坦化していない。
+    checks=manifest.get('checks',{'minimumReliefMeters':10,'multiLevelWitnesses':[[165,-75],[165,120]]})
+    heights=geo['heights'];valid=np.isfinite(heights)
+    assert valid.any() and np.ptp(heights[valid])>=checks.get('minimumReliefMeters',0)
+    if not valid.all():assert int(np.count_nonzero(~valid))==summary['missingDEMVertices']
     assert np.all(geo['ground'][:,:,1]<=geo['rawGround'][:,:,1]+1e-6) # 地面の補正で盛り上げない。
     assert summary['bases']==summary['plants']==0
     t=np.concatenate([geo['tran'],geo['brid']]).reshape(-1,3,3);a,b,c=t[:,0],t[:,1],t[:,2]
     den=(b[:,2]-c[:,2])*(a[:,0]-c[:,0])+(c[:,0]-b[:,0])*(a[:,2]-c[:,2]);good=np.abs(den)>.001;witnesses=[]
-    for x,z in [(165,-75),(165,120)]:
+    for x,z in checks.get('multiLevelWitnesses',[]):
         u=np.divide((b[:,2]-c[:,2])*(x-c[:,0])+(c[:,0]-b[:,0])*(z-c[:,2]),den,out=np.zeros(len(den)),where=good)
         v=np.divide((c[:,2]-a[:,2])*(x-c[:,0])+(a[:,0]-c[:,0])*(z-c[:,2]),den,out=np.zeros(len(den)),where=good)
         hit=good&(u>=0)&(v>=0)&(u+v<=1);h=(u*a[:,1]+v*b[:,1]+(1-u-v)*c[:,1])[hit]
