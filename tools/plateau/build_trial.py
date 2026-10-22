@@ -14,9 +14,10 @@ import re
 
 import numpy as np
 import shapely
-from shapely.geometry import Point, box
+from shapely.geometry import LineString, Point, box
 
 from simplify import extrusion, parts, projection, rings
+from trial_river import add_exits
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -55,6 +56,8 @@ def make_payload(source):
     meshes['water'] = water_mesh[np.all(np.abs(water_mesh[:,:,1]-water)<.0001,axis=1)].reshape(-1,3)
     # DEMの境界辺をそのまま下へ延ばし、川岸の隙間を閉じる（外周の切断辺は除く）。
     dem = np.round(meshes['dem'].reshape(-1, 3, 3), 3)
+    volumes = json.loads((source/'collision-volumes.json').read_text())['volumes']
+    exits,ramp_cut=add_exits(meshes,volumes,land,river,bed)
     edges = {}
     for tri in dem:
         for a, b in zip(tri, np.roll(tri, -1, axis=0)):
@@ -69,10 +72,17 @@ def make_payload(source):
             continue
         if river.boundary.distance(Point(*((a[[0,2]]+b[[0,2]])/2)))>.003:
             continue
-        c,d = a.copy(),b.copy();c[1]=d[1]=bed
-        bank.extend([a,b,c,b,d,c])
+        segments=LineString([a[[0,2]],b[[0,2]]]).difference(ramp_cut)
+        if segments.is_empty:continue
+        for segment in getattr(segments,'geoms',[segments]):
+            if segment.geom_type!='LineString':continue
+            endpoints=[]
+            for x,z in [segment.coords[0],segment.coords[-1]]:
+                t=np.linalg.norm(np.array([x,z])-a[[0,2]])/np.linalg.norm(b[[0,2]]-a[[0,2]])
+                endpoints.append(np.array([x,a[1]+t*(b[1]-a[1]),z]))
+            aa,bb=endpoints;c,d=aa.copy(),bb.copy();c[1]=d[1]=bed
+            bank.extend([aa,bb,c,bb,d,c])
     meshes['bank'] = np.array(bank, dtype='<f4')
-    volumes = json.loads((source/'collision-volumes.json').read_text())['volumes']
     # 再生地点は地形確認用。基地・プラント・経路を仮配置しない。
     spawns = [
         {'name':'大通り', 'at':[-185,0,-50], 'surface':'ground'},
@@ -83,7 +93,7 @@ def make_payload(source):
     ]
     result = {'half':half,'meshes':{k:base64.b64encode(a.astype('<f4').tobytes()).decode() for k,a in meshes.items()},
         'colors':{k:meta[k+'ColorRanges'] for k in ['rail','station','shops']},'volumes':volumes,'spawns':spawns,
-        'river':{'bed':bed,'water':water,'rings':[rings(p) for p in river_parts],'area':round(river.area,2)},
+        'river':{'bed':bed,'water':water,'rings':[rings(p) for p in river_parts],'area':round(river.area,2),'exits':exits},
         'groundMaximum':max(float(meshes[k][:,1].max()) for k in ['dem','tran'])+.5}
     return result
 
@@ -118,13 +128,18 @@ def build(source, out):
     s=replace(s,"  const g = c.getContext('2d'), img = g.createImageData(W, H);", "  CITY.drawMap(c.getContext('2d'),W,H,null); return c;\n  const g = c.getContext('2d'), img = g.createImageData(W, H);")
     # 地形の対比を保ち、遠くの高層棟も試走中に確認できるようにする。
     s=replace(s,'scene.fog = new T.Fog(0x9fb4c4, 110, 420);','scene.fog = new T.Fog(0x9fb4c4, 220, 850);')
-    s=replace(s,'  camera.lookAt(pivot.clone().addScaledVector(dir, 50));',
-        '  const back=camera.position.clone().sub(pivot),distance=back.length();\n  if(distance>.01){const wall=castFrom(pivot,back.normalize(),u,distance);if(wall)camera.position.copy(pivot).addScaledVector(back,Math.max(.3,wall.dist-.25));}\n  camera.lookAt(pivot.clone().addScaledVector(dir, 50));')
+    s=replace(s,'  camera.position.copy(pivot).addScaledVector(dir, -CAM.back);\n  camera.position.y = Math.max(terrainH(camera.position.x, camera.position.z) + 0.8, camera.position.y);\n  camera.position.y = Math.min(camera.position.y, ceilingAt(camera.position.x, camera.position.z, u.pos.y) - 0.3); // 橋の下では床の下から見る\n  camera.lookAt(pivot.clone().addScaledVector(dir, 50));',
+        '  const pose=CITY.cameraPose(u,camera,dir,dt);\n  camera.position.copy(pose.position);\n  camera.lookAt(pose.target);')
+    s=replace(s,'function renderView() {','function renderView() {\n  const hideOwn=CITY.cameraTooClose(player,camera),ownVisible=player?.group.visible;\n  if(hideOwn)player.group.visible=false;')
+    s=replace(s,'  finally { if (shaken) { camera.quaternion.copy(blastViewBase); camera.updateMatrixWorld(); } }',
+        '  finally { if(hideOwn)player.group.visible=ownVisible; if (shaken) { camera.quaternion.copy(blastViewBase); camera.updateMatrixWorld(); } }')
+    s=replace(s,'function viewAim(u) {\n  const dir = camera.getWorldDirection(new T.Vector3());\n  const from = camera.position.clone().addScaledVector(dir, CAM.back - 1);',
+        'function viewAim(u) {\n  const dir = camera.getWorldDirection(new T.Vector3());\n  const from = camera.position.clone().addScaledVector(dir,camera.near); // 視点が寄っても目の前の壁を照準から飛ばさない')
     s=replace(s,'<title>','<title>地形試走 — ')
-    s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_runtime.js').read_text()+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
+    s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_camera.js').read_text()+'\n'+(ROOT/'tools/plateau/trial_runtime.js').read_text()+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
     options=''.join(f'<option value="{i}">{p["name"]}</option>' for i,p in enumerate(data['spawns']))
-    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
-    panel='<div id="trialPanel">地形試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>川の水面は仮表示。川底を歩けます。四辺に落下防止境界あり。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
+    credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
+    panel='<div id="trialPanel">地形試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>川からは緑のスロープで街路へ戻れます。四辺に落下防止境界あり。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
     s=replace(s,'</body>',panel+'</body>') if '</body>' in s else s # 本体はbody閉じタグを省略している版もある。
     if 'id="trialSpawn"' not in s:s=replace(s,'<script>\n(async () => {',panel+'<script>\n(async () => {')
     css='<style>#trialPanel{position:fixed;left:14px;top:14px;z-index:300;background:#142330ed;border:1px solid #80b7ca;padding:12px;border-radius:7px;color:#dceef4;font:13px system-ui;max-width:390px}#trialPanel label{margin-left:8px}#trialPanel small{display:block;margin:7px 0;line-height:1.6}#trialPanel a{color:#b6d8e5}#trialPanel select,#trialPanel button{padding:5px;margin:3px;background:#294458;color:white;border:1px solid #719db0}body.trialRunning #trialPanel{opacity:.28;pointer-events:none}body.trialRunning #trialPanel small,body.trialRunning #trialPanel a,body.trialRunning #trialPanel button,body.trialRunning #trialPanel label{display:none}</style>'
@@ -147,7 +162,7 @@ addEventListener('keydown',e=>{if(e.code==='Escape')pauseTrial();});
 window.__cityTrial={city:CITY,T,physics,resolve,groundAt,ceilingAt,terrainH,castFrom,spawn,shortDash,keys,units,scene,camera,renderer,setup,
  get player(){return player;},get running(){return running;},set running(v){running=v;},get mapRoot(){return mapRoot;},get hittables(){return hittables;},
  get plants(){return plants;},get curMap(){return curMap;},get cores(){return cores;},updateCamera,renderView,playerUpdate,selectWeapon,shoot,
- get mechCfg(){return mechCfg;},mechStats,equip};
+ get mechCfg(){return mechCfg;},mechStats,equip,viewAim};
 document.getElementById('ovText').textContent='道路・屋根・高架・川底を、いつもの機体で試走できます。開始地点を選び、出撃してください。';
 document.getElementById('start').textContent='試走を始める';
 """
@@ -157,6 +172,9 @@ document.getElementById('start').textContent='試走を始める';
     record={'sourcePreviewSHA256':hashlib.sha256((source/'preview.html').read_bytes()).hexdigest(),
         'engineSHA256':hashlib.sha256((ROOT/'prototype/index.html').read_bytes()).hexdigest(),
         'runtimeSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_runtime.js').read_bytes()).hexdigest(),
+        'cameraSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_camera.js').read_bytes()).hexdigest(),
+        'riverSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_river.py').read_bytes()).hexdigest(),
+        'builderSHA256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
         'htmlBytes':len(s.encode()),'htmlSHA256':hashlib.sha256(s.encode()).hexdigest(),
         'triangles':{k:len(base64.b64decode(v))//36 for k,v in data['meshes'].items()},
         'collisionVolumes':len(data['volumes']),'river':{k:v for k,v in data['river'].items() if k!='rings'},

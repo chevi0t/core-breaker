@@ -76,6 +76,7 @@ def clip_footprint(vertices,allowed):
     for tri,p in zip(triangles[~covered],projected[~covered]):
         normal=np.cross(tri[1]-tri[0],tri[2]-tri[0])
         for piece in parts(p.intersection(allowed)):
+            if piece.is_empty or piece.area<1e-9:continue
             xy=np.concatenate([np.array(r.coords[:-1]) for r in [piece.exterior,*piece.interiors]])
             ends=np.cumsum([len(r.coords)-1 for r in [piece.exterior,*piece.interiors]]).astype(np.uint32)
             idx=mapbox_earcut.triangulate_float64(xy,ends)

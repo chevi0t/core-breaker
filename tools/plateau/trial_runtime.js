@@ -46,7 +46,7 @@ async function createCityTrial(T, packed) {
     }
     return result;
   }
-  const ground = index(triangles(['dem', 'tran', 'fill']));
+  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons']));
   const bridgeTriangles = triangles(['brid']);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
@@ -160,6 +160,13 @@ async function createCityTrial(T, packed) {
     }
     return h;
   }
+  function cameraFree(p,r){
+    if(p.y-r<terrainH(p.x,p.z))return false;
+    for(const v of nearby(p.x,p.z,r))if(p.y+r>v.bottom&&p.y-r<v.top&&overlaps(v,p.x,p.z,r))return false;
+    for(const t of bridge(p.x,p.z,r))if(t.tri.closestPointToPoint(p,new T.Vector3()).distanceToSquared(p)<r*r)return false;
+    return true;
+  }
+  const cameraSolids=[],cameraController=createCityCamera(T,cameraSolids,terrainH,ceilingAt,cameraFree);
   let mapCanvas;
   function drawMap(g,W,H,u) {
     if (!mapCanvas) {
@@ -168,6 +175,10 @@ async function createCityTrial(T, packed) {
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
       for (const v of volumes) { path(v.rings); c.fillStyle = v.kind === 'rail-deck' ? '#a0c8d3' : '#7c8c92'; c.fill('evenodd'); }
+      for(const exit of data.river.exits){
+        c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
+        c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
+      }
       c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,598,598);
     }
     g.clearRect(0,0,W,H); g.drawImage(mapCanvas,0,0,W,H);
@@ -178,7 +189,7 @@ async function createCityTrial(T, packed) {
     }
   }
   function mount(root,hittables) {
-    const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b,fill:0x728b6b,rail:0xffffff,station:0xffffff,shops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xc6cace,tran:0x7494a8,brid:0xd8ad71,dem:0x728b6b,fill:0x728b6b,ramps:0x93b883,aprons:0x93b883,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
       if (data.colors[k]) {
@@ -189,7 +200,7 @@ async function createCityTrial(T, packed) {
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color:colors[k],vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops'].includes(k); root.add(mesh);
-      if(k!=='water') {
+      if(k!=='water'&&k!=='exitMarks') {
         // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
         const chunks=new Map();
         for(let i=0;i<a.length;i+=9){
@@ -198,8 +209,8 @@ async function createCityTrial(T, packed) {
           const chunk=chunks.get(key);for(let j=0;j<9;j++)chunk.push(a[i+j]);
         }
         for(const values of chunks.values()){
-          const collider=new T.BufferGeometry();collider.setAttribute('position',new T.Float32BufferAttribute(values,3));collider.computeBoundingSphere();
-          const m=new T.Mesh(collider,mesh.material);m.name='city-collision-'+k;m.updateMatrixWorld(true);hittables.push(m);
+          const collider=new T.BufferGeometry();collider.setAttribute('position',new T.Float32BufferAttribute(values,3));collider.computeBoundingSphere();collider.computeBoundingBox();
+          const m=new T.Mesh(collider,mesh.material);m.name='city-collision-'+k;m.updateMatrixWorld(true);hittables.push(m);cameraSolids.push(m);
         }
       }
     }
@@ -214,5 +225,6 @@ async function createCityTrial(T, packed) {
     root.updateMatrixWorld(true);
   }
   return {mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,spawns:data.spawns,river:data.river,half,
-    groundMaximum:data.groundMaximum,contact,nearby};
+    groundMaximum:data.groundMaximum,contact,nearby,cameraPose:cameraController.solve,cameraTooClose:cameraController.tooClose,
+    get cameraState(){return cameraController.state;},cameraFree};
 }
