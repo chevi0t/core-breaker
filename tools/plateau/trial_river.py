@@ -10,9 +10,9 @@ def add_exits(meshes, volumes, land, river, bed):
     solid=[(v,Polygon(v['rings'][0],v['rings'][1:])) for v in volumes]
     building_kinds={'grounded','infill','upper','elevated'}
     bridges=projection(meshes['brid'],precision=.001)
-    roads=projection(np.concatenate([meshes['tran'],meshes['streets']]),precision=.001).intersection(land).buffer(-1.5)
+    roads=projection(np.concatenate([meshes['tran'],meshes['streets'],meshes['plazas']]),precision=.001).intersection(land).buffer(-1.5)
     def ground(x,z):
-        hs=[vertical_height(meshes[k],x,z) for k in ['dem','tran','streets','historicGround']]
+        hs=[vertical_height(meshes[k],x,z) for k in ['dem','tran','streets','historicGround','plazas']]
         return max(h for h in hs if h is not None) if any(h is not None for h in hs) else None
     exits=[]
     for side in [-1,1]:
@@ -71,7 +71,7 @@ def add_exits(meshes, volumes, land, river, bed):
             new_volumes.append({**v,'rings':rings(piece)})
             bldg.append(extrusion(piece,v['bottom'],v['top'],v['kind'] not in {'grounded','infill'}))
     volumes[:]=new_volumes;meshes['bldg']=np.concatenate(bldg)
-    for k in ['dem','tran','streets','historicGround']:meshes[k]=clip_footprint(meshes[k],box(-300,-300,300,300).difference(cut))
+    for k in ['dem','tran','streets','historicGround','plazas']:meshes[k]=clip_footprint(meshes[k],box(-300,-300,300,300).difference(cut))
     ramps=[];marks=[];apron_meshes=[]
     for entry,footprint,_,_ in exits:
         x,y,z=entry['start'];ex,ey,ez=entry['end']

@@ -112,7 +112,7 @@ const {chromium}=require('playwright');
     });
     await page.locator('#districtPlan').screenshot({path:path.join(folder,'district-map.png')});
     await page.evaluate(()=>document.getElementById('districtPlan').remove());
-    for(const [name,at,yaw,pitch] of [['district-street',[-185,0,-50],-.45,.04],['cross-shops',[-185,0,-1],-1.87,-.12],['roof-pad',[252,0,274],-Math.PI/2,-.12],['base',[190,0,275],0,-.1]]){
+    for(const [name,at,yaw,pitch] of [['district-street',[-185,0,-50],-.45,.04],['cross-shops',[-185,0,-1],-1.87,-.12],['roof-pad',[-242,0,-186],-Math.PI/2,-.12],['base',[260,0,285],0,-.1]]){
       await page.evaluate(({at,yaw,pitch})=>{
         const g=__cityTrial,u=g.player;g.spawn(u);u.pos.fromArray(at);u.pos.y=g.terrainH(at[0],at[2]);u.yaw=yaw;u.pitch=pitch;
         u.group.position.copy(u.pos);u.group.rotation.set(0,yaw,0);u.group.visible=true;

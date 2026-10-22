@@ -178,6 +178,7 @@ async function createCityTrial(T, packed) {
       c.beginPath();for(let i=0;i<road.length;i+=9){for(let j=0;j<9;j+=3)j?c.lineTo(road[i+j]+half,road[i+j+2]+half):c.moveTo(road[i]+half,road[i+2]+half);c.closePath();}c.fill();
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
       for(const rings of data.heritage.rings){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
+      path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();
       for (const v of [...volumes].sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
       for(const exit of data.river.exits){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
@@ -202,7 +203,7 @@ async function createCityTrial(T, packed) {
     }
   }
   function mount(root,hittables) {
-    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
       if(k==='historicGround'){

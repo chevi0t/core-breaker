@@ -8,11 +8,16 @@
     {"id":"avenue_crossing","points":[[-184,-80],[-191,0],[-199,85]],"width":24,"shoulder":4,"endBlend":12}
   ],
   "bases": [
-    {"team": "B", "name": "青基地・南東", "at": [190, 250], "radius": 28},
-    {"team": "R", "name": "橙基地・北西", "at": [-238, -243], "radius": 28}
+    {"team":"B","name":"青基地・南東","at":[260,250],"radius":28},
+    {"team":"R","name":"橙基地・北西","at":[-238,-243],"radius":28}
   ],
   "roofPads": [
-    {"team": "B", "name": "南東の高層棟へ", "at": [263, 273.5], "exit": [263, 288], "riseAboveRoof": 50},
-    {"team": "R", "name": "北西の高層棟へ", "at": [-231, -184], "exit": [-231, -164], "riseAboveRoof": 50}
+    {"team":"R","name":"北西の高層棟へ","at":[-231,-184],"exit":[-231,-164],"riseAboveRoof":50}
+  ],
+  "groundSimplification": {"height":-2,"roadOutlineTolerance":0.4},
+  "railGap": {"thickness":1.25},
+  "baseClearings": [
+    {"team":"R","outline":[[-300,-300],[-152,-300],[-164,-171],[-300,-189]]},
+    {"team":"B","outline":[[168,170],[300,170],[300,300],[168,300]]}
   ]
 }

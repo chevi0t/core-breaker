@@ -8,6 +8,7 @@ from shapely.ops import nearest_points
 
 from simplify import clip_footprint, extrusion, parts, projection, rings, vertical_height
 import rail_shops
+from trial_simplify import clear_bases
 
 BUILDINGS = {'grounded', 'infill', 'upper', 'elevated'}
 
@@ -16,7 +17,7 @@ def shape(v):
     return shapely.make_valid(Polygon(v['rings'][0], v['rings'][1:]))
 
 
-def refine(meshes, volumes, land, profile):
+def refine(meshes, volumes, land, profile, rail_gap):
     roads = projection(np.concatenate([meshes['tran'],meshes['streets']]), precision=.001)
     occupied = shapely.union_all([shape(v) for v in volumes
         if v['kind'] != 'infill' and v['bottom'] < 3 and v['top'] > 3])
@@ -43,7 +44,8 @@ def refine(meshes, volumes, land, profile):
     # 東西線の下も店舗にする。地上道路・川と、下を横切る南北線の走行空間は残す。
     decks = {v['line']: shape(v) for v in volumes if v['kind'] == 'rail-deck'}
     # 南北店舗の張り出し1mと接続し、交差部に機体が入れない細溝を作らない。
-    protected = shapely.union_all([p.buffer(1,join_style='mitre') for k, p in decks.items() if k != 'cross'])
+    protected = shapely.union_all([p.buffer(1,join_style='mitre') for p in
+        [*[p for k,p in decks.items() if k != 'cross'],Polygon(rail_gap['rings'][0])]])
     raw = decks['cross'].intersection(land).difference(roads.buffer(profile['shopRoadClearance'])).difference(protected)
     footprints = {'cross': [piece for p in parts(raw) for piece in parts(p.simplify(.1, preserve_topology=True).intersection(raw)) if piece.area >= 30]}
     shop_solid = shapely.union_all(footprints['cross'])
@@ -58,38 +60,12 @@ def refine(meshes, volumes, land, profile):
         return max(h for k in ['dem', 'tran', 'plazas','streets','historicGround'] if k in meshes and (h := vertical_height(meshes[k], x, z)) is not None)
 
     bases = []
-    clear = []
     for spec in profile['bases']:
         x, z = spec['at']; r = spec['radius']; y = ground(x, z)
         plaza = Point(x, z).buffer(r + 2, quad_segs=8)
         assert land.covers(plaza), '基地を川やステージ外へ置かない'
-        assert all(not plaza.intersects(shape(v)) for v in volumes if v['kind'] in BUILDINGS and v['top'] > 45), '基地の整地で高層棟を削らない'
-        clear.append(plaza)
         bases.append({**spec, 'height': y, 'spawn': [x, y, z + (18 if spec['team'] == 'B' else -18)]})
-    # コアの円形床が斜面へ埋まらないよう、広場を平らにして周囲6mで元の路面へつなぐ。
-    plaza_meshes=[];plaza_cuts=[]
-    for b in bases:
-        x,z=b['at'];r=b['radius'];y=b['height']
-        inner=Point(x,z).buffer(r+2,quad_segs=8);outer=Point(x,z).buffer(r+8,quad_segs=8)
-        assert land.covers(outer), '基地広場のすり付けを川へ広げない'
-        plaza_meshes.append(extrusion(inner,y-.2,y,False));plaza_cuts.append(outer)
-        inside=list(inner.exterior.coords);outside=list(outer.exterior.coords)
-        out_y=[ground(px,pz) for px,pz in outside]
-        for i in range(len(inside)-1):
-            a=[inside[i][0],y,inside[i][1]];b2=[inside[i+1][0],y,inside[i+1][1]]
-            c=[outside[i][0],out_y[i],outside[i][1]];d=[outside[i+1][0],out_y[i+1],outside[i+1][1]]
-            plaza_meshes.append(np.array([a,c,b2,b2,c,d],dtype='<f4'))
-    allowed=box(-300,-300,300,300).difference(shapely.union_all(plaza_cuts))
-    for k in ['dem','tran']:meshes[k]=clip_footprint(meshes[k],allowed)
-    meshes['plazas']=np.concatenate(plaza_meshes)
-    clear = shapely.union_all(clear)
-    updated = []
-    for v in volumes:
-        if v['kind'] not in BUILDINGS:
-            updated.append(v); continue
-        for p in parts(shapely.set_precision(shape(v).difference(clear), .001)):
-            if p.area > .05: updated.append({**v, 'rings': rings(p)})
-    volumes[:] = updated
+    clearing = clear_bases(meshes, volumes, land, profile, bases, BUILDINGS)
 
     pads = []
     for spec in profile['roofPads']:
@@ -128,7 +104,7 @@ def refine(meshes, volumes, land, profile):
     assert len(passages) >= 8, '路地の実走確認地点が不足'
     return {'minimumPassageWidth': radius*2, 'reopenedArea': round(restored.area, 2),
         'remainingInfillAreaBeforeBaseClearing': round(old_infill.difference(reopen).area, 2),
-        'passages': passages, 'shops': shop_stats, 'bases': bases, 'roofPads': pads}, colors
+        'passages': passages, 'shops': shop_stats, 'bases': bases, 'roofPads': pads, 'clearing': clearing}, colors
 
 
 def mark_landmarks(volumes, specs):
@@ -175,7 +151,8 @@ def access_routes(meshes, volumes, land, district):
     shapely.prepare(free)
     result=[]
     for base in district['bases']:
-        pad=next(p for p in district['roofPads'] if p['team']==base['team'])
+        pad=next((p for p in district['roofPads'] if p['team']==base['team']), None)
+        if pad is None: continue  # 更地になった屋上へ向かうパッドは置かない。
         a=(base['spawn'][0],base['spawn'][2]); b=(pad['at'][0],pad['at'][1])
         start=tuple(round(c/2) for c in a); target=tuple(round(c/2) for c in b)
         queue=[(0,0,start)];cost={start:0};previous={};found=False

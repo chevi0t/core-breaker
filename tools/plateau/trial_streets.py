@@ -79,22 +79,27 @@ def repair(meshes, volumes, land, profile):
             if not len(hs): hs = ground_surface.heights(samples)
             heights.append(float(np.median(hs[np.isfinite(hs)])))
         assert abs(heights[1]-heights[0])/path.length < .1, '道路の長手方向を急坂にしない'
-        # 4m格子で肩と出入口だけ元の地面にすり付け、中央の走行帯は単一の緩い勾配にする。
-        x0,z0,x1,z1=footprint.bounds; triangles=[]
-        for x in np.arange(np.floor(x0/4)*4, x1, 4):
-            for z in np.arange(np.floor(z0/4)*4, z1, 4):
-                square=box(x,z,x+4,z+4).intersection(footprint)
-                for piece in parts(square):
-                    if piece.area<1e-6:continue
-                    a=extrusion(piece, -20, 0, False).reshape(-1,3,3)
-                    a=a[np.all(a[:,:,1]==0,axis=1)].reshape(-1,3)
-                    xy=a[:,[0,2]];points=shapely.points(xy);s=shapely.line_locate_point(path,points)
-                    distance=shapely.distance(path,points)
-                    weight=np.clip((r+shoulder-distance)/shoulder,0,1)*np.clip(np.minimum(s,path.length-s)/spec['endBlend'],0,1)
-                    old=ground_surface.heights(xy);assert np.isfinite(old).all(), '補修道路の境界に地面がある'
-                    ideal=heights[0]+s/path.length*(heights[1]-heights[0])
-                    a[:,1]=old*(1-weight)+ideal*weight
-                    triangles.append(a)
+        if 'groundSimplification' in profile:
+            # 既に平面にした道路には格子を再導入せず、一枚の舗装にまとめる。
+            from trial_simplify import floor_mesh
+            triangles=[floor_mesh(footprint,profile['groundSimplification']['height'])]
+        else:
+            # 4m格子で肩と出入口だけ元の地面にすり付け、中央の走行帯は単一の緩い勾配にする。
+            x0,z0,x1,z1=footprint.bounds; triangles=[]
+            for x in np.arange(np.floor(x0/4)*4, x1, 4):
+                for z in np.arange(np.floor(z0/4)*4, z1, 4):
+                    square=box(x,z,x+4,z+4).intersection(footprint)
+                    for piece in parts(square):
+                        if piece.area<1e-6:continue
+                        a=extrusion(piece, -20, 0, False).reshape(-1,3,3)
+                        a=a[np.all(a[:,:,1]==0,axis=1)].reshape(-1,3)
+                        xy=a[:,[0,2]];points=shapely.points(xy);s=shapely.line_locate_point(path,points)
+                        distance=shapely.distance(path,points)
+                        weight=np.clip((r+shoulder-distance)/shoulder,0,1)*np.clip(np.minimum(s,path.length-s)/spec['endBlend'],0,1)
+                        old=ground_surface.heights(xy);assert np.isfinite(old).all(), '補修道路の境界に地面がある'
+                        ideal=heights[0]+s/path.length*(heights[1]-heights[0])
+                        a[:,1]=old*(1-weight)+ideal*weight
+                        triangles.append(a)
         surfaces.append(np.concatenate(triangles));masks.append(footprint)
         plans.append({**spec,'heights':heights,'length':path.length})
     mask=shapely.union_all(masks)

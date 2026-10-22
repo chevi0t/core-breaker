@@ -48,7 +48,7 @@ const {chromium} = require('playwright');
       }
       ok(g.units.length===1&&g.plants.length===0,'プレイヤー1機だけ');
       ok(city.district.bases.length===2&&Object.values(g.cores).every(c=>c.glow),'指定位置に両基地のコアがある');
-      ok(g.jumpPads.length===2,'両陣に屋上用ジャンプパッド');
+      ok(g.jumpPads.length===1&&city.district.roofPads[0].team==='R','残す高層棟だけに屋上用ジャンプパッド');
       for(let i=0;i<city.spawns.length;i++){
         document.getElementById('trialSpawn').value=i;g.spawn(u);
         const start=u.pos.toArray();tick(2);

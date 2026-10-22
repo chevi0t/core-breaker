@@ -16,7 +16,7 @@ const {pathToFileURL}=require('node:url');const {chromium}=require('playwright')
       function ok(v,msg,data){if(!v)throw Error(msg+' '+JSON.stringify(data));}
       const saved={...u.mech};
       if(!baseline){
-        ok(city.landmarks.length===19,'指定した施設の棟を識別');
+        ok(city.landmarks.length===18&&city.district.clearing.removedLandmarks.join(',')==='blue_shop_2','整地で撤去した棟を除く18か所を識別');
         const mesh=g.mapRoot.getObjectByName('city-bldg'),color=mesh.geometry.attributes.color.array,glass=mesh.geometry.attributes.cityGlass.array;
         ok([...glass].some(v=>v===1),'ガラス張りの属性が実際の形状にある');
         for(const landmark of city.landmarks){
