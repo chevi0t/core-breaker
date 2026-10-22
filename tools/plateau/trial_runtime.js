@@ -2,10 +2,23 @@
 async function createCityTrial(T, packed) {
   const bytes = Uint8Array.from(atob(packed), c => c.charCodeAt(0));
   const data = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+  const decode=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+  const pool=[],known=new Map(),scratch=new Float32Array(3),words=new Uint32Array(scratch.buffer);
+  if(data.geometryEncoding==='volume-pool-v1')for(const v of data.volumes)for(const ring of v.rings)for(const [x,z] of ring)for(const y of [v.bottom,v.top]){
+    scratch.set([x,y,z]);const key=words[0]+','+words[1]+','+words[2];
+    if(!known.has(key)){known.set(key,pool.length/3);pool.push(...scratch);}
+  }
   const arrays = Object.fromEntries(Object.entries(data.meshes).map(([k, b]) => {
-    const u = Uint8Array.from(atob(b), c => c.charCodeAt(0));
-    return [k, new Float32Array(u.buffer)];
+    if(typeof b==='string')return [k,new Float32Array(decode(b).buffer)];
+    const extra=new Float32Array(decode(b.extra).buffer),ib=decode(b.indices);
+    const indices=b.indexBytes===2?new Uint16Array(ib.buffer):new Uint32Array(ib.buffer);
+    const positions=new Float32Array(pool.length+extra.length);positions.set(pool);positions.set(extra,pool.length);
+    const restored=new Float32Array(indices.length*3);
+    for(let i=0;i<indices.length;i++)restored.set(positions.subarray(indices[i]*3,indices[i]*3+3),i*3);
+    return [k,restored];
   }));
+  // 復元後は共有辞書を保持しない。物理・検査には従来と同じ頂点列を渡す。
+  pool.length=0;known.clear();delete data.meshes;
   const radius = 1.3, height = 4, half = data.half, cell = 16;
   const key = (x, z) => Math.floor(x / cell) + ',' + Math.floor(z / cell);
   function index(items) {
@@ -167,6 +180,27 @@ async function createCityTrial(T, packed) {
     return true;
   }
   const cameraSolids=[],cameraController=createCityCamera(T,cameraSolids,terrainH,ceilingAt,cameraFree);
+  const geometryStats={render:{beforeBytes:0,afterBytes:0,beforeVertices:0,afterVertices:0},collision:{beforeBytes:0,afterBytes:0,beforeVertices:0,afterVertices:0}};
+  function compactGeometry(geo,kind){
+    const entries=Object.entries(geo.attributes),count=geo.attributes.position.count,seen=new Map(),order=[],indices=[];
+    const views=entries.map(([,a])=>new Uint32Array(a.array.buffer,a.array.byteOffset,a.array.length));
+    for(let i=0;i<count;i++){
+      let key='';for(let j=0;j<entries.length;j++){const a=entries[j][1],view=views[j];for(let c=0;c<a.itemSize;c++)key+=view[i*a.itemSize+c]+'/';}
+      let index=seen.get(key);if(index===undefined){index=order.length;seen.set(key,index);order.push(i);}indices.push(index);
+    }
+    const before=entries.reduce((sum,[,a])=>sum+a.array.byteLength,0),Index=order.length<=65536?Uint16Array:Uint32Array;
+    const bytes=order.length*entries.reduce((sum,[,a])=>sum+a.itemSize*a.array.BYTES_PER_ELEMENT,0)+indices.length*Index.BYTES_PER_ELEMENT;
+    if(bytes<before){
+      for(const [name,a] of entries){
+        const packed=new a.array.constructor(order.length*a.itemSize);
+        for(let i=0;i<order.length;i++)packed.set(a.array.subarray(order[i]*a.itemSize,order[i]*a.itemSize+a.itemSize),i*a.itemSize);
+        geo.setAttribute(name,new T.BufferAttribute(packed,a.itemSize,a.normalized));
+      }
+      geo.setIndex(new T.BufferAttribute(new Index(indices),1));
+    }
+    const stats=geometryStats[kind];stats.beforeBytes+=before;stats.afterBytes+=Math.min(before,bytes);
+    stats.beforeVertices+=count;stats.afterVertices+=bytes<before?order.length:count;
+  }
   let mapCanvas;
   function drawMap(g,W,H,u) {
     if (!mapCanvas) {
@@ -200,6 +234,9 @@ async function createCityTrial(T, packed) {
     }
   }
   function mount(root,hittables) {
+    // 再出撃の組み直しで、旧マップの視点用形状を積み重ねない。
+    for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
+    for(const stats of Object.values(geometryStats))for(const key of Object.keys(stats))stats[key]=0;
     const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       if(!a.length)continue;
@@ -220,6 +257,7 @@ async function createCityTrial(T, packed) {
           geo.setAttribute('cityGlass',new T.BufferAttribute(glass,1));
         }
       }
+      compactGeometry(geo,'render');
       const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:colors[k];
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
@@ -271,6 +309,7 @@ async function createCityTrial(T, packed) {
         }
         for(const values of chunks.values()){
           const collider=new T.BufferGeometry();collider.setAttribute('position',new T.Float32BufferAttribute(values,3));collider.computeBoundingSphere();collider.computeBoundingBox();
+          compactGeometry(collider,'collision');
           const m=new T.Mesh(collider,mesh.material);m.name='city-collision-'+k;m.updateMatrixWorld(true);hittables.push(m);cameraSolids.push(m);
         }
       }
@@ -285,7 +324,7 @@ async function createCityTrial(T, packed) {
     }
     root.updateMatrixWorld(true);
   }
-  return {mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,spawns:data.spawns,river:data.river,half,
+  return {mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
     district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
     addCameraGeometry:meshes=>{for(const m of meshes){
       m.updateWorldMatrix(true,false);
@@ -293,5 +332,6 @@ async function createCityTrial(T, packed) {
       const proxy=new T.Mesh(geometry,m.material);proxy.updateMatrixWorld(true);cameraSolids.push(proxy);
     }},
     groundMaximum:data.groundMaximum,contact,nearby,cameraPose:cameraController.solve,cameraTooClose:cameraController.tooClose,
+    get cameraGeometryCount(){return cameraSolids.length;},
     get cameraState(){return cameraController.state;},cameraFree};
 }

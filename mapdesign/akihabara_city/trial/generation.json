@@ -1,18 +1,19 @@
 {
   "sourcePreviewSHA256": "f638c33501b366d96a94480cc5fe5defa356bb13f9a90b16957d90c17aa56288",
   "engineSHA256": "b850a65a88b659628a67aba2efd22ec9dfde94b504a59136b383fa4e35d8b9cf",
-  "runtimeSHA256": "f4737dd1c5d2b482ea663c6d18b809aacfecd58612568d7df24098c770de43b6",
+  "runtimeSHA256": "7d9daf7f8afd47f0dd009dd52cb7e538053671db0f217c08d7e55a091f95190c",
   "cameraSHA256": "cc7e1c2974c402361a8b9a6f72f67a0e143c8ed8bbb0f0bfbf304ad4b99ae837",
   "riverSHA256": "acdf8bef969798dae7af4b97ec8293b258bf26293fadcb71af4fb142245720d2",
   "districtSHA256": "7dadf87735d8f75b7bb634b7430a8fbfd0c04e9234ce93017349e5cbfd2d8bdd",
   "blocksSHA256": "9f84c218dad4b8bfb23b1b8e6a93e24e0e8ec94d3ba902f2e9a92d67a5918205",
+  "packSHA256": "ed99c34ef7d06c5ebc152cb08aa4e72e30300862fa1d848f5a842158006ecd25",
   "simplifySHA256": "4e1a77cdaa40db429f7152362c80fdf239bec052e56a38fccb313ae86fa95875",
   "streetsSHA256": "90c15a09d9f2106b603cee22f64724ad1f07adff24baad4fd482c6484e0412bf",
   "landmarksSHA256": "dcc3ec721cefb57537784741851616baac512f210c01b4fdd0a549df3f0ac227",
   "profileSHA256": "511fd53dd9c7ea9a71802f84817f96c0b3f29e59281d9ab701b6916a1162fd69",
-  "builderSHA256": "f77f35de130a816145b3a8f8ed9793420a389cad8c7fd0089a3eb78a63067683",
-  "htmlBytes": 3256265,
-  "htmlSHA256": "af14168d4c4adf2dc9a7629b7449c1cef891a237cca0691b773c54758d31df8a",
+  "builderSHA256": "a5e1aa7a63394c0f6912876c4e35818f82b641517ed30be5f5abc578a7bfd0b9",
+  "htmlBytes": 3175468,
+  "htmlSHA256": "536759b5949ec38987e387a6de12a827a5d08756131dc6f973daebf4edce6ff6",
   "triangles": {
     "bldg": 17517,
     "tran": 0,
@@ -34,6 +35,155 @@
     "aprons": 140,
     "bank": 336,
     "historicWall": 60
+  },
+  "packing": {
+    "encoding": "volume-pool-v1",
+    "sharedVertices": 11984,
+    "beforeBytes": 1029240,
+    "afterBytes": 270528,
+    "layers": {
+      "bldg": {
+        "triangles": 17517,
+        "vertices": 52551,
+        "extraVertices": 0,
+        "beforeBytes": 630612,
+        "afterBytes": 105102
+      },
+      "tran": {
+        "triangles": 0,
+        "vertices": 0,
+        "extraVertices": 0,
+        "beforeBytes": 0,
+        "afterBytes": 0
+      },
+      "brid": {
+        "triangles": 2400,
+        "vertices": 7200,
+        "extraVertices": 1302,
+        "beforeBytes": 86400,
+        "afterBytes": 30024
+      },
+      "dem": {
+        "triangles": 334,
+        "vertices": 1002,
+        "extraVertices": 349,
+        "beforeBytes": 12024,
+        "afterBytes": 6192
+      },
+      "rail": {
+        "triangles": 2496,
+        "vertices": 7488,
+        "extraVertices": 1338,
+        "beforeBytes": 89856,
+        "afterBytes": 31032
+      },
+      "station": {
+        "triangles": 536,
+        "vertices": 1608,
+        "extraVertices": 120,
+        "beforeBytes": 19296,
+        "afterBytes": 4656
+      },
+      "shops": {
+        "triangles": 1679,
+        "vertices": 5037,
+        "extraVertices": 2223,
+        "beforeBytes": 60444,
+        "afterBytes": 36750
+      },
+      "fill": {
+        "triangles": 0,
+        "vertices": 0,
+        "extraVertices": 0,
+        "beforeBytes": 0,
+        "afterBytes": 0
+      },
+      "bed": {
+        "triangles": 708,
+        "vertices": 2124,
+        "extraVertices": 356,
+        "beforeBytes": 25488,
+        "afterBytes": 8520
+      },
+      "water": {
+        "triangles": 176,
+        "vertices": 528,
+        "extraVertices": 178,
+        "beforeBytes": 6336,
+        "afterBytes": 3192
+      },
+      "streets": {
+        "triangles": 0,
+        "vertices": 0,
+        "extraVertices": 0,
+        "beforeBytes": 0,
+        "afterBytes": 0
+      },
+      "historicGround": {
+        "triangles": 453,
+        "vertices": 1359,
+        "extraVertices": 305,
+        "beforeBytes": 16308,
+        "afterBytes": 6378
+      },
+      "railLinkShops": {
+        "triangles": 772,
+        "vertices": 2316,
+        "extraVertices": 778,
+        "beforeBytes": 27792,
+        "afterBytes": 13968
+      },
+      "crossShops": {
+        "triangles": 863,
+        "vertices": 2589,
+        "extraVertices": 665,
+        "beforeBytes": 31068,
+        "afterBytes": 13158
+      },
+      "plazas": {
+        "triangles": 0,
+        "vertices": 0,
+        "extraVertices": 0,
+        "beforeBytes": 0,
+        "afterBytes": 0
+      },
+      "ramps": {
+        "triangles": 96,
+        "vertices": 288,
+        "extraVertices": 60,
+        "beforeBytes": 3456,
+        "afterBytes": 1296
+      },
+      "exitMarks": {
+        "triangles": 24,
+        "vertices": 72,
+        "extraVertices": 72,
+        "beforeBytes": 864,
+        "afterBytes": 1008
+      },
+      "aprons": {
+        "triangles": 140,
+        "vertices": 420,
+        "extraVertices": 84,
+        "beforeBytes": 5040,
+        "afterBytes": 1848
+      },
+      "bank": {
+        "triangles": 336,
+        "vertices": 1008,
+        "extraVertices": 356,
+        "beforeBytes": 12096,
+        "afterBytes": 6288
+      },
+      "historicWall": {
+        "triangles": 60,
+        "vertices": 180,
+        "extraVertices": 63,
+        "beforeBytes": 2160,
+        "afterBytes": 1116
+      }
+    },
+    "bitExact": true
   },
   "collisionVolumes": 765,
   "river": {

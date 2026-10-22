@@ -22,6 +22,7 @@ from trial_district import refine, building_colors, access_routes, mark_landmark
 from trial_streets import repair, smooth_heritage
 from trial_simplify import flatten_ground, floor_mesh, join_railways, unify_ground
 from trial_blocks import reshape
+from trial_pack import pack_meshes
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -135,7 +136,8 @@ def make_payload(source):
         for footprint, top in [(Point(x,z).buffer(10,quad_segs=6),2),(box(x-6,z-6,x+6,z+6),16)]:
             volumes.append({'kind':'base-core','team':b['team'],'bottom':y,'top':y+top,'rings':rings(footprint)})
     district['accessRoutes']=access_routes(meshes,volumes,land,district)
-    result = {'half':half,'meshes':{k:base64.b64encode(a.astype('<f4').tobytes()).decode() for k,a in meshes.items()},
+    packed_meshes, packing=pack_meshes(meshes,volumes)
+    result = {'half':half,'meshes':packed_meshes,'geometryEncoding':packing['encoding'],'packing':packing,
         'colors':colors,'volumes':volumes,'spawns':spawns,'district':district,'landmarks':landmarks,'streetRepairs':street_repairs,'heritage':heritage,
         'river':{'bed':bed,'water':water,'rings':[rings(p) for p in river_parts],'area':round(river.area,2),'exits':exits},
         'groundMaximum':max(float(meshes[k][:,1].max()) for k in
@@ -228,13 +230,14 @@ document.getElementById('start').textContent='試走を始める';
         'riverSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_river.py').read_bytes()).hexdigest(),
         'districtSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_district.py').read_bytes()).hexdigest(),
         'blocksSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_blocks.py').read_bytes()).hexdigest(),
+        'packSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_pack.py').read_bytes()).hexdigest(),
         'simplifySHA256':hashlib.sha256((ROOT/'tools/plateau/trial_simplify.py').read_bytes()).hexdigest(),
         'streetsSHA256':hashlib.sha256((ROOT/'tools/plateau/trial_streets.py').read_bytes()).hexdigest(),
         'landmarksSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-landmarks.json').read_bytes()).hexdigest(),
         'profileSHA256':hashlib.sha256((ROOT/'research/maps/akihabara-trial.json').read_bytes()).hexdigest(),
         'builderSHA256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
         'htmlBytes':len(s.encode()),'htmlSHA256':hashlib.sha256(s.encode()).hexdigest(),
-        'triangles':{k:len(base64.b64decode(v))//36 for k,v in data['meshes'].items()},
+        'triangles':{k:v['triangles'] for k,v in data['packing']['layers'].items()},'packing':data['packing'],
         'collisionVolumes':len(data['volumes']),'river':{k:v for k,v in data['river'].items() if k!='rings'},
         'spawns':data['spawns'],'district':data['district'],'landmarks':data['landmarks'],'streetRepairs':data['streetRepairs'],'heritage':data['heritage'],
         'bases':2,'plants':0,'bots':0,'nativeMovement':True,'edgeClamp':298.7}
