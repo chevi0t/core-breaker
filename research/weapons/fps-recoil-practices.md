@@ -56,6 +56,20 @@ Valveの機関銃の発射処理は、低フレームレートで1回の更新�
 
 今後の確認案として、30/60/144fpsで同じ秒数撃ち、発射数・蓄積量・回復時間・1フレームでの最大の視点変化を比べる。ズーム中は同じ角度でも大きく見えるので、通常視点とスコープを分ける。武器本来の散布を0にした比較と、通常の散布での操作確認も分ける。
 
+## 同じ問題に遭遇した開発者の相談と対処
+
+一般論だけでなく、以下の具体例を確認した。提案が書かれていることと、解決したという報告があることは区別する。
+
+| 課題 | 公開されている対処 | 確認できる範囲 |
+|---|---|---|
+| 高レート武器で反動が極端な角度まで進む | Dev_Unallocatedは、固定の戻し速度では高レート時に問題が起こりうると説明し、蓄積した反動量に応じて回復量を変えることで、極端な角度を避ける軟らかい上限を提案する | 開発者自身の実装解説 [3] の「Re-Centering the aim」。本作の`600 / rpm`と同じ式ではない |
+| 発射のたびに視点がカクッと止まる | Unrealの2015年の相談では、短い時間カーブで最初は強く、その後は弱い動きを数フレーム続け、反動が減速して止まる見せ方が提案された | スレッド [6]。投稿者は試すと返信したが、完成した実装や解決の実証までは確認できない |
+| TPSで照準を合わせても弾がずれる | カメラからの判定で狙点を取得し、次に銃口から狙点までの判定・発射方向を求める。キャラクターや銃の向きだけから発射しない | スレッド [7] の2024年の説明と、その方式で期待どおりになったという別の投稿者の報告。2025年にもカメラ判定のImpact Pointを使ってずれが直ったという報告がある |
+
+照準ずれの同スレッドには、銃の射線を画面へ投影して照準を動かす別案もある。投稿者自身が照準は浮くように動くと記述しており、実装上の解決と好みの操作感は別であることが分かる。本作で一度試した動く照準へ戻す理由にはしない。
+
+カメラと銃口の2段階の判定を採る場合も、カメラと機体の間の障害物、銃口直前の壁、近距離の視差を別に確認する必要がある。フォーラムの短い提案だけで、それらがすべて解決済みとは扱わない。
+
 ## 本作で次に試すなら
 
 1. 既に入れたレート軽減を保ち、反動の跳ねと復帰を時間変化として整える。射線と視点は同じ反動状態を使う。
@@ -73,3 +87,5 @@ Valveの機関銃の発射処理は、低フレームレートで1回の更新�
 3. [Dev_Unallocated：Weapon Recoil, Spread & Spray Patterns](https://www.devunallocated.com/projects/project-killhouse/weapon-recoil-condensed) — 開発者自身の実装解説。商用各作品の公式仕様書とは区別する。
 4. [David Durst：Actual vs Visual Recoil](https://davidbdurst.com/blog/csknow_recoil.html) — 2022-01-18のCS:GO解析。第三者による分析で、示された実験は筆者のもの。
 5. [Unity公式：Cinemachine Third Person Aim Extension](https://docs.unity3d.com/Packages/com.unity.cinemachine@3.0/manual/CinemachineThirdPersonAim.html) — 狙点の安定、回転ノイズ、ターゲット側のレイと視差。
+6. [Epic Developer Community：Smoothly Blended FPS Camera Recoil](https://forums.unrealengine.com/t/smoothly-blended-fps-camera-recoil/26775) — 2015年の視点反動の相談と時間カーブの提案。2019年の追記にも完成例を求める声があり、提案を検証済みの解決策と混同しない。
+7. [Epic Developer Community：Third Person Shooter - Aiming at Crosshair](https://forums.unrealengine.com/t/third-person-shooter-aiming-at-crosshair/129180) — 2019～2025年の相談・実装説明・成功報告。2024年の2段階の判定と、2025年のImpact Pointの扱いを確認。
