@@ -370,11 +370,11 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
             concourses.append([(a+b)/2,(c+e)/2,b-a,e-c,height,height-8])
         layout=changed
     building_boxes=len(layout)
-    # 橙基地は右上角。Dは北側街路へ移し、基地との180mと再出撃帯を保つ。
+    # 基地は対角の角。Aを右下、Bを中央街路へ移し、C・Dは採用済みの位置を保つ。
     bases={'B':{'at':[-236,250],'radius':50},'R':{'at':[270,-260],'radius':50}}
     collision=Collision(layout)
     plants=[]
-    targets=[(-188,-20),(90,5),(-208,-155),(86,-196)]
+    targets=[(240,220),(0,0),(-208,-155),(86,-196)]
     for label,(tx,tz) in zip('ABCD',targets):
         candidates=[]
         for x in range(int(tx)-60,int(tx)+61,4):
@@ -430,7 +430,16 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
         label,x,z,_=p;choices=[]
         for dx,dz in [(-38,0),(38,0),(0,38),(0,-38)]:
             px,pz=x+dx,z+dz
-            if all(collision.free(px+a,pz+b) for a in [-13,0,13]for b in [-13,0,13]):choices.append((px,pz))
+            if abs(px)+16>half[0]+22 or abs(pz)+14>half[1]+14:continue
+            if not all(collision.free(px+a,pz+b) for a in [-13,0,13]for b in [-13,0,13]):continue
+            # 後から足す補給所の壁も、全プラントの両軍の出撃帯へ入れない。
+            walls=Collision([[px,pz-10,26,3,8],[px-14,pz,3,22,8],[px+14,pz,3,22,8]])
+            blocked=False
+            for _,sx,sz,_ in plants:
+                for base in bases.values():
+                    bx,bz=base['at'];length=math.hypot(bx-sx,bz-sz);ux,uz=(bx-sx)/length,(bz-sz)/length
+                    if any(not walls.free(sx+ux*dist-uz*side,sz+uz*dist+ux*side) for dist in [46,49,52]for side in [-8,0,8]):blocked=True
+            if not blocked:choices.append((px,pz))
         if not choices:continue
         px,pz=choices[0];pods.append([label,px,pz]);floor=H(px,pz)
         layout.extend([[px,pz-10,26,3,8,'baseWall'],[px-14,pz,3,22,8,'baseWall'],[px+14,pz,3,22,8,'baseWall']])
@@ -465,7 +474,7 @@ def make_map(source, center=(139.6918,35.68975), rotation=12, half=(300,350), ce
         x,z=base['at'];navpoints.append([x+8,z+(20 if z<0 else-20),0])
         for ax,az,lx,lz in base['catapults']:navpoints.extend([[ax,az,H(ax,az)],[lx,lz,H(lx,lz)]])
     for _,x,z,_ in plants:navpoints.append([x+6,z+3,H(x+6,z+3)])
-    info.update({'version':2,'placementRevision':3,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
+    info.update({'version':2,'placementRevision':4,'profile':'shinjuku','terrainMode':'park-and-underpasses','buildingBoxes':building_boxes,
                  'roadCover':covers,'roadPaintBoxes':len(paint),'baseApproaches':[],'crossings':crossings,
                  'roadWays':len(roads),'concourses':concourses,
                  'navPoints':navpoints,'minimumPlantBaseDistance':180,'parkPeaks':[[-188,-20,18],[-208,-155,9]],
