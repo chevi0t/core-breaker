@@ -44,7 +44,12 @@ function check(d) {
   for (const [pid, x, z, own] of d.plants) { inMap(x, z, 'プラント' + pid); if (![null, 'B', 'R'].includes(own)) E(`プラント${pid} の最初の持ち主は 'B'・'R'・null`); }
   for (const [pid, x, z] of d.plantPods) { if (!ids.includes(pid)) E(`plantPods のプラント ${pid} が無い`); inMap(x, z, 'ポッド'); }
   for (const c of d.catapults) { inMap(c[0], c[1], 'カタパルト'); inMap(c[2], c[3], 'カタパルトの着地点'); if (c[4] && !ids.includes(c[4])) E(`カタパルトのプラント ${c[4]} が無い`); }
-  for (const [x, z] of [...d.turrets, ...d.basePods, d.radar]) inMap(x, z, 'ベースの施設');
+  for (const [x,z] of [...d.turrets,...d.basePods,d.radar]) {
+    if(d.bases)for(const team of ['B','R']){
+      const s=team==='B'?1:-1,p=d.bases[team]?.at;
+      if(p)inMap(p[0]+x*s,p[1]+(z-d.baseZ)*s,'ベースの施設');
+    }else inMap(x,z,'ベースの施設');
+  }
   for (const b of d.barricades) { inMap(b[0], b[1], '障害物'); if (b.length !== 5 || !b.every(num)) E(`バリケード [${b}] は [x, z, 幅, 奥行き, 高さ]`); }
   // 建物：6番目の要素（任意）は種類
   for (const b of d.layout) {
@@ -60,6 +65,27 @@ function check(d) {
   }
   // 任意の項目
   if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
+  if (d.batchBuildings !== undefined && typeof d.batchBuildings !== 'boolean') E('batchBuildings は true か false');
+  if (d.roadsFollowTerrain !== undefined && typeof d.roadsFollowTerrain !== 'boolean') E('roadsFollowTerrain は真偽値');
+  if(d.bases!==undefined){
+    for(const team of ['B','R']){
+      const b=d.bases?.[team];
+      if(!b||!Array.isArray(b.at)||b.at.length!==2||!b.at.every(num)){E('bases.'+team+'.at は [x,z]');continue;}
+      inMap(...b.at,'基地');
+      if(!num(b.radius)||b.radius<=0)E('基地の radius は正の数');
+      for(const c of b.catapults||[]){
+        if(!Array.isArray(c)||c.length!==4||!c.every(num)){E('基地のcatapultsは [x,z,着地点x,着地点z]');continue;}
+        inMap(c[0],c[1],'基地の射出台');inMap(c[2],c[3],'基地の射出台の着地点');
+      }
+    }
+  }
+  if (d.roads !== undefined) {
+    if (!Array.isArray(d.roads)) E('roads は [x,z,幅,奥行き] の配列');
+    else for (const r of d.roads) {
+      if (!Array.isArray(r) || ![4,5].includes(r.length) || !r.every(num) || r[2]<=0 || r[3]<=0) E('道路は [x,z,正の幅,正の奥行き,任意の高さ]');
+      else inMap(r[0],r[1],'道路');
+    }
+  }
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
   if (d.baseDefense !== undefined) {
     const cfg=d.baseDefense;
