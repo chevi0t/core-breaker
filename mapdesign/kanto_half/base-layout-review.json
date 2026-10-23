@@ -1,0 +1,469 @@
+{
+  "passed": true,
+  "baselineCommit": "e3958d8",
+  "mapSHA256": "052f89a346e19fcebcd71d769cb2587fbe4bf0b9a185a0e201e36a23fd4b3c9a",
+  "mapJSONBytes": 96041,
+  "mapDataBytes": 96040,
+  "scope": "基地設備の独立静的配置検査。地形と設備モデルは変更せず配置のみを比較。実機体・射出弾道・使用動作は別ブラウザ検査を根拠とする。",
+  "cityTerrainRawJSONBytesUnchanged": true,
+  "cityTerrainSHA256": "d46f42821d53f526d41beb5f128f79bc08c20c6e0deb86432a0451a6b8af16d6",
+  "baseCorePositionsUnchanged": true,
+  "baseZoneRadiiUnchanged": true,
+  "plantsAndStreetFacilitiesUnchanged": true,
+  "catapultDestinationsUnchanged": true,
+  "modelMeasurements": {
+    "mechHeightMeters": 4,
+    "mechDiameterMeters": 2.6,
+    "corePedestalRadiusMeters": 10,
+    "turretBaseMeters": [
+      3,
+      2.4,
+      3
+    ],
+    "radarBaseMeters": [
+      3,
+      1.2,
+      3
+    ],
+    "radarDishWidthMeters": 6,
+    "repairPodBaseRadiusMeters": 3.2,
+    "catapultDeckRadiusMeters": 3.7,
+    "catapultBaseEnvelopeRadiusMeters": 3.75,
+    "catapultRingOuterRadiusMeters": 3.52,
+    "note": "カタパルト台座余白はデッキ・後端板を囲う半径3.75mで評価。上空の輪と光の点は地上の台座余白に含めない。回転砲身も地上台座とは別。"
+  },
+  "walkingCheck": {
+    "gridStepMeters": 1,
+    "mechRadiusMeters": 1.3,
+    "obstacles": "地上の都市体積、コア柱、砲台台座、レーダー台座",
+    "method": "機体半径を加えた障害物で地上格子を作成。射出台・補給台の中心、砲台・レーダーの4.5m周囲に最大接続域から接近可能な点があることを検査。実走の代替ではない。"
+  },
+  "teams": {
+    "B": {
+      "baseAt": [
+        -155.0,
+        215.0
+      ],
+      "baseRadius": 24,
+      "equipment": [
+        {
+          "id": "turret-1",
+          "at": [
+            -179.0,
+            215.0
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 25.611,
+          "boundaryDistanceMeters": 35.0,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            -174.5,
+            215.0
+          ]
+        },
+        {
+          "id": "turret-2",
+          "at": [
+            -131.0,
+            215.0
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 30.0421,
+          "boundaryDistanceMeters": 35.0,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            -126.5,
+            215.0
+          ]
+        },
+        {
+          "id": "turret-3",
+          "at": [
+            -165.0,
+            197.0
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 16.6672,
+          "boundaryDistanceMeters": 53.0,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            -160.5,
+            197.0
+          ]
+        },
+        {
+          "id": "turret-4",
+          "at": [
+            -145.0,
+            197.0
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 18.1422,
+          "boundaryDistanceMeters": 53.0,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            -140.5,
+            197.0
+          ]
+        },
+        {
+          "id": "pod-1",
+          "at": [
+            -173.0,
+            225.0
+          ],
+          "baseFootprintRadiusMeters": 3.2,
+          "buildingDistanceMeters": 25.1857,
+          "boundaryDistanceMeters": 25.0,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -173.0,
+            225.0
+          ]
+        },
+        {
+          "id": "pod-2",
+          "at": [
+            -137.0,
+            225.0
+          ],
+          "baseFootprintRadiusMeters": 3.2,
+          "buildingDistanceMeters": 20.0448,
+          "boundaryDistanceMeters": 25.0,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -137.0,
+            225.0
+          ]
+        },
+        {
+          "id": "radar",
+          "at": [
+            -165.0,
+            236.0
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 11.8846,
+          "boundaryDistanceMeters": 14.0,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            -160.5,
+            236.0
+          ]
+        },
+        {
+          "id": "catapult-1",
+          "at": [
+            -173,
+            181
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 6.7884,
+          "boundaryDistanceMeters": 69,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -173,
+            181
+          ]
+        },
+        {
+          "id": "catapult-2",
+          "at": [
+            -160,
+            186
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 4.5886,
+          "boundaryDistanceMeters": 64,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -160,
+            186
+          ]
+        },
+        {
+          "id": "catapult-3",
+          "at": [
+            -143,
+            183
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 5.1031,
+          "boundaryDistanceMeters": 67,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -143,
+            183
+          ]
+        },
+        {
+          "id": "catapult-4",
+          "at": [
+            -125,
+            181
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 7.71,
+          "boundaryDistanceMeters": 69,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            -125,
+            181
+          ]
+        }
+      ],
+      "minimumCenterDistanceBeforeMeters": 4.0,
+      "nearestPairAfter": {
+        "a": "turret-1",
+        "b": "pod-1",
+        "centerMeters": 11.6619,
+        "baseFootprintGapMeters": 6.3406
+      },
+      "minimumBaseFootprintGapAfter": {
+        "a": "turret-3",
+        "b": "catapult-2",
+        "centerMeters": 12.083,
+        "baseFootprintGapMeters": 6.2117
+      },
+      "catapultsLocal": [
+        [
+          -18.0,
+          -34.0
+        ],
+        [
+          -5.0,
+          -29.0
+        ],
+        [
+          12.0,
+          -32.0
+        ],
+        [
+          30.0,
+          -34.0
+        ]
+      ],
+      "leftCatapults": 2,
+      "rightCatapults": 2,
+      "radarLocal": [
+        -10,
+        21
+      ],
+      "radarAtLeftRear": true,
+      "allEquipmentHasConnectedGroundApproach": true
+    },
+    "R": {
+      "baseAt": [
+        175.0,
+        -222
+      ],
+      "baseRadius": 24,
+      "equipment": [
+        {
+          "id": "turret-1",
+          "at": [
+            199.0,
+            -222
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 8.4131,
+          "boundaryDistanceMeters": 28,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            203.5,
+            -222.0
+          ]
+        },
+        {
+          "id": "turret-2",
+          "at": [
+            151.0,
+            -222
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 4.0865,
+          "boundaryDistanceMeters": 28,
+          "walkableApproachPoints": 26,
+          "exampleApproach": [
+            155.5,
+            -222.0
+          ]
+        },
+        {
+          "id": "turret-3",
+          "at": [
+            185.0,
+            -204
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 7.3751,
+          "boundaryDistanceMeters": 46,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            189.5,
+            -204.0
+          ]
+        },
+        {
+          "id": "turret-4",
+          "at": [
+            165.0,
+            -204
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 9.4234,
+          "boundaryDistanceMeters": 46,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            169.5,
+            -204.0
+          ]
+        },
+        {
+          "id": "pod-1",
+          "at": [
+            193.0,
+            -232
+          ],
+          "baseFootprintRadiusMeters": 3.2,
+          "buildingDistanceMeters": 19.9775,
+          "boundaryDistanceMeters": 18,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            193.0,
+            -232
+          ]
+        },
+        {
+          "id": "pod-2",
+          "at": [
+            157.0,
+            -232
+          ],
+          "baseFootprintRadiusMeters": 3.2,
+          "buildingDistanceMeters": 14.9084,
+          "boundaryDistanceMeters": 18,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            157.0,
+            -232
+          ]
+        },
+        {
+          "id": "radar",
+          "at": [
+            185.0,
+            -243
+          ],
+          "baseFootprintRadiusMeters": 2.1213,
+          "buildingDistanceMeters": 33.4592,
+          "boundaryDistanceMeters": 7,
+          "walkableApproachPoints": 32,
+          "exampleApproach": [
+            189.5,
+            -243.0
+          ]
+        },
+        {
+          "id": "catapult-1",
+          "at": [
+            204,
+            -238
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 23.9036,
+          "boundaryDistanceMeters": 12,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            204,
+            -238
+          ]
+        },
+        {
+          "id": "catapult-2",
+          "at": [
+            188,
+            -176
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 6.9557,
+          "boundaryDistanceMeters": 62,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            188,
+            -176
+          ]
+        },
+        {
+          "id": "catapult-3",
+          "at": [
+            150,
+            -187
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 10.9236,
+          "boundaryDistanceMeters": 63,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            150,
+            -187
+          ]
+        },
+        {
+          "id": "catapult-4",
+          "at": [
+            136,
+            -204
+          ],
+          "baseFootprintRadiusMeters": 3.75,
+          "buildingDistanceMeters": 7.5822,
+          "boundaryDistanceMeters": 46,
+          "walkableApproachPoints": 1,
+          "exampleApproach": [
+            136,
+            -204
+          ]
+        }
+      ],
+      "minimumCenterDistanceBeforeMeters": 4.4721,
+      "nearestPairAfter": {
+        "a": "turret-1",
+        "b": "pod-1",
+        "centerMeters": 11.6619,
+        "baseFootprintGapMeters": 6.3406
+      },
+      "minimumBaseFootprintGapAfter": {
+        "a": "pod-1",
+        "b": "catapult-1",
+        "centerMeters": 12.53,
+        "baseFootprintGapMeters": 5.58
+      },
+      "catapultsLocal": [
+        [
+          -29.0,
+          16
+        ],
+        [
+          -13.0,
+          -46
+        ],
+        [
+          25.0,
+          -35
+        ],
+        [
+          39.0,
+          -18
+        ]
+      ],
+      "leftCatapults": 2,
+      "rightCatapults": 2,
+      "radarLocal": [
+        -10,
+        21
+      ],
+      "radarAtLeftRear": true,
+      "allEquipmentHasConnectedGroundApproach": true
+    }
+  }
+}

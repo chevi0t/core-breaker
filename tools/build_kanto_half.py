@@ -59,10 +59,10 @@ def main():
     # 芝生の輪郭もringCoordinateStepを共有するため整数列をそのまま縮尺変更できる。
     for p in d['plants']:p[1]*=.5;p[2]*=.5
     for p in d['plantPods']:p[1]*=.5;p[2]*=.5
-    for k in ['turrets','basePods']:d[k]=[[v*.5 for v in p] for p in d[k]]
-    # 修理台は実寸のままなので、左右の間隔を維持してレーダーとの重なりを避ける。
-    for pod,original in zip(d['basePods'],before['basePods']):pod[0]=original[0]
-    d['radar']=[v*.5 for v in d['radar']]
+    # 基地設備は縮小せず、前面の防衛・側面の補給・左奥の索敵を離して配置する。
+    d['turrets']=[[x,d['baseZ']+z] for x,z in [(-24,0),(24,0),(-10,-18),(10,-18)]]
+    d['basePods']=[[x,d['baseZ']+10] for x in [-18,18]]
+    d['radar']=[-10,d['baseZ']+21]
     d['layout']=[[x*.5,z*.5,w*.5,h*.5,height,kind] for x,z,w,h,height,kind in d['layout']]
     for b in d['bases'].values():
         b['at']=[v*.5 for v in b['at']];b['radius']=24
@@ -89,6 +89,13 @@ def main():
     d['bases']['R']['at'][1]=-222
     for b in data['district']['bases']:
         if b['at']==[175,-225]:b['at'][1]=-222
+    # 台の実寸直径7.4mとコアの傘を避け、既存の空いた街路へ分散する。
+    base_launches={
+        'B':[[-173,181],[-160,186],[-143,183],[-125,181]],
+        'R':[[204,-238],[188,-176],[150,-187],[136,-204]],
+    }
+    for team,starts in base_launches.items():
+        for row,start in zip(d['bases'][team]['catapults'],starts):row[:2]=start
     # 占拠円とコアは本体の寸法を保つ。小さくなった建物の縁が施設へ入る部分だけ除く。
     clear=shapely.union_all([*[Point(p[1:3]).buffer(17,quad_segs=12) for p in d['plants']],
         *[Point(b['at']).buffer(28,quad_segs=12) for b in d['bases'].values()]])
@@ -132,7 +139,7 @@ def main():
         p=min(choices)[1];adjustments.append({'from':at,'to':p,'clearance':r});return p
     for b in d['bases'].values():
         for row in b['catapults']:
-            row[:2]=nearby_free(row[:2],2.2,12,4);row[2:]=nearby_free(row[2:],3,12)
+            row[:2]=nearby_free(row[:2],4,12,4);row[2:]=nearby_free(row[2:],3,12)
             occupied.append(row[:2])
     for p in d['plantCatapults']:
         p['at']=nearby_free(p['at'],2.5,12,5);p['exit']=nearby_free(p['exit'],3,12);occupied.append(p['at'])
@@ -161,7 +168,8 @@ def main():
         slots=[]
         for angle in np.linspace(0,2*math.pi,48,endpoint=False):
             p=[round(b['at'][0]+math.cos(angle)*18,2),round(b['at'][1]+math.sin(angle)*18,2)]
-            if streets.free(p,2) and connected(p) and all(math.dist(p,q)>4 for q in slots):slots.append(p)
+            away_from_facilities=all(math.dist(p,row[:2])>=6 for row in b['catapults']) and all(math.dist(p,local(t,pod))>=4 for pod in d['basePods'])
+            if streets.free(p,2) and connected(p) and away_from_facilities and all(math.dist(p,q)>4 for q in slots):slots.append(p)
         assert len(slots)>=6,('基地出撃点なし',t)
         base_spawns[t]=slots;anchors.extend((f'base-{t}-{i}',p) for i,p in enumerate(slots))
         anchors.extend((f'basepod-{t}-{i}',local(t,p)) for i,p in enumerate(d['basePods']))
@@ -189,6 +197,8 @@ console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v
         'triangles':sum(counts.values()),
         'localFacilityClearing':trim,'facilityAdjustments':adjustments,'navigation':nav_stats,
         'bases':d['bases'],'plants':d['plants'],'shelters':shelters,'jumpPads':d['jumpPads'],'plantCatapults':d['plantCatapults'],
+        'baseEquipment':{t:{'turrets':[local(t,p) for p in d['turrets']],
+            'pods':[local(t,p) for p in d['basePods']],'radar':local(t,d['radar'])} for t in d['bases']},
         'sourcePreserved':True}
     (OUT/'generation.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     (OUT/'CREDITS.md').write_text((ROOT/'mapdesign/kanto/CREDITS.md').read_text()+'\n\n1/2試作版：街の全軸を半分にし、立体通路の天井・施設空間・射出設備・経路を現行機体向けに補正しました。現実の構造を厳密に表すものではありません。\n')

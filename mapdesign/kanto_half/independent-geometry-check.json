@@ -1,9 +1,9 @@
 {
   "sourceMapUnchanged": true,
   "sourceMapSHA256": "38dd006fcc69719ef5559f7e91aa69404961d8f987b61731f18a466a99ac25fd",
-  "mapJSONBytes": 96051,
-  "mapDataBytes": 96050,
-  "mapSHA256": "efb1707934138599af950a64e14b558a4b845fe1e2353555016106128b52c29b",
+  "mapJSONBytes": 96041,
+  "mapDataBytes": 96040,
+  "mapSHA256": "052f89a346e19fcebcd71d769cb2587fbe4bf0b9a185a0e201e36a23fd4b3c9a",
   "extentMeters": [
     500,
     500
@@ -154,7 +154,7 @@
     "B": true,
     "R": true
   },
-  "scope": "地形・配色・構造の独立検査。射出・補給等の動作はブラウザ検査側で確認。",
+  "scope": "e3958d8で検査済みの地形・配色・構造と、現map.jsonのcityTerrainが生JSONとしてbyte同一であることを確認して結果を継承。屋上・天井・輪郭の幾何検査は今回再実行していない。基地設備配置はbase-layout-review.jsonと動作検査を参照。",
   "passed": true,
   "jumpPadTargets": [
     {
@@ -254,5 +254,14 @@
       "overheadVolumeAtExit": []
     }
   ],
-  "jumpPadTargetScope": "目標座標の屋根支持・機体半径1.3m余白・上部障害なしを確認。目標6m手前の静的点は半径1.3m余白を満たさない。Botの実着地は別の動作検査を根拠とする。"
+  "jumpPadTargetScope": "目標座標の屋根支持・機体半径1.3m余白・上部障害なしを確認。目標6m手前の静的点は半径1.3m余白を満たさない。Botの実着地は別の動作検査を根拠とする。",
+  "inheritedGeometryValidation": {
+    "baselineCommit": "e3958d8",
+    "previousMapSHA256": "efb1707934138599af950a64e14b558a4b845fe1e2353555016106128b52c29b",
+    "currentCityTerrainSHA256": "d46f42821d53f526d41beb5f128f79bc08c20c6e0deb86432a0451a6b8af16d6",
+    "cityTerrainRawJSONBytesUnchanged": true,
+    "plantsAndJumpPadsUnchanged": true,
+    "baseCorePositionsUnchanged": true,
+    "newGeometryTestsRun": false
+  }
 }
