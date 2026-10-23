@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """都市データの欠損や範囲外参照を、maps.jsの生成前に拒否できるか確認する。"""
 import copy
+import base64
 import importlib.util
 import json
 import pathlib
@@ -37,3 +38,19 @@ for name,mutate in cases.items():
     assert check(data),name+' を拒否する'
     print(name+'：拒否を確認')
 print('正常データ1件・破損データ7件の検査完了')
+
+script=script.replace('MAP_DATA.hoshimichi','MAP_DATA.kanto')
+urban=json.loads(subprocess.check_output(['node','-e',script,str(ROOT/'prototype/maps/kanto.js')]))
+assert not check(urban),'1km・2cm形式の都市を拒否しない'
+packed_cases={
+ '未対応の輪郭格子':lambda d:d['cityTerrain'].update(ringCoordinateStep=.04),
+ '未対応の経路格子':lambda d:d['nav'].update(step=.01),
+ '途切れた経路座標':lambda d:d['nav'].update(nodes='AA=='),
+ '範囲外の経路座標':lambda d:d['nav'].update(nodes=base64.b64encode(bytes([255,127,255,127])).decode()),
+ '存在しない経路の参照':lambda d:d['nav'].update(links=base64.b64encode(bytes([255,255,254,255])).decode()),
+}
+for name,mutate in packed_cases.items():
+    data=copy.deepcopy(urban);mutate(data)
+    assert check(data),name+' を拒否する'
+    print(name+'：拒否を確認')
+print('1km正常データ1件・破損経路5件の検査完了')

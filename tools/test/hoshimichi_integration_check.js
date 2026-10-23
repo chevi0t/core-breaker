@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {execFileSync}=require('node:child_process'),{pathToFileURL}=require('node:url'),{chromium}=require('playwright');
 const ROOT=path.resolve(__dirname,'../..'),dbg=path.resolve(process.argv[2]||'dbg');
-const output=path.join(ROOT,'mapdesign/hoshimichi');
+const output=path.resolve(process.env.CITY_INTEGRATION_OUTPUT||path.join(ROOT,'mapdesign/hoshimichi'));
 function maps(source){const context={window:{}};vm.runInNewContext(source,context);return JSON.parse(JSON.stringify(context.window.MAP_DATA));}
 (async()=>{
  const current=maps(fs.readFileSync(path.join(ROOT,'prototype/maps.js'),'utf8'));
@@ -19,20 +19,20 @@ function maps(source){const context={window:{}};vm.runInNewContext(source,contex
   await page.goto(pathToFileURL(path.join(dbg,'dbg.html')).href);await page.waitForFunction(()=>window.__g);
   const switches=await page.evaluate(()=>{
    const g=__g,result=[];let old=null,disposed=0;
-   for(const id of ['hoshimichi','city','hoshimichi','wide','hoshimichi','dock','hoshimichi','mesa','hoshimichi','dock-melee','hoshimichi']){
+   for(const id of ['kanto','hoshimichi','kanto','city','kanto','wide','hoshimichi','dock','kanto','mesa','hoshimichi','dock-melee','kanto','hoshimichi']){
     if(g.cityMap){old=g.cityMap;for(const m of g.hittables.filter(m=>m.name.startsWith('city-collision-')))m.geometry.addEventListener('dispose',()=>disposed++);}
     g.selectMap(id);g.setup();
-    if(old&&id!=='hoshimichi'&&old.cameraGeometryCount!==0)throw Error('切替前の都市の判定形状が残っている');
+    if(old&&old!==g.cityMap&&old.cameraGeometryCount!==0)throw Error('切替前の都市の判定形状が残っている');
     const row={id,units:g.units.length,city:!!g.cityMap,proxies:g.cityMap?.cameraGeometryCount||0,colliders:g.hittables.filter(m=>m.name.startsWith('city-collision-')).length,disposed};
-    if(id==='hoshimichi'){
-     if(g.units.length!==20||g.jumpPads.length!==0||g.cores.B.pos.x!==260||g.cores.B.pos.y!==17)throw Error('都市の人数・設備・基地が不正');
+    if(['hoshimichi','kanto'].includes(id)){
+     if(g.units.length!==20||g.jumpPads.length!==0||g.cores.B.pos.x!==(id==='kanto'?-310:260)||g.cores.B.pos.y!==(id==='kanto'?19:17))throw Error('都市の人数・設備・基地が不正');
      if(!Array.isArray(g.curMap.cityTerrain.volumes[0])||g.curMap.cityTerrain.meshes)throw Error('元のマップデータを書き換えている');
     }else if(g.cityBattle||row.colliders)throw Error('従来マップへ都市の処理が残っている');
     result.push(row);
    }
    return result;
   });
-  const cityCounts=switches.filter(s=>s.city);assert(cityCounts.every(s=>s.proxies===cityCounts[0].proxies&&s.colliders===cityCounts[0].colliders));
+  for(const id of ['hoshimichi','kanto']){const cityCounts=switches.filter(s=>s.id===id);assert(cityCounts.every(s=>s.proxies===cityCounts[0].proxies&&s.colliders===cityCounts[0].colliders));}
   assert(switches.at(-1).disposed>0);assert.deepEqual(errors,[]);await page.close();
   // デバッグHTMLを使わず、配布と同じindex.html・maps.js・音源を通常通り読む。
   // 既存のThree.js CDNとフォントだけ試験内で応答する。地形の通信は許可しない。

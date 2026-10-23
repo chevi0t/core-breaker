@@ -91,6 +91,7 @@ function check(d) {
     if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
     else {
       if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
+      if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
       if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
       const ring=(r,what)=>{
         if(typeof r!=='string'){E(what+' はbase64の座標列');return;}
@@ -105,7 +106,7 @@ function check(d) {
       }
       if(!c.surfaces||typeof c.surfaces!=='object')E('都市のsurfacesが必要');
       else for(const [name,s] of Object.entries(c.surfaces)){
-        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||s.step!==.01){E('都市の面 '+name+' の座標形式が不正');continue;}
+        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
         const p=Buffer.from(s.points,'base64'),ids=Buffer.from(s.indices,'base64');
         if(p.length%6||ids.length%6){E('都市の面 '+name+' の頂点・三角形が不正');continue;}
         for(let i=0;i<ids.length;i+=2)if(ids.readUInt16LE(i)>=p.length/6){E('都市の面 '+name+' が存在しない頂点を参照');break;}
@@ -199,7 +200,15 @@ function check(d) {
     inMap(b[0], b[1], '橋');
   }
   if (d.nav !== undefined && d.nav !== null) {
-    const nodes = d.nav.nodes, links = d.nav.links;
+    let nodes = d.nav.nodes, links = d.nav.links;
+    if(d.nav.encoding!==undefined){
+      if(d.nav.encoding!=='xz-i16-links-u16'||d.nav.step!==.02||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップの2cm格子・16bit座標とリンク');
+      else {
+        const p=Buffer.from(nodes,'base64'),e=Buffer.from(links,'base64');nodes=[];links=[];
+        if(!p.length||p.length%4||e.length%4)E('圧縮navの座標・リンクが不正');
+        else {for(let i=0;i<p.length;i+=4)nodes.push([p.readInt16LE(i)*.02,p.readInt16LE(i+2)*.02]);for(let i=0;i<e.length;i+=4)links.push([e.readUInt16LE(i),e.readUInt16LE(i+2)]);}
+      }
+    }
     if (!Array.isArray(nodes) || !Array.isArray(links)) E('nav は { nodes: [[x, z], …], links: [[i, j], …] }');
     else {
       nodes.forEach((n, i) => { if (!Array.isArray(n) || !(n.length === 2 || n.length === 3) || !n.every(num)) E(`nav の節点 ${i} は [x, z] か、橋の上なら [x, z, 歩く高さ]`); else inMap(n[0], n[1], `nav の節点 ${i}`); });

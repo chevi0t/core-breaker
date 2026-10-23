@@ -1285,7 +1285,8 @@ function expandCityLayout(T,data){
   if(data.geometryEncoding!=='city-layout-v1')throw Error('未対応の街区データ');
   const unpackRings=rings=>rings.map(r=>{
     const a=new Int16Array(Uint8Array.from(atob(r),c=>c.charCodeAt(0)).buffer),points=[];
-    for(let i=0;i<a.length;i+=2)points.push([a[i]/100,a[i+1]/100]);return points;
+    const step=data.ringCoordinateStep??.01;
+    for(let i=0;i<a.length;i+=2)points.push([a[i]*step,a[i+1]*step]);return points;
   });
   data.volumes=data.volumes.map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
   for(const d of data.decorations)d.rings=unpackRings(d.rings);
@@ -1315,13 +1316,13 @@ function expandCityLayout(T,data){
     }
     return a;
   }
-  const palette=['#889da8','#a69f90','#aab0ae','#7f929a','#9d9181','#8b8785','#8c9da0','#a6a39b'];
+  const palette=data.district.buildingPalette||['#889da8','#a69f90','#aab0ae','#7f929a','#9d9181','#8b8785','#8c9da0','#a6a39b'];
   const layerFor={'rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
   const buildings=new Set(['grounded','infill','upper','elevated']);
   for(const v of data.volumes){
     const building=buildings.has(v.kind),layer=building?'bldg':layerFor[v.kind];if(!layer)continue;
     const center=v.rings[0].reduce((a,p)=>[a[0]+p[0]/v.rings[0].length,a[1]+p[1]/v.rings[0].length],[0,0]);
-    const color=building?(v.landmarkColor||(v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
+    const color=building?(v.landmarkColor||(Number.isInteger(v.paint)?palette[v.paint]:v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
       v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
     add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
   }
@@ -1588,18 +1589,24 @@ function createCityMap(T,layout) {
   let mapCanvas;
   function drawMap(g,W,H,u) {
     if (!mapCanvas) {
-      mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = 600;
-      const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround.color; c.fillRect(0,0,600,600);
+      mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = half*2;
+      const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround?.color||'#8a8d85'; c.fillRect(0,0,half*2,half*2);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
-      for(const rings of data.heritage.rings){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
-      path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();
-      for (const v of [...volumes].sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
-      for(const exit of data.river.exits){
+      for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
+      if(data.district.roadColor){
+        c.fillStyle=data.district.roadColor;
+        for(let i=0;i<arrays.tran.length;i+=9){const a=arrays.tran;path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);c.fill();}
+      }
+      if(data.district.railGap){path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();}
+      const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
+      if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
+      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?data.district.buildingPalette[v.paint]:v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for(const exit of data.river.exits||[]){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
       }
-      c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,598,598);
+      c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,half*2-2,half*2-2);
       for(const p of data.district.roofPads){
         c.fillStyle='#97ffd3';c.beginPath();c.arc(p.at[0]+half,p.at[1]+half,5,0,Math.PI*2);c.fill();
         c.strokeStyle='#71f5bd';c.lineWidth=2;c.beginPath();c.moveTo(p.at[0]+half,p.at[1]+half);c.lineTo(p.exit[0]+half,p.exit[1]+half);c.stroke();
@@ -1643,7 +1650,7 @@ function createCityMap(T,layout) {
         }
       }
       compactGeometry(geo,'render');
-      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:colors[k];
+      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:colors[k];
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
@@ -1652,6 +1659,7 @@ function createCityMap(T,layout) {
           const declarations='varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
           shader.vertexShader='attribute float cityGlass;\n'+declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);glassFacade=cityGlass;');
           shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            vec3 facadeColor=diffuseColor.rgb;
             float side=1.0-step(0.45,abs(cityNormal.y));
             float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
             vec2 pane=fract(vec2(horizontal/2.8,cityPoint.y/3.5));
@@ -1661,11 +1669,12 @@ function createCityMap(T,layout) {
             float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
             float reflection=0.5+0.5*sin(cityPoint.y*0.11+horizontal*0.012);
             vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
+            ${data.district.glassTint?'glassColor*=clamp(facadeColor/vec3(0.48,0.58,0.62),vec3(0.35),vec3(1.4));':''}
             float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
             diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
           `);
         };
-        mesh.material.customProgramCacheKey=()=> 'city-facade-v2';
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v3-'+!!data.district.glassTint;
       }
       if(k==='historicWall'){
         mesh.material.onBeforeCompile=shader=>{
@@ -2113,6 +2122,13 @@ const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80;
 let NAV = null;
 function buildNav(nav) {
   NAV = null;
+  if(nav?.encoding==='xz-i16-links-u16'){
+    const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer;
+    const points=new Int16Array(decode(nav.nodes)),edges=new Uint16Array(decode(nav.links)),nodes=[],links=[];
+    for(let i=0;i<points.length;i+=2)nodes.push([points[i]*nav.step,points[i+1]*nav.step]);
+    for(let i=0;i<edges.length;i+=2)links.push([edges[i],edges[i+1]]);
+    nav={nodes,links};
+  }
   if (!nav || !nav.nodes || !nav.nodes.length) return;
   const n = nav.nodes.length, pts = nav.nodes.map(([x, z, y]) => ({ x, z, y: y ?? terrainH(x, z) })), flip = [];
   nav.nodes.forEach(([x, z], i) => { if (curMap.asym || x === 0 && z === 0) flip[i] = i; else { flip[i] = pts.length; flip[pts.length] = i; pts.push({ x: -x, z: -z, y: pts[i].y }); } });

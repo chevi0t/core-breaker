@@ -118,14 +118,20 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 
 ## 都市の多角形モデルと任意の基地座標
 
-`hoshimichi.js` は通常のマップとして登録する都市モデル。`tools/import_city_map.py` が確認済みの形状・対戦配置から作り、`build_maps.py` で他のマップと一緒に検査・同梱する。
+`hoshimichi.js` と `kanto.js` は通常のマップとして登録する都市モデル。前者は `tools/import_city_map.py`、後者は `tools/build_kanto_map.py` が確認済みの形状・対戦配置から作り、`build_maps.py` で他のマップと一緒に検査・同梱する。
 
 - `bases: { B: {at:[x,z], radius, catapults:[[x,z,着地点x,着地点z],…]}, R: {…} }`：基地の中心と半径、陣営ごとの絶対座標の射出台。無いマップの基地は従来どおり `(0, ±baseZ)`。`turrets`・`radar`・`basePods` は従来の自軍側座標を維持し、`baseZ` との差分を各基地へ移す。
 - `cityTerrain`：`city-layout-v1` の形状。輪郭と高さから建物を作り、保存した面の座標・三角形から地面・坂・橋を復元する。描画と接触・射線で同じ形を使う。`half` とマップサイズ、基地位置、頂点参照を検査する。型の内容は `mapdesign/hoshimichi/source/layout.json`。
 - `cityBattle: {baseSpawns:{B:[[x,z],…],R:…}, respawns:{B:{A:[[x,z],…],…},R:…}, nodeReach:1.5}`：都市の安全な再出撃候補と経路節点へ着いたと判定する距離。形状・施設の組み立て後に通れない辺を除き、主成分につながる経路を使う。
 - `attribution`：マップ選択の下に出す地理データの出典・加工・ライセンスの説明。
 
-任意の基地を持つ場合も `baseLine < baseZ < size[1]` は旧形式との互換のため維持する。基地内判定は `bases` の円を使う。都市データが無いマップでは都市用の接地・視点・再出撃・経路処理を使わない。詳しい配置と検査は `mapdesign/hoshimichi/README.md`。
+都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、1km四方の `kanto` は `.02`（2cm格子）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
+
+`kanto` の傾斜大屋根は `surfaces.brid` に厚さ付きの板として保存し、既存の橋と同じ接地・下面・弾判定を使う。`district.stationCanopy` の `ring`・`top`・`color` は地図の投影と板の表示色をそろえるための属性。このマップの `brid` は大屋根だけを含む。
+
+大きな非対称地形の `nav` は `{encoding:'xz-i16-links-u16',step:.02,nodes:'…',links:'…'}` でも保存できる。`nodes` はlittle-endianのint16 XZ、`links` はuint16の節点番号2個の組。それぞれbase64で格納し、読み込み時だけ通常の配列へ展開する。元データは変更しない。範囲外の座標・不正な節点参照・途切れたバイト列は `build_maps.py` で拒否する。
+
+任意の基地を持つ場合も `baseLine < baseZ < size[1]` は旧形式との互換のため維持する。基地内判定は `bases` の円を使う。都市データが無いマップでは都市用の接地・視点・再出撃・経路処理を使わない。詳しい配置と検査は `mapdesign/hoshimichi/README.md` と `mapdesign/kanto/README.md`。
 
 ## 守ってほしい決まり（ユーザーが決めたもの）
 

@@ -10,12 +10,28 @@
   ],
   "switches": [
     {
+      "id": "kanto",
+      "units": 20,
+      "city": true,
+      "proxies": 1430,
+      "colliders": 1379,
+      "disposed": 0
+    },
+    {
       "id": "hoshimichi",
       "units": 20,
       "city": true,
       "proxies": 776,
       "colliders": 726,
-      "disposed": 0
+      "disposed": 1379
+    },
+    {
+      "id": "kanto",
+      "units": 20,
+      "city": true,
+      "proxies": 1430,
+      "colliders": 1379,
+      "disposed": 2105
     },
     {
       "id": "city",
@@ -23,15 +39,15 @@
       "city": false,
       "proxies": 0,
       "colliders": 0,
-      "disposed": 726
+      "disposed": 3484
     },
     {
-      "id": "hoshimichi",
+      "id": "kanto",
       "units": 20,
       "city": true,
-      "proxies": 776,
-      "colliders": 726,
-      "disposed": 726
+      "proxies": 1430,
+      "colliders": 1379,
+      "disposed": 3484
     },
     {
       "id": "wide",
@@ -39,7 +55,7 @@
       "city": false,
       "proxies": 0,
       "colliders": 0,
-      "disposed": 1452
+      "disposed": 4863
     },
     {
       "id": "hoshimichi",
@@ -47,7 +63,7 @@
       "city": true,
       "proxies": 776,
       "colliders": 726,
-      "disposed": 1452
+      "disposed": 4863
     },
     {
       "id": "dock",
@@ -55,15 +71,15 @@
       "city": false,
       "proxies": 0,
       "colliders": 0,
-      "disposed": 2178
+      "disposed": 5589
     },
     {
-      "id": "hoshimichi",
+      "id": "kanto",
       "units": 20,
       "city": true,
-      "proxies": 776,
-      "colliders": 726,
-      "disposed": 2178
+      "proxies": 1430,
+      "colliders": 1379,
+      "disposed": 5589
     },
     {
       "id": "mesa",
@@ -71,7 +87,7 @@
       "city": false,
       "proxies": 0,
       "colliders": 0,
-      "disposed": 2904
+      "disposed": 6968
     },
     {
       "id": "hoshimichi",
@@ -79,7 +95,7 @@
       "city": true,
       "proxies": 776,
       "colliders": 726,
-      "disposed": 2904
+      "disposed": 6968
     },
     {
       "id": "dock-melee",
@@ -87,7 +103,15 @@
       "city": false,
       "proxies": 0,
       "colliders": 0,
-      "disposed": 3630
+      "disposed": 7694
+    },
+    {
+      "id": "kanto",
+      "units": 20,
+      "city": true,
+      "proxies": 1430,
+      "colliders": 1379,
+      "disposed": 7694
     },
     {
       "id": "hoshimichi",
@@ -95,7 +119,7 @@
       "city": true,
       "proxies": 776,
       "colliders": 726,
-      "disposed": 3630
+      "disposed": 9073
     }
   ],
   "inputs": [
@@ -104,12 +128,12 @@
       "start": [
         260,
         -2,
-        274
+        264
       ],
       "end": [
         260,
         -2,
-        271.6801166069397
+        261.6507224785097
       ],
       "map": true,
       "optionsResume": true,
@@ -118,14 +142,14 @@
     {
       "team": "R",
       "start": [
-        -226,
+        -256,
         -2,
         -267
       ],
       "end": [
-        -226,
+        -256,
         -2,
-        -264.8378644209105
+        -264.91247898116444
       ],
       "map": true,
       "optionsResume": true,
