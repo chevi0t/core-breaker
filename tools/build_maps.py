@@ -86,6 +86,52 @@ function check(d) {
       else inMap(r[0],r[1],'道路');
     }
   }
+  if (d.cityTerrain !== undefined) {
+    const c=d.cityTerrain,battle=d.cityBattle;
+    if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
+    else {
+      if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
+      if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
+      const ring=(r,what)=>{
+        if(typeof r!=='string'){E(what+' はbase64の座標列');return;}
+        const bytes=Buffer.from(r,'base64');
+        if(bytes.length<12||bytes.length%4)E(what+' は3頂点以上のint16のXZ座標');
+      };
+      if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
+      if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
+      else for(const v of c.volumes){
+        if(!Array.isArray(v)||v.length!==5||!Number.isInteger(v[0])||!c.volumeKinds?.[v[0]]||!num(v[1])||!num(v[2])||v[1]>=v[2]||!Array.isArray(v[3])||!v[3].length){E('都市の体積は [種類番号, 底, 上面, 輪郭列, 属性]');continue;}
+        for(const r of v[3])ring(r,'都市の体積輪郭');
+      }
+      if(!c.surfaces||typeof c.surfaces!=='object')E('都市のsurfacesが必要');
+      else for(const [name,s] of Object.entries(c.surfaces)){
+        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||s.step!==.01){E('都市の面 '+name+' の座標形式が不正');continue;}
+        const p=Buffer.from(s.points,'base64'),ids=Buffer.from(s.indices,'base64');
+        if(p.length%6||ids.length%6){E('都市の面 '+name+' の頂点・三角形が不正');continue;}
+        for(let i=0;i<ids.length;i+=2)if(ids.readUInt16LE(i)>=p.length/6){E('都市の面 '+name+' が存在しない頂点を参照');break;}
+      }
+      if(!d.bases||!Array.isArray(c.district?.bases)||c.district.bases.length!==2)E('都市の両基地が必要');
+      else for(const team of ['B','R']){
+        const base=c.district.bases.find(b=>b.team===team);
+        if(!base||!num(base.height)||JSON.stringify(base.at)!==JSON.stringify(d.bases[team]?.at))E('都市の地形と対戦配置の基地が不一致：'+team);
+      }
+      if(!Array.isArray(c.decorations))E('都市のdecorationsが必要');
+      else for(const decoration of c.decorations){
+        if(!num(decoration.height)||typeof decoration.color!=='string'||!Array.isArray(decoration.rings))E('都市の線路装飾が不正');
+        else for(const r of decoration.rings)ring(r,'都市の装飾輪郭');
+      }
+    }
+    if(!battle||!num(battle.nodeReach)||battle.nodeReach<.25||battle.nodeReach>5)E('cityBattle.nodeReach は0.25〜5m');
+    for(const team of ['B','R']){
+      const slots=battle?.baseSpawns?.[team];
+      if(!Array.isArray(slots)||!slots.length)E('都市の基地再出撃点が必要：'+team);
+      for(const [name,list] of [['base',slots],...ids.map(id=>[id,battle?.respawns?.[team]?.[id]])]){
+        if(!Array.isArray(list)||!list.length){E('都市の再出撃点が必要：'+team+'/'+name);continue;}
+        for(const p of list)if(!Array.isArray(p)||p.length!==2||!p.every(num))E('都市の再出撃点は [x,z]');else inMap(...p,'都市の再出撃点');
+      }
+    }
+    if(typeof d.attribution!=='string'||!d.attribution.trim())E('都市データの出典・ライセンスをattributionへ記載する');
+  } else if(d.cityBattle!==undefined)E('cityBattleにはcityTerrainが必要');
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
   if (d.baseDefense !== undefined) {
     const cfg=d.baseDefense;

@@ -1808,9 +1808,9 @@ function getCityMap(def){
   if(!cityMapCache.has(def))cityMapCache.set(def,createCityMap(T,def.cityTerrain));
   return cityMapCache.get(def);
 }
-function drawCityBaseZones(ctx,W,H,def){
+function drawCityBaseZones(ctx,W,H,def,own=chosenTeam){
   for(const team of ['B','R']){
-    const b=def.bases[team],color=sideColors(team).css;
+    const b=def.bases[team],color=sideColors(team,own).css;
     ctx.fillStyle=color+'55';ctx.strokeStyle=color;ctx.lineWidth=1.2;
     ctx.beginPath();ctx.arc((b.at[0]+def.size[0])/(2*def.size[0])*W,(b.at[1]+def.size[1])/(2*def.size[1])*H,b.radius/(2*def.size[0])*W,0,Math.PI*2);ctx.fill();ctx.stroke();
   }
@@ -9710,14 +9710,18 @@ function drawBigMap() {
 function drawMapOn(mini, W, H, bg, k, big = false) {
   mini.clearRect(0, 0, W, H);
   mini.drawImage(bg, 0, 0, W, H);
-  if(cityMap)drawCityBaseZones(mini,W,H,curMap);
+  if(cityMap)drawCityBaseZones(mini,W,H,curMap,player?.team??chosenTeam);
   const sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H;
   mini.fillStyle = 'rgba(255,255,255,.18)';
   for (const o of obstacles) mini.fillRect(sx(o.minX), sz(o.minZ), Math.max(1, sx(o.maxX) - sx(o.minX)), Math.max(1, sz(o.maxZ) - sz(o.minZ)));
   for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(TEAM[t].baseX), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
   if (big && player) {
     mini.font = `bold ${Math.round(6.5 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle'; mini.fillStyle = '#fff';
-    for (const t of ['B', 'R']) mini.fillText(t === player.team ? '自軍ベース' : '敵軍ベース', sx(TEAM[t].baseX), sz(TEAM[t].baseZ) + (TEAM[t].baseZ > 0 ? -9 : 9) * k);
+    for (const t of ['B', 'R']) {
+      const text=t===player.team?'自軍ベース':'敵軍ベース',padding=mini.measureText(text).width/2+k;
+      const x=cityMap?Math.max(padding,Math.min(W-padding,sx(TEAM[t].baseX))):sx(TEAM[t].baseX);
+      mini.fillText(text,x,sz(TEAM[t].baseZ)+(TEAM[t].baseZ>0?-9:9)*k);
+    }
   }
   mini.setLineDash([2 * k, 2 * k]); mini.strokeStyle = 'rgba(255,255,255,.35)'; mini.lineWidth = k;
   for (const c of catapults) { mini.beginPath(); mini.moveTo(sx(c.pos.x), sz(c.pos.z)); mini.lineTo(sx(c.land.x), sz(c.land.z)); mini.stroke(); }

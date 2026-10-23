@@ -60,12 +60,17 @@ const quick = flag === '--quick';
   // 2. プラントのリペアポッドの上の機体が、敵陣側（ポッドより敵ベース寄り）のどこから見えるか。15m格子の目の高さ4.6mから胴と頭を狙う
   console.log('\n2. プラントのポッドが敵陣側から見えるか（自軍側の半分のポッド。15m格子、そのプラントの中心より敵ベース寄りで180m以内）\n' + await E(() => {
     const g = __g, T = g.T, e = __dummy, out = [], [mx, mz] = g.curMap.size;
-    for (const pod of g.pods.filter(pd => pd.plant && (g.curMap.asym || pd.pos.z > 0))) {
+    const hidden=g.cityBattle?new Set(['B','R'].map(team=>g.plants.slice().sort((a,b)=>a.pos.distanceTo(g.cores[team].pos)-b.pos.distanceTo(g.cores[team].pos))[0]?.id)):null;
+    for (const pod of g.pods.filter(pd => pd.plant && (hidden?hidden.has(pd.plant.id):(g.curMap.asym || pd.pos.z > 0)))) {
       e.pos.set(pod.pos.x, g.terrainH(pod.pos.x, pod.pos.z), pod.pos.z); e.group.position.copy(e.pos); e.group.updateMatrixWorld(true);
       let n = 0; const seen = [];
       const side = pod.plant.pos.z >= 0 ? 1 : -1;
-      for (let x = -mx + 5; x <= mx - 5; x += 15) for (let z = pod.plant.pos.z; side * z >= -mz + 5; z -= 15 * side) {
+      const own=hidden?(pod.plant.pos.distanceTo(g.cores.B.pos)<pod.plant.pos.distanceTo(g.cores.R.pos)?'B':'R'):null;
+      const back=own?g.cores[own].pos.clone().sub(pod.plant.pos).setY(0):null;
+      const z0=hidden?-mz+5:pod.plant.pos.z,z1=hidden?mz-5:-mz+5;
+      for (let x = -mx + 5; x <= mx - 5; x += 15) for (let z = z0; hidden?z<=z1:side*z>=-mz+5; z += hidden?15:-15*side) {
         if (Math.hypot(x - pod.pos.x, z - pod.pos.z) > 180) continue;
+        if(hidden&&((x-pod.plant.pos.x)*back.x+(z-pod.plant.pos.z)*back.z>0||!g.cityBattle.free(x,z,g.terrainH(x,z),g.obstacles)))continue;
         n++;
         const eye = new T.Vector3(x, g.terrainH(x, z) + 4.6, z);
         const vis = [2.4, 3.9].some(h => {
@@ -127,9 +132,14 @@ const quick = flag === '--quick';
     for (const name of ['base', ...await E(() => __g.plants.map(pl => pl.id))]) {
       await E(name => {
         const g = __g, u = g.player, d = g.curMap;
-        let x = 0, z = d.baseZ - 15;
+        let x = g.TEAM.B.baseX||0, z = g.TEAM.B.baseZ - 15;
         if (name !== 'base') { const pl = g.plants.find(q => q.id === name); x = pl.pos.x; z = pl.pos.z + 48; }
-        g.spawn(u, 'base'); u.invulT = 0; u.pos.set(x, g.terrainH(x, z), z); u.yaw = 0; u.pitch = -0.08; window.__hold = u.pos.clone();
+        if(g.cityBattle){
+          const pl=g.plants.find(p=>p.id===name),owner=pl?.owner;
+          if(pl)pl.owner=u.team;
+          g.spawn(u,name);if(pl)pl.owner=owner;
+        }else {g.spawn(u, 'base');u.pos.set(x, g.terrainH(x, z), z);}
+        u.invulT = 0; u.yaw = 0; u.pitch = -0.08; window.__hold = u.pos.clone();
       }, name);
       await wait(0.6);
       const file = path.resolve(dir, `map_${mapId}_${name}.png`);
