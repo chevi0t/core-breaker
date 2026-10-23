@@ -154,7 +154,8 @@ def build(source, out, *, data=None, layout_runtime='', variant=False):
     for url,path in [('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','vendor/three-r128/three.min.js'),
                      ('sounds.js','prototype/sounds.js'),('music.js','prototype/music.js')]:
         s = replace(s,f'<script src="{url}"></script>','<script>'+inline_js((ROOT/path).read_text())+'</script>')
-    definition = dict(name='星路駅前試験区'+('・再構築案' if variant else ''),size=[300,300],team=1,time=86400,baseZ=280,baseLine=300,
+    suffix=variant if isinstance(variant,str) else ('・再構築案' if variant else '')
+    definition = dict(name='星路駅前試験区'+suffix,size=[300,300],team=1,time=86400,baseZ=280,baseLine=300,
         desc='地形と両基地の位置確認。高層棟へは緑のジャンプパッドから。',
         terrain=[],layout=[],plants=[],turrets=[],radar=[],catapults=[],basePods=[],plantPods=[],barricades=[],
         asym=True,bases={b['team']:{'at':b['at'],'radius':b['radius']} for b in data['district']['bases']},jumpPads=data['district']['roofPads'])

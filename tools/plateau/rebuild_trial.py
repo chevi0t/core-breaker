@@ -127,10 +127,10 @@ def pack_rings(value):
     return result
 
 
-def make_layout(reference, arrays):
+def make_layout(reference, arrays, *, reconstructed=None):
     data = {k:copy.deepcopy(reference[k]) for k in ['half', 'spawns', 'district', 'landmarks',
                                                   'streetRepairs', 'heritage', 'river', 'groundMaximum']}
-    volumes, stats = reconstruct_buildings(reference)
+    volumes, stats = reconstruct_buildings(reference) if reconstructed is None else reconstructed
     data.update(geometryEncoding='city-layout-v1', volumes=volumes, surfaces={}, decorations=[])
     # 街路と川を保つ面は、確認済みの形からコピーする。細部の屋根や店舗パネルはコピーしない。
     excluded = {'bldg', 'rail', 'station', 'shops', 'crossShops', 'railLinkShops'}
@@ -159,7 +159,7 @@ def make_layout(reference, arrays):
                  sourceTriangles=sum(v['triangles'] for v in reference['packing']['layers'].values()))
     # 大きな更地化前の輪郭など、生成経過の診断値は参照版のgeneration.jsonへ残す。
     # このJSONはゲームで必要な配置と、実走用の代表経路だけを持つ。
-    data['district'].pop('clearing')
+    data['district'].pop('clearing', None)
     data['streetRepairs'] = []
     kinds = sorted({v['kind'] for v in volumes})
     data['volumeKinds'] = kinds
