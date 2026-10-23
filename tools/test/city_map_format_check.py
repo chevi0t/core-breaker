@@ -32,12 +32,18 @@ cases={
  '出典なし':lambda d:d.update(attribution=''),
  '体積の上下が逆':lambda d:d['cityTerrain']['volumes'][0].__setitem__(2,-999),
  '面の頂点参照が範囲外':lambda d:next(iter(d['cityTerrain']['surfaces'].values())).update(indices='////////'),
+ '長すぎる基地射出時間':lambda d:d['bases']['B'].update(catapultFlight=20),
+ 'XYZ経路の格子が不正':lambda d:d['nav'].update(step=.02),
+ 'XYZ経路の高さが欠損':lambda d:d['nav'].update(nodes='AAAAAA=='),
+ '地上通路が配列以外':lambda d:d['cityTerrain']['district'].update(groundPassages={}),
+ '地上通路の幅が不正':lambda d:d['cityTerrain']['district']['groundPassages'][0].update(width=0),
+ '地上通路が範囲外':lambda d:d['cityTerrain']['district']['groundPassages'][0].update(to=[999,0]),
 }
 for name,mutate in cases.items():
     data=copy.deepcopy(definition);mutate(data)
     assert check(data),name+' を拒否する'
     print(name+'：拒否を確認')
-print('正常データ1件・破損データ7件の検査完了')
+print(f'正常データ1件・破損データ{len(cases)}件の検査完了')
 
 script=script.replace('MAP_DATA.hoshimichi','MAP_DATA.kanto')
 urban=json.loads(subprocess.check_output(['node','-e',script,str(ROOT/'prototype/maps/kanto.js')]))

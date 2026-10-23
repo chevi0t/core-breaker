@@ -66,7 +66,7 @@
 ### 絶対座標のプラント間カタパルト（任意）
 
 `plantCatapults: [{at:[x,z],exit:[x,z],plant:'B',targetPlant:'C',flight:6.2}]`。
-出発・到着プラントIDを明記し、全域の座標で配置する。点対称には増やさず、両軍が同じように使える。飛行時間は2.8〜8秒で、着地まで射出の勢いと操作固定を保つ。途中のビル・機体の厚み・初回接地と接地後の滑走まで検査する。既存の `catapults` と `bases.*.catapults` は従来の2.8秒・操作固定1秒のまま。
+出発・到着プラントIDを明記し、全域の座標で配置する。点対称には増やさず、両軍が同じように使える。飛行時間は2.8〜8秒で、着地まで射出の勢いと操作固定を保つ。途中のビル・機体の厚み・初回接地と接地後の滑走まで検査する。`bases.*.catapultFlight` も任意に2.8〜8秒を指定でき、その基地の絶対座標台へ同じ軌道と着地までの操作固定を適用する。省略した `catapults` と `bases.*.catapults` は従来の2.8秒・操作固定1秒のまま。
 
 都市の公園は `cityTerrain.district.lawns: [{rings:[輪郭のbase64,…],color:'#789c57'}]` として描画・全体マップに同じ色を使う。輪郭は都市と同じ格子で保存する。地面の高さ・当たり判定は変えない。
 
@@ -136,7 +136,9 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 
 `kanto` の傾斜大屋根は `surfaces.brid` に厚さ付きの板として保存し、既存の橋と同じ接地・下面・弾判定を使う。`district.stationCanopy` の `ring`・`top`・`color` は地図の投影と板の表示色をそろえるための属性。このマップの `brid` は大屋根だけを含む。
 
-大きな非対称地形の `nav` は `{encoding:'xz-i16-links-u16',step:.02,nodes:'…',links:'…'}` でも保存できる。`nodes` はlittle-endianのint16 XZ、`links` はuint16の節点番号2個の組。それぞれbase64で格納し、読み込み時だけ通常の配列へ展開する。元データは変更しない。範囲外の座標・不正な節点参照・途切れたバイト列は `build_maps.py` で拒否する。
+大きな非対称地形の `nav` は `{encoding:'xz-i16-links-u16',step:.02,nodes:'…',links:'…'}` でも保存できる。`nodes` はlittle-endianのint16 XZ、`links` はuint16の節点番号2個の組。それぞれbase64で格納し、読み込み時だけ通常の配列へ展開する。高さを持つ星路の経路は `{encoding:'xyz-i16-links-u16',step:.01,nodes:'…',links:'…'}` とし、節点をint16の **X,Z,Y** の順で保存する。元の川底・坂・橋上の高さを1cm単位で可逆に保持する。元データは変更しない。範囲外の座標・不正な節点参照・途切れたバイト列は `build_maps.py` で拒否する。
+
+都市の地上開口は `cityTerrain.district.groundPassages: [{from:[x,z],to:[x,z],width:12}]` として地図へ表示できる。これは地図表示用の属性で、通行判定を無効化しない。生成時に同じ帯の下層を切り、平坦な舗装と歩行経路を追加する。上階は残し、開口上の建物は下面も描く `elevated` 種類へ変換して、接触と弾・視点の遮蔽を一致させる。
 
 任意の基地を持つ場合も `baseLine < baseZ < size[1]` は旧形式との互換のため維持する。基地内判定は `bases` の円を使う。都市データが無いマップでは都市用の接地・視点・再出撃・経路処理を使わない。詳しい配置と検査は `mapdesign/hoshimichi/README.md` と `mapdesign/kanto/README.md`。
 

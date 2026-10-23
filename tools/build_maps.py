@@ -81,6 +81,7 @@ function check(d) {
       if(!b||!Array.isArray(b.at)||b.at.length!==2||!b.at.every(num)){E('bases.'+team+'.at は [x,z]');continue;}
       inMap(...b.at,'基地');
       if(!num(b.radius)||b.radius<=0)E('基地の radius は正の数');
+      if(b.catapultFlight!==undefined&&(!num(b.catapultFlight)||b.catapultFlight<2.8||b.catapultFlight>8))E('基地のcatapultFlightは2.8〜8秒');
       for(const c of b.catapults||[]){
         if(!Array.isArray(c)||c.length!==4||!c.every(num)){E('基地のcatapultsは [x,z,着地点x,着地点z]');continue;}
         inMap(c[0],c[1],'基地の射出台');inMap(c[2],c[3],'基地の射出台の着地点');
@@ -111,6 +112,16 @@ function check(d) {
         else for(const lawn of c.district.lawns){
           if(!lawn||!/^#[0-9a-f]{6}$/i.test(lawn.color)||!Array.isArray(lawn.rings)||!lawn.rings.length)E('芝生の色・輪郭が不正');
           else for(const r of lawn.rings)ring(r,'芝生の輪郭');
+        }
+      }
+      if(c.district?.groundPassages!==undefined){
+        if(!Array.isArray(c.district.groundPassages))E('都市のgroundPassagesは配列');
+        else for(const road of c.district.groundPassages){
+          for(const key of ['from','to']){
+            if(!Array.isArray(road?.[key])||road[key].length!==2||!road[key].every(num))E('地上通路の端は [x,z]');
+            else inMap(...road[key],'地上通路');
+          }
+          if(!num(road?.width)||road.width<4||road.width>30)E('地上通路の幅は4〜30m');
         }
       }
       if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
@@ -217,11 +228,12 @@ function check(d) {
   if (d.nav !== undefined && d.nav !== null) {
     let nodes = d.nav.nodes, links = d.nav.links;
     if(d.nav.encoding!==undefined){
-      if(d.nav.encoding!=='xz-i16-links-u16'||d.nav.step!==.02||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップの2cm格子・16bit座標とリンク');
+      const xyz=d.nav.encoding==='xyz-i16-links-u16',stride=xyz?6:4;
+      if((!xyz&&d.nav.encoding!=='xz-i16-links-u16')||d.nav.step!==(xyz ? .01 : .02)||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップのXZ・2cmまたはXYZ・1cmの16bit座標とリンク');
       else {
         const p=Buffer.from(nodes,'base64'),e=Buffer.from(links,'base64');nodes=[];links=[];
-        if(!p.length||p.length%4||e.length%4)E('圧縮navの座標・リンクが不正');
-        else {for(let i=0;i<p.length;i+=4)nodes.push([p.readInt16LE(i)*.02,p.readInt16LE(i+2)*.02]);for(let i=0;i<e.length;i+=4)links.push([e.readUInt16LE(i),e.readUInt16LE(i+2)]);}
+        if(!p.length||p.length%stride||e.length%4)E('圧縮navの座標・リンクが不正');
+        else {for(let i=0;i<p.length;i+=stride)nodes.push(Array.from({length:stride/2},(_,j)=>p.readInt16LE(i+j*2)*d.nav.step));for(let i=0;i<e.length;i+=4)links.push([e.readUInt16LE(i),e.readUInt16LE(i+2)]);}
       }
     }
     if (!Array.isArray(nodes) || !Array.isArray(links)) E('nav は { nodes: [[x, z], …], links: [[i, j], …] }');

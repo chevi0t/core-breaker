@@ -25,8 +25,8 @@ const config={seed:+(process.argv[4]||20261023),team:process.argv[5]||'B'};
   const facilities=await page.evaluate(()=>{
    const g=__g,{T,city}=g,isKanto=g.curMap.name.startsWith('環都'),floor=isKanto?0:-2;g.setup();g.running=false;g.scene.updateMatrixWorld(true);
    function ok(test,message,data){if(!test)throw Error(message+' '+JSON.stringify(data));}
-   ok(g.units.length===20,'10対10');ok(g.jumpPads.length===(isKanto?6:0)&&city.district.roofPads.length===0,'中立の街路パッドだけを配置');
-   ok(g.turrets.length===8&&g.radars.length===2&&g.catapults.length===(isKanto?10:8)&&g.pods.length===(isKanto?9:8),'両軍の対戦施設');
+   ok(g.units.length===20,'10対10');ok(g.jumpPads.length===(isKanto?6:10)&&city.district.roofPads.length===0,'中立の街路パッドだけを配置');
+   ok(g.turrets.length===8&&g.radars.length===2&&g.catapults.length===10&&g.pods.length===(isKanto?9:8),'両軍の対戦施設');
    ok(g.plants.length===(isKanto?5:4)&&g.plants.every(p=>p.owner===null),'全プラントは中立から');
    const markers=isKanto?[['A',-205,165],['B',-444,-255],['C',15,30],['D',375,260],['E',171,-205]]:[['A',51,-23],['B',-70,-56],['C',196,-218],['D',-250,215]];
    for(const [id,x,z] of markers){const p=g.plants.find(p=>p.id===id);ok(p.pos.x===x&&p.pos.z===z,'赤丸の位置を維持',id);}

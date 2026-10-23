@@ -1611,7 +1611,12 @@ function createCityMap(T,layout) {
       if(data.district.railGap){path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();}
       const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
       if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
-      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?data.district.buildingPalette[v.paint]:v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for(const road of data.district.groundPassages||[]){
+        const line=()=>{c.beginPath();c.moveTo(road.from[0]+half,road.from[1]+half);c.lineTo(road.to[0]+half,road.to[1]+half);};
+        c.strokeStyle='#657783';c.lineWidth=road.width;line();c.stroke();
+        c.strokeStyle='#c1e3e8';c.lineWidth=1.5;c.setLineDash([4,3]);line();c.stroke();c.setLineDash([]);
+      }
       for(const exit of data.river.exits||[]){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
@@ -2131,10 +2136,11 @@ const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80;
 let NAV = null;
 function buildNav(nav) {
   NAV = null;
-  if(nav?.encoding==='xz-i16-links-u16'){
+  if(['xz-i16-links-u16','xyz-i16-links-u16'].includes(nav?.encoding)){
     const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer;
     const points=new Int16Array(decode(nav.nodes)),edges=new Uint16Array(decode(nav.links)),nodes=[],links=[];
-    for(let i=0;i<points.length;i+=2)nodes.push([points[i]*nav.step,points[i+1]*nav.step]);
+    const stride=nav.encoding==='xyz-i16-links-u16'?3:2;
+    for(let i=0;i<points.length;i+=stride)nodes.push(Array.from(points.subarray(i,i+stride),v=>v*nav.step));
     for(let i=0;i<edges.length;i+=2)links.push([edges[i],edges[i+1]]);
     nav={nodes,links};
   }
@@ -3060,7 +3066,7 @@ function catModel(cp, acc, dots) {
 function buildCatapults(list) {
 const acc = {}, dots = [];
 const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
-for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true});
+for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true,route:curMap.bases[k].catapultFlight?{flight:curMap.bases[k].catapultFlight}:undefined});
 for(const route of curMap.plantCatapults||[])entries.push({row:[...route.at,...route.exit,route.plant],k:'B',absolute:true,route});
 for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const s = k === 'B' ? 1 : -1;
