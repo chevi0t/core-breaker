@@ -34,7 +34,7 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
    const routes=g.catapults.filter(cp=>cp.targetPlant);check(routes.length===2,'B/D→Cの2基');
    for(const cp of routes)for(const type of ['light','heavy'])for(const team of ['B','R'])for(const dt of [1/30,1/120])for(const offset of [-1.5,0,1.5]){
     reset(cp.pos.clone().add(new T.Vector3(offset,0,0)),type,team);g.catapultUpdate(dt);let land=null,peak=0;
-    for(let t=0;t<cp.flight+2;t+=dt){g.physics(u,new T.Vector3(1,0,0),false,false,dt);peak=Math.max(peak,u.pos.y);if(u.onGround){land=u.pos.clone();break;}}
+    for(let t=0;t<cp.flight+2;t+=dt){g.physics(u,new T.Vector3(),false,false,dt);peak=Math.max(peak,u.pos.y);if(u.onGround){land=u.pos.clone();break;}}
     const error=land?Math.hypot(land.x-cp.land.x,land.z-cp.land.z):Infinity;
     check(land&&Math.abs(land.y-cp.land.y)<.05&&error<6,'ビルを越え中央の指定位置へ着地',{plant:cp.plant.id,flight:cp.flight,type,team,dt,offset,land:land?.toArray(),error});
     rows.push({kind:'catapult',plant:cp.plant.id,target:cp.targetPlant.id,type,team,dt,offset,flight:cp.flight,peak,error});

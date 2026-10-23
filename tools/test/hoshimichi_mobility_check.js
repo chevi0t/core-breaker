@@ -56,7 +56,7 @@ plan.groundPassages=imported.groundPassages;
    }
    for(const cp of g.catapults)for(const type of ['light','heavy'])for(const team of ['B','R'])for(const dt of [1/30,1/120]){
     reset(cp.pos,type,team);g.catapultUpdate(dt);let peak=-Infinity,land=null;
-    for(let t=0;t<cp.flight+2;t+=dt){g.physics(u,new T.Vector3(1,0,0),false,false,dt);peak=Math.max(peak,u.pos.y);if(u.onGround){land=u.pos.clone();break;}}
+    for(let t=0;t<cp.flight+2;t+=dt){g.physics(u,new T.Vector3(),false,false,dt);peak=Math.max(peak,u.pos.y);if(u.onGround){land=u.pos.clone();break;}}
     const error=land?Math.hypot(land.x-cp.land.x,land.z-cp.land.z):Infinity;
     ok(land&&error<6&&Math.abs(land.y-cp.land.y)<.1,'高角台・前線台の最初の接地が指定地点6m以内',{plant:cp.plant?.id,type,team,dt,error,land:land?.toArray()});
     ok(peak-cp.pos.y>70,'短距離の基地台も高く打ち上がる',{from:cp.pos.toArray(),peak,flight:cp.flight});

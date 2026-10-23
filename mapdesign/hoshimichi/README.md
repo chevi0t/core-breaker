@@ -23,7 +23,7 @@
 
 共有の垂直ジャンプパッド10基を、高架を両方向へ越える街路と東西の街区に追加。踏み口の頭上を空け、通常の空中操作で屋根へ着地し、その先の道路へ降りられる位置を選ぶ。屋根の途中で低い段へ下りた後、再び登れなくなる配置は候補から除く。基地専用の巨大パッドは戻さない。
 
-両基地の8台は飛行4.2秒の高角軌道にし、最高点は路面から約75m。D→Aは5.4秒、C→Bは6.4秒で街区を越え、占拠円の手前の道路へ着地する。いずれも両軍が使える。既存のパッド物理とカタパルトの指定時間の処理を使い、星路の設定で高さを選ぶ。具体的な踏み口・屋根・退出路、通路座標・加工元の高さは [import.json](import.json)。
+両基地の8台は飛行4.2秒の高角軌道にし、最高点は路面から約75m。D→Aは5.4秒、C→Bは6.4秒で街区を越え、占拠円の手前の道路へ着地する。いずれも両軍が使える。操作禁止は最初の1秒だけ。無入力なら指定の道路へ届き、解除後は空中ダッシュと滞空で調整できる。途中で接地した場合も操作禁止を残さない。既存のパッド物理とカタパルトの指定時間の処理を使い、星路の設定で高さを選ぶ。具体的な踏み口・屋根・退出路、通路座標・加工元の高さは [import.json](import.json)。
 
 ## 本体との接続
 
@@ -44,6 +44,7 @@ PYTHONPATH=/path/to/plateau-python python3 tools/import_city_map.py
 python3 tools/build_maps.py
 python3 tools/test/city_map_format_check.py
 python3 tools/test/make_dbg.py dbg
+node tools/test/catapult_control_check.js dbg
 node tools/test/hoshimichi_mobility_check.js dbg
 node tools/test/hoshimichi_check.js dbg 600
 node tools/test/hoshimichi_integration_check.js dbg
@@ -52,8 +53,10 @@ node tools/test/quick_check.js origin/main 60
 node tools/test/kanto_mobility_check.js dbg
 ```
 
+[カタパルトの操作解除](../catapult-control-check.json)は台地・星路・環都の全30台、軽量/重量・両軍・30/120Hzの240条件で、無入力の着地と1秒後のShift・Space長押しを確認する。天井で1秒以内に着地する8条件でもダッシュと地上ジャンプが使える。
+
 地上4通路の徒歩往復48条件（軽量・標準・重量機、30/120Hz）、本体Bot16条件、上面16地点と天井への射撃を検査する。パッド10基は屋根から反対側の道路までの実走120条件と、本体Botによる屋上到達40条件。カタパルト10基は両軍・軽量/重量・30/120Hzの80条件。結果は [mobility-check.json](mobility-check.json)。
 
-対戦施設の専用検査はカタパルト60条件（軽量・標準・重量機、30/120Hz）、占拠・再出撃192サンプル、両基地から4地点への徒歩8経路、補給の制約、隠れたポッドの視認、砲台・レーダーを本体で確認する。最初の接地と停止後の位置を別々に検査し、初回接地の目標誤差は最大2.03m。対戦の記録は [battle-check.json](battle-check.json)。本体20機の確認試合は600秒で正常終了し、撃破214回・占拠23回・射出台使用182回、ブラウザエラー0だった。
+対戦施設の専用検査はカタパルト60条件（軽量・標準・重量機、30/120Hz）、占拠・再出撃192サンプル、両基地から4地点への徒歩8経路、補給の制約、隠れたポッドの視認、砲台・レーダーを本体で確認する。最初の接地と停止後の位置を別々に検査し、初回接地の目標誤差は最大2.03m。対戦の記録は [battle-check.json](battle-check.json)。本体20機の確認試合は600秒で正常終了し、撃破259回・占拠27回・射出台使用182回、ブラウザエラー0だった。
 
 通常HTMLでの操作、従来マップとの切替と破棄、既存配置の同値性の結果は [integration-check.json](integration-check.json)。既存武器・パーツの値は簡易検査でも変更0を確認する。これらは動作確認で、200〜2,000試合による勝率の検証やFPSの測定は行っていない。

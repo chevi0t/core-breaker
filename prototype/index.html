@@ -3090,7 +3090,8 @@ function launch(u, cp) {
   const t = cp.flight ?? CAT_FLIGHT;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
-  Object.assign(u, { flying: true, ctrlLockT: cp.flight ?? CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
+  // 軌道の飛行時間と操作禁止を分ける。高角・長距離でも最初の1秒だけ固定する。
+  Object.assign(u, { flying: true, ctrlLockT: CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
 }
@@ -4727,7 +4728,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.catCd -= dt;
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
-    if (u.ctrlLockT > 0) { u.ctrlLockT -= dt; accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
+    if (u.ctrlLockT > 0) { u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
     else if (!u.dashState || u.dashState === 'hover') {
       accel = wish.lengthSq() > 0.01 ? 1.5 : 0;
       // 空中ダッシュ後に射出時より速くならないようにする
@@ -4759,7 +4760,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.jumpPad = null;
+    // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));

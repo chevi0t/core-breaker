@@ -36,7 +36,7 @@
 | B→C | -415.3, -240.9 | -9.2, 18.1 | 6.2秒 |
 | D→C | 353.8, 243.3 | 36.2, 46.7 | 5秒 |
 
-高層棟を越えるため、この2台だけ着地まで操作を固定する。案内光も実際と同じ放物線を描く。初回接地後は通常の接地摩擦で滑って止まり、占拠円手前の安全な到着域に収まる。基地の8台は従来どおり飛行2.8秒・最初の1秒だけ操作固定。
+高層棟を越える無入力の軌道を設定する。操作禁止は他の台と同じ最初の1秒だけで、その後は空中ダッシュと滞空で調整できる。案内光も実際と同じ放物線を描く。初回接地後は通常の接地摩擦で滑って止まり、占拠円手前の安全な到着域に収まる。基地の8台は従来どおり飛行2.8秒・最初の1秒だけ操作固定。
 
 ## 外観
 
@@ -64,6 +64,7 @@ python3 tools/build_maps.py
 python3 tools/build_kanto_play.py
 python3 tools/test/city_map_format_check.py
 python3 tools/test/make_dbg.py dbg
+node tools/test/catapult_control_check.js dbg
 node tools/test/kanto_mobility_check.js dbg
 node tools/test/match_size_check.js dbg
 node tools/test/charger_boost_check.js dbg
@@ -78,7 +79,9 @@ node tools/test/bot_battle.js dbg city,wide,mesa,dock 150
 
 ## 動作確認
 
-本体の移動・占拠・射撃・勝敗処理で検査した。[対戦記録](battle-check.json)は移動設備・芝生・加速中のブースト回復の追加後、20機すべてをBotとして600秒を上限に動かした1試合。約574秒で青コアが破壊され、195撃破・14占拠・156回射出で正常終了した。陣営別の長期勝率や実機FPSは未測定。
+本体の移動・占拠・射撃・勝敗処理で検査した。[対戦記録](battle-check.json)は移動設備・芝生・加速中のブースト回復の追加後、20機すべてをBotとして600秒を上限に動かした1試合。約501秒で橙コアが破壊され、173撃破・16占拠・139回射出で正常終了した。陣営別の長期勝率や実機FPSは未測定。
+
+[カタパルトの操作解除](../catapult-control-check.json)は台地・星路・環都の全30台で、飛行時間によらず1秒後にShiftとSpace長押しが使えること、無入力なら着地点へ届くこと、早期着地でも禁止が残らないことを確認する。
 
 [移動設備の実走](mobility-check.json)は、パッド72条件（軽量・標準・重量×両軍×30/120Hz×6基）の屋上着地と地上への離脱、B/D→Cの射出48条件（軽量・重量×両軍×30/120Hz×立ち位置3種）、本体Botの判断による屋上到達24条件を確認した。既存の垂直パッドの物理は変更していない。
 
