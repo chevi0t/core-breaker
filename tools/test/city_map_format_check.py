@@ -48,9 +48,16 @@ packed_cases={
  '途切れた経路座標':lambda d:d['nav'].update(nodes='AA=='),
  '範囲外の経路座標':lambda d:d['nav'].update(nodes=base64.b64encode(bytes([255,127,255,127])).decode()),
  '存在しない経路の参照':lambda d:d['nav'].update(links=base64.b64encode(bytes([255,255,254,255])).decode()),
+ '存在しない射出元':lambda d:d['plantCatapults'][0].update(plant='Z'),
+ '存在しない射出先':lambda d:d['plantCatapults'][0].update(targetPlant='Z'),
+ '長すぎる飛行時間':lambda d:d['plantCatapults'][0].update(flight=20),
+ '範囲外の到着位置':lambda d:d['plantCatapults'][0].update(exit=[999,0]),
+ '射出先の形が不正':lambda d:d['plantCatapults'][0].update(exit=None),
+ '公園の色が不正':lambda d:d['cityTerrain']['district']['lawns'][0].update(color='invalid'),
+ '公園の輪郭が不正':lambda d:d['cityTerrain']['district']['lawns'][0].update(rings=[]),
 }
 for name,mutate in packed_cases.items():
     data=copy.deepcopy(urban);mutate(data)
     assert check(data),name+' を拒否する'
     print(name+'：拒否を確認')
-print('1km正常データ1件・破損経路5件の検査完了')
+print(f'1km正常データ1件・破損データ{len(packed_cases)}件の検査完了')

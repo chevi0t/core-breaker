@@ -183,12 +183,14 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 .sb td.tot { color: #fff; font-weight: 700; }
 .sb tr.me td { background: rgba(255, 211, 77, .16); color: #fff; }
 .sb tr.dead td { color: var(--dim); }
-#largeBattleControl[hidden] { display: none; }
+.battleSize { margin: 0; border: 1px solid #526674; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+.battleSize label { display: grid; gap: 5px; font-size: 13px; }
+.battleSize select { width: 100%; min-width: 0; }
+.battleSize small, .battleSize button { grid-column: 1 / -1; }
 .arenaWeapon { display: grid; gap: 5px; padding: 10px; font-family: var(--body); }
 .arenaWeapon[hidden] { display: none; }
-.arenaWeapon select { width: 100%; padding: 7px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
+.arenaWeapon select, .battleSize select { width: 100%; padding: 7px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
 #wpn .restricted { opacity: .3; }
-#largeBattleHint { display: block; margin: 4px 0 0; line-height: 1.6; }
 .card.wide { max-width: 940px; }
 /* キルカメラ（v0.16）：映している間は再出撃の画面を下の端へ寄せ、その一番上に倒した相手の名前 */
 #respawn.kc { top: calc(100% - 16px); transform: translate(-50%, -100%); }
@@ -855,7 +857,12 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
         <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
-        <label class="sw" id="largeBattleControl" hidden><span>50対50（実験）<small id="largeBattleHint">通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機</small></span><input type="checkbox" role="switch" id="largeBattleSw" aria-label="50対50（実験）"><i aria-hidden="true"></i></label>
+        <fieldset class="battleSize" id="battleSizeControl">
+          <legend>参加人数・BOT数</legend>
+          <label>片軍の人数（両軍共通）<select id="teamSize" aria-label="片軍の人数"></select></label>
+          <small id="battleSizeHint" aria-live="polite"></small>
+          <button type="button" id="resetBattleSize">マップの推奨人数に戻す</button>
+        </fieldset>
         <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
         <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
         <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
@@ -1291,6 +1298,7 @@ function expandCityLayout(T,data){
   });
   data.volumes=data.volumes.map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
   for(const d of data.decorations)d.rings=unpackRings(d.rings);
+  for(const lawn of data.district.lawns||[])lawn.rings=unpackRings(lawn.rings);
   delete data.volumeKinds;
   const layers={},colors={};
   const add=(name,points,color,glass=false)=>{
@@ -1328,6 +1336,7 @@ function expandCityLayout(T,data){
     add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
   }
   for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
+  for(const lawn of data.district.lawns||[])add('grass',faces(lawn.rings,.06),lawn.color);
   for(const rings of data.river.rings){
     add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
     add('water',faces(rings,data.river.water));
@@ -1595,6 +1604,7 @@ function createCityMap(T,layout) {
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
       for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
+      for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
       if(data.district.roadColor){
         c.fillStyle=data.district.roadColor;
         for(let i=0;i<arrays.tran.length;i+=9){const a=arrays.tran;path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);c.fill();}
@@ -1651,7 +1661,7 @@ function createCityMap(T,layout) {
         }
       }
       compactGeometry(geo,'render');
-      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:colors[k];
+      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='grass'?0xffffff:colors[k];
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
@@ -1848,14 +1858,13 @@ const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([i
 ]).sort((x, y) => (x[1].order ?? 99) - (y[1].order ?? 99)));
 // 同じアリーナの地形を使う別ルール。公開中の maps.js でも選べるよう、エンジン側で派生させる。
 if (MAPS.dock) MAPS['dock-melee'] = { ...MAPS.dock, name: '港の倉庫街 〜近接限定〜', order: (MAPS.dock.order || 4) + .01, meleeOnly: true,
-  desc: '2対2・近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
+  desc: '近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
 const FIRST_MAP = Object.keys(MAPS)[0];
 let curMap = null, mapId = '';
 const meleeOnly = () => !!curMap?.meleeOnly;
-// 大人数は潮路搬送区の3配置だけで試す。選択はこのページを開いている間だけ有効。
-let largeBattle = false;
-const largeBattleMap = d => d?.group === 'tidal';
-const battleTeamSize = (d = curMap) => largeBattle && largeBattleMap(d) ? 50 : d.team;
+// 人数は全マップ共通で選び、再読み込みまでは維持する。未指定ならマップの推奨人数。
+let selectedTeamSize = null;
+const battleTeamSize = (d = curMap) => selectedTeamSize ?? d.team;
 let MAP_X = 135, MAP_Z = 240;
 const smooth = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 function mirrored(f) {
@@ -3009,7 +3018,7 @@ function accBar(acc, key, a, b, r) {
 }
 // 1基の見た目。飛ぶ道は launch と同じ式で、台の中心から飛んだときの機体の胴の高さ（足元 + UNIT_H/2）を通る
 function catModel(cp, acc, dots) {
-  const P = cp.pos, L = cp.land, TF = CAT_FLIGHT;
+  const P = cp.pos, L = cp.land, TF = cp.flight ?? CAT_FLIGHT;
   const vx = (L.x - P.x) / TF, vz = (L.z - P.z) / TF, vy = 0.5 * GRAV * TF + (L.y - P.y) / TF;
   const at = t => new T.Vector3(P.x + vx * t, P.y + UNIT_H / 2 + vy * t - 0.5 * GRAV * t * t, P.z + vz * t);
   const tan = t => new T.Vector3(vx, vy - GRAV * t, vz).normalize();
@@ -3053,13 +3062,14 @@ function buildCatapults(list) {
 const acc = {}, dots = [];
 const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
 for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true});
-for (const {row:[x,z,lx,lz,pid],k,absolute} of entries) {
+for(const route of curMap.plantCatapults||[])entries.push({row:[...route.at,...route.exit,route.plant],k:'B',absolute:true,route});
+for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const s = k === 'B' ? 1 : -1;
   const own = pid ? plants.find(p => p.id === pid) : null;
-  const plant = own ? (k === 'B' ? own : mirrorPlant(own)) : null;
+  const plant = own ? (absolute || k === 'B' ? own : mirrorPlant(own)) : null;
   const [px,pz]=absolute?[x,z]:pid?[x*s,z*s]:baseCoords(k,x,z),[tx,tz]=absolute?[lx,lz]:[lx*s,lz*s];
   const pos = new T.Vector3(px, terrainH(px,pz), pz), land = new T.Vector3(tx, terrainH(tx,tz), tz);
-  const cp = { side: k, plant, pos, land, flash: 0, phase: Math.random() * 6.3 };
+  const cp = { side: k, plant, pos, land, flight: route?.flight, targetPlant: plants.find(p=>p.id===route?.targetPlant), flash: 0, phase: Math.random() * 6.3 };
   catModel(cp, acc, dots);
   catapults.push(cp);
 }
@@ -3072,10 +3082,10 @@ dots.forEach((d, i) => im.setMatrixAt(i, m.compose(d.p, q, new T.Vector3(d.s, d.
 mapRoot.add(im);
 }
 function launch(u, cp) {
-  const t = CAT_FLIGHT;
+  const t = cp.flight ?? CAT_FLIGHT;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
-  Object.assign(u, { flying: true, ctrlLockT: CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
+  Object.assign(u, { flying: true, ctrlLockT: cp.flight ?? CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
 }
@@ -4547,7 +4557,7 @@ function botSpawn(u, first) {
   spawn(u, at);
   // ベースから出た攻撃役はカタパルトで前線へ。プラントから出たときも、そのプラントに台があれば半分はそれで飛ぶ。
   // 台は誰でも使えるので、自軍側のベースの台と、敵陣の方へ飛ぶプラントの台を選ぶ
-  const ahead = c => Math.sign(c.land.z - c.pos.z) === TEAM[u.team].dir;
+  const ahead = c => c.targetPlant ? c.targetPlant.owner !== u.team : Math.sign(c.land.z - c.pos.z) === TEAM[u.team].dir;
   if (at === 'base' && u.role !== 'defend' && Math.random() < 0.75) {
     const cs = catapults.filter(c => !c.plant && c.side === u.team);
     if (cs.length) u.waypoint = cs[Math.floor(Math.random() * cs.length)].pos.clone();
@@ -4703,11 +4713,11 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
   const hover = !u.dashState && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover) u.dashState = 'hover';
-  if (!u.dashState) {
+  if (!u.dashState || charging) {
     u.boostIdle += dt;
     if (u.boostIdle > 0.5) u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt); // オーバーヒートは全回復まで（約2秒）
     if (u.overheat && u.boost >= u.maxBoost) u.overheat = false;
-    if (u.overheat) speed = u.walkV * 0.55;
+    if (u.overheat && !charging) speed = u.walkV * 0.55;
   }
   u.catCd -= dt;
   if (u.flying) {
@@ -9530,7 +9540,7 @@ function mechPreview(dt) {
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
-const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}${largeBattle && largeBattleMap(d) ? '（実験）' : ''}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
+const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
   const city=getCityMap(d);
@@ -9567,16 +9577,16 @@ function drawMapPreview(cv, d) {
 const mapGroupsOpen = new Set();
 const mapCanvas = d => `<canvas width="90" height="${Math.round(90 * d.size[1] / d.size[0])}"></canvas>`;
 // 旧説明の固定色による場所名を、出撃側によらない方角で表示する。
-const mapDescription = text => text.replace(/青(?=基地|拠点|側)/g, '南側').replace(/橙(?=基地|拠点|側)/g, '北側');
+const mapDescription = text => text.replace(/青(?=基地|拠点|側)/g, '南側').replace(/橙(?=基地|拠点|側)/g, '北側').replace(/(\d+)対\1/g, '推奨$&');
 function mapCardHtml(id, d, label) {
   return `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}">${mapCanvas(d)}<span><b>${label}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${mapDescription(d.desc)}</em></span></button>`;
 }
 function renderMapList() {
   $('mapAttribution').textContent=curMap?.attribution||'';
-  if (!largeBattleMap(curMap)) largeBattle = false;
-  $('largeBattleControl').hidden = !largeBattleMap(curMap);
-  $('largeBattleSw').checked = largeBattle;
-  $('largeBattleHint').textContent = largeBattle ? 'あなた＋味方BOT49機 対 敵BOT50機。1大破でコアが1/800減ります。通常より動作が重くなります' : '通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機';
+  const count = battleTeamSize();
+  $('teamSize').innerHTML = Array.from({length:49},(_,i)=>`<option value="${i+2}">${i+2}対${i+2}${i+2===curMap.team?'（推奨）':''}</option>`).join('');
+  $('teamSize').value = count;
+  $('battleSizeHint').textContent = `自分1機＋味方BOT${count-1}機 対 敵BOT${count}機。人数はマップ変更後も維持します。`;
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
   const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
   for (const [id, d] of list) {
@@ -9603,7 +9613,12 @@ function renderMapList() {
   renderClsButtons();
 }
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
-$('largeBattleSw').addEventListener('change', () => { largeBattle = $('largeBattleSw').checked && largeBattleMap(curMap); renderMapList(); });
+$('teamSize').addEventListener('change',e=>{
+  const n=Number(e.target.value);
+  if(Number.isInteger(n)&&n>=2&&n<=50)selectedTeamSize=n;
+  renderMapList();
+});
+$('resetBattleSize').addEventListener('click',()=>{selectedTeamSize=null;renderMapList();});
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id) {

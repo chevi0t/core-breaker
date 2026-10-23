@@ -1,16 +1,16 @@
 {
   "sourceCommit": "901911e",
   "sourceSHA256": "f8c25e2f0bd5b64afd7652241f11a8810ff86635120166ccb04a10cb02e5b932",
-  "mapDataBytes": 93806,
-  "mapFileBytes": 94006,
-  "geometryBytes": 82068,
+  "mapDataBytes": 94714,
+  "mapFileBytes": 94914,
+  "geometryBytes": 82167,
   "navigation": {
-    "nodes": 655,
-    "links": 1026,
+    "nodes": 665,
+    "links": 1056,
     "gridStep": 4,
     "freeCells": 36448
   },
-  "triangles": 22384,
+  "triangles": 22388,
   "landmarks": [
     {
       "id": "central-station",
@@ -340,6 +340,121 @@
       ]
     ]
   },
+  "plantCatapults": [
+    {
+      "at": [
+        -415.3,
+        -240.9
+      ],
+      "exit": [
+        -9.2,
+        18.1
+      ],
+      "plant": "B",
+      "targetPlant": "C",
+      "flight": 6.2
+    },
+    {
+      "at": [
+        353.8,
+        243.3
+      ],
+      "exit": [
+        36.2,
+        46.7
+      ],
+      "plant": "D",
+      "targetPlant": "C",
+      "flight": 5.0
+    }
+  ],
+  "jumpPads": [
+    {
+      "at": [
+        -428,
+        -64,
+        0
+      ],
+      "exit": [
+        -415.3,
+        -58.57,
+        20.0
+      ],
+      "rise": 52,
+      "radius": 3
+    },
+    {
+      "at": [
+        -258,
+        -140,
+        0
+      ],
+      "exit": [
+        -252.56,
+        -150.09,
+        44.0
+      ],
+      "rise": 76,
+      "radius": 3
+    },
+    {
+      "at": [
+        -222,
+        102,
+        0
+      ],
+      "exit": [
+        -228.52,
+        90.58,
+        12.0
+      ],
+      "rise": 44,
+      "radius": 3
+    },
+    {
+      "at": [
+        178,
+        -125,
+        0
+      ],
+      "exit": [
+        190.0,
+        -123.54,
+        44.0
+      ],
+      "rise": 76,
+      "radius": 3
+    },
+    {
+      "at": [
+        50,
+        239,
+        0
+      ],
+      "exit": [
+        53.23,
+        228.92,
+        56.0
+      ],
+      "rise": 88,
+      "radius": 3
+    },
+    {
+      "at": [
+        308,
+        54,
+        0
+      ],
+      "exit": [
+        298.11,
+        63.06,
+        32.0
+      ],
+      "rise": 64,
+      "radius": 3
+    }
+  ],
+  "parkArea": 37526.2,
   "respawnSlots": {
     "B": {
       "A": 6,

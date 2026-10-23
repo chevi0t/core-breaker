@@ -71,8 +71,8 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     async function mix(large, master = 100, withPriority = false) {
       const q = await page(true);
       await q.evaluate(({ large, master }) => {
-        const g = __g; g.selectMap('tidal'); document.getElementById('largeBattleSw').checked = large;
-        document.getElementById('largeBattleSw').dispatchEvent(new Event('change'));
+        const g = __g; g.selectMap('tidal');
+        for(const id of ['teamSize']){const el=document.getElementById(id);el.value=large?50:10;el.dispatchEvent(new Event('change'));}
         document.getElementById('start').click();
         document.getElementById('optMaster').value = master; document.getElementById('optMaster').dispatchEvent(new Event('input'));
         g.initAudio();

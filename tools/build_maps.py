@@ -44,6 +44,14 @@ function check(d) {
   for (const [pid, x, z, own] of d.plants) { inMap(x, z, 'プラント' + pid); if (![null, 'B', 'R'].includes(own)) E(`プラント${pid} の最初の持ち主は 'B'・'R'・null`); }
   for (const [pid, x, z] of d.plantPods) { if (!ids.includes(pid)) E(`plantPods のプラント ${pid} が無い`); inMap(x, z, 'ポッド'); }
   for (const c of d.catapults) { inMap(c[0], c[1], 'カタパルト'); inMap(c[2], c[3], 'カタパルトの着地点'); if (c[4] && !ids.includes(c[4])) E(`カタパルトのプラント ${c[4]} が無い`); }
+  if(d.plantCatapults!==undefined){
+    if(!Array.isArray(d.plantCatapults))E('plantCatapults は配列');
+    else for(const c of d.plantCatapults){
+      if(!c||!ids.includes(c.plant)||!ids.includes(c.targetPlant)||c.plant===c.targetPlant)E('plantCatapults の出発・到着プラントが不正');
+      for(const key of ['at','exit'])if(!Array.isArray(c?.[key])||c[key].length!==2||!c[key].every(num))E('plantCatapults.'+key+' は [x,z]');else inMap(...c[key],'プラント間カタパルト');
+      if(!num(c?.flight)||c.flight<2.8||c.flight>8)E('plantCatapults.flight は2.8〜8秒');
+    }
+  }
   for (const [x,z] of [...d.turrets,...d.basePods,d.radar]) {
     if(d.bases)for(const team of ['B','R']){
       const s=team==='B'?1:-1,p=d.bases[team]?.at;
@@ -98,6 +106,13 @@ function check(d) {
         const bytes=Buffer.from(r,'base64');
         if(bytes.length<12||bytes.length%4)E(what+' は3頂点以上のint16のXZ座標');
       };
+      if(c.district?.lawns!==undefined){
+        if(!Array.isArray(c.district.lawns))E('都市のlawnsは配列');
+        else for(const lawn of c.district.lawns){
+          if(!lawn||!/^#[0-9a-f]{6}$/i.test(lawn.color)||!Array.isArray(lawn.rings)||!lawn.rings.length)E('芝生の色・輪郭が不正');
+          else for(const r of lawn.rings)ring(r,'芝生の輪郭');
+        }
+      }
       if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
       if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
       else for(const v of c.volumes){

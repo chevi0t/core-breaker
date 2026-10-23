@@ -15,6 +15,7 @@ import shapely
 from scipy.ndimage import label
 from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point, Polygon, box
+from shapely.ops import nearest_points
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 OUT=ROOT/'mapdesign/kanto'
@@ -102,6 +103,68 @@ class Streets:
         return abs(p[0])<498-r and abs(p[1])<498-r and not any(lo<4.1 and hi>.3 and shape.distance(q)<r for shape,lo,hi in (self.volumes[i] for i in self.tree.query(q.buffer(r))))
     def clear(self,a,b):return not self.blocked.intersects(LineString([a,b]))
     def heights(self,p):return np.zeros(len(p))
+
+
+def plant_routes(streets,canopy,occupied):
+    """2つの前線から中央へ。線分だけでなく機体の太さを含む放物線を検査する。"""
+    routes=[];solids=[*streets.volumes,(Polygon(canopy['ring']),49.2,76)]
+    for ident in ['B','D']:
+        source=np.array(next(p[1:3] for p in PLANTS if p[0]==ident));target=np.array([15,30])
+        angle=math.atan2(*(target-source)[::-1]);starts=[];ends=[]
+        for radius in [27,32,38]:
+            for delta in np.linspace(-1.2,1.2,49):
+                for center,heading,choices in [(source,angle,starts),(target,angle+math.pi,ends)]:
+                    p=np.round(center+[math.cos(heading+delta)*radius,math.sin(heading+delta)*radius],1).tolist()
+                    if streets.free(p,5) and not streets.air.intersects(Point(p).buffer(3)) and all(math.dist(p,q)>10 for q in occupied):choices.append(p)
+        starts=sorted(starts,key=lambda p:math.dist(p,source+(target-source)/np.linalg.norm(target-source)*30))[:12]
+        ends=sorted(ends,key=lambda p:math.dist(p,target+(source-target)/np.linalg.norm(source-target)*30))[:12]
+        assert starts and ends,('プラント間の射出・着地空間なし',ident)
+        best=None
+        for a in starts:
+            for b in ends:
+                f=np.linspace(0,1,241);xz=np.array(a)[None,:]+(np.array(b)-a)[None,:]*f[:,None]
+                points=shapely.points(xz);corridor=LineString([a,b]).buffer(2)
+                crossings=[(shapely.intersects(poly.buffer(2),points),lo,hi) for poly,lo,hi in solids if poly.intersects(corridor)]
+                for flight in np.arange(2.8,8.01,.2):
+                    y=.5*34*flight**2*f*(1-f)
+                    if any(np.any(mask&(y<hi+3)&(y+4>lo)) for mask,lo,hi in crossings):continue
+                    cost=flight*100+math.dist(a,source)*.1+math.dist(b,target)*.1
+                    if best is None or cost<best[0]:best=(cost,a,b,round(float(flight),1))
+                    break
+        assert best,('高層棟を越える射出軌道なし',ident)
+        _,a,b,flight=best;routes.append(dict(at=a,exit=b,plant=ident,targetPlant='C',flight=flight))
+        occupied.extend([a,b])
+    return routes
+
+
+def roof_pads(streets,canopy,occupied):
+    """垂直射出は本体のまま。遅い機体でも届く、縁から余裕のある屋根を選ぶ。"""
+    heights=sorted({hi for _,_,hi in streets.volumes},reverse=True);covered=Polygon(canopy['ring']);roofs=[]
+    for h in heights:
+        at_height=shapely.union_all([p for p,_,hi in streets.volumes if hi==h])
+        if 12<=h<=72:
+            for p in parts(at_height.difference(covered).buffer(-5)):
+                if p.area>80:roofs.append((p,h))
+        covered=covered.union(at_height)
+    pads=[]
+    for seed in [(-422,-70),(-240,-134),(-210,120),(160,-125),(50,245),(320,30)]:
+        choices=[]
+        for dx in range(-66,67,6):
+            for dz in range(-66,67,6):
+                p=[seed[0]+dx,seed[1]+dz];point=Point(p)
+                if not streets.free(p,4.3) or streets.air.intersects(point.buffer(2.6)):continue
+                if any(math.dist(p,b['at'])<120 for b in BASES.values()):continue
+                if any(math.dist(p,pl[1:3])<23 for pl in PLANTS):continue
+                if any(math.dist(p,q)<11 for q in occupied) or any(math.dist(p,j['at'][:2])<75 for j in pads):continue
+                for roof,h in roofs:
+                    if roof.distance(point)>15 or roof.distance(point)<9:continue
+                    q=nearest_points(point,roof)[1];end=np.round(q.coords[0],2).tolist()
+                    cost=math.dist(p,seed)+abs(math.dist(p,end)-12)*2
+                    choices.append((cost,p,end,h))
+        assert choices,('安全な屋上ジャンプパッドなし',seed)
+        _,p,q,h=min(choices,key=lambda v:v[0]);rise=min(100,int(math.ceil((h+32)/4)*4))
+        pads.append(dict(at=[*p,0],exit=[*q,h],rise=rise,radius=3))
+    return pads
 
 
 def thin(mask):
@@ -208,6 +271,9 @@ def build():
     data['surfaces']['brid'],canopy=station_canopy()
     data['district']={'bases':[dict(team=team,**b) for team,b in BASES.items()],'roofPads':[],
                       'unifiedGround':{'color':'#92978b'},'roadColor':'#56656b','buildingPalette':palette,'glassTint':True,'stationCanopy':canopy}
+    # うめきた公園に相当するB周辺。舗装された道と建物の輪郭は残す。
+    park=box(-498,-410,-360,-135).difference(road_shape)
+    data['district']['lawns']=[{'rings':pack_polygon(p),'color':'#789c57'} for p in parts(park) if p.area>10]
     extra=[(box(x-w/2,z-d/2,x+w/2,z+d/2),0,5) for x,z,w,d,_,_ in walls]
     def local(team,p):
         s=1 if team=='B' else -1;b=BASES[team]['at'];return [b[0]+p[0]*s,b[1]+(p[1]-480)*s]
@@ -256,12 +322,18 @@ def build():
     for s in shelters:
         x,z=s['at'];extra.append((box(x-5,z-5,x+5,z+5),-2,1))
     streets=Streets(volumes,extra)
+    occupied=[p[1:3] for p in plant_pods]+[row[:2] for rows in cats.values() for row in rows]
+    occupied.extend(p for slots in respawns.values() for points in slots.values() for p in points)
+    routes=plant_routes(streets,canopy,occupied)
+    pads=roof_pads(streets,canopy,occupied)
+    for route in routes:anchors.extend([(f"cat-{route['plant']}-C",route['at']),(f"land-{route['plant']}-C",route['exit'])])
+    for i,pad in enumerate(pads):anchors.append((f'roof-pad-{i}',pad['at'][:2]))
     nav,navstats=navigation(streets,anchors)
     definition=dict(name='環都駅前・五街区争奪戦',order=81,size=[500,500],team=10,time=600,baseZ=480,baseLine=400,
         desc='中央駅と百貨店周辺の1km四方で5プラントを争う。両基地のカタパルトから街路へ展開。',
         terrain=[],layout=walls,plants=PLANTS,turrets=turrets,radar=radar,catapults=[],basePods=basepods,plantPods=plant_pods,
         barricades=[],asym=True,nav=nav,bases={team:{'at':b['at'],'radius':28,'catapults':cats[team]} for team,b in BASES.items()},
-        jumpPads=[],cityTerrain=data,cityBattle={'nodeReach':1.5,'respawns':respawns,'baseSpawns':base_spawns},
+        jumpPads=pads,plantCatapults=routes,cityTerrain=data,cityBattle={'nodeReach':1.5,'respawns':respawns,'baseSpawns':base_spawns},
         attribution='大阪市・国土交通省 Project PLATEAU（北区2025年度）、国土地理院の道路中心線・標高。CC BY 4.0。街区・地面・対戦施設を加工。出典：https://github.com/chevi0t/core-breaker/blob/main/mapdesign/kanto/CREDITS.md')
     data.pop('attribution',None)
     measure="""
@@ -280,7 +352,8 @@ console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v
         'landmarks':landmark_stats,
         'stationCanopy':canopy,
         'plants':PLANTS,'bases':BASES,'baseClearings':[list(p.exterior.coords) for p in CLEARINGS],'shelters':shelters,
-        'catapults':cats,'respawnSlots':{t:{k:len(v) for k,v in d.items()} for t,d in respawns.items()}}
+        'catapults':cats,'plantCatapults':routes,'jumpPads':pads,'parkArea':round(park.area,1),
+        'respawnSlots':{t:{k:len(v) for k,v in d.items()} for t,d in respawns.items()}}
     (ROOT/'prototype/maps/kanto.js').write_text(js);(OUT/'generation.json').write_text(json.dumps(stats,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps(stats,ensure_ascii=False),flush=True)
     assert len(js.encode())<=100000,('マップ全体が100KBを超過',len(js.encode()))

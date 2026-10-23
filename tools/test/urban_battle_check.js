@@ -25,8 +25,8 @@ const config={seed:+(process.argv[4]||20261023),team:process.argv[5]||'B'};
   const facilities=await page.evaluate(()=>{
    const g=__g,{T,city}=g,isKanto=g.curMap.name.startsWith('環都'),floor=isKanto?0:-2;g.setup();g.running=false;g.scene.updateMatrixWorld(true);
    function ok(test,message,data){if(!test)throw Error(message+' '+JSON.stringify(data));}
-   ok(g.units.length===20,'10対10');ok(g.jumpPads.length===0&&city.district.roofPads.length===0,'片軍だけの屋上ジャンプパッドを撤去');
-   ok(g.turrets.length===8&&g.radars.length===2&&g.catapults.length===8&&g.pods.length===(isKanto?9:8),'両軍の対戦施設');
+   ok(g.units.length===20,'10対10');ok(g.jumpPads.length===(isKanto?6:0)&&city.district.roofPads.length===0,'中立の街路パッドだけを配置');
+   ok(g.turrets.length===8&&g.radars.length===2&&g.catapults.length===(isKanto?10:8)&&g.pods.length===(isKanto?9:8),'両軍の対戦施設');
    ok(g.plants.length===(isKanto?5:4)&&g.plants.every(p=>p.owner===null),'全プラントは中立から');
    const markers=isKanto?[['A',-205,165],['B',-444,-255],['C',15,30],['D',375,260],['E',171,-205]]:[['A',51,-23],['B',-70,-56],['C',196,-218],['D',-250,215]];
    for(const [id,x,z] of markers){const p=g.plants.find(p=>p.id===id);ok(p.pos.x===x&&p.pos.z===z,'赤丸の位置を維持',id);}
@@ -37,11 +37,13 @@ const config={seed:+(process.argv[4]||20261023),team:process.argv[5]||'B'};
     u.mech={head:type,body:type,arms:type,legs:type,color:'team'};reset(cp.pos.toArray());g.catapultUpdate(dt);
     ok(u.flying,'台に乗ると自動射出',cp.pos.toArray());
     let firstLanding=null;
-    for(let t=0;t<6;t+=dt){g.physics(u,zero,false,false,dt);if(!firstLanding&&u.onGround)firstLanding=u.pos.clone();}
+    for(let t=0;t<Math.max(6,(cp.flight||2.8)+2);t+=dt){g.physics(u,zero,false,false,dt);if(!firstLanding&&u.onGround)firstLanding=u.pos.clone();}
     const error=Math.hypot(u.pos.x-cp.land.x,u.pos.z-cp.land.z);
     const landingError=firstLanding?Math.hypot(firstLanding.x-cp.land.x,firstLanding.z-cp.land.z):Infinity;
     ok(landingError<=6&&Math.abs(firstLanding.y-cp.land.y)<.05,'最初の接地が指定地点の6m以内',{type,dt,from:cp.pos.toArray(),firstLanding:firstLanding?.toArray(),landingError});
-    ok(error<=6&&u.onGround&&Math.abs(u.pos.y-cp.land.y)<.05,'カタパルトの指定着地から6m以内',{type,dt,from:cp.pos.toArray(),land:cp.land.toArray(),end:u.pos.toArray(),error});
+    // 長距離台は水平初速が大きく、着地後も通常の接地摩擦で数m滑る。初回接地の6m条件は共通。
+    ok(error<=(cp.flight?10:6)&&u.onGround&&Math.abs(u.pos.y-cp.land.y)<.05,'着地後の滑走を含めても安全な到着域',{type,dt,from:cp.pos.toArray(),land:cp.land.toArray(),end:u.pos.toArray(),error});
+    if(cp.targetPlant)ok(g.battle.free(u.pos.x,u.pos.z,u.pos.y,g.obstacles)&&u.pos.distanceTo(cp.targetPlant.pos)>16,'中央の占拠円の手前で安全に停止',u.pos.toArray());
     flights.push({type,dt,from:cp.pos.toArray(),land:cp.land.toArray(),firstLanding:firstLanding.toArray(),landingError,end:u.pos.toArray(),error});
    }
    for(const other of g.units)other.alive=other===u;

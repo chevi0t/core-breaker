@@ -25,7 +25,7 @@ function maps(source){const context={window:{}};vm.runInNewContext(source,contex
     if(old&&old!==g.cityMap&&old.cameraGeometryCount!==0)throw Error('切替前の都市の判定形状が残っている');
     const row={id,units:g.units.length,city:!!g.cityMap,proxies:g.cityMap?.cameraGeometryCount||0,colliders:g.hittables.filter(m=>m.name.startsWith('city-collision-')).length,disposed};
     if(['hoshimichi','kanto'].includes(id)){
-     if(g.units.length!==20||g.jumpPads.length!==0||g.cores.B.pos.x!==(id==='kanto'?-310:260)||g.cores.B.pos.y!==(id==='kanto'?19:17))throw Error('都市の人数・設備・基地が不正');
+     if(g.units.length!==20||g.jumpPads.length!==(id==='kanto'?6:0)||g.cores.B.pos.x!==(id==='kanto'?-310:260)||g.cores.B.pos.y!==(id==='kanto'?19:17))throw Error('都市の人数・設備・基地が不正');
      if(!Array.isArray(g.curMap.cityTerrain.volumes[0])||g.curMap.cityTerrain.meshes)throw Error('元のマップデータを書き換えている');
     }else if(g.cityBattle||row.colliders)throw Error('従来マップへ都市の処理が残っている');
     result.push(row);
