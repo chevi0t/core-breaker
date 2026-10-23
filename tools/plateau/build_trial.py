@@ -145,8 +145,8 @@ def make_payload(source):
     return result
 
 
-def build(source, out):
-    data = make_payload(source)
+def build(source, out, *, data=None, layout_runtime='', variant=False):
+    data = make_payload(source) if data is None else data
     packed = base64.b64encode(gzip.compress(json.dumps(data,ensure_ascii=False,separators=(',',':')).encode(),compresslevel=9,mtime=0)).decode()
     s = (ROOT/'prototype/index.html').read_text()
     s = re.sub(r'<link[^>]+href="https://fonts\.googleapis\.com[^>]+>\n','',s)
@@ -154,7 +154,7 @@ def build(source, out):
     for url,path in [('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','vendor/three-r128/three.min.js'),
                      ('sounds.js','prototype/sounds.js'),('music.js','prototype/music.js')]:
         s = replace(s,f'<script src="{url}"></script>','<script>'+inline_js((ROOT/path).read_text())+'</script>')
-    definition = dict(name='星路駅前試験区',size=[300,300],team=1,time=86400,baseZ=280,baseLine=300,
+    definition = dict(name='星路駅前試験区'+('・再構築案' if variant else ''),size=[300,300],team=1,time=86400,baseZ=280,baseLine=300,
         desc='地形と両基地の位置確認。高層棟へは緑のジャンプパッドから。',
         terrain=[],layout=[],plants=[],turrets=[],radar=[],catapults=[],basePods=[],plantPods=[],barricades=[],
         asym=True,bases={b['team']:{'at':b['at'],'radius':b['radius']} for b in data['district']['bases']},jumpPads=data['district']['roofPads'])
@@ -190,10 +190,16 @@ def build(source, out):
     s=replace(s,'function viewAim(u) {\n  const dir = camera.getWorldDirection(new T.Vector3());\n  const from = camera.position.clone().addScaledVector(dir, CAM.back - 1);',
         'function viewAim(u) {\n  const dir = camera.getWorldDirection(new T.Vector3());\n  const from = camera.position.clone().addScaledVector(dir,camera.near); // 視点が寄っても目の前の壁を照準から飛ばさない')
     s=replace(s,'<title>','<title>地形試走 — ')
-    s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_camera.js').read_text()+'\n'+(ROOT/'tools/plateau/trial_runtime.js').read_text()+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
+    runtime=(ROOT/'tools/plateau/trial_runtime.js').read_text()
+    if layout_runtime:
+        runtime=replace(runtime,'  const decode=b=>', '  expandCityLayout(T,data);\n  const decode=b=>')
+        runtime=layout_runtime+'\n'+runtime
+    s=replace(s,'<script>\n(() => {\nconst T = THREE;','<script>\n(async () => {\nconst T = THREE;\n'+(ROOT/'tools/plateau/trial_camera.js').read_text()+'\n'+runtime+'\nconst CITY = await createCityTrial(T,"'+packed+'");')
     options=''.join(f'<option value="{i}">{p["name"]}</option>' for i,p in enumerate(data['spawns']))
     credits=(source/'CREDITS.md').read_text()+'\n\n試走版の川底・護岸・水面は制作側の仮設形状です。現実の水位・水深を示しません。川岸へ戻るスロープと通路を作成し、接続部の地面と低層棟を局所的に加工しています。路地の充填を一部除去し、東西高架下の店舗と両基地の広場を追加しています。建物の色・窓・ガラス面・レンガ壁は制作側の模式表現です。道路の継ぎ目・歩道橋の下面・旧駅付近の地面を整形しています。位置照合ではOpenStreetMap contributorsの施設点と国土地理院の住所検索を参照しました。参照点の記録はresearch/maps/akihabara-landmarks.json。地理データの加工部分はCC BY 4.0。\n\n'+(ROOT/'sounds/CREDITS.md').read_text()+'\n\n'+(ROOT/'vendor/three-r128/LICENSE').read_text()
-    panel='<div id="trialPanel">地形・基地位置の試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>南東に青基地、北西に橙基地。緑のジャンプパッドで上昇後、空中操作で高層棟の屋上へ。川からは緑のスロープで復帰。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
+    if variant:
+        credits+='\n\nこの再構築案は、PLATEAU由来の配置を参照して街区を統合し、屋上の段差と小さな凹凸を省略したゲーム用の模式形状です。建物と高架・店舗を輪郭と高さから組み立てます。現実の建築形状・店舗構成を正確に再現したものではありません。'
+    panel='<div id="trialPanel">'+('街区を再構築した案 · ' if variant else '')+'地形・基地位置の試走 · 敵機なし <label>開始地点 <select id="trialSpawn">'+options+'</select></label><button id="trialReset" type="button">選択地点へ戻る</button><small>WASD 移動／Shift ブースト／Space ジャンプ／M 地図／Esc メニュー<br>南東に青基地、北西に橙基地。緑のジャンプパッドで上昇後、空中操作で高層棟の屋上へ。川からは緑のスロープで復帰。</small><details><summary>出典・ライセンス</summary><pre>'+escape(credits)+'</pre></details></div>'
     s=replace(s,'</body>',panel+'</body>') if '</body>' in s else s # 本体はbody閉じタグを省略している版もある。
     if 'id="trialSpawn"' not in s:s=replace(s,'<script>\n(async () => {',panel+'<script>\n(async () => {')
     css='<style>#trialPanel{position:fixed;left:14px;top:14px;z-index:300;background:#142330ed;border:1px solid #80b7ca;padding:12px;border-radius:7px;color:#dceef4;font:13px system-ui;max-width:390px}#trialPanel label{margin-left:8px}#trialPanel small{display:block;margin:7px 0;line-height:1.6}#trialPanel a{color:#b6d8e5}#trialPanel select,#trialPanel button{padding:5px;margin:3px;background:#294458;color:white;border:1px solid #719db0}body.trialRunning #trialPanel{opacity:.28;pointer-events:none}body.trialRunning #trialPanel small,body.trialRunning #trialPanel a,body.trialRunning #trialPanel button,body.trialRunning #trialPanel label{display:none}</style>'
