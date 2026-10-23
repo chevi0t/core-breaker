@@ -181,8 +181,8 @@ def thin(mask):
     return a[1:-1,1:-1].astype(bool)
 
 
-def navigation(streets,anchors):
-    values=np.arange(-496,497,4);xx,zz=np.meshgrid(values,values)
+def navigation(streets,anchors,*,half=500,grid_step=4,span=100):
+    values=np.arange(-half+4,half-3,grid_step);xx,zz=np.meshgrid(values,values)
     points=np.column_stack([xx.ravel(),zz.ravel()]);mask=~shapely.intersects(streets.blocked,shapely.points(points)).reshape(xx.shape)
     labels,_=label(mask,np.ones((3,3)));sizes=np.bincount(labels.ravel());sizes[0]=0;mask&=labels==sizes.argmax()
     skel=thin(mask);cells=set(map(tuple,np.argwhere(skel)));adj={p:set() for p in cells}
@@ -208,7 +208,7 @@ def navigation(streets,anchors):
             i=0
             while i<len(chain)-1:
                 j=i+1
-                while j+1<len(chain) and math.dist(at(chain[i]),at(chain[j+1]))<=100 and streets.clear(at(chain[i]),at(chain[j+1])):j+=1
+                while j+1<len(chain) and math.dist(at(chain[i]),at(chain[j+1]))<=span and streets.clear(at(chain[i]),at(chain[j+1])):j+=1
                 a,b=node(at(chain[i])),node(at(chain[j]));edges.add(tuple(sorted([a,b])));i=j
     anchor_ids=[]
     for name,p in anchors:
@@ -230,7 +230,7 @@ def navigation(streets,anchors):
     nodes=[nodes[i] for i in keep];edges=sorted((ids[a],ids[b]) for a,b in edges if a in reached and b in reached)
     packed={'encoding':'xz-i16-links-u16','step':STEP,'nodes':base64.b64encode(np.rint(np.array(nodes)/STEP).astype('<i2').tobytes()).decode(),
             'links':base64.b64encode(np.array(edges,dtype='<u2').tobytes()).decode()}
-    return packed,{'nodes':len(nodes),'links':len(edges),'gridStep':4,'freeCells':int(mask.sum())}
+    return packed,{'nodes':len(nodes),'links':len(edges),'gridStep':grid_step,'freeCells':int(mask.sum())}
 
 
 def build():
