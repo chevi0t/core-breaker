@@ -941,8 +941,8 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
-        <kbd>Q</kbd><span>ロック対象を切り替え</span>
+        <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円に入れ、右クリックでロック。もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
+        <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
         <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
@@ -7298,6 +7298,7 @@ function selectWeapon(u, w) {
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
+  if (u.isPlayer && !lockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
   if (isArtilleryMode(u)) {
@@ -8407,6 +8408,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) mouseDown = true;
   if (e.button === 2) {
     if (running && player && player.alive && player.slots[player.weapon].w.scopeHigh && !player.repairing && !player.transfer && player.switchT<=0) player.scopeStep=((player.scopeStep||0)+1)%3;
+    if (running && !mapOpen && !wsel.open) toggleLock(player);
     rightDown = true;
   }
   if (running && document.pointerLockElement !== canvas) grabPointer();
@@ -8658,10 +8660,11 @@ function anglesTo(u, p) {
 }
 
 // ---- ロックオン ----
-// 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。外側の円（KEEP_R）から外れるか、射程外・遮蔽で解除。
+// 主武器・近接で照準円（ACQ_R）の敵を右クリックしてロック、再クリックで解除。自動捕捉はしない。
+// 外側の円（KEEP_R）から外れるか、射程外・遮蔽・副武器や特別装備への持ち替えでも解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
 // ショートダッシュで振り切れる仕組み（LOCK_TRACK_SHAKEN）は変えていない
-const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42, ACQ_TIME = 0.15;
+const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42;
 // 追従の強さ：目標が動いた角度のうち視点が自動で追う割合。相手がショートダッシュ中は大きく落ちる。
 // LOCK_PULL は照準が機体から外れたときに引き戻す速さ（ラジアン/秒）、LOCK_BODY は機体とみなす範囲（横の半幅、足元からの高さ）。v0.9.1で強めた。
 // top：上に外れたときに引き戻す高さ（胴の上＝肩。頭は3.2〜3.95m）。v0.15まではてっぺんの hi へ戻していて、カメラ（4.6m）から水平に構えるだけで頭に吸い付いていた
@@ -8670,7 +8673,7 @@ const LOCK_TRACK = 1, LOCK_TRACK_SHAKEN = 0.35, LOCK_MAX_RATE = 4, LOCK_PULL = 0
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
+const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8681,14 +8684,16 @@ function screenOf(e) {
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
 function setLock(e) {
-  Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null });
+  Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
   sfx('lock');
 }
-function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false, down: false }); }
-function lockUpdate(u, dt) {
-  if(u.jamT>0){if(lock.target||lock.cand)releaseLock();return;}
-  if (u.slots[u.weapon].w.noLock) { if (lock.target || lock.cand) releaseLock(); return; }
-  const seen = e => canSee(u, e, targetPoint(e));
+function releaseLock() { Object.assign(lock, { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false }); }
+function lockAllowed(u) {
+  if (!u || !u.alive || u.repairing || u.transfer || u.jamT > 0) return false;
+  const w = u.slots[u.weapon].w;
+  return !w.noLock && (u.weapon === 'main' || u.weapon === 'aux' && w.type === 'sword');
+}
+function lockCandidates(u) {
   const list = [];
   for (const e of [...units, ...turrets]) {
     if (!e.alive || e.team === u.team) continue;
@@ -8699,6 +8704,19 @@ function lockUpdate(u, dt) {
     if (s) list.push({ e, d: s.d, dist });
   }
   list.sort((a, b) => a.d - b.d);
+  return list;
+}
+function toggleLock(u) {
+  if (!lockAllowed(u)) return;
+  if (lock.target) { releaseLock(); return; }
+  if (u.switchT > 0) return;
+  const c = lockCandidates(u).find(c => c.d < ACQ_R && canSee(u, c.e, targetPoint(c.e)));
+  if (c) setLock(c.e);
+}
+function lockUpdate(u, dt) {
+  if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
+  if (!lock.target) return;
+  const seen = e => canSee(u, e, targetPoint(e)), list = lockCandidates(u);
   if (lock.target) {
     const cur = list.find(c => c.e === lock.target);
     lock.losT -= dt;
@@ -8706,23 +8724,13 @@ function lockUpdate(u, dt) {
     lock.lostT = lock.visible ? 0 : lock.lostT + dt;
     if (!cur || cur.d > KEEP_R * keepScale() || lock.lostT > 0.6) releaseLock();
   }
-  if (pressed.KeyQ) {
+  if (lock.target && pressed.KeyQ) {
     // 外側の円の中で、次に照準に近い敵へ切り替え
     const pool = list.filter(c => c.d < KEEP_R * keepScale() && (c.e === lock.target || seen(c.e)));
     if (pool.length) {
       const i = pool.findIndex(c => c.e === lock.target);
       const next = pool[(i + 1) % pool.length].e;
       if (next !== lock.target) setLock(next);
-    }
-  }
-  if (!lock.target) {
-    const c = list.find(c => c.d < ACQ_R);
-    if (c && c.e === lock.cand) {
-      lock.acqT += dt;
-      if (lock.acqT >= ACQ_TIME && seen(c.e)) setLock(c.e);
-    } else {
-      lock.cand = c ? c.e : null;
-      lock.acqT = 0;
     }
   }
 }
@@ -10056,16 +10064,14 @@ function hud(timeLeft, dt) {
   respawnPanel(p);
   missileHud(p);
   const ring = $('lockRing'), mk = $('lockMark');
-  const shown = p.alive && (lock.target || (lock.cand && lock.acqT > 0)) ? (lock.target || lock.cand) : null;
+  const shown = p.alive ? lock.target : null;
   ring.classList.toggle('on', !!lock.target);
-  ring.classList.toggle('acq', !lock.target && !!shown);
   const sp = shown && screenOf(shown);
   mk.hidden = !sp;
   if (sp) {
     mk.style.transform = `translate(${(sp.x + 1) / 2 * innerWidth}px, ${(1 - sp.y) / 2 * innerHeight}px)`;
-    mk.classList.toggle('acq', !lock.target);
     mk.classList.toggle('lost', !!lock.target && !lock.visible);
-    $('lockName').textContent = lock.target ? `LOCK ${shown.name}` : shown.name;
+    $('lockName').textContent = `LOCK ${shown.name}`;
     $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
     $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
   }
