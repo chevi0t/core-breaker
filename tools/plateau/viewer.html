@@ -50,6 +50,15 @@ document.getElementById('infill').onchange=e=>{infillOverlay.visible=e.target.ch
 if(META.railways){document.getElementById('railview').style.display='inline-block';document.getElementById('compact-note').textContent+=' 高架の幅・高さはゲーム用の仮値です。';document.getElementById('footer').append(document.createTextNode(' 線路の位置は地理院地図を参考に模式化。'));}
 if(META.station){document.getElementById('railview').textContent='駅と高架';document.getElementById('compact-note').textContent+=' 駅の屋根の外形を復元し、高さは通行空間に合わせて調整。';}
 if(META.underpassShops)document.getElementById('compact-note').textContent+=' 南北高架下は店舗で埋め、道路と川は空けています。';
+if(META.reconstruction){
+ document.querySelector('.tag').textContent='地形確認 · ゲーム用再構築';
+ document.querySelector('#panel h1+p').textContent='PLATEAU初版の街区から再構築。建物の外形と通路を残し、屋上の細部を省略。';
+ document.getElementById('compact-note').className='small';
+ document.getElementById('compact-note').textContent='地形JSON '+META.reconstruction.layoutBytes.toLocaleString()+' B / 100,000 B。東西道路 −8m、南北道路 0m、歩行デッキ +8m、公園の頂部 +18m。6本の坂で下道から復帰。';
+ document.getElementById('note').innerHTML='<p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>1単位=1m、比較機体4m。<br>基地・プラント未配置。移動・対戦は次段階。<br>道路の上下と公園はゲーム用に補正。</p><div id="error"></div>';
+ document.getElementById('status').firstChild.textContent='1単位 = 1m · 高さ・道路はゲーム用補正';
+ document.getElementById('footer').append(document.createTextNode(' 建物の輪郭・主要高さを単純化。平地・公園・立体交差・復帰坂をゲーム用に再構築。'));
+}
 document.getElementById('edges').onchange=e=>{outlines.visible=e.target.checked&&groups.bldg.visible;render();};
 const grid=new THREE.GridHelper(META.extentMeters,12,0x718690,0x526773);grid.position.y=-20;scene.add(grid);
 // 実寸4mの比較用機体（オリジナルの簡略形）。

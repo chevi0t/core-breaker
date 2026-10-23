@@ -1,0 +1,168 @@
+{
+  "center": [
+    139.6918,
+    35.68975
+  ],
+  "rotationDegrees": 12,
+  "extentMeters": 600,
+  "referenceElevation": 35.0,
+  "geoidHeight": 37.0995,
+  "demElevationRange": [
+    27.688689505403815,
+    45.20072822030177
+  ],
+  "layers": {
+    "bldg": {
+      "triangles": 4398,
+      "min": [
+        -300.0,
+        -10.0,
+        -300.0
+      ],
+      "max": [
+        276.1000061035156,
+        244.0,
+        300.0
+      ]
+    },
+    "dem": {
+      "triangles": 338,
+      "min": [
+        -300.0,
+        -0.10000000149011612,
+        -300.0
+      ],
+      "max": [
+        300.0,
+        18.0,
+        300.0
+      ]
+    },
+    "tran": {
+      "triangles": 2396,
+      "min": [
+        -300.0,
+        -8.100000381469727,
+        -300.0
+      ],
+      "max": [
+        300.0,
+        0.03500000014901161,
+        300.0
+      ]
+    },
+    "brid": {
+      "triangles": 96,
+      "min": [
+        -105.0,
+        -1.5,
+        -95.0
+      ],
+      "max": [
+        181.0,
+        8.0,
+        132.0
+      ]
+    }
+  },
+  "groundAdjustedVertices": 9311,
+  "groundMaxLowering": 7.700689410165739,
+  "sourceModelTiles": 54,
+  "bases": 0,
+  "plants": 0,
+  "display": {
+    "title": "摩天街区・地形再構築案",
+    "areaName": "高層街区と中央公園",
+    "robotPoint": [
+      -150,
+      -20
+    ],
+    "cameraTargetY": 45,
+    "streetTarget": [
+      60,
+      0,
+      -78
+    ],
+    "scaleYaw": -0.5,
+    "scalePitch": 0.4,
+    "scaleDistance": 32,
+    "labels": []
+  },
+  "reconstruction": {
+    "sourceTriangles": 99560,
+    "triangles": 7228,
+    "layoutBytes": 46241,
+    "limitBytes": 100000,
+    "volumes": 87,
+    "buildings": 79,
+    "levels": {
+      "lowerRoad": -8,
+      "street": 0,
+      "pedestrianDeck": 8,
+      "parkTop": 18
+    },
+    "crossings": [
+      {
+        "id": "north",
+        "z": -78,
+        "width": 32,
+        "x0": -105
+      },
+      {
+        "id": "south",
+        "z": 116,
+        "width": 30,
+        "x0": -300
+      }
+    ],
+    "ramps": [
+      {
+        "id": "north--60",
+        "x": -60,
+        "z0": -126.0,
+        "z1": -93.0,
+        "width": 10
+      },
+      {
+        "id": "north-167",
+        "x": 167,
+        "z0": -126.0,
+        "z1": -93.0,
+        "width": 10
+      },
+      {
+        "id": "north-242",
+        "x": 242,
+        "z0": -126.0,
+        "z1": -93.0,
+        "width": 10
+      },
+      {
+        "id": "south--150",
+        "x": -150,
+        "z0": 69.0,
+        "z1": 102.0,
+        "width": 10
+      },
+      {
+        "id": "south-45",
+        "x": 45,
+        "z0": 69.0,
+        "z1": 102.0,
+        "width": 10
+      },
+      {
+        "id": "south-167",
+        "x": 167,
+        "z0": 69.0,
+        "z1": 102.0,
+        "width": 10
+      }
+    ],
+    "sourceHTMLSHA256": "53439ec466a65138b8e27aa7fc3ef9696c7086c4d339f4d7e51aefd53aa44245",
+    "layoutSHA256": "22fbcbfe5d1f19f58631d62accd0a0a4a922a3bb47b9dc0573463c424aae01cd",
+    "bases": 0,
+    "plants": 0,
+    "note": "上下道路とデッキは現地指摘に基づくゲーム用補正。地下構造の実測再現ではない。"
+  }
+}
