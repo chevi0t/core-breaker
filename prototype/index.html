@@ -7677,9 +7677,9 @@ function swordTick(u, sl, dt, trigger, aim) {
   }
   if (sl.cd > 0 || !trigger) return false;
   let a = sl.w.normal;
-  const dashAttack = u.dashT > 0 || u.longDash;
+  const dashAttack = u.dashT > 0 || u.longDash || (u.chargerOn && !u.slots.sp.overheat);
   if (dashAttack) {
-    // 回転斬り：ダッシュ中ならブーストに関係なく出せる。ダッシュは踏み込みに切り替わる
+    // 加速装置ON中も各武器のダッシュ技を使い、進入時の勢いを踏み込みへ引き継ぐ。
     a = sl.w.strong;
     u.dashT = 0; u.longDash = false;
   }
