@@ -941,7 +941,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円に入れ、右クリックでロック。もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
+        <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円の半径2倍以内に捉え、右クリックでロック。捕捉時に対象の胴体を画面中央へ合わせ、もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します。捕捉後は頭などを自由に狙えます。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
         <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
@@ -8660,7 +8660,7 @@ function anglesTo(u, p) {
 }
 
 // ---- ロックオン ----
-// 主武器・近接で照準円（ACQ_R）の敵を右クリックしてロック、再クリックで解除。自動捕捉はしない。
+// 主武器・近接で表示円（ACQ_R）の半径2倍以内の敵を右クリックして中央へ捕捉、再クリックで解除。
 // 外側の円（KEEP_R）から外れるか、射程外・遮蔽・副武器や特別装備への持ち替えでも解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
 // ショートダッシュで振り切れる仕組み（LOCK_TRACK_SHAKEN）は変えていない
@@ -8683,8 +8683,20 @@ function screenOf(e) {
   proj.copy(p).project(camera);
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
-function setLock(e) {
+function setLock(u, e) {
   Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
+  // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
+  const at = targetPoint(e), view = new T.Vector3();
+  updateCamera(u, 0);
+  for (let i = 0; i < 8; i++) {
+    const to = at.clone().sub(camera.position);
+    camera.getWorldDirection(view);
+    const yaw = wrapAngle(Math.atan2(-to.x, -to.z) - Math.atan2(-view.x, -view.z));
+    const pitch = Math.atan2(to.y, Math.hypot(to.x, to.z)) - Math.atan2(view.y, Math.hypot(view.x, view.z));
+    if (Math.hypot(yaw, pitch) < .000001) break;
+    u.yaw += yaw; u.pitch = Math.max(-0.9, Math.min(0.7, u.pitch + pitch));
+    updateCamera(u, 0);
+  }
   sfx('lock');
 }
 function releaseLock() { Object.assign(lock, { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false }); }
@@ -8710,8 +8722,8 @@ function toggleLock(u) {
   if (!lockAllowed(u)) return;
   if (lock.target) { releaseLock(); return; }
   if (u.switchT > 0) return;
-  const c = lockCandidates(u).find(c => c.d < ACQ_R && canSee(u, c.e, targetPoint(c.e)));
-  if (c) setLock(c.e);
+  const c = lockCandidates(u).find(c => c.d <= ACQ_R * 2 && canSee(u, c.e, targetPoint(c.e)));
+  if (c) setLock(u, c.e);
 }
 function lockUpdate(u, dt) {
   if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
@@ -8730,7 +8742,7 @@ function lockUpdate(u, dt) {
     if (pool.length) {
       const i = pool.findIndex(c => c.e === lock.target);
       const next = pool[(i + 1) % pool.length].e;
-      if (next !== lock.target) setLock(next);
+      if (next !== lock.target) setLock(u, next);
     }
   }
 }
