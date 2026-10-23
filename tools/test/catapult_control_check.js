@@ -32,6 +32,14 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
      const floor=map==='mesa'?g.groundAt(u.pos.x,u.pos.z,u.pos.y+.5):cp.land.y;
      ok(u.onGround&&error<6&&Math.abs(u.pos.y-floor)<.1,'無入力なら従来の着地点へ届く',{...info,error,at:u.pos.toArray()});
      ok(u.ctrlLockT===0,'通常着地後にも禁止を残さない',info);maxLandingError=Math.max(maxLandingError,error);
+     reset(u,cp.pos,type,team);g.launch(u,cp);
+     const forward=u.vel.clone().setY(0).normalize(),launchSpeed=Math.hypot(u.vel.x,u.vel.z);let minSpeed=launchSpeed;
+     for(let t=0;t<(cp.flight||2.8)+2&&!u.onGround;t+=dt){
+      g.physics(u,forward,false,false,dt);
+      if(!u.onGround)minSpeed=Math.min(minSpeed,Math.hypot(u.vel.x,u.vel.z));
+     }
+     const forwardError=Math.hypot(u.pos.x-cp.land.x,u.pos.z-cp.land.z);
+     ok(u.onGround&&forwardError<6&&minSpeed>=launchSpeed*.99,'前進入力で歩行速度へ落ちず、射出の勢いで着地する',{...info,launchSpeed,minSpeed,forwardError});
      // ShiftとSpaceはplayerUpdateに実際のキー状態を渡し、入力経路も調べる。
      reset(u,cp.pos,type,team);g.launch(u,cp);coast(u,1.1,dt);const beforeDash=u.boost;
      g.keys.KeyD=g.keys.ShiftLeft=g.pressed.ShiftLeft=true;g.playerUpdate(u,dt);
@@ -45,7 +53,11 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
      reset(u,cp.pos,type,team,false);g.launch(u,cp);coast(u,1.1,dt);
      ok(g.shortDash(u,new T.Vector3(1,0,0)),'Botにも同じ操作解除を適用',info);count++;
     }
-    rows.push({map,catapults:g.catapults.length,cases:count,maxLandingError});
+    reset(u,g.catapults[0].pos,'heavy','B');g.launch(u,g.catapults[0]);coast(u,1.1,1/120);
+    const beforeTurn=u.vel.clone().setY(0),wish=beforeTurn.clone().normalize().applyAxisAngle(new T.Vector3(0,1,0),Math.PI/4);
+    for(let t=0;t<.3;t+=1/120)g.physics(u,wish,false,false,1/120);
+    ok(u.vel.clone().setY(0).normalize().dot(wish)>beforeTurn.clone().normalize().dot(wish),'1秒後も移動入力で旋回できる',map);
+    rows.push({map,catapults:g.catapults.length,cases:count,maxLandingError,forwardMomentum:true,steering:true});
    }
    g.selectMap('mobility');g.setup();g.running=false;const u=g.player;for(const other of g.units)other.alive=other===u;
    // 低い天井へ触れ、操作禁止の1秒以内に地面へ戻る状況を実物理で作る。
@@ -66,6 +78,6 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
   });
   assert.deepEqual(errors,[]);
   fs.writeFileSync(path.resolve('mapdesign/catapult-control-check.json'),JSON.stringify({...result,errors},null,2)+'\n');
-  console.log(JSON.stringify(result));console.log('全台で1秒後の実入力・無入力着地・Bot、早期着地8条件と垂直パッド：成功。ブラウザエラー0。');
+  console.log(JSON.stringify(result));console.log('全台で前進時の勢い・旋回・1秒後の実入力・無入力着地・Bot、早期着地8条件と垂直パッド：成功。ブラウザエラー0。');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

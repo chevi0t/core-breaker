@@ -54,13 +54,16 @@ plan.groundPassages=imported.groundPassages;
     ok(crossed,'高架・街区の反対側の道路まで通り抜ける',{index,type,team,dt,landing:land.toArray(),street:street.toArray(),at:u.pos.toArray(),jumps,vel:u.vel.toArray(),stun:u.stun,ceiling:g.ceilingAt(u.pos.x,u.pos.z,u.pos.y),near:[...g.cityMap.nearby(u.pos.x,u.pos.z,4)].map(v=>({kind:v.kind,top:v.top,bottom:v.bottom}))});
     rows.push({kind:'pad',index,type,team,dt,peak,landing:land.toArray(),street:u.pos.toArray(),jumps});
    }
-   for(const cp of g.catapults)for(const type of ['light','heavy'])for(const team of ['B','R'])for(const dt of [1/30,1/120]){
-    reset(cp.pos,type,team);g.catapultUpdate(dt);let peak=-Infinity,land=null;
+   for(const cp of g.catapults)for(const type of ['light','heavy'])for(const team of ['B','R'])for(const dt of [1/30,1/120])for(const offset of cp.plant?[0]:[-1.5,0,1.5]){
+    reset(cp.pos.clone().add(new T.Vector3(offset,0,0)),type,team);g.catapultUpdate(dt);let peak=-Infinity,land=null;
+    const speed=Math.hypot(u.vel.x,u.vel.z);
+    if(!cp.plant)ok(speed>=52&&Math.hypot(cp.land.x-cp.pos.x,cp.land.z-cp.pos.z)>=220,'基地台は水平52m/s以上・220m以上の射出');
     for(let t=0;t<cp.flight+2;t+=dt){g.physics(u,new T.Vector3(),false,false,dt);peak=Math.max(peak,u.pos.y);if(u.onGround){land=u.pos.clone();break;}}
     const error=land?Math.hypot(land.x-cp.land.x,land.z-cp.land.z):Infinity;
     ok(land&&error<6&&Math.abs(land.y-cp.land.y)<.1,'高角台・前線台の最初の接地が指定地点6m以内',{plant:cp.plant?.id,type,team,dt,error,land:land?.toArray()});
     ok(peak-cp.pos.y>70,'短距離の基地台も高く打ち上がる',{from:cp.pos.toArray(),peak,flight:cp.flight});
-    rows.push({kind:'catapult',from:cp.pos.toArray(),route:cp.plant?cp.plant.id+'→'+cp.targetPlant.id:'base',type,team,dt,flight:cp.flight,peak,error});
+    if(!cp.plant)ok(Math.hypot(land.x-cp.pos.x,land.z-cp.pos.z)>=215,'基地から実際に215m以上先の地面へ運ぶ');
+    rows.push({kind:'catapult',from:cp.pos.toArray(),route:cp.plant?cp.plant.id+'→'+cp.targetPlant.id:'base',type,team,dt,offset,speed,flight:cp.flight,peak,error});
    }
    ok(g.catapults.filter(c=>c.targetPlant).map(c=>c.plant.id+'→'+c.targetPlant.id).sort().join(',')==='C→B,D→A','指定の前線2経路');
    for(const pad of g.jumpPads)for(const type of ['light','heavy'])for(const team of ['B','R']){
@@ -72,6 +75,6 @@ plan.groundPassages=imported.groundPassages;
    return rows;
   },plan);
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(ROOT,'mapdesign/hoshimichi/mobility-check.json'),JSON.stringify({cases:result,errors},null,2)+'\n');
-  console.log('地上48条件・Bot地上16条件・高架と天井の保持、パッド通り抜け120条件・Bot屋根40条件、カタパルト80条件：成功。ブラウザエラー0。');
+  console.log('地上48条件・Bot地上16条件・高架と天井の保持、パッド通り抜け120条件・Bot屋根40条件、カタパルト208条件：成功。ブラウザエラー0。');
  }finally{await b.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

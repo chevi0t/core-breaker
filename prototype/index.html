@@ -4734,6 +4734,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
       // 空中ダッシュ後に射出時より速くならないようにする
       const hs = Math.hypot(u.vel.x, u.vel.z);
       if (hs > u.flightSpeed) { u.vel.x *= u.flightSpeed / hs; u.vel.z *= u.flightSpeed / hs; }
+      // カタパルトでは前進入力の目標を歩行速度に下げず、射出の勢いで旋回する。
+      if (!u.jumpPad) speed = Math.max(speed, Math.min(hs, u.flightSpeed));
     }
   }
   const k = 1 - Math.exp(-accel * dt);

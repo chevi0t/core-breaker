@@ -92,7 +92,7 @@ def add_jump_pads(definition):
 
 
 def add_catapults(definition):
-    """短距離の基地台を高角にし、D→A・C→Bの前線射出を足す。"""
+    """D→A・C→Bと、基地から街区を越える射出を足す。"""
     data=definition['cityTerrain'];step=data.get('ringCoordinateStep',.01)
     def polygon(v):
         rr=[np.frombuffer(base64.b64decode(r),dtype='<i2').reshape(-1,2)*step for r in v[3]]
@@ -102,7 +102,6 @@ def add_catapults(definition):
     river=shapely.union_all([Polygon(r[0],r[1:]) for r in data['river']['rings']])
     blocked=shapely.union_all([p for p,lo,hi in solids if lo<2.1 and hi>-1.7]).union(river)
     sky=shapely.union_all([p for p,_,_ in solids]);occupied=[p[1:3] for p in definition['plantPods']]+[p['at'][:2] for p in definition['jumpPads']]
-    for base in definition['bases'].values():base['catapultFlight']=4.2
     routes=[]
     for source_id,target_id in [('D','A'),('C','B')]:
         source=np.array(next(p[1:3] for p in definition['plants'] if p[0]==source_id));target=np.array(next(p[1:3] for p in definition['plants'] if p[0]==target_id))
@@ -137,4 +136,68 @@ def add_catapults(definition):
             if not links:raise ValueError(f'射出・着地先の地上経路が無い: {p}')
             nav['nodes'].append([*p,-2]);nav['links'].extend([[index,i] for i in links])
     definition['plantCatapults']=routes
-    return {'baseFlight':4.2,'plantCatapults':routes}
+    return {**strengthen_base_catapults(definition),'plantCatapults':routes}
+
+
+def strengthen_base_catapults(definition):
+    """水平初速を52m/s以上にし、8基を安全な街路へ向ける。"""
+    data=definition['cityTerrain'];solids=[]
+    old_starts={team:[row[:2] for row in base['catapults']] for team,base in definition['bases'].items()}
+    # 北西の3番台は目の前の建物から離し、強い水平初速でも上昇する余地を作る。
+    definition['bases']['R']['catapults'][2][:2]=[-259,-233]
+    for _,lo,hi,rings,_ in data['volumes']:
+        rr=[np.frombuffer(base64.b64decode(r),dtype='<i2').reshape(-1,2)*data.get('ringCoordinateStep',.01) for r in rings]
+        solids.append((Polygon(rr[0],rr[1:]),lo,hi))
+    solids.extend((box(x-w/2,z-d/2,x+w/2,z+d/2),-2,h-2) for x,z,w,d,h,_ in definition['layout'])
+    sky=shapely.union_all([p for p,_,_ in solids]);river=shapely.union_all([Polygon(r[0],r[1:]) for r in data['river']['rings']])
+    ground=shapely.union_all([p for p,lo,hi in solids if lo<2.1 and hi>-1.7]).union(river)
+    occupied=[p[1:3] for p in definition['plantPods']]+[p['at'][:2] for p in definition['jumpPads']]
+    occupied.extend(p for r in definition['plantCatapults'] for p in [r['at'],r['exit']])
+    # 既存の地上節点の周りから、着地と接地後の滑走が収まる道路を選ぶ。
+    candidates=sorted({(round(x+dx,2),round(z+dz,2)) for x,z,y in definition['nav']['nodes'] if abs(y+2)<.1
+                       for dx in [-4,0,4] for dz in [-4,0,4] if max(abs(x+dx),abs(z+dz))<286})
+    points=shapely.points(candidates);free=(shapely.distance(sky,points)>2.7)&(shapely.distance(river,points)>7)
+    candidates=[p for p,keep in zip(candidates,free) if keep and all(math.dist(p,q)>12 for q in occupied)
+                and all(math.dist(p,q[1:3])>60 for q in definition['plants'])]
+    shapes=np.array([p.buffer(2) for p,_,_ in solids],dtype=object)
+    seeds={'B':[[20,220],[5,90],[225,-20],[110,40]],'R':[[60,-260],[-180,10],[-275,20],[-150,-10]]}
+    f=np.linspace(0,1,321);records=[];flights={}
+    def clear(a,b):return not ground.intersects(LineString([a,b]).buffer(1.65))
+    for team,base in definition['bases'].items():
+        selected=None
+        for flight in [4.2,4.4,4.6,4.8,5.0,5.2]:
+            options=[];y=-2+.5*34*flight**2*f*(1-f)
+            for index,row in enumerate(base['catapults']):
+                a=np.array(row[:2]);choices=[]
+                for p in candidates:
+                    distance=math.dist(a,p)
+                    if not max(220,52*flight)<=distance<=330 or math.dist(p,base['at'])<180:continue
+                    direction=(np.array(p)-a)/distance
+                    landing=LineString([np.array(p)-direction*4,np.array(p)+direction*8]).buffer(2.5)
+                    if sky.intersects(landing) or river.intersects(landing):continue
+                    line=LineString([a,p]);crossings=shapely.intersects(shapes,line);samples=shapely.points(a+(np.array(p)-a)*f[:,None])
+                    if any(np.any(shapely.intersects(poly,samples)&(y<hi+3)&(y+4>lo))
+                           for poly,(_,lo,hi),hit in zip(shapes,solids,crossings) if hit):continue
+                    if not any(abs(q[2]+2)<.1 and math.dist(p,q[:2])<30 and clear(p,q[:2]) for q in definition['nav']['nodes']):continue
+                    cost=math.dist(p,seeds[team][index])+abs(distance-260)*.1
+                    choices.append((cost,p))
+                options.append([p for _,p in sorted(choices)[:24]])
+            def choose(index,picked):
+                if index==4:return picked
+                for p in options[index]:
+                    if any(math.dist(p,q)<18 for q in picked):continue
+                    result=choose(index+1,[*picked,p])
+                    if result:return result
+            selected=choose(0,[])
+            if selected:break
+        if not selected:raise ValueError(f'基地の4方向へ十分な勢いで飛ぶ経路が無い: {team}')
+        base['catapultFlight']=flight;flights[team]=flight
+        for index,(row,p) in enumerate(zip(base['catapults'],selected)):
+            old=row[2:];row[2:]=p;distance=math.dist(row[:2],p)
+            records.append({'team':team,'index':index,'from':row[:2],'oldFrom':old_starts[team][index],'oldLanding':old,'landing':list(p),'flight':flight,
+                            'distance':round(distance,2),'horizontalSpeed':round(distance/flight,2),'rise':round(34*flight**2/8,2)})
+            nav=definition['nav'];ident=len(nav['nodes']);near=sorted(range(ident),key=lambda i:math.dist(p,nav['nodes'][i][:2]))
+            links=[i for i in near if abs(nav['nodes'][i][2]+2)<.1 and math.dist(p,nav['nodes'][i][:2])<65 and clear(p,nav['nodes'][i][:2])][:3]
+            if not links:raise ValueError(f'基地台の着地先が歩行経路につながらない: {p}')
+            nav['nodes'].append([*p,-2]);nav['links'].extend([[ident,i] for i in links])
+    return {'baseFlights':flights,'baseRoutes':records}
