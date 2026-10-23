@@ -3,7 +3,8 @@ function expandCityLayout(T,data){
   if(data.geometryEncoding!=='city-layout-v1')throw Error('未対応の街区データ');
   const unpackRings=rings=>rings.map(r=>{
     const a=new Int16Array(Uint8Array.from(atob(r),c=>c.charCodeAt(0)).buffer),points=[];
-    for(let i=0;i<a.length;i+=2)points.push([a[i]/100,a[i+1]/100]);return points;
+    const step=data.ringCoordinateStep??.01;
+    for(let i=0;i<a.length;i+=2)points.push([a[i]*step,a[i+1]*step]);return points;
   });
   data.volumes=data.volumes.map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
   for(const d of data.decorations)d.rings=unpackRings(d.rings);

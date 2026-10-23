@@ -4,7 +4,9 @@ import argparse,json,pathlib
 import numpy as np
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('cache',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path);args=ap.parse_args();cache=args.cache;out=args.output
+    ap=argparse.ArgumentParser();ap.add_argument('cache',type=pathlib.Path);ap.add_argument('output',type=pathlib.Path)
+    ap.add_argument('--allow-empty-layers',nargs='*',choices=['bldg','tran','brid','dem'],default=[])
+    args=ap.parse_args();cache=args.cache;out=args.output
     manifest=json.loads((cache/'inputs.json').read_text());regions={m['file']:m['bounds'] for m in manifest['models'] if 'bounds' in m}
     if not regions:
         for kind in ['bldg','tran','brid']:
@@ -28,7 +30,10 @@ def main():
         error=max(r[4]-height.min(),height.max()-r[5],0);worst=max(worst,error);assert error<.2,(m['name'],error)
     geo=np.load(out/'geometry.npz');summary=json.loads((out/'summary.json').read_text())
     for name in ['bldg','tran','brid','dem']:
-        v=geo[name];assert v.shape[1]==3 and len(v)>0 and len(v)%3==0
+        v=geo[name];assert v.shape[1]==3 and len(v)%3==0
+        if not len(v):
+            assert name in args.allow_empty_layers,name+' の空レイヤーを明示的に許可してください'
+            continue
         assert np.isfinite(v).all();assert np.abs(v[:,[0,2]]).max()<=summary['extentMeters']/2+.001
         assert v[:,1].min()>-50 and v[:,1].max()<350
     checks=manifest.get('checks',{'minimumReliefMeters':10,'multiLevelWitnesses':[[165,-75],[165,120]]})
@@ -45,6 +50,6 @@ def main():
         hit=good&(u>=0)&(v>=0)&(u+v<=1);h=(u*a[:,1]+v*b[:,1]+(1-u-v)*c[:,1])[hit]
         assert len(h)>1 and np.ptp(h)>5,(x,z,h)
         witnesses.append({'x':x,'z':z,'floorHeights':np.unique(np.round(h,2)).tolist()})
-    result={'decodedMeshes':len(seen),'maxHeightOutsideSourceBoundsMeters':worst,'multiLevelWitnesses':witnesses,'finiteAndClipped':True,'terrainReliefPreserved':True,'bases':0,'plants':0}
+    result={'decodedMeshes':len(seen),'maxHeightOutsideSourceBoundsMeters':worst,'multiLevelWitnesses':witnesses,'finiteAndClipped':True,'terrainReliefPreserved':True,'emptyLayers':[k for k in ['bldg','tran','brid','dem'] if not len(geo[k])],'bases':0,'plants':0}
     (out/'geometry-check.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');print(json.dumps(result,ensure_ascii=False))
 if __name__=='__main__':main()

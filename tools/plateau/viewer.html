@@ -50,7 +50,7 @@ document.getElementById('infill').onchange=e=>{infillOverlay.visible=e.target.ch
 if(META.railways){document.getElementById('railview').style.display='inline-block';document.getElementById('compact-note').textContent+=' 高架の幅・高さはゲーム用の仮値です。';document.getElementById('footer').append(document.createTextNode(' 線路の位置は地理院地図を参考に模式化。'));}
 if(META.station){document.getElementById('railview').textContent='駅と高架';document.getElementById('compact-note').textContent+=' 駅の屋根の外形を復元し、高さは通行空間に合わせて調整。';}
 if(META.underpassShops)document.getElementById('compact-note').textContent+=' 南北高架下は店舗で埋め、道路と川は空けています。';
-if(META.reconstruction){
+if(META.reconstruction&&META.reconstruction.area!=='umeda'){
  document.querySelector('.tag').textContent='地形確認 · ゲーム用再構築';
  document.querySelector('#panel h1+p').textContent='PLATEAU初版の街区から再構築。建物の外形と通路を残し、屋上の細部を省略。';
  document.getElementById('compact-note').className='small';
@@ -58,6 +58,15 @@ if(META.reconstruction){
  document.getElementById('note').innerHTML='<p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>1単位=1m、比較機体4m。<br>基地・プラント未配置。移動・対戦は次段階。<br>道路の上下と公園はゲーム用に補正。</p><div id="error"></div>';
  document.getElementById('status').firstChild.textContent='1単位 = 1m · 高さ・道路はゲーム用補正';
  document.getElementById('footer').append(document.createTextNode(' 建物の輪郭・主要高さを単純化。平地・公園・立体交差・復帰坂をゲーム用に再構築。'));
+}
+if(META.reconstruction?.area==='umeda'){
+ document.querySelector('.tag').textContent='地形確認 · ゲーム用再構築';
+ document.querySelector('#panel h1+p').textContent='中央駅と百貨店周辺の1km四方。道路・広場・通路を先に確保し、PLATEAUの建物を再構築。';
+ document.getElementById('compact-note').className='small';
+ document.getElementById('compact-note').textContent='地形JSON '+META.reconstruction.layoutBytes.toLocaleString()+' B / 100,000 B。地上の道路は平坦。地下街は作らず、駅を横断する地上通路を確保。';
+ document.getElementById('note').innerHTML='<p>ドラッグ：回転／右ドラッグ：移動<br>ホイール：拡大／ダブルクリック：注目</p><p>1単位=1m、比較機体4m。<br>基地・プラント未配置。<br>建物はPLATEAU、道路は地理院の道路中心線からゲーム用に補完。</p><div id="error"></div>';
+ document.getElementById('status').firstChild.textContent='1km × 1km · 地上街区の地形確認';
+ document.getElementById('footer').append(document.createTextNode(' 地理院の道路中心線から道路を補完。地面を平坦化し、建物の輪郭・主要高さと駅の通路をゲーム用に再構築。'));
 }
 document.getElementById('edges').onchange=e=>{outlines.visible=e.target.checked&&groups.bldg.visible;render();};
 const grid=new THREE.GridHelper(META.extentMeters,12,0x718690,0x526773);grid.position.y=-20;scene.add(grid);
@@ -75,7 +84,7 @@ for(const entry of VIEW.labels||[]){
 }
 function render(){const ratio=innerWidth/innerHeight;camera.left=-span*ratio/2;camera.right=span*ratio/2;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(span<60?(VIEW.scaleDistance||65):Math.max(65,span*1.5)));camera.lookAt(target);camera.updateMatrixWorld();spr.scale.set(span*.1,span*.025,1);for(const label of placeLabels)label.scale.set(span*.12,span*.0225,1);renderer.render(scene,camera);document.getElementById('ruler').style.width=(100*innerHeight/span)+'px';}
 document.getElementById('controls-toggle').onclick=e=>{const open=document.getElementById('panel').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',String(open));};
-function preset(name){if(name!=='street'){groups.bldg.visible=true;document.getElementById('bldg').checked=true;outlines.visible=document.getElementById('edges').checked;}if(name==='top'){target.set(0,20,0);yaw=0;pitch=Math.PI/2-.00001;span=800*Math.max(1,.85*innerHeight/innerWidth);}else if(name==='street'){target.set(...(VIEW.streetTarget||[45,2,-100]));yaw=-.25;pitch=.65;span=330;groups.bldg.visible=false;outlines.visible=false;document.getElementById('bldg').checked=false;}else if(name==='railview'){target.set(...VIEW.railTarget);yaw=.8;pitch=META.station ? .85 : .32;span=META.station?340:180;groups.bldg.visible=!!META.station;outlines.visible=!!META.station&&document.getElementById('edges').checked;document.getElementById('bldg').checked=!!META.station;infillOverlay.visible=false;document.getElementById('infill').checked=false;}else if(name==='scale'){target.copy(robot.position).add(new THREE.Vector3(0,4,0));yaw=VIEW.scaleYaw??.65;pitch=VIEW.scalePitch??.35;span=24;}else{target.set(0,TARGET_Y,0);yaw=.62;pitch=.78;span=1030*Math.max(1,.85*innerHeight/innerWidth);}render();}
+function preset(name){if(name!=='street'){groups.bldg.visible=true;document.getElementById('bldg').checked=true;outlines.visible=document.getElementById('edges').checked;}if(name==='top'){target.set(0,20,0);yaw=0;pitch=Math.PI/2-.00001;span=META.extentMeters*4/3*Math.max(1,.85*innerHeight/innerWidth);}else if(name==='street'){target.set(...(VIEW.streetTarget||[45,2,-100]));yaw=-.25;pitch=.65;span=330;groups.bldg.visible=false;outlines.visible=false;document.getElementById('bldg').checked=false;}else if(name==='railview'){target.set(...VIEW.railTarget);yaw=.8;pitch=META.station ? .85 : .32;span=META.station?340:180;groups.bldg.visible=!!META.station;outlines.visible=!!META.station&&document.getElementById('edges').checked;document.getElementById('bldg').checked=!!META.station;infillOverlay.visible=false;document.getElementById('infill').checked=false;}else if(name==='scale'){target.copy(robot.position).add(new THREE.Vector3(0,4,0));yaw=VIEW.scaleYaw??.65;pitch=VIEW.scalePitch??.35;span=24;}else{target.set(0,TARGET_Y,0);yaw=.62;pitch=.78;span=META.extentMeters*103/60*Math.max(1,.85*innerHeight/innerWidth);}render();}
 for(const k of ['top','oblique','street','scale','railview'])document.getElementById(k).onclick=()=>preset(k);
 let drag=null;const canvas=renderer.domElement;canvas.oncontextmenu=e=>e.preventDefault();canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,button:e.button};canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>drag=null;canvas.onpointercancel=()=>drag=null;
 canvas.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;if(drag.button===2||e.shiftKey){const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);target.addScaledVector(right,-dx*span/innerHeight).addScaledVector(up,dy*span/innerHeight);}else{yaw-=dx*.006;pitch=Math.max(.08,Math.min(Math.PI/2-.00001,pitch+dy*.006));}render();};

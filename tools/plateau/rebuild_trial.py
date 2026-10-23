@@ -108,20 +108,20 @@ def reconstruct_buildings(reference):
                     'ordinaryRebuiltVolumes':sum('rebuildId' in v for v in result)}
 
 
-def pack_surface(a):
-    # 斜面・橋・護岸だけは独立した面として残す。1cm格子の座標と参照番号を保存する。
-    quantized = np.rint(a/.01).astype(np.int64)
+def pack_surface(a, step=.01):
+    # 斜面・橋・護岸は独立した面。既定1cm、1kmの街区では2cm格子で座標と参照番号を保存する。
+    quantized = np.rint(a/step).astype(np.int64)
     assert abs(quantized).max(initial=0) < 32768
     points, ids = np.unique(quantized, axis=0, return_inverse=True)
     assert len(points) < 65536
     return {'points':base64.b64encode(points.astype('<i2').tobytes()).decode(),
-            'indices':base64.b64encode(ids.astype('<u2').tobytes()).decode(), 'step':.01}
+            'indices':base64.b64encode(ids.astype('<u2').tobytes()).decode(), 'step':step}
 
 
-def pack_rings(value):
+def pack_rings(value, step=.01):
     result = []
     for ring in value:
-        coordinates = np.rint(np.array(ring)*100).astype(np.int64)
+        coordinates = np.rint(np.array(ring)*(1/step)).astype(np.int64)
         assert abs(coordinates).max() < 32768
         result.append(base64.b64encode(coordinates.astype('<i2').tobytes()).decode())
     return result
