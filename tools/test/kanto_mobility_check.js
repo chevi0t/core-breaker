@@ -25,8 +25,8 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
      if(u.onGround){land=u.pos.clone();break;}
     }
     check(land&&land.y>=pad.exit.y-.05,'軽量・重量とも屋根へ着地',{type,team,dt,pad:pad.pos.toArray(),exit:pad.exit.toArray(),land:land?.toArray(),peak});
-    // パッドと反対へ歩いて建物から降り、地上へ戻れる。
-    const walk=pad.exit.clone().sub(pad.pos).setY(0).normalize();let returned=false;
+    // 縮尺後は反対側に高い棟が連なる屋根もあるため、街路の乗り場側へ戻って降りる。
+    const walk=pad.pos.clone().sub(pad.exit).setY(0).normalize();let returned=false;
     for(let t=0;t<60;t+=dt){g.physics(u,walk,false,false,dt);if(u.onGround&&u.pos.y<.1){returned=true;break;}}
     check(returned,'屋根から地上へ離脱できる',{pad:pad.pos.toArray(),type,at:u.pos.toArray()});
     rows.push({kind:'pad',type,team,dt,from:pad.pos.toArray(),landing:land.toArray(),peak,returned});
@@ -39,15 +39,18 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
     check(land&&Math.abs(land.y-cp.land.y)<.05&&error<6,'ビルを越え中央の指定位置へ着地',{plant:cp.plant.id,flight:cp.flight,type,team,dt,offset,land:land?.toArray(),error});
     rows.push({kind:'catapult',plant:cp.plant.id,target:cp.targetPlant.id,type,team,dt,offset,flight:cp.flight,peak,error});
    }
-   for(const pad of g.jumpPads)for(const type of ['light','heavy'])for(const team of ['B','R']){
+   // 屋上砲台への回避で移動指示から逸れないよう、移動単体の間だけ交戦を止める。
+   // 台座の描画・接触は残す。通常対戦と後段の検査へ進む前に必ず所属設備を復元する。
+   const turretStates=g.turrets.map(t=>t.alive);for(const turret of g.turrets)turret.alive=false;
+   try{for(const pad of g.jumpPads)for(const type of ['light','heavy'])for(const team of ['B','R']){
     reset(pad.pos,type,team);u.isPlayer=false;u.role='attack';u.target=null;u.order={kind:'go',pos:pad.exit.clone(),until:Infinity};
     let used=false,land=null;
     for(let t=0;t<20;t+=.05){g.botUpdate(u,.05);g.jumpPadUpdate(.05);used ||= u.jumpPad===pad;if(used&&u.onGround){land=u.pos.clone();break;}}
     check(land&&land.y>=pad.exit.y-.05,'本体Botの指示・空中操作でも屋根へ到達',{type,team,pad:pad.pos.toArray(),land:land?.toArray(),at:u.pos.toArray(),used});
     rows.push({kind:'bot-pad',type,team,from:pad.pos.toArray(),landing:land.toArray()});u.isPlayer=true;
-   }
+   }}finally{g.turrets.forEach((t,i)=>{t.alive=turretStates[i];});u.isPlayer=true;}
    const lawn=g.cityMap.district.lawns;check(lawn?.length,'公園の芝生がある');
-   check(g.terrainH(-444,-255)===0,'芝生の見た目で地面を変えない');
+   const park=g.plants.find(p=>p.id==='B');check(park&&g.terrainH(park.pos.x,park.pos.z)===0,'芝生の見た目で地面を変えない');
    return rows;
   });
   assert.deepEqual(errors,[]);fs.writeFileSync(path.resolve('mapdesign/kanto/mobility-check.json'),JSON.stringify({cases:result,errors},null,2)+'\n');

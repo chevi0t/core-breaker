@@ -1,0 +1,59 @@
+{
+  "baseCommit": "d0d2a419e792954703fe2e9b45b6dbac1fa1bcaf",
+  "sourceHashes": {
+    "prototype/index.html": "148eabd8d645498cefc82655c3534f4e1bbf6e379b56c5da7b76619da352e48c",
+    "prototype/maps.js": "9bda9493ec02aec47df6a06dc3b209b5bd38fb4151c9685c976efbb94c1e55a1",
+    "prototype/maps/kanto.js": "d710849820efe46891cb177955ac2a1a88ac1eafa5094006141785597a51eb23"
+  },
+  "checks": [
+    {
+      "command": "quick_check.js origin/main 60",
+      "result": "passed",
+      "maps": [
+        "city",
+        "hoshimichi",
+        "kanto"
+      ],
+      "weaponValueChanges": 0,
+      "partValueChanges": 0
+    },
+    {
+      "command": "kanto_half_check.cjs dbg/kanto-registered 150",
+      "result": "passed",
+      "record": "registered/half-check.json"
+    },
+    {
+      "command": "kanto_ferris_check.cjs dbg/kanto-registered",
+      "result": "passed",
+      "record": "registered/ferris-check.json"
+    },
+    {
+      "command": "kanto_rooftop_turrets_check.cjs dbg/kanto-registered",
+      "result": "passed",
+      "record": "registered/rooftop-turrets-check.json"
+    },
+    {
+      "command": "kanto_registration_check.cjs",
+      "result": "passed",
+      "record": "registration-check.json"
+    },
+    {
+      "command": "city_map_format_check.py",
+      "result": "passed",
+      "validCases": 5,
+      "rejectedCases": 44
+    },
+    {
+      "command": "kanto_canopy_check.js dbg/merge-regression",
+      "result": "passed",
+      "record": "../kanto/canopy-check.json"
+    },
+    {
+      "command": "kanto_mobility_check.js dbg/merge-regression",
+      "result": "passed",
+      "record": "../kanto/mobility-check.json"
+    }
+  ],
+  "widerRegression": "全武器と従来4マップの追加検査は範囲を絞るため途中で中止。全件成功とは扱わない。従来cityのみ152秒完了。",
+  "approvedPreviewReproducedIdentically": true
+}

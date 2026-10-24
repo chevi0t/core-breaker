@@ -125,18 +125,21 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 
 ## 都市の多角形モデルと任意の基地座標
 
-`hoshimichi.js` と `kanto.js` は通常のマップとして登録する都市モデル。前者は `tools/import_city_map.py`、後者は `tools/build_kanto_map.py` が確認済みの形状・対戦配置から作り、`build_maps.py` で他のマップと一緒に検査・同梱する。
+`hoshimichi.js` と `kanto.js` は通常のマップとして登録する都市モデル。前者は `tools/import_city_map.py`、後者は `tools/register_kanto_half.py` が採用済み500m版を登録し、`build_maps.py` で他のマップと一緒に検査・同梱する。
 
 - `bases: { B: {at:[x,z], radius, catapults:[[x,z,着地点x,着地点z],…]}, R: {…} }`：基地の中心と半径、陣営ごとの絶対座標の射出台。無いマップの基地は従来どおり `(0, ±baseZ)`。`turrets`・`radar`・`basePods` は従来の自軍側座標を維持し、`baseZ` との差分を各基地へ移す。
 - `cityTerrain`：`city-layout-v1` の形状。輪郭と高さから建物を作り、保存した面の座標・三角形から地面・坂・橋を復元する。描画と接触・射線で同じ形を使う。`half` とマップサイズ、基地位置、頂点参照を検査する。型の内容は `mapdesign/hoshimichi/source/layout.json`。
 - `cityBattle: {baseSpawns:{B:[[x,z],…],R:…}, respawns:{B:{A:[[x,z],…],…},R:…}, nodeReach:1.5}`：都市の安全な再出撃候補と経路節点へ着いたと判定する距離。形状・施設の組み立て後に通れない辺を除き、主成分につながる経路を使う。
 - `attribution`：マップ選択の下に出す地理データの出典・加工・ライセンスの説明。
+- `rooftopTurrets: [{team,plant,at:[x,z,y],yaw?}]`：世界座標で屋上に追加する防衛砲台。陣営は固定で、占拠による所属変更はしない。基地砲台と同じ射程・威力・破壊・修理を使い、障害物に底面の高さを持たせる。環都はAに青2基、Eに橙2基。
+- `cityTerrain.district.ferrisWheel`：`center:[x,y,z]`、`radius`、`roofY`、任意の`yaw`・`color`・`cabins`・`supportHalfWidth`・`supportHalfDepth`で静止観覧車を生成する。輪・スポーク・ゴンドラの描画面を接触・射線にも使う。
+- `cityTerrain.district.facadeScale`：窓模様の寸法倍率。未指定は1、環都は0.5。街を縮めても外壁の階数を保ち、他都市の表示を変えない。
 
-都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、1km四方の `kanto` は `.02`（2cm格子）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
+都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、採用済み500m四方の `kanto` は `.01`（1cm格子、旧1km版は2cm）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
 
 `kanto` の傾斜大屋根は `surfaces.brid` に厚さ付きの板として保存し、既存の橋と同じ接地・下面・弾判定を使う。`district.stationCanopy` の `ring`・`top`・`color` は地図の投影と板の表示色をそろえるための属性。このマップの `brid` は大屋根だけを含む。
 
-大きな非対称地形の `nav` は `{encoding:'xz-i16-links-u16',step:.02,nodes:'…',links:'…'}` でも保存できる。`nodes` はlittle-endianのint16 XZ、`links` はuint16の節点番号2個の組。それぞれbase64で格納し、読み込み時だけ通常の配列へ展開する。高さを持つ星路の経路は `{encoding:'xyz-i16-links-u16',step:.01,nodes:'…',links:'…'}` とし、節点をint16の **X,Z,Y** の順で保存する。元の川底・坂・橋上の高さを1cm単位で可逆に保持する。元データは変更しない。範囲外の座標・不正な節点参照・途切れたバイト列は `build_maps.py` で拒否する。
+大きな非対称地形の `nav` は `{encoding:'xz-i16-links-u16',step:.02,nodes:'…',links:'…'}` でも保存できる。XZの `step` は `.01` または `.02`。`nodes` はlittle-endianのint16 XZ、`links` はuint16の節点番号2個の組。それぞれbase64で格納し、読み込み時だけ通常の配列へ展開する。高さを持つ星路の経路は `{encoding:'xyz-i16-links-u16',step:.01,nodes:'…',links:'…'}` とし、節点をint16の **X,Z,Y** の順で保存する。元の川底・坂・橋上の高さを1cm単位で可逆に保持する。元データは変更しない。範囲外の座標・不正な節点参照・途切れたバイト列は `build_maps.py` で拒否する。
 
 都市の地上開口は `cityTerrain.district.groundPassages: [{from:[x,z],to:[x,z],width:12}]` として地図へ表示できる。これは地図表示用の属性で、通行判定を無効化しない。生成時に同じ帯の下層を切り、平坦な舗装と歩行経路を追加する。上階は残し、開口上の建物は下面も描く `elevated` 種類へ変換して、接触と弾・視点の遮蔽を一致させる。
 

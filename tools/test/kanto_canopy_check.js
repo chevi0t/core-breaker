@@ -11,12 +11,19 @@ const ROOT=path.resolve(__dirname,'../..'),folder=path.resolve(process.argv[2]||
   const g=__g;g.selectMap('kanto');g.setup();g.running=false;g.scene.updateMatrixWorld(true);
   const roof=g.scene.getObjectByName('city-brid');if(roof.material.color.getHex()!==0xf0f2ee)throw Error('大屋根が白くない');
   const ray=new g.T.Raycaster(),u=g.player,rows=[];
-  for(const [x,z,expected] of [[-183,-28,69.5],[-171,-8.5,63],[-159,11,56.5]]){
+  const canopy=g.cityMap.district.stationCanopy;
+  if(!canopy||canopy.ring.length!==4||!(canopy.top>canopy.low)||!(canopy.thickness>0))throw Error('傾斜大屋根の寸法が不正');
+  // 高い辺と低い辺の中点を結ぶ線を3等間隔で調べる。縮尺後も板の傾き・厚さを検証する。
+  const high=canopy.ring[0].map((v,i)=>(v+canopy.ring[1][i])/2);
+  const low=canopy.ring[2].map((v,i)=>(v+canopy.ring[3][i])/2);
+  for(const t of [.25,.5,.75]){
+   const x=high[0]+(low[0]-high[0])*t,z=high[1]+(low[1]-high[1])*t;
+   const expected=canopy.top+(canopy.low-canopy.top)*t;
    ray.set(new g.T.Vector3(x,expected+5,z),new g.T.Vector3(0,-1,0));ray.far=10;
    const upper=ray.intersectObjects(g.hittables,false)[0];
    ray.set(new g.T.Vector3(x,expected-2,z),new g.T.Vector3(0,1,0));
    const lower=ray.intersectObjects(g.hittables,false)[0];
-   if(!upper||!lower||Math.abs(upper.point.y-expected)>.025||Math.abs(lower.point.y-(expected-.8))>.025)throw Error('屋根の上下の弾判定がずれている '+JSON.stringify({x,z,upper:upper?.point.y,lower:lower?.point.y,expected}));
+   if(!upper||!lower||Math.abs(upper.point.y-expected)>.025||Math.abs(lower.point.y-(expected-canopy.thickness))>.025)throw Error('屋根の上下の弾判定がずれている '+JSON.stringify({x,z,upper:upper?.point.y,lower:lower?.point.y,expected,thickness:canopy.thickness}));
    g.spawn(u);u.pos.set(x,expected+6,z);u.vel.set(0,0,0);u.onGround=false;
    for(let i=0;i<180&&!u.onGround;i++)g.physics(u,new g.T.Vector3(),false,false,1/60);
    if(!u.onGround||Math.abs(u.pos.y-expected)>.025)throw Error('機体が大屋根をすり抜ける '+u.pos.toArray());

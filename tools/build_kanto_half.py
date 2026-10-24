@@ -18,6 +18,11 @@ import build_kanto_map as city
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 OUT=ROOT/'mapdesign/kanto_half'
 city.STEP=.01
+SOURCE_REVISION='0ef53120d4ca6a43527b103c1544dc84926254ae'
+
+
+def source_bytes(name):
+    return subprocess.check_output(['git','-C',str(ROOT),'show',SOURCE_REVISION+':'+name])
 
 
 class Streets:
@@ -36,9 +41,9 @@ class Streets:
 
 
 def read_source():
-    source=ROOT/'prototype/maps/kanto.js'
-    script="const fs=require('fs'),vm=require('vm'),c={window:{}};vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'),c);process.stdout.write(JSON.stringify(c.window.MAP_DATA.kanto));"
-    return source,json.loads(subprocess.check_output(['node','-e',script,str(source)]))
+    source=source_bytes('prototype/maps/kanto.js')
+    script="const fs=require('fs'),vm=require('vm'),c={window:{}};vm.runInNewContext(fs.readFileSync(0,'utf8'),c);process.stdout.write(JSON.stringify(c.window.MAP_DATA.kanto));"
+    return source,json.loads(subprocess.check_output(['node','-e',script],input=source))
 
 
 def main():
@@ -210,12 +215,12 @@ const d=input.data;f(T,d);
 console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v])=>[k,Buffer.from(v,'base64').length/36]))));
 """
     from kanto_ferris import apply_ferris_patch
-    model_source=apply_ferris_patch((ROOT/'prototype/index.html').read_text())
+    model_source=apply_ferris_patch(source_bytes('prototype/index.html').decode())
     counts=json.loads(subprocess.check_output(['node','-e',measure,str(ROOT/'vendor/three-r128/three.min.js')],input=city.compact({'data':data,'source':model_source})))
     for name,count in counts.items():data['packing']['layers'][name]={'triangles':count}
     raw=city.compact(d);assert len(raw)<=100000,len(raw)
     (OUT/'map.json').write_bytes(raw+b'\n')
-    report={'sourceMapSHA256':hashlib.sha256(source.read_bytes()).hexdigest(),'sourceCommit':'0ef53120d4ca6a43527b103c1544dc84926254ae',
+    report={'sourceMapSHA256':hashlib.sha256(source).hexdigest(),'sourceCommit':SOURCE_REVISION,
         'extentMeters':[500,500],'nominalScaleXYZ':[.5,.5,.5],'equivalentRealWorldMechHeightMeters':8,'mapDataBytes':len(raw),
         'clearance':clearance,'roofPocketFills':roof_fills,'roofTargetAdjustments':roof_targets,
         'triangles':sum(counts.values()),

@@ -2,7 +2,7 @@
 
 承認済み梅田マップの街を縦・横・高さとも基本1/2にする試作。1km四方から500m四方へ縮め、本体の4m機体を変えずに、実都市に対して8m級の比率で遊べるようにした。
 
-`play.html` をダウンロードしてブラウザで開くと、通信なしでこのマップを選んで対戦できる。元の `prototype/maps/kanto.js` と通常マップ一覧は変更しない。
+`play.html` をダウンロードしてブラウザで開くと、通信なしでこのマップを選んで対戦できる。2026-10-24のユーザー承認で、通常マップ `prototype/maps/kanto.js` もこの版へ更新した。通常版では「環都駅前」を選ぶ。
 
 ## 元の案から引き継ぐもの
 
@@ -53,9 +53,10 @@ node tools/test/kanto_ferris_check.cjs mapdesign/kanto_half
 node tools/test/kanto_rooftop_turrets_check.cjs mapdesign/kanto_half
 node tools/capture_kanto_half.cjs mapdesign/kanto_half
 node tools/capture_kanto_bases.cjs mapdesign/kanto_half
+python tools/register_kanto_half.py
 ```
 
-HTMLは `0ef53120d4ca6a43527b103c1544dc84926254ae` のゲーム本体・音・Three.jsを埋め込み、検査用の読み口、窓模様の縮尺補正、観覧車の描画・接触用の層、屋上砲台の配置を足す。移動・戦闘のルールは変更しない。本体の版が異なる場合は生成器が停止する。
+HTMLは `0ef53120d4ca6a43527b103c1544dc84926254ae` のゲーム本体・音・Three.jsを埋め込み、検査用の読み口、窓模様の縮尺補正、観覧車の描画・接触用の層、屋上砲台の配置を足す。移動・戦闘のルールは変更しない。試作の再生成はこの固定コミットから入力を読むため、通常版の更新後も二重縮尺にならない。
 
 試験は実際の機体物理で徒歩、射出台、屋上移動、窪地からの復帰、再出撃、施設利用、外周を確かめ、10対10のBot対戦を行う。短い対戦は動作確認であり、陣営勝率や長期の試合バランスは未確定。
 
@@ -70,3 +71,9 @@ HTMLは `0ef53120d4ca6a43527b103c1544dc84926254ae` のゲーム本体・音・Th
 観覧車追加時のコミット `3d43651` では、穴と外輪への両方向の射線、旧箱の壁を横切る屋上歩行、再試合2回で形状が増えないことを検査した。記録は `ferris-check.json`、近景は `ferris.png`。今回、観覧車と都市形状が変わっていないことは `rooftop-turrets-change.json` で確認している。
 
 再配置後の基地補給4基へ実機体で徒歩往復し、補給1200回復と意図しないカタパルト射出0を確認。高層棟を挟む橙左側2番のカタパルトも、基地出撃地点から徒歩で5m以内へ到達する。記録は `base-walk-check.json`。この基地検査と `base-layout-review.json` は観覧車追加前のコミット `8294107`、`independent-geometry-check.json` はそのファイルに記載された地形版の記録であり、今回変更していない部分の検証として引き継ぐ。
+
+## 通常マップへの登録
+
+`kanto` のIDを維持して、既存のマップ選択・保存設定から500m版へ移行する。地形と配置は承認済み試遊版と同じで、表示名・説明と窓模様の任意項目 `facadeScale:.5` だけを登録時に追加する。通常版の非圧縮定義は96,442B。観覧車と屋上砲台を本体に接続し、未指定の他マップには作らない。
+
+通常版の検査用HTMLは `python tools/test/build_registered_kanto.py` で作り、`node tools/test/kanto_half_check.cjs dbg/kanto-registered 150`、同フォルダに対する `kanto_ferris_check.cjs` と `kanto_rooftop_turrets_check.cjs` で確認する。元の本体に読み口と初期マップ選択だけを足しており、物理・射撃・Botルールを書き換えない。実メニューの出撃・切替は `node tools/test/kanto_registration_check.cjs` で別途確認する。

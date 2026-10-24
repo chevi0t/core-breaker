@@ -11,7 +11,6 @@ from html import escape
 import json
 from pathlib import Path
 import re
-import runpy
 import subprocess
 from kanto_ferris import apply_ferris_patch
 from kanto_rooftop_turrets import apply_rooftop_turrets_patch
@@ -62,23 +61,20 @@ def build_html(output):
     # この試作で使う本体を固定する。別のゲーム変更を意図せず取り込まない。
     engine_paths = ['prototype/index.html', 'prototype/sounds.js', 'prototype/music.js',
                     'vendor/three-r128/three.min.js', 'tools/test/make_dbg.py']
-    for name in engine_paths:
-        original = subprocess.check_output(['git', '-C', str(ROOT), 'show', GAME_REVISION + ':' + name])
-        if (ROOT / name).read_bytes() != original:
-            raise ValueError('参照本体が指定版と異なります: ' + name)
+    originals = {name:subprocess.check_output(['git','-C',str(ROOT),'show',GAME_REVISION+':'+name])
+                 for name in engine_paths}
 
     source = ROOT / 'prototype/index.html'
-    text = scale_facade_pattern(apply_rooftop_turrets_patch(apply_ferris_patch(source.read_text(encoding='utf-8'))))
+    text = scale_facade_pattern(apply_rooftop_turrets_patch(apply_ferris_patch(originals['prototype/index.html'].decode())))
     text = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' + text
     text = re.sub(r'<link[^>]+href="https://fonts\.googleapis\.com[^>]+>\n?', '', text)
-    sources = [source, map_path, Path(__file__), ROOT / 'tools/kanto_ferris.py',
+    sources = [map_path, Path(__file__), ROOT / 'tools/kanto_ferris.py',
                ROOT / 'tools/kanto_rooftop_turrets.py']
     for url, name in [('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', 'vendor/three-r128/three.min.js'),
                       ('sounds.js', 'prototype/sounds.js'), ('music.js', 'prototype/music.js')]:
         path = ROOT / name
         text = replace_once(text, '<script src="' + url + '"></script>',
-                            '<script>' + inline_script(path.read_text(encoding='utf-8')) + '</script>')
-        sources.append(path)
+                            '<script>' + inline_script(originals[name].decode()) + '</script>')
     # 猫のパイロット画像は本体のCSSに既に埋め込まれている。
     map_json = compact(definition)
     text = replace_once(text, '<script src="maps.js"></script>',
@@ -104,7 +100,9 @@ def build_html(output):
 
     # 共通試験道具から読み口だけを再利用。固定dt・Bot停止などの試験用変更は適用しない。
     expose_path = ROOT / 'tools/test/make_dbg.py'
-    expose = runpy.run_path(str(expose_path), run_name='kanto_half_inspection')['EXPOSE']
+    debug_module={'__file__':str(expose_path),'__name__':'kanto_half_inspection'}
+    exec(compile(originals['tools/test/make_dbg.py'],str(expose_path),'exec'),debug_module)
+    expose = debug_module['EXPOSE']
     expose += '''
 Object.defineProperties(window.__g,{
  city:{get:()=>cityMap},battle:{get:()=>cityBattle},frame:{get:()=>loop},
@@ -117,7 +115,6 @@ Object.defineProperties(window.__g,{
 window.__cityBattle=window.__g;
 '''
     text = replace_once(text, '\nrequestAnimationFrame(loop);\n', '\n' + expose + '\nrequestAnimationFrame(loop);\n')
-    sources.append(expose_path)
     if re.search(r'<script\b[^>]*\bsrc=', text):
         raise ValueError('外部スクリプトが残っています')
     # 出典を開くa要素は自動通信しない。読込が発生する素材要素だけを検査する。
@@ -139,7 +136,9 @@ window.__cityBattle=window.__g;
               'renderScalePatch': {'scope': '窓・ガラス反射の空間間隔', 'scale': .5,
                                    'windowPitchMeters': [1.4, 1.75], 'windowMinimumY': 1,
                                    'reflectionSpatialCoefficients': [.22, .024], 'paletteChanged': False},
-              'sourceHashes': {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}}
+              'sourceHashes': {**{str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in sources},
+                               **{'git:'+GAME_REVISION+':'+name:hashlib.sha256(raw).hexdigest()
+                                  for name,raw in originals.items()}}}
     (output / 'html-generation.json').write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return record
 

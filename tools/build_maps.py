@@ -124,6 +124,30 @@ function check(d) {
           if(!num(road?.width)||road.width<4||road.width>30)E('地上通路の幅は4〜30m');
         }
       }
+      if(c.district?.facadeScale!==undefined&&(!num(c.district.facadeScale)||c.district.facadeScale<=0))E('都市のfacadeScaleは正の数');
+      if(c.district?.ferrisWheel!==undefined){
+        const w=c.district.ferrisWheel;
+        if(!w||typeof w!=='object'||Array.isArray(w))E('都市のferrisWheelは観覧車の寸法');
+        else {
+          const center=Array.isArray(w.center)&&w.center.length===3&&w.center.every(num);
+          if(!center)E('観覧車のcenterは有限数の [x,y,z]');
+          else inMap(w.center[0],w.center[2],'観覧車の中心');
+          if(!num(w.radius)||w.radius<=0)E('観覧車のradiusは正の数');
+          if(!num(w.roofY)||(center&&w.roofY>=w.center[1]))E('観覧車のroofYは中心より低い高さ');
+          if(w.yaw!==undefined&&!num(w.yaw))E('観覧車のyawは有限数');
+          if(w.color!==undefined&&(typeof w.color!=='string'||!/^#[0-9a-f]{6}$/i.test(w.color)))E('観覧車の色は #RRGGBB');
+          if(w.cabins!==undefined&&(!Number.isInteger(w.cabins)||w.cabins<4||w.cabins>24))E('観覧車のcabinsは4〜24の整数');
+          for(const key of ['supportHalfWidth','supportHalfDepth'])if(w[key]!==undefined&&(!num(w[key])||w[key]<=0))E('観覧車の'+key+'は正の数');
+          if(center&&num(w.radius)&&w.radius>0&&num(w.yaw??0)){
+            // 輪・キャビン・脚の平面範囲。既定の支持脚寸法は描画処理と同じ。
+            const yaw=w.yaw??0,halfX=Math.max(w.radius+.6,w.supportHalfWidth??5),halfZ=Math.max(1.7,w.supportHalfDepth??1.5);
+            const dx=Math.abs(Math.cos(yaw))*halfX+Math.abs(Math.sin(yaw))*halfZ;
+            const dz=Math.abs(Math.sin(yaw))*halfX+Math.abs(Math.cos(yaw))*halfZ;
+            inMap(w.center[0]-dx,w.center[2]-dz,'観覧車の外周');
+            inMap(w.center[0]+dx,w.center[2]+dz,'観覧車の外周');
+          }
+        }
+      }
       if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
       if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
       else for(const v of c.volumes){
@@ -182,6 +206,16 @@ function check(d) {
     if (!Array.isArray(p) || p.length !== 3 || !p.every(num)) { E(`${what} は [x, z, 海抜y]`); return false; }
     inMap(p[0], p[1], what); return true;
   };
+  if(d.rooftopTurrets!==undefined){
+    if(!Array.isArray(d.rooftopTurrets))E('rooftopTurretsは配列');
+    else for(const t of d.rooftopTurrets){
+      if(!t||typeof t!=='object'||Array.isArray(t)){E('屋上砲台は所属と設置座標のオブジェクト');continue;}
+      if(!['B','R'].includes(t.team))E('屋上砲台のteamはBかR');
+      if(!ids.includes(t.plant))E('屋上砲台の参照プラントが存在しない');
+      point(t.at,'屋上砲台');
+      if(t.yaw!==undefined&&!num(t.yaw))E('屋上砲台のyawは有限数');
+    }
+  }
   if(d.botRepairRange!==undefined&&(!num(d.botRepairRange)||d.botRepairRange<=0))E('botRepairRange は正の数');
   if(d.raidRoutes!==undefined){
     if(!Array.isArray(d.raidRoutes)||!d.raidRoutes.length)E('raidRoutes は空でない配列');
@@ -229,7 +263,7 @@ function check(d) {
     let nodes = d.nav.nodes, links = d.nav.links;
     if(d.nav.encoding!==undefined){
       const xyz=d.nav.encoding==='xyz-i16-links-u16',stride=xyz?6:4;
-      if((!xyz&&d.nav.encoding!=='xz-i16-links-u16')||d.nav.step!==(xyz ? .01 : .02)||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップのXZ・2cmまたはXYZ・1cmの16bit座標とリンク');
+      if((!xyz&&d.nav.encoding!=='xz-i16-links-u16')||!(xyz?[.01]:[.01,.02]).includes(d.nav.step)||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップのXZ・1cm/2cmまたはXYZ・1cmの16bit座標とリンク');
       else {
         const p=Buffer.from(nodes,'base64'),e=Buffer.from(links,'base64');nodes=[];links=[];
         if(!p.length||p.length%stride||e.length%4)E('圧縮navの座標・リンクが不正');

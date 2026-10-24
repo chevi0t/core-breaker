@@ -1340,6 +1340,53 @@ function expandCityLayout(T,data){
     add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
     add('water',faces(rings,data.river.water));
   }
+
+  // 遠景でも輪郭を読み取れる静止観覧車。透過円盤や見えない箱は置かない。
+  const wheel=data.district.ferrisWheel;
+  if(wheel){
+    const {center,radius,roofY,yaw=0,color='#bf3548',cabins=12}=wheel;
+    if(!Array.isArray(center)||center.length!==3||!center.every(Number.isFinite)||
+       ![radius,roofY,yaw].every(Number.isFinite)||radius<=0||roofY>=center[1]||
+       !Number.isInteger(cabins)||cabins<4||cabins>24)throw Error('観覧車の寸法が不正です');
+    const world=new T.Matrix4().makeRotationY(-yaw);
+    world.setPosition(...center);
+    const up=new T.Vector3(0,1,0),identity=new T.Quaternion();
+    // ローカルX軸が輪の水平軸、Y軸が高さ、Z軸が車軸。全パーツを1層へまとめる。
+    const emit=(geometry,position,rotation=identity,paint=color)=>{
+      const geo=geometry.index?geometry.toNonIndexed():geometry;
+      const local=new T.Matrix4().compose(position,rotation,new T.Vector3(1,1,1));
+      geo.applyMatrix4(world.clone().multiply(local));
+      add('ferris',Array.from(geo.attributes.position.array),paint);
+      geo.dispose();if(geo!==geometry)geometry.dispose();
+    };
+    const point=(x,y,z)=>new T.Vector3(x,y,z);
+    const bar=(a,b,r=.08,segments=4,paint=color)=>{
+      const direction=b.clone().sub(a),length=direction.length();
+      emit(new T.CylinderGeometry(r,r,length,segments),a.clone().add(b).multiplyScalar(.5),
+        new T.Quaternion().setFromUnitVectors(up,direction.divideScalar(length)),paint);
+    };
+    for(const depth of [-.65,.65]){
+      emit(new T.TorusGeometry(radius,.18,4,32),point(0,0,depth));
+      for(let i=0;i<8;i++){
+        const angle=i*Math.PI/4;
+        bar(point(0,0,depth),point(Math.cos(angle)*(radius-.2),Math.sin(angle)*(radius-.2),depth));
+      }
+    }
+    bar(point(0,0,-1.7),point(0,0,1.7),.42,6,'#414b53');
+    const footY=roofY-center[1],footX=wheel.supportHalfWidth??5,footZ=wheel.supportHalfDepth??1.5;
+    if(![footX,footZ].every(v=>Number.isFinite(v)&&v>0))throw Error('観覧車の支持脚寸法が不正です');
+    for(const side of [-1,1]){
+      for(const x of [-footX,footX])bar(point(x,footY,side*footZ),point(0,0,side*1.3),.24,6);
+      bar(point(-footX,footY+.12,side*footZ),point(footX,footY+.12,side*footZ),.12);
+    }
+    for(let i=0;i<cabins;i++){
+      const angle=i*Math.PI*2/cabins,x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
+      bar(point(x,y,0),point(x,y-.6,0),.07);
+      emit(new T.BoxGeometry(1.15,1.15,1.35),point(x,y-1.175,0));
+      emit(new T.BoxGeometry(1.17,.42,1.37),point(x,y-1.05,0),identity,'#29424a');
+    }
+  }
+
   const encode=a=>{const bytes=new Uint8Array(new Float32Array(a).buffer);let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);};
   data.meshes=Object.fromEntries(Object.entries(layers).map(([k,a])=>[k,encode(a)]));
   for(const [name,m] of Object.entries(data.surfaces)){
@@ -1454,7 +1501,7 @@ function createCityMap(T,layout) {
     return result;
   }
   const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas','streets','historicGround']));
-  const bridgeTriangles = triangles(['brid']);
+  const bridgeTriangles = triangles(['brid',...(arrays.ferris?['ferris']:[])]);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
   function surface(t, x, z) {
@@ -1612,6 +1659,14 @@ function createCityMap(T,layout) {
       const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
       if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
       for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+
+      // 観覧車を真上から見た位置。円盤で街路を覆わず、細い赤い目印にする。
+      const wheel=data.district.ferrisWheel;
+      if(wheel){
+        const [x,,z]=wheel.center,dx=Math.cos(wheel.yaw||0)*wheel.radius,dz=Math.sin(wheel.yaw||0)*wheel.radius;
+        c.strokeStyle=wheel.color||'#bf3548';c.lineWidth=2;
+        c.beginPath();c.moveTo(x-dx+half,z-dz+half);c.lineTo(x+dx+half,z+dz+half);c.stroke();
+      }
       for(const road of data.district.groundPassages||[]){
         const line=()=>{c.beginPath();c.moveTo(road.from[0]+half,road.from[1]+half);c.lineTo(road.to[0]+half,road.to[1]+half);};
         c.strokeStyle='#657783';c.lineWidth=road.width;line();c.stroke();
@@ -1644,7 +1699,7 @@ function createCityMap(T,layout) {
     // 再出撃の組み直しで、旧マップの視点用形状を積み重ねない。
     for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
     for(const stats of Object.values(geometryStats))for(const key of Object.keys(stats))stats[key]=0;
-    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,ferris:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       if(!a.length)continue;
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
@@ -1669,27 +1724,31 @@ function createCityMap(T,layout) {
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
+        // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
+        const facadeScale=data.district.facadeScale??1;
+        if(!Number.isFinite(facadeScale)||facadeScale<=0)throw Error('都市の外壁模様の縮尺が不正です');
         // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。
         mesh.material.onBeforeCompile=shader=>{
-          const declarations='varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
+          shader.uniforms.cityFacadeScale={value:facadeScale};
+          const declarations='uniform float cityFacadeScale; varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
           shader.vertexShader='attribute float cityGlass;\n'+declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);glassFacade=cityGlass;');
           shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
             vec3 facadeColor=diffuseColor.rgb;
             float side=1.0-step(0.45,abs(cityNormal.y));
             float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
-            vec2 pane=fract(vec2(horizontal/2.8,cityPoint.y/3.5));
-            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0,cityPoint.y);
+            vec2 pane=fract(vec2(horizontal/(2.8*cityFacadeScale),cityPoint.y/(3.5*cityFacadeScale)));
+            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0*cityFacadeScale,cityPoint.y);
             diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
             diffuseColor.rgb*=mix(0.70,1.0,side);
             float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
-            float reflection=0.5+0.5*sin(cityPoint.y*0.11+horizontal*0.012);
+            float reflection=0.5+0.5*sin((cityPoint.y*0.11+horizontal*0.012)/cityFacadeScale);
             vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
             ${data.district.glassTint?'glassColor*=clamp(facadeColor/vec3(0.48,0.58,0.62),vec3(0.35),vec3(1.4));':''}
             float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
             diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
           `);
         };
-        mesh.material.customProgramCacheKey=()=> 'city-facade-v3-'+!!data.district.glassTint;
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v4-'+!!data.district.glassTint+'-'+facadeScale;
       }
       if(k==='historicWall'){
         mesh.material.onBeforeCompile=shader=>{
@@ -1707,7 +1766,7 @@ function createCityMap(T,layout) {
         };
         mesh.material.customProgramCacheKey=()=> 'city-historic-wall-v1';
       }
-      mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops'].includes(k); root.add(mesh);
+      mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops','ferris'].includes(k); root.add(mesh);
       if(k!=='water'&&k!=='exitMarks') {
         // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
         const chunks=new Map();
@@ -2505,9 +2564,21 @@ const SHELL_SPEED = 70, SHELL_BLAST = 5, TURRET_BURST = 3, BURST_GAP = 1, TURRET
 const TURRET_SHELL = { dmg: TURRET_DMG, blast: SHELL_BLAST, core: 0, rocket: false };
 const turrets = [];
 function buildTurrets(list) {
-for (const [x, z] of list) for (const k of ['B', 'R']) {
-  const s = k === 'B' ? 1 : -1;
-  const [px,pz]=baseCoords(k,x,z),pos = new T.Vector3(px, terrainH(px,pz), pz);
+const sites=[];
+for (const [x,z] of list) for (const team of ['B','R']) {
+  const [px,pz]=baseCoords(team,x,z);
+  sites.push({team,at:[px,pz,terrainH(px,pz)]});
+}
+// 屋上の追加砲台だけは世界座標。基地用の対称展開やプラント占拠による所属変更はしない。
+for (const site of curMap.rooftopTurrets||[]) {
+  if(!['B','R'].includes(site.team)||!Array.isArray(site.at)||site.at.length!==3||
+     !site.at.every(Number.isFinite)||typeof site.plant!=='string'||!site.plant||
+     (site.yaw!==undefined&&!Number.isFinite(site.yaw)))throw Error('屋上砲台の配置が不正です');
+  sites.push({...site,rooftop:true});
+}
+for (const site of sites) {
+  const k=site.team,s=k==='B'?1:-1;
+  const [px,pz,py]=site.at,pos=new T.Vector3(px,py,pz);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 2.4, 3), baseMat);
   base.position.set(pos.x, pos.y + 1.2, pos.z);
@@ -2520,10 +2591,11 @@ for (const [x, z] of list) for (const k of ['B', 'R']) {
   head.add(dome, barrel);
   for (const m of [base, dome, barrel]) m.castShadow = true;
   mapRoot.add(base, head);
-  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4 });
+  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4, ...(site.rooftop?{bottom:pos.y}:{}) });
   const tu = {
     kind: 'turret', team: k, name: '防衛砲台', pos, hp: TURRET_HP, maxHp: TURRET_HP, alive: true,
-    base, baseMat, head, parts: [dome, barrel], yaw: s > 0 ? 0 : Math.PI,
+    base, baseMat, head, parts: [dome, barrel], yaw: site.yaw ?? (s > 0 ? 0 : Math.PI),
+    rooftop:!!site.rooftop, rooftopPlant:site.rooftop?site.plant:null,
     target: null, think: 0, fireCd: 0, shots: TURRET_BURST, dashState: '', locked: false, revive: 0,
   };
   head.rotation.y = tu.yaw;

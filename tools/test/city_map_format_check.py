@@ -47,10 +47,10 @@ print(f'正常データ1件・破損データ{len(cases)}件の検査完了')
 
 script=script.replace('MAP_DATA.hoshimichi','MAP_DATA.kanto')
 urban=json.loads(subprocess.check_output(['node','-e',script,str(ROOT/'prototype/maps/kanto.js')]))
-assert not check(urban),'1km・2cm形式の都市を拒否しない'
+assert not check(urban),'環都の都市データを拒否しない'
 packed_cases={
  '未対応の輪郭格子':lambda d:d['cityTerrain'].update(ringCoordinateStep=.04),
- '未対応の経路格子':lambda d:d['nav'].update(step=.01),
+ '未対応の経路格子':lambda d:d['nav'].update(step=.03),
  '途切れた経路座標':lambda d:d['nav'].update(nodes='AA=='),
  '範囲外の経路座標':lambda d:d['nav'].update(nodes=base64.b64encode(bytes([255,127,255,127])).decode()),
  '存在しない経路の参照':lambda d:d['nav'].update(links=base64.b64encode(bytes([255,255,254,255])).decode()),
@@ -66,4 +66,48 @@ for name,mutate in packed_cases.items():
     data=copy.deepcopy(urban);mutate(data)
     assert check(data),name+' を拒否する'
     print(name+'：拒否を確認')
-print(f'1km正常データ1件・破損データ{len(packed_cases)}件の検査完了')
+print(f'環都正常データ1件・破損データ{len(packed_cases)}件の検査完了')
+
+# 旧版にも適用できる任意項目のfixture。通常版へ統合された配置があればそのまま使う。
+optional=copy.deepcopy(urban)
+optional.setdefault('rooftopTurrets',[{'team':'B','plant':'A','at':[-106,40,24],'yaw':-3.059425}])
+district=optional['cityTerrain']['district']
+district.setdefault('facadeScale',.5)
+district.setdefault('ferrisWheel',{'center':[110.375,43,-87.975],'radius':14,'roofY':27,
+                                 'yaw':-.0822517,'color':'#bf3548','cabins':12,
+                                 'supportHalfWidth':5,'supportHalfDepth':1.5})
+assert not check(optional),'屋上砲台・観覧車・半縮尺の外壁を受理する'
+defaults=copy.deepcopy(optional)
+defaults['rooftopTurrets']=[]
+for key in ['yaw','color','cabins','supportHalfWidth','supportHalfDepth']:
+    defaults['cityTerrain']['district']['ferrisWheel'].pop(key,None)
+assert not check(defaults),'空の砲台配列と観覧車の省略値を受理する'
+missing=copy.deepcopy(optional);missing.pop('rooftopTurrets')
+for key in ['ferrisWheel','facadeScale']:missing['cityTerrain']['district'].pop(key)
+assert not check(missing),'追加項目の無い従来マップを受理する'
+optional_cases={
+ '屋上砲台が配列以外':lambda d:d.update(rooftopTurrets={}),
+ '屋上砲台の要素なし':lambda d:d.update(rooftopTurrets=[None]),
+ '屋上砲台の所属不正':lambda d:d['rooftopTurrets'][0].update(team='neutral'),
+ '屋上砲台の参照先なし':lambda d:d['rooftopTurrets'][0].update(plant='Z'),
+ '屋上砲台の高さなし':lambda d:d['rooftopTurrets'][0].update(at=[-106,40]),
+ '屋上砲台の無限高度':lambda d:d['rooftopTurrets'][0].update(at=[-106,40,float('inf')]),
+ '屋上砲台が範囲外':lambda d:d['rooftopTurrets'][0].update(at=[999,40,24]),
+ '屋上砲台の向き不正':lambda d:d['rooftopTurrets'][0].update(yaw=float('nan')),
+ '外壁の縮尺ゼロ':lambda d:d['cityTerrain']['district'].update(facadeScale=0),
+ '外壁の縮尺無限':lambda d:d['cityTerrain']['district'].update(facadeScale=float('inf')),
+ '観覧車の指定なし':lambda d:d['cityTerrain']['district'].update(ferrisWheel=None),
+ '観覧車の中心高さなし':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(center=[110,-88]),
+ '観覧車の半径不正':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(radius=-14),
+ '観覧車の脚が上向き':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(roofY=50),
+ '観覧車の外周が範囲外':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(center=[d['size'][0]-3,43,0]),
+ '観覧車の向き不正':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(yaw=float('nan')),
+ '観覧車のキャビン過多':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(cabins=10000),
+ '観覧車の支持脚不正':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(supportHalfWidth=-5),
+ '観覧車の色不正':lambda d:d['cityTerrain']['district']['ferrisWheel'].update(color='red'),
+}
+for name,mutate in optional_cases.items():
+    data=copy.deepcopy(optional);mutate(data)
+    assert check(data),name+' を拒否する'
+    print(name+'：拒否を確認')
+print(f'追加項目の正常・省略・空配列3件、破損データ{len(optional_cases)}件の検査完了')

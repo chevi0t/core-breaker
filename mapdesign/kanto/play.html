@@ -942,8 +942,8 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
-        <kbd>Q</kbd><span>ロック対象を切り替え</span>
+        <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円の半径2倍以内に捉え、右クリックでロック。捕捉時に対象の胴体を画面中央へ合わせ、もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します。捕捉後は頭などを自由に狙えます。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
+        <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
         <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
@@ -1341,6 +1341,53 @@ function expandCityLayout(T,data){
     add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
     add('water',faces(rings,data.river.water));
   }
+
+  // 遠景でも輪郭を読み取れる静止観覧車。透過円盤や見えない箱は置かない。
+  const wheel=data.district.ferrisWheel;
+  if(wheel){
+    const {center,radius,roofY,yaw=0,color='#bf3548',cabins=12}=wheel;
+    if(!Array.isArray(center)||center.length!==3||!center.every(Number.isFinite)||
+       ![radius,roofY,yaw].every(Number.isFinite)||radius<=0||roofY>=center[1]||
+       !Number.isInteger(cabins)||cabins<4||cabins>24)throw Error('観覧車の寸法が不正です');
+    const world=new T.Matrix4().makeRotationY(-yaw);
+    world.setPosition(...center);
+    const up=new T.Vector3(0,1,0),identity=new T.Quaternion();
+    // ローカルX軸が輪の水平軸、Y軸が高さ、Z軸が車軸。全パーツを1層へまとめる。
+    const emit=(geometry,position,rotation=identity,paint=color)=>{
+      const geo=geometry.index?geometry.toNonIndexed():geometry;
+      const local=new T.Matrix4().compose(position,rotation,new T.Vector3(1,1,1));
+      geo.applyMatrix4(world.clone().multiply(local));
+      add('ferris',Array.from(geo.attributes.position.array),paint);
+      geo.dispose();if(geo!==geometry)geometry.dispose();
+    };
+    const point=(x,y,z)=>new T.Vector3(x,y,z);
+    const bar=(a,b,r=.08,segments=4,paint=color)=>{
+      const direction=b.clone().sub(a),length=direction.length();
+      emit(new T.CylinderGeometry(r,r,length,segments),a.clone().add(b).multiplyScalar(.5),
+        new T.Quaternion().setFromUnitVectors(up,direction.divideScalar(length)),paint);
+    };
+    for(const depth of [-.65,.65]){
+      emit(new T.TorusGeometry(radius,.18,4,32),point(0,0,depth));
+      for(let i=0;i<8;i++){
+        const angle=i*Math.PI/4;
+        bar(point(0,0,depth),point(Math.cos(angle)*(radius-.2),Math.sin(angle)*(radius-.2),depth));
+      }
+    }
+    bar(point(0,0,-1.7),point(0,0,1.7),.42,6,'#414b53');
+    const footY=roofY-center[1],footX=wheel.supportHalfWidth??5,footZ=wheel.supportHalfDepth??1.5;
+    if(![footX,footZ].every(v=>Number.isFinite(v)&&v>0))throw Error('観覧車の支持脚寸法が不正です');
+    for(const side of [-1,1]){
+      for(const x of [-footX,footX])bar(point(x,footY,side*footZ),point(0,0,side*1.3),.24,6);
+      bar(point(-footX,footY+.12,side*footZ),point(footX,footY+.12,side*footZ),.12);
+    }
+    for(let i=0;i<cabins;i++){
+      const angle=i*Math.PI*2/cabins,x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
+      bar(point(x,y,0),point(x,y-.6,0),.07);
+      emit(new T.BoxGeometry(1.15,1.15,1.35),point(x,y-1.175,0));
+      emit(new T.BoxGeometry(1.17,.42,1.37),point(x,y-1.05,0),identity,'#29424a');
+    }
+  }
+
   const encode=a=>{const bytes=new Uint8Array(new Float32Array(a).buffer);let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);};
   data.meshes=Object.fromEntries(Object.entries(layers).map(([k,a])=>[k,encode(a)]));
   for(const [name,m] of Object.entries(data.surfaces)){
@@ -1455,7 +1502,7 @@ function createCityMap(T,layout) {
     return result;
   }
   const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas','streets','historicGround']));
-  const bridgeTriangles = triangles(['brid']);
+  const bridgeTriangles = triangles(['brid',...(arrays.ferris?['ferris']:[])]);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
   function surface(t, x, z) {
@@ -1612,7 +1659,20 @@ function createCityMap(T,layout) {
       if(data.district.railGap){path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();}
       const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
       if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
-      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?data.district.buildingPalette[v.paint]:v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+
+      // 観覧車を真上から見た位置。円盤で街路を覆わず、細い赤い目印にする。
+      const wheel=data.district.ferrisWheel;
+      if(wheel){
+        const [x,,z]=wheel.center,dx=Math.cos(wheel.yaw||0)*wheel.radius,dz=Math.sin(wheel.yaw||0)*wheel.radius;
+        c.strokeStyle=wheel.color||'#bf3548';c.lineWidth=2;
+        c.beginPath();c.moveTo(x-dx+half,z-dz+half);c.lineTo(x+dx+half,z+dz+half);c.stroke();
+      }
+      for(const road of data.district.groundPassages||[]){
+        const line=()=>{c.beginPath();c.moveTo(road.from[0]+half,road.from[1]+half);c.lineTo(road.to[0]+half,road.to[1]+half);};
+        c.strokeStyle='#657783';c.lineWidth=road.width;line();c.stroke();
+        c.strokeStyle='#c1e3e8';c.lineWidth=1.5;c.setLineDash([4,3]);line();c.stroke();c.setLineDash([]);
+      }
       for(const exit of data.river.exits||[]){
         c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
@@ -1640,7 +1700,7 @@ function createCityMap(T,layout) {
     // 再出撃の組み直しで、旧マップの視点用形状を積み重ねない。
     for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
     for(const stats of Object.values(geometryStats))for(const key of Object.keys(stats))stats[key]=0;
-    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,ferris:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
     for (const [k,a] of Object.entries(arrays)) {
       if(!a.length)continue;
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
@@ -1665,27 +1725,31 @@ function createCityMap(T,layout) {
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
         transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
+        // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
+        const facadeScale=data.district.facadeScale??1;
+        if(!Number.isFinite(facadeScale)||facadeScale<=0)throw Error('都市の外壁模様の縮尺が不正です');
         // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。
         mesh.material.onBeforeCompile=shader=>{
-          const declarations='varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
+          shader.uniforms.cityFacadeScale={value:facadeScale};
+          const declarations='uniform float cityFacadeScale; varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
           shader.vertexShader='attribute float cityGlass;\n'+declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);glassFacade=cityGlass;');
           shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
             vec3 facadeColor=diffuseColor.rgb;
             float side=1.0-step(0.45,abs(cityNormal.y));
             float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
-            vec2 pane=fract(vec2(horizontal/2.8,cityPoint.y/3.5));
-            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0,cityPoint.y);
+            vec2 pane=fract(vec2(horizontal/(2.8*cityFacadeScale),cityPoint.y/(3.5*cityFacadeScale)));
+            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0*cityFacadeScale,cityPoint.y);
             diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
             diffuseColor.rgb*=mix(0.70,1.0,side);
             float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
-            float reflection=0.5+0.5*sin(cityPoint.y*0.11+horizontal*0.012);
+            float reflection=0.5+0.5*sin((cityPoint.y*0.11+horizontal*0.012)/cityFacadeScale);
             vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
             ${data.district.glassTint?'glassColor*=clamp(facadeColor/vec3(0.48,0.58,0.62),vec3(0.35),vec3(1.4));':''}
             float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
             diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
           `);
         };
-        mesh.material.customProgramCacheKey=()=> 'city-facade-v3-'+!!data.district.glassTint;
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v4-'+!!data.district.glassTint+'-'+facadeScale;
       }
       if(k==='historicWall'){
         mesh.material.onBeforeCompile=shader=>{
@@ -1703,7 +1767,7 @@ function createCityMap(T,layout) {
         };
         mesh.material.customProgramCacheKey=()=> 'city-historic-wall-v1';
       }
-      mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops'].includes(k); root.add(mesh);
+      mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops','ferris'].includes(k); root.add(mesh);
       if(k!=='water'&&k!=='exitMarks') {
         // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
         const chunks=new Map();
@@ -2132,10 +2196,11 @@ const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80;
 let NAV = null;
 function buildNav(nav) {
   NAV = null;
-  if(nav?.encoding==='xz-i16-links-u16'){
+  if(['xz-i16-links-u16','xyz-i16-links-u16'].includes(nav?.encoding)){
     const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer;
     const points=new Int16Array(decode(nav.nodes)),edges=new Uint16Array(decode(nav.links)),nodes=[],links=[];
-    for(let i=0;i<points.length;i+=2)nodes.push([points[i]*nav.step,points[i+1]*nav.step]);
+    const stride=nav.encoding==='xyz-i16-links-u16'?3:2;
+    for(let i=0;i<points.length;i+=stride)nodes.push(Array.from(points.subarray(i,i+stride),v=>v*nav.step));
     for(let i=0;i<edges.length;i+=2)links.push([edges[i],edges[i+1]]);
     nav={nodes,links};
   }
@@ -2500,9 +2565,21 @@ const SHELL_SPEED = 70, SHELL_BLAST = 5, TURRET_BURST = 3, BURST_GAP = 1, TURRET
 const TURRET_SHELL = { dmg: TURRET_DMG, blast: SHELL_BLAST, core: 0, rocket: false };
 const turrets = [];
 function buildTurrets(list) {
-for (const [x, z] of list) for (const k of ['B', 'R']) {
-  const s = k === 'B' ? 1 : -1;
-  const [px,pz]=baseCoords(k,x,z),pos = new T.Vector3(px, terrainH(px,pz), pz);
+const sites=[];
+for (const [x,z] of list) for (const team of ['B','R']) {
+  const [px,pz]=baseCoords(team,x,z);
+  sites.push({team,at:[px,pz,terrainH(px,pz)]});
+}
+// 屋上の追加砲台だけは世界座標。基地用の対称展開やプラント占拠による所属変更はしない。
+for (const site of curMap.rooftopTurrets||[]) {
+  if(!['B','R'].includes(site.team)||!Array.isArray(site.at)||site.at.length!==3||
+     !site.at.every(Number.isFinite)||typeof site.plant!=='string'||!site.plant||
+     (site.yaw!==undefined&&!Number.isFinite(site.yaw)))throw Error('屋上砲台の配置が不正です');
+  sites.push({...site,rooftop:true});
+}
+for (const site of sites) {
+  const k=site.team,s=k==='B'?1:-1;
+  const [px,pz,py]=site.at,pos=new T.Vector3(px,py,pz);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 2.4, 3), baseMat);
   base.position.set(pos.x, pos.y + 1.2, pos.z);
@@ -2515,10 +2592,11 @@ for (const [x, z] of list) for (const k of ['B', 'R']) {
   head.add(dome, barrel);
   for (const m of [base, dome, barrel]) m.castShadow = true;
   mapRoot.add(base, head);
-  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4 });
+  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4, ...(site.rooftop?{bottom:pos.y}:{}) });
   const tu = {
     kind: 'turret', team: k, name: '防衛砲台', pos, hp: TURRET_HP, maxHp: TURRET_HP, alive: true,
-    base, baseMat, head, parts: [dome, barrel], yaw: s > 0 ? 0 : Math.PI,
+    base, baseMat, head, parts: [dome, barrel], yaw: site.yaw ?? (s > 0 ? 0 : Math.PI),
+    rooftop:!!site.rooftop, rooftopPlant:site.rooftop?site.plant:null,
     target: null, think: 0, fireCd: 0, shots: TURRET_BURST, dashState: '', locked: false, revive: 0,
   };
   head.rotation.y = tu.yaw;
@@ -3061,7 +3139,7 @@ function catModel(cp, acc, dots) {
 function buildCatapults(list) {
 const acc = {}, dots = [];
 const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
-for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true});
+for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true,route:curMap.bases[k].catapultFlight?{flight:curMap.bases[k].catapultFlight}:undefined});
 for(const route of curMap.plantCatapults||[])entries.push({row:[...route.at,...route.exit,route.plant],k:'B',absolute:true,route});
 for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const s = k === 'B' ? 1 : -1;
@@ -3085,7 +3163,8 @@ function launch(u, cp) {
   const t = cp.flight ?? CAT_FLIGHT;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
-  Object.assign(u, { flying: true, ctrlLockT: cp.flight ?? CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
+  // 軌道の飛行時間と操作禁止を分ける。高角・長距離でも最初の1秒だけ固定する。
+  Object.assign(u, { flying: true, ctrlLockT: CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
 }
@@ -4722,12 +4801,14 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.catCd -= dt;
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
-    if (u.ctrlLockT > 0) { u.ctrlLockT -= dt; accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
+    if (u.ctrlLockT > 0) { u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
     else if (!u.dashState || u.dashState === 'hover') {
       accel = wish.lengthSq() > 0.01 ? 1.5 : 0;
       // 空中ダッシュ後に射出時より速くならないようにする
       const hs = Math.hypot(u.vel.x, u.vel.z);
       if (hs > u.flightSpeed) { u.vel.x *= u.flightSpeed / hs; u.vel.z *= u.flightSpeed / hs; }
+      // カタパルトでは前進入力の目標を歩行速度に下げず、射出の勢いで旋回する。
+      if (!u.jumpPad) speed = Math.max(speed, Math.min(hs, u.flightSpeed));
     }
   }
   const k = 1 - Math.exp(-accel * dt);
@@ -4754,7 +4835,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.jumpPad = null;
+    // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
@@ -7289,6 +7371,7 @@ function selectWeapon(u, w) {
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
+  if (u.isPlayer && !lockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
   if (isArtilleryMode(u)) {
@@ -7670,9 +7753,9 @@ function swordTick(u, sl, dt, trigger, aim) {
   }
   if (sl.cd > 0 || !trigger) return false;
   let a = sl.w.normal;
-  const dashAttack = u.dashT > 0 || u.longDash;
+  const dashAttack = u.dashT > 0 || u.longDash || (u.chargerOn && !u.slots.sp.overheat);
   if (dashAttack) {
-    // 回転斬り：ダッシュ中ならブーストに関係なく出せる。ダッシュは踏み込みに切り替わる
+    // 加速装置ON中も各武器のダッシュ技を使い、進入時の勢いを踏み込みへ引き継ぐ。
     a = sl.w.strong;
     u.dashT = 0; u.longDash = false;
   }
@@ -8398,6 +8481,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) mouseDown = true;
   if (e.button === 2) {
     if (running && player && player.alive && player.slots[player.weapon].w.scopeHigh && !player.repairing && !player.transfer && player.switchT<=0) player.scopeStep=((player.scopeStep||0)+1)%3;
+    if (running && !mapOpen && !wsel.open) toggleLock(player);
     rightDown = true;
   }
   if (running && document.pointerLockElement !== canvas) grabPointer();
@@ -8649,10 +8733,11 @@ function anglesTo(u, p) {
 }
 
 // ---- ロックオン ----
-// 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。外側の円（KEEP_R）から外れるか、射程外・遮蔽で解除。
+// 主武器・近接で表示円（ACQ_R）の半径2倍以内の敵を右クリックして中央へ捕捉、再クリックで解除。
+// 外側の円（KEEP_R）から外れるか、射程外・遮蔽・副武器や特別装備への持ち替えでも解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
 // ショートダッシュで振り切れる仕組み（LOCK_TRACK_SHAKEN）は変えていない
-const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42, ACQ_TIME = 0.15;
+const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42;
 // 追従の強さ：目標が動いた角度のうち視点が自動で追う割合。相手がショートダッシュ中は大きく落ちる。
 // LOCK_PULL は照準が機体から外れたときに引き戻す速さ（ラジアン/秒）、LOCK_BODY は機体とみなす範囲（横の半幅、足元からの高さ）。v0.9.1で強めた。
 // top：上に外れたときに引き戻す高さ（胴の上＝肩。頭は3.2〜3.95m）。v0.15まではてっぺんの hi へ戻していて、カメラ（4.6m）から水平に構えるだけで頭に吸い付いていた
@@ -8661,7 +8746,7 @@ const LOCK_TRACK = 1, LOCK_TRACK_SHAKEN = 0.35, LOCK_MAX_RATE = 4, LOCK_PULL = 0
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
+const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8671,15 +8756,29 @@ function screenOf(e) {
   proj.copy(p).project(camera);
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
-function setLock(e) {
-  Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null });
+function setLock(u, e) {
+  Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
+  // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
+  const at = targetPoint(e), view = new T.Vector3();
+  updateCamera(u, 0);
+  for (let i = 0; i < 8; i++) {
+    const to = at.clone().sub(camera.position);
+    camera.getWorldDirection(view);
+    const yaw = wrapAngle(Math.atan2(-to.x, -to.z) - Math.atan2(-view.x, -view.z));
+    const pitch = Math.atan2(to.y, Math.hypot(to.x, to.z)) - Math.atan2(view.y, Math.hypot(view.x, view.z));
+    if (Math.hypot(yaw, pitch) < .000001) break;
+    u.yaw += yaw; u.pitch = Math.max(-0.9, Math.min(0.7, u.pitch + pitch));
+    updateCamera(u, 0);
+  }
   sfx('lock');
 }
-function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false, down: false }); }
-function lockUpdate(u, dt) {
-  if(u.jamT>0){if(lock.target||lock.cand)releaseLock();return;}
-  if (u.slots[u.weapon].w.noLock) { if (lock.target || lock.cand) releaseLock(); return; }
-  const seen = e => canSee(u, e, targetPoint(e));
+function releaseLock() { Object.assign(lock, { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false }); }
+function lockAllowed(u) {
+  if (!u || !u.alive || u.repairing || u.transfer || u.jamT > 0) return false;
+  const w = u.slots[u.weapon].w;
+  return !w.noLock && (u.weapon === 'main' || u.weapon === 'aux' && w.type === 'sword');
+}
+function lockCandidates(u) {
   const list = [];
   for (const e of [...units, ...turrets]) {
     if (!e.alive || e.team === u.team) continue;
@@ -8690,6 +8789,19 @@ function lockUpdate(u, dt) {
     if (s) list.push({ e, d: s.d, dist });
   }
   list.sort((a, b) => a.d - b.d);
+  return list;
+}
+function toggleLock(u) {
+  if (!lockAllowed(u)) return;
+  if (lock.target) { releaseLock(); return; }
+  if (u.switchT > 0) return;
+  const c = lockCandidates(u).find(c => c.d <= ACQ_R * 2 && canSee(u, c.e, targetPoint(c.e)));
+  if (c) setLock(u, c.e);
+}
+function lockUpdate(u, dt) {
+  if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
+  if (!lock.target) return;
+  const seen = e => canSee(u, e, targetPoint(e)), list = lockCandidates(u);
   if (lock.target) {
     const cur = list.find(c => c.e === lock.target);
     lock.losT -= dt;
@@ -8697,23 +8809,13 @@ function lockUpdate(u, dt) {
     lock.lostT = lock.visible ? 0 : lock.lostT + dt;
     if (!cur || cur.d > KEEP_R * keepScale() || lock.lostT > 0.6) releaseLock();
   }
-  if (pressed.KeyQ) {
+  if (lock.target && pressed.KeyQ) {
     // 外側の円の中で、次に照準に近い敵へ切り替え
     const pool = list.filter(c => c.d < KEEP_R * keepScale() && (c.e === lock.target || seen(c.e)));
     if (pool.length) {
       const i = pool.findIndex(c => c.e === lock.target);
       const next = pool[(i + 1) % pool.length].e;
-      if (next !== lock.target) setLock(next);
-    }
-  }
-  if (!lock.target) {
-    const c = list.find(c => c.d < ACQ_R);
-    if (c && c.e === lock.cand) {
-      lock.acqT += dt;
-      if (lock.acqT >= ACQ_TIME && seen(c.e)) setLock(c.e);
-    } else {
-      lock.cand = c ? c.e : null;
-      lock.acqT = 0;
+      if (next !== lock.target) setLock(u, next);
     }
   }
 }
@@ -10047,16 +10149,14 @@ function hud(timeLeft, dt) {
   respawnPanel(p);
   missileHud(p);
   const ring = $('lockRing'), mk = $('lockMark');
-  const shown = p.alive && (lock.target || (lock.cand && lock.acqT > 0)) ? (lock.target || lock.cand) : null;
+  const shown = p.alive ? lock.target : null;
   ring.classList.toggle('on', !!lock.target);
-  ring.classList.toggle('acq', !lock.target && !!shown);
   const sp = shown && screenOf(shown);
   mk.hidden = !sp;
   if (sp) {
     mk.style.transform = `translate(${(sp.x + 1) / 2 * innerWidth}px, ${(1 - sp.y) / 2 * innerHeight}px)`;
-    mk.classList.toggle('acq', !lock.target);
     mk.classList.toggle('lost', !!lock.target && !lock.visible);
-    $('lockName').textContent = lock.target ? `LOCK ${shown.name}` : shown.name;
+    $('lockName').textContent = `LOCK ${shown.name}`;
     $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
     $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
   }
