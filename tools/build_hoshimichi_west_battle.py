@@ -144,6 +144,8 @@ def build_navigation(streets,anchors,main_pairs):
 
 def main():
     OUT.mkdir(parents=True,exist_ok=True)
+    policy=json.loads((ROOT/'research/maps/hoshimichi-west-rebuild-policy.json').read_text())
+    maximum_map_bytes=policy['maximumMapFileBytes']
     proposal=json.loads((ROOT/'mapdesign/hoshimichi_west/layout-proposal.json').read_text())
     source=ROOT/'mapdesign/hoshimichi_west/layout.json'
     assert hashlib.sha256(source.read_bytes()).hexdigest()==proposal['terrainSHA256']
@@ -274,13 +276,13 @@ def main():
     (OUT/'layout.json').write_bytes(compact(data)+b'\n')
     header='// 承認済み星路西街区。出典・加工はmapdesign/hoshimichi_west/CREDITS.md。\n// tools/build_hoshimichi_west_battle.pyで生成。\n'
     js=header+f'(window.MAP_DATA = window.MAP_DATA || {{}}).{ID} = '+compact(definition).decode()+';\n'
-    assert len(js.encode())<=100000,('施設・経路込みで100KBを超過',len(js.encode()))
+    assert len(js.encode())<=maximum_map_bytes,('施設・経路込みの容量上限を超過',len(js.encode()),maximum_map_bytes)
     (ROOT/f'prototype/maps/{ID}.js').write_text(js)
     report={'approvedCoordinatesKept':True,'removedVolumes':len(removed),'removedBuildingArea':round(sum(r['area'] for r in removed),1),
             'protectedRetained':protected_kept,'volumeCount':len(volumes),'geometryBytes':len(compact(data)),'mapDataBytes':len(compact(definition)),'mapFileBytes':len(js.encode()),
             'navigation':navstats,'bridgeDecks':[{'ring':[qpoint(q) for q in p.exterior.coords[:-1]],'height':0} for p in bridge_shapes],
             'shelters':data['district']['repairShelters'],'baseSpawns':{t:len(v) for t,v in base_spawns.items()},
-            'sourceSHA256':hashlib.sha256(source.read_bytes()).hexdigest()}
+            'maximumMapFileBytes':maximum_map_bytes,'sourceSHA256':hashlib.sha256(source.read_bytes()).hexdigest()}
     (OUT/'generation.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({k:report[k] for k in ['geometryBytes','mapDataBytes','mapFileBytes','navigation','volumeCount']},ensure_ascii=False),flush=True)
 
