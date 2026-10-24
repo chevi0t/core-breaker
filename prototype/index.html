@@ -1295,6 +1295,41 @@ function movementStep(u, foot) {
 
 // ---- 都市モデルの地形・視点・歩行経路 ----
 // 都市の輪郭・高さを描画・接触・射線で共用する。
+// 地形確認用の建物整数列を復元する。座標・高さ・色の精度は変更しない。
+function decodeCityVolumes(layout) {
+  if (Array.isArray(layout.volumes)) return layout.volumes;
+  const old = layout.volumeEncoding === 'kind-u8-color-u8-y01-i16-rings-u16';
+  if (!old && layout.volumeEncoding !== 'kind2-color4-flags2-y01-i16-rings-u8') throw Error('未対応の建物保存形式');
+  const a = Uint8Array.from(atob(layout.volumes), c => c.charCodeAt(0)), view = new DataView(a.buffer), out = [];
+  let offset = 0;
+  const take = n => { if (offset + n > a.length) throw Error('建物の整数列が途中で切れています'); const start = offset; offset += n; return start; };
+  const u8 = () => view.getUint8(take(1)), u16 = () => view.getUint16(take(2), true), i16 = () => view.getInt16(take(2), true);
+  while (offset < a.length) {
+    let kind, colorIndex, bottom, top, n;
+    if (old) { kind = u8(); colorIndex = u8(); bottom = i16(); top = i16(); n = u16(); }
+    else {
+      const tag = u8(); kind = tag & 3; colorIndex = tag >> 2 & 15; top = i16();
+      bottom = tag & 128 ? i16() : [-25, null, -50, top - 100][kind];
+      n = tag & 64 ? u8() + 1 : 1;
+    }
+    if (kind >= layout.volumeKinds.length || colorIndex >= layout.volumeColors.length || !n || bottom === null || top <= bottom) throw Error('建物の種類・色・寸法が不正です');
+    const rings = [];
+    for (let i = 0; i < n; i++) {
+      let count = old ? u16() : u8();
+      if (!old && count === 255) count = u16();
+      if (count < 3) throw Error('建物の頂点不足');
+      const start = take(count * 4);
+      let text = '';
+      for (let p = start; p < start + count * 4; p += 32768) text += String.fromCharCode(...a.subarray(p, Math.min(p + 32768, start + count * 4)));
+      rings.push(btoa(text));
+    }
+    const color = layout.volumeColors[colorIndex];
+    out.push([kind, bottom / 100, top / 100, rings, color ? { landmarkColor: color } : {}]);
+  }
+  if (out.length !== layout.volumeCount) throw Error('建物の件数が一致しません');
+  return out;
+}
+
 function expandCityLayout(T,data){
   if(data.geometryEncoding!=='city-layout-v1')throw Error('未対応の街区データ');
   const unpackRings=rings=>rings.map(r=>{
@@ -1302,7 +1337,7 @@ function expandCityLayout(T,data){
     const step=data.ringCoordinateStep??.01;
     for(let i=0;i<a.length;i+=2)points.push([a[i]*step,a[i+1]*step]);return points;
   });
-  data.volumes=data.volumes.map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
+  data.volumes=decodeCityVolumes(data).map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
   for(const d of data.decorations)d.rings=unpackRings(d.rings);
   for(const lawn of data.district.lawns||[])lawn.rings=unpackRings(lawn.rings);
   delete data.volumeKinds;
@@ -1468,6 +1503,23 @@ function createCityMap(T,layout) {
   const arrays=Object.fromEntries(Object.entries(data.meshes).map(([k,b])=>[k,new Float32Array(decode(b).buffer)]));
   delete data.meshes;
   const radius=1.3,height=4,half=data.half,cell=16;
+  // 描画する街並みと、機体が進入できる長方形を分ける。未指定の都市は従来の正方形。
+  const explicitBounds=!!data.playBounds,bounds=data.playBounds||[-half,half,-half,half];
+  const extent=data.halfExtents||[half,half];
+  if(bounds.length!==4||!bounds.every(Number.isFinite)||bounds[1]-bounds[0]<=radius*2||bounds[3]-bounds[2]<=radius*2||
+    bounds[0]<-extent[0]||bounds[1]>extent[0]||bounds[2]<-extent[1]||bounds[3]>extent[1])throw Error('都市の進入範囲が不正です');
+  const warningWalls=[];
+  function updateBoundary(u){
+    for(const wall of warningWalls){
+      const {axis,sign,edge,other,low,high}=wall.userData;
+      const distance=u?sign*(edge-u.pos[axis])-radius:Infinity;
+      wall.visible=!!u&&distance<8;
+      if(!wall.visible)continue;
+      wall.position[other]=Math.max(low+8,Math.min(high-8,u.pos[other]));
+      wall.position.y=u.pos.y+4;
+      wall.material.opacity=.08+.24*Math.max(0,1-Math.max(0,distance)/8);
+    }
+  }
   const key=(x,z)=>Math.floor(x/cell)+','+Math.floor(z/cell);
   function index(items) {
     const grid = new Map();
@@ -1495,7 +1547,7 @@ function createCityMap(T,layout) {
   function triangles(keys) {
     const result = [];
     for (const k of keys) {
-      const a = arrays[k];
+      const a = arrays[k]||[];
       for (let i = 0; i < a.length; i += 9) {
         const p = [0, 3, 6].map(j => new T.Vector3(a[i+j], a[i+j+1], a[i+j+2]));
         const tri = new T.Triangle(...p), normal = tri.getNormal(new T.Vector3());
@@ -1565,9 +1617,14 @@ function createCityMap(T,layout) {
     return best;
   }
   function clamp(u) {
-    for (const axis of ['x', 'z']) {
-      const p = Math.max(-half+radius, Math.min(half-radius, u.pos[axis]));
-      if (p !== u.pos[axis]) { u.pos[axis] = p; u.vel[axis] = 0; }
+    for(let i=0;i<4;i+=2){
+      const axis=i===0?'x':'z';
+      const before=u.pos[axis],p=Math.max(bounds[i]+radius,Math.min(bounds[i+1]-radius,before));
+      if(p!==before){
+        u.pos[axis]=p;
+        // 新しい境界では内向き・接線方向の移動を残し、外向きの速度だけを止める。
+        if(!explicitBounds||(before-p)*u.vel[axis]>0)u.vel[axis]=0;
+      }
     }
   }
   function resolve(u) {
@@ -1656,6 +1713,10 @@ function createCityMap(T,layout) {
       const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround?.color||'#8a8d85'; c.fillRect(0,0,half*2,half*2);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
+      if(!data.river.rings.length&&arrays.water){
+        c.fillStyle='#34789a';const a=arrays.water;
+        for(let i=0;i<a.length;i+=9){path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);c.fill();}
+      }
       for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
       for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
       if(data.district.roadColor){
@@ -1684,6 +1745,7 @@ function createCityMap(T,layout) {
         c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
       }
       c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,half*2-2,half*2-2);
+      if(explicitBounds){c.strokeStyle='#f6d35b';c.lineWidth=2;c.strokeRect(bounds[0]+half,bounds[2]+half,bounds[1]-bounds[0],bounds[3]-bounds[2]);}
       for(const p of data.district.roofPads){
         c.fillStyle='#97ffd3';c.beginPath();c.arc(p.at[0]+half,p.at[1]+half,5,0,Math.PI*2);c.fill();
         c.strokeStyle='#71f5bd';c.lineWidth=2;c.beginPath();c.moveTo(p.at[0]+half,p.at[1]+half);c.lineTo(p.exit[0]+half,p.exit[1]+half);c.stroke();
@@ -1700,6 +1762,7 @@ function createCityMap(T,layout) {
   function dispose(){
     for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
     for(const material of ownedMaterials)material.dispose();ownedMaterials.clear();
+    warningWalls.length=0;
     cameraController.reset();
   }
   function mount(root,hittables) {
@@ -1789,7 +1852,27 @@ function createCityMap(T,layout) {
         }
       }
     }
-    // 当たり判定は無限の高さで四辺を制限し、見た目にも範囲を示す。
+    if(explicitBounds){
+      // 8m手前から、機体の近くの16m幅だけを表示する。弾・カメラの障害物にはしない。
+      warningWalls.length=0;
+      const geo=new T.PlaneGeometry(16,8);
+      for(const [axis,i,other,j] of [['x',0,'z',2],['z',2,'x',0]])for(const sign of [-1,1]){
+        const wall=new T.Mesh(geo,new T.MeshBasicMaterial({color:0xffd447,transparent:true,opacity:.08,side:T.DoubleSide,depthWrite:false}));
+        const edge=bounds[i+(sign>0?1:0)];
+        wall.name='city-boundary-warning';wall.visible=false;wall.position[axis]=edge;
+        if(axis==='x')wall.rotation.y=Math.PI/2;
+        wall.userData={axis,other,sign,edge,low:bounds[j],high:bounds[j+1]};
+        root.add(wall);warningWalls.push(wall);
+      }
+      // 取得範囲の外側だけ地面を継ぎ足す。内側の川を塞がず、遠景の端を霧の外へ逃がす。
+      const [hx,hz]=extent,far=half+900,a=[];
+      for(const [x0,x1,z0,z1] of [[-far,-hx,-far,far],[hx,far,-far,far],[-hx,hx,-far,-hz],[-hx,hx,hz,far]])
+        a.push(x0,-.05,z0,x1,-.05,z0,x1,-.05,z1,x0,-.05,z0,x1,-.05,z1,x0,-.05,z1);
+      const apron=new T.BufferGeometry();apron.setAttribute('position',new T.Float32BufferAttribute(a,3));apron.computeVertexNormals();
+      const ground=new T.Mesh(apron,new T.MeshLambertMaterial({color:data.district.unifiedGround.color,side:T.DoubleSide}));
+      ground.name='city-distant-ground';root.add(ground);
+    }else{
+    // 従来の都市は常時表示する外周を維持する。
     const barrier=new T.MeshBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.055,side:T.DoubleSide,depthWrite:false});
     for(const axis of ['x','z']) for(const sign of [-1,1]) {
       const geo=new T.PlaneGeometry(half*2,220),m=new T.Mesh(geo,barrier);
@@ -1797,10 +1880,13 @@ function createCityMap(T,layout) {
       const line=new T.LineSegments(new T.EdgesGeometry(geo),new T.LineBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.6}));
       line.position.copy(m.position);line.rotation.copy(m.rotation);root.add(line);
     }
+    }
     root.traverse(m=>{for(const material of m.material?(Array.isArray(m.material)?m.material:[m.material]):[])ownedMaterials.add(material);});
     root.updateMatrixWorld(true);
   }
   return {dispose,mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
+    playBounds:bounds,clampToBounds:explicitBounds?clamp:null,updateBoundary,
+    get boundaryWarnings(){return warningWalls;},
     district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
     addCameraGeometry:meshes=>{for(const m of meshes){
       m.updateWorldMatrix(true,false);
@@ -1899,6 +1985,7 @@ function getCityMap(def){
   return cityMapCache.get(def);
 }
 function drawCityBaseZones(ctx,W,H,def,own=chosenTeam){
+  if(def.walkOnly)return;
   for(const team of ['B','R']){
     const b=def.bases[team],color=sideColors(team,own).css;
     ctx.fillStyle=color+'55';ctx.strokeStyle=color;ctx.lineWidth=1.2;
@@ -2412,7 +2499,7 @@ let VS = null, coreMax = CORE_MAX;
 function buildCores() {
 for (const k of ['B', 'R']) {
   const t = TEAM[k];
-  if (VS) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(t.baseX, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
+  if (VS || curMap.walkOnly) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(t.baseX, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
   const g = new T.Group();
   const pedestal = new T.Mesh(new T.CylinderGeometry(9, 10, 2, 24), new T.MeshLambertMaterial({ color: 0x55534d }));
   pedestal.position.y = 1;
@@ -3528,7 +3615,7 @@ function buildMap(id) {
   cityMap?.dispose();cityMap=null;cityBattle=null;
   const def = MAPS[id] || MAPS[FIRST_MAP];
   curMap = def; mapId = MAPS[id] ? id : FIRST_MAP;
-  cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
+  cityMap=getCityMap(def);if(cityMap&&!def.walkOnly)cityBattle=createCityBattle(T,cityMap,def);
   scene.fog.near=cityMap?220:110;scene.fog.far=cityMap?850:420;
   for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
   obstacles.length = 0; hittables.length = 0;
@@ -3544,6 +3631,7 @@ function buildMap(id) {
   buildBridges(def.bridges);
   buildNav(def.nav);
   buildCores();
+  if(!def.walkOnly){
   buildBaseMarkings();
   buildPlants(def.plants);
   if (!VS) { buildTurrets(def.turrets); buildRadars(def.radar); }
@@ -3552,8 +3640,10 @@ function buildMap(id) {
   buildPods(def.basePods, def.plantPods);
   buildBarricades(def.barricades);
   if (!VS) buildUmbrellas();
+  }
+  $('top').querySelectorAll('.core').forEach(el=>el.hidden=!!def.walkOnly);
   if(cityMap){
-    cityBattle.finishNav(NAV,clearPath);
+    cityBattle?.finishNav(NAV,clearPath);
     cityMap.addCameraGeometry(hittables.filter(m=>!m.name.startsWith('city-collision-')));
   }
   renderTeamView();
@@ -4551,6 +4641,9 @@ function cancelSpawnInvul(u) {
   u.invulT = 0; u.invulCancelOnAttack = false;
 }
 function spawnPos(u, at) {
+  if(curMap.walkOnly){
+    const p=cityMap.spawns[0];u.pos.fromArray(p);resolve(u);u.pos.y=groundAt(u.pos.x,u.pos.z,u.pos.y);return;
+  }
   if(cityBattle){u.pos.fromArray(cityBattle.pickSpawn(u.team,at,plants));resolve(u);return;}
   const t = TEAM[u.team];
   const pl = plants.find(p => p.id === at && p.owner === u.team);
@@ -4597,7 +4690,7 @@ function areaTime(u) { return Math.min(AREA_MAX, AREA_T0 + Math.max(0, u.stats.w
 function inOwnBase(u) { return !VS && inBase(u.pos,u.team); }
 function startTransfer(u, at) {
   if (isArtilleryMode(u)) return false;
-  if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
+  if (curMap.walkOnly || VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
   const base = inOwnBase(u);
   u.transfer = { t: areaTime(u) * (base ? 0.5 : 1), base, at };
   u.dashT = 0; u.longDash = false; u.dashState = ''; u.scoped = false;
@@ -4677,6 +4770,7 @@ function resolve(u) {
       else if (i === 2) u.pos.z = o.minZ - R; else u.pos.z = o.maxZ + R;
     }
   }
+  cityMap?.clampToBounds?.(u);
 }
 function groundAt(x, z, y) {
   let h = cityMap?cityMap.groundAt(x,z,y):terrainH(x,z);
@@ -4739,7 +4833,7 @@ function shortDash(u, wish) {
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
 function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.zipCd > 0) u.zipCd -= dt;
-  if (u.zip && zipRide(u, dt, jumpPressed)) return; // ジップラインで昇っている（v0.21）
+  if (u.zip && zipRide(u, dt, jumpPressed)) {cityMap?.clampToBounds?.(u);return;} // ジップラインで昇っている（v0.21）
   if (u.electricT>0) {wish=STOP;boostHeld=jumpPressed=jumpHeld=false;u.vel.x=u.vel.z=0;u.dashT=u.lungeT=0;u.longDash=false;}
   // wish: 正規化された水平入力（ワールド座標）
   u.jumpBuf = Math.max(0, u.jumpBuf - dt);
@@ -4851,6 +4945,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
+  cityMap?.clampToBounds?.(u);
 }
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
 function land(u, v) {
@@ -9807,7 +9902,7 @@ function mechPreview(dt) {
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
-const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
+const mapInfo = d => d.walkOnly?`地形試走・進入範囲${d.cityTerrain.playBounds[1]-d.cityTerrain.playBounds[0]}×${d.cityTerrain.playBounds[3]-d.cityTerrain.playBounds[2]}m`: `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
   const city=getCityMap(d);
@@ -9850,6 +9945,7 @@ function mapCardHtml(id, d, label) {
 }
 function renderMapList() {
   $('mapAttribution').textContent=curMap?.attribution||'';
+  $('battleSizeControl').hidden=!!curMap.walkOnly;
   const count = battleTeamSize();
   $('teamSize').innerHTML = Array.from({length:49},(_,i)=>`<option value="${i+2}">${i+2}対${i+2}${i+2===curMap.team?'（推奨）':''}</option>`).join('');
   $('teamSize').value = count;
@@ -10009,12 +10105,12 @@ function drawBigMap() {
 function drawMapOn(mini, W, H, bg, k, big = false) {
   mini.clearRect(0, 0, W, H);
   mini.drawImage(bg, 0, 0, W, H);
-  if(cityMap)drawCityBaseZones(mini,W,H,curMap,player?.team??chosenTeam);
+  if(cityMap&&!curMap.walkOnly)drawCityBaseZones(mini,W,H,curMap,player?.team??chosenTeam);
   const sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H;
   mini.fillStyle = 'rgba(255,255,255,.18)';
   for (const o of obstacles) mini.fillRect(sx(o.minX), sz(o.minZ), Math.max(1, sx(o.maxX) - sx(o.minX)), Math.max(1, sz(o.maxZ) - sz(o.minZ)));
-  for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(TEAM[t].baseX), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
-  if (big && player) {
+  for (const t of curMap.walkOnly?[]:['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(TEAM[t].baseX), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
+  if (big && player && !curMap.walkOnly) {
     mini.font = `bold ${Math.round(6.5 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle'; mini.fillStyle = '#fff';
     for (const t of ['B', 'R']) {
       const text=t===player.team?'自軍ベース':'敵軍ベース',padding=mini.measureText(text).width/2+k;
@@ -10253,7 +10349,7 @@ function hud(timeLeft, dt) {
   $('coreB').firstChild.style.width = pb + '%'; $('coreBt').textContent = gauge(own, pb);
   $('coreR').firstChild.style.width = pr + '%'; $('coreRt').textContent = gauge(enemy, pr);
   const arcade = consoleMode === 'arcade';
-  $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
+  $('timer').textContent = curMap.walkOnly?'地形試走':arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
   consoleTelemetry(p);
   pilotHud(p);
@@ -10455,10 +10551,10 @@ function setup() {
   pops.length = 0;
   renderTeamView();
   player = makeUnit(chosenTeam, true, 0);
-  const count = battleTeamSize();
+  const count = curMap.walkOnly?1:battleTeamSize();
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);
-  for (let i = 0; i < count; i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
+  if(!curMap.walkOnly)for (let i = 0; i < count; i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
   applyAudioSettings();
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
@@ -10492,7 +10588,7 @@ $('start').addEventListener('click', () => {
   if (ended || !player) setup();
   $('overlay').hidden = true;
   running = true;
-  if (timeLeft >= MATCH - 0.01) { annReset(); announce('作戦開始', 'info'); }
+  if (timeLeft >= MATCH - 0.01) { annReset(); announce(curMap.walkOnly?'地形試走':'作戦開始', 'info'); }
   grabPointer();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -10543,7 +10639,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   bgmTick();
   if (running) {
-    timeLeft -= dt;
+    if(!curMap.walkOnly)timeLeft -= dt;
     liftUpdate(dt);
     for (const u of units) {
       if (!u.alive) {
@@ -10562,7 +10658,7 @@ function loop(now) {
     for (const pl of plants) plantUpdate(pl, dt);
     annTick();
     qchatTick(dt);
-    scoreTick(dt);
+    if(!curMap.walkOnly)scoreTick(dt);
     for (const tu of turrets) turretUpdate(tu, dt);
     for (const rd of radars) radarUpdate(rd, dt);
     shellUpdate(dt);
@@ -10573,7 +10669,7 @@ function loop(now) {
     for (const pd of pods) podUpdate(pd, dt);
     catapultUpdate(dt);
     jumpPadUpdate(dt);
-    if (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0) finish();
+    if (!curMap.walkOnly&&(cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
   }
   for (const u of units) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
@@ -10610,6 +10706,7 @@ function loop(now) {
     }
     if (u.flame.visible) u.flame.scale.y = (u.dashState === 'short' ? 1.8 : u.dashState === 'charge' ? 2.4 : 1.1) * (0.85 + Math.random() * 0.3);
   }
+  cityMap?.updateBoundary(running&&player?.alive?player:null);
   fxUpdate(dt);
   reconPulseUpdate(running ? dt : 0);
   puffUpdate(dt);
