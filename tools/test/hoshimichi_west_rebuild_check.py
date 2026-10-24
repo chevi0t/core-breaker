@@ -9,21 +9,28 @@ from plateau_city_geometry import parts
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 
 def main():
- ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--source',type=pathlib.Path);ap.add_argument('--output',type=pathlib.Path,default=pathlib.Path('/tmp/hoshimichi-rebuild-geometry.json'));args=ap.parse_args()
+ ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--source',type=pathlib.Path);ap.add_argument('--battle',action='store_true',help='設備配置後の地形も検査する');ap.add_argument('--output',type=pathlib.Path,default=pathlib.Path('/tmp/hoshimichi-rebuild-geometry.json'));args=ap.parse_args()
  folder=ROOT/'mapdesign/hoshimichi_west/rebuild';data=json.loads((folder/'layout.json').read_text());report=json.loads((folder/'generation.json').read_text());blocks=json.loads((folder/'blocks.json').read_text());policy=json.loads((ROOT/'research/maps/hoshimichi-west-rebuild-policy.json').read_text())
- assert (folder/'layout.json').stat().st_size==report['terrainBytes']<policy['maximumMapFileBytes']-20000
- assert data['playBounds']==[-350,350,-175,175] and data['preview']['terrainDeformed'] is False
- assert data['spawns']==[] and data['district']['bases']==[], '設備配置前の地形である'
+ if args.battle:
+  folder=folder/'battle';data=json.loads((folder/'layout.json').read_text());report=json.loads((folder/'generation.json').read_text())
+  assert (ROOT/'prototype/maps/hoshimichi_west.js').stat().st_size==report['mapFileBytes']<policy['maximumMapFileBytes']
+  assert len(data['district']['bases'])==2 and len(data['district']['repairShelters'])==2
+ else:
+  assert (folder/'layout.json').stat().st_size==report['terrainBytes']<policy['maximumMapFileBytes']-20000
+  assert data['preview']['terrainDeformed'] is False
+  assert data['spawns']==[] and data['district']['bases']==[], '設備配置前の地形である'
+ assert data['playBounds']==[-350,350,-175,175]
  assert max(b['objects'] for b in blocks)<=3, '街区単位で1〜3個のモデルにまとめる'
  assert max(b['baseHeight'] for b in blocks if not b['active'])<=16
- assert report['riverVertices']<160 and len(data['river']['exits'])==10
+ assert len(data['river']['exits'])==10
+ if not args.battle:assert report['riverVertices']<160
  volumes=[]
  for kind,low,high,encoded,meta in data['volumes']:
   rings=[np.frombuffer(base64.b64decode(r),dtype='<i2').reshape(-1,2)*data['ringCoordinateStep'] for r in encoded]
   p=Polygon(rings[0],rings[1:]);assert p.is_valid and p.area>2 and low<high
   assert box(-450.03,-275.03,450.03,275.03).covers(p)
   volumes.append((p,kind,low,high,meta))
- assert len(volumes)==report['volumes']
+ assert len(volumes)==report['volumeCount' if args.battle else 'volumes']
  solid=[v for v in volumes if v[1]!=3];elevated=[v for v in volumes if v[1]==3]
  overlaps=[]
  for p,k,lo,hi,meta in elevated:
@@ -49,8 +56,13 @@ def main():
  for r in data['river']['exits']:
   assert r['start'][1]==-5 and r['end'][1]==0 and r['street'][1]==0 and r['width']>=7
   assert np.isfinite(r['street']).all()
- if args.source:assert hashlib.sha256((args.source/'geometry.npz').read_bytes()).hexdigest()==report['sourceGeometrySHA256']
- result={'volumes':len(volumes),'blocks':len(blocks),'maxObjectsPerBlock':max(b['objects'] for b in blocks),'railBuildingOverlaps':overlaps,'enclosedLandingPockets':pockets,'riverExits':len(data['river']['exits']),'terrainBytes':report['terrainBytes']}
+ if args.source and not args.battle:assert hashlib.sha256((args.source/'geometry.npz').read_bytes()).hexdigest()==report['sourceGeometrySHA256']
+ if args.battle:
+  original=json.loads((folder.parent/'layout.json').read_text())
+  assert report['sourceSHA256']==hashlib.sha256((folder.parent/'layout.json').read_bytes()).hexdigest()
+  for layer in ['water','bed','bank','streets']:assert data['surfaces'][layer]==original['surfaces'][layer],('河川・橋の形状を維持',layer)
+  assert data['river']==original['river']
+ result={'volumes':len(volumes),'sourceBlocks':len(blocks),'maxObjectsPerSourceBlock':max(b['objects'] for b in blocks),'railBuildingOverlaps':overlaps,'enclosedLandingPockets':pockets,'riverExits':len(data['river']['exits']),'terrainBytes':(folder/'layout.json').stat().st_size}
  args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');print(json.dumps(result,ensure_ascii=False))
 
 if __name__=='__main__':main()

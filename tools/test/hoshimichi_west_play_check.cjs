@@ -1,7 +1,7 @@
 // 通常HTMLの出撃・歩行・ブースト・ジャンプ・全体マップを実入力で確認する。
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
-const {build}=require('../build_hoshimichi_west_battle.cjs');
+const {build}=require(process.argv.includes('--rebuild')?'../build_hoshimichi_west_rebuild_battle.cjs':'../build_hoshimichi_west_battle.cjs');
 const out=path.resolve(process.argv[2]||'/tmp/hoshimichi-west-play-check');
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const file=path.join(out,'battle.html');build(file);
