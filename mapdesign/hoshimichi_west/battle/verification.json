@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-24",
+  "map": "hoshimichi_west",
+  "stage": "対戦試遊版・外観整理前",
+  "mapFileBytes": 98680,
+  "mapSHA256": "d9ce133c613363fd155413261bb16c58832fdc7a11e8a9f54e53e18f225961c9",
+  "engineSHA256": "cc8d4157ed2d87d8d132d699e679f9d72e759cc94f6f0bed7c84f88e295e89ef",
+  "facilities": {
+    "bases": 2,
+    "plants": 5,
+    "turrets": 8,
+    "radars": 2,
+    "baseCatapults": 8,
+    "repairPods": 6,
+    "roadBridges": 2
+  },
+  "checks": 1394,
+  "navigation": {
+    "nodes": 190,
+    "links": 384,
+    "anchors": 86
+  },
+  "actualWalkedEdges": 384,
+  "normalInput": {
+    "start": [
+      -290.09,
+      0,
+      128.16
+    ],
+    "end": [
+      -290.09,
+      3.4506976178289968,
+      110.65257284646829
+    ],
+    "renderedTriangles": 60140,
+    "errors": [],
+    "externalRequests": []
+  },
+  "botBattle": {
+    "teamSize": 10,
+    "simulatedSeconds": 150,
+    "coreHP": [
+      7031,
+      7256
+    ],
+    "kills": 68,
+    "errors": []
+  },
+  "quickCheck": {
+    "reference": "4ef9724991ef13f7f6f57e41543ef0b124b98966",
+    "maps": [
+      "city",
+      "dock"
+    ],
+    "secondsPerMap": 60,
+    "passed": true
+  },
+  "walkOnlyRegression": {
+    "checks": 705,
+    "passed": true
+  },
+  "mapSchemaCheck": {
+    "allMapFiles": 10,
+    "passed": true
+  },
+  "knownIssues": [
+    "建物と高架の外観上の取り合い",
+    "区画単位の単純化が未完",
+    "場外背景の巨大な塊",
+    "高架・屋上の全線通行と全路地の退出は未検証",
+    "陣営間の長期の優劣は未確定"
+  ]
+}

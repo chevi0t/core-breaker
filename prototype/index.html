@@ -1902,7 +1902,8 @@ function createCityMap(T,layout) {
 function createCityBattle(T,city,definition) {
   const radius=1.3,height=4,cache=new Map();
   function free(x,z,y,obstacles,r=radius) {
-    if(Math.max(Math.abs(x),Math.abs(z))>city.half-r)return false;
+    const bounds=city.playBounds;
+    if(x<bounds[0]+r||x>bounds[1]-r||z<bounds[2]+r||z>bounds[3]-r)return false;
     if(city.ceilingAt(x,z,y)<y+height-.05)return false;
     for(const v of city.nearby(x,z,r)){
       if(y>=v.top-.25 || y+height<=v.bottom+.001)continue;
@@ -9902,7 +9903,8 @@ function mechPreview(dt) {
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
-const mapInfo = d => d.walkOnly?`地形試走・進入範囲${d.cityTerrain.playBounds[1]-d.cityTerrain.playBounds[0]}×${d.cityTerrain.playBounds[3]-d.cityTerrain.playBounds[2]}m`: `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
+const mapExtent=d=>d.cityTerrain?.playBounds?[d.cityTerrain.playBounds[1]-d.cityTerrain.playBounds[0],d.cityTerrain.playBounds[3]-d.cityTerrain.playBounds[2]]:d.size.map(v=>v*2);
+const mapInfo = d => d.walkOnly?`地形試走・進入範囲${d.cityTerrain.playBounds[1]-d.cityTerrain.playBounds[0]}×${d.cityTerrain.playBounds[3]-d.cityTerrain.playBounds[2]}m`: `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${mapExtent(d).join('×')}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
   const city=getCityMap(d);

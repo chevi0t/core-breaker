@@ -21,7 +21,7 @@ SRC = ROOT / "prototype" / "maps"
 OUT = ROOT / "prototype" / "maps.js"
 
 # node で読み込んで確かめる（必須の項目は index.html の MAP_KEYS と同じ。任意の項目 subtitle・variants・nav・bridges・water・建物の種類も確かめる）
-CHECK = r"""
+CHECK = "const {decodeCityVolumes}=require("+json.dumps(str(ROOT/"tools/city_volume_codec.js"))+");\n"+r"""
 const fs = require('fs');
 global.window = {};
 const files = JSON.parse(process.argv[1]), errs = [];
@@ -100,6 +100,12 @@ function check(d) {
     if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
     else {
       if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
+      if(c.playBounds!==undefined){
+        const b=c.playBounds,ext=c.halfExtents||[c.half,c.half];
+        if(!Array.isArray(b)||b.length!==4||!b.every(num)||b[1]-b[0]<16||b[3]-b[2]<16||
+          !Array.isArray(ext)||ext.length!==2||!ext.every(v=>num(v)&&v>0&&v<=c.half)||
+          b[0]<-ext[0]||b[1]>ext[0]||b[2]<-ext[1]||b[3]>ext[1])E('都市の進入範囲と描画範囲が不正');
+      }
       if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
       if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
       const ring=(r,what)=>{
@@ -149,8 +155,12 @@ function check(d) {
         }
       }
       if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
-      if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
-      else for(const v of c.volumes){
+      let rows=c.volumes;
+      if(typeof rows==='string'){
+        try{rows=decodeCityVolumes(c);}catch(e){E('都市の整数列：'+e.message);rows=[];}
+      }
+      if(!Array.isArray(rows)||!rows.length)E('都市のvolumesが必要');
+      else for(const v of rows){
         if(!Array.isArray(v)||v.length!==5||!Number.isInteger(v[0])||!c.volumeKinds?.[v[0]]||!num(v[1])||!num(v[2])||v[1]>=v[2]||!Array.isArray(v[3])||!v[3].length){E('都市の体積は [種類番号, 底, 上面, 輪郭列, 属性]');continue;}
         for(const r of v[3])ring(r,'都市の体積輪郭');
       }

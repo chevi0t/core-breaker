@@ -32,12 +32,15 @@ function buildDefinition(){
     attribution:'国土交通省 Project PLATEAU・国土地理院の公開データを加工。提供者の皆様に感謝します。出典詳細は下の「素材の出典」'};
 }
 function build(output,source=path.join(ROOT,'prototype/index.html')){
-  const definition=buildDefinition();let html=fs.readFileSync(source,'utf8');
+  return inlineGame(output,source,buildDefinition(),ID);
+}
+function inlineGame(output,source,definition,id){
+  let html=fs.readFileSync(source,'utf8');
   for(const [tag,file] of [['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','vendor/three-r128/three.min.js'],['three.min.js','vendor/three-r128/three.min.js'],['sounds.js','prototype/sounds.js'],['music.js','prototype/music.js']]){
     html=html.replace(`<script src="${tag}"></script>`,()=>'<script>\n'+fs.readFileSync(path.join(ROOT,file),'utf8').replace(/<\/script/gi,'<\\/script')+'\n</script>');
   }
   const tag='<script src="maps.js"></script>';if(!html.includes(tag))throw Error('本体のマップ読込タグが見つかりません');
-  html=html.replace(tag,()=>'<script>window.MAP_DATA='+JSON.stringify({[ID]:definition})+';</script>');
+  html=html.replace(tag,()=>'<script>window.MAP_DATA='+JSON.stringify({[id]:definition})+';</script>');
   const credits=['mapdesign/hoshimichi_west/CREDITS.md','sounds/CREDITS.md','prototype/avatars/CREDITS.md'].map(file=>fs.readFileSync(path.join(ROOT,file),'utf8')).join('\n\n');
   const escape=text=>text.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const creditHtml=escape(credits).replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -46,7 +49,7 @@ function build(output,source=path.join(ROOT,'prototype/index.html')){
   html=html.replace(/<link[^>]+href="https:\/\/fonts[^>]+>/g,'');
   html=html.replace('<title>','<!-- Three.js r128 MIT: '+fs.readFileSync(path.join(ROOT,'vendor/three-r128/LICENSE'),'utf8')+' -->\n<title>');
   fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,html);
-  return {output,bytes:Buffer.byteLength(html),terrainBytes:fs.statSync(path.join(ROOT,'mapdesign/hoshimichi_west/layout.json')).size,playBounds:definition.cityTerrain.playBounds,starts:definition.walkStarts};
+  return {output,bytes:Buffer.byteLength(html),terrainBytes:id===ID?fs.statSync(path.join(ROOT,'mapdesign/hoshimichi_west/layout.json')).size:Buffer.byteLength(JSON.stringify(definition.cityTerrain)),playBounds:definition.cityTerrain.playBounds,starts:definition.walkStarts};
 }
 if(require.main===module){const output=path.resolve(process.argv[2]||'/tmp/hoshimichi-west-walk.html');console.log(JSON.stringify(build(output,process.argv[3]&&path.resolve(process.argv[3]))));}
-module.exports={build,buildDefinition,ID};
+module.exports={build,buildDefinition,inlineGame,ID};
