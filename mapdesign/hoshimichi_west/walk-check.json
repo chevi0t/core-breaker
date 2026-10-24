@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-24",
+  "mode": "地形試走（基地・プラント・BOTなし）",
+  "terrainSHA256": "92a1b2224a34df1f806f49e387915c0ada364a7c3711804d1ebad48a1347a30a",
+  "engineSHA256": "fa911951fa12cd5e9585de61c139fc2b7615aefa98e88a94a9509036537b964e",
+  "terrainBytes": 94314,
+  "mapDefinitionBytes": 95231,
+  "playBounds": [
+    -350,
+    350,
+    -175,
+    175
+  ],
+  "boundaryWarning": {
+    "distanceFromCapsuleMeters": 8,
+    "widthMeters": 16,
+    "heightMeters": 8
+  },
+  "checks": 705,
+  "physicsCases": 48,
+  "starts": [
+    {
+      "label": "秋葉原駅",
+      "at": [
+        130.31,
+        0,
+        74.66
+      ]
+    },
+    {
+      "label": "新御茶ノ水駅",
+      "at": [
+        -174.81,
+        0,
+        -66.06
+      ]
+    },
+    {
+      "label": "秋葉原UDX",
+      "at": [
+        162.31,
+        0,
+        -18.74
+      ]
+    }
+  ],
+  "legacySwitches": [
+    {
+      "id": "hoshimichi",
+      "units": 20,
+      "warnings": 0
+    },
+    {
+      "id": "kanto",
+      "units": 20,
+      "warnings": 0
+    },
+    {
+      "id": "city",
+      "units": 20,
+      "warnings": 0
+    },
+    {
+      "id": "hoshimichi-west-walk",
+      "units": 1,
+      "warnings": 4
+    },
+    {
+      "id": "dock",
+      "units": 4,
+      "warnings": 0
+    },
+    {
+      "id": "hoshimichi-west-walk",
+      "units": 1,
+      "warnings": 4
+    }
+  ],
+  "normalInput": {
+    "start": [
+      -174.81,
+      0,
+      -66.06
+    ],
+    "end": [
+      -174.81,
+      3.4506976178289968,
+      -83.6528735513284
+    ],
+    "renderedTriangles": 38840
+  },
+  "preview": {
+    "checks": 19,
+    "geometryUnchanged": true
+  },
+  "codec": {
+    "records": 27,
+    "invalidEncoderInputs": 5,
+    "invalidDecoderInputs": 3,
+    "errors": []
+  },
+  "quickCheck": {
+    "base": "4ef9724991ef13f7f6f57e41543ef0b124b98966",
+    "secondsPerMap": 60,
+    "passed": true
+  },
+  "botBattle": {
+    "maps": [
+      "city",
+      "wide",
+      "mesa",
+      "dock"
+    ],
+    "secondsPerMap": 150,
+    "errors": []
+  },
+  "browserErrors": [],
+  "externalRequests": [],
+  "notVerified": [
+    "全街区の退出・高架下の天井",
+    "川からの復帰",
+    "基地・プラント・BOT経路",
+    "新マップのBOT対戦"
+  ]
+}
