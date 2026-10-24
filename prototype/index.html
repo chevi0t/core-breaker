@@ -87,6 +87,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #aimSp.act .bar > i { background: #a6ffcb; }
 #aimSp.hit .bar > i { background: var(--warn); }
 @media (prefers-reduced-motion: reduce) { #aimSp.act .bar { animation: none; } }
+#spottedMarkers { inset: 0; overflow: hidden; }
+.spottedMark { position: absolute; box-sizing: border-box; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; background: #ffa33b; border: 1px solid #ffe0ad; box-shadow: 0 0 0 1px #301a08, 0 0 5px #ff9b3877; }
 #preLock { inset: 0; overflow: hidden; }
 .preLockMark, #lockMark { left: 0; top: 0; width: 64px; height: 64px; margin: -32px 0 0 -32px; --arm: 17px; --stroke: 2px; }
 .preLockMark { position: absolute; --c: #72e9f5; opacity: .35; }
@@ -821,6 +823,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 <div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b><span id="mechCompass" aria-hidden="true"></span></div></div>
 <div class="hud" id="tags"></div>
 <canvas class="hud" id="missileHud" hidden aria-label="ミサイル捕捉表示" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+<div class="hud" id="spottedMarkers" hidden aria-hidden="true"></div>
 <div class="hud" id="preLock" hidden aria-hidden="true"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
@@ -9062,6 +9065,29 @@ function tagsHud(p, dt) {
     bar.lastChild.style.width = (f * 100).toFixed(1) + '%';
   }
 }
+const spottedMarkPool = [];
+function spottedHud(p) {
+  const layer = $('spottedMarkers');
+  const on = running && !ended && p.alive && !(p.jamT > 0) && !killcamOn() && $('overlay').hidden && !mapOpen && !wsel.open;
+  let count = 0;
+  // 自軍が把握している敵機だけ、壁越しでも胴の中心に◆を出す。距離や迷彩は索敵側の判定に従う。
+  // 位置の投影だけで追加の遮蔽レイは使わず、マーカーも最大表示数ぶんを再利用する。
+  if (on) for (const [e, left] of spotted[p.team]) {
+    if (!(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
+    const s = screenOf(e);
+    if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
+    let el = spottedMarkPool[count];
+    if (!el) {
+      el = document.createElement('div'); el.className = 'spottedMark';
+      layer.appendChild(el); spottedMarkPool.push(el);
+    }
+    el.hidden = false;
+    el.style.transform = `translate(${(s.x + 1) / 2 * innerWidth}px, ${(1 - s.y) / 2 * innerHeight}px) rotate(45deg)`;
+    count++;
+  }
+  for (let i = count; i < spottedMarkPool.length; i++) spottedMarkPool[i].hidden = true;
+  layer.hidden = count === 0;
+}
 function renderPlantBar() { $('plantBar').innerHTML = plants.map(pl => `<div class="pl" id="pl-${pl.id}"><b>${pl.id}</b><span><i></i></span></div>`).join(''); }
 $('rlist').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -10174,6 +10200,7 @@ function hud(timeLeft, dt) {
   if (qc.open) QCHAT.forEach((q, i) => $('qc' + i).classList.toggle('sel', qc.pick === i));
   pingHud(p);
   tagsHud(p, dt);
+  spottedHud(p);
   $('wsel').hidden = !wsel.open;
   if (wsel.open) {
     SLOTS.forEach((k, i) => {
