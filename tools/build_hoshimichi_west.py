@@ -16,6 +16,7 @@ import shapely
 from PIL import Image
 from scipy.ndimage import binary_closing, label
 from shapely.geometry import LineString, Point, Polygon, box
+from shapely.affinity import rotate
 
 from plateau_city_geometry import building_masses, extrusion, parts, projection, rings
 
@@ -90,7 +91,7 @@ def pack_volumes(volumes):
     return base64.b64encode(binary).decode(), colors
 
 
-def paint_landmarks(volumes, center, scale):
+def paint_landmarks(volumes, center, scale, rotation):
     """現行の秋葉原側で指定されたランドマーク色を位置照合して引き継ぐ。"""
     from shapely.affinity import translate, scale as resize
     source = json.loads((ROOT / 'research/maps/hoshimichi-west-landmarks.json').read_text())
@@ -98,7 +99,7 @@ def paint_landmarks(volumes, center, scale):
     marks = []
     for m in source['landmarks']:
         p = Polygon(m['rings'][0], m['rings'][1:])
-        marks.append((resize(translate(p, dx, dz), scale, scale, origin=(0, 0)), m['color']))
+        marks.append((resize(rotate(translate(p, dx, dz), rotation, origin=(0, 0)), scale, scale, origin=(0, 0)), m['color']))
     for v in volumes:
         if v[0] not in [0, 1]:
             continue
@@ -112,20 +113,30 @@ def paint_landmarks(volumes, center, scale):
     return volumes
 
 
-def local_geo(center, lon, lat):
+def rotate_xz(points, degrees):
+    angle = math.radians(degrees)
+    ca, sa = math.cos(angle), math.sin(angle)
+    return np.asarray(points) @ np.array([[ca, sa], [-sa, ca]])
+
+
+def local_geo(center, lon, lat, rotation=0):
     # 正確なPLATEAU変換は取得器が行う。表示ラベルと5m標高のサンプリングは局所近似。
-    return [(lon - center[0]) * 111319.49 * math.cos(math.radians(center[1])),
-            (center[1] - lat) * 110940]
+    east = (lon - center[0]) * 111319.49 * math.cos(math.radians(center[1]))
+    south = (center[1] - lat) * 110940
+    return rotate_xz([[east, south]], rotation)[0].tolist()
 
 
-def river_from_dem(center, half, cache):
+def river_from_dem(center, half, cache, rotation):
     """地理院5m標高の水域欠測・海抜0m以下から連続した河道を抽出する。"""
     cache.mkdir(parents=True, exist_ok=True)
     xs = np.arange(-half[0] + 2.5, half[0], 5)
     zs = np.arange(-half[1] + 2.5, half[1], 5)
     xx, zz = np.meshgrid(xs, zs)
-    lon = center[0] + xx / (111319.49 * math.cos(math.radians(center[1])))
-    lat = center[1] - zz / 110940
+    angle = math.radians(rotation)
+    east = xx * math.cos(angle) + zz * math.sin(angle)
+    south = -xx * math.sin(angle) + zz * math.cos(angle)
+    lon = center[0] + east / (111319.49 * math.cos(math.radians(center[1])))
+    lat = center[1] - south / 110940
     px = ((lon + 180) / 360 * 2**15 * 256).astype(int)
     py = ((1 - np.arcsinh(np.tan(np.radians(lat))) / math.pi) / 2 * 2**15 * 256).astype(int)
     ids = sorted(set(zip((px // 256).ravel().tolist(), (py // 256).ravel().tolist())))
@@ -173,12 +184,13 @@ def main():
     raw = np.load(args.source / 'geometry.npz')
     manifest = json.loads((args.source / 'source-manifest.json').read_text())
     half = config['halfExtents']; active_half = config['playableHalfExtents']; scale = config['scale']
-    if manifest['center'] != config['referenceCenter'] or manifest['halfExtents'] != half:
+    rotation = config['rotationDegrees']
+    if manifest['center'] != config['referenceCenter'] or manifest['halfExtents'] != half or manifest['rotationDegrees'] != rotation:
         raise ValueError('元地形の範囲が設定と一致しない')
     args.output.mkdir(parents=True, exist_ok=True)
     boundary = box(-half[0], -half[1], half[0], half[1])
     playable = box(-active_half[0], -active_half[1], active_half[0], active_half[1])
-    river, dem = river_from_dem(config['referenceCenter'], half, args.source / 'dem-cache')
+    river, dem = river_from_dem(config['referenceCenter'], half, args.source / 'dem-cache', rotation)
     print(json.dumps({'riverArea': round(river.area), 'demTiles': len(dem)}), flush=True)
     land = boundary.difference(river)
     triangles = raw['tran'].reshape(-1, 3, 3)
@@ -191,8 +203,9 @@ def main():
     # 既存の秋葉原600m四方の範囲。街を複製せず、同じ地理位置を枠で比較する。
     old_center = local_geo(config['referenceCenter'], 139.7734, 35.6986)
     old_frame = box(old_center[0] - 300, old_center[1] - 300, old_center[0] + 300, old_center[1] + 300)
-    labels = [{**q, 'at': local_geo(config['referenceCenter'], *q['geo'])} for q in config['display']['labels']]
-    labels += [{'text': '御茶ノ水駅', 'at': local_geo(config['referenceCenter'], 139.76518, 35.69945)}]
+    old_frame = rotate(old_frame, rotation, origin=(0, 0))
+    labels = [{**q, 'at': local_geo(config['referenceCenter'], *q['geo'], rotation)} for q in config['display']['labels']]
+    labels += [{'text': '御茶ノ水駅', 'at': local_geo(config['referenceCenter'], 139.76518, 35.69945, rotation)}]
     # 高架は旧案の線形を再利用し、西側だけ模式的に延長する。全て実寸m。
     dx = old_center[0]
     lines = [
@@ -200,7 +213,14 @@ def main():
         {'id': 'highspeed', 'points': [[dx+52,-550],[dx+12,0],[dx-42,550]], 'width': 16, 'top': 14, 'color': '#a0b7c0'},
         {'id': 'cross', 'points': [[-900,-170],[-640,-125],[-450,-100],[-320,-30],[-30,-5],[dx+24,31],[900,95]], 'width': 18, 'top': 20, 'color': '#d4b789'},
     ]
-    rail_shapes = [(q, LineString(q['points']).buffer(q['width'] / 2, cap_style='flat', join_style='mitre').intersection(boundary)) for q in lines]
+    rail_shapes = []
+    for spec in lines:
+        points = np.array(spec['points'], dtype=float)
+        # 切り取り方向を変えても、線路が地形の途中で途切れないよう端を延ばしてから切る。
+        points[0] += (points[0] - points[1]) * 4
+        points[-1] += (points[-1] - points[-2]) * 4
+        p = rotate(LineString(points).buffer(spec['width'] / 2, cap_style='flat', join_style='mitre'), rotation, origin=(0, 0))
+        rail_shapes.append((spec, p.intersection(boundary)))
     # 線路直下の元データを巨大な建物へ潰さない。地上の道路横断部も空けておく。
     rail_clear = shapely.union_all([p.buffer(.5) for _, p in rail_shapes])
     base_volumes = []
@@ -240,6 +260,7 @@ def main():
                                         pack_rings((np.array(r) * scale).tolist() for r in rings(q)), {'landmarkColor': '#6e7375'}])
         # 秋葉原の駅屋根を保持。単純な板でも南北・東西の積層を読み取れるようにする。
         for p, top in [(box(dx-60, -120, dx+5, 142), 8.0), (box(dx-136, -5, dx+101, 65), 13.0)]:
+            p = rotate(p, rotation, origin=(0, 0)).intersection(boundary)
             volumes.append([3, top-.6, top, pack_rings((np.array(r)*scale).tolist() for r in rings(p)), {'landmarkColor': '#dce1df'}])
         surfaces = {'dem': floor_mesh(land, 0), 'water': floor_mesh(river, -6), 'bed': floor_mesh(river, -10)}
         data = {'geometryEncoding': 'city-layout-v1', 'half': max(half) * scale, 'halfExtents': [v * scale for v in half],
@@ -251,10 +272,9 @@ def main():
                 'preview': {'playable': (np.array(playable.exterior.coords[:-1]) * scale).tolist(),
                             'previous': (np.array(old_frame.exterior.coords[:-1]) * scale).tolist(),
                             'labels': [{'text': q['text'], 'at': (np.array(q['at']) * scale).tolist()} for q in labels],
-                            'warp': {'amplitude': config['deformation']['amplitudeMeters'] * scale,
-                                     'wavelength': config['deformation']['wavelengthMeters'] * scale},
+                            'rotationDegrees': rotation, 'terrainDeformed': False,
                             'drawingExtent': [v*2*scale for v in half], 'playableExtent': [v*2*scale for v in active_half]}}
-        data['volumes'] = paint_landmarks(simplify_background(volumes, playable, boundary, scale, config['backgroundBlockMeters']), config['referenceCenter'], scale)
+        data['volumes'] = paint_landmarks(simplify_background(volumes, playable, boundary, scale, config['backgroundBlockMeters']), config['referenceCenter'], scale, rotation)
         count = len(data['volumes'])
         data['volumes'], data['volumeColors'] = pack_volumes(data['volumes'])
         data['volumeEncoding'] = 'kind-u8-color-u8-y01-i16-rings-u16'
@@ -271,7 +291,7 @@ def main():
             'sourceVolumes': len(source_volumes), 'volumes': count, 'attempts': attempts,
             'sourceGeometrySHA256': hashlib.sha256((args.source / 'geometry.npz').read_bytes()).hexdigest(),
             'layoutSHA256': hashlib.sha256((args.output / 'layout.json').read_bytes()).hexdigest(),
-            'bases': 0, 'plants': 0, 'playableConnectedToGame': False, 'deformationStoredAsSharedDisplayRule': True}
+            'bases': 0, 'plants': 0, 'playableConnectedToGame': False, 'rotationDegrees': rotation, 'terrainDeformed': False}
     (args.output / 'generation.json').write_text(json.dumps(info, ensure_ascii=False, indent=2)+'\n')
     manifest['dem'] = dem
     (args.output / 'source-manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n')

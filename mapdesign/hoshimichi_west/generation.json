@@ -21,25 +21,34 @@
     0.5
   ],
   "equivalentRealWorldMechHeightMeters": 8.0,
-  "layoutBytes": 99456,
+  "layoutBytes": 111036,
   "targetBytes": 100000,
-  "withinTarget": true,
-  "sourceVolumes": 4289,
-  "volumes": 1954,
+  "withinTarget": false,
+  "sourceVolumes": 4705,
+  "volumes": 2210,
   "attempts": [
     {
       "toleranceRealMeters": 0.6,
-      "bytes": 100424
+      "bytes": 113956
     },
     {
       "toleranceRealMeters": 1.0,
-      "bytes": 99456
+      "bytes": 113032
+    },
+    {
+      "toleranceRealMeters": 1.5,
+      "bytes": 112140
+    },
+    {
+      "toleranceRealMeters": 2.0,
+      "bytes": 111036
     }
   ],
-  "sourceGeometrySHA256": "6fc4272c79f0343e72bb98bbf5937c0a675077d9b43d25eae309f2c9f3d7a239",
-  "layoutSHA256": "accbca6fac3af5ac64920adb7ec708d8fbef2f361523a7c7aeaad81aad20c682",
+  "sourceGeometrySHA256": "5c2425220ed3e62af7dd1d00f8e2e2beb2ac2fc996245c6060b2362bd4e7a828",
+  "layoutSHA256": "82df6a22d91433704e7bcf8af0a2780c9a18377a50c0f48cbf0bae9b8ddbbaf2",
   "bases": 0,
   "plants": 0,
   "playableConnectedToGame": false,
-  "deformationStoredAsSharedDisplayRule": true
+  "rotationDegrees": 30,
+  "terrainDeformed": false
 }
