@@ -26,6 +26,7 @@ python3 -m pip install -r tools/requirements-city-map.txt
 npm install --prefix /tmp/plateau-draco draco3d@1.5.7
 PLATEAU_DRACO_MODULE=/tmp/plateau-draco/node_modules/draco3d python3 tools/plateau_rect_fetch.py /tmp/hoshimichi-west-rotated-cache /tmp/hoshimichi-west-rotated-source --config research/maps/hoshimichi-west-sources.json
 python3 tools/build_hoshimichi_west.py /tmp/hoshimichi-west-rotated-source mapdesign/hoshimichi_west
+node tools/test/city_volume_codec_check.cjs
 node tools/test/hoshimichi_west_preview_check.cjs mapdesign/hoshimichi_west /tmp/hoshimichi-west-images
 ```
 
@@ -37,8 +38,18 @@ node tools/test/hoshimichi_west_preview_check.cjs mapdesign/hoshimichi_west /tmp
 
 切り取り角は仮30度。街を曲げる処理・切替操作と、そのための長い板の分割処理は撤去した。主要3地点を含む範囲で329個の公開タイルを取得・復号し、描画用形状の有限値と切断範囲を確認した。公表タイルの高さ範囲との差は最大約0.065mで、取得器の0.2m基準を満たした。
 
-地形JSONは111,036B（末尾改行込み）、体積は2,210個。角度を変えたことで取り込む街区が変わり、現在は目標100,000Bを約11KB超えている。施設・Bot経路はまだ含まない。今後は向き・範囲を確認したうえで、詳細側の路地を埋めず背景側から容量を調整する。
+地形JSONは94,314B（末尾改行込み）、体積は2,210個。111,036Bから16,722B（約15.1%）減少し、100,000Bの目標内に収まった。施設・Bot経路はまだ含まないため、これらを含む最終容量は別途確認する。
 
-17項目の検査で、整数列の復元、範囲と主要地点、既存色、文京区側の取り込み、駅屋根の辺の長さと直角、枠に対する30度の方向、カメラ切替で頂点が変化しないこと、北向きの表示、変形操作の撤去、WebGL実描画を確認した。ブラウザエラー0、追加HTTP通信0。実機体の通行・境界の衝突・Bot戦は未検証。
+19項目の検査で、整数列の復元、範囲と主要地点、既存色、文京区側の取り込み、駅屋根の辺の長さと直角、枠に対する30度の方向、カメラ切替で頂点が変化しないこと、北向きの表示、変形操作の撤去、WebGL実描画を確認した。ブラウザエラー0、追加HTTP通信0。実機体の通行・境界の衝突・Bot戦は未検証。
 
 保存したoverview.pngは北を上にした俯瞰、oblique.pngは同じ地形の斜め表示。過去の曲げた案は現在の生成物へ引き継がない。
+
+## 形状を保った軽量化
+
+背景体積は117個・整数列3,294Bにとどまり、背景の輪郭だけを減らしても不足分を埋められなかった。地形の形は固定し、建物の保存ヘッダから共通の底面高・通常の1輪郭という値を省略した。種類・色・省略フラグを1バイトへまとめ、小さな輪郭の頂点数も1バイトで保存する。省略値は復元時に種類から正確に戻す。座標は従来の2cm格子のint16、高さも従来の1cm格子を維持し、輪郭や精度を削らない。gzipの圧縮率による容量減ではない。
+
+形式は`kind2-color4-flags2-y01-i16-rings-u8`。色は既定色を含め16個まで、輪郭は256本まで、各輪郭の頂点は65,535個まで。頂点数255以上は拡張長を保存する。旧形式も復元器で読める。範囲外の入力や途中で切れた整数列は拒否する。通常本体への接続はまだ行わない。
+
+輪郭簡略化の許容値は、軽量化前の採用値と同じ実寸2mへ固定し、保存方式が変わっても街区を作り替えない。c8d2b52の地形と全2,210体積の座標・高さ・色が完全一致し、地面・川・枠・ラベル・縮尺・角度も完全一致した。Python保存器とJS復元器の27レコードで、既定値、任意の高さ、16色、256輪郭、頂点数の境界を照合した。不正入力の拒否も確認済み。
+
+比較を再現するには、`git show c8d2b52:mapdesign/hoshimichi_west/layout.json > /tmp/hoshimichi-west-before.json`として、プレビュー検査の最後の引数にそのファイルを渡す。検査記録はpreview-check.json。

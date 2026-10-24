@@ -10,23 +10,14 @@
 <div class="legend"><span class="yellow">━ 進入範囲案</span><span class="cyan">┄ 旧600m四方の参照枠</span><span class="gray">外側：簡略背景</span></div></header>
 <div id="status">読み込み中</div><footer>地形確認用・基地/プラント未配置。左ドラッグで回転、右ドラッグで移動、ホイールで拡大。<br>出典：東京都・千代田区・台東区・文京区／国土交通省 Project PLATEAU、国土地理院。CC BY 4.0。取得地形を平坦化・縮小・単純化し、鉄道を模式的に延長。公開データを整備された皆さまに感謝します。</footer>
 <!-- three.js MIT License: __LICENSE__ -->
-<script>/*__THREE__*/</script><script>/*__EXPAND__*/</script><script>
+<script>/*__THREE__*/</script><script>/*__EXPAND__*/</script><script>/*__VOLUME_CODEC__*/</script><script>
 'use strict';
 (async()=>{try{
 const encoded=/*__PAYLOAD__*/;
 const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
 const layout=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
 const rawBytes=new TextEncoder().encode(JSON.stringify(layout)).length;
-if(layout.volumeEncoding==='kind-u8-color-u8-y01-i16-rings-u16'){
- const a=Uint8Array.from(atob(layout.volumes),c=>c.charCodeAt(0)),v=new DataView(a.buffer),out=[];let offset=0;
- const take=n=>{if(offset+n>a.length)throw Error('建物の整数列が途中で切れています');const start=offset;offset+=n;return start;};
- while(offset<a.length){const h=take(8),kind=v.getUint8(h),color=layout.volumeColors[v.getUint8(h+1)],bottom=v.getInt16(h+2,true)/100,top=v.getInt16(h+4,true)/100,n=v.getUint16(h+6,true),rings=[];
-  if(kind>=layout.volumeKinds.length||!n||top<=bottom)throw Error('建物の寸法か種類が不正です');
-  for(let i=0;i<n;i++){const count=v.getUint16(take(2),true),p=take(count*4);if(count<3)throw Error('建物の頂点不足');rings.push(btoa(String.fromCharCode(...a.subarray(p,p+count*4))));}
-  out.push([kind,bottom,top,rings,color?{landmarkColor:color}:{}]);
- }
- if(out.length!==layout.volumeCount)throw Error('建物の件数が一致しません');layout.volumes=out;
-}
+layout.volumes=decodeCityVolumes(layout);
 const meta=layout.preview;expandCityLayout(THREE,layout);
 const scene=new THREE.Scene();scene.background=new THREE.Color('#26373f');
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=THREE.sRGBEncoding;document.body.prepend(renderer.domElement);

@@ -77,17 +77,37 @@ def simplify_background(volumes, playable, boundary, scale, block):
 
 
 def pack_volumes(volumes):
-    """文字列とJSON記号の繰り返しを除く。座標・高さは非圧縮の整数列で保存。"""
+    """座標はそのまま保存し、共通の底面高と1輪郭の件数だけを省略する。"""
     colors = [None]
     binary = bytearray()
     for kind, bottom, top, contours, meta in volumes:
         color = meta.get('landmarkColor')
         if color not in colors:
             colors.append(color)
-        binary.extend(struct.pack('<BBhhH', kind, colors.index(color), round(bottom*100), round(top*100), len(contours)))
+        if kind not in range(4) or len(colors) > 16 or not 1 <= len(contours) <= 256:
+            raise ValueError('建物の種類・色数・輪郭数が保存範囲外')
+        lo, hi = round(bottom * 100), round(top * 100)
+        if not -32768 <= lo < hi <= 32767:
+            raise ValueError('建物の高さが保存範囲外')
+        default_bottom = [-25, None, -50, hi - 100][kind]
+        custom_bottom = lo != default_bottom
+        multiple_rings = len(contours) > 1
+        tag = kind | colors.index(color) << 2 | multiple_rings << 6 | custom_bottom << 7
+        binary.extend(struct.pack('<Bh', tag, hi))
+        if custom_bottom:
+            binary.extend(struct.pack('<h', lo))
+        if multiple_rings:
+            binary.append(len(contours) - 1)
         for ring in contours:
             b = base64.b64decode(ring)
-            binary.extend(struct.pack('<H', len(b)//4)); binary.extend(b)
+            count = len(b) // 4
+            if len(b) % 4 or not 3 <= count <= 65535:
+                raise ValueError('建物の輪郭が保存範囲外')
+            # 通常の小さな輪郭は1バイト。255頂点以上も同じ精度で保存する。
+            binary.append(min(count, 255))
+            if count >= 255:
+                binary.extend(struct.pack('<H', count))
+            binary.extend(b)
     return base64.b64encode(binary).decode(), colors
 
 
@@ -232,7 +252,7 @@ def main():
             if part.area >= 16:
                 base_volumes.append((v, part))
     attempts = []
-    for tolerance in [.6, 1.0, 1.5, 2.0]:
+    for tolerance in [config['outlineToleranceMeters']]:
         volumes = []
         for v, source_shape in base_volumes:
             for p in parts(source_shape.intersection(playable)):
@@ -277,7 +297,7 @@ def main():
         data['volumes'] = paint_landmarks(simplify_background(volumes, playable, boundary, scale, config['backgroundBlockMeters']), config['referenceCenter'], scale, rotation)
         count = len(data['volumes'])
         data['volumes'], data['volumeColors'] = pack_volumes(data['volumes'])
-        data['volumeEncoding'] = 'kind-u8-color-u8-y01-i16-rings-u16'
+        data['volumeEncoding'] = 'kind2-color4-flags2-y01-i16-rings-u8'
         data['volumeCount'] = count
         size = len(compact(data)) + 1
         attempts.append({'toleranceRealMeters': tolerance, 'bytes': size})
@@ -301,6 +321,7 @@ def main():
     source = (ROOT / 'prototype/index.html').read_text()
     expand = source[source.index('function expandCityLayout('):source.index('// 肩越し視点')]
     html = template.replace('/*__THREE__*/', (ROOT / 'vendor/three-r128/three.min.js').read_text())
+    html = html.replace('/*__VOLUME_CODEC__*/', (ROOT / 'tools/city_volume_codec.js').read_text())
     html = html.replace('/*__EXPAND__*/', expand).replace('/*__PAYLOAD__*/', json.dumps(encoded))
     html = html.replace('__LICENSE__', (ROOT / 'vendor/three-r128/LICENSE').read_text())
     (args.output / 'preview.html').write_text(html)

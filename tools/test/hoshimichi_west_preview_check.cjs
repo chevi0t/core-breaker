@@ -1,10 +1,20 @@
 // 地形確認段階。整数列の復元、矩形の範囲、縮尺、切り取り回転とオフライン描画を確認する。
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
+const {decodeCityVolumes}=require('../city_volume_codec.js');
 (async()=>{
  const dir=path.resolve(process.argv[2]||'mapdesign/hoshimichi_west'),out=path.resolve(process.argv[3]||'dbg/hoshimichi-west');fs.mkdirSync(out,{recursive:true});
  const bytes=fs.statSync(path.join(dir,'layout.json')).size,info=JSON.parse(fs.readFileSync(path.join(dir,'generation.json'))),data=JSON.parse(fs.readFileSync(path.join(dir,'layout.json')));
  assert.equal(bytes,info.layoutBytes);assert.deepEqual(info.playableGameExtentMeters,[700,350]);assert.equal(info.equivalentRealWorldMechHeightMeters,8);assert.equal(info.bases,0);assert.equal(info.plants,0);assert.equal(info.rotationDegrees,30);assert.equal(info.terrainDeformed,false);
+ const storageChecks=[];let beforeBytes=null;
+ if(process.argv[4]){
+  const baseline=JSON.parse(fs.readFileSync(process.argv[4]));beforeBytes=fs.statSync(process.argv[4]).size;
+  assert.deepEqual(decodeCityVolumes(data),decodeCityVolumes(baseline),'全建物の座標・高さ・色が軽量化前と完全に一致');
+  storageChecks.push('全建物の座標・高さ・色は軽量化前と完全一致');
+  const rest=({volumes,volumeEncoding,...other})=>other;
+  assert.deepEqual(rest(data),rest(baseline),'地面・川・枠・ラベル・縮尺・角度も軽量化前と完全に一致');
+  storageChecks.push('地面・川・枠・ラベル・縮尺・角度も軽量化前と完全一致');
+ }
  const browser=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
  try{
   const page=await browser.newPage({viewport:{width:1600,height:1050}}),errors=[],external=[];
@@ -44,6 +54,7 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
   await page.selectOption('#heading','north');
   await page.click('#oblique');await page.screenshot({path:path.join(out,'oblique.png')});
   assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-  const result={checks,errors,externalRequests:external,layoutBytes:bytes,withinTarget:info.withinTarget,volumes:data.volumeCount};fs.writeFileSync(path.join(out,'preview-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({checks:checks.length,errors,externalRequests:external,layoutBytes:bytes,withinTarget:info.withinTarget}));
+  checks.push(...storageChecks);
+  const result={checks,errors,externalRequests:external,layoutBytes:bytes,withinTarget:info.withinTarget,volumes:data.volumeCount,beforeBytes};fs.writeFileSync(path.join(out,'preview-check.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({checks:checks.length,errors,externalRequests:external,layoutBytes:bytes,withinTarget:info.withinTarget}));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
