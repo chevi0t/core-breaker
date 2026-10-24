@@ -4526,7 +4526,7 @@ function makeUnit(team, isPlayer, idx) {
     cls, nextCls: null, slots: null, weapon: 'main', switchT: 0, moveInput: false,
     swing: null, lungeT: 0, lungeT0: 0, lungeDir: new T.Vector3(), lungeSpeed: 0, slideT: 0, recoverT: 0, sawSpin: null, scoped: false, scopeStep: 0, healTarget: null, botRkT: 2, rkGo: false,
     stuckT: 0, sideT: 0, side: 1, lastPos: new T.Vector3(), think: 0, target: null,
-    prevWeapon: 'main', planted: false, charging: false, chargerOn: false, cloak: false, cloakT: 0, vis: 1, shimmer: 0, cloakShown: false, stun: '', stunT: 0, tilt: 0, invulT: 0, jumpBuf: 0, fallTry: null, ukemiTry: false, weakT: 0, weakMult: 1, act: null, actCd: 2,
+    prevWeapon: 'main', planted: false, charging: false, chargerOn: false, cloak: false, cloakT: 0, vis: 1, shimmer: 0, cloakShown: false, stun: '', stunT: 0, tilt: 0, invulT: 0, invulCancelOnAttack: false, jumpBuf: 0, fallTry: null, ukemiTry: false, weakT: 0, weakMult: 1, act: null, actCd: 2,
     sc: { battle: 0, plant: 0, support: 0, total: 0, kills: 0, deaths: 0, assists: 0, heads: 0, streakMax: 0, coreDmg: 0, heal: 0, caps: 0 }, /* heads 以降は表彰（v0.16）用 */ sx: scoreState(), dmgBy: new Map(), ffDmg: 0,
   };
   m.g.rotation.order = 'YXZ'; // 向き（y）を回してから前後に傾ける（よろけ・ダウン）
@@ -4545,6 +4545,11 @@ function makeUnit(team, isPlayer, idx) {
 // at: 'base' かプラントのID。自軍のものでなければベースに出る
 // プラントから出るときの、プラントの中心からの距離（m）。出撃してから無敵の秒数（ユーザー指定、v0.9.2）
 const SPAWN_BACK = [46, 52], SPAWN_INVUL = 2;
+// 出撃・エリア移動の2秒無敵は、実際の発射か近接の振り始めで終了する。
+function cancelSpawnInvul(u) {
+  if (!u.invulCancelOnAttack) return;
+  u.invulT = 0; u.invulCancelOnAttack = false;
+}
 function spawnPos(u, at) {
   if(cityBattle){u.pos.fromArray(cityBattle.pickSpawn(u.team,at,plants));resolve(u);return;}
   const t = TEAM[u.team];
@@ -4573,7 +4578,7 @@ function spawn(u, at = 'base') {
   u.pitch = 0;
   u.hp = u.maxHp; u.alive = true; u.deathWeapon = null; u.overheat = false; // ブーストは equip で満タン
   u.dashT = 0; u.longDash = false; u.dashState = ''; u.stun = ''; u.tilt = 0;
-  u.invulT = SPAWN_INVUL;
+  u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
   u.dmgBy = new Map(); u.sx.streak = u.sx.capStreak = 0; // 撃破支援のダメージと連続撃破・連続占拠は出撃ごと
   equip(u, u.nextCls || u.cls); // 再出撃で兵装を切り替え、弾薬は全量
   u.hp = u.maxHp; // 耐久は兵装で違う
@@ -4610,7 +4615,7 @@ function doTransfer(u) {
   Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
   u.vel.set(0, 0, 0);
   u.yaw = TEAM[u.team].dir > 0 ? Math.PI : 0; u.pitch = 0;
-  u.invulT = SPAWN_INVUL;
+  u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
   if (x.base && u.nextCls && u.nextCls !== u.cls) { const hp = u.hp; equip(u, u.nextCls); u.hp = Math.min(hp, u.maxHp); }
   u.nextCls = null;
   if (u.isPlayer) { releaseLock(); feed('エリア移動しました'); }
@@ -5431,7 +5436,7 @@ function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost'
 // 起き上がる（修理装備で REVIVE_NEED 修理されたとき）
 function revive(v, by) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
-  Object.assign(v, { alive: true, downT: 0, deathWeapon: null, hp: v.maxHp * REVIVE_HP, invulT: REVIVE_INVUL, stun: '', yaw: v.downYaw, dashT: 0, longDash: false, dashState: '', target: null, aimTarget: null, waypoint: null, navPath: null, navW: null, navVia: null, navRc: 0, healing: false });
+  Object.assign(v, { alive: true, downT: 0, deathWeapon: null, hp: v.maxHp * REVIVE_HP, invulT: REVIVE_INVUL, invulCancelOnAttack: false, stun: '', yaw: v.downYaw, dashT: 0, longDash: false, dashState: '', target: null, aimTarget: null, waypoint: null, navPath: null, navW: null, navVia: null, navRc: 0, healing: false });
   v.vel.set(0, 0, 0);
   resetMechPose(v);
   v.group.visible = true;
@@ -6249,6 +6254,7 @@ function detonate(g) {
 }
 function detonateRemotes(u) {
   const own = gadgets.filter(g => g.owner === u && g.kind === 'remote' && g.armT <= 0);
+  if (own.length) cancelSpawnInvul(u);
   for (const g of own) detonate(g);
   if (own.length) sfx('switch', u.pos, u);
 }
@@ -7709,6 +7715,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
   return res;
 }
 function shot(u, sl, aim, spread, missileTarget = null) {
+  cancelSpawnInvul(u);
   const w = sl.w;
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
@@ -7880,6 +7887,7 @@ function swordTick(u, sl, dt, trigger, aim) {
     sl.chargeT=sl.holdT=0;trigger=true;
   }
   if (sl.cd > 0 || !trigger) return false;
+  cancelSpawnInvul(u);
   let a = sl.w.normal;
   const dashAttack = u.dashT > 0 || u.longDash || (u.chargerOn && !u.slots.sp.overheat);
   if (dashAttack) {
@@ -8321,6 +8329,7 @@ function specialTick(u, dt) {
     u.escortAim = aim.clone();
     const yaw = Math.atan2(-(aim.x-u.pos.x),-(aim.z-u.pos.z));
     from.copy(u.pos).add(new T.Vector3(0,3.5,-1.35).applyAxisAngle(UP,yaw));
+    cancelSpawnInvul(u);
     fire(u, aim, 0, w, from); // 専用の自動照準。手持ち武器の照準・反動・弾数は変えない。
     sl.ammo--; u.escortCd += 60 / w.rpm;
     if (sl.ammo <= 0) sl.reloadT = w.reload * u.reloadMul;
@@ -8438,6 +8447,7 @@ function artilleryTick(u,sl,dt,trigger,aim,on,cancel) {
   if (trigger && !sl.held) artilleryConfirm(u,aim);
   sl.held=trigger;
   if (!u.bombard || sl.cd>0) return;
+  cancelSpawnInvul(u);
   const r=Math.sqrt(Math.random())*w.scatter,a=Math.random()*Math.PI*2;
   const target=u.bombard.clone().add(new T.Vector3(Math.cos(a)*r,0,Math.sin(a)*r));
   const from=muzzle(u),mesh=new T.Mesh(artilleryShellGeo,shellMat[u.team]); mesh.position.copy(from);scene.add(mesh);
@@ -8499,6 +8509,7 @@ function cannonTick(u, sl, dt, trigger, aim, on, cancel) {
   if (!on) return;
   if (cancel || sl.heat < cost - 0.01) { if (sl.cd <= 0) selectWeapon(u, u.prevWeapon); return; }
   if (!trigger || sl.cd > 0) return;
+  cancelSpawnInvul(u);
   sl.cd = 60 / w.rpm;
   const from = muzzle(u), v = lobTo(from, aim, w.proj.speed, w.proj.grav).vel;
   v.x += (Math.random() - 0.5) * w.spread * u.aimMul * w.proj.speed; v.z += (Math.random() - 0.5) * w.spread * u.aimMul * w.proj.speed; // 弾道は少し揺れる（頭部の射撃補正）
@@ -10541,7 +10552,8 @@ function loop(now) {
         if (u.respawnT <= 0) { if (u.isPlayer) spawn(u, u.spawnChoice); else botSpawn(u); }
         continue;
       }
-      if (u.invulT > 0) u.invulT -= dt;
+      if (u.invulT > 0) u.invulT = Math.max(0, u.invulT - dt);
+      if (u.invulT === 0) u.invulCancelOnAttack = false;
       auxiliaryStatusTick(u,dt);
       specialTick(u, dt); // 背部装備はダウン・エリア移動待機中も進める
       if (u.transfer) { if (u.stun === 'down') cancelTransfer(u); else if ((u.transfer.t -= dt) <= 0) doTransfer(u); } // エリア移動の待機（v0.17）
