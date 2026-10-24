@@ -87,6 +87,8 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #aimSp.act .bar > i { background: #a6ffcb; }
 #aimSp.hit .bar > i { background: var(--warn); }
 @media (prefers-reduced-motion: reduce) { #aimSp.act .bar { animation: none; } }
+#spottedMarkers { inset: 0; overflow: hidden; }
+.spottedMark { position: absolute; box-sizing: border-box; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; background: #ffa33b; border: 1px solid #ffe0ad; box-shadow: 0 0 0 1px #301a08, 0 0 5px #ff9b3877; }
 #preLock { inset: 0; overflow: hidden; }
 .preLockMark, #lockMark { left: 0; top: 0; width: 64px; height: 64px; margin: -32px 0 0 -32px; --arm: 17px; --stroke: 2px; }
 .preLockMark { position: absolute; --c: #72e9f5; opacity: .35; }
@@ -821,6 +823,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 <div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b><span id="mechCompass" aria-hidden="true"></span></div></div>
 <div class="hud" id="tags"></div>
 <canvas class="hud" id="missileHud" hidden aria-label="ミサイル捕捉表示" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+<div class="hud" id="spottedMarkers" hidden aria-hidden="true"></div>
 <div class="hud" id="preLock" hidden aria-hidden="true"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
@@ -6056,6 +6059,123 @@ function trackAim(u, dt, eye) {
 // ---- 設置物と索敵：地雷、索敵センサー、偵察機、遠隔爆弾、自動砲台 ----
 // 地雷とセンサーは撃って壊せる（userData.ref に gadget: true）。偵察機は撃ち落とせない（未実装）
 const gadgets = [], drones = [];
+// 索敵の作動表示。判定とは独立した約3mの短い波を、装備の現在位置から出す。
+const RECON_PULSE_RADIUS = 3, RECON_PULSE_DURATION = .6, RECON_PULSE_INTERVAL = .75;
+const RECON_PULSE_MAX = 48, RECON_PULSE_DISTANCE = 200;
+const reconPulses = [], reconPulseBatches = new Map();
+let reconPulseClock = 0, reconPulseLast = new WeakMap();
+const reconPulseOrigin = new T.Vector3(), reconPulsePosition = new T.Vector3();
+const reconPulseDirection = new T.Vector3(), reconPulseScale = new T.Vector3();
+const reconPulseRotation = new T.Quaternion(), reconPulseMatrix = new T.Matrix4();
+const reconPulseColor = new T.Color(), reconPulseTint = new T.Color(0x65e5ff);
+const reconPulseMaterial = visualAlloc(() => new T.MeshBasicMaterial({
+  color: 0xffffff, transparent: true, opacity: .72, blending: T.AdditiveBlending,
+  side: T.DoubleSide, depthTest: true, depthWrite: false, toneMapped: false,
+}));
+// 描画用乱数で全射角を起動時に確保し、初回射出の負荷と戦闘用乱数への影響を避ける。
+visualAlloc(() => { for (const arc of [60, 90, 120, 360]) {
+  const angle = arc * Math.PI / 180;
+  const geometry = new T.RingGeometry(.93, 1, arc === 360 ? 48 : 24, 1, Math.PI / 2 - angle / 2, angle);
+  geometry.rotateX(-Math.PI / 2); // 扇の中心は機体の正面と同じ-Z。
+  const batch = new T.InstancedMesh(geometry, reconPulseMaterial, RECON_PULSE_MAX * 3);
+  batch.instanceMatrix.setUsage(T.DynamicDrawUsage);
+  batch.setColorAt(0, reconPulseTint);
+  batch.instanceColor.setUsage(T.DynamicDrawUsage);
+  batch.count = 0; batch.visible = false;
+  batch.frustumCulled = false; // r128の単一geometry境界では、離れたinstanceを誤って消してしまう。
+  batch.userData.reconPulse = true;
+  scene.add(batch); reconPulseBatches.set(arc, batch);
+} });
+function reconPulseActive(source) {
+  if (!source) return false;
+  if (source.kind === 'unit') {
+    // 未発見の敵の迷彩を、レーダーの作動表示だけで露見させない。
+    if (player && source.team !== player.team && source.cloak && !spotted[player.team].has(source)) return false;
+    const sl = source.slots[source.weapon];
+    return source.alive && source.gun && sl.w.type === 'radarTool' && sl.scanRadius > 0
+      && source.switchT <= 0 && !source.repairing && !source.transfer
+      && !(source.electricT > 0) && (!source.stun || source.stun === 'land');
+  }
+  if (source.kind === 'sensor') return source.alive && !!source.mesh.parent;
+  return !!source.mesh?.parent && drones.includes(source);
+}
+function reconPulseSourcePosition(source, mode, out) {
+  if (source.kind === 'unit') {
+    // matrixWorldの更新前でも、手元のレーダー前面から出る（muzzleと同じ座標変換）。
+    return out.set(0, .6, -.5).applyEuler(source.gun.rotation).add(source.gun.position)
+      .applyAxisAngle(UP, source.yaw).add(source.pos);
+  }
+  if (mode === 'fan') return out.set(0, .58, -.13).applyEuler(source.mesh.rotation).add(source.mesh.position);
+  return out.copy(source.mesh.position).addScaledVector(UP, mode === 'down' ? -.3 : mode === 'plane' ? .65 : .8);
+}
+function emitReconPulse(source, mode = 'radial', arc = 360) {
+  if (!reconPulseActive(source)) return;
+  const batchArc = mode === 'fan' ? arc : 360;
+  if (!reconPulseBatches.has(batchArc)) return;
+  const last = reconPulseLast.get(source);
+  if (last != null && reconPulseClock - last < RECON_PULSE_INTERVAL - 1e-6) return;
+  if (reconPulses.some(p => p.source === source)) return;
+  reconPulseSourcePosition(source, mode, reconPulseOrigin);
+  const distance = reconPulseOrigin.distanceToSquared(camera.position);
+  if (distance > RECON_PULSE_DISTANCE * RECON_PULSE_DISTANCE) return;
+  let replace = -1;
+  if (reconPulses.length >= RECON_PULSE_MAX) {
+    // 大人数でも、遠方の設置物より手元や近傍の装備を優先する。
+    let farthest = distance;
+    for (let i = 0; i < reconPulses.length; i++) {
+      const p = reconPulses[i];
+      if (!reconPulseActive(p.source)) { replace = i; break; }
+      reconPulseSourcePosition(p.source, p.mode, reconPulseOrigin);
+      const d = reconPulseOrigin.distanceToSquared(camera.position);
+      if (d > farthest) { farthest = d; replace = i; }
+    }
+    if (replace < 0) return;
+  }
+  const pulse = { source, mode, arc: batchArc, age: 0 };
+  if (replace < 0) reconPulses.push(pulse); else reconPulses[replace] = pulse;
+  reconPulseLast.set(source, reconPulseClock);
+}
+function reconPulseUpdate(dt) {
+  reconPulseClock += dt;
+  for (const batch of reconPulseBatches.values()) { batch.count = 0; batch.visible = false; }
+  for (let i = reconPulses.length - 1; i >= 0; i--) {
+    const p = reconPulses[i];
+    p.age += dt;
+    if (p.age >= RECON_PULSE_DURATION || !reconPulseActive(p.source)) { reconPulses.splice(i, 1); continue; }
+    reconPulseSourcePosition(p.source, p.mode, reconPulseOrigin);
+    if (reconPulseOrigin.distanceToSquared(camera.position) > RECON_PULSE_DISTANCE * RECON_PULSE_DISTANCE) continue;
+    reconPulseRotation.identity();
+    if (p.mode === 'fan') {
+      const yaw = p.source.kind === 'unit' ? p.source.yaw : Math.atan2(-p.source.dir.x, -p.source.dir.z);
+      reconPulseRotation.setFromAxisAngle(UP, yaw);
+    } else if (p.mode === 'plane') {
+      reconPulseDirection.copy(p.source.dir).normalize();
+      reconPulseRotation.setFromUnitVectors(UP, reconPulseDirection);
+    }
+    const batch = reconPulseBatches.get(p.arc);
+    for (let wave = 0; wave < 3; wave++) {
+      const progress = (p.age - wave * .1) / .4;
+      if (progress <= 0 || progress >= 1) continue;
+      reconPulsePosition.copy(reconPulseOrigin);
+      // 下向きは移動距離と輪の半径を合わせても発生源から3m以内に収める。
+      const radius = p.mode === 'down' ? .25 + .95 * progress : .25 + (RECON_PULSE_RADIUS - .25) * progress;
+      if (p.mode === 'down') reconPulsePosition.y -= 2.7 * progress;
+      reconPulseScale.setScalar(radius);
+      reconPulseMatrix.compose(reconPulsePosition, reconPulseRotation, reconPulseScale);
+      reconPulseColor.copy(reconPulseTint).multiplyScalar(Math.sin(Math.PI * progress) * (1 - .35 * progress));
+      const n = batch.count++;
+      batch.setMatrixAt(n, reconPulseMatrix); batch.setColorAt(n, reconPulseColor);
+    }
+  }
+  for (const batch of reconPulseBatches.values()) if (batch.count) {
+    batch.visible = true; batch.instanceMatrix.needsUpdate = true; batch.instanceColor.needsUpdate = true;
+  }
+}
+function clearReconPulses() {
+  reconPulses.length = 0; reconPulseClock = 0; reconPulseLast = new WeakMap();
+  for (const batch of reconPulseBatches.values()) { batch.count = 0; batch.visible = false; }
+}
+
 // 索敵：センサーや偵察機が見つけた敵機を、その陣営のミニマップに残りの秒数のあいだ映す
 const spotted = { B: new Map(), R: new Map() };
 // 索敵している物（レーダー・センサー・偵察機・索敵ソナー）ごとの残りの秒数。被索敵の警告に出す（v0.11.2）
@@ -6216,6 +6336,7 @@ function gadgetUpdate(dt) {
       if(S.planar)planarSensorTick(g);
       else if ((g.scanT -= dt) <= 0) {
         g.scanT = 0.25;
+        emitReconPulse(g, S.col ? 'down' : S.cone ? 'fan' : 'radial', S.cone || 360);
         const cosH = S.cone ? Math.cos(S.cone / 2 * DEG) : -2;
         for (const e of units) {
           if (!e.alive || e.team === g.team) continue;
@@ -6241,6 +6362,7 @@ function gadgetUpdate(dt) {
     d.mesh.rotation.y += dt * 6;
     if ((d.scanT -= dt) <= 0) {
       d.scanT = 0.25;
+      emitReconPulse(d, 'down');
       for (const e of units) if (e.alive && e.team !== d.team && Math.hypot(e.pos.x - d.pos.x, e.pos.z - d.pos.z) < D.scan) spot(d.team, e, D.keep, d.owner, '偵察機');
     }
     if (d.flown >= D.dist || Math.abs(d.pos.x) > MAP_X + 20 || Math.abs(d.pos.z) > MAP_Z + 20) { scene.remove(d.mesh); drones.splice(i, 1); }
@@ -6258,6 +6380,7 @@ function clearGadgets() {
   for (const d of drones) scene.remove(d.mesh);
   drones.length = 0;
   spotted.B.clear(); spotted.R.clear(); spotSrc.B.clear(); spotSrc.R.clear();
+  clearReconPulses();
 }
 
 // 追加補助装備。時計は選択中の武器と独立し、Botも同じ判定を使う。
@@ -6270,11 +6393,13 @@ function radarToolTick(u,sl,dt,on){
   if(u.radarHeading!=null){const d=Math.atan2(Math.sin(u.yaw-u.radarHeading),Math.cos(u.yaw-u.radarHeading));u.yaw=u.radarHeading+Math.max(-Math.PI/6,Math.min(Math.PI/6,d));}
   sl.scanRadius=Math.min(w.range,(sl.scanRadius||0)+w.range/w.expand*dt);
   if((sl.scanT=(sl.scanT||0)-dt)>0)return;sl.scanT=.1;
+  emitReconPulse(u, w.arc >= 360 ? 'radial' : 'fan', w.arc);
   const dir=fwdOf(u),cos=Math.cos(w.arc*Math.PI/360);
   for(const e of units){if(!e.alive||e.team===u.team)continue;const delta=e.pos.clone().sub(u.pos).setY(0),d=delta.length();if(d<=sl.scanRadius && (!d||delta.dot(dir)/d>=cos-1e-8))spot(u.team,e,w.keep,u,'展開式レーダー');}
 }
 const auxiliaryCur = new T.Vector3(), auxiliaryCross = new T.Vector3(), auxiliaryDelta = new T.Vector3();
 function planarSensorTick(g){
+  emitReconPulse(g, 'plane');
   for(const e of units){
     if(!e.alive||e.team===g.team){g.planarPrev.delete(e);continue;}
     const cur=auxiliaryCur.copy(e.pos).sub(g.pos);cur.y+=2.4;
@@ -9062,6 +9187,29 @@ function tagsHud(p, dt) {
     bar.lastChild.style.width = (f * 100).toFixed(1) + '%';
   }
 }
+const spottedMarkPool = [];
+function spottedHud(p) {
+  const layer = $('spottedMarkers');
+  const on = running && !ended && p.alive && !(p.jamT > 0) && !killcamOn() && $('overlay').hidden && !mapOpen && !wsel.open;
+  let count = 0;
+  // 自軍が把握している敵機だけ、壁越しでも胴の中心に◆を出す。距離や迷彩は索敵側の判定に従う。
+  // 位置の投影だけで追加の遮蔽レイは使わず、マーカーも最大表示数ぶんを再利用する。
+  if (on) for (const [e, left] of spotted[p.team]) {
+    if (!(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
+    const s = screenOf(e);
+    if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
+    let el = spottedMarkPool[count];
+    if (!el) {
+      el = document.createElement('div'); el.className = 'spottedMark';
+      layer.appendChild(el); spottedMarkPool.push(el);
+    }
+    el.hidden = false;
+    el.style.transform = `translate(${(s.x + 1) / 2 * innerWidth}px, ${(1 - s.y) / 2 * innerHeight}px) rotate(45deg)`;
+    count++;
+  }
+  for (let i = count; i < spottedMarkPool.length; i++) spottedMarkPool[i].hidden = true;
+  layer.hidden = count === 0;
+}
 function renderPlantBar() { $('plantBar').innerHTML = plants.map(pl => `<div class="pl" id="pl-${pl.id}"><b>${pl.id}</b><span><i></i></span></div>`).join(''); }
 $('rlist').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -10174,6 +10322,7 @@ function hud(timeLeft, dt) {
   if (qc.open) QCHAT.forEach((q, i) => $('qc' + i).classList.toggle('sel', qc.pick === i));
   pingHud(p);
   tagsHud(p, dt);
+  spottedHud(p);
   $('wsel').hidden = !wsel.open;
   if (wsel.open) {
     SLOTS.forEach((k, i) => {
@@ -10450,6 +10599,7 @@ function loop(now) {
     if (u.flame.visible) u.flame.scale.y = (u.dashState === 'short' ? 1.8 : u.dashState === 'charge' ? 2.4 : 1.1) * (0.85 + Math.random() * 0.3);
   }
   fxUpdate(dt);
+  reconPulseUpdate(running ? dt : 0);
   puffUpdate(dt);
   for (let i = booms.length - 1; i >= 0; i--) {
     const b = booms[i]; b.t += dt;

@@ -49,7 +49,8 @@ EXPOSE = """window.__g = { get pressed() { return pressed; }, get cityMap() { re
   get gameOptions() { return gameOptions; }, get audio() { return audio; }, get sfx() { return sfx; }, get sfxBuf() { return sfxBuf; }, get soundVoices() { return soundVoices; }, get applyAudioSettings() { return applyAudioSettings; }, get bgmTick() { return bgmTick; }, get initAudio() { return initAudio; }, get openOptions() { return openOptions; }, get closeOptions() { return closeOptions; },
   get movementAudioTick() { return movementAudioTick; }, get movementStep() { return movementStep; }, get stopMovementSounds() { return stopMovementSounds; },
   get cannonTick() { return cannonTick; }, get gadgetUpdate() { return gadgetUpdate; },
-  get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get lockHud() { return lockHud; }, get running() { return running; }, set running(v) { running = v; } };"""
+  get emitReconPulse() { return emitReconPulse; }, get reconPulseUpdate() { return reconPulseUpdate; }, get clearReconPulses() { return clearReconPulses; }, get reconPulses() { return reconPulses; }, get reconPulseBatches() { return reconPulseBatches; }, get launchDrone() { return launchDrone; }, get clearGadgets() { return clearGadgets; },
+  get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get lockHud() { return lockHud; }, get spottedHud() { return spottedHud; }, get running() { return running; }, set running(v) { running = v; } };"""
 
 
 def rep(s, a, b):
