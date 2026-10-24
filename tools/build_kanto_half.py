@@ -109,6 +109,15 @@ def main():
         for part in city.parts(shapely.set_precision(poly.difference(clear),.01)):
             if part.area>.5:volumes.append([*v[:3],city.pack_polygon(part),v[4]])
     data['volumes']=volumes
+    # 上部構造の赤い箱は観覧車の代用だったため、屋根を残し空洞のある輪へ置き換える。
+    red_boxes=[v for v in volumes if v[4].get('landmark')=='red-accent' and v[4].get('landmarkColor')=='#bf3548']
+    assert len(red_boxes)==1 and red_boxes[0][1:3]==[4,47], '観覧車の元形状が変化した'
+    removed_wheel_box=red_boxes[0]
+    volumes.remove(removed_wheel_box)
+    data['district']['ferrisWheel']={
+        'center':[110.375,43,-87.975],'radius':14,'roofY':27,'yaw':-.0822517,
+        'color':'#bf3548','cabins':12,'supportHalfWidth':5,'supportHalfDepth':1.5,
+    }
     solids=[(city.polygon(v),v[1],v[2]) for v in volumes]
     def local(t,p):
         b=d['bases'][t]['at'];s=1 if t=='B' else -1
@@ -182,12 +191,14 @@ def main():
     d['cityBattle'].update(respawns=respawns,baseSpawns=base_spawns)
     d['attribution']+=' 縮尺1/2・機体8m級相当の別案。立体通路の天井と施設周辺をゲーム用に補正。'
     measure="""
-const fs=require('node:fs'),T=require(process.argv[1]),s=fs.readFileSync(process.argv[2],'utf8');
+const fs=require('node:fs'),T=require(process.argv[1]),input=JSON.parse(fs.readFileSync(0,'utf8')),s=input.source;
 const f=new Function(s.slice(s.indexOf('function expandCityLayout('),s.indexOf('// 肩越し視点'))+';return expandCityLayout;')();
-const d=JSON.parse(fs.readFileSync(0,'utf8'));f(T,d);
+const d=input.data;f(T,d);
 console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v])=>[k,Buffer.from(v,'base64').length/36]))));
 """
-    counts=json.loads(subprocess.check_output(['node','-e',measure,str(ROOT/'vendor/three-r128/three.min.js'),str(ROOT/'prototype/index.html')],input=city.compact(data)))
+    from kanto_ferris import apply_ferris_patch
+    model_source=apply_ferris_patch((ROOT/'prototype/index.html').read_text())
+    counts=json.loads(subprocess.check_output(['node','-e',measure,str(ROOT/'vendor/three-r128/three.min.js')],input=city.compact({'data':data,'source':model_source})))
     for name,count in counts.items():data['packing']['layers'][name]={'triangles':count}
     raw=city.compact(d);assert len(raw)<=100000,len(raw)
     (OUT/'map.json').write_bytes(raw+b'\n')
@@ -195,6 +206,8 @@ console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v
         'extentMeters':[500,500],'nominalScaleXYZ':[.5,.5,.5],'equivalentRealWorldMechHeightMeters':8,'mapDataBytes':len(raw),
         'clearance':clearance,'roofPocketFills':roof_fills,'roofTargetAdjustments':roof_targets,
         'triangles':sum(counts.values()),
+        'ferrisWheel':{'model':data['district']['ferrisWheel'],'triangles':counts['ferris'],
+            'removedBox':removed_wheel_box,'static':True,'gameScaleApproximation':True},
         'localFacilityClearing':trim,'facilityAdjustments':adjustments,'navigation':nav_stats,
         'bases':d['bases'],'plants':d['plants'],'shelters':shelters,'jumpPads':d['jumpPads'],'plantCatapults':d['plantCatapults'],
         'baseEquipment':{t:{'turrets':[local(t,p) for p in d['turrets']],

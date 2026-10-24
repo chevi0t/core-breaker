@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import runpy
 import subprocess
+from kanto_ferris import apply_ferris_patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,10 +67,10 @@ def build_html(output):
             raise ValueError('参照本体が指定版と異なります: ' + name)
 
     source = ROOT / 'prototype/index.html'
-    text = scale_facade_pattern(source.read_text(encoding='utf-8'))
+    text = scale_facade_pattern(apply_ferris_patch(source.read_text(encoding='utf-8')))
     text = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' + text
     text = re.sub(r'<link[^>]+href="https://fonts\.googleapis\.com[^>]+>\n?', '', text)
-    sources = [source, map_path, Path(__file__)]
+    sources = [source, map_path, Path(__file__), ROOT / 'tools/kanto_ferris.py']
     for url, name in [('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', 'vendor/three-r128/three.min.js'),
                       ('sounds.js', 'prototype/sounds.js'), ('music.js', 'prototype/music.js')]:
         path = ROOT / name
@@ -127,7 +128,9 @@ window.__cityBattle=window.__g;
     record = {'gameRevision': GAME_REVISION, 'mapID': MAP_ID, 'extentMeters': [500, 500],
               'mapDataBytes': len(map_json.encode('utf-8')), 'htmlBytes': len(html),
               'htmlSHA256': hashlib.sha256(html).hexdigest(), 'singleMap': True,
-              'inlineDependencies': True, 'gameplayCodeUnchanged': True,
+              'inlineDependencies': True, 'gameplayCodeUnchanged': False, 'gameplayRulesUnchanged': True,
+              'landmarkPatch': {'kind':'静止した観覧車','layer':'ferris',
+                                'collision':'既存の三角形接触・射線・カメラ判定へ同じモデルを登録'},
               'renderScalePatch': {'scope': '窓・ガラス反射の空間間隔', 'scale': .5,
                                    'windowPitchMeters': [1.4, 1.75], 'windowMinimumY': 1,
                                    'reflectionSpatialCoefficients': [.22, .024], 'paletteChanged': False},
