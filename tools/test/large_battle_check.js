@@ -1,4 +1,4 @@
-// 潮路搬送区の50対50を、出撃画面・100機のスコア・本体のBot戦で確認する。
+// 全マップ共通の人数設定と50対50を、出撃画面・100機のスコア・本体のBot戦で確認する。
 // node tools/test/large_battle_check.js dbg/large-battle [出力フォルダ] [Bot戦の秒=120] [--smoke]
 // --smoke はUIの全項目と、基本配置の50対50だけを確認する。
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
@@ -20,6 +20,7 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     await p.route('**fonts.g*/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
     await p.addInitScript(allBots => {
       window.$ = id => document.getElementById(id);
+      window.setSize = n => {for(const id of ['teamSize']){$(id).value=n;$(id).dispatchEvent(new Event('change'));}};
       window.requestAnimationFrame = () => 0; window.AudioContext = window.webkitAudioContext = undefined;
       window.__allBotBattle = allBots;
       let seed = 20261020;
@@ -37,20 +38,20 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     return p;
   }
   try {
-    const p = await page(), sw = p.getByRole('switch', { name: '50対50（実験）', exact: true });
-    yes(await p.locator('#largeBattleControl').isHidden(), '通常マップでは実験スイッチを出さない');
+    const p = await page();
+    yes(await p.locator('#battleSizeControl').isVisible(), '通常マップでも人数を選べる');
     await p.locator('[data-page="pgMap"]').click();
     await p.locator('[data-map-group="tidal"]').click();
     await p.locator('[data-map="tidal"]').click();
-    yes(await sw.isVisible() && !await sw.isChecked() && (await p.locator('#mapNow').textContent()).includes('10対10'), 'マップ選択から新マップへ移り、既定は10対10');
-    await sw.check();
-    yes((await p.locator('#mapNow').textContent()).includes('50対50（実験）'), '出撃前に実際の50対50を表示');
+    yes(await p.locator('#battleSizeControl').isVisible() && (await p.locator('#mapNow').textContent()).includes('10対10'), 'マップ選択から新マップへ移り、既定は10対10');
+    await p.selectOption('#teamSize','50');
+    yes((await p.locator('#mapNow').textContent()).includes('50対50'), '出撃前に実際の50対50を表示');
     await p.screenshot({ path: path.join(out, 'menu.png') });
-    await p.locator('#largeBattleControl').screenshot({ path: path.join(out, 'switch.png') });
+    await p.locator('#battleSizeControl').screenshot({ path: path.join(out, 'switch.png') });
     await p.setViewportSize({ width: 390, height: 844 });
-    await p.locator('#largeBattleControl').scrollIntoViewIfNeeded();
-    const box = await p.locator('#largeBattleControl').boundingBox();
-    yes(box.x >= 0 && box.x + box.width <= 391 && await sw.isChecked(), '小さい画面でも実験スイッチを操作できる');
+    await p.locator('#battleSizeControl').scrollIntoViewIfNeeded();
+    const box = await p.locator('#battleSizeControl').boundingBox();
+    yes(box.x >= 0 && box.x + box.width <= 391 && await p.locator('#teamSize').inputValue() === '50', '小さい画面でも人数選択を操作できる');
     await p.setViewportSize({ width: 1280, height: 720 });
     await p.locator('#start').click();
     const roster = await p.evaluate(() => {
@@ -84,21 +85,21 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
     await p.screenshot({ path: path.join(out, 'scoreboard-bottom.png') });
     await p.evaluate(() => { const g = __g; g.keys.Tab = false; g.timeLeft = 0; g.loop(performance.now()); g.running = false; });
     yes(await p.locator('#ovBoard tbody tr').count() === 100, '結果画面でも全100機を表示');
-    await sw.uncheck(); await p.locator('#start').click();
-    yes(await p.evaluate(() => __g.units.length === 20 && __g.units.every(u => u.idx < 10)), 'OFFにして次の試合を始めると10対10に戻る');
+    await p.selectOption('#teamSize','10'); await p.locator('#start').click();
+    yes(await p.evaluate(() => __g.units.length === 20 && __g.units.every(u => u.idx < 10)), '10機を選んで次の試合を始めると10対10に戻る');
     yes(await p.evaluate(() => __g.hittables.filter(m => m.userData.ref?.kind === 'unit').every(m => __g.units.includes(m.userData.ref))), '前の100機の被弾対象を残さない');
     await p.evaluate(() => { __g.running = false; __g.selectMap('tidal-v2'); });
-    await p.evaluate(() => { $('largeBattleSw').checked = true; $('largeBattleSw').dispatchEvent(new Event('change')); __g.setup(); });
+    await p.evaluate(() => { setSize(50); __g.setup(); });
     yes(await p.evaluate(() => __g.units.length === 100), '上層干渉でも50対50で生成');
     await p.evaluate(() => { __g.selectMap('tidal-v3'); __g.setup(); });
     yes(await p.evaluate(() => __g.units.length === 100), '新マップの配置を変えても人数選択を維持');
     await p.evaluate(() => { __g.selectMap('city'); __g.setup(); });
-    yes(await p.evaluate(() => __g.units.length === 20 && !$('largeBattleSw').checked && $('largeBattleControl').hidden), 'ほかのマップへ移ると実験を解除して通常人数に戻る');
+    yes(await p.evaluate(() => __g.units.length === 100 && $('teamSize').value === '50'), 'ほかのマップへ移っても人数を維持');
     await p.evaluate(() => { __g.selectMap('dock'); __g.setup(); });
-    yes(await p.evaluate(() => __g.units.length === __g.curMap.team * 2), '小さいコスト制マップの人数は維持');
-    await p.evaluate(() => { __g.selectMap('tidal'); $('largeBattleSw').checked = true; $('largeBattleSw').dispatchEvent(new Event('change')); });
+    yes(await p.evaluate(() => __g.units.length === 100), '小さいコスト制マップでも選択した50対50');
+    await p.evaluate(() => { __g.selectMap('tidal'); setSize(50); });
     await p.reload();
-    yes(await p.evaluate(() => !$('largeBattleSw').checked && $('mapNow').textContent.includes('10対10')), '再読み込みでは通常人数に戻り、実験を自動再開しない');
+    yes(await p.evaluate(() => $('teamSize').value === '10' && $('mapNow').textContent.includes('10対10')), '再読み込みでは通常人数に戻り、実験を自動再開しない');
     await p.close();
 
     // 同じシードで通常人数と100機を比べる。本体のAI・物理・射撃・拠点・出撃をそのまま進める。
@@ -107,7 +108,7 @@ const yes = (ok, name) => { assert.ok(ok, name); checks.push(name); };
       const q = await page(true);
       await q.setViewportSize({ width: 1280, height: 720 });
       const initial = await q.evaluate(({ id, large }) => {
-        const g = __g; g.selectMap(id); $('largeBattleSw').checked = large; $('largeBattleSw').dispatchEvent(new Event('change'));
+        const g = __g; g.selectMap(id); setSize(large?50:10);
         const began = performance.now(); $('start').click();
         window.battleTimes = []; window.battlePrev = new Map(); window.battleStats = { deaths: 0, respawns: 0, spawns: g.units.length };
         window.battlePositions = new Map(g.units.map(u => [u, u.pos.clone()]));

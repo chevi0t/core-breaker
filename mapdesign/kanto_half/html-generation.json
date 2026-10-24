@@ -1,0 +1,54 @@
+{
+  "gameRevision": "0ef53120d4ca6a43527b103c1544dc84926254ae",
+  "mapID": "kanto_half",
+  "extentMeters": [
+    500,
+    500
+  ],
+  "mapDataBytes": 96387,
+  "htmlBytes": 2976677,
+  "htmlSHA256": "1714c985591a8528af6406a9efc46d232fab2eaf99cac531fb6164017a4e41a7",
+  "singleMap": true,
+  "inlineDependencies": true,
+  "gameplayCodeUnchanged": false,
+  "gameplayRulesUnchanged": true,
+  "landmarkPatch": {
+    "kind": "静止した観覧車",
+    "layer": "ferris",
+    "collision": "既存の三角形接触・射線・カメラ判定へ同じモデルを登録"
+  },
+  "rooftopTurrets": {
+    "count": 4,
+    "placement": "所属と世界座標を指定して既存の砲台を追加",
+    "combatRulesUnchanged": true
+  },
+  "renderScalePatch": {
+    "scope": "窓・ガラス反射の空間間隔",
+    "scale": 0.5,
+    "windowPitchMeters": [
+      1.4,
+      1.75
+    ],
+    "windowMinimumY": 1,
+    "reflectionSpatialCoefficients": [
+      0.22,
+      0.024
+    ],
+    "paletteChanged": false
+  },
+  "sourceHashes": {
+    "/workspace/core-breaker-umeda-half/mapdesign/kanto_half/map.json": "ba42c0b19b0cdef81728c914517fd9f626af2444dd2ca2abcb7117881bdb4dcf",
+    "/workspace/core-breaker-umeda-half/tools/build_kanto_half_play.py": "76ed2ea9e3d2396fa7a16418c12443ace2505843a9a1f97acd1fc13ae458a565",
+    "/workspace/core-breaker-umeda-half/tools/kanto_ferris.py": "7c421d83d76820b09064a8777bf00f42e49709dfb8db6a73546f8df8969c613b",
+    "/workspace/core-breaker-umeda-half/tools/kanto_rooftop_turrets.py": "344f4042373174089482dd2a6ebf4d54db430494db9f1b48845e22db2eb90728",
+    "/workspace/core-breaker-umeda-half/mapdesign/kanto_half/CREDITS.md": "9713a85b4cf7e33b145b089725544baf80eefc6a5deb3d4e01d830922c3a3a97",
+    "/workspace/core-breaker-umeda-half/sounds/CREDITS.md": "1fc83c12dd8acb8503fd4d45d03c9a1038985ef0a6fc404019dbe7ddc94e5543",
+    "/workspace/core-breaker-umeda-half/prototype/avatars/CREDITS.md": "3eecd25e8bccae95f2de1408643b8218a84cbc5bc04d7558efe51a501379245e",
+    "/workspace/core-breaker-umeda-half/vendor/three-r128/LICENSE": "7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f",
+    "git:0ef53120d4ca6a43527b103c1544dc84926254ae:prototype/index.html": "b303eeab2daf73abd679e6b4701d302cdbb00573ffa41eb5ee89e6053559a223",
+    "git:0ef53120d4ca6a43527b103c1544dc84926254ae:prototype/sounds.js": "8e1eac15f97c861d5dbdce90b8ab5ca1f5b826bb597fc10d16b1e87d04448285",
+    "git:0ef53120d4ca6a43527b103c1544dc84926254ae:prototype/music.js": "ce637eaf5a40f0cd2aa0a7bca8df827cb08012f2c90c6d9001cacc11311702a1",
+    "git:0ef53120d4ca6a43527b103c1544dc84926254ae:vendor/three-r128/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
+    "git:0ef53120d4ca6a43527b103c1544dc84926254ae:tools/test/make_dbg.py": "bf0e4724e2c487ef9066a98bb22a5d9f8832a7498393464cc696603a5c07a1d5"
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "geoid": {
+    "url": "https://vldb.gsi.go.jp/sokuchi/surveycalc/geoid/calcgh/cgi/geoidcalc.pl?outputType=json&latitude=34.7024&longitude=135.4977",
+    "file": "geoid.txt",
+    "bytes": 181,
+    "sha256": "b82345a1855208cc223fe04e62aa429841bda121b400c924a1b5fe64e588307c"
+  },
+  "referenceElevation": {
+    "url": "https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=135.4977&lat=34.7024&outtype=JSON",
+    "file": "gsi-elevation.json",
+    "bytes": 59,
+    "sha256": "99539b4d325338f092d7a619bca2faae0b8d804a9552a0c4f8754af0011b1296"
+  },
+  "center": [
+    135.4977,
+    34.7024
+  ],
+  "rotationDegrees": 0,
+  "halfExtent": 500,
+  "display": {
+    "title": "環都駅前・地形確認",
+    "areaName": "中央駅と百貨店周辺",
+    "labels": []
+  },
+  "checks": {
+    "minimumReliefMeters": 0,
+    "multiLevelWitnesses": []
+  },
+  "sourceLinks": [
+    {
+      "url": "https://www.geospatial.jp/ckan/dataset/plateau-27100-osaka-shi-2025",
+      "label": "大阪市2025年度3D都市モデル（北区）"
+    }
+  ],
+  "tilesets": [
+    {
+      "kind": "bldg",
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/tileset.json",
+      "file": "27127-bldg-tileset.json",
+      "bytes": 42386,
+      "sha256": "c34a6144e24c7af14aca46d74df505c061cdfb4e819bf7a16d1b1e6f6806f2fe"
+    }
+  ],
+  "models": [
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3649090616259394,
+        0.6056653949188789,
+        2.3650158422630096,
+        0.6057543798540772,
+        33.913423876232955,
+        175.85946999396592
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data18.b3dm",
+      "file": "27127-bldg-fd1ae6acf4-data18.b3dm",
+      "bytes": 4286300,
+      "sha256": "1214740cd5a3abeb5cc359ce52d57a37c7a6b989dce573ee1e2f33a4b7e51db8"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3648128175444674,
+        0.6056656171010231,
+        2.364915841520029,
+        0.60575835962134,
+        36.66433356466841,
+        215.10972570504663
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data27.b3dm",
+      "file": "27127-bldg-4fc1e65dbc-data27.b3dm",
+      "bytes": 2172752,
+      "sha256": "86ad2f5b2aae609b5d344a910e3acba30ef6f1e616785fe98c1f94bb7f538870"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.36471623531578,
+        0.6056729965950909,
+        2.36481561705922,
+        0.6057578738882091,
+        34.96092894354893,
+        210.32606380147385
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data28.b3dm",
+      "file": "27127-bldg-cfe3e4ccf3-data28.b3dm",
+      "bytes": 2051260,
+      "sha256": "a20cf2be04d803ed373dff3b12a339accd6353ea811599b0f6d91b101e0bc6fc"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.36491376752174,
+        0.6055994597653852,
+        2.365014742555115,
+        0.605679387830938,
+        37.26094394449667,
+        169.7882387243435
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data42.b3dm",
+      "file": "27127-bldg-39470b51a0-data42.b3dm",
+      "bytes": 4344428,
+      "sha256": "e5a6f01a10b450894381ce08b5735728b71aa23784c355e1456feb5e344c2b6b"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3649134858716945,
+        0.6055269034823278,
+        2.365015637560996,
+        0.6056060554210734,
+        30.74505941939953,
+        182.74887519308513
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data44.b3dm",
+      "file": "27127-bldg-1bc32c8c06-data44.b3dm",
+      "bytes": 4079572,
+      "sha256": "43c416d39a301dc7c2de62d3b9728cc82c84b82c27f3345c9af0461f7336989c"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3648052525258074,
+        0.6056016240761011,
+        2.3649197923255834,
+        0.6056854177872988,
+        35.7355197233767,
+        224.58987790673203
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data53.b3dm",
+      "file": "27127-bldg-54a2295b13-data53.b3dm",
+      "bytes": 1372888,
+      "sha256": "f2567a3e06348ed4cad728ca6f17f3c02c7fa950c0124dc61ad0bae6bee89d13"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3647210782074257,
+        0.6055985810356813,
+        2.3648218597030652,
+        0.605686509704467,
+        36.83685363270312,
+        219.71837485258362
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data54.b3dm",
+      "file": "27127-bldg-54b1f6d0d8-data54.b3dm",
+      "bytes": 792280,
+      "sha256": "7178c0a8e7412dc449700a5abe1fa5c4cbda7a4adfd021261fb6521de2873e3e"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3648136470173093,
+        0.6055305327497906,
+        2.3649173051599157,
+        0.6056033867528039,
+        36.17620091948786,
+        192.10427379886633
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data55.b3dm",
+      "file": "27127-bldg-5e0dba6429-data55.b3dm",
+      "bytes": 4551728,
+      "sha256": "62cf02612c8002ff365c255d566325f6d941f718efe368912f8bd303908fcf46"
+    },
+    {
+      "kind": "bldg",
+      "bounds": [
+        2.3647358787059787,
+        0.6055309673082954,
+        2.3648181647018074,
+        0.605607768182831,
+        36.90850505697526,
+        228.12906040966888
+      ],
+      "url": "https://assets.cms.plateau.reearth.io/assets/40/e1dacb-f310-4e2b-84f0-b68ce6d43899/27100_osaka-shi_city_2025_citygml_1_op_bldg_3dtiles_27127_kita-ku_lod2_no_texture/data/data56.b3dm",
+      "file": "27127-bldg-cb0aef3731-data56.b3dm",
+      "bytes": 1309020,
+      "sha256": "5ea5069acdb90799182eff4aa06f16cf2f3126e00f7ed0bf46638879ec6cea55"
+    }
+  ],
+  "dem": [
+    {
+      "x": 28716,
+      "y": 13011,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/28716/13011.png",
+      "file": "dem5a_png-15-28716-13011.png",
+      "bytes": 46761,
+      "sha256": "ca89cee7ad713809c799a3e1ca936e72216cc37d96bacaebeb6d74e6060540db"
+    },
+    {
+      "x": 28716,
+      "y": 13012,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/28716/13012.png",
+      "file": "dem5a_png-15-28716-13012.png",
+      "bytes": 48245,
+      "sha256": "26f14493020458f983a3d9e4f43328287e70a4d3af7a2b2c2422e7c7e73205a4"
+    },
+    {
+      "x": 28717,
+      "y": 13011,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/28717/13011.png",
+      "file": "dem5a_png-15-28717-13011.png",
+      "bytes": 49297,
+      "sha256": "559a79c6ed29fc41110ca658b4f3a01950752832e3c1c8f3eb1e5d0451fea0a9"
+    },
+    {
+      "x": 28717,
+      "y": 13012,
+      "z": 15,
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/dem5a_png/15/28717/13012.png",
+      "file": "dem5a_png-15-28717-13012.png",
+      "bytes": 44892,
+      "sha256": "91edd8e1ac004b90d4567e574dc917fe9a8b4639ba44284c417fa865fe98abca"
+    }
+  ],
+  "roadCenterlines": [
+    {
+      "file": "roads/16-57433-26023.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57433/26023.geojson",
+      "bytes": 78733,
+      "sha256": "8b3082c2af1bf458502cee448e501ea0b8a8d45bfd0b3d9eac6a621dfe32d4cd"
+    },
+    {
+      "file": "roads/16-57433-26024.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57433/26024.geojson",
+      "bytes": 39106,
+      "sha256": "3ef7bcbf1cf72d6872e908e4732fc5d8ea581c0622b9db165c820dcb7abbca8e"
+    },
+    {
+      "file": "roads/16-57433-26025.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57433/26025.geojson",
+      "bytes": 76652,
+      "sha256": "02494b4a14b801f3f6a780e2bce068f47e458e825c2cc506e4150b0a382e7458"
+    },
+    {
+      "file": "roads/16-57434-26023.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57434/26023.geojson",
+      "bytes": 99340,
+      "sha256": "b79c560a05164dd203844d0e15440fbc8ec3d080361ba3e0145a83f62113c0f2"
+    },
+    {
+      "file": "roads/16-57434-26024.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57434/26024.geojson",
+      "bytes": 33472,
+      "sha256": "811894fb80362cc16c7d3f8e766e605798ac903b8fac5dc3d2ef3cc9eb566e82"
+    },
+    {
+      "file": "roads/16-57434-26025.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57434/26025.geojson",
+      "bytes": 54115,
+      "sha256": "afe18228a19d89694b085153a5fad27de283940eb99d6fab142b7e9d66ab276e"
+    },
+    {
+      "file": "roads/16-57435-26023.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57435/26023.geojson",
+      "bytes": 130378,
+      "sha256": "1314e7cfd545d7dd710af13478fa3367fc7aa0beecfbd6a42a94a14535d21c9c"
+    },
+    {
+      "file": "roads/16-57435-26024.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57435/26024.geojson",
+      "bytes": 136189,
+      "sha256": "535c6505dab21d5e03b5c465a3d8feb859ca96032b85cda8259148e781d225b0"
+    },
+    {
+      "file": "roads/16-57435-26025.geojson",
+      "url": "https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/57435/26025.geojson",
+      "bytes": 118329,
+      "sha256": "21f59cebdf63209aad04fb8715710c59ac38e3519bc7ede2d321491a37785c2e"
+    }
+  ]
+}

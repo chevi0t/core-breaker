@@ -19,8 +19,9 @@ const {openMap} = require('../mapgen_browser');
         await page.evaluate(map => __g.selectMap(map), map);
         await page.check(`input[name="team"][value="${team}"]`);
         for (const outcome of ['win','lose','draw','coreWin','coreLose']) {
-          await page.evaluate(() => document.getElementById('start').click());
           const result = await page.evaluate(({team,outcome}) => {
+            // 出撃直後の姿勢は同じタスクで読む。後続の実マウス移動を初期向きに混ぜない。
+            document.getElementById('start').click();
             const g = __g, p = g.player, foe = team === 'B' ? 'R' : 'B';
             const check = (ok, text) => { if (!ok) throw new Error(text); };
             g.renderer.render = () => g.scene.updateMatrixWorld();
@@ -39,7 +40,7 @@ const {openMap} = require('../mapgen_browser');
             check(document.getElementById('coreRn').textContent === '敵軍' + suffix, '敵軍ゲージの名前が逆');
             const base = g.TEAM[team];
             const inBase = () => Math.abs(p.pos.z - base.baseZ) < 26 && Math.abs(p.yaw - (base.dir > 0 ? Math.PI : 0)) < .001;
-            check(inBase(), '初期出撃の位置か向きが逆');
+            check(inBase(), '初期出撃の位置か向きが逆 '+JSON.stringify({map:g.mapId,team,outcome,pos:p.pos.toArray(),yaw:p.yaw,base}));
             g.spawn(p, 'base');
             check(inBase(), '再出撃の位置か向きが逆');
             if (!g.curMap.vs) {
@@ -80,7 +81,7 @@ const {openMap} = require('../mapgen_browser');
         assert(battle.elapsed >= 29.9 || battle.ended, `${team}側の試合が進まない`);
         assert(battle.finite, `${team}側の試合で機体の状態が壊れた`);
       }
-      await page.check('#largeBattleSw');
+      await page.selectOption('#teamSize','50');
       await page.evaluate(() => document.getElementById('start').click());
       assert.deepEqual(await page.evaluate(() => ['B','R'].map(k => __g.units.filter(u => u.team === k).length)), [50,50]);
       assert.equal(await page.evaluate(() => __g.player.team), 'R');

@@ -44,7 +44,20 @@ function check(d) {
   for (const [pid, x, z, own] of d.plants) { inMap(x, z, 'プラント' + pid); if (![null, 'B', 'R'].includes(own)) E(`プラント${pid} の最初の持ち主は 'B'・'R'・null`); }
   for (const [pid, x, z] of d.plantPods) { if (!ids.includes(pid)) E(`plantPods のプラント ${pid} が無い`); inMap(x, z, 'ポッド'); }
   for (const c of d.catapults) { inMap(c[0], c[1], 'カタパルト'); inMap(c[2], c[3], 'カタパルトの着地点'); if (c[4] && !ids.includes(c[4])) E(`カタパルトのプラント ${c[4]} が無い`); }
-  for (const [x, z] of [...d.turrets, ...d.basePods, d.radar]) inMap(x, z, 'ベースの施設');
+  if(d.plantCatapults!==undefined){
+    if(!Array.isArray(d.plantCatapults))E('plantCatapults は配列');
+    else for(const c of d.plantCatapults){
+      if(!c||!ids.includes(c.plant)||!ids.includes(c.targetPlant)||c.plant===c.targetPlant)E('plantCatapults の出発・到着プラントが不正');
+      for(const key of ['at','exit'])if(!Array.isArray(c?.[key])||c[key].length!==2||!c[key].every(num))E('plantCatapults.'+key+' は [x,z]');else inMap(...c[key],'プラント間カタパルト');
+      if(!num(c?.flight)||c.flight<2.8||c.flight>8)E('plantCatapults.flight は2.8〜8秒');
+    }
+  }
+  for (const [x,z] of [...d.turrets,...d.basePods,d.radar]) {
+    if(d.bases)for(const team of ['B','R']){
+      const s=team==='B'?1:-1,p=d.bases[team]?.at;
+      if(p)inMap(p[0]+x*s,p[1]+(z-d.baseZ)*s,'ベースの施設');
+    }else inMap(x,z,'ベースの施設');
+  }
   for (const b of d.barricades) { inMap(b[0], b[1], '障害物'); if (b.length !== 5 || !b.every(num)) E(`バリケード [${b}] は [x, z, 幅, 奥行き, 高さ]`); }
   // 建物：6番目の要素（任意）は種類
   for (const b of d.layout) {
@@ -60,6 +73,116 @@ function check(d) {
   }
   // 任意の項目
   if (d.asym !== undefined && typeof d.asym !== 'boolean') E('asym は true か false');
+  if (d.batchBuildings !== undefined && typeof d.batchBuildings !== 'boolean') E('batchBuildings は true か false');
+  if (d.roadsFollowTerrain !== undefined && typeof d.roadsFollowTerrain !== 'boolean') E('roadsFollowTerrain は真偽値');
+  if(d.bases!==undefined){
+    for(const team of ['B','R']){
+      const b=d.bases?.[team];
+      if(!b||!Array.isArray(b.at)||b.at.length!==2||!b.at.every(num)){E('bases.'+team+'.at は [x,z]');continue;}
+      inMap(...b.at,'基地');
+      if(!num(b.radius)||b.radius<=0)E('基地の radius は正の数');
+      if(b.catapultFlight!==undefined&&(!num(b.catapultFlight)||b.catapultFlight<2.8||b.catapultFlight>8))E('基地のcatapultFlightは2.8〜8秒');
+      for(const c of b.catapults||[]){
+        if(!Array.isArray(c)||c.length!==4||!c.every(num)){E('基地のcatapultsは [x,z,着地点x,着地点z]');continue;}
+        inMap(c[0],c[1],'基地の射出台');inMap(c[2],c[3],'基地の射出台の着地点');
+      }
+    }
+  }
+  if (d.roads !== undefined) {
+    if (!Array.isArray(d.roads)) E('roads は [x,z,幅,奥行き] の配列');
+    else for (const r of d.roads) {
+      if (!Array.isArray(r) || ![4,5].includes(r.length) || !r.every(num) || r[2]<=0 || r[3]<=0) E('道路は [x,z,正の幅,正の奥行き,任意の高さ]');
+      else inMap(r[0],r[1],'道路');
+    }
+  }
+  if (d.cityTerrain !== undefined) {
+    const c=d.cityTerrain,battle=d.cityBattle;
+    if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
+    else {
+      if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
+      if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
+      if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
+      const ring=(r,what)=>{
+        if(typeof r!=='string'){E(what+' はbase64の座標列');return;}
+        const bytes=Buffer.from(r,'base64');
+        if(bytes.length<12||bytes.length%4)E(what+' は3頂点以上のint16のXZ座標');
+      };
+      if(c.district?.lawns!==undefined){
+        if(!Array.isArray(c.district.lawns))E('都市のlawnsは配列');
+        else for(const lawn of c.district.lawns){
+          if(!lawn||!/^#[0-9a-f]{6}$/i.test(lawn.color)||!Array.isArray(lawn.rings)||!lawn.rings.length)E('芝生の色・輪郭が不正');
+          else for(const r of lawn.rings)ring(r,'芝生の輪郭');
+        }
+      }
+      if(c.district?.groundPassages!==undefined){
+        if(!Array.isArray(c.district.groundPassages))E('都市のgroundPassagesは配列');
+        else for(const road of c.district.groundPassages){
+          for(const key of ['from','to']){
+            if(!Array.isArray(road?.[key])||road[key].length!==2||!road[key].every(num))E('地上通路の端は [x,z]');
+            else inMap(...road[key],'地上通路');
+          }
+          if(!num(road?.width)||road.width<4||road.width>30)E('地上通路の幅は4〜30m');
+        }
+      }
+      if(c.district?.facadeScale!==undefined&&(!num(c.district.facadeScale)||c.district.facadeScale<=0))E('都市のfacadeScaleは正の数');
+      if(c.district?.ferrisWheel!==undefined){
+        const w=c.district.ferrisWheel;
+        if(!w||typeof w!=='object'||Array.isArray(w))E('都市のferrisWheelは観覧車の寸法');
+        else {
+          const center=Array.isArray(w.center)&&w.center.length===3&&w.center.every(num);
+          if(!center)E('観覧車のcenterは有限数の [x,y,z]');
+          else inMap(w.center[0],w.center[2],'観覧車の中心');
+          if(!num(w.radius)||w.radius<=0)E('観覧車のradiusは正の数');
+          if(!num(w.roofY)||(center&&w.roofY>=w.center[1]))E('観覧車のroofYは中心より低い高さ');
+          if(w.yaw!==undefined&&!num(w.yaw))E('観覧車のyawは有限数');
+          if(w.color!==undefined&&(typeof w.color!=='string'||!/^#[0-9a-f]{6}$/i.test(w.color)))E('観覧車の色は #RRGGBB');
+          if(w.cabins!==undefined&&(!Number.isInteger(w.cabins)||w.cabins<4||w.cabins>24))E('観覧車のcabinsは4〜24の整数');
+          for(const key of ['supportHalfWidth','supportHalfDepth'])if(w[key]!==undefined&&(!num(w[key])||w[key]<=0))E('観覧車の'+key+'は正の数');
+          if(center&&num(w.radius)&&w.radius>0&&num(w.yaw??0)){
+            // 輪・キャビン・脚の平面範囲。既定の支持脚寸法は描画処理と同じ。
+            const yaw=w.yaw??0,halfX=Math.max(w.radius+.6,w.supportHalfWidth??5),halfZ=Math.max(1.7,w.supportHalfDepth??1.5);
+            const dx=Math.abs(Math.cos(yaw))*halfX+Math.abs(Math.sin(yaw))*halfZ;
+            const dz=Math.abs(Math.sin(yaw))*halfX+Math.abs(Math.cos(yaw))*halfZ;
+            inMap(w.center[0]-dx,w.center[2]-dz,'観覧車の外周');
+            inMap(w.center[0]+dx,w.center[2]+dz,'観覧車の外周');
+          }
+        }
+      }
+      if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
+      if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
+      else for(const v of c.volumes){
+        if(!Array.isArray(v)||v.length!==5||!Number.isInteger(v[0])||!c.volumeKinds?.[v[0]]||!num(v[1])||!num(v[2])||v[1]>=v[2]||!Array.isArray(v[3])||!v[3].length){E('都市の体積は [種類番号, 底, 上面, 輪郭列, 属性]');continue;}
+        for(const r of v[3])ring(r,'都市の体積輪郭');
+      }
+      if(!c.surfaces||typeof c.surfaces!=='object')E('都市のsurfacesが必要');
+      else for(const [name,s] of Object.entries(c.surfaces)){
+        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
+        const p=Buffer.from(s.points,'base64'),ids=Buffer.from(s.indices,'base64');
+        if(p.length%6||ids.length%6){E('都市の面 '+name+' の頂点・三角形が不正');continue;}
+        for(let i=0;i<ids.length;i+=2)if(ids.readUInt16LE(i)>=p.length/6){E('都市の面 '+name+' が存在しない頂点を参照');break;}
+      }
+      if(!d.bases||!Array.isArray(c.district?.bases)||c.district.bases.length!==2)E('都市の両基地が必要');
+      else for(const team of ['B','R']){
+        const base=c.district.bases.find(b=>b.team===team);
+        if(!base||!num(base.height)||JSON.stringify(base.at)!==JSON.stringify(d.bases[team]?.at))E('都市の地形と対戦配置の基地が不一致：'+team);
+      }
+      if(!Array.isArray(c.decorations))E('都市のdecorationsが必要');
+      else for(const decoration of c.decorations){
+        if(!num(decoration.height)||typeof decoration.color!=='string'||!Array.isArray(decoration.rings))E('都市の線路装飾が不正');
+        else for(const r of decoration.rings)ring(r,'都市の装飾輪郭');
+      }
+    }
+    if(!battle||!num(battle.nodeReach)||battle.nodeReach<.25||battle.nodeReach>5)E('cityBattle.nodeReach は0.25〜5m');
+    for(const team of ['B','R']){
+      const slots=battle?.baseSpawns?.[team];
+      if(!Array.isArray(slots)||!slots.length)E('都市の基地再出撃点が必要：'+team);
+      for(const [name,list] of [['base',slots],...ids.map(id=>[id,battle?.respawns?.[team]?.[id]])]){
+        if(!Array.isArray(list)||!list.length){E('都市の再出撃点が必要：'+team+'/'+name);continue;}
+        for(const p of list)if(!Array.isArray(p)||p.length!==2||!p.every(num))E('都市の再出撃点は [x,z]');else inMap(...p,'都市の再出撃点');
+      }
+    }
+    if(typeof d.attribution!=='string'||!d.attribution.trim())E('都市データの出典・ライセンスをattributionへ記載する');
+  } else if(d.cityBattle!==undefined)E('cityBattleにはcityTerrainが必要');
   if (d.subtitle !== undefined && typeof d.subtitle !== 'string') E('subtitle は文字列');
   if (d.baseDefense !== undefined) {
     const cfg=d.baseDefense;
@@ -83,6 +206,16 @@ function check(d) {
     if (!Array.isArray(p) || p.length !== 3 || !p.every(num)) { E(`${what} は [x, z, 海抜y]`); return false; }
     inMap(p[0], p[1], what); return true;
   };
+  if(d.rooftopTurrets!==undefined){
+    if(!Array.isArray(d.rooftopTurrets))E('rooftopTurretsは配列');
+    else for(const t of d.rooftopTurrets){
+      if(!t||typeof t!=='object'||Array.isArray(t)){E('屋上砲台は所属と設置座標のオブジェクト');continue;}
+      if(!['B','R'].includes(t.team))E('屋上砲台のteamはBかR');
+      if(!ids.includes(t.plant))E('屋上砲台の参照プラントが存在しない');
+      point(t.at,'屋上砲台');
+      if(t.yaw!==undefined&&!num(t.yaw))E('屋上砲台のyawは有限数');
+    }
+  }
   if(d.botRepairRange!==undefined&&(!num(d.botRepairRange)||d.botRepairRange<=0))E('botRepairRange は正の数');
   if(d.raidRoutes!==undefined){
     if(!Array.isArray(d.raidRoutes)||!d.raidRoutes.length)E('raidRoutes は空でない配列');
@@ -127,7 +260,16 @@ function check(d) {
     inMap(b[0], b[1], '橋');
   }
   if (d.nav !== undefined && d.nav !== null) {
-    const nodes = d.nav.nodes, links = d.nav.links;
+    let nodes = d.nav.nodes, links = d.nav.links;
+    if(d.nav.encoding!==undefined){
+      const xyz=d.nav.encoding==='xyz-i16-links-u16',stride=xyz?6:4;
+      if((!xyz&&d.nav.encoding!=='xz-i16-links-u16')||!(xyz?[.01]:[.01,.02]).includes(d.nav.step)||!d.asym||typeof nodes!=='string'||typeof links!=='string')E('圧縮navは非対称マップのXZ・1cm/2cmまたはXYZ・1cmの16bit座標とリンク');
+      else {
+        const p=Buffer.from(nodes,'base64'),e=Buffer.from(links,'base64');nodes=[];links=[];
+        if(!p.length||p.length%stride||e.length%4)E('圧縮navの座標・リンクが不正');
+        else {for(let i=0;i<p.length;i+=stride)nodes.push(Array.from({length:stride/2},(_,j)=>p.readInt16LE(i+j*2)*d.nav.step));for(let i=0;i<e.length;i+=4)links.push([e.readUInt16LE(i),e.readUInt16LE(i+2)]);}
+      }
+    }
     if (!Array.isArray(nodes) || !Array.isArray(links)) E('nav は { nodes: [[x, z], …], links: [[i, j], …] }');
     else {
       nodes.forEach((n, i) => { if (!Array.isArray(n) || !(n.length === 2 || n.length === 3) || !n.every(num)) E(`nav の節点 ${i} は [x, z] か、橋の上なら [x, z, 歩く高さ]`); else inMap(n[0], n[1], `nav の節点 ${i}`); });

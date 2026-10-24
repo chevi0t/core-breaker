@@ -1,0 +1,41 @@
+{
+  "baselineCommit": "8294107",
+  "mapSHA256": "9e766e2f24beaeb2f6d7bdb236ef0b5b170079fdf7fe548651bbfa6b663e743e",
+  "mapDataBytes": 96134,
+  "mapByteIncrease": 94,
+  "onlyChangedDefinitionKey": "cityTerrain",
+  "unchanged": "縮尺・地面・建物（元の赤箱を除く）・基地・プラント・施設・経路・再出撃・ルール",
+  "removedVolumeIndexInBaseline": 299,
+  "removedVolume": [
+    2,
+    4.0,
+    47.0,
+    [
+      "6y1F3sMtjdxQKADdeCi43g=="
+    ],
+    {
+      "landmark": "red-accent",
+      "landmarkColor": "#bf3548"
+    }
+  ],
+  "model": {
+    "center": [
+      110.375,
+      43,
+      -87.975
+    ],
+    "radius": 14,
+    "roofY": 27,
+    "yaw": -0.0822517,
+    "color": "#bf3548",
+    "cabins": 12,
+    "supportHalfWidth": 5,
+    "supportHalfDepth": 1.5
+  },
+  "modelTriangles": 1400,
+  "static": true,
+  "geometryChange": "旧赤箱を削除し、同じ場所に空洞のある観覧車。下の屋根は維持。",
+  "gameScaleApproximation": true,
+  "inheritedChecks": "元の幾何監査・基地再配置の記録は各ファイルの旧hashに対応。本記録は旧データとの差分を検査し、新しい観覧車はferris-check.jsonで個別検査する。",
+  "passed": true
+}

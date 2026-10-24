@@ -182,12 +182,14 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 .sb td.tot { color: #fff; font-weight: 700; }
 .sb tr.me td { background: rgba(255, 211, 77, .16); color: #fff; }
 .sb tr.dead td { color: var(--dim); }
-#largeBattleControl[hidden] { display: none; }
+.battleSize { margin: 0; border: 1px solid #526674; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+.battleSize label { display: grid; gap: 5px; font-size: 13px; }
+.battleSize select { width: 100%; min-width: 0; }
+.battleSize small, .battleSize button { grid-column: 1 / -1; }
 .arenaWeapon { display: grid; gap: 5px; padding: 10px; font-family: var(--body); }
 .arenaWeapon[hidden] { display: none; }
-.arenaWeapon select { width: 100%; padding: 7px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
+.arenaWeapon select, .battleSize select { width: 100%; padding: 7px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
 #wpn .restricted { opacity: .3; }
-#largeBattleHint { display: block; margin: 4px 0 0; line-height: 1.6; }
 .card.wide { max-width: 940px; }
 /* キルカメラ（v0.16）：映している間は再出撃の画面を下の端へ寄せ、その一番上に倒した相手の名前 */
 #respawn.kc { top: calc(100% - 16px); transform: translate(-50%, -100%); }
@@ -854,7 +856,12 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
         <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
         <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
-        <label class="sw" id="largeBattleControl" hidden><span>50対50（実験）<small id="largeBattleHint">通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機</small></span><input type="checkbox" role="switch" id="largeBattleSw" aria-label="50対50（実験）"><i aria-hidden="true"></i></label>
+        <fieldset class="battleSize" id="battleSizeControl">
+          <legend>参加人数・BOT数</legend>
+          <label>片軍の人数（両軍共通）<select id="teamSize" aria-label="片軍の人数"></select></label>
+          <small id="battleSizeHint" aria-live="polite"></small>
+          <button type="button" id="resetBattleSize">マップの推奨人数に戻す</button>
+        </fieldset>
         <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
         <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
         <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
@@ -934,8 +941,8 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
-        <kbd>ロックオン</kbd><span>50m以内の敵を中央の円に入れると自動でロック。ロック中は視点が約1.3倍にズームします。視点は敵の動きを追い、照準が機体から外れると機体の端まで引き戻します（中心へは寄せません）。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。狙撃銃を持っている間はロックしません</span>
-        <kbd>Q</kbd><span>ロック対象を切り替え</span>
+        <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円の半径2倍以内に捉え、右クリックでロック。捕捉時に対象の胴体を画面中央へ合わせ、もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します。捕捉後は頭などを自由に狙えます。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
+        <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
         <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
@@ -976,6 +983,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="pgh"><h2>マップ選択</h2><button type="button" class="back">戻る</button></div>
       <p class="note">自軍は青、敵軍は橙。地図の上が北、下が南です。左右の説明は南側から見た向きです。</p>
       <div id="mapList"></div>
+      <p class="note" id="mapAttribution"></p>
     </section>
     <section class="page" id="pgCustom" hidden>
       <div class="pgh"><h2>機体カスタマイズ</h2><button type="button" class="back">戻る</button></div>
@@ -1278,6 +1286,619 @@ function movementStep(u, foot) {
   sfx('step', at, u, weight * (foot > 0 ? 1.025 : .975));
 }
 
+// ---- 都市モデルの地形・視点・歩行経路 ----
+// 都市の輪郭・高さを描画・接触・射線で共用する。
+function expandCityLayout(T,data){
+  if(data.geometryEncoding!=='city-layout-v1')throw Error('未対応の街区データ');
+  const unpackRings=rings=>rings.map(r=>{
+    const a=new Int16Array(Uint8Array.from(atob(r),c=>c.charCodeAt(0)).buffer),points=[];
+    const step=data.ringCoordinateStep??.01;
+    for(let i=0;i<a.length;i+=2)points.push([a[i]*step,a[i+1]*step]);return points;
+  });
+  data.volumes=data.volumes.map(([kind,bottom,top,rings,meta])=>({kind:data.volumeKinds[kind],bottom,top,rings:unpackRings(rings),...meta}));
+  for(const d of data.decorations)d.rings=unpackRings(d.rings);
+  for(const lawn of data.district.lawns||[])lawn.rings=unpackRings(lawn.rings);
+  delete data.volumeKinds;
+  const layers={},colors={};
+  const add=(name,points,color,glass=false)=>{
+    const a=layers[name]||(layers[name]=[]),start=a.length/3;a.push(...points);
+    if(color)(colors[name]||(colors[name]=[])).push({start,count:points.length/3,color,glass});
+  };
+  function faces(rings,y){
+    const contour=rings[0].map(p=>new T.Vector2(...p)),holes=rings.slice(1).map(r=>r.map(p=>new T.Vector2(...p)));
+    const points=[contour,...holes].flat(),a=[];
+    for(const ids of T.ShapeUtils.triangulateShape(contour,holes)){
+      let [p,q,r]=ids.map(i=>points[i]);
+      if((q.y-p.y)*(r.x-p.x)-(q.x-p.x)*(r.y-p.y)<0)[q,r]=[r,q];
+      a.push(p.x,y,p.y,q.x,y,q.y,r.x,y,r.y);
+    }
+    return a;
+  }
+  function extrude(v,floor){
+    // 入れ子の穴は使わず、外周と穴それぞれの壁を明示する。屋根の三角化はThree.js同梱のEarcut。
+    const a=faces(v.rings,v.top);
+    if(floor){const base=faces(v.rings,v.bottom);for(let i=0;i<base.length;i+=9)a.push(...base.slice(i,i+3),...base.slice(i+6,i+9),...base.slice(i+3,i+6));}
+    for(const ring of v.rings)for(let i=0;i<ring.length;i++){
+      const [x,z]=ring[i],[xx,zz]=ring[(i+1)%ring.length],lo=v.bottom,hi=v.top;
+      a.push(x,lo,z,xx,lo,zz,x,hi,z,xx,lo,zz,xx,hi,zz,x,hi,z);
+    }
+    return a;
+  }
+  const palette=data.district.buildingPalette||['#889da8','#a69f90','#aab0ae','#7f929a','#9d9181','#8b8785','#8c9da0','#a6a39b'];
+  const layerFor={'rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
+  const buildings=new Set(['grounded','infill','upper','elevated']);
+  for(const v of data.volumes){
+    const building=buildings.has(v.kind),layer=building?'bldg':layerFor[v.kind];if(!layer)continue;
+    const center=v.rings[0].reduce((a,p)=>[a[0]+p[0]/v.rings[0].length,a[1]+p[1]/v.rings[0].length],[0,0]);
+    const color=building?(v.landmarkColor||(Number.isInteger(v.paint)?palette[v.paint]:v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
+      v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
+    add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
+  }
+  for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
+  for(const lawn of data.district.lawns||[])add('grass',faces(lawn.rings,.06),lawn.color);
+  for(const rings of data.river.rings){
+    add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
+    add('water',faces(rings,data.river.water));
+  }
+
+  // 遠景でも輪郭を読み取れる静止観覧車。透過円盤や見えない箱は置かない。
+  const wheel=data.district.ferrisWheel;
+  if(wheel){
+    const {center,radius,roofY,yaw=0,color='#bf3548',cabins=12}=wheel;
+    if(!Array.isArray(center)||center.length!==3||!center.every(Number.isFinite)||
+       ![radius,roofY,yaw].every(Number.isFinite)||radius<=0||roofY>=center[1]||
+       !Number.isInteger(cabins)||cabins<4||cabins>24)throw Error('観覧車の寸法が不正です');
+    const world=new T.Matrix4().makeRotationY(-yaw);
+    world.setPosition(...center);
+    const up=new T.Vector3(0,1,0),identity=new T.Quaternion();
+    // ローカルX軸が輪の水平軸、Y軸が高さ、Z軸が車軸。全パーツを1層へまとめる。
+    const emit=(geometry,position,rotation=identity,paint=color)=>{
+      const geo=geometry.index?geometry.toNonIndexed():geometry;
+      const local=new T.Matrix4().compose(position,rotation,new T.Vector3(1,1,1));
+      geo.applyMatrix4(world.clone().multiply(local));
+      add('ferris',Array.from(geo.attributes.position.array),paint);
+      geo.dispose();if(geo!==geometry)geometry.dispose();
+    };
+    const point=(x,y,z)=>new T.Vector3(x,y,z);
+    const bar=(a,b,r=.08,segments=4,paint=color)=>{
+      const direction=b.clone().sub(a),length=direction.length();
+      emit(new T.CylinderGeometry(r,r,length,segments),a.clone().add(b).multiplyScalar(.5),
+        new T.Quaternion().setFromUnitVectors(up,direction.divideScalar(length)),paint);
+    };
+    for(const depth of [-.65,.65]){
+      emit(new T.TorusGeometry(radius,.18,4,32),point(0,0,depth));
+      for(let i=0;i<8;i++){
+        const angle=i*Math.PI/4;
+        bar(point(0,0,depth),point(Math.cos(angle)*(radius-.2),Math.sin(angle)*(radius-.2),depth));
+      }
+    }
+    bar(point(0,0,-1.7),point(0,0,1.7),.42,6,'#414b53');
+    const footY=roofY-center[1],footX=wheel.supportHalfWidth??5,footZ=wheel.supportHalfDepth??1.5;
+    if(![footX,footZ].every(v=>Number.isFinite(v)&&v>0))throw Error('観覧車の支持脚寸法が不正です');
+    for(const side of [-1,1]){
+      for(const x of [-footX,footX])bar(point(x,footY,side*footZ),point(0,0,side*1.3),.24,6);
+      bar(point(-footX,footY+.12,side*footZ),point(footX,footY+.12,side*footZ),.12);
+    }
+    for(let i=0;i<cabins;i++){
+      const angle=i*Math.PI*2/cabins,x=Math.cos(angle)*radius,y=Math.sin(angle)*radius;
+      bar(point(x,y,0),point(x,y-.6,0),.07);
+      emit(new T.BoxGeometry(1.15,1.15,1.35),point(x,y-1.175,0));
+      emit(new T.BoxGeometry(1.17,.42,1.37),point(x,y-1.05,0),identity,'#29424a');
+    }
+  }
+
+  const encode=a=>{const bytes=new Uint8Array(new Float32Array(a).buffer);let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);};
+  data.meshes=Object.fromEntries(Object.entries(layers).map(([k,a])=>[k,encode(a)]));
+  for(const [name,m] of Object.entries(data.surfaces)){
+    const decode=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+    const p=new Int16Array(decode(m.points).buffer),ids=new Uint16Array(decode(m.indices).buffer),a=new Float32Array(ids.length*3);
+    for(let i=0;i<ids.length;i++)for(let j=0;j<3;j++)a[i*3+j]=p[ids[i]*3+j]*m.step;
+    data.meshes[name]=encode(a);
+  }
+  for(const k of Object.keys(data.packing.layers))data.meshes[k]??='';
+  data.colors=colors;delete data.surfaces;delete data.decorations;
+}
+
+// 肩越し視点の起点とカメラの幅を、同じ街並みの当たり判定に収める。
+function createCityCamera(T, solids, terrainH, ceilingAt, free) {
+  const ray=new T.Raycaster(),up=new T.Vector3(0,1,0);
+  let state=null;
+  function solve(u,camera,dir,dt) {
+    const nearH=camera.near*Math.tan(camera.fov*Math.PI/360);
+    const radius=Math.max(.38,Math.hypot(nearH,nearH*camera.aspect)+.15);
+    const anchor=u.pos.clone();
+    anchor.y=Math.min(u.pos.y+4.6,ceilingAt(u.pos.x,u.pos.z,u.pos.y)-radius-.12);
+    anchor.y=Math.max(anchor.y,terrainH(u.pos.x,u.pos.z)+radius+.12);
+    const bounds=new T.Box3(anchor.clone().addScalar(-12),anchor.clone().addScalar(12));
+    const nearby=solids.filter(m=>bounds.intersectsBox(m.geometry.boundingBox));
+    const probes=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[.707,.707],[.707,-.707],[-.707,.707],[-.707,-.707]];
+    function sweep(from,direction,length) {
+      const side=new T.Vector3().crossVectors(direction,up);
+      if(side.lengthSq()<.001)side.set(1,0,0);else side.normalize();
+      const vertical=new T.Vector3().crossVectors(side,direction).normalize();
+      let safe=length;
+      for(const [x,y] of probes){
+        const origin=from.clone().addScaledVector(side,x*radius).addScaledVector(vertical,y*radius);
+        ray.set(origin,direction);ray.far=length+radius;
+        const hit=ray.intersectObjects(nearby,false)[0];
+        if(hit)safe=Math.min(safe,Math.max(0,hit.distance-radius));
+      }
+      // 面の角や、複数の壁に挟まれる場所でも画面端を壁の外へ出さない。
+      while(safe>0&&!free(from.clone().addScaledVector(direction,safe),radius))safe=Math.max(0,safe-.12);
+      return safe;
+    }
+    const right=new T.Vector3(Math.cos(u.yaw),0,-Math.sin(u.yaw));
+    const sideSpace=sweep(anchor,right,2.2);
+    // 狭い路地では壁際に肩を寄せ続けず、機体の中心から見る。
+    const sideLimit=sideSpace<1.8?0:sideSpace;
+    if(!state||state.unit!==u||state.life!==u.lifeId)state={unit:u,life:u.lifeId,side:sideLimit,distance:8};
+    const release=1-Math.exp(-8*Math.min(.1,dt));
+    state.side=sideLimit<state.side?sideLimit:state.side+(sideLimit-state.side)*release;
+    const pivot=anchor.clone().addScaledVector(right,state.side),back=dir.clone().negate();
+    const distanceLimit=sweep(pivot,back,8);
+    state.distance=distanceLimit<state.distance?distanceLimit:state.distance+(distanceLimit-state.distance)*release;
+    const desired=pivot.clone().addScaledVector(back,state.distance),offset=desired.sub(anchor),length=offset.length();
+    offset.normalize();
+    const visibilityLimit=sweep(anchor,offset,length);
+    if(state.visibility===undefined)state.visibility=length;
+    state.visibility=visibilityLimit<state.visibility?visibilityLimit:state.visibility+(visibilityLimit-state.visibility)*release;
+    const position=anchor.clone().addScaledVector(offset,state.visibility);
+    state.radius=radius;state.sideLimit=sideLimit;state.distanceLimit=distanceLimit;
+    state.occluded=state.side<2.19||state.distance<7.99||state.visibility<length-.01;
+    return {position,target:pivot.clone().addScaledVector(dir,50)};
+  }
+  function tooClose(u,camera){
+    return !!u?.alive&&camera.position.y<u.pos.y+5.4&&Math.hypot(camera.position.x-u.pos.x,camera.position.z-u.pos.z)<2;
+  }
+  return {solve,tooClose,reset(){state=null;},get state(){return state;}};
+}
+
+// 都市データはmaps.jsへ同梱。読み込み・切替に通信や非同期処理を要求しない。
+function createCityMap(T,layout) {
+  const data=JSON.parse(JSON.stringify(layout));
+  expandCityLayout(T,data);
+  const decode=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+  const arrays=Object.fromEntries(Object.entries(data.meshes).map(([k,b])=>[k,new Float32Array(decode(b).buffer)]));
+  delete data.meshes;
+  const radius=1.3,height=4,half=data.half,cell=16;
+  const key=(x,z)=>Math.floor(x/cell)+','+Math.floor(z/cell);
+  function index(items) {
+    const grid = new Map();
+    for (const item of items) for (let x = Math.floor(item.minX / cell); x <= Math.floor(item.maxX / cell); x++)
+      for (let z = Math.floor(item.minZ / cell); z <= Math.floor(item.maxZ / cell); z++) {
+        const k = x + ',' + z;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(item);
+      }
+    return (x, z, r = 0) => {
+      if (!r) return grid.get(key(x, z)) || [];
+      const found = new Set();
+      for (let i = Math.floor((x - r) / cell); i <= Math.floor((x + r) / cell); i++)
+        for (let j = Math.floor((z - r) / cell); j <= Math.floor((z + r) / cell); j++)
+          for (const item of grid.get(i + ',' + j) || []) found.add(item);
+      return found;
+    };
+  }
+  const volumes = data.volumes.map(v => {
+    const points = v.rings.flat();
+    return {...v, minX: Math.min(...points.map(p => p[0])), maxX: Math.max(...points.map(p => p[0])),
+      minZ: Math.min(...points.map(p => p[1])), maxZ: Math.max(...points.map(p => p[1]))};
+  });
+  const nearby = index(volumes);
+  function triangles(keys) {
+    const result = [];
+    for (const k of keys) {
+      const a = arrays[k];
+      for (let i = 0; i < a.length; i += 9) {
+        const p = [0, 3, 6].map(j => new T.Vector3(a[i+j], a[i+j+1], a[i+j+2]));
+        const tri = new T.Triangle(...p), normal = tri.getNormal(new T.Vector3());
+        const den = (p[1].z-p[2].z)*(p[0].x-p[2].x)+(p[2].x-p[1].x)*(p[0].z-p[2].z);
+        result.push({tri, normal, den, minX: Math.min(...p.map(v => v.x)), maxX: Math.max(...p.map(v => v.x)),
+          minZ: Math.min(...p.map(v => v.z)), maxZ: Math.max(...p.map(v => v.z)),
+          minY: Math.min(...p.map(v => v.y)), maxY: Math.max(...p.map(v => v.y))});
+      }
+    }
+    return result;
+  }
+  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas','streets','historicGround']));
+  const bridgeTriangles = triangles(['brid',...(arrays.ferris?['ferris']:[])]);
+  const bridge = index(bridgeTriangles);
+  const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
+  function surface(t, x, z) {
+    if (Math.abs(t.den) < 1e-8) return null;
+    const {a, b, c} = t.tri;
+    const u = ((b.z-c.z)*(x-c.x)+(c.x-b.x)*(z-c.z))/t.den;
+    const v = ((c.z-a.z)*(x-c.x)+(a.x-c.x)*(z-c.z))/t.den;
+    return u >= -1e-6 && v >= -1e-6 && u+v <= 1.000001 ? u*a.y+v*b.y+(1-u-v)*c.y : null;
+  }
+  function terrainH(x, z) {
+    let y = data.river.bed;
+    for (const t of ground(x, z)) {
+      const h = surface(t, x, z);
+      if (h !== null) y = Math.max(y, h);
+    }
+    return y;
+  }
+  // 穴のある多角形にも対応。内外判定と最寄りの辺を共通に使い、屋根と壁の形を合わせる。
+  function contact(v, x, z) {
+    let inside = false, distance2 = Infinity, px = 0, pz = 0, nx=0, nz=0;
+    for (const ring of v.rings) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [ax, az] = ring[j], [bx, bz] = ring[i];
+      if ((az > z) !== (bz > z) && x < (bx-ax)*(z-az)/(bz-az)+ax) inside = !inside;
+      const dx = bx-ax, dz = bz-az, l2 = dx*dx+dz*dz;
+      const t = l2 ? Math.max(0, Math.min(1, ((x-ax)*dx+(z-az)*dz)/l2)) : 0;
+      const qx = ax+t*dx, qz = az+t*dz, d2 = (x-qx)**2+(z-qz)**2;
+      if (d2 < distance2) { distance2 = d2; px = qx; pz = qz; nx=dz; nz=-dx; }
+    }
+    return {inside, distance2, px, pz, nx, nz};
+  }
+  function overlaps(v, x, z, r) {
+    const c = contact(v, x, z);
+    return c.inside || c.distance2 <= r*r;
+  }
+  // 線分同士の最短点。橋の壁は元メッシュと機体の縦カプセルの最短距離で判定する。
+  function segments(a, b, c, d) {
+    const u = b.clone().sub(a), v = d.clone().sub(c), w = a.clone().sub(c);
+    const A = u.dot(u), B = u.dot(v), C = v.dot(v), D = u.dot(w), E = v.dot(w), den = A*C-B*B;
+    let s = den > 1e-9 ? Math.max(0, Math.min(1, (B*E-C*D)/den)) : 0;
+    let t = C > 1e-9 ? (B*s+E)/C : 0;
+    if (t < 0) { t = 0; s = A ? Math.max(0, Math.min(1, -D/A)) : 0; }
+    else if (t > 1) { t = 1; s = A ? Math.max(0, Math.min(1, (B-D)/A)) : 0; }
+    return [a.clone().addScaledVector(u, s), c.clone().addScaledVector(v, t)];
+  }
+  function capsuleTriangle(t, p) {
+    const a = p.clone().add(new T.Vector3(0, radius, 0)), b = p.clone().add(new T.Vector3(0, height-radius, 0));
+    const plane = new T.Plane().setFromNormalAndCoplanarPoint(t.normal, t.tri.a);
+    const hit = plane.intersectLine(new T.Line3(a, b), new T.Vector3());
+    if (hit && t.tri.containsPoint(hit)) return [hit.clone(), hit];
+    let best = [a, t.tri.closestPointToPoint(a, new T.Vector3())];
+    const candidates = [[b, t.tri.closestPointToPoint(b, new T.Vector3())],
+      ...[[t.tri.a,t.tri.b],[t.tri.b,t.tri.c],[t.tri.c,t.tri.a]].map(([c,d]) => segments(a,b,c,d))];
+    for (const pair of candidates) if (pair[0].distanceToSquared(pair[1]) < best[0].distanceToSquared(best[1])) best = pair;
+    return best;
+  }
+  function clamp(u) {
+    for (const axis of ['x', 'z']) {
+      const p = Math.max(-half+radius, Math.min(half-radius, u.pos[axis]));
+      if (p !== u.pos[axis]) { u.pos[axis] = p; u.vel[axis] = 0; }
+    }
+  }
+  function resolve(u) {
+    clamp(u);
+    for (let pass = 0; pass < 4; pass++) {
+      let pushed = false;
+      for (const v of nearby(u.pos.x, u.pos.z, radius)) {
+        if (u.pos.y >= v.top-.25 || u.pos.y+height <= v.bottom+.001) continue;
+        const c = contact(v, u.pos.x, u.pos.z), d = Math.sqrt(c.distance2);
+        if (!c.inside && d >= radius) continue;
+        let dx = c.inside ? c.px-u.pos.x : u.pos.x-c.px;
+        let dz = c.inside ? c.pz-u.pos.z : u.pos.z-c.pz;
+        if (d < 1e-8) {
+          // 辺の真上では、微小な試点で外向きを決める。
+          dx = c.nx; dz = c.nz;
+          const l = Math.hypot(dx,dz) || 1; dx /= l; dz /= l;
+          if (contact(v,u.pos.x+dx*.001,u.pos.z+dz*.001).inside) { dx = -dx; dz = -dz; }
+        } else { dx /= d; dz /= d; }
+        const push = c.inside ? d+radius+.001 : radius-d+.001;
+        u.pos.x += dx*push; u.pos.z += dz*push; pushed = true;
+      }
+      for (const t of walls(u.pos.x, u.pos.z, radius)) {
+        if (u.pos.y >= t.maxY-.05 || u.pos.y+height <= t.minY+.05) continue;
+        const [a,b] = capsuleTriangle(t, u.pos), delta = a.sub(b), distance = delta.length();
+        if (distance >= radius) continue;
+        delta.y = 0;
+        if (delta.lengthSq() < 1e-9) delta.copy(t.normal).setY(0);
+        if (delta.lengthSq() < 1e-9) continue;
+        delta.normalize().multiplyScalar(radius-distance+.001);
+        u.pos.add(delta); pushed = true;
+      }
+      clamp(u);
+      if (!pushed) break;
+    }
+  }
+  function groundAt(x, z, y) {
+    let h = terrainH(x, z);
+    for (const v of nearby(x,z,radius*.6)) if (v.top <= y+.6 && overlaps(v,x,z,radius*.6)) h = Math.max(h,v.top);
+    for (const t of bridge(x,z)) if (t.normal.y > .65) {
+      const q = surface(t,x,z);
+      if (q !== null && q <= y+.6) h = Math.max(h,q);
+    }
+    return h;
+  }
+  function ceilingAt(x, z, y) {
+    let h = Infinity;
+    for (const v of nearby(x,z,radius*.6)) if (v.bottom >= y+height-.05 && overlaps(v,x,z,radius*.6)) h = Math.min(h,v.bottom);
+    for (const t of bridge(x,z)) if (t.normal.y < -.65) {
+      const q = surface(t,x,z);
+      if (q !== null && q >= y+height-.05) h = Math.min(h,q);
+    }
+    return h;
+  }
+  function cameraFree(p,r){
+    if(p.y-r<terrainH(p.x,p.z))return false;
+    for(const v of nearby(p.x,p.z,r))if(p.y+r>v.bottom&&p.y-r<v.top&&overlaps(v,p.x,p.z,r))return false;
+    for(const t of bridge(p.x,p.z,r))if(t.tri.closestPointToPoint(p,new T.Vector3()).distanceToSquared(p)<r*r)return false;
+    return true;
+  }
+  const cameraSolids=[],cameraController=createCityCamera(T,cameraSolids,terrainH,ceilingAt,cameraFree);
+  const geometryStats={render:{beforeBytes:0,afterBytes:0,beforeVertices:0,afterVertices:0},collision:{beforeBytes:0,afterBytes:0,beforeVertices:0,afterVertices:0}};
+  function compactGeometry(geo,kind){
+    const entries=Object.entries(geo.attributes),count=geo.attributes.position.count,seen=new Map(),order=[],indices=[];
+    const views=entries.map(([,a])=>new Uint32Array(a.array.buffer,a.array.byteOffset,a.array.length));
+    for(let i=0;i<count;i++){
+      let key='';for(let j=0;j<entries.length;j++){const a=entries[j][1],view=views[j];for(let c=0;c<a.itemSize;c++)key+=view[i*a.itemSize+c]+'/';}
+      let index=seen.get(key);if(index===undefined){index=order.length;seen.set(key,index);order.push(i);}indices.push(index);
+    }
+    const before=entries.reduce((sum,[,a])=>sum+a.array.byteLength,0),Index=order.length<=65536?Uint16Array:Uint32Array;
+    const bytes=order.length*entries.reduce((sum,[,a])=>sum+a.itemSize*a.array.BYTES_PER_ELEMENT,0)+indices.length*Index.BYTES_PER_ELEMENT;
+    if(bytes<before){
+      for(const [name,a] of entries){
+        const packed=new a.array.constructor(order.length*a.itemSize);
+        for(let i=0;i<order.length;i++)packed.set(a.array.subarray(order[i]*a.itemSize,order[i]*a.itemSize+a.itemSize),i*a.itemSize);
+        geo.setAttribute(name,new T.BufferAttribute(packed,a.itemSize,a.normalized));
+      }
+      geo.setIndex(new T.BufferAttribute(new Index(indices),1));
+    }
+    const stats=geometryStats[kind];stats.beforeBytes+=before;stats.afterBytes+=Math.min(before,bytes);
+    stats.beforeVertices+=count;stats.afterVertices+=bytes<before?order.length:count;
+  }
+  let mapCanvas;
+  function drawMap(g,W,H,u) {
+    if (!mapCanvas) {
+      mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = half*2;
+      const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround?.color||'#8a8d85'; c.fillRect(0,0,half*2,half*2);
+      function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
+      for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
+      for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
+      for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
+      if(data.district.roadColor){
+        c.fillStyle=data.district.roadColor;
+        for(let i=0;i<arrays.tran.length;i+=9){const a=arrays.tran;path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);c.fill();}
+      }
+      if(data.district.railGap){path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();}
+      const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
+      if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
+      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+
+      // 観覧車を真上から見た位置。円盤で街路を覆わず、細い赤い目印にする。
+      const wheel=data.district.ferrisWheel;
+      if(wheel){
+        const [x,,z]=wheel.center,dx=Math.cos(wheel.yaw||0)*wheel.radius,dz=Math.sin(wheel.yaw||0)*wheel.radius;
+        c.strokeStyle=wheel.color||'#bf3548';c.lineWidth=2;
+        c.beginPath();c.moveTo(x-dx+half,z-dz+half);c.lineTo(x+dx+half,z+dz+half);c.stroke();
+      }
+      for(const road of data.district.groundPassages||[]){
+        const line=()=>{c.beginPath();c.moveTo(road.from[0]+half,road.from[1]+half);c.lineTo(road.to[0]+half,road.to[1]+half);};
+        c.strokeStyle='#657783';c.lineWidth=road.width;line();c.stroke();
+        c.strokeStyle='#c1e3e8';c.lineWidth=1.5;c.setLineDash([4,3]);line();c.stroke();c.setLineDash([]);
+      }
+      for(const exit of data.river.exits||[]){
+        c.strokeStyle='#b8eb8c';c.lineWidth=exit.width;
+        c.beginPath();c.moveTo(exit.start[0]+half,exit.start[2]+half);c.lineTo(exit.end[0]+half,exit.end[2]+half);c.lineTo(exit.street[0]+half,exit.street[2]+half);c.stroke();
+      }
+      c.strokeStyle = '#92dbe4'; c.strokeRect(1,1,half*2-2,half*2-2);
+      for(const p of data.district.roofPads){
+        c.fillStyle='#97ffd3';c.beginPath();c.arc(p.at[0]+half,p.at[1]+half,5,0,Math.PI*2);c.fill();
+        c.strokeStyle='#71f5bd';c.lineWidth=2;c.beginPath();c.moveTo(p.at[0]+half,p.at[1]+half);c.lineTo(p.exit[0]+half,p.exit[1]+half);c.stroke();
+      }
+    }
+    g.clearRect(0,0,W,H); g.drawImage(mapCanvas,0,0,W,H);
+    if (u) {
+      const x=(u.pos.x+half)/(half*2)*W,z=(u.pos.z+half)/(half*2)*H;
+      g.save(); g.translate(x,z); g.rotate(-u.yaw); g.fillStyle='#fff';
+      g.beginPath(); g.moveTo(0,-5); g.lineTo(3,4); g.lineTo(-3,4); g.fill(); g.restore();
+    }
+  }
+  const ownedMaterials=new Set();
+  function dispose(){
+    for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
+    for(const material of ownedMaterials)material.dispose();ownedMaterials.clear();
+    cameraController.reset();
+  }
+  function mount(root,hittables) {
+    // 再出撃の組み直しで、旧マップの視点用形状を積み重ねない。
+    for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
+    for(const stats of Object.values(geometryStats))for(const key of Object.keys(stats))stats[key]=0;
+    const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,ferris:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    for (const [k,a] of Object.entries(arrays)) {
+      if(!a.length)continue;
+      const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
+      if(k==='historicGround'){
+        // 上面と斜面の陰影もつなぎ、格子ごとの三角形が斑点に見えないようにする。
+        const normals=geo.attributes.normal.array,sums=new Map(),ids=[];
+        for(let i=0;i<a.length;i+=3){const id=[a[i],a[i+1],a[i+2]].map(v=>Math.round(v*1000)).join(',');ids.push(id);if(!sums.has(id))sums.set(id,new T.Vector3());sums.get(id).add(new T.Vector3(normals[i],normals[i+1],normals[i+2]));}
+        for(const n of sums.values())n.normalize();for(let i=0;i<ids.length;i++)sums.get(ids[i]).toArray(normals,i*3);
+      }
+      if (data.colors[k]) {
+        const c=new Float32Array(a.length);
+        for (const range of data.colors[k]) { const col=new T.Color(range.color); for(let i=range.start;i<range.start+range.count;i++) col.toArray(c,i*3); }
+        geo.setAttribute('color',new T.BufferAttribute(c,3));
+        if(k==='bldg'){
+          const glass=new Float32Array(a.length/3);
+          for(const range of data.colors[k])if(range.glass)glass.fill(1,range.start,range.start+range.count);
+          geo.setAttribute('cityGlass',new T.BufferAttribute(glass,1));
+        }
+      }
+      compactGeometry(geo,'render');
+      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='grass'?0xffffff:colors[k];
+      const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
+        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+      if(k==='bldg'){
+        // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
+        const facadeScale=data.district.facadeScale??1;
+        if(!Number.isFinite(facadeScale)||facadeScale<=0)throw Error('都市の外壁模様の縮尺が不正です');
+        // 窓と屋根は同じ描画で着色し、窓ごとの箱・テクスチャ通信を増やさない。
+        mesh.material.onBeforeCompile=shader=>{
+          shader.uniforms.cityFacadeScale={value:facadeScale};
+          const declarations='uniform float cityFacadeScale; varying vec3 cityPoint; varying vec3 cityNormal; varying float glassFacade;\n';
+          shader.vertexShader='attribute float cityGlass;\n'+declarations+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);glassFacade=cityGlass;');
+          shader.fragmentShader=declarations+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            vec3 facadeColor=diffuseColor.rgb;
+            float side=1.0-step(0.45,abs(cityNormal.y));
+            float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
+            vec2 pane=fract(vec2(horizontal/(2.8*cityFacadeScale),cityPoint.y/(3.5*cityFacadeScale)));
+            float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0*cityFacadeScale,cityPoint.y);
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
+            diffuseColor.rgb*=mix(0.70,1.0,side);
+            float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
+            float reflection=0.5+0.5*sin((cityPoint.y*0.11+horizontal*0.012)/cityFacadeScale);
+            vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
+            ${data.district.glassTint?'glassColor*=clamp(facadeColor/vec3(0.48,0.58,0.62),vec3(0.35),vec3(1.4));':''}
+            float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
+          `);
+        };
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v4-'+!!data.district.glassTint+'-'+facadeScale;
+      }
+      if(k==='historicWall'){
+        mesh.material.onBeforeCompile=shader=>{
+          const d='varying vec3 brickPoint;\n';
+          shader.vertexShader=d+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nbrickPoint=(modelMatrix*vec4(transformed,1.0)).xyz;');
+          shader.fragmentShader=d+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            float along=dot(brickPoint.xz,vec2(0.814,0.581));float row=floor(brickPoint.y/0.34);
+            vec2 tile=fract(vec2(along/0.9+row*0.5,brickPoint.y/0.34));
+            float joint=max(1.0-step(0.07,tile.x),1.0-step(0.09,tile.y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.40,0.34,0.29),joint*0.65);
+            float x=abs(fract(along/6.4)-0.5)*6.4,y=brickPoint.y+1.3;
+            float arch=(1.0-step(2.1,x))*step(0.0,y)*(1.0-step(2.2+sqrt(max(0.0,4.41-x*x)),y));
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.12,0.18,0.20),arch*0.85);
+          `);
+        };
+        mesh.material.customProgramCacheKey=()=> 'city-historic-wall-v1';
+      }
+      mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops','ferris'].includes(k); root.add(mesh);
+      if(k!=='water'&&k!=='exitMarks') {
+        // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
+        const chunks=new Map();
+        for(let i=0;i<a.length;i+=9){
+          const x=(a[i]+a[i+3]+a[i+6])/3,z=(a[i+2]+a[i+5]+a[i+8])/3,key=Math.floor(x/32)+','+Math.floor(z/32);
+          if(!chunks.has(key))chunks.set(key,[]);
+          const chunk=chunks.get(key);for(let j=0;j<9;j++)chunk.push(a[i+j]);
+        }
+        for(const values of chunks.values()){
+          const collider=new T.BufferGeometry();collider.setAttribute('position',new T.Float32BufferAttribute(values,3));collider.computeBoundingSphere();collider.computeBoundingBox();
+          compactGeometry(collider,'collision');
+          const m=new T.Mesh(collider,mesh.material);m.name='city-collision-'+k;m.updateMatrixWorld(true);hittables.push(m);cameraSolids.push(m);
+        }
+      }
+    }
+    // 当たり判定は無限の高さで四辺を制限し、見た目にも範囲を示す。
+    const barrier=new T.MeshBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.055,side:T.DoubleSide,depthWrite:false});
+    for(const axis of ['x','z']) for(const sign of [-1,1]) {
+      const geo=new T.PlaneGeometry(half*2,220),m=new T.Mesh(geo,barrier);
+      m.position.set(0,100,0); m.position[axis]=sign*half; if(axis==='x')m.rotation.y=Math.PI/2; root.add(m);
+      const line=new T.LineSegments(new T.EdgesGeometry(geo),new T.LineBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.6}));
+      line.position.copy(m.position);line.rotation.copy(m.rotation);root.add(line);
+    }
+    root.traverse(m=>{for(const material of m.material?(Array.isArray(m.material)?m.material:[m.material]):[])ownedMaterials.add(material);});
+    root.updateMatrixWorld(true);
+  }
+  return {dispose,mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
+    district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
+    addCameraGeometry:meshes=>{for(const m of meshes){
+      m.updateWorldMatrix(true,false);
+      const geometry=m.geometry.clone().applyMatrix4(m.matrixWorld);geometry.computeBoundingBox();geometry.computeBoundingSphere();
+      const proxy=new T.Mesh(geometry,m.material);proxy.updateMatrixWorld(true);cameraSolids.push(proxy);
+    }},
+    groundMaximum:data.groundMaximum,contact,nearby,cameraPose:cameraController.solve,cameraTooClose:cameraController.tooClose,
+    get cameraGeometryCount(){return cameraSolids.length;},
+    get cameraState(){return cameraController.state;},cameraFree};
+}
+
+// この街区の地形と本体の対戦施設を接続する。機体の移動・射撃・索敵規則は本体を使う。
+function createCityBattle(T,city,definition) {
+  const radius=1.3,height=4,cache=new Map();
+  function free(x,z,y,obstacles,r=radius) {
+    if(Math.max(Math.abs(x),Math.abs(z))>city.half-r)return false;
+    if(city.ceilingAt(x,z,y)<y+height-.05)return false;
+    for(const v of city.nearby(x,z,r)){
+      if(y>=v.top-.25 || y+height<=v.bottom+.001)continue;
+      const c=city.contact(v,x,z);
+      if(c.inside || c.distance2<r*r-.0001)return false;
+    }
+    for(const o of obstacles){
+      if(y>=o.top-.25 || y+height<=(o.bottom??-Infinity)+.001)continue;
+      const dx=x-Math.max(o.minX,Math.min(x,o.maxX)),dz=z-Math.max(o.minZ,Math.min(z,o.maxZ));
+      if(dx*dx+dz*dz<r*r-.0001)return false;
+    }
+    return true;
+  }
+  function clearPath(ax,az,bx,bz,ay,obstacles,groundAt){
+    const distance=Math.hypot(bx-ax,bz-az),n=Math.max(1,Math.ceil(distance/.5)),step=distance/n;
+    let y=ay??city.terrainH(ax,az);
+    for(let i=0;i<=n;i++){
+      const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;
+      const h=groundAt(x,z,y);
+      // 落下だけで通れる岸壁を「帰って来られる経路」に数えない。
+      if(Math.abs(h-y)>.45+step*1.1 || !free(x,z,h,obstacles))return {ok:false,y};
+      y=h;
+    }
+    return {ok:true,y};
+  }
+  function pickSpawn(team,at,plants){
+    const plant=plants.find(p=>p.id===at && p.owner===team);
+    const slots=plant?definition.cityBattle.respawns[team][plant.id]:definition.cityBattle.baseSpawns[team];
+    const p=slots[Math.floor(Math.random()*slots.length)];
+    return [p[0],city.terrainH(...p),p[1]];
+  }
+  function safeGoal(u,goal,obstacles,nav){
+    const y=goal.y===0?city.terrainH(goal.x,goal.z):goal.y;
+    if(free(goal.x,goal.z,y,obstacles))return goal;
+    // 本体の「基地から60m前」の待機点が街の建物に入る場合だけ近い街路へ移す。
+    const key=[Math.round(goal.x),Math.round(goal.z),Math.round(y)].join(',');
+    if(cache.has(key))return cache.get(key);
+    let best=null,distance=Infinity;
+    for(const p of nav.pts){
+      const d=Math.hypot(p.x-goal.x,p.z-goal.z)+Math.abs(p.y-y)*3;
+      if(d<distance && free(p.x,p.z,p.y,obstacles)){best=p;distance=d;}
+    }
+    const result=best?new T.Vector3(best.x,best.y,best.z):goal;
+    cache.set(key,result);return result;
+  }
+  let navigationReport=null;
+  function finishNav(nav,walkable){
+    // 本体の施設・橋下面まで組み上げた後、往復可能な辺だけを採用する。
+    const links=nav.links.filter(e=>{
+      const a=nav.pts[e.a],b=nav.pts[e.b];
+      return walkable(a.x,a.z,b.x,b.z,a.y)&&walkable(b.x,b.z,a.x,a.z,b.y);
+    });
+    const adj=nav.pts.map(()=>[]);
+    links.forEach(e=>{adj[e.a].push(e.b);adj[e.b].push(e.a);});
+    const seen=new Set(),groups=[];
+    for(let i=0;i<adj.length;i++){
+      if(seen.has(i))continue;
+      const group=[],todo=[i];seen.add(i);
+      while(todo.length){const a=todo.pop();group.push(a);for(const b of adj[a])if(!seen.has(b)){seen.add(b);todo.push(b);}}
+      groups.push(group);
+    }
+    groups.sort((a,b)=>b.length-a.length);
+    const keep=groups[0].sort((a,b)=>a-b),ids=new Map(keep.map((v,i)=>[v,i]));
+    navigationReport={inputNodes:nav.pts.length,inputLinks:nav.links.length,rejectedLinks:nav.links.length-links.length,
+      removedNodes:nav.pts.length-keep.length};
+    nav.pts=keep.map(i=>nav.pts[i]);nav.n=keep.length;nav.flip=keep.map((_,i)=>i);
+    nav.links=links.filter(e=>ids.has(e.a)&&ids.has(e.b)).map(e=>({...e,a:ids.get(e.a),b:ids.get(e.b)}));
+    nav.adj=nav.pts.map(()=>[]);nav.links.forEach((e,i)=>{nav.adj[e.a].push([e.b,i]);nav.adj[e.b].push([e.a,i]);});
+    cache.clear();
+  }
+  return {free,clearPath,pickSpawn,safeGoal,finishNav,get navigationReport(){return navigationReport;}};
+}
+
+
+const cityMapCache=new WeakMap();
+let cityMap=null,cityBattle=null;
+function getCityMap(def){
+  if(!def.cityTerrain)return null;
+  if(!cityMapCache.has(def))cityMapCache.set(def,createCityMap(T,def.cityTerrain));
+  return cityMapCache.get(def);
+}
+function drawCityBaseZones(ctx,W,H,def,own=chosenTeam){
+  for(const team of ['B','R']){
+    const b=def.bases[team],color=sideColors(team,own).css;
+    ctx.fillStyle=color+'55';ctx.strokeStyle=color;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc((b.at[0]+def.size[0])/(2*def.size[0])*W,(b.at[1]+def.size[1])/(2*def.size[1])*H,b.radius/(2*def.size[0])*W,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+}
+
 // ---- マップ ----
 // マップのデータは maps.js の window.MAP_DATA から読む（v0.10.1でマップ製作を別にした）。maps.js は tools/build_maps.py が prototype/maps/<id>.js を
 // まとめた物で、1ファイルに1マップ。項目と書き方は prototype/maps/README.md。buildMap が地形と施設を作り直す。
@@ -1300,14 +1921,13 @@ const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([i
 ]).sort((x, y) => (x[1].order ?? 99) - (y[1].order ?? 99)));
 // 同じアリーナの地形を使う別ルール。公開中の maps.js でも選べるよう、エンジン側で派生させる。
 if (MAPS.dock) MAPS['dock-melee'] = { ...MAPS.dock, name: '港の倉庫街 〜近接限定〜', order: (MAPS.dock.order || 4) + .01, meleeOnly: true,
-  desc: '2対2・近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
+  desc: '近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
 const FIRST_MAP = Object.keys(MAPS)[0];
 let curMap = null, mapId = '';
 const meleeOnly = () => !!curMap?.meleeOnly;
-// 大人数は潮路搬送区の3配置だけで試す。選択はこのページを開いている間だけ有効。
-let largeBattle = false;
-const largeBattleMap = d => d?.group === 'tidal';
-const battleTeamSize = (d = curMap) => largeBattle && largeBattleMap(d) ? 50 : d.team;
+// 人数は全マップ共通で選び、再読み込みまでは維持する。未指定ならマップの推奨人数。
+let selectedTeamSize = null;
+const battleTeamSize = (d = curMap) => selectedTeamSize ?? d.team;
 let MAP_X = 135, MAP_Z = 240;
 const smooth = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 function mirrored(f) {
@@ -1353,6 +1973,7 @@ function bakeTerrain(terrain) {
   TERRAIN_MAX = heights.reduce((a, h) => Math.max(a, h), 0) + 0.5;
 }
 function terrainH(x, z) {
+  if(cityMap)return cityMap.terrainH(x,z);
   const fx = Math.max(0, Math.min(TW - 1.001, x - TX0)), fz = Math.max(0, Math.min(TD - 1.001, z - TZ0));
   const i = Math.floor(fx), j = Math.floor(fz), a = fx - i, b = fz - j, k = j * TW + i;
   return (heights[k] * (1 - a) + heights[k + 1] * a) * (1 - b) + (heights[k + TW] * (1 - a) + heights[k + TW + 1] * a) * b;
@@ -1531,6 +2152,7 @@ function buildBoxes(layout) {
     m.castShadow = m.receiveShadow = true;
     mapRoot.add(m);
   }
+  if(cityMap)return; // 都市の外周はカプセルの範囲制限で保護する。
   addBox(0, MAP_Z + 2, MAP_X * 2 + 8, 4, 10, wallMat);
   addBox(0, -MAP_Z - 2, MAP_X * 2 + 8, 4, 10, wallMat);
   addBox(MAP_X + 2, 0, 4, MAP_Z * 2, 10, wallMat);
@@ -1573,6 +2195,14 @@ const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80;
 let NAV = null;
 function buildNav(nav) {
   NAV = null;
+  if(['xz-i16-links-u16','xyz-i16-links-u16'].includes(nav?.encoding)){
+    const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer;
+    const points=new Int16Array(decode(nav.nodes)),edges=new Uint16Array(decode(nav.links)),nodes=[],links=[];
+    const stride=nav.encoding==='xyz-i16-links-u16'?3:2;
+    for(let i=0;i<points.length;i+=stride)nodes.push(Array.from(points.subarray(i,i+stride),v=>v*nav.step));
+    for(let i=0;i<edges.length;i+=2)links.push([edges[i],edges[i+1]]);
+    nav={nodes,links};
+  }
   if (!nav || !nav.nodes || !nav.nodes.length) return;
   const n = nav.nodes.length, pts = nav.nodes.map(([x, z, y]) => ({ x, z, y: y ?? terrainH(x, z) })), flip = [];
   nav.nodes.forEach(([x, z], i) => { if (curMap.asym || x === 0 && z === 0) flip[i] = i; else { flip[i] = pts.length; flip[pts.length] = i; pts.push({ x: -x, z: -z, y: pts[i].y }); } });
@@ -1608,6 +2238,7 @@ function segBox(ax, az, bx, bz, x0, x1, z0, z1) {
 // 箱は、その区間を歩く高さより0.6m以上高いときだけ道を塞ぐ（v0.10.4：水道橋の上の道が、下の橋脚の箱で塞がれていた）
 let pathEndH = 0;
 function clearPath(ax, az, bx, bz, ay) {
+  if(cityBattle){const result=cityBattle.clearPath(ax,az,bx,bz,ay,obstacles,groundAt);pathEndH=result.y;return result.ok;}
   const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 0.5)), step = L / n, hs = new Float32Array(n + 1);
   let ph = ay ?? terrainH(ax, az);
   if (ay === undefined) for (const o of bridges) if (ax > o.minX && ax < o.maxX && az > o.minZ && az < o.maxZ && o.top <= ph + 0.6) ph = Math.max(ph, o.top);
@@ -1733,7 +2364,7 @@ function navSteer(u, goal, gd, dt) {
   // 着いた節点は飛ばす。次の節点へ今の節点より自分の方が近く、そこへまっすぐ歩けるなら、今の節点も飛ばす（見通しの確認は0.5秒に1回）
   while (u.navI < path.length) {
     const c = P[path[u.navI]], nx = P[path[u.navI + 1]];
-    let skip = Math.hypot(c.x - u.pos.x, c.z - u.pos.z) < NAV_REACH;
+    let skip = Math.hypot(c.x - u.pos.x, c.z - u.pos.z) < (curMap.cityBattle?.nodeReach??NAV_REACH);
     if (!skip && nx && u.navChk <= 0 && Math.hypot(nx.x - u.pos.x, nx.z - u.pos.z) < Math.hypot(nx.x - c.x, nx.z - c.z)) { u.navChk = 0.5; skip = clearPath(u.pos.x, u.pos.z, nx.x, nx.z, u.pos.y); }
     if (!skip) break;
     u.navI++;
@@ -1752,6 +2383,19 @@ const TEAM = {
   B: { name: '自軍', color: 0x3ea6ff, css: '#3ea6ff', baseZ: 210, dir: -1 }, // baseZ はマップで決まる（buildMap）
   R: { name: '敵軍', color: 0xff8a2a, css: '#ff8a2a', baseZ: -210, dir: 1 },
 };
+// 任意の基地座標。従来のマップは x=0・z=±baseZ のまま扱う。
+function baseAt(team, d = curMap) { return d.bases?.[team]?.at || [0,team==='B'?d.baseZ:-d.baseZ]; }
+function baseCoords(team, x, z) {
+  const s=team==='B'?1:-1,p=baseAt(team);
+  return curMap.bases?[p[0]+x*s,p[1]+(z-curMap.baseZ)*s]:[x*s,z*s];
+}
+function inBase(pos, team) {
+  const def=curMap.bases?.[team];
+  return def?Math.hypot(pos.x-def.at[0],pos.z-def.at[1])<def.radius:pos.z*(team==='B'?1:-1)>BASE_LINE;
+}
+function baseDistance(pos, team) {
+  const t=TEAM[team];return curMap.bases?Math.hypot(pos.x-t.baseX,pos.z-t.baseZ):Math.abs(pos.z-t.baseZ);
+}
 const CORE_MAX = 9000;
 const cores = {};
 // コスト制（v0.10.9、マップの vs 項目。ユーザー指定 2026-10-18「コスト制」、ガンダムVSシリーズ風）：コア・傘・ベース床・防衛砲台・レーダーは作らず、
@@ -1761,7 +2405,7 @@ let VS = null, coreMax = CORE_MAX;
 function buildCores() {
 for (const k of ['B', 'R']) {
   const t = TEAM[k];
-  if (VS) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(0, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
+  if (VS) { cores[k] = { kind: 'core', team: k, hp: coreMax, glow: null, pos: new T.Vector3(t.baseX, -1e4, t.baseZ) }; continue; } // 撃てる物は作らない
   const g = new T.Group();
   const pedestal = new T.Mesh(new T.CylinderGeometry(9, 10, 2, 24), new T.MeshLambertMaterial({ color: 0x55534d }));
   pedestal.position.y = 1;
@@ -1773,20 +2417,21 @@ for (const k of ['B', 'R']) {
   glow.scale.set(2.5, 1.24, 2.5);
   glow.position.y = 19;
   g.add(pedestal, body, glow);
-  g.position.set(0, 0, t.baseZ);
+  const floor=cityMap?cityMap.base(k).height:0;
+  g.position.set(t.baseX, floor, t.baseZ);
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   mapRoot.add(g);
   // ダメージが入るのは上の色の付いた結晶（glow）だけ。黒い支柱と台座は弾を止めるが無敵（v0.10.6、ユーザー指定「黒い部分は無敵、上の色付いてるトコだけ」）。
   // pos は結晶の中心（Botはここを狙う）
-  const core = { kind: 'core', team: k, hp: CORE_MAX, group: g, glow, pos: new T.Vector3(0, 19, t.baseZ) };
+  const core = { kind: 'core', team: k, hp: CORE_MAX, group: g, glow, pos: new T.Vector3(t.baseX, floor+19, t.baseZ) };
   glow.userData.ref = core;
   hittables.push(body, glow, pedestal);
-  obstacles.push({ minX: -6, maxX: 6, minZ: t.baseZ - 6, maxZ: t.baseZ + 6, top: 16 });
+  obstacles.push({ minX: t.baseX-6, maxX: t.baseX+6, minZ: t.baseZ - 6, maxZ: t.baseZ + 6, top: floor+16 });
   cores[k] = core;
   // ベース床
   const pad = new T.Mesh(new T.CircleGeometry(26, 40), teamMaterial(k, new T.MeshLambertMaterial({ color: t.color, transparent: true, opacity: 0.18 })));
   pad.rotation.x = -Math.PI / 2;
-  pad.position.set(0, 0.04, t.baseZ);
+  pad.position.set(t.baseX, floor+0.04, t.baseZ);
   mapRoot.add(pad);
 }
 }
@@ -1906,6 +2551,7 @@ function plantUpdate(pl, dt) {
 // 自軍ベースに近い順
 function plantsFrom(team) {
   const z = TEAM[team].baseZ;
+  if(curMap.bases){const x=TEAM[team].baseX;return plants.slice().sort((a,b)=>Math.hypot(a.pos.x-x,a.pos.z-z)-Math.hypot(b.pos.x-x,b.pos.z-z));}
   return plants.slice().sort((a, b) => Math.abs(a.pos.z - z) - Math.abs(b.pos.z - z));
 }
 function spawnPoints(team) {
@@ -1918,9 +2564,21 @@ const SHELL_SPEED = 70, SHELL_BLAST = 5, TURRET_BURST = 3, BURST_GAP = 1, TURRET
 const TURRET_SHELL = { dmg: TURRET_DMG, blast: SHELL_BLAST, core: 0, rocket: false };
 const turrets = [];
 function buildTurrets(list) {
-for (const [x, z] of list) for (const k of ['B', 'R']) {
-  const s = k === 'B' ? 1 : -1;
-  const pos = new T.Vector3(x * s, terrainH(x * s, z * s), z * s);
+const sites=[];
+for (const [x,z] of list) for (const team of ['B','R']) {
+  const [px,pz]=baseCoords(team,x,z);
+  sites.push({team,at:[px,pz,terrainH(px,pz)]});
+}
+// 屋上の追加砲台だけは世界座標。基地用の対称展開やプラント占拠による所属変更はしない。
+for (const site of curMap.rooftopTurrets||[]) {
+  if(!['B','R'].includes(site.team)||!Array.isArray(site.at)||site.at.length!==3||
+     !site.at.every(Number.isFinite)||typeof site.plant!=='string'||!site.plant||
+     (site.yaw!==undefined&&!Number.isFinite(site.yaw)))throw Error('屋上砲台の配置が不正です');
+  sites.push({...site,rooftop:true});
+}
+for (const site of sites) {
+  const k=site.team,s=k==='B'?1:-1;
+  const [px,pz,py]=site.at,pos=new T.Vector3(px,py,pz);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 2.4, 3), baseMat);
   base.position.set(pos.x, pos.y + 1.2, pos.z);
@@ -1933,10 +2591,11 @@ for (const [x, z] of list) for (const k of ['B', 'R']) {
   head.add(dome, barrel);
   for (const m of [base, dome, barrel]) m.castShadow = true;
   mapRoot.add(base, head);
-  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4 });
+  obstacles.push({ minX: pos.x - 1.5, maxX: pos.x + 1.5, minZ: pos.z - 1.5, maxZ: pos.z + 1.5, top: pos.y + 2.4, ...(site.rooftop?{bottom:pos.y}:{}) });
   const tu = {
     kind: 'turret', team: k, name: '防衛砲台', pos, hp: TURRET_HP, maxHp: TURRET_HP, alive: true,
-    base, baseMat, head, parts: [dome, barrel], yaw: s > 0 ? 0 : Math.PI,
+    base, baseMat, head, parts: [dome, barrel], yaw: site.yaw ?? (s > 0 ? 0 : Math.PI),
+    rooftop:!!site.rooftop, rooftopPlant:site.rooftop?site.plant:null,
     target: null, think: 0, fireCd: 0, shots: TURRET_BURST, dashState: '', locked: false, revive: 0,
   };
   head.rotation.y = tu.yaw;
@@ -1964,7 +2623,7 @@ let BASE_LINE = 150;
 const radars = [];
 function buildRadars([rx, rz]) {
 for (const k of ['B', 'R']) {
-  const s = k === 'B' ? 1 : -1, x = rx * s, z = rz * s;
+  const s = k === 'B' ? 1 : -1, [x,z] = baseCoords(k,rx,rz);
   const pos = new T.Vector3(x, terrainH(x, z), z);
   const baseMat = new T.MeshLambertMaterial({ color: TURRET_BASE });
   const base = new T.Mesh(new T.BoxGeometry(3, 1.2, 3), baseMat);
@@ -1985,8 +2644,10 @@ for (const k of ['B', 'R']) {
   for (const m of [base, mast, dish]) { m.userData.ref = rd; hittables.push(m); }
   radars.push(rd);
   // ベースの境目の線（ここより奥に入るとレーダーに探知される）
-  const line = new T.Mesh(new T.PlaneGeometry(MAP_X * 2, 0.6).rotateX(-Math.PI / 2), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false })));
-  line.position.set(0, 0.08, BASE_LINE * s);
+  const zone=curMap.bases?.[k];
+  const geometry=zone?new T.RingGeometry(zone.radius-.3,zone.radius+.3,64):new T.PlaneGeometry(MAP_X*2,.6);
+  const line = new T.Mesh(geometry.rotateX(-Math.PI / 2), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.35, depthWrite: false })));
+  line.position.set(zone?zone.at[0]:0, (cityMap?cityMap.base(k).height:0)+.08, zone?zone.at[1]:BASE_LINE*s);
   mapRoot.add(line);
 }
 }
@@ -2015,7 +2676,7 @@ function radarUpdate(rd, dt) {
   if (!rd.alive) return;
   rd.head.rotation.y += dt * 1.8;
   const s = rd.team === 'B' ? 1 : -1;
-  const now = units.filter(u => u.alive && u.team !== rd.team && u.pos.z * s > BASE_LINE);
+  const now = units.filter(u => u.alive && u.team !== rd.team && inBase(u.pos,rd.team));
   for (const u of now) spot(rd.team, u, 1, null, 'レーダー');
   const fresh = now.some(u => !rd.intruders.includes(u));
   rd.intruders = now;
@@ -2434,7 +3095,7 @@ function accBar(acc, key, a, b, r) {
 }
 // 1基の見た目。飛ぶ道は launch と同じ式で、台の中心から飛んだときの機体の胴の高さ（足元 + UNIT_H/2）を通る
 function catModel(cp, acc, dots) {
-  const P = cp.pos, L = cp.land, TF = CAT_FLIGHT;
+  const P = cp.pos, L = cp.land, TF = cp.flight ?? CAT_FLIGHT;
   const vx = (L.x - P.x) / TF, vz = (L.z - P.z) / TF, vy = 0.5 * GRAV * TF + (L.y - P.y) / TF;
   const at = t => new T.Vector3(P.x + vx * t, P.y + UNIT_H / 2 + vy * t - 0.5 * GRAV * t * t, P.z + vz * t);
   const tan = t => new T.Vector3(vx, vy - GRAV * t, vz).normalize();
@@ -2476,12 +3137,16 @@ function catModel(cp, acc, dots) {
 // マップの catapults（自軍側を書き、敵軍側は点対称）から作る。5番目にプラントの名前があればプラントの台（Botがそこから出たときに使う）
 function buildCatapults(list) {
 const acc = {}, dots = [];
-for (const [x, z, lx, lz, pid] of list) for (const k of ['B', 'R']) {
+const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
+for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true,route:curMap.bases[k].catapultFlight?{flight:curMap.bases[k].catapultFlight}:undefined});
+for(const route of curMap.plantCatapults||[])entries.push({row:[...route.at,...route.exit,route.plant],k:'B',absolute:true,route});
+for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const s = k === 'B' ? 1 : -1;
   const own = pid ? plants.find(p => p.id === pid) : null;
-  const plant = own ? (k === 'B' ? own : mirrorPlant(own)) : null;
-  const pos = new T.Vector3(x * s, terrainH(x * s, z * s), z * s), land = new T.Vector3(lx * s, terrainH(lx * s, lz * s), lz * s);
-  const cp = { side: k, plant, pos, land, flash: 0, phase: Math.random() * 6.3 };
+  const plant = own ? (absolute || k === 'B' ? own : mirrorPlant(own)) : null;
+  const [px,pz]=absolute?[x,z]:pid?[x*s,z*s]:baseCoords(k,x,z),[tx,tz]=absolute?[lx,lz]:[lx*s,lz*s];
+  const pos = new T.Vector3(px, terrainH(px,pz), pz), land = new T.Vector3(tx, terrainH(tx,tz), tz);
+  const cp = { side: k, plant, pos, land, flight: route?.flight, targetPlant: plants.find(p=>p.id===route?.targetPlant), flash: 0, phase: Math.random() * 6.3 };
   catModel(cp, acc, dots);
   catapults.push(cp);
 }
@@ -2494,9 +3159,10 @@ dots.forEach((d, i) => im.setMatrixAt(i, m.compose(d.p, q, new T.Vector3(d.s, d.
 mapRoot.add(im);
 }
 function launch(u, cp) {
-  const t = CAT_FLIGHT;
+  const t = cp.flight ?? CAT_FLIGHT;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
+  // 軌道の飛行時間と操作禁止を分ける。高角・長距離でも最初の1秒だけ固定する。
   Object.assign(u, { flying: true, ctrlLockT: CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
@@ -2724,7 +3390,7 @@ const POD_R = 3, POD_HEAL = 1200;
 const pods = [];
 function buildPods(basePods, plantPods) {
 const podSpots = [];
-for (const [x, z] of basePods) for (const k of ['B', 'R']) { const s = k === 'B' ? 1 : -1; podSpots.push({ team: k, x: x * s, z: z * s }); }
+for (const [x, z] of basePods) for (const k of ['B', 'R']) { const [px,pz]=baseCoords(k,x,z); podSpots.push({ team:k,x:px,z:pz }); }
 for (const [id, x, z] of plantPods) podSpots.push({ plant: plants.find(p => p.id === id), x, z });
 for (const spot of podSpots) {
   const pos = new T.Vector3(spot.x, terrainH(spot.x, spot.z), spot.z);
@@ -2835,10 +3501,10 @@ function buildUmbrellas() {
 for (const k of ['B', 'R']) {
   const mat = teamMaterial(k, new T.MeshLambertMaterial({ color: TEAM[k].color, transparent: true, opacity: 0.3, side: T.DoubleSide, depthWrite: false }));
   const roof = new T.Mesh(new T.ConeGeometry(UMBRELLA_R, UMBRELLA_TOP - UMBRELLA_EDGE, 48, 1, true), mat);
-  roof.position.set(0, (UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);
+  roof.position.set(TEAM[k].baseX, (cityMap?cityMap.base(k).height:0)+(UMBRELLA_TOP + UMBRELLA_EDGE) / 2, TEAM[k].baseZ);
   const rim = new T.Mesh(new T.TorusGeometry(UMBRELLA_R, 0.15, 6, 64), new T.MeshLambertMaterial({ color: 0x9aa3ad }));
   rim.rotation.x = Math.PI / 2;
-  rim.position.set(0, UMBRELLA_EDGE, TEAM[k].baseZ);
+  rim.position.set(TEAM[k].baseX, (cityMap?cityMap.base(k).height:0)+UMBRELLA_EDGE, TEAM[k].baseZ);
   roof.userData.ref = rim.userData.ref = { kind: 'umbrella', team: k };
   mapRoot.add(roof, rim);
   hittables.push(roof, rim);
@@ -2852,17 +3518,20 @@ const mapRoot = new T.Group();
 scene.add(mapRoot);
 let miniBg = null, bigBg = null; // ミニマップと全体マップの地形（マップを替えたら作り直す）
 function buildMap(id) {
+  cityMap?.dispose();cityMap=null;cityBattle=null;
   const def = MAPS[id] || MAPS[FIRST_MAP];
   curMap = def; mapId = MAPS[id] ? id : FIRST_MAP;
+  cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
+  scene.fog.near=cityMap?220:110;scene.fog.far=cityMap?850:420;
   for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
   obstacles.length = 0; hittables.length = 0;
   for (const a of [plants, turrets, radars, catapults, jumpPads, lifts, ziplines, pods, barricades]) a.length = 0;
   [MAP_X, MAP_Z] = def.size;
   BASE_LINE = def.baseLine;
   VS = def.vs || null; coreMax = VS ? VS.cost : CORE_MAX;
-  TEAM.B.baseZ = def.baseZ; TEAM.R.baseZ = -def.baseZ;
-  bakeTerrain(def.terrain);
-  buildGround();
+  for(const k of ['B','R'])[TEAM[k].baseX,TEAM[k].baseZ]=baseAt(k,def);
+  if(cityMap){TERRAIN_MAX=cityMap.groundMaximum;cityMap.mount(mapRoot,hittables);}
+  else {bakeTerrain(def.terrain);buildGround();}
   buildBoxes(def.layout);
   buildWater(def.water);
   buildBridges(def.bridges);
@@ -2876,6 +3545,10 @@ function buildMap(id) {
   buildPods(def.basePods, def.plantPods);
   buildBarricades(def.barricades);
   if (!VS) buildUmbrellas();
+  if(cityMap){
+    cityBattle.finishNav(NAV,clearPath);
+    cityMap.addCameraGeometry(hittables.filter(m=>!m.name.startsWith('city-collision-')));
+  }
   renderTeamView();
   resetPlants();
   resetBarricades();
@@ -3866,14 +4539,15 @@ function makeUnit(team, isPlayer, idx) {
 // プラントから出るときの、プラントの中心からの距離（m）。出撃してから無敵の秒数（ユーザー指定、v0.9.2）
 const SPAWN_BACK = [46, 52], SPAWN_INVUL = 2;
 function spawnPos(u, at) {
+  if(cityBattle){u.pos.fromArray(cityBattle.pickSpawn(u.team,at,plants));resolve(u);return;}
   const t = TEAM[u.team];
   const pl = plants.find(p => p.id === at && p.owner === u.team);
   if (pl) {
     // プラントの中心から自軍ベース側へ46〜52m離れた所に出る（真ん中に出ると守りやすすぎ、近いと激戦の中に降りるため。ユーザー指定、v0.9.2で22〜26mから遠ざけた）
-    const back = new T.Vector3(-pl.pos.x, 0, t.baseZ - pl.pos.z).normalize();
+    const back = new T.Vector3(t.baseX-pl.pos.x, 0, t.baseZ - pl.pos.z).normalize();
     const d = SPAWN_BACK[0] + Math.random() * (SPAWN_BACK[1] - SPAWN_BACK[0]), side = (Math.random() - 0.5) * 16;
     u.pos.set(pl.pos.x + back.x * d - back.z * side, 0, pl.pos.z + back.z * d + back.x * side);
-  } else u.pos.set((Math.random() - 0.5) * 36, 0, t.baseZ + t.dir * (14 + Math.random() * 10));
+  } else u.pos.set(t.baseX+(Math.random() - 0.5) * 36, 0, t.baseZ + t.dir * (14 + Math.random() * 10));
   resolve(u);
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
@@ -3908,7 +4582,7 @@ function spawn(u, at = 'base') {
 // 移った先では出撃と同じく2秒無敵。ダウンすると取り消し。Botは1度使うと AREA_CD 秒は使わない。コスト制のマップ（ベースもプラントも無い）では使えない
 const AREA_T0 = 2.5, AREA_KG0 = 4700, AREA_SLOPE = 4.5 / 730, AREA_MAX = 10, AREA_FAR = 150, AREA_CD = 40;
 function areaTime(u) { return Math.min(AREA_MAX, AREA_T0 + Math.max(0, u.stats.weight - AREA_KG0) * AREA_SLOPE); }
-function inOwnBase(u) { return !VS && u.pos.z * TEAM[u.team].dir < -BASE_LINE; }
+function inOwnBase(u) { return !VS && inBase(u.pos,u.team); }
 function startTransfer(u, at) {
   if (isArtilleryMode(u)) return false;
   if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
@@ -3942,15 +4616,15 @@ function botTransfer(u) {
   const t = TEAM[u.team], rd = radars.find(r => r.team === u.team);
   if (curMap.baseDefense) {
     if (u.role === 'defend') {
-      if (rd?.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      if (rd?.intruders.length && baseDistance(u.pos,u.team) > AREA_FAR) startTransfer(u, 'base');
       return; // 基地の守備役は被攻撃プラントへ転出しない。
     }
     if (baseDefenseTask(u)?.threat) {
-      if (Math.abs(u.pos.z - t.baseZ) > AREA_FAR) startTransfer(u, 'base');
+      if (baseDistance(u.pos,u.team) > AREA_FAR) startTransfer(u, 'base');
       return;
     }
   }
-  if (u.role === 'defend' && rd && rd.intruders.length && Math.abs(u.pos.z - t.baseZ) > AREA_FAR) { startTransfer(u, 'base'); return; }
+  if (u.role === 'defend' && rd && rd.intruders.length && baseDistance(u.pos,u.team) > AREA_FAR) { startTransfer(u, 'base'); return; }
   const pl = plants.find(p => p.owner === u.team && p.capturing && Math.abs(p.gauge) < 100 && p.pos.distanceTo(u.pos) > AREA_FAR && units.some(e => e.alive && e.team !== u.team && inPlant(e, p)));
   if (pl) startTransfer(u, pl.id);
 }
@@ -3961,7 +4635,7 @@ function botSpawn(u, first) {
   spawn(u, at);
   // ベースから出た攻撃役はカタパルトで前線へ。プラントから出たときも、そのプラントに台があれば半分はそれで飛ぶ。
   // 台は誰でも使えるので、自軍側のベースの台と、敵陣の方へ飛ぶプラントの台を選ぶ
-  const ahead = c => Math.sign(c.land.z - c.pos.z) === TEAM[u.team].dir;
+  const ahead = c => c.targetPlant ? c.targetPlant.owner !== u.team : Math.sign(c.land.z - c.pos.z) === TEAM[u.team].dir;
   if (at === 'base' && u.role !== 'defend' && Math.random() < 0.75) {
     const cs = catapults.filter(c => !c.plant && c.side === u.team);
     if (cs.length) u.waypoint = cs[Math.floor(Math.random() * cs.length)].pos.clone();
@@ -3973,6 +4647,7 @@ function botSpawn(u, first) {
 
 // ---- 当たり判定 ----
 function resolve(u) {
+  if(cityMap)cityMap.resolve(u);
   for (const o of obstacles) {
     if (u.pos.y >= o.top - 0.25 || u.pos.y + UNIT_H <= o.bottom) continue; // 上に乗っているか、橋の下をくぐっている
     const cx = Math.max(o.minX, Math.min(u.pos.x, o.maxX));
@@ -3992,7 +4667,7 @@ function resolve(u) {
   }
 }
 function groundAt(x, z, y) {
-  let h = terrainH(x, z);
+  let h = cityMap?cityMap.groundAt(x,z,y):terrainH(x,z);
   for (const o of obstacles) {
     if (x > o.minX - R * 0.6 && x < o.maxX + R * 0.6 && z > o.minZ - R * 0.6 && z < o.maxZ + R * 0.6 && o.top <= y + 0.6) h = Math.max(h, o.top);
   }
@@ -4000,7 +4675,7 @@ function groundAt(x, z, y) {
 }
 // 頭の上の橋の底の高さ（y にいる機体の頭より上にある物だけ）。無ければ Infinity
 function ceilingAt(x, z, y) {
-  let c = Infinity;
+  let c = cityMap?cityMap.ceilingAt(x,z,y):Infinity;
   for (const o of obstacles) if (o.bottom !== undefined && o.bottom >= y + UNIT_H - 0.05 && x > o.minX - R * 0.6 && x < o.maxX + R * 0.6 && z > o.minZ - R * 0.6 && z < o.maxZ + R * 0.6) c = Math.min(c, o.bottom);
   return c;
 }
@@ -4012,7 +4687,7 @@ function stepTo(u, x, z) {
   let py = u.pos.y; // 登っていく途中の足元の高さ
   for (let i = 0; i < n; i++) {
     const th = terrainH(u.pos.x + sx, u.pos.z + sz);
-    if (th - py > 0.05 + len * 1.1) return false;
+    if (th - py > (cityMap ? 0.45 : 0.05) + len * 1.1) return false;
     u.pos.x += sx; u.pos.z += sz; resolve(u);
     py = Math.max(py, th);
   }
@@ -4116,21 +4791,23 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
   const hover = !u.dashState && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover) u.dashState = 'hover';
-  if (!u.dashState) {
+  if (!u.dashState || charging) {
     u.boostIdle += dt;
     if (u.boostIdle > 0.5) u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt); // オーバーヒートは全回復まで（約2秒）
     if (u.overheat && u.boost >= u.maxBoost) u.overheat = false;
-    if (u.overheat) speed = u.walkV * 0.55;
+    if (u.overheat && !charging) speed = u.walkV * 0.55;
   }
   u.catCd -= dt;
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
-    if (u.ctrlLockT > 0) { u.ctrlLockT -= dt; accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
+    if (u.ctrlLockT > 0) { u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
     else if (!u.dashState || u.dashState === 'hover') {
       accel = wish.lengthSq() > 0.01 ? 1.5 : 0;
       // 空中ダッシュ後に射出時より速くならないようにする
       const hs = Math.hypot(u.vel.x, u.vel.z);
       if (hs > u.flightSpeed) { u.vel.x *= u.flightSpeed / hs; u.vel.z *= u.flightSpeed / hs; }
+      // カタパルトでは前進入力の目標を歩行速度に下げず、射出の勢いで旋回する。
+      if (!u.jumpPad) speed = Math.max(speed, Math.min(hs, u.flightSpeed));
     }
   }
   const k = 1 - Math.exp(-accel * dt);
@@ -4157,7 +4834,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.jumpPad = null;
+    // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
@@ -4848,7 +5526,7 @@ function scoreKill(v, by, head) {
 }
 // 撃破された敵が自軍ベース（境目の線より奥）か自軍プラントの円の中にいた
 function scoreDefend(a, v) {
-  if (!VS && v.pos.z * TEAM[a.team].dir < -BASE_LINE) addScore(a, 'support', SC.baseDef, 'ベース防衛');
+  if (!VS && inBase(v.pos,a.team)) addScore(a, 'support', SC.baseDef, 'ベース防衛');
   else if (plants.some(p => p.owner === a.team && inPlant(v, p))) addScore(a, 'support', SC.plantDef, 'プラント防衛');
 }
 function scoreCore(by, raw) {
@@ -4931,7 +5609,7 @@ function scoreTick(dt) {
   for (const u of units) {
     const x = u.sx;
     if (x.capPl && !(u.alive && inPlant(u, x.capPl))) { x.capPl = null; x.capAcc = 0; }
-    const inside = !VS && u.alive && u.pos.z * TEAM[u.team].dir > BASE_LINE; // コスト制にはベースが無い
+    const inside = !VS && u.alive && inBase(u.pos,u.team==='B'?'R':'B'); // コスト制にはベースが無い
     if (inside) {
       if (!x.inBase && x.outT >= SC.intrudeGap && x.intrN < SC.intrudeCap) { x.intrN++; addScore(u, 'support', SC.intrude, '敵ベース侵入'); }
       x.outT = 0;
@@ -5113,7 +5791,7 @@ function botUpdate(u, dt) {
     // レーダーが生きていれば、ベースに入った敵機へ向かう（見えていなくても）
     const intr = radars.find(r => r.team === u.team).intruders;
     const threat = intr.length ? intr.reduce((a, b) => a.pos.distanceTo(u.pos) < b.pos.distanceTo(u.pos) ? a : b) : nearestEnemy(u, 90);
-    goal = threat && Math.abs(threat.pos.z - t.baseZ) < 110 ? threat.pos : new T.Vector3((u.idx % 5 - 2) * 14, 0, t.baseZ + t.dir * 60);
+    goal = threat && baseDistance(threat.pos,u.team) < 110 ? threat.pos : new T.Vector3(t.baseX+(u.idx % 5 - 2) * 14, 0, t.baseZ + t.dir * 60);
   } else {
     // プラント役は自軍のものでない最も近いプラントへ。プラントが4つ以上のマップでは、番号で1つ先のプラントにも分かれる
     const cand = u.role === 'plant' ? plantsFrom(u.team).filter(p => p.owner !== u.team) : [];
@@ -5122,6 +5800,7 @@ function botUpdate(u, dt) {
       : new T.Vector3(enemyCore.pos.x + (u.idx % 5 - 2) * 5, 0, enemyCore.pos.z - t.dir * 12); // 傘の下、コアの前12m（結晶の張り出した下面を撃つ）
     if (!pl) goal = raidGoal(u, goal);
   }
+  if(cityBattle)goal=cityBattle.safeGoal(u,goal,obstacles,NAV);
   if (jumpPads.length || lifts.length || ziplines.length) {
     goal = botMobilityGoal(u, goal);
     if (u.mobilityRoute && !u.lift && !u.flying && !u.zip) hold = 0.5;
@@ -6691,6 +7370,7 @@ function selectWeapon(u, w) {
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
+  if (u.isPlayer && !lockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
   if (isArtilleryMode(u)) {
@@ -7072,9 +7752,9 @@ function swordTick(u, sl, dt, trigger, aim) {
   }
   if (sl.cd > 0 || !trigger) return false;
   let a = sl.w.normal;
-  const dashAttack = u.dashT > 0 || u.longDash;
+  const dashAttack = u.dashT > 0 || u.longDash || (u.chargerOn && !u.slots.sp.overheat);
   if (dashAttack) {
-    // 回転斬り：ダッシュ中ならブーストに関係なく出せる。ダッシュは踏み込みに切り替わる
+    // 加速装置ON中も各武器のダッシュ技を使い、進入時の勢いを踏み込みへ引き継ぐ。
     a = sl.w.strong;
     u.dashT = 0; u.longDash = false;
   }
@@ -7800,6 +8480,7 @@ canvas.addEventListener('mousedown', e => {
   if (e.button === 0) mouseDown = true;
   if (e.button === 2) {
     if (running && player && player.alive && player.slots[player.weapon].w.scopeHigh && !player.repairing && !player.transfer && player.switchT<=0) player.scopeStep=((player.scopeStep||0)+1)%3;
+    if (running && !mapOpen && !wsel.open) toggleLock(player);
     rightDown = true;
   }
   if (running && document.pointerLockElement !== canvas) grabPointer();
@@ -7896,7 +8577,7 @@ addEventListener('keyup', e => {
 // 照準の先の地点（当たった所の足元。機体や施設に当たったらその足元、何にも当たらなければ300m先）
 function aimPoint(u) {
   const dir = new T.Vector3(); camera.getWorldDirection(dir);
-  const from = camera.position.clone().addScaledVector(dir, CAM.back - 1);
+  const from = camera.position.clone().addScaledVector(dir, cityMap?camera.near:CAM.back-1);
   const hit = castFrom(from, dir, u, 300);
   const p = hit ? (hit.ref && hit.ref.pos ? hit.ref.pos.clone() : hit.point.clone()) : from.addScaledVector(dir, 300);
   p.y = groundAt(p.x, p.z, p.y + 0.5);
@@ -8051,10 +8732,11 @@ function anglesTo(u, p) {
 }
 
 // ---- ロックオン ----
-// 照準円（ACQ_R）に敵を ACQ_TIME 秒入れると自動でロック。外側の円（KEEP_R）から外れるか、射程外・遮蔽で解除。
+// 主武器・近接で表示円（ACQ_R）の半径2倍以内の敵を右クリックして中央へ捕捉、再クリックで解除。
+// 外側の円（KEEP_R）から外れるか、射程外・遮蔽・副武器や特別装備への持ち替えでも解除。
 // KEEP_R は v0.10.2 でユーザーの指示（ズームで外れやすければ、もうちょい外れにくく）により 0.34 → 0.42。動き回る強襲Bot相手（20〜40m）でロックが続く時間が平均約2.2秒から約3.6秒に。
 // ショートダッシュで振り切れる仕組み（LOCK_TRACK_SHAKEN）は変えていない
-const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42, ACQ_TIME = 0.15;
+const LOCK_RANGE = 50, ACQ_R = 0.16, KEEP_R = 0.42;
 // 追従の強さ：目標が動いた角度のうち視点が自動で追う割合。相手がショートダッシュ中は大きく落ちる。
 // LOCK_PULL は照準が機体から外れたときに引き戻す速さ（ラジアン/秒）、LOCK_BODY は機体とみなす範囲（横の半幅、足元からの高さ）。v0.9.1で強めた。
 // top：上に外れたときに引き戻す高さ（胴の上＝肩。頭は3.2〜3.95m）。v0.15まではてっぺんの hi へ戻していて、カメラ（4.6m）から水平に構えるだけで頭に吸い付いていた
@@ -8063,7 +8745,7 @@ const LOCK_TRACK = 1, LOCK_TRACK_SHAKEN = 0.35, LOCK_MAX_RATE = 4, LOCK_PULL = 0
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, cand: null, acqT: 0, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
+const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8073,15 +8755,29 @@ function screenOf(e) {
   proj.copy(p).project(camera);
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
-function setLock(e) {
-  Object.assign(lock, { target: e, cand: null, acqT: 0, losT: 0.15, lostT: 0, visible: true, prevAng: null });
+function setLock(u, e) {
+  Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
+  // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
+  const at = targetPoint(e), view = new T.Vector3();
+  updateCamera(u, 0);
+  for (let i = 0; i < 8; i++) {
+    const to = at.clone().sub(camera.position);
+    camera.getWorldDirection(view);
+    const yaw = wrapAngle(Math.atan2(-to.x, -to.z) - Math.atan2(-view.x, -view.z));
+    const pitch = Math.atan2(to.y, Math.hypot(to.x, to.z)) - Math.atan2(view.y, Math.hypot(view.x, view.z));
+    if (Math.hypot(yaw, pitch) < .000001) break;
+    u.yaw += yaw; u.pitch = Math.max(-0.9, Math.min(0.7, u.pitch + pitch));
+    updateCamera(u, 0);
+  }
   sfx('lock');
 }
-function releaseLock() { Object.assign(lock, { target: null, cand: null, acqT: 0, visible: false, down: false }); }
-function lockUpdate(u, dt) {
-  if(u.jamT>0){if(lock.target||lock.cand)releaseLock();return;}
-  if (u.slots[u.weapon].w.noLock) { if (lock.target || lock.cand) releaseLock(); return; }
-  const seen = e => canSee(u, e, targetPoint(e));
+function releaseLock() { Object.assign(lock, { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false }); }
+function lockAllowed(u) {
+  if (!u || !u.alive || u.repairing || u.transfer || u.jamT > 0) return false;
+  const w = u.slots[u.weapon].w;
+  return !w.noLock && (u.weapon === 'main' || u.weapon === 'aux' && w.type === 'sword');
+}
+function lockCandidates(u) {
   const list = [];
   for (const e of [...units, ...turrets]) {
     if (!e.alive || e.team === u.team) continue;
@@ -8092,6 +8788,19 @@ function lockUpdate(u, dt) {
     if (s) list.push({ e, d: s.d, dist });
   }
   list.sort((a, b) => a.d - b.d);
+  return list;
+}
+function toggleLock(u) {
+  if (!lockAllowed(u)) return;
+  if (lock.target) { releaseLock(); return; }
+  if (u.switchT > 0) return;
+  const c = lockCandidates(u).find(c => c.d <= ACQ_R * 2 && canSee(u, c.e, targetPoint(c.e)));
+  if (c) setLock(u, c.e);
+}
+function lockUpdate(u, dt) {
+  if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
+  if (!lock.target) return;
+  const seen = e => canSee(u, e, targetPoint(e)), list = lockCandidates(u);
   if (lock.target) {
     const cur = list.find(c => c.e === lock.target);
     lock.losT -= dt;
@@ -8099,23 +8808,13 @@ function lockUpdate(u, dt) {
     lock.lostT = lock.visible ? 0 : lock.lostT + dt;
     if (!cur || cur.d > KEEP_R * keepScale() || lock.lostT > 0.6) releaseLock();
   }
-  if (pressed.KeyQ) {
+  if (lock.target && pressed.KeyQ) {
     // 外側の円の中で、次に照準に近い敵へ切り替え
     const pool = list.filter(c => c.d < KEEP_R * keepScale() && (c.e === lock.target || seen(c.e)));
     if (pool.length) {
       const i = pool.findIndex(c => c.e === lock.target);
       const next = pool[(i + 1) % pool.length].e;
-      if (next !== lock.target) setLock(next);
-    }
-  }
-  if (!lock.target) {
-    const c = list.find(c => c.d < ACQ_R);
-    if (c && c.e === lock.cand) {
-      lock.acqT += dt;
-      if (lock.acqT >= ACQ_TIME && seen(c.e)) setLock(c.e);
-    } else {
-      lock.cand = c ? c.e : null;
-      lock.acqT = 0;
+      if (next !== lock.target) setLock(u, next);
     }
   }
 }
@@ -8141,6 +8840,8 @@ function updateBlastShake(dt) {
   if (blastShake.age >= BLAST_SHAKE_TIME || !player?.alive) resetBlastShake();
 }
 function renderView() {
+  const hideOwn=cityMap?.cameraTooClose(player,camera),ownVisible=player?.group.visible;
+  if(hideOwn)player.group.visible=false;
   const shaken = running && player?.alive && blastShake.power > 0;
   if (shaken) {
     const t = blastShake.phase, fade = Math.max(0, 1 - blastShake.age / BLAST_SHAKE_TIME);
@@ -8152,7 +8853,7 @@ function renderView() {
     camera.updateMatrixWorld();
   }
   try { renderer.render(scene, camera); cloakPass(); }
-  finally { if (shaken) { camera.quaternion.copy(blastViewBase); camera.updateMatrixWorld(); } }
+  finally { if(hideOwn)player.group.visible=ownVisible;if (shaken) { camera.quaternion.copy(blastViewBase); camera.updateMatrixWorld(); } }
 }
 function cameraPivot(u) {
   const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
@@ -8169,6 +8870,7 @@ function updateCamera(u, dt) {
   const fov = u.scoped ? gameOptions.fov / scopePower(u) : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
   camera.fov += (fov - camera.fov) * Math.min(1, dt * (u.scoped ? 16 : 9));
   camera.updateProjectionMatrix();
+  if(cityMap){const pose=cityMap.cameraPose(u,camera,dir,dt);camera.position.copy(pose.position);camera.lookAt(pose.target);camera.updateMatrixWorld();return;}
   camera.position.copy(pivot).addScaledVector(dir, -CAM.back);
   camera.position.y = Math.max(terrainH(camera.position.x, camera.position.z) + 0.8, camera.position.y);
   camera.position.y = Math.min(camera.position.y, ceilingAt(camera.position.x, camera.position.z, u.pos.y) - 0.3); // 橋の下では床の下から見る
@@ -8939,9 +9641,16 @@ function mechPreview(dt) {
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
-const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}${largeBattle && largeBattleMap(d) ? '（実験）' : ''}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
+const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
+  const city=getCityMap(d);
+  if(city){
+    const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;city.drawMap(ctx,W,H,null);drawCityBaseZones(ctx,W,H,d);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 9px sans-serif';
+    for(const [id,x,z,owner] of d.plants){ctx.strokeStyle=ctx.fillStyle=owner?sideColors(owner).css:'#ccd7dc';ctx.beginPath();ctx.arc((x+d.size[0])/(2*d.size[0])*W,(z+d.size[1])/(2*d.size[1])*H,16/(2*d.size[0])*W,0,7);ctx.stroke();ctx.fillText(id,(x+d.size[0])/(2*d.size[0])*W,(z+d.size[1])/(2*d.size[1])*H);}
+    return;
+  }
   const [mx, mz] = d.size, W = cv.width, H = cv.height, g = cv.getContext('2d'), fs = featuresOf(d.terrain, !!d.asym);
   const img = g.createImageData(W, H);
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
@@ -8955,7 +9664,7 @@ function drawMapPreview(cv, d) {
   for (const [x, z, w, dd] of d.layout) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - w / 2), sz(z * k - dd / 2), Math.max(1, w / mx / 2 * W), Math.max(1, dd / mz / 2 * H));
   g.fillStyle = 'rgba(70, 150, 220, .7)';
   for (const [x, z, hx, hz] of d.water || []) for (const k of placementSigns(x, z, !!d.asym)) g.fillRect(sx(x * k - hx), sz(z * k - hz), Math.max(1, hx / mx * W), Math.max(1, hz / mz * H));
-  for (const k of ['B', 'R']) { g.fillStyle = sideColors(k).css; g.beginPath(); g.arc(sx(0), sz(k === 'B' ? d.baseZ : -d.baseZ), 4, 0, 7); g.fill(); }
+  for (const k of ['B', 'R']) { const [x,z]=baseAt(k,d);g.fillStyle = sideColors(k).css; g.beginPath(); g.arc(sx(x), sz(z), 4, 0, 7); g.fill(); }
   g.font = 'bold 9px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const [id, x, z, start] of d.plants) {
     const c = start ? sideColors(start).css : '#b9c2c9';
@@ -8969,15 +9678,16 @@ function drawMapPreview(cv, d) {
 const mapGroupsOpen = new Set();
 const mapCanvas = d => `<canvas width="90" height="${Math.round(90 * d.size[1] / d.size[0])}"></canvas>`;
 // 旧説明の固定色による場所名を、出撃側によらない方角で表示する。
-const mapDescription = text => text.replace(/青(?=基地|拠点|側)/g, '南側').replace(/橙(?=基地|拠点|側)/g, '北側');
+const mapDescription = text => text.replace(/青(?=基地|拠点|側)/g, '南側').replace(/橙(?=基地|拠点|側)/g, '北側').replace(/(\d+)対\1/g, '推奨$&');
 function mapCardHtml(id, d, label) {
   return `<button type="button" class="mapCard${id === mapId ? ' sel' : ''}" data-map="${id}" aria-pressed="${id === mapId}">${mapCanvas(d)}<span><b>${label}${id === mapId ? '<i>選択中</i>' : ''}</b><small>${mapInfo(d)}</small><em>${mapDescription(d.desc)}</em></span></button>`;
 }
 function renderMapList() {
-  if (!largeBattleMap(curMap)) largeBattle = false;
-  $('largeBattleControl').hidden = !largeBattleMap(curMap);
-  $('largeBattleSw').checked = largeBattle;
-  $('largeBattleHint').textContent = largeBattle ? 'あなた＋味方BOT49機 対 敵BOT50機。1大破でコアが1/800減ります。通常より動作が重くなります' : '通常は10対10。ONであなた＋味方BOT49機 対 敵BOT50機';
+  $('mapAttribution').textContent=curMap?.attribution||'';
+  const count = battleTeamSize();
+  $('teamSize').innerHTML = Array.from({length:49},(_,i)=>`<option value="${i+2}">${i+2}対${i+2}${i+2===curMap.team?'（推奨）':''}</option>`).join('');
+  $('teamSize').value = count;
+  $('battleSizeHint').textContent = `自分1機＋味方BOT${count-1}機 対 敵BOT${count}機。人数はマップ変更後も維持します。`;
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
   const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
   for (const [id, d] of list) {
@@ -9004,7 +9714,12 @@ function renderMapList() {
   renderClsButtons();
 }
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
-$('largeBattleSw').addEventListener('change', () => { largeBattle = $('largeBattleSw').checked && largeBattleMap(curMap); renderMapList(); });
+$('teamSize').addEventListener('change',e=>{
+  const n=Number(e.target.value);
+  if(Number.isInteger(n)&&n>=2&&n<=50)selectedTeamSize=n;
+  renderMapList();
+});
+$('resetBattleSize').addEventListener('click',()=>{selectedTeamSize=null;renderMapList();});
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id) {
@@ -9059,6 +9774,7 @@ function makeMiniBg(W = MINI_W, H = miniH()) {
   const c = document.createElement('canvas');
   if (W === MINI_W) { $('mini').width = W; $('mini').height = H; }
   c.width = W; c.height = H;
+  if(cityMap){cityMap.drawMap(c.getContext('2d'),W,H,null);return c;}
   const g = c.getContext('2d'), img = g.createImageData(W, H);
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
     const h = terrainH(-MAP_X + (i + 0.5) / W * MAP_X * 2, -MAP_Z + (j + 0.5) / H * MAP_Z * 2), k = (j * W + i) * 4;
@@ -9127,13 +9843,18 @@ function drawBigMap() {
 function drawMapOn(mini, W, H, bg, k, big = false) {
   mini.clearRect(0, 0, W, H);
   mini.drawImage(bg, 0, 0, W, H);
+  if(cityMap)drawCityBaseZones(mini,W,H,curMap,player?.team??chosenTeam);
   const sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H;
   mini.fillStyle = 'rgba(255,255,255,.18)';
   for (const o of obstacles) mini.fillRect(sx(o.minX), sz(o.minZ), Math.max(1, sx(o.maxX) - sx(o.minX)), Math.max(1, sz(o.maxZ) - sz(o.minZ)));
-  for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(0), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
+  for (const t of ['B', 'R']) { mini.fillStyle = TEAM[t].css; mini.beginPath(); mini.arc(sx(TEAM[t].baseX), sz(TEAM[t].baseZ), 5 * k, 0, 7); mini.fill(); }
   if (big && player) {
     mini.font = `bold ${Math.round(6.5 * k)}px sans-serif`; mini.textAlign = 'center'; mini.textBaseline = 'middle'; mini.fillStyle = '#fff';
-    for (const t of ['B', 'R']) mini.fillText(t === player.team ? '自軍ベース' : '敵軍ベース', sx(0), sz(TEAM[t].baseZ) + (TEAM[t].baseZ > 0 ? -9 : 9) * k);
+    for (const t of ['B', 'R']) {
+      const text=t===player.team?'自軍ベース':'敵軍ベース',padding=mini.measureText(text).width/2+k;
+      const x=cityMap?Math.max(padding,Math.min(W-padding,sx(TEAM[t].baseX))):sx(TEAM[t].baseX);
+      mini.fillText(text,x,sz(TEAM[t].baseZ)+(TEAM[t].baseZ>0?-9:9)*k);
+    }
   }
   mini.setLineDash([2 * k, 2 * k]); mini.strokeStyle = 'rgba(255,255,255,.35)'; mini.lineWidth = k;
   for (const c of catapults) { mini.beginPath(); mini.moveTo(sx(c.pos.x), sz(c.pos.z)); mini.lineTo(sx(c.land.x), sz(c.land.z)); mini.stroke(); }
@@ -9427,16 +10148,14 @@ function hud(timeLeft, dt) {
   respawnPanel(p);
   missileHud(p);
   const ring = $('lockRing'), mk = $('lockMark');
-  const shown = p.alive && (lock.target || (lock.cand && lock.acqT > 0)) ? (lock.target || lock.cand) : null;
+  const shown = p.alive ? lock.target : null;
   ring.classList.toggle('on', !!lock.target);
-  ring.classList.toggle('acq', !lock.target && !!shown);
   const sp = shown && screenOf(shown);
   mk.hidden = !sp;
   if (sp) {
     mk.style.transform = `translate(${(sp.x + 1) / 2 * innerWidth}px, ${(1 - sp.y) / 2 * innerHeight}px)`;
-    mk.classList.toggle('acq', !lock.target);
     mk.classList.toggle('lost', !!lock.target && !lock.visible);
-    $('lockName').textContent = lock.target ? `LOCK ${shown.name}` : shown.name;
+    $('lockName').textContent = `LOCK ${shown.name}`;
     $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
     $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
   }

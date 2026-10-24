@@ -1,0 +1,155 @@
+{
+  "checked": "2026-10-23",
+  "sourceSHA256": "f8c25e2f0bd5b64afd7652241f11a8810ff86635120166ccb04a10cb02e5b932",
+  "method": "各ページの位置情報と公開外観写真を参照。写真・ロゴ・看板はゲームに取り込まず、色値だけを独自に指定。PLATEAUの高さ・形・写真の年代差は残る。",
+  "ordinaryPalette": [
+    "#dbd7c9",
+    "#c1b6a1",
+    "#b2aaa3",
+    "#939da4",
+    "#b9c3ca",
+    "#8a8986",
+    "#b69686",
+    "#b8b3ad"
+  ],
+  "landmarks": [
+    {
+      "id": "central-station",
+      "referenceName": "大阪ステーションシティ",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E5%A4%A7%E9%98%AA%E3%82%B9%E3%83%86%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%E3%82%B7%E3%83%86%E3%82%A3",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Osaka_Station_City.JPG",
+      "coordinates": "北緯34.702778度 東経135.495000度",
+      "sourceFootprints": [
+        43,
+        47,
+        55
+      ],
+      "lowColor": "#c6cdd0",
+      "upperColor": "#c9b99a",
+      "upperThreshold": 70,
+      "upperFacade": null,
+      "appearance": "銀色の駅大屋根、北棟は砂色、南棟は淡い白灰色。"
+    },
+    {
+      "id": "north-glass",
+      "referenceName": "グランフロント大阪",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%95%E3%83%AD%E3%83%B3%E3%83%88%E5%A4%A7%E9%98%AA",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Grand_Front_Osaka_in_201409.JPG",
+      "coordinates": "北緯34.705778度 東経135.494361度",
+      "sourceFootprints": [
+        69,
+        70
+      ],
+      "lowColor": "#a9aca5",
+      "upperColor": "#477f87",
+      "upperThreshold": 70,
+      "upperFacade": "glass",
+      "appearance": "白灰色の低層部、上層は青緑のガラス。"
+    },
+    {
+      "id": "silver-store",
+      "referenceName": "ヨドバシ梅田",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E3%83%A8%E3%83%89%E3%83%90%E3%82%B7%E6%A2%85%E7%94%B0",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Yodobashi_Umeda_Tower_20191104.jpg",
+      "coordinates": "北緯34.704194度 東経135.496306度",
+      "sourceFootprints": [
+        118
+      ],
+      "lowColor": "#e1e3df",
+      "upperColor": "#bac6cf",
+      "upperThreshold": 90,
+      "upperFacade": null,
+      "appearance": "白銀の曲面外壁と縦縞の明るい高層部。"
+    },
+    {
+      "id": "stone-store",
+      "referenceName": "大阪梅田ツインタワーズ・ノース",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E5%A4%A7%E9%98%AA%E6%A2%85%E7%94%B0%E3%83%84%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%AF%E3%83%BC%E3%82%BA%E3%83%BB%E3%83%8E%E3%83%BC%E3%82%B9",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Mido-suji_Osaka01s4s3200.jpg",
+      "coordinates": "北緯34.702278度 東経135.498806度",
+      "sourceFootprints": [
+        238
+      ],
+      "lowColor": "#b5907b",
+      "upperColor": "#dad9ce",
+      "upperThreshold": 90,
+      "upperFacade": null,
+      "appearance": "茶色の百貨店低層部と白い縦格子の上層部。"
+    },
+    {
+      "id": "white-store",
+      "referenceName": "大阪梅田ツインタワーズ・サウス",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E5%A4%A7%E9%98%AA%E6%A2%85%E7%94%B0%E3%83%84%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%AF%E3%83%BC%E3%82%BA%E3%83%BB%E3%82%B5%E3%82%A6%E3%82%B9",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Osaka_Umeda_Twin_Towers_South_ao.jpg",
+      "coordinates": "北緯34.701111度 東経135.497778度",
+      "sourceFootprints": [
+        188
+      ],
+      "lowColor": "#e4e5e0",
+      "upperColor": "#386581",
+      "upperThreshold": 50,
+      "upperFacade": "glass",
+      "appearance": "白い折板状の低層部、濃い青のガラス高層部。モデルに高層部がないため形状は足さない。"
+    },
+    {
+      "id": "red-accent",
+      "referenceName": "HEP",
+      "sourceURL": "https://ja.wikipedia.org/wiki/HEP",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:HEP-FIVE_in_201409_001.JPG",
+      "coordinates": "北緯34.7040028度 東経135.5004472度",
+      "sourceFootprints": [
+        305
+      ],
+      "lowColor": "#c8cccf",
+      "upperColor": "#bf3548",
+      "upperThreshold": 80,
+      "upperFacade": null,
+      "appearance": "銀色の外壁と観覧車・壁面の赤。既存の上部構造だけ赤い目印にする。"
+    },
+    {
+      "id": "south-hotel",
+      "referenceName": "ヒルトン大阪",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E3%83%92%E3%83%AB%E3%83%88%E3%83%B3%E5%A4%A7%E9%98%AA",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Osaka_Marubiru_Building_and_Hilton_Osaka_in_201409.JPG",
+      "coordinates": "北緯34.699972度 東経135.495944度",
+      "sourceFootprints": [
+        145
+      ],
+      "lowColor": "#d0d5d5",
+      "upperColor": "#dce2e0",
+      "upperThreshold": 70,
+      "upperFacade": null,
+      "appearance": "隣の旧円筒ビルと区別し、ホテル本体の白灰色を採用。"
+    },
+    {
+      "id": "west-stone",
+      "referenceName": "ハービスOSAKA",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E3%83%8F%E3%83%BC%E3%83%93%E3%82%B9OSAKA",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Herbis-Osaka-01.jpg",
+      "coordinates": "北緯34.698528度 東経135.492667度",
+      "sourceFootprints": [
+        12
+      ],
+      "lowColor": "#b4a895",
+      "upperColor": "#a8a3a1",
+      "upperThreshold": 80,
+      "upperFacade": null,
+      "appearance": "暖灰色・石調の外壁。"
+    },
+    {
+      "id": "east-glass",
+      "referenceName": "大阪富国生命ビル",
+      "sourceURL": "https://ja.wikipedia.org/wiki/%E5%A4%A7%E9%98%AA%E5%AF%8C%E5%9B%BD%E7%94%9F%E5%91%BD%E3%83%93%E3%83%AB",
+      "photoURL": "https://ja.wikipedia.org/wiki/ファイル:Osaka_Fukoku_Seimei_Building_Osaka_Japan01-r.jpg",
+      "coordinates": "北緯34.702278度 東経135.500139度",
+      "sourceFootprints": [
+        313
+      ],
+      "lowColor": "#3a6b72",
+      "upperColor": "#3a6b72",
+      "upperThreshold": 50,
+      "upperFacade": "glass",
+      "appearance": "深い緑がかった青のガラス張り。"
+    }
+  ]
+}
