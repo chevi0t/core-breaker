@@ -87,15 +87,18 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #aimSp.act .bar > i { background: #a6ffcb; }
 #aimSp.hit .bar > i { background: var(--warn); }
 @media (prefers-reduced-motion: reduce) { #aimSp.act .bar { animation: none; } }
-#lockMark { left: 0; top: 0; width: 54px; height: 54px; margin: -27px 0 0 -27px; --c: var(--warn); will-change: transform; }
-#lockMark.acq { --c: #ffc46e; }
+#preLock { inset: 0; overflow: hidden; }
+.preLockMark, #lockMark { left: 0; top: 0; width: 64px; height: 64px; margin: -32px 0 0 -32px; --arm: 17px; --stroke: 2px; }
+.preLockMark { position: absolute; --c: #72e9f5; opacity: .35; }
+.preLockMark.selected { opacity: .95; filter: drop-shadow(0 0 4px #72e9f588); }
+#lockMark { --c: #ffbd59; --arm: 20px; --stroke: 4px; will-change: transform; }
 #lockMark.lost { opacity: .45; }
-#lockMark .br { position: absolute; inset: 0; background:
-  linear-gradient(var(--c), var(--c)) top left / 14px 2px no-repeat, linear-gradient(var(--c), var(--c)) top left / 2px 14px no-repeat,
-  linear-gradient(var(--c), var(--c)) top right / 14px 2px no-repeat, linear-gradient(var(--c), var(--c)) top right / 2px 14px no-repeat,
-  linear-gradient(var(--c), var(--c)) bottom left / 14px 2px no-repeat, linear-gradient(var(--c), var(--c)) bottom left / 2px 14px no-repeat,
-  linear-gradient(var(--c), var(--c)) bottom right / 14px 2px no-repeat, linear-gradient(var(--c), var(--c)) bottom right / 2px 14px no-repeat; }
-#lockMark .info { position: absolute; left: 60px; top: -2px; background: var(--panel); padding: 2px 6px; font-size: 12px; white-space: nowrap; color: var(--c); text-shadow: 0 0 4px #000; font-variant-numeric: tabular-nums; }
+.preLockMark .br, #lockMark .br { position: absolute; inset: 0; filter: drop-shadow(0 1px 2px #000); background:
+  linear-gradient(var(--c), var(--c)) top left / var(--arm) var(--stroke) no-repeat, linear-gradient(var(--c), var(--c)) top left / var(--stroke) var(--arm) no-repeat,
+  linear-gradient(var(--c), var(--c)) top right / var(--arm) var(--stroke) no-repeat, linear-gradient(var(--c), var(--c)) top right / var(--stroke) var(--arm) no-repeat,
+  linear-gradient(var(--c), var(--c)) bottom left / var(--arm) var(--stroke) no-repeat, linear-gradient(var(--c), var(--c)) bottom left / var(--stroke) var(--arm) no-repeat,
+  linear-gradient(var(--c), var(--c)) bottom right / var(--arm) var(--stroke) no-repeat, linear-gradient(var(--c), var(--c)) bottom right / var(--stroke) var(--arm) no-repeat; }
+#lockMark .info { position: absolute; left: 70px; top: -2px; background: var(--panel); padding: 2px 6px; font-size: 12px; white-space: nowrap; color: var(--c); text-shadow: 0 0 4px #000; font-variant-numeric: tabular-nums; }
 #lockMark .hpb { width: 72px; height: 4px; background: rgba(255, 255, 255, .2); margin-top: 3px; }
 #lockMark .hpb i { display: block; height: 100%; background: var(--c); }
 #cross { left: 50%; top: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); }
@@ -818,6 +821,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 <div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b><span id="mechCompass" aria-hidden="true"></span></div></div>
 <div class="hud" id="tags"></div>
 <canvas class="hud" id="missileHud" hidden aria-label="ミサイル捕捉表示" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+<div class="hud" id="preLock" hidden aria-hidden="true"></div>
 <div class="hud" id="lockMark" hidden><div class="br"></div><div class="info"><span id="lockName"></span> <b id="lockDist"></b><div class="hpb"><i id="lockHp"></i></div></div></div>
 <div class="hud" id="popups"></div>
 <div class="hud" id="headMark"><i></i><i></i><i></i><i></i></div>
@@ -8745,7 +8749,7 @@ const LOCK_TRACK = 1, LOCK_TRACK_SHAKEN = 0.35, LOCK_MAX_RATE = 4, LOCK_PULL = 0
 const LOCK_ZOOM = 1.3;
 // 画面の円（ACQ_R・KEEP_R）は画角70度で決めた大きさ。ズームで画角が狭いときは、外れる角度が変わらないよう KEEP_R を広げる
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
-const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false };
+const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false, visualSeq: 0 };
 const proj = new T.Vector3();
 function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
@@ -8757,6 +8761,7 @@ function screenOf(e) {
 }
 function setLock(u, e) {
   Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
+  lock.visualSeq++; // 捕捉・Q切替ごとに一度だけ四隅を閉じる。同じ敵への再捕捉も数える。
   // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
   const at = targetPoint(e), view = new T.Vector3();
   updateCamera(u, 0);
@@ -8785,16 +8790,18 @@ function lockCandidates(u) {
     const dist = e.pos.distanceTo(u.pos);
     if (dist > u.lockRange * spotMul(u.team, e) * (e === lock.target ? 1.15 : 1)) continue; // 頭部のロック距離。索敵を受けている敵は遠くからロックできる
     const s = screenOf(e);
-    if (s) list.push({ e, d: s.d, dist });
+    if (s) list.push({ e, d: s.d, dist, screen: s });
   }
   list.sort((a, b) => a.d - b.d);
   return list;
 }
+// プレロックと右クリックは同じ表示円・機体目線の遮蔽判定を使う。
+function lockAcquirable(u, c) { return c.d <= ACQ_R * 2 && canSee(u, c.e, targetPoint(c.e)); }
 function toggleLock(u) {
   if (!lockAllowed(u)) return;
   if (lock.target) { releaseLock(); return; }
   if (u.switchT > 0) return;
-  const c = lockCandidates(u).find(c => c.d <= ACQ_R * 2 && canSee(u, c.e, targetPoint(c.e)));
+  const c = lockCandidates(u).find(c => lockAcquirable(u, c));
   if (c) setLock(u, c.e);
 }
 function lockUpdate(u, dt) {
@@ -10006,6 +10013,77 @@ function missileHud(p) {
     labels.push({ x: lx, y: ly, width }); ctx.fillText(label, lx, ly);
   }
 }
+const preLockPool = [];
+const preLockSight = new Map();
+let preLockTime = 0;
+const lockReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let lockHudSeq = 0, lockHudAnimation = null;
+function preLockCandidates(p, dt) {
+  preLockTime += dt;
+  const list = lockCandidates(p).filter(c => c.d <= ACQ_R * 2), current = new Set(list.map(c => c.e));
+  for (const e of preLockSight.keys()) if (!current.has(e)) preLockSight.delete(e);
+  for (const c of list) if (!preLockSight.has(c.e)) preLockSight.set(c.e, { seen: false, checked: -Infinity });
+  const check = c => { const s = preLockSight.get(c.e); s.seen = lockAcquirable(p, c); s.checked = preLockTime; };
+  // 50対50でも全員分のraycastを一度に走らせない。距離・角度・生死・迷彩・投影は毎フレーム。
+  // 遮蔽は最大2体/フレーム。強調候補を約80msごとに優先し、残りは古いものから巡回する。
+  const selected = list.find(c => preLockSight.get(c.e).seen);
+  let checked = 0;
+  if (selected && preLockTime - preLockSight.get(selected.e).checked >= .08) { check(selected); checked++; }
+  const pending = list.filter(c => preLockTime - preLockSight.get(c.e).checked >= .08)
+    .sort((a, b) => preLockSight.get(a.e).checked - preLockSight.get(b.e).checked || a.d - b.d);
+  for (const c of pending) { if (checked >= 2) break; check(c); checked++; }
+  return list.filter(c => preLockSight.get(c.e).seen);
+}
+function lockHud(p, dt) {
+  const layer = $('preLock'), mk = $('lockMark');
+  const available = running && $('overlay').hidden && !mapOpen && !wsel.open && lockAllowed(p);
+  const preview = available && !lock.target && p.switchT <= 0;
+  if (!preview) preLockSight.clear();
+  const candidates = preview ? preLockCandidates(p, dt) : [];
+  layer.hidden = !candidates.length;
+  // 最大表示数ぶんのDOMだけ再利用し、毎フレーム作り直さない。
+  for (let i = 0; i < Math.max(candidates.length, preLockPool.length); i++) {
+    let el = preLockPool[i];
+    if (!el) {
+      el = document.createElement('div'); el.className = 'preLockMark';
+      const br = document.createElement('div'); br.className = 'br'; el.appendChild(br);
+      layer.appendChild(el); preLockPool.push(el);
+    }
+    const c = candidates[i]; el.hidden = !c;
+    if (!c) continue;
+    el.classList.toggle('selected', i === 0);
+    el.style.transform = `translate(${(c.screen.x + 1) / 2 * innerWidth}px, ${(1 - c.screen.y) / 2 * innerHeight}px)`;
+  }
+  const shown = available && lock.target?.alive ? lock.target : null;
+  const sp = shown && screenOf(shown);
+  $('lockRing').classList.toggle('on', !!shown);
+  mk.hidden = !sp;
+  if (!sp) {
+    lockHudAnimation?.cancel(); lockHudAnimation = null;
+    lockHudSeq = lock.visualSeq;
+    return;
+  }
+  mk.style.transform = `translate(${(sp.x + 1) / 2 * innerWidth}px, ${(1 - sp.y) / 2 * innerHeight}px)`;
+  mk.classList.toggle('lost', !lock.visible);
+  $('lockName').textContent = `LOCK ${shown.name}`;
+  $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
+  $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
+  if (lockReducedMotion.matches) { lockHudAnimation?.cancel(); lockHudAnimation = null; }
+  if (lockHudSeq !== lock.visualSeq) {
+    lockHudSeq = lock.visualSeq;
+    lockHudAnimation?.cancel(); lockHudAnimation = null;
+    if (!lockReducedMotion.matches) {
+      const br = mk.querySelector('.br'), shadow = getComputedStyle(br).filter;
+      // 0.15秒で外側から収束して一度発光、続く0.15秒で通常の太いアンバーへ戻す。
+      // 移動や遮蔽明けでは再生しない。文字やカメラは動かさない。
+      lockHudAnimation = br.animate([
+        { offset: 0, transform: 'scale(1.65)', filter: shadow, easing: 'cubic-bezier(.16,1,.3,1)' },
+        { offset: .5, transform: 'scale(1)', filter: `${shadow} brightness(1.8) drop-shadow(0 0 8px #ffe0a3)` },
+        { offset: 1, transform: 'scale(1)', filter: shadow }
+      ], { duration: 300, iterations: 1 });
+    }
+  }
+}
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
@@ -10147,18 +10225,7 @@ function hud(timeLeft, dt) {
   }
   respawnPanel(p);
   missileHud(p);
-  const ring = $('lockRing'), mk = $('lockMark');
-  const shown = p.alive ? lock.target : null;
-  ring.classList.toggle('on', !!lock.target);
-  const sp = shown && screenOf(shown);
-  mk.hidden = !sp;
-  if (sp) {
-    mk.style.transform = `translate(${(sp.x + 1) / 2 * innerWidth}px, ${(1 - sp.y) / 2 * innerHeight}px)`;
-    mk.classList.toggle('lost', !!lock.target && !lock.visible);
-    $('lockName').textContent = `LOCK ${shown.name}`;
-    $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
-    $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
-  }
+  lockHud(p, dt);
   const kcOn = killcamOn(), kc = $('killcam');
   kc.hidden = !kcOn;
   $('respawn').classList.toggle('kc', kcOn || (!!p.transfer && p.alive)); // キルカメラとエリア移動の待機中は画面の下に
