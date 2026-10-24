@@ -2,7 +2,7 @@
 """梅田由来の半縮尺案だけを収めた、独立したオフライン対戦HTMLを作る。
 
 入力は出力先のmap.json。街区・施設・経路の加工は別の生成器で行い、
-本体の移動・戦闘は変更せず、外壁模様の間隔だけ半縮尺に合わせる。
+本体の移動・戦闘ルールを維持し、外壁模様・観覧車・屋上砲台の配置を加える。
 prototype/は読み取りのみ。
 """
 import argparse
@@ -14,6 +14,7 @@ import re
 import runpy
 import subprocess
 from kanto_ferris import apply_ferris_patch
+from kanto_rooftop_turrets import apply_rooftop_turrets_patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,10 +68,11 @@ def build_html(output):
             raise ValueError('参照本体が指定版と異なります: ' + name)
 
     source = ROOT / 'prototype/index.html'
-    text = scale_facade_pattern(apply_ferris_patch(source.read_text(encoding='utf-8')))
+    text = scale_facade_pattern(apply_rooftop_turrets_patch(apply_ferris_patch(source.read_text(encoding='utf-8'))))
     text = '<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n' + text
     text = re.sub(r'<link[^>]+href="https://fonts\.googleapis\.com[^>]+>\n?', '', text)
-    sources = [source, map_path, Path(__file__), ROOT / 'tools/kanto_ferris.py']
+    sources = [source, map_path, Path(__file__), ROOT / 'tools/kanto_ferris.py',
+               ROOT / 'tools/kanto_rooftop_turrets.py']
     for url, name in [('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', 'vendor/three-r128/three.min.js'),
                       ('sounds.js', 'prototype/sounds.js'), ('music.js', 'prototype/music.js')]:
         path = ROOT / name
@@ -131,6 +133,9 @@ window.__cityBattle=window.__g;
               'inlineDependencies': True, 'gameplayCodeUnchanged': False, 'gameplayRulesUnchanged': True,
               'landmarkPatch': {'kind':'静止した観覧車','layer':'ferris',
                                 'collision':'既存の三角形接触・射線・カメラ判定へ同じモデルを登録'},
+              'rooftopTurrets': {'count':len(definition.get('rooftopTurrets',[])),
+                                 'placement':'所属と世界座標を指定して既存の砲台を追加',
+                                 'combatRulesUnchanged':True},
               'renderScalePatch': {'scope': '窓・ガラス反射の空間間隔', 'scale': .5,
                                    'windowPitchMeters': [1.4, 1.75], 'windowMinimumY': 1,
                                    'reflectionSpatialCoefficients': [.22, .024], 'paletteChanged': False},

@@ -65,8 +65,9 @@ const config={seed:Number(process.argv[4]??20261024),team:process.argv[5]||'B'};
       ok(JSON.stringify(g.mapBounds)==='[250,250]'&&g.city.half===250,'地形は500×500m',g.mapBounds);
       ok(g.UNIT_H===4&&g.R===1.3,'機体は高さ4m・半径1.3mのまま',{height:g.UNIT_H,radius:g.R});
       ok(g.units.length===20,'標準は10対10',g.units.length);
-      ok(g.turrets.length===8&&g.radars.length===2&&g.catapults.length===10&&g.pods.length===9&&g.jumpPads.length===6,
-        '原案の両基地と街路施設を維持',{turrets:g.turrets.length,radars:g.radars.length,
+      ok(g.turrets.length===12&&g.turrets.filter(t=>!t.rooftop).length===8&&
+        g.radars.length===2&&g.catapults.length===10&&g.pods.length===9&&g.jumpPads.length===6,
+        '両基地の8砲台と街路施設を維持し屋上4砲台を追加',{turrets:g.turrets.length,radars:g.radars.length,
           catapults:g.catapults.length,pods:g.pods.length,jumpPads:g.jumpPads.length});
       ok(g.plants.length===5&&g.plants.every(p=>p.owner===null),'5プラントは中立から');
       const markers=[['A',-102.5,82.5],['B',-222,-127.5],['C',7.5,15],['D',187.5,130],['E',85.5,-102.5]];
@@ -178,6 +179,11 @@ const config={seed:Number(process.argv[4]??20261024),team:process.argv[5]||'B'};
 
     await check('Botによる全パッド利用',()=>{
       const {g,u,ok,reset,bounded}=__halfCheck,rows=[];
+      // 移動単体では敵機と同様、砲台への交戦・回避判断も止める。
+      // 描画と当たり判定は残し、後段の通常対戦では全砲台を元へ戻す。
+      const turretStates=g.turrets.map(t=>t.alive);
+      for(const turret of g.turrets)turret.alive=false;
+      try{
       for(const pad of g.jumpPads)for(const type of ['light','heavy'])for(const team of ['B','R']){
         reset(pad.pos.toArray(),type,team);u.isPlayer=false;u.role='attack';u.target=null;
         u.order={kind:'go',pos:pad.exit.clone(),until:Infinity};
@@ -193,6 +199,7 @@ const config={seed:Number(process.argv[4]??20261024),team:process.argv[5]||'B'};
           exit:pad.exit.toArray(),...(success?{}:{trace})});
       }
       return rows;
+      }finally{g.turrets.forEach((t,i)=>{t.alive=turretStates[i];});}
     });
     const failedPads=results['Botによる全パッド利用'].filter(row=>!row.success);
     if(failedPads.length)console.error('Botパッド未到達:',JSON.stringify(failedPads.map(({type,team,from,landing,exit})=>({type,team,from,landing,exit}))));
@@ -265,7 +272,8 @@ const config={seed:Number(process.argv[4]??20261024),team:process.argv[5]||'B'};
         reset([base.at[0]+16,base.height,base.at[1]],'heavy',team);
         g.radarUpdate(radar,.05);ok(radar.intruders.includes(u),'レーダーが基地の敵を検知',radar.team);
       }
-      for(const turret of g.turrets){
+      // 屋上4基の俯射・遮蔽・修理は kanto_rooftop_turrets_check.cjs で検査する。
+      for(const turret of g.turrets.filter(t=>!t.rooftop)){
         const team=turret.team==='B'?'R':'B';let fired=false;
         for(let angle=0;angle<Math.PI*2&&!fired;angle+=Math.PI/6){
           const x=turret.pos.x+Math.cos(angle)*18,z=turret.pos.z+Math.sin(angle)*18,y=g.terrainH(x,z);

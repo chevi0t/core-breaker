@@ -118,6 +118,19 @@ def main():
         'center':[110.375,43,-87.975],'radius':14,'roofY':27,'yaw':-.0822517,
         'color':'#bf3548','cabins':12,'supportHalfWidth':5,'supportHalfDepth':1.5,
     }
+    # 占拠地点を別角度から守る固定所属の砲台。atは他施設と同じ[x,z,y]。
+    d['rooftopTurrets']=[]
+    for plant,team,at in [('A','B',[-106,40,24]),('A','B',[-78,113,22]),
+                          ('E','R',[57,-112,32]),('E','R',[109,-96,22])]:
+        x,z,y=at
+        footprint=box(x-1.65,z-1.65,x+1.65,z+1.65)
+        roof=shapely.union_all([city.polygon(v) for v in volumes if abs(v[2]-y)<.01])
+        assert roof.covers(footprint),('屋上砲台の台座を支持する屋根が不足',plant,at)
+        assert not any(v[1]<y+4 and v[2]>y+.1 and city.polygon(v).intersects(footprint)
+                       for v in volumes),('屋上砲台が上層の建物と干渉',plant,at)
+        _,px,pz,_=next(p for p in d['plants'] if p[0]==plant)
+        d['rooftopTurrets'].append({'team':team,'plant':plant,'at':at,
+                                    'yaw':round(math.atan2(x-px,z-pz),6)})
     solids=[(city.polygon(v),v[1],v[2]) for v in volumes]
     def local(t,p):
         b=d['bases'][t]['at'];s=1 if t=='B' else -1
@@ -208,6 +221,7 @@ console.log(JSON.stringify(Object.fromEntries(Object.entries(d.meshes).map(([k,v
         'triangles':sum(counts.values()),
         'ferrisWheel':{'model':data['district']['ferrisWheel'],'triangles':counts['ferris'],
             'removedBox':removed_wheel_box,'static':True,'gameScaleApproximation':True},
+        'rooftopTurrets':d['rooftopTurrets'],
         'localFacilityClearing':trim,'facilityAdjustments':adjustments,'navigation':nav_stats,
         'bases':d['bases'],'plants':d['plants'],'shelters':shelters,'jumpPads':d['jumpPads'],'plantCatapults':d['plantCatapults'],
         'baseEquipment':{t:{'turrets':[local(t,p) for p in d['turrets']],

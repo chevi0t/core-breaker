@@ -5,9 +5,9 @@
     500,
     500
   ],
-  "mapDataBytes": 96134,
-  "htmlBytes": 2975696,
-  "htmlSHA256": "90e8a88f1b9108b692b1d09d3a7c7cb383efc76b015ad03b5048749c781217b2",
+  "mapDataBytes": 96387,
+  "htmlBytes": 2976677,
+  "htmlSHA256": "1714c985591a8528af6406a9efc46d232fab2eaf99cac531fb6164017a4e41a7",
   "singleMap": true,
   "inlineDependencies": true,
   "gameplayCodeUnchanged": false,
@@ -16,6 +16,11 @@
     "kind": "静止した観覧車",
     "layer": "ferris",
     "collision": "既存の三角形接触・射線・カメラ判定へ同じモデルを登録"
+  },
+  "rooftopTurrets": {
+    "count": 4,
+    "placement": "所属と世界座標を指定して既存の砲台を追加",
+    "combatRulesUnchanged": true
   },
   "renderScalePatch": {
     "scope": "窓・ガラス反射の空間間隔",
@@ -33,9 +38,10 @@
   },
   "sourceHashes": {
     "/workspace/core-breaker-umeda-half/prototype/index.html": "b303eeab2daf73abd679e6b4701d302cdbb00573ffa41eb5ee89e6053559a223",
-    "/workspace/core-breaker-umeda-half/mapdesign/kanto_half/map.json": "9e766e2f24beaeb2f6d7bdb236ef0b5b170079fdf7fe548651bbfa6b663e743e",
-    "/workspace/core-breaker-umeda-half/tools/build_kanto_half_play.py": "e008d9c9df1510c194478aa946f010b30ee22bf5fd875dc56a42eaf962bd60a1",
+    "/workspace/core-breaker-umeda-half/mapdesign/kanto_half/map.json": "ba42c0b19b0cdef81728c914517fd9f626af2444dd2ca2abcb7117881bdb4dcf",
+    "/workspace/core-breaker-umeda-half/tools/build_kanto_half_play.py": "9a22379b0e2425cfe4ee520eb0dded91a8f431a12b2ee6c59368baea113855be",
     "/workspace/core-breaker-umeda-half/tools/kanto_ferris.py": "7c421d83d76820b09064a8777bf00f42e49709dfb8db6a73546f8df8969c613b",
+    "/workspace/core-breaker-umeda-half/tools/kanto_rooftop_turrets.py": "344f4042373174089482dd2a6ebf4d54db430494db9f1b48845e22db2eb90728",
     "/workspace/core-breaker-umeda-half/vendor/three-r128/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
     "/workspace/core-breaker-umeda-half/prototype/sounds.js": "8e1eac15f97c861d5dbdce90b8ab5ca1f5b826bb597fc10d16b1e87d04448285",
     "/workspace/core-breaker-umeda-half/prototype/music.js": "ce637eaf5a40f0cd2aa0a7bca8df827cb08012f2c90c6d9001cacc11311702a1",
