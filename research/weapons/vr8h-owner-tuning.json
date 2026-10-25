@@ -1,0 +1,27 @@
+{
+  "dateJapan": "2026-10-25",
+  "key": "rocketH",
+  "model": "VR-8H",
+  "source": "オーナー指定。wiki転記値とは分けた本作調整。",
+  "request": "VR-8Hだけ、重い弾頭を約40mで推進剤切れにし、その先を曲線弾道にする。ショットガン速装型の変更ではない。",
+  "before": { "trajectory": "直線", "speed": 45, "defaultLife": 3 },
+  "after": { "burnDistance": 40, "coastGrav": 24, "speed": 45, "defaultLife": 3 },
+  "decisions": [
+    "推進距離は銃口からの実際の飛翔距離。斜めや上向きでも40mで切り替える。",
+    "推進終了時の速度を維持し、落下だけ加える。空気抵抗や追加の減速は入れない。",
+    "落下の加速度24m/s²は、既存の投擲弾と同じ値から選んだ本作調整。重さから求めた物理値ではない。",
+    "照準方向へ発射する。着地点へ届かせる自動補正やロック追尾は付けず、遠距離は上を狙う。",
+    "燃焼の境界で積分を分ける。落下中は1/120秒以下で連続衝突判定し、低FPSでも弾道と壁の判定を揃える。",
+    "推進終了後は新しい噴射炎を出さず、弾体を速度の向きへ傾ける。"
+  ],
+  "horizontalShotDropMeters": { "40": 0, "60": 2.3703703703703702, "80": 9.481481481481481 },
+  "preserved": ["dmg", "blast", "core", "speed", "rpm", "mag", "mags", "reload", "kg", "spread", "recoil", "寿命", "爆風減衰", "遮蔽判定", "発射時の死因名"],
+  "scope": "rocketHの専用分岐のみ。他の293武器・ショットガン速装型・機体パーツ・マップ・保存形式を変更しない。",
+  "verification": {
+    "targetedChecks": 86,
+    "changedWeaponKeys": ["rocketH"],
+    "preservedProjectileTypes": 108,
+    "quickCheck": "origin/main比較・rocketH実射・city/dock各60秒のBot戦に成功",
+    "errors": []
+  }
+}
