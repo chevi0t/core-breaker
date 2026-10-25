@@ -2855,10 +2855,36 @@ function lobTo(from, p, v, g) {
   const th = Math.atan2(v * v - Math.sqrt(disc), g * h);
   return { vel: new T.Vector3(dx / h * v * Math.cos(th), v * Math.sin(th), dz / h * v * Math.cos(th)), at };
 }
+// 推進距離のある重弾頭ロケット専用。燃焼中は直進し、燃え尽きた瞬間の速度から重力落下する。
+// 燃焼の境目で時間を分け、落下中は1/120秒以下の線分で衝突を調べる（低FPSでも薄い壁を抜けない）。
+function burnoutRocketTick(sh, dt) {
+  const S = sh.spec;
+  sh.burnLeft ??= S.burnDistance;
+  let left = Math.min(dt, sh.life);
+  while (left > 1e-8) {
+    const burning = sh.burnLeft > 1e-6;
+    const step = burning ? Math.min(left, sh.burnLeft / sh.vel.length()) : Math.min(left, 1 / 120);
+    const move = sh.vel.clone().multiplyScalar(step);
+    if (!burning) { move.y -= S.coastGrav * step * step / 2; sh.vel.y -= S.coastGrav * step; }
+    const distance = move.length(), dir = move.clone().normalize();
+    const hit = castFrom(sh.pos, dir, sh.owner, distance);
+    if (hit) { secondaryBurst(sh, hit.point.clone().addScaledVector(dir, -.2), hit.ref); return false; }
+    sh.pos.add(move);
+    const gy = terrainH(sh.pos.x, sh.pos.z);
+    if (sh.pos.y <= gy) { secondaryBurst(sh, sh.pos.clone().setY(gy), null); return false; }
+    if (burning) sh.burnLeft = Math.max(0, sh.burnLeft - distance);
+    sh.life -= step; sh.age = (sh.age || 0) + step; left -= step;
+  }
+  sh.mesh.position.copy(sh.pos);
+  sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().normalize());
+  if (sh.burnLeft > 1e-6 && sh.life > 1e-8) flash(sh.pos, 0xffb070, .9, .12);
+  return sh.life > 1e-8;
+}
 function shellUpdate(dt) {
   for (let i = shells.length - 1; i >= 0; i--) {
     const sh = shells[i], S = sh.spec;
     if (S.bladeWave) { if (!bladeWaveTick(sh, dt)) { scene.remove(sh.mesh); shells.splice(i, 1); } continue; }
+    if (S.burnDistance !== undefined) { if (!burnoutRocketTick(sh, dt)) { scene.remove(sh.mesh); shells.splice(i, 1); } continue; }
     sh.life -= dt;
     sh.age=(sh.age||0)+dt;
     const step = S.guided ? missileFlight(sh, dt) : dt;
@@ -7340,6 +7366,9 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
   Object.assign(w, { sfx: 'shotgunBurst', burst: 3, rpm: 60 / interval, gap: cycle - 3 * interval, spread: w.spread / 3,
     desc: '狭くまとまる散弾を3点バーストで撃つ。装填6発で2組撃てる' });
 }
+// オーナー指定（2026-10-25）：VR-8Hだけ40mで推進剤が尽きる。発射角の自動補正はせず、自分で上を狙う。
+Object.assign(WEAPONS.rocketH.proj, { burnDistance: 40, coastGrav: 24 });
+WEAPONS.rocketH.desc = '重い弾頭を撃つ。40mで噴射が止まり、その先は重力で落ちる';
 // cat：シリーズの武器の名前（型の名前の「・」より前）、label：型の名前（「・」より後。型が1つなら無し、先頭は標準型）
 for (const [id, se] of Object.entries(SERIES)) {
   se.cat = WEAPONS[se.types[0][0]].name.split('・')[0];
@@ -9573,6 +9602,7 @@ function wStats(w) {
       if (P.detDelay) st.push(`感知後 ${P.detDelay}秒・転倒×${P.knockMult}（暫定）`);
       if (w.chargeStages) st.push(`威力 ${w.chargeStages.join('／')}・蓄圧 ${w.chargeTime}秒`);
       if (P.max) st.push(`同時に${P.max}個`);
+      if (P.burnDistance !== undefined) st.push(`推進 ${P.burnDistance}m・以遠は落下`);
       if (w.missile) st.push(`捕捉 ${w.missile.time}秒・最大${w.missile.locks}回`, `1捕捉${w.missile.shots}発・誘導${w.missile.rank}`, `弾速 ${P.speed}〜${P.maxSpeed}m/s`);
       st.push(ammo(), `リロード ${w.reload}秒`);
     }
