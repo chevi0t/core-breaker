@@ -7332,6 +7332,14 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
     se.types.push([key, model]);
   });
 }
+// オーナー調整（2026-10-25）：速装型は装填数を保ち、3点バースト・拡散率1/3。
+// 0.1秒間隔で3発。次の組まで含む周期は変更前の1射分を保つ。
+{
+  const w = WEAPONS.shotgunQ, cycle = 60 / w.rpm, interval = .1;
+  SFX.shotgunBurst = { ...SFX.shotgun, gap: .08 }; // 既存の散弾音を3発とも鳴らす。
+  Object.assign(w, { sfx: 'shotgunBurst', burst: 3, rpm: 60 / interval, gap: cycle - 3 * interval, spread: w.spread / 3,
+    desc: '狭くまとまる散弾を3点バーストで撃つ。装填6発で2組撃てる' });
+}
 // cat：シリーズの武器の名前（型の名前の「・」より前）、label：型の名前（「・」より後。型が1つなら無し、先頭は標準型）
 for (const [id, se] of Object.entries(SERIES)) {
   se.cat = WEAPONS[se.types[0][0]].name.split('・')[0];
