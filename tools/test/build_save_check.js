@@ -29,6 +29,8 @@ const dir=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]||'/tmp/
  async function part(p,slot,key){await p.locator('[data-cslot="'+slot+'"]').click();if(!await p.locator('[data-pick="'+key+'"]').count()){const series=await p.evaluate(([slot,key])=>__g.PARTS[slot][key].series,[slot,key]);await p.locator('#cuSeries [data-series="'+series+'"]').click();}await p.locator('[data-pick="'+key+'"]').click();}
  async function reload(p){await p.reload();await p.locator('[data-page="pgCustom"]').click();}
  async function download(p,name){const promise=p.waitForEvent('download');await p.locator('#buildExport').click();const d=await promise;await d.saveAs(path.join(out,name));return JSON.parse(fs.readFileSync(path.join(out,name),'utf8'));}
+ // ファイル選択のchangeを待ち、直前の読み込み結果を次の入力の完了と取り違えない。
+ async function importFile(p,file){await p.evaluate(()=>{window.buildImportChanged=new Promise(resolve=>document.getElementById('buildImportFile').addEventListener('change',()=>resolve(true),{once:true}));});await p.locator('#buildImportFile').setInputFiles(file);await p.evaluate(()=>window.buildImportChanged);}
  try{
   const c=await context(),p=await open(c);const initial=await snapshot(p);
   yes(initial.cur===1&&initial.mech.head==='light3'&&initial.loadout.heavy.sub==='rocketH','旧形式の現在構成・機体・武器を保持して開始');
@@ -42,17 +44,17 @@ const dir=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]||'/tmp/
   yes(exported.format==='core-breaker-settings'&&exported.cur===2&&exported.list.length===3,'現在構成と3構成をファイルへ書き出す');
   await part(p,'head','heavy2');await p.locator('#buildRestore').click();yes((await snapshot(p)).mech.head==='light2','前の保存へ戻せる');
   await p.locator('#buildRestore').click();yes((await snapshot(p)).mech.head==='heavy2','復元を取り消して戻せる');
-  const beforeBad=await snapshot(p);await p.locator('#buildImportFile').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"bad":true}')});
+  const beforeBad=await snapshot(p);await importFile(p,{name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"bad":true}')});
   await p.waitForFunction(()=>document.getElementById('buildSaveStatus').textContent.includes('読み込めません'));
   assert.deepEqual(await snapshot(p),beforeBad);yes(true,'不正な設定ファイルで現在構成を消さない');
   const unknown=JSON.parse(JSON.stringify(exported));unknown.list[0].mech.head='__proto__';
-  await p.locator('#buildImportFile').setInputFiles({name:'unknown.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(unknown))});
+  await importFile(p,{name:'unknown.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(unknown))});
   await p.waitForFunction(()=>document.getElementById('buildSaveStatus').textContent.includes('読み込めません'));assert.deepEqual(await snapshot(p),beforeBad);yes(true,'未知のパーツを含む設定は適用しない');
-  await p.locator('#buildImportFile').setInputFiles(path.join(out,'settings.json'));await p.waitForFunction(()=>__g.mechCfg.head==='light2');
+  await importFile(p,path.join(out,'settings.json'));await p.waitForFunction(()=>__g.mechCfg.head==='light2');
   yes((await snapshot(p)).cur===2,'有効な設定ファイルから現在構成と全3構成を読み込む');
   await p.evaluate(()=>{const text=File.prototype.text;File.prototype.text=function(){return this.name==='slow-settings.json'?new Promise(resolve=>{window.releaseSlowImport=async()=>resolve(await text.call(this));}):text.call(this);};});
-  const slow=JSON.parse(JSON.stringify(exported));slow.list[slow.cur].mech.head='heavy2';await p.locator('#buildImportFile').setInputFiles({name:'slow-settings.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(slow))});
-  await p.waitForFunction(()=>!!window.releaseSlowImport);await p.locator('#buildImportFile').setInputFiles(path.join(out,'settings.json'));await p.waitForFunction(()=>document.getElementById('buildSaveStatus').textContent.includes('保存済み'));
+  const slow=JSON.parse(JSON.stringify(exported));slow.list[slow.cur].mech.head='heavy2';await importFile(p,{name:'slow-settings.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(slow))});
+  await p.waitForFunction(()=>!!window.releaseSlowImport);await importFile(p,path.join(out,'settings.json'));await p.waitForFunction(()=>document.getElementById('buildSaveStatus').textContent.includes('保存済み'));
   await p.evaluate(()=>window.releaseSlowImport());yes((await snapshot(p)).mech.head==='light2','連続して選んだ設定ファイルは最後に選んだものを優先');
   const peer=await open(c,true);await part(p,'head','heavy2');await peer.waitForFunction(()=>__g.mechCfg.head==='heavy2');yes(true,'別タブの変更を反映');
   await part(peer,'body','light3');await p.waitForFunction(()=>__g.mechCfg.body==='light3');yes((await snapshot(p)).mech.head==='heavy2','別タブで違う部位を変えても既存部位を保持');
