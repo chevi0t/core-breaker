@@ -1,0 +1,57 @@
+{
+  "dateJapan": "2026-10-25",
+  "key": "shotgunQ",
+  "source": "オーナー指定。元のwiki転記値とは分けて記録する。",
+  "request": "ショットガン速装型：装填数は現行のまま、3点バースト、拡散率1/3",
+  "before": {
+    "mag": 6,
+    "spread": 0.08,
+    "rpm": 60
+  },
+  "after": {
+    "mag": 6,
+    "spread": 0.02666666666666667,
+    "burst": 3,
+    "rpm": 600,
+    "gap": 0.7
+  },
+  "timingDecision": {
+    "burstIntervalSeconds": 0.1,
+    "burstStartIntervalSeconds": 1,
+    "reason": "3発を短い間隔で撃ち、次の組を始める周期は変更前の1射分を保つ本作調整"
+  },
+  "sound": {
+    "file": "shotgun",
+    "minimumIntervalSeconds": 0.08,
+    "reason": "通常散弾音の0.2秒制限で2発目を省略しないよう、同じ音源の専用設定を使う"
+  },
+  "preserved": [
+    "mag",
+    "mags",
+    "reload",
+    "dmg",
+    "pellets",
+    "falloff",
+    "kg",
+    "recoil",
+    "recoilH",
+    "recoilDelay",
+    "recoilRecovery"
+  ],
+  "existingBehavior": "1発につき弾倉を1発消費。引き金を離しても組の残りは撃つ。残弾1〜2発なら残りだけ発射。持ち替え・修理中は未射出分を中断。",
+  "verification": {
+    "targetedChecks": 43,
+    "changedWeaponKeys": [
+      "shotgunQ"
+    ],
+    "otherWeaponsArmoryParts": "変更前と一致",
+    "audioShotsPerBurst": 3,
+    "normalMouseInputAmmo": [
+      6,
+      3,
+      0
+    ],
+    "quickCheck": "origin/main比較・shotgunQ実射・city/dock各60秒のBot戦に成功",
+    "errors": []
+  }
+}
