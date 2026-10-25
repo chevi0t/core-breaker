@@ -996,6 +996,8 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="pgh"><h2>機体カスタマイズ</h2><button type="button" class="back">戻る</button></div>
       <p class="cuNote">左で部位か武器の枠を選び、中のシリーズを開いて型を選びます。型にマウスを乗せる（キーボードは↑↓）と右に今との差が出て、クリック（Enter）で付けます。選んだ物はこのブラウザの今の構成に保存され、武器は次の出撃、パーツと色は次の試合から使われます。</p>
       <div class="cuBar"><div class="ctabs" id="cuTabs" role="tablist" aria-label="兵装"></div><div class="ctabs" id="cuBuilds" role="group" aria-label="保存した構成"></div></div>
+      <p id="buildSaveStatus" class="note" role="status" aria-live="polite"></p>
+      <div class="ctabs" role="group" aria-label="設定の保存と復元"><button type="button" id="buildExport">設定を書き出す</button><button type="button" id="buildImport">設定を読み込む</button><button type="button" id="buildRestore">前の保存に戻す</button><button type="button" id="buildSaveRetry" hidden>保存を再試行</button><input type="file" id="buildImportFile" accept=".json,application/json" hidden></div>
       <div class="cuCols">
         <div class="cuCol" id="cuSlotList" role="group" aria-label="部位と武器の枠"></div>
         <div class="cuCol" id="cuSeries"></div>
@@ -4122,13 +4124,35 @@ const WEAPON_KG = { missile: 350, mlrs: 500, waveSword: 230, sabre: 180, rod: 19
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
 const MECH_KEY = 'coreBreakerMech', MECH_DEFAULT = { head: 'standard', body: 'standard', arms: 'standard', legs: 'standard', color: 'team' };
+const BUILD_KEY = 'coreBreakerBuilds', BUILD_BACKUP_KEY = 'coreBreakerBuildsBackup';
+let legacyRecoveryRecord = null;
+const copyBuildData = v => JSON.parse(JSON.stringify(v));
+// 機体と4兵装を1レコードへ保存する。旧版の3キーは読み込み・互換書き出しに残す。
+function parseBuildRecord(text) {
+  try {
+    const b = JSON.parse(text);
+    const parts = ['head', 'body', 'arms', 'legs', 'color'], classes = ['assault', 'heavy', 'raid', 'support'], slots = ['main', 'sub', 'aux', 'sp'];
+    return b?.version === 2 && typeof b.revision === 'string' && [0, 1, 2].includes(b.cur) && Array.isArray(b.list) && b.list.length === 3 &&
+      b.list.every(v => parts.every(k => typeof v?.mech?.[k] === 'string') && classes.every(c => slots.every(k => typeof v?.loadout?.[c]?.[k] === 'string'))) ? b : null;
+  } catch (_) { return null; }
+}
+function readBuildBackup() { try { return parseBuildRecord(localStorage.getItem(BUILD_BACKUP_KEY)) || legacyRecoveryRecord; } catch (_) { return legacyRecoveryRecord; } }
+const buildBoot = (() => {
+  try {
+    const text = localStorage.getItem(BUILD_KEY), primary = parseBuildRecord(text), backup = readBuildBackup();
+    let legacy = null; try { legacy = JSON.parse(text); } catch (_) {}
+    const damaged = !!text && !primary && !backup && !(Array.isArray(legacy?.list) && legacy.list.length === 3);
+    return { record: primary || backup, restored: !primary && !!backup, legacy, damaged };
+  } catch (_) { return { record: null, restored: false, legacy: null, unavailable: true }; }
+})();
+const buildSaveState = { failed: !!(buildBoot.unavailable || buildBoot.restored), text: buildBoot.unavailable ? 'ブラウザ保存を利用できません。変更後は「設定を書き出す」で保管できます。' : buildBoot.restored ? '前回のバックアップから設定を復元しました。「保存を再試行」で保存し直せます。' : buildBoot.record ? `このブラウザの保存を読み込みました（構成${buildBoot.record.cur + 1}）。` : buildBoot.damaged ? '保存記録を読み込めず、残っている機体・装備の設定で開始しました。設定ファイルから読み込むこともできます。' : '変更はこのブラウザへ自動保存します。ファイルへの書き出しでも保管できます。' };
 function normMech(v) {
   const o = v && typeof v === 'object' ? v : {};
   return { ...Object.fromEntries(PART_SLOTS.map(k => [k, Object.hasOwn(PARTS[k], o[k]) ? o[k] : 'standard'])), color: PAINTS.some(p => p.id === o.color) ? o.color : 'team' };
 }
 // プレイヤーの機体（パーツと色）。このブラウザに保存し、次の試合から使う
-const mechCfg = (() => { try { return normMech(JSON.parse(localStorage.getItem(MECH_KEY))); } catch (_) { return normMech(null); } })();
-function saveMech() { try { localStorage.setItem(MECH_KEY, JSON.stringify(mechCfg)); } catch (_) {} saveBuilds(); }
+const mechCfg = (() => { if (buildBoot.record) return normMech(buildBoot.record.list[buildBoot.record.cur].mech); try { return normMech(JSON.parse(localStorage.getItem(MECH_KEY))); } catch (_) { return normMech(null); } })();
+function saveMech() { return saveBuilds(); }
 // 機体の性能：パーツと4つの武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなる（wiki「移動速度と重量超過」。速さには下限がある）。
 // 脚の速さは、標準型（歩行6・ダッシュ21.8・巡航19.7）がこれまでの WALK・BURST・DASH になる比で換える
 // セットボーナス（v0.13）：4部位が同じシリーズなら、そのシリーズの set を返す
@@ -7439,34 +7463,137 @@ function normLoadout(saved) {
   return Object.fromEntries(CLASS_KEYS.map(c => [c, Object.fromEntries(SLOTS.map(k => [k, ARMORY[c][k].includes(o[c] && o[c][k]) ? o[c][k] : ARMORY[c][k][0]]))]));
 }
 const loadout = (() => {
+  if (buildBoot.record) return normLoadout(buildBoot.record.list[buildBoot.record.cur].loadout);
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(LOADOUT_KEY)) || {}; } catch (_) {}
   return normLoadout(saved);
 })();
 const MELEE_WEAPONS = Object.keys(WEAPONS).filter(key => WEAPONS[key].type === 'sword');
 let arenaMeleeKey = loadout.assault.aux;
-function saveLoadout() { try { localStorage.setItem(LOADOUT_KEY, JSON.stringify(loadout)); } catch (_) {} saveBuilds(); }
+function saveLoadout() { return saveBuilds(); }
 // 保存した構成（v0.13、ユーザー決定）：機体（パーツと色）と4兵装の武器の組み合わせを3つまで保存し、カスタマイズの画面とメニューで切り替える。
 // 今の構成は mechCfg と loadout そのもので、変えるたびに builds.list[builds.cur] へ写して保存する
-const BUILD_KEY = 'coreBreakerBuilds';
 const snapBuild = () => ({ mech: { ...mechCfg }, loadout: JSON.parse(JSON.stringify(loadout)) });
 const builds = (() => {
-  let b = null;
-  try { b = JSON.parse(localStorage.getItem(BUILD_KEY)); } catch (_) {}
+  let b = copyBuildData(buildBoot.record || buildBoot.legacy);
+  if (!buildBoot.record && b) {
+    const candidate = { ...b, format: 'core-breaker-settings', version: 2, revision: 'legacy-recovery' };
+    if (validBuildImport(candidate)) {
+      const old = candidate.list[candidate.cur];
+      if ([...PART_SLOTS, 'color'].some(k => old.mech[k] !== mechCfg[k]) || CLASS_KEYS.some(c => SLOTS.some(k => old.loadout[c][k] !== loadout[c][k]))) {
+        legacyRecoveryRecord = copyBuildData(candidate);
+        buildSaveState.text = '保存された構成と現在の機体・装備に差があります。「前の保存に戻す」で構成側の設定を復元できます。';
+      }
+    }
+  }
   if (!b || !Array.isArray(b.list) || b.list.length !== 3) b = { cur: 0, list: [0, 1, 2].map(snapBuild) };
   if (![0, 1, 2].includes(b.cur)) b.cur = 0;
+  b.list = b.list.map(v => ({ mech: normMech(v?.mech), loadout: normLoadout(v?.loadout) }));
   b.list[b.cur] = snapBuild(); // 今の機体と武器（それぞれのキーにも保存している）が正
   return b;
 })();
-function saveBuilds() { builds.list[builds.cur] = snapBuild(); try { localStorage.setItem(BUILD_KEY, JSON.stringify(builds)); } catch (_) {} }
+let lastBuildRecord = copyBuildData(buildBoot.record || { version: 2, revision: 'legacy', cur: builds.cur, list: builds.list });
+function buildRecord() {
+  const list = copyBuildData(builds.list); list[builds.cur] = snapBuild();
+  return { format: 'core-breaker-settings', version: 2, revision: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${performance.now()}`, savedAt: new Date().toISOString(), cur: builds.cur, list };
+}
+function renderBuildSaveStatus() {
+  $('buildSaveStatus').textContent = buildSaveState.text;
+  $('buildSaveStatus').style.color = buildSaveState.failed ? '#ffbd7f' : '';
+  $('buildSaveRetry').hidden = !buildSaveState.failed;
+  $('buildRestore').disabled = !readBuildBackup();
+}
+function applyBuildRecord(record, refresh = true) {
+  builds.cur = record.cur;
+  builds.list = record.list.map(v => ({ mech: normMech(v.mech), loadout: normLoadout(v.loadout) }));
+  Object.assign(mechCfg, builds.list[builds.cur].mech);
+  for (const c of CLASS_KEYS) Object.assign(loadout[c], builds.list[builds.cur].loadout[c]);
+  if (refresh) { cuHover = null; renderClsButtons(); renderBuildTabs(); if (!$('pgCustom').hidden) renderCustom(); }
+}
+// 別タブの新しい保存へ、こちらで変更した項目だけを重ねる。古いタブの初期値で全項目を戻さない。
+function mergeBuildChanges(latest, wanted) {
+  const next = copyBuildData(latest); next.cur = wanted.cur;
+  for (let i = 0; i < 3; i++) {
+    const before = lastBuildRecord.list[i], after = wanted.list[i], merged = next.list[i];
+    for (const k of [...PART_SLOTS, 'color']) if (before.mech[k] !== after.mech[k]) merged.mech[k] = after.mech[k];
+    for (const c of CLASS_KEYS) for (const k of SLOTS) if (before.loadout[c][k] !== after.loadout[c][k]) merged.loadout[c][k] = after.loadout[c][k];
+  }
+  return { ...wanted, list: next.list };
+}
+// 旧版のタブはrevisionを更新せずに保存するため、中身も比べる。
+function sameBuildRecord(a, b) { return !!a && !!b && a.revision === b.revision && a.cur === b.cur && JSON.stringify(a.list) === JSON.stringify(b.list); }
+function saveBuilds(replace = false) {
+  builds.list[builds.cur] = snapBuild();
+  let record = buildRecord();
+  try {
+    const latest = parseBuildRecord(localStorage.getItem(BUILD_KEY));
+    if (!replace && latest && !sameBuildRecord(latest, lastBuildRecord)) record = mergeBuildChanges(latest, record);
+    try { localStorage.setItem(BUILD_BACKUP_KEY, JSON.stringify(latest || !replace && legacyRecoveryRecord || lastBuildRecord)); } catch (_) {} // 容量不足でも本体の保存を試す。
+    const text = JSON.stringify(record); localStorage.setItem(BUILD_KEY, text);
+    if (localStorage.getItem(BUILD_KEY) !== text) throw Error('保存結果を確認できません');
+    applyBuildRecord(record, false); lastBuildRecord = copyBuildData(record);
+    legacyRecoveryRecord = null;
+    // 旧版と併用する場合の互換キー。失敗しても正本は上で保存できている。
+    try { localStorage.setItem(MECH_KEY, JSON.stringify(mechCfg)); localStorage.setItem(LOADOUT_KEY, JSON.stringify(loadout)); } catch (_) {}
+    buildSaveState.failed = false; buildSaveState.text = `このブラウザに保存済み（構成${builds.cur + 1}）。`;
+    renderBuildSaveStatus(); return true;
+  } catch (_) {
+    buildSaveState.failed = true; buildSaveState.text = 'ブラウザに保存できませんでした。いまの設定は画面に残っています。「設定を書き出す」で保管するか、保存を再試行してください。';
+    renderBuildSaveStatus(); return false;
+  }
+}
 function switchBuild(i) {
-  if (i === builds.cur) return;
-  saveBuilds(); builds.cur = i;
+  if (![0, 1, 2].includes(i) || i === builds.cur) return;
+  builds.list[builds.cur] = snapBuild(); builds.cur = i;
   const b = builds.list[i] || {};
   Object.assign(mechCfg, normMech(b.mech));
   const ld = normLoadout(b.loadout);
   for (const c of CLASS_KEYS) Object.assign(loadout[c], ld[c]);
-  saveMech(); saveLoadout();
+  saveBuilds();
+}
+function validBuildImport(record) {
+  if (record?.format !== 'core-breaker-settings' || !parseBuildRecord(JSON.stringify(record))) return false;
+  return record.list.every(v => {
+    const mech = normMech(v.mech), weapons = normLoadout(v.loadout);
+    return [...PART_SLOTS, 'color'].every(k => mech[k] === v.mech[k]) && CLASS_KEYS.every(c => SLOTS.every(k => weapons[c][k] === v.loadout[c][k]));
+  });
+}
+let buildImportSequence = 0;
+function bindBuildPersistenceUI() {
+  $('buildSaveRetry').addEventListener('click', () => { saveBuilds(); renderCustom(); });
+  $('buildExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(buildRecord(), null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = `core-breaker-settings-${new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date())}.json`;
+    link.hidden = true; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  $('buildImport').addEventListener('click', () => $('buildImportFile').click());
+  $('buildImportFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    const sequence = ++buildImportSequence;
+    buildSaveState.text = '設定ファイルを読み込んでいます…'; renderBuildSaveStatus();
+    try {
+      if (file.size > 65536) throw Error('設定ファイルが大きすぎます');
+      const text = await file.text(); if (sequence !== buildImportSequence) return;
+      const record = JSON.parse(text);
+      if (!validBuildImport(record)) throw Error('対応する機体・装備の設定ファイルではありません');
+      applyBuildRecord(record, false); saveBuilds(true); renderCustom(); renderClsButtons();
+    } catch (_) { if (sequence !== buildImportSequence) return; buildSaveState.text = '設定を読み込めませんでした。コアブレイカーから書き出したJSONを選んでください。いまの設定は変更していません。'; renderBuildSaveStatus(); }
+  });
+  $('buildRestore').addEventListener('click', () => {
+    const record = readBuildBackup();
+    if (!record) { buildSaveState.text = '復元できる前の保存がありません。'; renderBuildSaveStatus(); return; }
+    applyBuildRecord(record, false); saveBuilds(true); renderCustom(); renderClsButtons();
+  });
+  addEventListener('storage', e => {
+    if (e.key !== BUILD_KEY && e.key !== null) return;
+    let record = null; try { record = parseBuildRecord(localStorage.getItem(BUILD_KEY)); } catch (_) {}
+    if (!record) { buildSaveState.failed = true; buildSaveState.text = '別のタブで保存データが変更・削除されました。この画面の設定は保持しています。必要なら書き出して保管してください。'; renderBuildSaveStatus(); return; }
+    if (sameBuildRecord(record, lastBuildRecord)) return;
+    if (buildSaveState.failed) { buildSaveState.text = '別のタブでも更新されました。未保存の設定は保持しています。再試行すると変更した項目を統合します。'; renderBuildSaveStatus(); return; }
+    if (!sameBuildRecord(readBuildBackup(), lastBuildRecord)) try { localStorage.setItem(BUILD_BACKUP_KEY, JSON.stringify(lastBuildRecord)); } catch (_) {}
+    applyBuildRecord(record); lastBuildRecord = copyBuildData(record);
+    buildSaveState.text = `別のタブの保存を反映しました（構成${builds.cur + 1}）。`; renderBuildSaveStatus();
+  });
 }
 const CLASS_HOTKEYS = ['KeyZ', 'KeyX', 'KeyC', 'KeyV'];
 // 各チームのBotの兵装と役割（番号順。味方の0番はプレイヤー）。5対5は最初の5機、10対10は10機
@@ -9281,8 +9408,10 @@ renderClsButtons();
 function renderBuildTabs() {
   const h = '<span class="lbl">構成</span>' + [0, 1, 2].map(i => `<button type="button" data-build="${i}" aria-pressed="${i === builds.cur}">構成${i + 1}</button>`).join('');
   $('ovBuild').innerHTML = h; $('cuBuilds').innerHTML = h;
+  renderBuildSaveStatus();
 }
 renderBuildTabs();
+bindBuildPersistenceUI();
 for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
 // ---- メニュー（操作説明・マップ選択・武装選択） ----
 // 出撃側はマップ変更・再試合でも維持し、再読み込み時は南へ戻す。選択は次の試合から適用する。
