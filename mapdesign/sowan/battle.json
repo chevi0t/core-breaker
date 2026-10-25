@@ -1,0 +1,699 @@
+[
+  {
+    "map": "sowan",
+    "seconds": 150,
+    "matchDuration": 600,
+    "ended": false,
+    "winner": null,
+    "endedBy": null,
+    "core": [
+      7875,
+      8044
+    ],
+    "kills": {
+      "B": 17,
+      "R": 20
+    },
+    "captures": 5,
+    "captureEvents": [
+      {
+        "t": 21.6,
+        "id": "A",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 24.6,
+        "id": "D",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 48.4,
+        "id": "B",
+        "from": null,
+        "to": "B"
+      },
+      {
+        "t": 51.3,
+        "id": "C",
+        "from": null,
+        "to": "R"
+      },
+      {
+        "t": 145.8,
+        "id": "D",
+        "from": "R",
+        "to": null
+      }
+    ],
+    "occupancy": {
+      "A:neutral": 21.55000000000017,
+      "B:neutral": 48.39999999999939,
+      "C:neutral": 51.29999999999922,
+      "D:neutral": 28.900000000000276,
+      "A:B": 128.49999999999497,
+      "D:R": 121.14999999999526,
+      "B:B": 101.64999999999637,
+      "C:R": 98.74999999999653
+    },
+    "layers": {
+      "upper": 7,
+      "west": 979,
+      "center": 161,
+      "east": 1580
+    },
+    "layerSampling": "1秒ごとの生存機。upper は地上高5m超の面に接地中。その他は x<-45 / 中央 / x>45",
+    "stalls": 54,
+    "mobility": [],
+    "repairs": [],
+    "mountain": null,
+    "initialization": {
+      "version": "ordinary-bots-v1",
+      "fixture": null,
+      "silent": true,
+      "units": [
+        {
+          "id": "B1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "heavy",
+            "body": "harrier2",
+            "arms": "harrier2",
+            "legs": "harrier",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "カービン・強装型",
+            "sub": "熱球グレネード・即応型",
+            "aux": "光波剣",
+            "sp": "全方向加速装置・持続型"
+          },
+          "position": [
+            -586,
+            0,
+            230
+          ],
+          "waypoint": null,
+          "walk": 13.931666666666667,
+          "cruise": 30,
+          "weight": 4609
+        },
+        {
+          "id": "B2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "harrier3",
+            "body": "standard",
+            "arms": "harrier3",
+            "legs": "prism2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー散弾銃・強装型",
+            "sub": "浮遊機雷",
+            "aux": "補給コンテナ",
+            "sp": "リペアフィールド・広域型"
+          },
+          "position": [
+            -574,
+            0,
+            254
+          ],
+          "waypoint": [
+            -557,
+            0,
+            223
+          ],
+          "walk": 15.69628125,
+          "cruise": 29.812500000000007,
+          "weight": 4879
+        },
+        {
+          "id": "B3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "heavy3",
+            "body": "light3",
+            "arms": "prism",
+            "legs": "bastion3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関砲・精密型",
+            "sub": "連射ロケット・連射型",
+            "aux": "衝撃散弾銃",
+            "sp": "榴弾砲・長射程型"
+          },
+          "position": [
+            -564,
+            0,
+            230
+          ],
+          "waypoint": null,
+          "walk": 10.746666666666668,
+          "cruise": 30,
+          "weight": 6138
+        },
+        {
+          "id": "B4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "standard2",
+            "body": "heavy3",
+            "arms": "light3",
+            "legs": "standard",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・精密型",
+            "sub": "熱球グレネード・持続型",
+            "aux": "双爪ガントレット",
+            "sp": "全方向加速装置・高出力型"
+          },
+          "position": [
+            -574,
+            0,
+            254
+          ],
+          "waypoint": [
+            -603,
+            0,
+            223
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 4593
+        },
+        {
+          "id": "B5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "heavy3",
+            "body": "prism2",
+            "arms": "heavy",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁蓄積銃・瞬発型",
+            "sub": "大型狙撃銃・強装型",
+            "aux": "浮遊自動銃・強装型",
+            "sp": "光学迷彩"
+          },
+          "position": [
+            -596,
+            0,
+            230
+          ],
+          "waypoint": [
+            -588,
+            0,
+            223
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5922
+        },
+        {
+          "id": "B6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "light2",
+            "body": "light2",
+            "arms": "bastion3",
+            "legs": "bastion",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "蓄積エナジー砲",
+            "sub": "プラズマ砲・速装型",
+            "aux": "衝撃グレネード",
+            "sp": "重砲"
+          },
+          "position": [
+            -574,
+            0,
+            254
+          ],
+          "waypoint": [
+            -588,
+            0,
+            223
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 5440
+        },
+        {
+          "id": "B7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "bastion2",
+            "arms": "prism2",
+            "legs": "bastion2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "収束散弾銃・瞬発型",
+            "sub": "衝撃吸着地雷",
+            "aux": "扇形センサー",
+            "sp": "リペアユニット"
+          },
+          "position": [
+            -586,
+            0,
+            230
+          ],
+          "waypoint": [
+            -588,
+            0,
+            223
+          ],
+          "walk": 15.795,
+          "cruise": 30,
+          "weight": 5400
+        },
+        {
+          "id": "B8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "bastion3",
+            "body": "light",
+            "arms": "standard",
+            "legs": "standard2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁マシンガン・強装型",
+            "sub": "狙撃銃・強装型",
+            "aux": "自動砲台・高出力型",
+            "sp": "背部自動銃・連射型"
+          },
+          "position": [
+            -574,
+            0,
+            230
+          ],
+          "waypoint": null,
+          "walk": 15.03684,
+          "cruise": 28.56,
+          "weight": 4842
+        },
+        {
+          "id": "B9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "bastion",
+            "body": "standard3",
+            "arms": "harrier2",
+            "legs": "harrier",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マークスマンライフル・強装型",
+            "sub": "誘導ミサイル・高速型",
+            "aux": "双短刀",
+            "sp": "加速装置・巡航型"
+          },
+          "position": [
+            -586,
+            0,
+            254
+          ],
+          "waypoint": [
+            -557,
+            0,
+            223
+          ],
+          "walk": 12.959932916666666,
+          "cruise": 27.9075,
+          "weight": 4929
+        },
+        {
+          "id": "B10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "bastion2",
+            "body": "prism3",
+            "arms": "prism2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関銃・連射型",
+            "sub": "プラズマ砲・速装型",
+            "aux": "弱化グレネード・軽量型",
+            "sp": "榴弾砲"
+          },
+          "position": [
+            -574,
+            0,
+            254
+          ],
+          "waypoint": [
+            -588,
+            0,
+            223
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6122
+        },
+        {
+          "id": "R1",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "harrier",
+            "body": "prism",
+            "arms": "standard2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・精密型",
+            "sub": "炸裂散弾ライフル・強装型",
+            "aux": "スピア・重装型",
+            "sp": "加速装置・巡航型"
+          },
+          "position": [
+            581,
+            0,
+            213
+          ],
+          "waypoint": [
+            588,
+            0,
+            206
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5418
+        },
+        {
+          "id": "R2",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "plant",
+          "mech": {
+            "head": "heavy",
+            "body": "prism2",
+            "arms": "bastion2",
+            "legs": "bastion2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "マグナム・強装型",
+            "sub": "遠隔ボムランチャー・強装型",
+            "aux": "索敵センサー・高出力型",
+            "sp": "リペアフィールド"
+          },
+          "position": [
+            571,
+            0,
+            213
+          ],
+          "waypoint": null,
+          "walk": 15.795,
+          "cruise": 30,
+          "weight": 5603
+        },
+        {
+          "id": "R3",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "defend",
+          "mech": {
+            "head": "harrier",
+            "body": "light2",
+            "arms": "bastion3",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "機関銃・精密型",
+            "sub": "プラズマ砲",
+            "aux": "衝撃グレネード・広域型",
+            "sp": "重砲・大容量型"
+          },
+          "position": [
+            549,
+            0,
+            213
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5747
+        },
+        {
+          "id": "R4",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "attack",
+          "mech": {
+            "head": "light2",
+            "body": "light",
+            "arms": "light2",
+            "legs": "standard3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "バーストライフル・強装型",
+            "sub": "時限グレネード・強装型",
+            "aux": "スピア・重装型",
+            "sp": "全方向加速装置・高出力型"
+          },
+          "position": [
+            571,
+            0,
+            213
+          ],
+          "waypoint": null,
+          "walk": 13,
+          "cruise": 30,
+          "weight": 4233
+        },
+        {
+          "id": "R5",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "plant",
+          "mech": {
+            "head": "standard2",
+            "body": "prism2",
+            "arms": "prism3",
+            "legs": "prism3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁拳銃・連射型",
+            "sub": "速射狙撃銃",
+            "aux": "索敵ソナー",
+            "sp": "背部自動銃"
+          },
+          "position": [
+            571,
+            0,
+            237
+          ],
+          "waypoint": [
+            588,
+            0,
+            206
+          ],
+          "walk": 13,
+          "cruise": 30,
+          "weight": 4717
+        },
+        {
+          "id": "R6",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "plant",
+          "mech": {
+            "head": "standard3",
+            "body": "standard3",
+            "arms": "bastion2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "炸裂機関砲",
+            "sub": "蓄圧砲",
+            "aux": "衝撃グレネード・瞬発型",
+            "sp": "重砲"
+          },
+          "position": [
+            581,
+            0,
+            213
+          ],
+          "waypoint": [
+            573,
+            0,
+            206
+          ],
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 6103
+        },
+        {
+          "id": "R7",
+          "isPlayer": false,
+          "cls": "support",
+          "role": "attack",
+          "mech": {
+            "head": "heavy2",
+            "body": "standard2",
+            "arms": "prism2",
+            "legs": "bastion3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "エナジー散弾銃",
+            "sub": "遠隔爆弾",
+            "aux": "索敵カーテン・軽量型",
+            "sp": "リペアユニット・高出力型"
+          },
+          "position": [
+            549,
+            0,
+            213
+          ],
+          "waypoint": [
+            588,
+            0,
+            206
+          ],
+          "walk": 10.746666666666668,
+          "cruise": 30,
+          "weight": 5791
+        },
+        {
+          "id": "R8",
+          "isPlayer": false,
+          "cls": "raid",
+          "role": "defend",
+          "mech": {
+            "head": "harrier3",
+            "body": "bastion2",
+            "arms": "standard3",
+            "legs": "heavy3",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "二丁マシンガン・連射型",
+            "sub": "光弾狙撃ライフル",
+            "aux": "展開式レーダー・広域型",
+            "sp": "光学迷彩・高出力型"
+          },
+          "position": [
+            549,
+            0,
+            213
+          ],
+          "waypoint": null,
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5576
+        },
+        {
+          "id": "R9",
+          "isPlayer": false,
+          "cls": "assault",
+          "role": "plant",
+          "mech": {
+            "head": "harrier2",
+            "body": "standard",
+            "arms": "bastion2",
+            "legs": "heavy2",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "アサルトライフル・強装型",
+            "sub": "連鎖ボム",
+            "aux": "双爪ガントレット・重装型",
+            "sp": "全方向加速装置"
+          },
+          "position": [
+            559,
+            0,
+            237
+          ],
+          "waypoint": [
+            573,
+            0,
+            206
+          ],
+          "walk": 9.338333333333333,
+          "cruise": 26.19289340101523,
+          "weight": 5158
+        },
+        {
+          "id": "R10",
+          "isPlayer": false,
+          "cls": "heavy",
+          "role": "attack",
+          "mech": {
+            "head": "light",
+            "body": "light3",
+            "arms": "prism2",
+            "legs": "heavy",
+            "color": "team"
+          },
+          "weapons": {
+            "main": "ガトリング・高出力型",
+            "sub": "ロケットランチャー",
+            "aux": "衝撃グレネード・瞬発型",
+            "sp": "榴弾砲・連射型"
+          },
+          "position": [
+            559,
+            0,
+            213
+          ],
+          "waypoint": null,
+          "walk": 10.4,
+          "cruise": 26.19289340101523,
+          "weight": 5751
+        }
+      ]
+    },
+    "coreExact": [
+      7875,
+      8043.75
+    ],
+    "initialCore": [
+      9000,
+      9000
+    ],
+    "losses": null,
+    "seed": 20261025,
+    "errors": [],
+    "balance": "勝率未確定（短時間動作確認）"
+  }
+]

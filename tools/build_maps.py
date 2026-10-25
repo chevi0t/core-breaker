@@ -99,8 +99,9 @@ function check(d) {
     const c=d.cityTerrain,battle=d.cityBattle;
     if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
     else {
-      if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
-      if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
+      const extent=c.halfExtents||[c.half,c.half];
+      if(!Array.isArray(extent)||extent.length!==2||!extent.every(num)||extent[0]!==mx||extent[1]!==mz||c.half!==Math.max(mx,mz))E('都市のhalfExtentsとマップサイズをそろえる');
+      if(c.ringCoordinateStep!==undefined&&![.01,.02,.05].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cm・2cm・5cm');
       if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
       const ring=(r,what)=>{
         if(typeof r!=='string'){E(what+' はbase64の座標列');return;}
@@ -156,7 +157,7 @@ function check(d) {
       }
       if(!c.surfaces||typeof c.surfaces!=='object')E('都市のsurfacesが必要');
       else for(const [name,s] of Object.entries(c.surfaces)){
-        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
+        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02,.05].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
         const p=Buffer.from(s.points,'base64'),ids=Buffer.from(s.indices,'base64');
         if(p.length%6||ids.length%6){E('都市の面 '+name+' の頂点・三角形が不正');continue;}
         for(let i=0;i<ids.length;i+=2)if(ids.readUInt16LE(i)>=p.length/6){E('都市の面 '+name+' が存在しない頂点を参照');break;}

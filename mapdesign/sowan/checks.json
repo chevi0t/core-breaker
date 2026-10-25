@@ -1,0 +1,59 @@
+{
+  "baseCommit": "ae321edbf5403703a02053d087949ff3172baaa1",
+  "sourceHashes": {
+    "prototype/index.html": "f3ee5f7a0cba9f777dcb5f5dbfbcfb92e5784fcc5de8e5636ea25ea30d3334b3",
+    "prototype/maps.js": "c573da60a98cef2f2dd3666311470fd4b112efe84b6f25941dbb4d6ed414d61b",
+    "prototype/maps/sowan.js": "6b1a9498737ae202be00ee0ac4e39c0938d11c2c7d5bcb20f878da4ac6e627ad",
+    "tools/build_sowan.py": "d11a24cf8d04d037e1f6ef96c525a7c91440b1729bc572b5be82c90b652cf8c5",
+    "tools/test/sowan_check.js": "ea800fa0e4c2d9319a3944b08ec26deb11d3c30aad0124844364edd7a31df416",
+    "tools/test/sowan_geometry_check.py": "227b3241ffd2279be02b9f22f627daa8afb37681295182b975948cdeb027e152",
+    "tools/test/sowan_roofs_check.py": "6caeff794a22adb45e6b0bd6d238bf025c83f3cd26dda60cd36a7978b7df59d1"
+  },
+  "mapBytes": 197562,
+  "geometry": {
+    "volumes": 473,
+    "packedFootprintsValid": true,
+    "rectangleValidatorCases": 6,
+    "plantMovedMeters": 12,
+    "plantMoveTerrainBytesIdentical": true
+  },
+  "runtime": {
+    "catapultCases": 80,
+    "maxLandingErrorMeters": 2.166206365793298,
+    "roofToGroundCases": 8,
+    "waterRecoveryCases": 4,
+    "navigation": {
+      "inputNodes": 446,
+      "inputLinks": 717,
+      "rejectedLinks": 9,
+      "removedNodes": 0
+    },
+    "facilityConnections": 24,
+    "errors": []
+  },
+  "battle": {
+    "seed": 20261025,
+    "seconds": 150,
+    "kills": {
+      "B": 17,
+      "R": 20
+    },
+    "captures": 5,
+    "errors": [],
+    "balance": "勝率未確定（短時間動作確認）"
+  },
+  "checks": [
+    "python3 tools/build_maps.py",
+    "python3 tools/test/city_map_format_check.py",
+    "python3 tools/test/sowan_geometry_check.py /tmp/sowan-source",
+    "python3 tools/test/sowan_roofs_check.py",
+    "node tools/test/sowan_check.js dbg mapdesign/sowan",
+    "node tools/test/map_check.js dbg sowan --quick",
+    "node tools/test/quick_check.js origin/main",
+    "node tools/test/map_battle.js dbg sowan 150 mapdesign/sowan/battle.json 20261025"
+  ],
+  "notes": [
+    "quick_checkは共通本体・既存データと初版配置で成功。最終的な屋上穴埋め・設備配置は専用実走と150秒BOT戦で再検査。",
+    "補助の屋根格子検査と実走標本は、全ての連続座標の着地安全性や長期勝率を保証するものではない。"
+  ]
+}
