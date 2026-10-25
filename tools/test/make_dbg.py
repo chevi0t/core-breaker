@@ -23,7 +23,7 @@ EXPOSE = """window.__g = { get pressed() { return pressed; }, get cityMap() { re
   navPath, navNear, clearPath, buildNav, groundAt, botUpdate, launch, renderer, get pathEndH() { return pathEndH; }, get NAV() { return NAV; }, get bridges() { return bridges; }, get waters() { return waters; },
   get curMap() { return curMap; }, get mapId() { return mapId; }, get MATCH() { return MATCH; },
   get timeLeft() { return timeLeft; }, set timeLeft(v) { timeLeft = v; },
-  get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
+  get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get builds() { return builds; }, get buildSaveState() { return buildSaveState; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
   get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
   get baseKick() { return baseKick; }, get recoilKick() { return recoilKick; }, get recoilRecover() { return recoilRecover; }, get recoilAim() { return recoilAim; }, get lockStick() { return lockStick; }, get botRecoilReady() { return botRecoilReady; },
   get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
