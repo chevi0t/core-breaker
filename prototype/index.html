@@ -978,6 +978,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>遊撃</kbd><span>二丁拳銃、狙撃銃、偵察機（屈んで打ち上げ、見つけた敵を味方のミニマップに映す）、光学迷彩（選ぶと姿を消し、持っている武器はそのまま。作動中は画面の特別装備の名前とSPゲージが緑に光って点滅。敵にロックされない。止まっているとだんだん見えにくくなり、動くと揺らぎ、撃つと大きく揺らぐ。被弾するとSPが大きく削られる。もう一度選ぶと解除）</span>
         <kbd>支援</kbd><span>ショットガン、地雷（敵が踏むと爆発）、索敵センサー（周り65mの敵を味方のミニマップに映す）、リペアユニット</span>
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
+        <kbd>ミラージュデバイス</kbd><span>強襲の特別装備。選ぶと起動し、もう一度選ぶと停止。起動中のクイックブーストごとにSPを消費して出発点に残像を置き、受けていたロックと誘導ミサイルの捕捉を移します。標準は耐久500・10秒。最大4体、攻撃や占拠はしません。SP不足でも移動はできますが残像は作れません。</span>
         <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準円の外側の左の弧）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
         <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を中央の円の半径2倍以内に捉え、右クリックでロック。捕捉時に対象の胴体を画面中央へ合わせ、もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します。捕捉後は頭などを自由に狙えます。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
@@ -2748,16 +2749,17 @@ function destroyTurret(tu, by) {
 }
 function turretUpdate(tu, dt) {
   if (!tu.alive) return;
+  const decoy = heldMirage(tu, dt, TURRET_RANGE);
   tu.think -= dt;
   if (tu.think <= 0) {
     tu.think = 0.3;
     let best = null, bd = TURRET_RANGE;
-    for (const e of units) {
+    for (const e of [...units, ...mirages]) {
       if (!e.alive || e.team === tu.team) continue;
       const d = e.pos.distanceTo(tu.pos);
       if (d < bd && noticed(e, d) && canSee(tu, e, targetPoint(e))) { bd = d; best = e; }
     }
-    tu.target = best;
+    tu.target = decoy || best;
   }
   tu.fireCd -= dt;
   if (tu.fireCd <= 0 && tu.shots <= 0) tu.shots = TURRET_BURST; // リロード完了
@@ -3639,6 +3641,7 @@ function buildMap(id) {
 // 部品を頂点カラー付きの1つの形にまとめ、同じ形はキャッシュして使い回す。性能とは関係なく、機体の手の武器・背中の装置・投げた物・設置物・カードの画像で同じ形を使う。
 // MODEL_OF：武器のキー → [形の系統, 型（0・1・2。色と細部が変わる）]。spear・sonar・sentry・remote・fmine・field は本作で足した形
 const MODEL_OF = {
+  mirage: ['mirage', 0], mirageH: ['mirage', 1], mirageL: ['mirage', 2], mirageD: ['mirage', 2],
   missile: ['missileRack', 0], mlrs: ['missileRack', 1],
   waveSword: ['waveSword', 0],
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
@@ -3979,6 +3982,14 @@ function buildWeaponGeo(id, part) {
     for(let i=0;i<n;i++) { const x=(i-(n-1)/2)*.65; cyl(v===1?.35:.27,v===1?1.35:.85,dark,x,0,.25); cyl(.2,.1,accent,x,0,v===1?.98:.72); }
     if(v===1) for(const x of [-.85,.85]) box(.27,.7,.65,steel,x,0,-.1);
     if(v===2) box(1.8,.1,.45,accent,0,.43,0);
+  } else if (f === 'mirage') {
+    // 本作オリジナル：左右の投影レンズと扇状アンテナ。
+    box(1.2,.55,.5,shell);
+    for(const x of [-.72,.72]) {
+      box(.3,v===1?.85:.65,.6,dark,x,.1,0);
+      cyl(.22,.1,steel,x,.15,.38); cyl(.16,.04,0x75f4ec,x,.15,.46);
+      for(const a of [-.5,0,.5]) box(.06,.58,.08,accent,x+Math.sin(a)*.2,.62,0,a);
+    }
   } else if (f === 'camo') {
     box(v===1?1.6:1.1,.7,.45,shell); const n=[2,4,1][v];
     for(let i=0;i<n;i++) { const x=(i-(n-1)/2)*.35; cyl(v===2?.3:.13,.17,dark,x,0,.3); cyl(v===2?.23:.08,.03,0xb798f5,x,0,.41); }
@@ -4159,7 +4170,7 @@ const PAINTS = [
   { id: 'forest', name: 'フォレスト', color: 0x648d79 }, { id: 'violet', name: 'バイオレット', color: 0x9c82c7 }, { id: 'crimson', name: 'クリムゾン', color: 0xc76363 },
 ];
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { missile: 350, mlrs: 500, waveSword: 230, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, waveSword: 230, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -4820,6 +4831,7 @@ function shortDash(u, wish) {
   if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   u.dashDir.copy(wish.lengthSq() > 0.01 ? wish : fwdOf(u)).setY(0).normalize();
   u.dashT = SHORT_TIME;
+  deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
   sfx('dash', u.pos, u);
   u.longDash = false;
   u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;
@@ -5906,7 +5918,7 @@ const tmp = new T.Vector3();
 // range：気づく距離。索敵を受けている敵機は SPOT_LOCK 倍遠くまで（v0.11.2）
 function nearestEnemy(u, range) {
   let best = null, bd = Infinity;
-  for (const e of units) {
+  for (const e of [...units, ...mirages]) {
     if (!e.alive || e.team === u.team) continue;
     const d = e.pos.distanceTo(u.pos);
     if (d < bd && d < range * spotMul(u.team, e) && noticed(e, d)) { bd = d; best = e; }
@@ -5982,6 +5994,11 @@ function botUpdate(u, dt) {
   const enemyCore = cores[u.team === 'B' ? 'R' : 'B'];
   const ownCore = cores[u.team];
   const baseTask = baseDefenseTask(u);
+  const mirageTarget = heldMirage(u, dt, Math.max(70, u.lockRange));
+  if (u.slots.sp.w.type === 'mirage' && !meleeOnly()) {
+    const want = !!u.target?.alive;
+    if (want !== !!u.mirageOn && (u.mirageOn || u.slots.sp.heat >= u.slots.sp.w.decoyCost)) toggleSp(u);
+  }
   u.think -= dt;
   if (u.think <= 0) {
     u.think = 0.3 + Math.random() * 0.2;
@@ -5999,6 +6016,7 @@ function botUpdate(u, dt) {
       const range = raidRange(u);
       if (radar?.alive && radar.pos.distanceTo(u.pos) < range && canSee(u, radar, targetPoint(radar))) u.target = radar;
     }
+    if (mirageTarget) u.target = mirageTarget;
     if (!u.target && u.onGround && !u.flying) botTransfer(u);
     if (u.transfer) return;
   }
@@ -6215,7 +6233,7 @@ function botAct(u, tracking, enemyCore) {
   if (u.cls === 'assault') {
     // 15〜40mの目標へグレネード。交戦していなければ加速装置を作動させておく
     if (!s.sub.w.missile && tracking && td > Math.max(15, (s.sub.w.proj ? s.sub.w.proj.blast : 0) + 4) && td < 40 && s.sub.ammo > 0 && Math.random() < 0.4) return { slot: 'sub', t: 2.5, done: used(s.sub) };
-    if (!tracking && !u.chargerOn && !s.sp.overheat && Math.random() < 0.5) return { slot: 'sp', aim: ahead(10), t: 2.5, done: () => u.chargerOn };
+    if (s.sp.w.type === 'charger' && !tracking && !u.chargerOn && !s.sp.overheat && Math.random() < 0.5) return { slot: 'sp', aim: ahead(10), t: 2.5, done: () => u.chargerOn };
   } else if (u.cls === 'heavy') {
     // 40m以内の敵機へ弱化・衝撃グレネード（衝撃散弾銃は15m以内）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
     if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
@@ -6290,7 +6308,7 @@ function trackAim(u, dt, eye) {
 }
 // ---- 設置物と索敵：地雷、索敵センサー、偵察機、遠隔爆弾、自動砲台 ----
 // 地雷とセンサーは撃って壊せる（userData.ref に gadget: true）。偵察機は撃ち落とせない（未実装）
-const gadgets = [], drones = [];
+const gadgets = [], drones = [], mirages = [];
 // 索敵の作動表示。判定とは独立した約3mの短い波を、装備の現在位置から出す。
 const RECON_PULSE_RADIUS = 3, RECON_PULSE_DURATION = .6, RECON_PULSE_INTERVAL = .75;
 const RECON_PULSE_MAX = 48, RECON_PULSE_DISTANCE = 200;
@@ -6432,17 +6450,22 @@ function removeGadget(g) {
   if (g.kind === 'repairPost') { if (g.owner.post === g) g.owner.post = null; if (g.field) scene.remove(g.field); }
   if (!g.alive) return;
   g.alive = false;
+  if (g.kind === 'decoy') {
+    mirageReferences(g, null); mirages.splice(mirages.indexOf(g), 1);
+    g.mesh.geometry.dispose(); g.mesh.material.dispose();
+  }
   scene.remove(g.mesh);
   const i = hittables.indexOf(g.mesh); if (i >= 0) hittables.splice(i, 1);
   gadgets.splice(gadgets.indexOf(g), 1);
 }
 function damageGadget(g, dmg, by) {
-  if(g.spec.invulnerable)return;
+  if(g.spec.invulnerable || g.kind === 'decoy' && by?.team === g.team)return;
   if (g.kind === 'repairPost') { if (by && by.team === g.team) return; spUse(g.owner.slots.sp, dmg / g.spec.postHp * 100); if (g.owner.slots.sp.overheat) breakGadget(g, by); return; }
   g.hp -= dmg; if (g.hp <= 0) breakGadget(g, by); }
 function breakGadget(g, by) {
   removeGadget(g);
   flash(g.pos.clone().setY(g.pos.y + 1), 0xffd27a, 2.5, 0.2);
+  if (g.kind === 'decoy') return; // 撃破数・コア耐久・スコアに影響しない。
   // 設置物破壊のスコア：地雷1、センサー2。敵陣（マップの敵側の半分）なら+1。種類ごとに5個まで（wiki）。遠隔爆弾は地雷、自動砲台はセンサーと同じ扱い
   const sk = g.kind === 'mine' || g.kind === 'remote' ? 'mine' : 'sensor';
   if (by && by.kind === 'unit' && by.team !== g.team && by.sx.gadgetN[sk] < SC.gadgetCap) {
@@ -6488,12 +6511,13 @@ function detonateRemotes(u) {
 // 自動砲台：range 以内で見えている一番近い敵機を自動で撃つ（弾は無限、mag 発ごとにリロード）。撃つのは持ち主の弾として扱う
 function sentryTick(g, dt) {
   const G = g.spec.gun, eye = g.pos.clone().setY(g.pos.y + (g.spec.eyeY??1)); // 見るのは砲身の高さから
+  const decoy = heldMirage(g, dt, G.range);
   g.cd = Math.max(g.cd - dt, -dt);
   if (g.reloadT > 0) { if ((g.reloadT -= dt) <= 0) g.ammo = G.mag; return; }
   if ((g.scanT -= dt) <= 0) {
     g.scanT = 0.3; g.target = null;
     let bd = G.range;
-    for (const e of units) { // 空中の自動銃も、既存の自動砲台と同じく敵の機体だけを撃つ。
+    for (const e of [...units, ...mirages]) { // 空中の自動銃も、敵機とその残像を同じ基準で捕捉する。
       if (!e.alive || e.team === g.team || (g.spec.downOnly && targetPoint(e).y>eye.y)) continue;
       const d = e.pos.distanceTo(g.pos);
       if (d >= bd || (e.kind==='unit' && !noticed(e, d))) continue;
@@ -6501,6 +6525,7 @@ function sentryTick(g, dt) {
       if (h && h.ref === e) { bd = d; g.target = e; }
     }
   }
+  if (decoy) g.target = decoy;
   const e = g.target;
   if (!e || !e.alive) return;
   const tp = targetPoint(e);
@@ -6521,6 +6546,12 @@ function launchDrone(u, D) {
 function gadgetUpdate(dt) {
   for (const u of units) postFlightTick(u, dt);
   for (const g of gadgets.slice()) {
+    if (g.kind === 'decoy') {
+      g.age += dt;
+      if (g.age >= g.spec.decoyLife) removeGadget(g);
+      else if (g.spec.hologram) g.mesh.material.opacity = g.spec.decoyOpacity * (.78 + .22 * Math.sin(g.age * 12));
+      continue;
+    }
     if (g.kind === 'repairPost') { postFieldTick(g, dt); continue; }
     if (g.attached) {g.pos.copy(g.offset).applyAxisAngle(UP,g.attached.yaw).add(g.attached.pos);g.mesh.position.copy(g.pos);}
     if(g.kind==='ammo'){ammoBoxTick(g,dt);continue;}
@@ -6706,6 +6737,11 @@ function auxiliaryMelee(hits, profile, strong=false, rank=0) {
   return {dmg:hits.reduce((n,x)=>n+x,0),reach:profile==='claw'?3.5:profile==='rod'?4:4.6,height:2.4,from:65,to:-65,windup,sweep,time:windup+sweep+.23,step:2.5,homing:5,...(strong?{lunge:5,recover:.23}:{}),strikes};
 }
 const WEAPONS = {
+  // ユーザー発案のオリジナル装備。調整値と根拠は research/weapons/mirage.md。
+  mirage: { name: 'ミラージュデバイス', type: 'mirage', decoyHp: 500, decoyLife: 10, decoyCost: 25, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageH: { name: 'ミラージュデバイス・堅牢型', type: 'mirage', decoyHp: 1500, decoyLife: 10, decoyCost: 40, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageL: { name: 'ミラージュデバイス・省エネ型', type: 'mirage', decoyHp: 180, decoyLife: 6, decoyCost: 15, decoyOpacity: 0.35, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageD: { name: 'ミラージュデバイス・長時間型', type: 'mirage', decoyHp: 350, decoyLife: 20, decoyCost: 20, decoyOpacity: 0.7, hologram: true, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
   // AC ミサイルスロアー pages/341：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
   missile: {"name":"誘導ミサイル","type":"gun","rpm":360,"mag":4,"mags":4,"reload":2.4,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":4,"locks":1,"time":0.39,"rangeMul":1.25,"freeGap":0,"rank":"D"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":30,"accel":0,"turn":0.55,"delay":18,"ramp":70,"dmg":2600,"blast":11,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.006981317007977318,"recoilH":0.003490658503988659},
   // AC 試験型MLRS pages/359：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
@@ -6995,7 +7031,7 @@ const CLASSES = {
 const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
-  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni'] },
+  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
   heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
@@ -7022,6 +7058,7 @@ for (const [k, w] of Object.entries(WEAPONS)) { w.key = k; w.kg = WEAPON_KG[k] |
 // 武器のシリーズ（v0.13、ユーザー決定）：撃ち方と形が同じ武器のまとまり。types は [武器のキー, 型番]。型の違いは数値だけ。
 // 名前は「型番＋武器の名前」（例：SR-7 アサルトライフル）。型番とメーカーはオリジナル。今の48種のうち、特別装備の同じ仕組みの物（加速装置・重砲・光学迷彩・リペアユニット）は1つのシリーズの型
 const SERIES = {
+  mirage: { maker: 'iris', types: [['mirage', 'IM-7'], ['mirageH', 'IM-7H'], ['mirageL', 'IM-7L'], ['mirageD', 'IM-7D']] },
   vp: { maker: 'volca', types: [['missile', 'VP-4']] },
   gq: { maker: 'gard', types: [['mlrs', 'GQ-6']] },
   lj: { maker: 'lumina', types: [['waveSword', 'LJ-6']] },
@@ -7801,19 +7838,20 @@ function equip(u, cls) {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
     lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
-    swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
+    swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, mirageOn: false, mirageWait: 0, mirageLock: null, mirageLost: 0, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
   Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
   resetMechPose(u); weaponLook(u, 0);
 }
 // 光学迷彩と加速装置は、選んだ時点で作動し、もう一度選ぶと止まる。持っている武器はそのまま（v0.9.5、ユーザー指定）。リペアフィールドも同じ（v0.11）
-const TOGGLE_SP = ['charger', 'camo', 'field', 'barrier', 'escort'];
+const TOGGLE_SP = ['mirage', 'charger', 'camo', 'field', 'barrier', 'escort'];
 function toggleSp(u) {
   if (meleeOnly()) return false;
   const sl = u.slots.sp;
   if (sl.cd > 0 || u.repairing || !u.alive || (u.stun && u.stun !== 'land')) return false;
   sl.cd = 0.5;
   if (sl.w.type === 'charger') u.chargerOn = !u.chargerOn && !sl.overheat;
+  else if (sl.w.type === 'mirage') u.mirageOn = !u.mirageOn && !sl.overheat && sl.heat >= sl.w.decoyCost;
   else if (sl.w.type === 'barrier') u.barrierOn = !u.barrierOn && !sl.overheat;
   else if (sl.w.type === 'escort') { u.escortOn = !u.escortOn && !sl.overheat; u.escortT = 0; }
   else if (sl.w.type === 'field') { u.fieldOn = !u.fieldOn && !sl.overheat; sfx('heal', u.pos, u); }
@@ -7887,6 +7925,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
     else if(type==='radarTool') radarToolTick(u,sl,dt,on);
     else if (type === 'repair') r = repairTick(u, sl, dt, t, aim, on && alt);
     else if (type === 'charger') chargerTick(u, sl, dt);
+    else if (type === 'mirage') mirageTick(u, sl, dt);
     else if (type === 'artillery') artilleryTick(u, sl, dt, t, aim, on, alt);
     else if (type === 'cannon') cannonTick(u, sl, dt, t, aim, on, on && alt);
     else if (type === 'camo') camoTick(u, sl, dt);
@@ -7900,7 +7939,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
 // ミサイル専用の捕捉。通常の照準追従ロックとは独立し、視点や発射方向は補正しない。
 function missileTargetValid(u, entry) {
   const e = entry.target;
-  return e && e.alive && !e.downT && e.team !== u.team && (e.kind === 'unit' || e.kind === 'turret') && entry.life === (e.lifeId || 0);
+  return e && e.alive && !e.downT && e.team !== u.team && (e.kind === 'unit' || e.kind === 'turret' || e.kind === 'decoy') && entry.life === (e.lifeId || 0);
 }
 function clearMissileLocks(sl) {
   sl.missileLocks = []; sl.missileProgress = new Map(); sl.missileCandidates = [];
@@ -7935,7 +7974,7 @@ function missileLockTick(u, sl, dt, on, cancel) {
   });
   const capacity = Math.min(M.locks, Math.floor(sl.ammo / M.shots));
   sl.missileLocks.length = Math.min(sl.missileLocks.length, capacity);
-  const candidates = [...units, ...turrets].filter(e => e.alive && !e.downT && e.team !== u.team && !e.cloak && e.pos.distanceToSquared(u.pos) <= range * range && get(e).seen && Number.isFinite(get(e).d));
+  const candidates = [...units, ...turrets, ...mirages].filter(e => e.alive && !e.downT && e.team !== u.team && !e.cloak && e.pos.distanceToSquared(u.pos) <= range * range && get(e).seen && Number.isFinite(get(e).d));
   sl.missileCandidates = candidates;
   const acquiring = new Set();
   for (const e of candidates.sort((a, b) => get(a).d - get(b).d)) {
@@ -8312,7 +8351,7 @@ function slashSweep(u,sw,strike,hit,k0,k1){
       sfx('slash',p);impact(new T.Vector3(p.x,Math.max(y0,Math.min(y1,slashTip1.y)),p.z),'hit',0);
       if(damage(target,u,strike.dmg,false,true,null,from,true,false,sw.weaponName))res=true;
     };
-    for(const e of units)if(e.alive&&e.team!==u.team)tryHit(e,e.pos,R,e.pos.y,e.pos.y+UNIT_H);
+    for(const e of [...units,...mirages])if(e.alive&&e.team!==u.team)tryHit(e,e.pos,R,e.pos.y,e.pos.y+UNIT_H);
     for(const t of turrets)if(t.alive&&t.team!==u.team)tryHit(t,t.pos,1.5,t.pos.y,t.pos.y+3.7);
     for(const r of radars)if(r.alive&&r.team!==u.team)tryHit(r,r.pos,1.5,r.pos.y,r.pos.y+11);
     for(const br of barricades)if(br.alive){const o=br.ob;tryHit(br,new T.Vector3(Math.max(o.minX,Math.min(u.pos.x,o.maxX)),0,Math.max(o.minZ,Math.min(u.pos.z,o.maxZ))),0,br.base,o.top);}
@@ -8343,7 +8382,7 @@ function bladeSweep(u, sw, phi0, phi1) {
     if (volley) meleeFrom.set(r, from);
     if (damage(r, u, a.dmg, false, true, null, from, true, false, sw.weaponName)) res = true; // 格闘
   };
-  for (const e of units) if (e.alive && e.team !== u.team) tryHit(e, e.pos, R, e.pos.y, e.pos.y + UNIT_H);
+  for (const e of [...units, ...mirages]) if (e.alive && e.team !== u.team) tryHit(e, e.pos, R, e.pos.y, e.pos.y + UNIT_H);
   for (const tu of turrets) if (tu.alive && tu.team !== u.team) tryHit(tu, tu.pos, 1.5, tu.pos.y, tu.pos.y + 3.7);
   for (const rd of radars) if (rd.alive && rd.team !== u.team) tryHit(rd, rd.pos, 1.5, rd.pos.y, rd.pos.y + 11);
   for (const br of barricades) {
@@ -8629,6 +8668,85 @@ function spUse(sl, amount) {
   sl.heat -= amount;
   if (sl.heat <= 0.01) { sl.heat = 0; sl.overheat = true; }
 }
+// ---- ミラージュデバイス（本作オリジナル） ----
+// 可視メッシュを現在の姿勢で1つに焼き込む。元の共有ジオメトリやマテリアルは変更しない。
+function mirageMesh(u, w) {
+  u.group.updateMatrixWorld(true);
+  const inv = new T.Matrix4().copy(u.group.matrixWorld).invert(), data = { position: [], normal: [], color: [] };
+  u.group.traverse(o => {
+    if (!o.isMesh || o === u.flame || o.userData.visualOnly || !o.geometry.attributes.position) return;
+    for (let a = o; a && a !== u.group; a = a.parent) if (!a.visible) return;
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (!mat || mat.isShaderMaterial || mat.opacity < .3) return;
+    const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    geo.applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    if (!geo.attributes.normal) geo.computeVertexNormals();
+    const c = mat.color || new T.Color(0xffffff), vc = geo.attributes.color;
+    const pos = geo.attributes.position, normal = geo.attributes.normal;
+    for (let i = 0; i < pos.count; i++) {
+      data.position.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+      data.normal.push(normal.getX(i), normal.getY(i), normal.getZ(i));
+      data.color.push(c.r * (vc ? vc.getX(i) : 1), c.g * (vc ? vc.getY(i) : 1), c.b * (vc ? vc.getZ(i) : 1));
+    }
+    geo.dispose();
+  });
+  const geo = new T.BufferGeometry();
+  for (const k of Object.keys(data)) geo.setAttribute(k, new T.Float32BufferAttribute(data[k], 3));
+  geo.computeBoundingSphere();
+  const mat = new T.MeshLambertMaterial({ vertexColors: true, color: w.hologram ? 0x65eee5 : 0xffffff, emissive: w.hologram ? 0x124f55 : 0x000000, transparent: w.decoyOpacity < 1, opacity: w.decoyOpacity, depthWrite: w.decoyOpacity === 1 });
+  const mesh = new T.Mesh(geo, mat);
+  mesh.position.copy(u.pos); mesh.quaternion.copy(u.group.quaternion); mesh.scale.copy(u.group.scale);
+  return mesh;
+}
+// 引き継ぎではsetLockを呼ばない。照準・カメラ・新規捕捉演出を動かさない。
+function mirageReferences(from, to) {
+  if (lock.target === from) { if (to) { lock.target = to; lock.prevAng = null; } else releaseLock(); }
+  for (const u of [...units, ...turrets, ...gadgets.filter(g => g.kind === 'sentry')]) {
+    if (u.aimTarget === from) u.aimTarget = to;
+    if (u.target === from) { u.target = to; u.mirageLock = to; u.mirageLost = 0; }
+    if (u.mirageLock === from) u.mirageLock = to;
+    for (const sl of Object.values(u.slots || {})) {
+      const move = entry => entry?.target === from && (!to || entry.life === (from.lifeId || 0)) ? to ? { ...entry, target: to, life: to.lifeId || 0 } : null : entry;
+      if (sl.missileLocks) sl.missileLocks = sl.missileLocks.map(move).filter(Boolean);
+      if (sl.missileQueue) sl.missileQueue = sl.missileQueue.map(move);
+      if (sl.missileCandidates) sl.missileCandidates = sl.missileCandidates.map(e => e === from ? to : e).filter(Boolean);
+      if (sl.missileProgress?.has(from)) {
+        const n = sl.missileProgress.get(from); sl.missileProgress.delete(from);
+        if (to) sl.missileProgress.set(to, n);
+      }
+    }
+  }
+  for (const sh of shells) if (sh.missileTarget?.target === from && (!to || sh.missileTarget.life === (from.lifeId || 0))) sh.missileTarget = to ? { ...sh.missileTarget, target: to, life: to.lifeId || 0 } : null;
+}
+function heldMirage(u, dt, range) {
+  const e = u.mirageLock;
+  if (!e) return null;
+  if (!e.alive || e.pos.distanceTo(u.pos) > range) { u.mirageLock = null; return null; }
+  u.mirageLost = canSee(u, e, targetPoint(e)) ? 0 : (u.mirageLost || 0) + dt;
+  if (u.mirageLost > .6) { u.mirageLock = null; return null; }
+  return e;
+}
+function deployMirage(u) {
+  const sl = u.slots?.sp, w = sl?.w;
+  if (w?.type !== 'mirage' || !u.mirageOn || !u.alive || u.repairing || u.transfer || meleeOnly()) return null;
+  if (sl.overheat || sl.heat + 1e-8 < w.decoyCost) { u.mirageOn = false; return null; }
+  const mesh = mirageMesh(u, w);
+  const own = mirages.filter(g => g.owner === u);
+  if (own.length >= 4) removeGadget(own[0]);
+  const g = addGadget({ kind: 'decoy', owner: u, team: u.team, name: u.name, pos: u.pos.clone(), vel: new T.Vector3(), yaw: u.yaw, hp: w.decoyHp, maxHp: w.decoyHp, lifeId: 1, age: 0, spec: w, mesh });
+  mirages.push(g); mirageReferences(u, g);
+  spUse(sl, w.decoyCost); u.mirageWait = 1;
+  if (sl.overheat) u.mirageOn = false;
+  return g;
+}
+function mirageTick(u, sl, dt) {
+  sl.cd = Math.max(0, sl.cd - dt);
+  if (!u.alive || u.transfer || u.repairing) u.mirageOn = false;
+  const wait = Math.min(dt, u.mirageWait || 0);
+  u.mirageWait = Math.max(0, (u.mirageWait || 0) - dt);
+  if (dt > wait) spRegen(sl, dt - wait);
+}
+
 // ---- AC由来の追加特別装備 ----
 // バリアの大きさは本作の機体に合わせた描画・当たり判定。LV1は小さく、LV2は頭と脚も覆う。
 const barrierSphere = new T.SphereGeometry(1, 24, 14);
@@ -9228,7 +9346,7 @@ const LOCK_ZOOM = 1.3;
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
 const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false, visualSeq: 0 };
 const proj = new T.Vector3();
-function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
+function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
@@ -9261,7 +9379,7 @@ function lockAllowed(u) {
 }
 function lockCandidates(u) {
   const list = [];
-  for (const e of [...units, ...turrets]) {
+  for (const e of [...units, ...turrets, ...mirages]) {
     if (!e.alive || e.team === u.team) continue;
     if (e.cloak && (e !== lock.target || e.cloakT >= 1)) continue; // 光学迷彩はロックできない（ロック中に消えたら1秒後に外れる）
     const dist = e.pos.distanceTo(u.pos);
@@ -9805,7 +9923,7 @@ function mechanicalWeaponState(p, k) {
     if (!w.mag) fraction = sl.chargeT / w.chargeTime;
   } else if (w.heat && sl.temp > 0) {
     state = '熱 ' + Math.round(sl.temp) + '%'; color = sl.temp >= 75 ? 'warn' : '';
-  } else if (special && (p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || p.post || p.bombard || p.healTarget)) {
+  } else if (special && (p.mirageOn || p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || p.post || p.bombard || p.healTarget)) {
     state = '作動中'; color = 'active';
   } else if (!special && w.mag && sl.ammo + sl.reserve <= 0) { state = '弾切れ'; color = 'warn'; }
   if (p.weapon === k && p.switchT > 0) state = '持ち替え中';
@@ -9977,6 +10095,7 @@ function wStats(w) {
   else if (w.type === 'repair') st.push(`回復 毎秒${w.heal}`, `射程 ${w.range}m`, `連続 ${w.use}秒`);
   else if (w.type === 'field') st.push(`回復 毎秒${w.heal}（自分も）`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒（味方1機ごとに減りが+${Math.round(FIELD_PER_ALLY * 100)}%）`);
   else if (w.type === 'charger') st.push(`速さ 毎秒${w.speed}m${w.omni ? '（全方向）' : ''}`, `連続 ${w.use}秒`);
+  else if (w.type === 'mirage') st.push(`残像耐久 ${w.decoyHp}`, `残存 ${w.decoyLife}秒`, `QBごと SP${w.decoyCost}%`, w.hologram ? '明滅する投影像' : w.decoyOpacity < 1 ? '半透明の残像' : '機体の姿と色を複製');
   else if (w.type === 'camo') st.push(`連続 ${w.use}秒`, `止まると見えやすさ${Math.round(w.still * 100)}%`);
   if(w.type==='sword' && w.acMelee){
     if(w.normal.strikes)st.push(`通常 ${w.normal.strikes.map(x=>x.dmg).join('+')}`,`特殊 ${w.strong.strikes.map(x=>x.dmg).join('+')}`);
@@ -10050,6 +10169,7 @@ function itemNums(sl, key) {
   if (P.scan || x.drone) r.push(['索敵半径', P.scan || x.drone.scan, u('m'), true]);
   if (x.mag) r.push(['弾数', x.mag * (x.mags || 1), n0, true]);
   if (x.mag && x.mags > 1) r.push(['リロード', x.reload, u('秒'), false]);
+  if (x.type === 'mirage') r.push(['残像耐久',x.decoyHp,n0,true],['残存時間',x.decoyLife,u('秒'),true],['QB消費SP',x.decoyCost,u('%'),false]);
   if (x.shieldHp) r.push(['バリア耐久', x.shieldHp, n0, true]);
   if (x.arc) r.push(['射角・防御角', x.arc, u('度'), true]);
   if (x.range) r.push(['射程', x.range, u('m'), true]);
@@ -10659,7 +10779,7 @@ function hud(timeLeft, dt) {
   $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat) + (consoleMode === 'flight' ? '%' : '');
   $('sp').classList.toggle('oh', sps.overheat);
   $('sp').classList.toggle('hit', spHitT > 0);
-  const spOn = p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
+  const spOn = p.mirageOn || p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
   $('sp').classList.toggle('act', spOn); $('sp').parentElement.classList.toggle('act', spOn);
   const aimSp = $('aimSp');
   aimSp.hidden = !p.alive || meleeOnly();
@@ -10712,6 +10832,7 @@ function hud(timeLeft, dt) {
   if (p.cloak) small += ' · 光学迷彩 作動中';
   if (p.barrierOn) small += ' · 防護バリア 作動中';
   if (p.escortOn) small += ` · 背部自動銃 作動中（${p.slots.sp.ammo}/${p.slots.sp.w.mag}発${p.slots.sp.reloadT > 0 ? '・再装填中' : ''}）`;
+  if (p.slots.sp.w.type === 'mirage') small += ` · ミラージュ ${p.mirageOn ? '作動中' : '停止'} · 次の残像 SP${p.slots.sp.w.decoyCost}% · ${mirages.filter(g => g.owner === p).length}/4体`;
   if (p.post) small += ' · リペアビーコン 設置中（特別装備を再選択で回収）';
   if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を修理・蘇生）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
