@@ -1,0 +1,159 @@
+{
+  "id": "odaiba-third-v1",
+  "name": "お台場原本v1",
+  "savedDate": "2026-10-26",
+  "sourceCommit": "919d44e1ac951a3c4ea5403367a12a487d74cf9b",
+  "archiveTag": "map-baseline/odaiba-third-v1",
+  "stage": "地形確認・施設未配置",
+  "gameplayValidated": false,
+  "scale": 0.3333333333333333,
+  "rotationDegrees": 40.7,
+  "bounds": [
+    -665.1776741709073,
+    -398.74607834203744,
+    665.1776741709036,
+    309.87909856632723
+  ],
+  "originProjected": [
+    -30332.664997847904,
+    28631.24869215872
+  ],
+  "sourceFiles": 53,
+  "mapResourceBytes": 217480,
+  "files": {
+    "CREDITS.md": {
+      "bytes": 2676,
+      "sha256": "4ad222d83246c4ff4fd79b023f5619962fbb4c7e63eea5585e14e233004009d3"
+    },
+    "README.md": {
+      "bytes": 4215,
+      "sha256": "c8076e9caad26771c227ef0b46c7d9cb024f42d496672ed6b05e56587cb6a38b"
+    },
+    "REFERENCES.md": {
+      "bytes": 3350,
+      "sha256": "11339e182d6e2b41957c4d9f7ff404099d03350b206a48674ec882c2e4ac6e2a"
+    },
+    "THREE-LICENSE.txt": {
+      "bytes": 1081,
+      "sha256": "7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f"
+    },
+    "checks/extent-source-check.json": {
+      "bytes": 635,
+      "sha256": "11775b73f1468255be5f312389d68ebb8e478eee34af528e1544d63989b47da8"
+    },
+    "checks/roof-grid-check.json": {
+      "bytes": 6825,
+      "sha256": "fd716e1ceecf6b181fafdc3d5ba0da524272c308d9face30ee582edded69c1cd"
+    },
+    "checks/terrain-check.json": {
+      "bytes": 1617,
+      "sha256": "49ca7f8f27683b82041ed4a6e6345efb727a858f892d4cb36a654cdc7a53a161"
+    },
+    "checks/transport-check.json": {
+      "bytes": 297,
+      "sha256": "8be6c5762ee4aa40655c0bb3f57a4a36c6103b89456f5f66a6577bb9133bacc8"
+    },
+    "checks/viewer-check.json": {
+      "bytes": 866,
+      "sha256": "23a5a768e3c5fff4782af3240bebf66850bf1c7b8d3829f6d51a3f3354de187e"
+    },
+    "overview.png": {
+      "bytes": 407670,
+      "sha256": "4678c5691d1f7502805f44fa663fde5795e74e654ef061e22bd4da6f9a65d620"
+    },
+    "pointcloud-source-summary.json": {
+      "bytes": 20409,
+      "sha256": "9815a95c7de56709bb4ecc772b51a82da54207d64d4a0f914e754f02e79cf4db"
+    },
+    "preview.html": {
+      "bytes": 894811,
+      "sha256": "9159ec2cdc7e540508bb30b5db102a2d8afb8f55dd237ed2b49d1d0590740f5c"
+    },
+    "sources.json": {
+      "bytes": 30283,
+      "sha256": "6f439ea5d4dc6954104c81d9b7b383902861fbbf5bc6a6ee1e36afc4d0784285"
+    },
+    "surface-render.js": {
+      "bytes": 12671,
+      "sha256": "159f4af20619deb09704e7bda4f68493accfe82b21fc4610d0fd25fdef4e6191"
+    },
+    "terrain-build-report.json": {
+      "bytes": 74702,
+      "sha256": "4f0511f608a8732e0a6ad5baa9ae934161739f25936a7e6b53b487a85c1afe0f"
+    },
+    "terrain.json": {
+      "bytes": 204809,
+      "sha256": "b856b401156f9ac227daa1962ddadbf15879036c8d5254acae293917058b7d30"
+    }
+  },
+  "rebuildFilesAtSourceCommit": {
+    "mapdesign/sowan/pointcloud-third/reference-mech.json": {
+      "bytes": 62664,
+      "sha256": "c9eefe61e93948034144585cd2284dd838280041f166e940252d3accd0ef55d8"
+    },
+    "mapdesign/sowan/pointcloud-third/viewer-template.html": {
+      "bytes": 11305,
+      "sha256": "a4010e8bb415ca78cce28d46c7a45984da0d410ee7c2ddd479cc7e3a98744fc8"
+    },
+    "tools/odaiba_ground_surfaces.py": {
+      "bytes": 2173,
+      "sha256": "7d2549037a7537d1bd17019adb6e3331001093dafff979348f7d4933289ccc56"
+    },
+    "tools/odaiba_pointcloud_extent.py": {
+      "bytes": 1666,
+      "sha256": "06746f5a4dd51eea6ed733cef83d562c6dff7b4fd63b0729b12274dccdad3340"
+    },
+    "tools/odaiba_pointcloud_fetch.py": {
+      "bytes": 3125,
+      "sha256": "a16ef6ddb8caefe7e135beb0d78ff28ab57a5d969e7f67f869f03c3b37392d7d"
+    },
+    "tools/odaiba_pointcloud_grid.py": {
+      "bytes": 4752,
+      "sha256": "5f90494c1bd0ea892b679e88b2edef2b761144338c952d85f47779fc99861607"
+    },
+    "tools/odaiba_pointcloud_preview.py": {
+      "bytes": 1420,
+      "sha256": "0caf3cd072c41d5f7acdfbf0eabb7d4cfde4265364c84e823ea9b144908d2f67"
+    },
+    "tools/odaiba_pointcloud_terrain.py": {
+      "bytes": 22601,
+      "sha256": "5e7a146807daff93de773aa0bb0dd0ce8d999b4483738bed4672b9ebd1a78077"
+    },
+    "tools/odaiba_pointcloud_vectors.py": {
+      "bytes": 3851,
+      "sha256": "fa87064c4e02de730fe41731f7d080db63db35366592923c0891813c957ef7dd"
+    },
+    "tools/odaiba_transport_detail.py": {
+      "bytes": 8578,
+      "sha256": "ecb753453a07fb5a66a5a37fc833efaa7da97479deb0b5c522e0a2e2d437d962"
+    },
+    "tools/requirements-pointcloud-map.txt": {
+      "bytes": 224,
+      "sha256": "3dfa39b9807fb649878d8fa1d5a62de56d6f478eef4837af5233a9684dda002b"
+    },
+    "tools/test/odaiba_pointcloud_roof_check.py": {
+      "bytes": 4370,
+      "sha256": "a2ccf34abe04a2370888f9d40591c36738ad4fbb17546309703c5830e62f1588"
+    },
+    "tools/test/odaiba_pointcloud_terrain_check.py": {
+      "bytes": 4716,
+      "sha256": "74c47325809f381c01a77a008b38dcac0c69bd0b6705681bfde3de629a08bcbd"
+    },
+    "tools/test/odaiba_pointcloud_viewer_check.js": {
+      "bytes": 5815,
+      "sha256": "c1aa7c8eda4882574f205a92766113d966c1de1b06ac5675f28404b4d8e9f5c2"
+    },
+    "tools/test/odaiba_transport_detail_check.py": {
+      "bytes": 2788,
+      "sha256": "14b5eb487e9fde1ac1c11185e0f145f27e04f109725d194eb1bae52d2495ce8c"
+    },
+    "vendor/three-r128/LICENSE": {
+      "bytes": 1081,
+      "sha256": "7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f"
+    },
+    "vendor/three-r128/three.min.js": {
+      "bytes": 603445,
+      "sha256": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2"
+    }
+  }
+}
