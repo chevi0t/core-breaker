@@ -127,6 +127,14 @@ canvas#view { display: block; width: 100%; height: 100%; }
 #bigMap .bmh span { white-space: nowrap; }
 #bigMap .bmh span + span { color: #9aa7b0; font-size: 11px; letter-spacing: .06em; }
 #bigMapC { display: block; }
+#bigMap { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); box-sizing: border-box; }
+#bigMap .bmh { flex-wrap: wrap; gap: 4px; }
+#bigMap .bmh span { white-space: normal; }
+#bigMap .bmh span + span { flex-basis: 100%; line-height: 16px; }
+#mapSizes { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 7px; pointer-events: auto; }
+#mapSizes button { padding: 4px 12px; border: 1px solid #5b7687; border-radius: 3px; background: #122330; color: #bdcfda; font: 12px var(--display); cursor: pointer; }
+#mapSizes button[aria-pressed="true"] { background: #285064; border-color: #76dbe9; color: #fff; }
+#mapSizes button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #bigMap.artillery .bmh { flex-direction: column; gap: 4px; }
 #bigMap.artillery .bmh span { white-space: normal; }
 #spotAlert { left: max(16px, env(safe-area-inset-left, 0px)); top: calc(216px + env(safe-area-inset-top, 0px)); width: 108px; box-sizing: border-box; padding: 3px 6px; font-size: 12px; letter-spacing: .1em; color: #ffd34d; background: var(--panel); border: 1px solid #ffd34d; text-align: center; animation: spotPulse 1.2s infinite; }
@@ -813,7 +821,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 </div>
 <div class="hud" id="plantBar"></div>
 <div id="mapHud"><canvas class="hud" id="mini" width="108" height="192"></canvas><div class="hud" id="spotAlert" role="status" hidden><b>被索敵</b><small id="spotAlertInfo"></small></div></div>
-<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる</span></div><canvas id="bigMapC"></canvas></div>
+<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる</span></div><div id="mapSizes" role="group" aria-label="全体マップの表示サイズ"><button type="button" data-map-size="medium" aria-pressed="false">中</button><button type="button" data-map-size="large" aria-pressed="false">大</button><button type="button" data-map-size="maximum" aria-pressed="true">最大</button></div><canvas id="bigMapC"></canvas></div>
 <div class="hud" id="feed"></div>
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
@@ -985,7 +993,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>照準の内側の弧は左が主武器、右が副武器。外側は左が補助、右が特別装備です。再装填・冷却中は復帰の進み具合、特別装備はSP残量を表します。ブーストは下中央の横バー、全4枠の残弾と状態は右下で確認できます</span>
         <kbd>照準の弧</kbd><span>標準・アーケード・フライトでは、照準円の左半分が残弾（リロード中は進み具合）、右半分が耐久。その外側の左がオーバーヒートする武器（ガトリング）の熱（溜まると赤、オーバーヒート中は点滅して撃てるまでの残り時間）、右がブースト残量（オーバーヒート中は赤）。チャージ撃ちの武器は外側の左が溜め（満タンで白）</span>
-        <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。開いている間はマウスでマップの上のカーソルが動き、左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
+        <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。表示は「中・大・最大」で選択でき、初期は最大です。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
         <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
@@ -2534,25 +2542,85 @@ function letterSprite(text) {
 // 敵プラントはいったん中立に戻してから占拠する（合計20秒）
 const PLANT_R = 16, CAPTURE_RATE = 10;
 const plants = [];
+// 施設の装飾を材質ごとにまとめ、プラント数に応じた描画負荷を抑える。
+function facilityGeometry(parts) {
+  const position=[],normal=[];
+  for(const [geo,x=0,y=0,z=0,rx=0,ry=0,rz=0]of parts){
+    geo.rotateX(rx);geo.rotateY(ry);geo.rotateZ(rz);geo.translate(x,y,z);
+    const flat=geo.index?geo.toNonIndexed():geo;
+    position.push(...flat.attributes.position.array);normal.push(...flat.attributes.normal.array);
+    if(flat!==geo)flat.dispose();geo.dispose();
+  }
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(position,3));geo.setAttribute('normal',new T.Float32BufferAttribute(normal,3));geo.computeBoundingSphere();return geo;
+}
+function facilityMesh(parts,material) {
+  const mesh=new T.Mesh(facilityGeometry(parts),material);mesh.userData.facilityVisual=true;return mesh;
+}
+function plantStructure(pl) {
+  const steel=[],light=[];
+  steel.push([new T.CylinderGeometry(.5,.7,7,10),0,3.5,0], [new T.CylinderGeometry(1.1,1.5,.3,8),0,.15,0], [new T.CylinderGeometry(1.8,1.3,.45,8),0,7.2,0]);
+  light.push([new T.OctahedronGeometry(1.25),0,9.8,0], [new T.TorusGeometry(2.65,.10,4,40),0,9.4,0,Math.PI/2]);
+  light.push([new T.TorusGeometry(PLANT_R-.08,.08,4,72),0,.09,0,Math.PI/2]);
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2,x=Math.sin(a),z=Math.cos(a);
+    steel.push([new T.BoxGeometry(.27,4,.27),x*.65,4.6,z*.65]);
+    light.push([new T.BoxGeometry(.1,3.1,.1),x*.81,4.65,z*.81]);
+    steel.push([new T.BoxGeometry(.4,.22,2.2),x*1.0,7.05,z*1.0,0,a]);
+    steel.push([new T.BoxGeometry(.45,3.4,.6),x*1.4,7.4,z*1.4,z*.5,0,-x*.5]);
+    light.push([new T.BoxGeometry(.6,.12,.6),x*2.2,8.95,z*2.2]);
+  }
+  for(let i=0;i<12;i++)light.push([new T.RingGeometry(PLANT_R-1.1,PLANT_R-.7,1,1,i*Math.PI/6,.19),0,.095,0,-Math.PI/2]);
+  const group=new T.Group();group.name='plant-'+pl.id;group.position.copy(pl.pos);
+  const structure=facilityMesh(steel,new T.MeshLambertMaterial({color:0x34424e}));structure.castShadow=true;
+  const beacon=facilityMesh(light,new T.MeshBasicMaterial({color:NEUTRAL,transparent:true,opacity:.95,depthWrite:false}));
+  const progress=new T.Mesh(new T.RingGeometry(2.95,3.2,64).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:NEUTRAL,side:T.DoubleSide,transparent:true,opacity:.9,depthWrite:false}));
+  progress.position.y=9.4;progress.userData.facilityVisual=true;group.add(structure,beacon,progress);mapRoot.add(group);
+  return {group,beacon,progress};
+}
+function plantVisualTick(pl,time) {
+  const pulse=pl.contested?.65+.25*Math.sin(time*9):pl.capturing?.8+.2*Math.sin(time*7):.94;
+  pl.beacon.material.opacity=pulse;
+  pl.disc.material.opacity=pl.capturing?.10:.055;
+  pl.progress.geometry.setDrawRange(0,Math.round(Math.abs(pl.gauge)/100*64)*6);
+  pl.progress.material.color.setHex(pl.gauge>=0?TEAM.B.color:TEAM.R.color);
+}
+function buildCoreTower(team,floor) {
+  const steel=[],light=[],group=new T.Group();group.name='core-tower-'+team;
+  group.position.set(TEAM[team].baseX,floor,TEAM[team].baseZ);
+  steel.push([new T.CylinderGeometry(3.2,3.6,.8,8),0,24.4,0], [new T.CylinderGeometry(1.2,3,46,4),0,47,0,0,Math.PI/4], [new T.BoxGeometry(1,12,1),0,76,0]);
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2;
+    light.push([new T.BoxGeometry(.16,34,.16),Math.sin(a)*1.25,48,Math.cos(a)*1.25]);
+    steel.push([new T.BoxGeometry(.25,8,.25),Math.sin(a)*1.9,76,Math.cos(a)*1.9]);
+  }
+  for(const y of [27,41,55,69,78])light.push([new T.TorusGeometry(y>70?2.7:3.0,.12,4,24),0,y,0,Math.PI/2]);
+  light.push([new T.OctahedronGeometry(2),0,82,0]);
+  const mast=facilityMesh(steel,new T.MeshLambertMaterial({color:0x273642}));
+  const beacon=facilityMesh(light,teamMaterial(team,new T.MeshBasicMaterial({color:TEAM[team].color,fog:false})));
+  group.add(mast,beacon);mapRoot.add(group);cores[team].tower=group;
+  // 塔は屋根と同じ障害物。結晶の参照を付けず、屋根下の経路・射線は残す。
+  const ref={kind:'umbrella',team};mast.userData.ref=beacon.userData.ref=ref;hittables.push(mast,beacon);
+  const x=TEAM[team].baseX,z=TEAM[team].baseZ;
+  obstacles.push({minX:x-3.6,maxX:x+3.6,minZ:z-3.6,maxZ:z+3.6,bottom:floor+24,top:floor+84});
+}
+
 function buildPlants(list) {
 for (const [id, x, z, start] of list) plants.push({ id, pos: new T.Vector3(x, 0, z), start });
 for (const pl of plants) {
   pl.pos.y = terrainH(pl.pos.x, pl.pos.z);
   const y = pl.pos.y;
-  const disc = new T.Mesh(new T.CircleGeometry(PLANT_R, 48), new T.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.22, depthWrite: false }));
+  const disc = new T.Mesh(new T.CircleGeometry(PLANT_R, 48), new T.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.055, depthWrite: false }));
   disc.rotation.x = -Math.PI / 2;
   disc.position.set(pl.pos.x, y + 0.05, pl.pos.z);
-  const pole = new T.Mesh(new T.CylinderGeometry(0.5, 0.7, 7, 10), new T.MeshLambertMaterial({ color: 0x5a5d61 }));
-  pole.position.set(pl.pos.x, y + 3.5, pl.pos.z);
-  pole.castShadow = true;
-  const beacon = new T.Mesh(new T.SphereGeometry(1.3, 16, 12), new T.MeshBasicMaterial({ color: NEUTRAL }));
-  beacon.position.set(pl.pos.x, y + 7.8, pl.pos.z);
-  const label = letterSprite(pl.id);
-  label.position.set(pl.pos.x, y + 11, pl.pos.z);
-  mapRoot.add(disc, pole, beacon, label);
+  const {group,beacon,progress}=plantStructure(pl);
+  // 衝突と射線の中央支柱は従来サイズ。追加した光や装飾は遮蔽物にしない。
+  const pole = new T.Mesh(new T.CylinderGeometry(.5,.7,7,10),new T.MeshBasicMaterial({visible:false}));
+  pole.position.set(pl.pos.x,y+3.5,pl.pos.z);pole.userData.facilityVisual=true;
+  const label=letterSprite(pl.id);label.position.set(pl.pos.x,y+13.5,pl.pos.z);label.scale.set(5,5,1);
+  mapRoot.add(disc,pole,label);
   hittables.push(pole);
   obstacles.push({ minX: pl.pos.x - 0.7, maxX: pl.pos.x + 0.7, minZ: pl.pos.z - 0.7, maxZ: pl.pos.z + 0.7, top: y + 7 });
-  Object.assign(pl, { disc, beacon, owner: null, gauge: 0, capturing: false, contested: false });
+  Object.assign(pl, { disc, beacon, group, progress, owner: null, gauge: 0, capturing: false, contested: false });
 }
 }
 // 点対称の位置にあるプラント（敵軍側のカタパルトの台を付ける先）
@@ -2561,6 +2629,7 @@ function paintPlant(pl) {
   const c = pl.owner ? TEAM[pl.owner].color : NEUTRAL;
   pl.disc.material.color.setHex(c);
   pl.beacon.material.color.setHex(c);
+  plantVisualTick(pl,0);
 }
 function resetPlants() {
   for (const pl of plants) {
@@ -2983,11 +3052,46 @@ function shellUpdate(dt) {
 }
 // AC追加副武器だけで使う持続熱領域と地表連鎖。既存の爆風・投擲の規則は変えない。
 const heatFields = [], chains = [];
-const heatGeo = new T.SphereGeometry(1,16,10);
+// 熱球は共有形状3個で描く。発生時も更新時も戦闘用乱数を消費しない。
+const heatGeo = new T.SphereGeometry(1,32,20);
+const heatCoronaGeo=facilityGeometry([[new T.TorusGeometry(.99,.012,3,48)], [new T.TorusGeometry(.97,.014,3,48),0,0,0,Math.PI/2], [new T.TorusGeometry(1,.012,3,48),0,0,0,0,Math.PI/2]]);
+const heatEmberGeo=new T.BufferGeometry();
+{
+  const p=[],phase=[];
+  for(let i=0;i<36;i++){const y=1-2*(i+.5)/36,a=i*2.399963,r=Math.sqrt(1-y*y);p.push(Math.cos(a)*r,y,Math.sin(a)*r);phase.push(i/36);}
+  heatEmberGeo.setAttribute('position',new T.Float32BufferAttribute(p,3));heatEmberGeo.setAttribute('phase',new T.Float32BufferAttribute(phase,1));
+}
+function makeHeatField(at,radius) {
+  return visualAlloc(()=>{
+    const uniforms={time:{value:0},fade:{value:1},radius:{value:radius},pixelScale:{value:1}};
+    const vertex=`varying vec3 p; varying vec3 n; varying vec3 view; void main(){p=position;n=normalize(normalMatrix*normal);vec4 v=modelViewMatrix*vec4(position,1.);view=normalize(-v.xyz);gl_Position=projectionMatrix*v;}`;
+    const material=new T.ShaderMaterial({uniforms,vertexShader:vertex,fragmentShader:`uniform float time;uniform float fade;varying vec3 p;varying vec3 n;varying vec3 view;
+      void main(){float a=atan(p.z,p.x),h=p.y;float flow=sin(a*8.+h*9.-time*5.+sin(h*12.+time*2.));float threads=pow(max(0.,flow),9.);float cells=sin(p.x*17.+time*2.)*sin(p.z*14.-time*3.)*sin(h*13.+time);
+      float rim=pow(1.-abs(dot(normalize(n),normalize(view))),2.);float hot=clamp(threads*.8+max(0.,cells)*.45,0.,1.);float core=pow(abs(dot(normalize(n),normalize(view))),14.);
+      vec3 color=mix(vec3(.95,.065,.007),vec3(1.,.68,.12),hot);color=mix(color,vec3(1.,.94,.65),threads*.65);color=mix(color,vec3(1.,.8,.3),core*.65);
+      gl_FragColor=vec4(color,(.045+hot*.08+core*.12+rim*.19+threads*.28)*fade);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+      }`,transparent:true,depthWrite:false,side:T.DoubleSide});
+    const mesh=new T.Mesh(heatGeo,material);mesh.name='thermal-field';mesh.position.copy(at);mesh.scale.setScalar(radius);
+    const corona=new T.Mesh(heatCoronaGeo,new T.ShaderMaterial({uniforms,vertexShader:vertex,fragmentShader:`uniform float time;uniform float fade;varying vec3 p;void main(){float hot=.5+.5*sin(p.y*12.+atan(p.z,p.x)*5.-time*6.);float trail=pow(.5+.5*sin(atan(p.y,p.x)*7.+p.z*6.-time*4.),3.);gl_FragColor=vec4(1.,.3+hot*.5,.07, (.08+trail*.65)*fade);}`,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));
+    corona.name='thermal-corona';
+    const embers=new T.Points(heatEmberGeo,new T.ShaderMaterial({uniforms,vertexShader:`attribute float phase;uniform float time;uniform float pixelScale;uniform float radius;varying float light;
+      void main(){float a=time*(.25+phase*.2);vec3 p=position; p.xz=mat2(cos(a),-sin(a),sin(a),cos(a))*p.xz;p*=.94+.09*sin(time*3.+phase*20.);light=.5+.5*sin(time*8.+phase*24.);vec4 v=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*v;gl_PointSize=clamp((.06+.07*light)*radius*pixelScale/max(.1,-v.z),1.,9.);}`,fragmentShader:`uniform float fade;varying float light;void main(){float a=1.-smoothstep(.05,.5,length(gl_PointCoord-.5));gl_FragColor=vec4(1.,.5+light*.4,.15,a*fade);}`,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));
+    embers.name='thermal-embers';const viewport=new T.Vector2();embers.onBeforeRender=(r,s,c)=>{uniforms.pixelScale.value=r.getDrawingBufferSize(viewport).y/(2*Math.tan(c.fov*Math.PI/360));};
+    mesh.add(corona,embers);return mesh;
+  });
+}
+function heatVisualTick(h,dt) {
+  h.age=(h.age||0)+dt;const u=h.mesh.material.uniforms;
+  u.time.value=h.age;u.fade.value=Math.min(1,h.age/.06,h.life/.25);
+  h.mesh.children[0].rotation.set(h.age*.21,h.age*.34,h.age*.13);
+}
+function removeHeatVisual(h) {scene.remove(h.mesh);h.mesh.traverse(o=>o.material?.dispose());}
+
 function secondaryBurst(sh,at,ref) {
   if (!sh.spec.heatDps) { blast(sh,at,ref); return; }
-  const mesh = new T.Mesh(heatGeo,new T.MeshBasicMaterial({color:0xff8a39,transparent:true,opacity:.23,depthWrite:false,wireframe:true}));
-  mesh.position.copy(at); mesh.scale.setScalar(sh.spec.blast); scene.add(mesh);
+  const mesh=makeHeatField(at,sh.spec.blast);scene.add(mesh);
   heatFields.push({owner:sh.owner,team:sh.team,weaponName:sh.weaponName,spec:sh.spec,pos:at.clone(),life:sh.spec.heatDur,touched:new Set(),mesh});
   sfx('gas',at,sh.owner);
 }
@@ -3018,8 +3122,8 @@ function secondaryUpdate(dt) {
     for (const e of barricades) heatDamage(h,e,step);
     for (let j=gadgets.length-1;j>=0;j--) heatDamage(h,gadgets[j],step);
     heatDamage(h,cores.B,step);heatDamage(h,cores.R,step);
-    h.life-=step;
-    if (h.life<=1e-6) {scene.remove(h.mesh);h.mesh.material.dispose();heatFields.splice(i,1);}
+    h.life-=step;heatVisualTick(h,step);
+    if (h.life<=1e-6) {removeHeatVisual(h);heatFields.splice(i,1);}
   }
   for (let i=chains.length-1;i>=0;i--) {
     const c=chains[i],S=c.spec;c.cd-=dt;
@@ -3038,7 +3142,7 @@ function secondaryUpdate(dt) {
   }
 }
 function clearSecondaryEffects() {
-  for(const h of heatFields){scene.remove(h.mesh);h.mesh.material.dispose();}
+  for(const h of heatFields)removeHeatVisual(h);
   heatFields.length=chains.length=0;
 }
 
@@ -3583,6 +3687,7 @@ for (const k of ['B', 'R']) {
   roof.userData.ref = rim.userData.ref = { kind: 'umbrella', team: k };
   mapRoot.add(roof, rim);
   hittables.push(roof, rim);
+  buildCoreTower(k,cityMap?cityMap.base(k).height:0);
 }
 }
 
@@ -3600,7 +3705,9 @@ function buildMap(id) {
   curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : MAPS[id] ? id : FIRST_MAP;
   cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
   scene.fog.near=cityMap?220:110;scene.fog.far=cityMap?850:420;
-  for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
+  const facilityMaterials=new Set();
+  for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); if(c.userData.facilityVisual&&c.material)facilityMaterials.add(c.material); }); }
+  for(const material of facilityMaterials)material.dispose();
   obstacles.length = 0; hittables.length = 0;
   for (const a of [plants, turrets, radars, catapults, jumpPads, lifts, ziplines, pods, barricades]) a.length = 0;
   [MAP_X, MAP_Z] = def.size;
@@ -10567,11 +10674,24 @@ function drawMini() {
   drawBigMap();
 }
 // 全体マップ（M で開く・閉じる。v0.15、本家から移植）：ミニマップと同じ物を画面の高さの8割で。地形はミニマップの3倍の細かさ
-let mapOpen = false;
+let mapOpen = false, bigMapSize = 'maximum', mapHadPointer = false;
+const BIG_MAP_SIZES={medium:.65,large:.83,maximum:1};
+$('mapSizes').addEventListener('click',e=>{
+  const key=e.target.closest('[data-map-size]')?.dataset.mapSize;
+  if(!Object.hasOwn(BIG_MAP_SIZES,key))return;
+  bigMapSize=key;
+  for(const b of $('mapSizes').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mapSize===key));
+  drawBigMap();
+});
 addEventListener('keydown', e => {
   if (e.code !== 'KeyM' || e.repeat || !running || isArtilleryMode(player)) return;
   mapOpen = !mapOpen;
-  if (mapOpen && player) { mapCur.x = player.pos.x; mapCur.z = player.pos.z; } // 指示出しのカーソルは自機の所から
+  if (mapOpen && player) {
+    mapCur.x = player.pos.x; mapCur.z = player.pos.z;
+    mapHadPointer=document.pointerLockElement===canvas;mouseDown=rightDown=false;
+    if(mapHadPointer)document.exitPointerLock?.();
+  } else if(mapHadPointer){mapHadPointer=false;grabPointer();}
+  drawBigMap();
 });
 // マウスの固定が外れているときは、全体マップを直接クリックして地点を指す（v0.17）
 $('bigMapC').addEventListener('mousedown', e => {
@@ -10596,9 +10716,11 @@ function drawBigMap() {
   title[1].textContent = mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる';
   if (box.hidden) return;
   const cv = $('bigMapC'), dpr = Math.min(2, devicePixelRatio || 1);
-  const H = Math.round(Math.min(innerHeight * 0.8 - 40, (innerWidth - 40) * MAP_Z / MAP_X)), W = Math.round(H * MAP_X / MAP_Z);
+  const header=box.querySelector('.bmh').getBoundingClientRect().height+$('mapSizes').getBoundingClientRect().height+38;
+  const scale=BIG_MAP_SIZES[bigMapSize],availableH=Math.max(80,innerHeight-header),availableW=Math.max(80,innerWidth-34);
+  const H=Math.floor(Math.min(availableH,availableW*MAP_Z/MAP_X)*scale),W=Math.floor(H*MAP_X/MAP_Z);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
-  if (!bigBg) bigBg = makeMiniBg(MINI_W * 3, miniH() * 3);
+  if (!bigBg || bigBg.width<W*dpr || bigBg.height<H*dpr) bigBg=makeMiniBg(Math.ceil(Math.max(W,MINI_W*3)*dpr),Math.ceil(Math.max(H,miniH()*3)*dpr));
   bigPx.w = W; bigPx.h = H;
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -11258,7 +11380,7 @@ $('start').addEventListener('click', () => {
 });
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && running) mouseDown = false;
-  if (!document.pointerLockElement && tutorial) tutorialPause();
+  if (!document.pointerLockElement && tutorial && !mapOpen) tutorialPause();
 });
 
 function resize() {
@@ -11376,7 +11498,7 @@ function loop(now) {
   reconPulseUpdate(running ? dt : 0);
   puffUpdate(dt);
   boomUpdate(dt);
-  for (const pl of plants) pl.beacon.scale.setScalar(pl.capturing ? 1 + 0.25 * Math.sin(now / 90) : 1);
+  for (const pl of plants) plantVisualTick(pl,now*.001);
   for (const k of ['B', 'R']) if (cores[k].glow) { cores[k].glow.rotation.y += dt; cores[k].glow.material.color.setHex(cores[k].hp < CORE_MAX * 0.25 && Math.sin(now / 120) > 0 ? 0xff3030 : TEAM[k].color); }
   combatFeedbackUpdate(dt); spHitT -= dt;
   updateBlastShake(dt);
