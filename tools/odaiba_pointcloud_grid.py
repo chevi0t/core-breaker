@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""39区画のLASを順番に読み、1m格子の標高・地面・撮影色へ集約する。"""
+"""取得区画のLASを順番に読み、1m格子の標高・地面・撮影色へ集約する。"""
 
 import json, zipfile, time, hashlib
 from pathlib import Path
@@ -21,7 +21,11 @@ OUT = Path(
 OUT.mkdir(parents=True, exist_ok=True)
 
 manifest = json.loads((CACHE / "manifest.json").read_text())
-X0, Y0, X1, Y1 = -6000, -42900, -2800, -40200
+config = json.loads((ROOT / "research/maps/odaiba-pointcloud-third.json").read_text())
+assert {r["file"] for r in manifest["files"]} == {
+    r["file"] for r in config["files"]
+}, "取得記録と対象区画が一致しません"
+X0, Y0, X1, Y1 = config["gridBoundsProjected"]
 W, H = X1 - X0, Y1 - Y0
 top = np.full(H * W, -np.inf, dtype=np.float32)
 color = np.zeros((H * W, 3), dtype=np.uint8)

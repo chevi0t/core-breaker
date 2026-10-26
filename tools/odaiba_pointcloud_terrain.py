@@ -11,6 +11,8 @@ from scipy import ndimage, signal
 from rasterio.features import geometry_mask, shapes
 from affine import Affine
 from pyproj import Transformer
+from odaiba_transport_detail import build_transport
+from odaiba_pointcloud_extent import extent
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path(
@@ -26,6 +28,9 @@ OUT = Path(
 )
 OUT.mkdir(parents=True, exist_ok=True)
 
+CONFIG = json.loads((ROOT / "research/maps/odaiba-pointcloud-third.json").read_text())
+GRID_INFO = json.loads((CACHE / "grid-manifest.json").read_text())
+GX0, GY0, GX1, GY1 = GRID_INFO["bounds"]
 V = json.loads((CACHE / "vectors.json").read_text())
 G = np.load(CACHE / "grid.npz")
 TOP = G["top"]
@@ -38,8 +43,7 @@ LAND = BOUND.difference(WATER)
 ANGLE = math.radians(40.7)
 CA, SA = math.cos(ANGLE), math.sin(ANGLE)
 ROT = affinity.affine_transform(BOUND, [CA, SA, SA, -CA, 0, 0])
-OX = (ROT.bounds[0] + ROT.bounds[2]) / 2
-OZ = (ROT.bounds[1] + ROT.bounds[3]) / 2
+_, ORIGINAL_BOUND, (OX, OZ) = extent(CONFIG)
 GEOGRAPHIC = Transformer.from_crs(4326, 6677, always_xy=True)
 PALETTE = [
     "#b8b9b2",
@@ -125,13 +129,13 @@ def add(poly, lo, hi, paint=0, kind=0):
 
 def sample(poly, pad=0):
     minx, miny, maxx, maxy = poly.buffer(pad).bounds
-    ix0 = max(0, int(math.floor(minx + 6000)))
-    ix1 = min(TOP.shape[1], int(math.ceil(maxx + 6000)))
-    iy0 = max(0, int(math.floor(miny + 42900)))
-    iy1 = min(TOP.shape[0], int(math.ceil(maxy + 42900)))
+    ix0 = max(0, int(math.floor(minx - GX0)))
+    ix1 = min(TOP.shape[1], int(math.ceil(maxx - GX0)))
+    iy0 = max(0, int(math.floor(miny - GY0)))
+    iy1 = min(TOP.shape[0], int(math.ceil(maxy - GY0)))
     if ix1 <= ix0 or iy1 <= iy0:
         return None
-    transform = Affine(1, 0, ix0 - 6000, 0, 1, iy0 - 42900)
+    transform = Affine(1, 0, ix0 + GX0, 0, 1, iy0 + GY0)
     mask = geometry_mask(
         [mapping(poly.buffer(pad))],
         out_shape=(iy1 - iy0, ix1 - ix0),
@@ -500,8 +504,6 @@ def geometry_encoding(polys, tolerance=1):
 
 
 roads = []
-railpolys = []
-decks = []
 for rec in V["roads"]:
     props = rec["properties"]
     g = shape(rec["geometry"])
@@ -522,33 +524,9 @@ for rec in V["roads"]:
     )
     p = g.buffer(width / 2, cap_style=2, join_style=2).intersection(BOUND)
     roads.append(p)
-    if props.get("vt_lvorder", 0) > 0 and g.length > 8:
-        s = sample(p)
-        vals = s[1][s[0] & np.isfinite(s[1])] if s else []
-        y = float(np.percentile(vals, 45) - ground_height(p)) if len(vals) else 12
-        if y > 4:
-            decks.append((p, max(5, y)))
 roadshape = shapely.union_all(roads).intersection(LAND)
-
-for rec in V["rails"]:
-    g = shape(rec["geometry"])
-    props = rec["properties"]
-    if props.get("vt_code") not in [2801, 2802, 2803, 2804, 2811, 2812, 2813]:
-        continue
-    if g.is_empty or g.geom_type not in ["LineString", "MultiLineString"]:
-        continue
-    p = g.buffer(3, cap_style=2, join_style=2).intersection(BOUND)
-    s = sample(p)
-    vals = s[1][s[0] & np.isfinite(s[1])] if s else []
-    y = float(np.percentile(vals, 45) - ground_height(p)) if len(vals) else 14
-    if y < 3:
-        y = 14
-    railpolys.append((p, y))
-
-for p, y in decks:
-    add(p, max(0, y - 0.9), y, 13, 3)
-for p, y in railpolys:
-    add(p, max(0, y - 1.1), y, 11, 3)
+transport = build_transport(V, TOP, game, SCALE, 0.05, (GX0, GY0))
+report["transport"] = transport.pop("stats")
 
 # 草地は撮影色から大きなまとまりだけを抽出し、建物や水面に重ねない。
 rgb = RGB[::4, ::4].astype(float)
@@ -560,7 +538,7 @@ green = (
 green = ndimage.binary_closing(green, iterations=2)
 green = ndimage.binary_opening(green, iterations=1)
 grass = (
-    raster_poly(green, Affine(4, 0, -6000, 0, 4, -42900))
+    raster_poly(green, Affine(4, 0, GX0, 0, 4, GY0))
     .intersection(LAND)
     .difference(shapely.union_all(buildings))
     .difference(roadshape)
@@ -571,6 +549,19 @@ views = {
     name: {"at": [game(p).x, game(p).y], "range": 110 if name == "conference" else 130}
     for name, p in landmark_locations.items()
 }
+views["north"] = {"at": [0, game(ORIGINAL_BOUND).bounds[1] - 45], "range": 780}
+if transport["bridgeView"]:
+    views["promenade"] = transport["bridgeView"]
+for kind, key in [("expressway", "expressway"), ("guideway", "guideway")]:
+    candidates = [r for r in transport["routes"] if r["kind"] == kind]
+    if candidates:
+        route = max(candidates, key=lambda r: r["sourceLength"])
+        a = (
+            np.frombuffer(base64.b64decode(route["path"]), dtype="<i2").reshape(-1, 3)
+            * 0.05
+        )
+        p = a[len(a) // 2]
+        views[key] = {"at": [float(p[0]), float(p[2])], "range": 110}
 model = {
     "format": "odaiba-terrain-preview-v1",
     "scale": SCALE,
@@ -579,6 +570,13 @@ model = {
     "originProjected": [OX, OZ],
     "bounds": list(game(BOUND).bounds),
     "boundary": geometry_encoding(BOUND, 0.1),
+    "originalBoundary": geometry_encoding(ORIGINAL_BOUND, 0.1),
+    "northExtensionGameMeters": CONFIG.get("extent", {}).get(
+        "viewNorthExtensionRealMeters", 0
+    )
+    * SCALE,
+    "northExtensionCoveredBoundsGameMeters": game(ORIGINAL_BOUND).bounds[1]
+    - game(BOUND).bounds[1],
     "land": geometry_encoding(LAND, 1.2),
     "water": geometry_encoding(WATER, 1.2),
     "roads": geometry_encoding(roadshape, 1.5),
@@ -586,9 +584,10 @@ model = {
     "palette": PALETTE,
     "volumes": volumes,
     "meshes": meshes,
+    "transport": transport,
     "views": views,
-    "sourceFiles": 39,
-    "sourcePoints": 165285697,
+    "sourceFiles": GRID_INFO["sourceFiles"],
+    "sourcePoints": GRID_INFO["sourcePoints"],
     "bases": [],
     "plants": [],
     "referenceHeightMeters": 8,

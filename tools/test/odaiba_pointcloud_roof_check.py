@@ -106,6 +106,8 @@ for i in range(1, n + 1):
     )
 result = {
     "gridStepMeters": 1,
+    "coverage": "建物ボリュームと特徴建物の上面のみ。生成交通構造は対象外。",
+    "gameplayValidated": False,
     "upwardStepLimitMeters": JUMP,
     "validCells": int(valid.sum()),
     "unreachableTopCells": int(unseen.sum()),

@@ -23,5 +23,10 @@ page = page.replace(
 )
 page = page.replace("/*TERRAIN_JSON*/", terrain)
 page = page.replace("/*MECH_JSON*/", (TEMPLATES / "reference-mech.json").read_text())
+surface = (TEMPLATES / "surface-render.js").read_text()
+if len(terrain.encode()) + len(surface.encode()) > 500000:
+    raise ValueError("地形と生成材質・交通描画の合計が500KBを超えています")
+page = page.replace("/*SURFACE_RENDER*/", surface)
+page = page.replace("/*SURFACE_RENDER_BYTES*/", str(len(surface.encode())))
 (OUT / "preview.html").write_text(page)
 print("地形:", len(terrain.encode()), "bytes / 確認HTML:", len(page.encode()), "bytes")

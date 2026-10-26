@@ -7,6 +7,7 @@ import shapely
 from shapely.geometry import shape, box, mapping, Polygon, LineString
 from pyproj import Transformer
 import mapbox_vector_tile
+from odaiba_pointcloud_extent import extent
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path(
@@ -23,13 +24,14 @@ OUT = Path(
 OUT.mkdir(parents=True, exist_ok=True)
 
 ref = json.loads((ROOT / "research/maps/odaiba-pointcloud-third.json").read_text())
-boundary = shapely.union_all([box(*r["boundsProjected"]) for r in ref["files"]])
+boundary, original_boundary, origin = extent(ref)
 trans = Transformer.from_crs(4326, 6677, always_xy=True)
 collected = {
     k: [] for k in ["BldA", "RdCL", "RailCL", "RailTrCL", "WA", "RdCompt", "WStrA"]
 }
 sources = []
-for path in (CACHE / "gsi").glob("*.pbf"):
+tile_paths = [CACHE / "gsi" / "-".join(r["url"].split("/")[-2:]) for r in ref["gsi"]]
+for path in sorted(tile_paths):
     x, y = map(int, path.stem.split("-"))
     decoded = mapbox_vector_tile.decode(path.read_bytes())
     used = False
