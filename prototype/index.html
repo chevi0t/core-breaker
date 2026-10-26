@@ -2867,7 +2867,7 @@ bladeWaveGeo.computeBoundingBox(); bladeWaveGeo.scale(1 / (bladeWaveGeo.bounding
 const bladeWaveMat = Object.fromEntries(['B', 'R'].map(k => [k, new T.MeshBasicMaterial({ color: k === 'B' ? 0x9eefff : 0xffc691, transparent: true, opacity: .9, blending: T.AdditiveBlending, depthWrite: false })]));
 // 止まった所に置かれる物（設置物になる）
 const PLACED = ['mine', 'sensor', 'remote', 'sentry', 'ammo'];
-const BALLISTIC_COLOR = 0xffb84a, PROJECTILE_VISUAL_SCALE = 1.5; // 弾種で色を分け、飛翔物は描画だけ拡大（ユーザー指定）。
+const BALLISTIC_COLOR = 0xffb84a, PROJECTILE_VISUAL_SCALE = 1.5; // 拡大は主武器だけ。副武器は従来寸法（ユーザー指定）。
 const shellMat = { B: new T.MeshBasicMaterial({ color: BALLISTIC_COLOR, fog: false }), R: new T.MeshBasicMaterial({ color: BALLISTIC_COLOR, fog: false }) };
 const rocketMat = new T.MeshLambertMaterial({ color: BALLISTIC_COLOR, emissive: 0x6e3400, fog: false });
 const weakMat = new T.MeshBasicMaterial({ color: 0xa070ff });
@@ -2877,7 +2877,7 @@ energyShotGeo.translate(0, .5, 0);
 const energyShotMat = new T.MeshBasicMaterial({ color: ENERGY_COLOR, transparent: true, opacity: .95, depthWrite: false, fog: false });
 // プラズマ砲は後方からも追えるピンクの砲弾と太い尾を描く（ユーザー指定、見た目だけ）。
 const PLASMA_COLOR = 0xff63cc;
-const CANNON_VISUAL_SCALE = 4.2; // 既に大きい両砲は従来の1.4倍。弾道・爆風半径には使わない。
+const CANNON_VISUAL_SCALE = 3; // 副武器の両砲は拡大前の寸法へ戻す。弾道・爆風半径には使わない。
 const plasmaHeadGeo = new T.SphereGeometry(1, 12, 8);
 const plasmaHeadMat = new T.MeshBasicMaterial({ color: 0xff90dc, fog: false });
 const plasmaHaloMat = new T.MeshBasicMaterial({ color: PLASMA_COLOR, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.BackSide, fog: false });
@@ -2900,17 +2900,18 @@ function cannonShotMesh(style) {
 // hover（上空に浮かぶ高さ）, dur（消えるまでの秒）, col（真下の円柱の範囲を見る）, cone（前方の扇形の角度）, gun（自動砲台の銃）
 // 発射・設置した時点の名前を渡す。後の持ち替えや再出撃で死因が変わらないようにする。
 function attackName(by, weaponName) { return weaponName || (by?.kind === 'turret' ? '防衛砲台' : '不明な攻撃'); }
-function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visualStyle = '', weaponName = null) {
+function primaryShot(u, w) { return !!w.key && u.slots?.main?.w.key === w.key; }
+function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visualStyle = '', weaponName = null, enlarged = false) {
   // 投げる物（spec.model）は武器の形（v0.11.1）。ロケット、重砲・プラズマ砲の弾、グレネードランチャーの弾はこれまでの形
   const energy = !spec.bladeWave && !spec.model && !spec.rocket && !spec.weak && !!(visualEnergy || spec.energy);
   const plasmaVisual = energy && visualStyle === 'plasma', chargeVisual = energy && visualStyle === 'charge';
   const m = plasmaVisual || chargeVisual ? cannonShotMesh(visualStyle) : energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
-  if (!energy && !spec.bladeWave && !PLACED.includes(spec.kind)) m.scale.setScalar(PROJECTILE_VISUAL_SCALE);
+  if (enlarged && !energy && !spec.bladeWave && !PLACED.includes(spec.kind)) m.scale.setScalar(PROJECTILE_VISUAL_SCALE);
   m.position.copy(from);
   if (spec.bladeWave) { m.scale.x = spec.width; m.lookAt(from.clone().sub(vel)); }
   if (spec.rocket) m.quaternion.setFromUnitVectors(UP, vel.clone().normalize());
   scene.add(m);
-  const sh = { owner, team: owner.team, weaponName: attackName(owner, weaponName), spec, pos: from.clone(), vel, mesh: m, life: spec.bladeWave ? spec.range / spec.speed : spec.fuse || spec.life || 3, stuck: false };
+  const sh = { owner, team: owner.team, weaponName: attackName(owner, weaponName), spec, enlarged, pos: from.clone(), vel, mesh: m, life: spec.bladeWave ? spec.range / spec.speed : spec.fuse || spec.life || 3, stuck: false };
   if (energy) { sh.energyFrom = from.clone(); sh.plasmaVisual = plasmaVisual; sh.chargeVisual = chargeVisual; energyShotLook(sh); }
   shells.push(sh);
   return sh;
@@ -2919,7 +2920,7 @@ function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visu
 function energyShotLook(sh) {
   const speed = sh.vel.length();
   if (speed > .0001) sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().multiplyScalar(-1 / speed));
-  const width = energyTraceWidth(sh.pos), len = Math.min(10, speed * .06, sh.pos.distanceTo(sh.energyFrom));
+  const width = energyTraceWidth(sh.pos, sh.enlarged), len = Math.min(10, speed * .06, sh.pos.distanceTo(sh.energyFrom));
   if (sh.plasmaVisual || sh.chargeVisual) {
     const distance = sh.pos.distanceTo(camera.position), radius = CANNON_VISUAL_SCALE * Math.max(.36, Math.min(.75, distance * .0032));
     const tailWidth = CANNON_VISUAL_SCALE * Math.max(.12, Math.min(.32, distance * .002));
@@ -5215,7 +5216,7 @@ const fx = [];
 const TRACER_SPEED = 450;
 const TRACER_COLOR = { B: BALLISTIC_COLOR, R: BALLISTIC_COLOR };
 const ENERGY_TRACE_LEN = 18, ENERGY_TRACE_FADE = .06;
-const energyTraceWidth = at => Math.max(.06, at.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * 5.2);
+const energyTraceWidth = (at, enlarged = true) => enlarged ? Math.max(.06, at.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * 5.2) : Math.max(.014, Math.min(.055, at.distanceTo(camera.position) * .0005));
 const tracerGeo = new T.CylinderGeometry(1, 1, 1, 6, 1, true);
 tracerGeo.translate(0, 0.5, 0);
 let visualSeed = 0x43b17a92;
@@ -5243,11 +5244,11 @@ const glow = color => ({ color, transparent: true, blending: T.AdditiveBlending,
 function addFx(obj, life, extra = {}, delay = 0) {
   fx.push(Object.assign({ obj, life, age: -delay, shown: false }, extra));
 }
-function tracer(from, end, team, energy = false, weapon = null) {
+function tracer(from, end, team, energy = false, weapon = null, enlarged = true) {
   const len = from.distanceTo(end), profile = tracerProfile(weapon);
   const m = new T.Mesh(bulletTraceGeo, new T.MeshBasicMaterial({ color: energy ? ENERGY_COLOR : TRACER_COLOR[team], transparent: true, depthWrite: false, fog: false }));
   m.quaternion.setFromUnitVectors(UP, end.clone().sub(from).normalize());
-  addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team });
+  addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team, enlarged });
   return len / TRACER_SPEED;
 }
 // 光弾狙撃ライフルは射線全体を瞬時に光らせ、0.4秒かけてぼやけた緑の軌跡を消す。
@@ -5266,7 +5267,7 @@ function laserLook(f) {
   else laserSide.normalize();
   laserNormal.crossVectors(laserSide, f.dir).normalize();
   f.obj.quaternion.setFromRotationMatrix(laserBasis.makeBasis(laserSide, f.dir, laserNormal));
-  const k = Math.min(1, f.age / .4), bright = f.age < .08, width = 1.5 * Math.max(.12, f.mid.distanceTo(camera.position) * .006);
+  const k = Math.min(1, f.age / .4), bright = f.age < .08, width = Math.max(.12, f.mid.distanceTo(camera.position) * .006);
   f.obj.scale.set(width * (bright ? 1 : 1 + k * 3), f.len, 1);
   f.obj.material.map = laserTex[bright ? 0 : 1];
   f.obj.material.opacity = bright ? .98 : .4 * (1 - k) ** .8;
@@ -5505,8 +5506,8 @@ function fxUpdate(dt) {
       // 筋の先端を着弾点へ進め、遠くても見える太さにする
       const head = Math.min(f.len, f.age * TRACER_SPEED), tail = Math.max(0, head - (f.energy ? ENERGY_TRACE_LEN : f.segment));
       f.obj.position.copy(f.from).lerp(f.end, f.len ? tail / f.len : 0);
-      const pixels = player && f.team !== player.team ? 6.8 : 5.2;
-      const w = f.energy ? energyTraceWidth(f.obj.position) : Math.max(.09, f.obj.position.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * pixels);
+      const scale = f.enlarged ? 2 : 1, pixels = (player && f.team !== player.team ? 3.4 : 2.6) * scale;
+      const w = f.energy ? energyTraceWidth(f.obj.position, f.enlarged) : Math.max(.045 * scale, f.obj.position.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * pixels);
       f.obj.scale.set(w, Math.max(0.01, head - tail), w);
       f.obj.material.opacity = .95 * Math.max(0, 1 - Math.max(0, f.age - f.len / TRACER_SPEED) / (f.energy ? ENERGY_TRACE_FADE : f.fade));
     } else if (f.kind === 'laser') {
@@ -5632,7 +5633,7 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
   dir.normalize();
   const hit = castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
-  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w);
+  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w));
   if (w.scope && !laser) smokeTrail(from, end);
   flash(from, laser ? ENERGY_COLOR : w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
   if (!hit) return false;
@@ -8341,7 +8342,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
         if (ws) { v.x += (Math.random() - 0.5) * ws; v.y += (Math.random() - 0.5) * ws; v.z += (Math.random() - 0.5) * ws; v.normalize(); } // 連射ロケットはばらけて飛ぶ
         v.multiplyScalar(P.speed);
       }
-      const sh = shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : charge ? 'charge' : '', w.name);
+      const sh = shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : charge ? 'charge' : '', w.name, primaryShot(u, w));
       if (P.guided && missileTarget && missileTargetValid(u, missileTarget)) sh.missileTarget = missileTarget;
       if (plasma) plasmaMuzzleRing(from, v);
       mainMuzzleFlash(u, !!hand, w);
@@ -9157,7 +9158,7 @@ function artilleryTick(u,sl,dt,trigger,aim,on,cancel) {
   cancelSpawnInvul(u);
   const r=Math.sqrt(Math.random())*w.scatter,a=Math.random()*Math.PI*2;
   const target=u.bombard.clone().add(new T.Vector3(Math.cos(a)*r,0,Math.sin(a)*r));
-  const from=muzzle(u),mesh=new T.Mesh(artilleryShellGeo,shellMat[u.team]); mesh.scale.setScalar(PROJECTILE_VISUAL_SCALE);mesh.position.copy(from);scene.add(mesh);
+  const from=muzzle(u),mesh=new T.Mesh(artilleryShellGeo,shellMat[u.team]); mesh.position.copy(from);scene.add(mesh);
   barrages.push({owner:u,team:u.team,weaponName:w.name,age:0,flight:w.flight,from,target,mesh,warn:null,warned:false,sparkT:0,spec:{dmg:w.dmg,blast:w.blast,core:true,linear:true,occluded:true}});
   u.artilleryFired++;sl.cd=w.interval||0;
   spUse(sl,cost);sfx(w.sfx,u.pos,u,w.sfxRate);flash(from,0xffbd69,2,.15);

@@ -16,12 +16,12 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     const box=new T.Mesh(new T.BoxGeometry(12,12,1),new T.MeshBasicMaterial());box.position.set(0,202.6,-60);box.userData.ref=e;box.userData.armorSlot='body';g.scene.add(box);g.hittables.length=0;g.hittables.push(box);box.updateMatrixWorld(true);
     const clear=()=>{g.fxUpdate(20);for(const s of g.shells)g.scene.remove(s.mesh);g.shells.length=0;};
     function reset(key,team='B'){
-     clear();Object.assign(u.mech,g.MECH_DEFAULT);g.equip(u,'heavy');u.slots.main=g.slotOf(key);u.weapon='main';
+     clear();const location=Object.entries(g.ARMORY).flatMap(([cls,slots])=>Object.entries(slots).flatMap(([slot,keys])=>keys.includes(key)?[{cls,slot}]:[]))[0];Object.assign(u.mech,g.MECH_DEFAULT);g.equip(u,location.cls);u.slots[location.slot]=g.slotOf(key);u.weapon=location.slot;
      Object.assign(u,{alive:true,team,isPlayer:true,switchT:0,stun:'',electricT:0,ctrlLockT:0,recoil:0,recoilYaw:0,cameraRecoil:0,cameraRecoilYaw:0,invulT:0,yaw:0,pitch:0,onGround:true,repairing:false,transfer:null,aimMul:1,overheat:false});
      u.pos.set(0,200,0);u.vel.set(0,0,0);u.group.position.copy(u.pos);g.weaponLook(u,0);
      Object.assign(e,{alive:true,team:team==='B'?'R':'B',hp:1e9,maxHp:1e9,invulT:0,weakT:0,armorAvg:1,partArmor:{head:1,body:1,arms:1,legs:1},stun:'',stunT:0,ctrlLockT:0,repairing:false});e.pos.set(0,200,-60);e.vel.set(0,0,0);
      g.camera.position.set(0,202.6,10);g.camera.lookAt(0,202.6,-100);g.camera.fov=70;g.camera.updateProjectionMatrix();g.camera.updateMatrixWorld(true);g.lock.target=null;
-     return u.slots.main;
+     return u.slots[location.slot];
     }
     const fire=sl=>{if(sl.w.chargeOrb){sl.chargeT=sl.w.chargeTime;g.weaponsTick(u,.001,false,aim,0);}else g.shot(u,sl,aim,0);};
     const gm=Object.keys(g.WEAPONS).filter(k=>g.WEAPONS[k].series==='gm'),lv=Object.keys(g.WEAPONS).filter(k=>g.WEAPONS[k].series==='lv');
@@ -50,6 +50,17 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
      const sl=reset(key);fire(sl);const fired=g.shells.length;g.shellUpdate(.04);const s=g.shells[0];if(!s)throw Error(key+'：飛翔確認用の弾がない '+JSON.stringify({fired,proj:sl.w.proj,from:g.muzzle(u).toArray()}));const head=s.mesh.getObjectByName('plasmaHead')||s.mesh.getObjectByName('chargeHead'),trail=s.mesh.getObjectByName('plasmaTrail')||s.mesh.getObjectByName('chargeTrail');
      projectiles.push({key,scale:s.mesh.scale.toArray(),color:(trail||s.mesh).material?.color.getHex(),width:trail?.scale.x,head:head?.scale.x,energy:!!s.energyFrom,open:!closed((trail||s.mesh).geometry)});
     }
+    const secondarySizes=[];
+    const subKeys=[...new Set(Object.values(g.ARMORY).flatMap(a=>a.sub))];
+    for(const key of subKeys){
+     const sl=reset(key);const rnd=Math.random;let seed=12345;Math.random=()=>{seed=Math.imul(seed,1664525)+1013904223>>>0;return seed/4294967296;};try{fire(sl);g.fxUpdate(.001);}finally{Math.random=rnd;}
+     secondarySizes.push({key,projectiles:g.shells.map(s=>({scale:s.mesh.scale.toArray(),children:s.mesh.children.map(m=>({name:m.name,scale:m.scale.toArray()}))})),traces:g.fx.filter(f=>['tracer','laser'].includes(f.kind)).map(f=>({kind:f.kind,scale:f.obj.scale.toArray(),length:f.len}))});
+    }
+    const switchSizes=[];
+    for(const key of ['glint','charge']){
+     const sl=reset(key);fire(sl);u.weapon=key==='glint'?'sub':'main';g.shellUpdate(.04);const m=g.shells[0].mesh;
+     switchSizes.push({key,scale:m.scale.toArray(),children:m.children.map(c=>({name:c.name,scale:c.scale.toArray()}))});
+    }
     reset('ar');g.shoot(u,source,new T.Vector3(0,0,-50),g.WEAPONS.waveSword.chargeWave);const waveScale=g.shells[0].mesh.scale.toArray();
     // 陣営変更メニュー経由でも弾種色を維持する。
     const teamColors=[];
@@ -59,7 +70,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     }
     reset('glint');fire(u.slots.main);const meshes=g.shells.map(s=>s.mesh);g.selectMap('city');const cleanup=!g.shells.length&&meshes.every(m=>!m.parent);
     window.bulletFixture={g,reset,clear,source,aim};
-    return {catalog:JSON.stringify({weapons:g.WEAPONS,parts:g.PARTS,armory:g.ARMORY}),gm,lv,shots,visuals,projectiles,waveScale,teamColors,cleanup};
+    return {catalog:JSON.stringify({weapons:g.WEAPONS,parts:g.PARTS,armory:g.ARMORY}),gm,lv,shots,visuals,projectiles,secondarySizes,switchSizes,waveScale,teamColors,cleanup};
    });
    // 射手の真後ろから、明暗背景の実ピクセルを検査。光学弾の開いた端面もここで検出する。
    result.pixels=[];
@@ -95,7 +106,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    yes(row.depthTest&&!row.depthWrite&&!row.fog&&!row.open&&row.blend===1,row.key+'：端面・明暗背景・奥行き');
    assert.equal(row.length,before.length);
   }
-  for(const row of now.projectiles){const before=old.projectiles.find(x=>x.key===row.key);if(row.head){yes(Math.abs(row.head/before.head-1.4)<1e-6&&Math.abs(row.width/before.width-1.4)<1e-6,row.key+'：砲の太さだけ1.4倍');}else if(row.energy){yes(row.scale[0]>=before.scale[0]*1.99,row.key+'：飛翔光弾を拡大');}else{yes(Math.abs(row.scale[0]/before.scale[0]-1.5)<1e-6,row.key+'：実体弾の描画だけ1.5倍');}}
+  for(const row of now.projectiles){const before=old.projectiles.find(x=>x.key===row.key);if(row.head){yes(Math.abs(row.head/before.head-1)<1e-6&&Math.abs(row.width/before.width-1)<1e-6,row.key+'：副武器の砲を拡大前の寸法へ復帰');}else if(row.energy){yes(row.scale[0]>=before.scale[0]*1.99,row.key+'：飛翔光弾を拡大');}else{yes(Math.abs(row.scale[0]/before.scale[0]-1)<1e-6,row.key+'：副武器の実体弾を拡大前の寸法へ復帰');}}
+  for(const row of now.secondarySizes){assert.deepEqual(row,old.secondarySizes.find(x=>x.key===row.key),row.key+'：副武器の描画寸法を#84前と照合');yes(true,row.key+'：副武器の寸法を拡大前へ復帰');}
+  assert.deepEqual(now.switchSizes[1],old.switchSizes[1]);yes(true,'副武器発射後に主武器へ持ち替えても拡大しない');yes(now.switchSizes[0].scale[0]>=old.switchSizes[0].scale[0]*1.99,'主武器発射後に副武器へ持ち替えても視認性を維持');
   assert.deepEqual(now.waveScale,old.waveScale);yes(now.cleanup,'光波剣は維持、マップ切替で弾を片付け');
   yes(now.teamColors.every(c=>c===0xffb84a),'陣営を変更しても黄橙の実弾');
   for(const row of now.pixels){
@@ -103,7 +116,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    if(row.key==='mg')yes(row.visible>=before.visible*2.8,row.key+'：明暗背景で表示面積を拡大');
    yes(row.hidden.every((v,i)=>v===row.reference[i]),'壁の裏へ弾を表示しない');
   }
-  assert.deepEqual(errors,[]);const output={checks,gm:now.gm,lv:now.lv,shots:now.shots.length,pixels:{before:old.pixels,after:now.pixels},visuals:now.visuals,projectiles:now.projectiles,errors};
-  fs.writeFileSync(path.join(out,'checks.json'),JSON.stringify(output,null,2)+'\n');console.log(JSON.stringify({checks:checks.length,gm:now.gm,lv:now.lv,shots:now.shots.length,pixels:now.pixels,errors}));
+  assert.deepEqual(errors,[]);const output={checks,gm:now.gm,lv:now.lv,shots:now.shots.length,pixels:{before:old.pixels,after:now.pixels},visuals:now.visuals,projectiles:now.projectiles,secondaryWeapons:now.secondarySizes.length,errors};
+  fs.writeFileSync(path.join(out,'checks.json'),JSON.stringify(output,null,2)+'\n');console.log(JSON.stringify({checks:checks.length,gm:now.gm,lv:now.lv,shots:now.shots.length,secondaryWeapons:now.secondarySizes.length,pixels:now.pixels,errors}));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
