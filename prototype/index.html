@@ -7800,6 +7800,14 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
     se.types.push([key, model]);
   });
 }
+// オーナー指定（2026-10-26）：重装型の爪は右→左→右。1段4500を増やし、原典の転記値は保つ。
+{
+  const w=WEAPONS.clawM,a=w.strong,first=a.strikes[0],last=a.strikes[1],gap=last.at-first.sweep;
+  const third={...first,gripFrom:first.gripFrom.slice(),gripTo:first.gripTo.slice(),at:last.at+last.sweep+gap};
+  a.strikes.push(third);a.sweep=third.at+third.sweep;a.time=a.windup+a.sweep+a.recover;
+  a.dmg=a.strikes.reduce((sum,strike)=>sum+strike.dmg,0);a.dashName='レーザー刃の右袈裟→左袈裟→右袈裟';
+  w.desc=w.desc.replace('右袈裟→左袈裟の二段攻撃','右袈裟→左袈裟→右袈裟の三段攻撃');
+}
 // オーナー調整（2026-10-25）：速装型は装填数を保ち、3点バースト・拡散率1/3。
 // 0.1秒間隔で3発。次の組まで含む周期は変更前の1射分を保つ。
 {
@@ -8652,22 +8660,41 @@ function weaponLook(u, dt) {
 const bladeHeld = new T.Vector3(), bladeHand = new T.Vector3(), bladeOffset = new T.Vector3();
 const bladeOtherPose={twist:0,lean:0,sink:0};
 const spatialGrip=new T.Vector3();
+// 爪の横並びを振り方向へ直交させ、三本が同じ線をなぞらないよう手首を回す。
+const clawTipBefore=new T.Vector3(),clawTipAfter=new T.Vector3(),clawAcross=new T.Vector3(),clawForward=new T.Vector3();
+const clawWristFrame=new T.Quaternion(),clawWristEuler=new T.Euler(0,0,0,'YXZ');
+function clawWristRoll(sw,strike,k) {
+  const lo=Math.max(0,k-.005),hi=Math.min(1,k+.005);
+  clawTipBefore.copy(meleeSlashFrame(sw,strike,lo).tip);
+  clawTipAfter.copy(meleeSlashFrame(sw,strike,hi).tip).sub(clawTipBefore);
+  const frame=meleeSlashFrame(sw,strike,k);
+  clawWristFrame.setFromEuler(clawWristEuler.set(frame.pitch,frame.yaw,0,'YXZ'));
+  clawForward.set(0,0,-1).applyQuaternion(clawWristFrame);
+  clawAcross.crossVectors(clawTipAfter,clawForward);
+  if(clawAcross.lengthSq()<1e-10)return 0;
+  clawAcross.applyQuaternion(clawWristFrame.invert());
+  let roll=Math.atan2(clawAcross.y,clawAcross.x);
+  if(roll>Math.PI/2)roll-=Math.PI;else if(roll<-Math.PI/2)roll+=Math.PI;
+  return roll;
+}
 function spatialBladePose(u,b,sd,gripZ,sw,melee){
   const a=sw.a,katana=a.dashMotion==='sabre';let prev=null,next=null,first=null;
   for(const s of a.strikes){if(!katana&&s.hand!==sd)continue;first ||= s;if(sw.t>=a.windup+s.at)prev=s;else {next=s;break;}}
   const strike=prev||first,start=a.windup+strike.at,end=start+strike.sweep;
   let k=Math.max(0,Math.min(1,(sw.t-start)/strike.sweep)),f=meleeSlashFrame(sw,strike,k),yaw=f.yaw,pitch=f.pitch,single=!!strike.single;
   spatialGrip.copy(f.grip);
+  let roll=katana?0:clawWristRoll(sw,strike,k);
   if(next&&sw.t>end){
     const t=Math.min(1,(sw.t-end)/(a.windup+next.at-end)),q=t*t*(3-2*t);f=meleeSlashFrame(sw,next,0);
     spatialGrip.lerp(f.grip,q);yaw+=(f.yaw-yaw)*q;pitch+=(f.pitch-pitch)*q;single=next.single?q:0;
+    if(!katana)roll+=(clawWristRoll(sw,next,0)-roll)*q;
   }
   const prep=Math.max(0,Math.min(1,(sw.t-start+a.windup)/a.windup));
   const back=!next?Math.max(0,Math.min(1,(sw.t-end)/(katana?a.recover:.2))):0;
   const blend=prep*(1-back*back*(3-2*back));
   bladeHeld.set(sd*(katana?.3:1.05),katana?2.25:2.45,-.55).lerp(spatialGrip,blend);
   const idleYaw=katana?-.4:sd*-.28,idlePitch=katana?.62:.15;
-  b.rotation.set(idlePitch+(pitch-idlePitch)*blend,idleYaw+(yaw-idleYaw)*blend,0,'YXZ');
+  b.rotation.set(idlePitch+(pitch-idlePitch)*blend,idleYaw+(yaw-idleYaw)*blend,roll*blend,'YXZ');
   const length=(a.reach-.65)/(gripZ-b.geometry.boundingBox.min.z),scale=katana?1+(length-1)*blend:1;
   b.scale.set(1,1,scale);b.position.copy(bladeHeld).sub(bladeOffset.set(0,0,gripZ*scale).applyQuaternion(b.quaternion));
   (b.userData.grip ||= new T.Vector3()).copy(bladeHeld);b.userData.laserPower=katana?0:blend;

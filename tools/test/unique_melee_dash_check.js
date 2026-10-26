@@ -44,7 +44,7 @@ const {chromium}=require('playwright');
      yes(Math.abs(1e6-e.hp-a.dmg)<1e-6,key+'/'+kind+' 各段の実損傷合計 '+(1e6-e.hp));
      if(kind!=='normal'){
       const groups=stages.filter((s,i)=>i===0||s.t-stages[i-1].t>.08);
-      yes(groups.length===(key.startsWith('rod')?3:key.startsWith('sabre')?4:2),key+' 各系統の連撃が重複しない '+JSON.stringify(stages));damage[key]=stages;
+      yes(groups.length===(key==='clawM'||key.startsWith('rod')?3:key.startsWith('sabre')?4:2),key+' 各系統の連撃が重複しない '+JSON.stringify(stages));damage[key]=stages;
       for(const b of [u.blade,u.blade2])if(b?.visible)yes(b.scale.x===1&&b.scale.z===1,key+' 終了後は刃を元の寸法へ戻す');
      }
     }

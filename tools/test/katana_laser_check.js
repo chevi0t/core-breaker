@@ -27,7 +27,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const elevated=attack('sabre',{lift:5});yes(eq(elevated.damage,4500),'日本刀：高い正面の相手へ縦の面打ちだけが命中 '+JSON.stringify(elevated));
   yes(attack('sabre',{angle:Math.PI}).damage===0,'日本刀：背後を回転斬りのように攻撃しない');
   for(const key of ['claw','clawH','clawB','clawM']){
-   const a=attack(key),w=g.WEAPONS[key];yes(a.stages.length===2&&eq(a.damage,w.strong.dmg),key+' 右袈裟→左袈裟の2段が各1回命中');
+   const a=attack(key),w=g.WEAPONS[key];yes(a.stages.length===(key==='clawM'?3:2)&&eq(a.damage,w.strong.dmg),key+' 袈裟の各段が1回ずつ命中');
    let max=0;for(let dist=4.5;dist<=10;dist+=.5)if(attack(key,{dist}).damage)max=dist;
    let maxAngle=0;for(let angle=40;angle<=110;angle+=5)if(attack(key,{dist:3,angle:angle*Math.PI/180}).damage)maxAngle=angle;
    ranges.push({key,max,maxAngle,reach:w.strong.reach,span:w.strong.strikes[0].to-w.strong.strikes[0].from,windup:w.strong.windup,recover:w.strong.recover,time:w.strong.time});
