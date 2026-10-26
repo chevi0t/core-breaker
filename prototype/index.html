@@ -4233,6 +4233,106 @@ function botMech(cls) {
 const R = 1.3, UNIT_H = 4; // 機体の半径と高さ（ソードの当たり判定に使う）
 // 機体の形：シリーズごとに装甲の輪郭を作り分ける。箱は部位ごとに頂点の色で1つの形にまとめ、
 // 部位（userData.armorSlot）で当たった所の装甲を決める。color はチームの色、cfg.color が 'team' 以外なら装甲をその色に塗る
+// 噴流は左右の外炎・白い芯・点火リングを1メッシュで描く。形状は全機で共有。
+let boosterGeometry = null;
+function makeBoosterFlame(width) {
+  return visualAlloc(() => {
+    if (!boosterGeometry) {
+      const pos = [], uv = [], layer = [], jet = [];
+      const vertex = (a, t, l, side) => { pos.push(Math.cos(a), t, Math.sin(a)); uv.push(t, a); layer.push(l); jet.push(side); };
+      for (const side of [-1, 1]) for (let l = 0; l < 3; l++) {
+        const rows = l === 2 ? 1 : 8, slices = l === 2 ? 24 : 12;
+        for (let y = 0; y < rows; y++) for (let x = 0; x < slices; x++) {
+          const a = x / slices * Math.PI * 2, b = (x + 1) / slices * Math.PI * 2, t = y / rows, n = (y + 1) / rows;
+          for (const [angle, v] of [[a,t],[b,t],[a,n],[b,t],[b,n],[a,n]]) vertex(angle, v, l, side);
+        }
+      }
+      boosterGeometry = new T.BufferGeometry();
+      boosterGeometry.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      boosterGeometry.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+      boosterGeometry.setAttribute('layer', new T.Float32BufferAttribute(layer, 1));
+      boosterGeometry.setAttribute('jet', new T.Float32BufferAttribute(jet, 1));
+      // 頂点シェーダーで伸ばす範囲も含める。毎フレームの再計算は不要。
+      boosterGeometry.boundingSphere = new T.Sphere(new T.Vector3(0, 3, 0), 5);
+    }
+    const material = new T.ShaderMaterial({
+      transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.DoubleSide,
+      uniforms: { clock: {value: 0}, length: {value: 0}, power: {value: 0}, pulse: {value: 1}, spread: {value: .38 * width}, charge: {value: 0} },
+      vertexShader: `
+        attribute float layer; attribute float jet;
+        uniform float clock, length, power, pulse, spread;
+        varying vec2 vUv; varying float vLayer, vNear, vFacing;
+        void main() {
+          vUv = uv; vLayer = layer;
+          float t = position.y;
+          float ripple = 1.0 + .07 * sin(t * 34.0 - clock * 29.0 + jet);
+          float radius = (.20 + .16 * sin(t * 3.14159)) * pow(max(.001, 1.0 - t), .65) * ripple;
+          float axial = t * length;
+          if (layer > .5) { radius *= .46; axial *= .72; }
+          if (layer > 1.5) { radius = (.25 + pulse * 2.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
+          vec3 p = vec3(position.x * radius + jet * spread, axial, position.z * radius);
+          vec4 view = modelViewMatrix * vec4(p, 1.0);
+          vNear = smoothstep(.5, 2.0, -view.z);
+          vFacing = abs(dot(normalize(normalMatrix * vec3(position.x, .35, position.z)), normalize(-view.xyz)));
+          gl_Position = projectionMatrix * view;
+        }`,
+      fragmentShader: `
+        uniform float clock, power, pulse, charge;
+        varying vec2 vUv; varying float vLayer, vNear, vFacing;
+        void main() {
+          float t = vUv.x;
+          float flow = .75 + .25 * sin(t * 48.0 - clock * 40.0 + sin(vUv.y * 3.0));
+          float diamonds = pow(max(0.0, cos(t * 27.0 - clock * 2.5)), 10.0);
+          vec3 color = mix(vec3(.05,.38,1.0), vec3(.2,.7,1.0), flow);
+          color = mix(color, vec3(.32,.28,1.0), charge * .35);
+          float alpha = .38 * pow(1.0 - t, .6) * flow;
+          if (vLayer > .5) {
+            color = mix(vec3(.4,.85,1.0), vec3(1.4,1.5,1.6), max(.15, diamonds));
+            alpha = (.2 + .5 * diamonds) * pow(1.0 - t, .7);
+          }
+          if (vLayer > 1.5) {
+            color = vec3(.5,.85,1.2);
+            alpha = max(0.0, 1.0 - pulse / .24) * sin(t * 3.14159) * .7;
+          }
+          if (vLayer < 1.5) alpha *= smoothstep(.02, .55, vFacing);
+          gl_FragColor = vec4(color, alpha * min(1.0, power) * vNear);
+          #include <tonemapping_fragment>
+          #include <encodings_fragment>
+        }`
+    });
+    const flame = new T.Mesh(boosterGeometry, material);
+    flame.visible = false; flame.userData.visualOnly = true;
+    flame.userData.boostFx = { mode: '', age: 0, pulse: 1, lastDash: 0, power: 0, length: 0 };
+    flame.position.set(0, 2.85, 1.45); flame.rotation.x = Math.PI / 2;
+    // 発光する噴流を被弾面にしない。機体本体の装甲で判定する。
+    flame.raycast = () => {};
+    return flame;
+  });
+}
+function resetBoosterFlame(u) {
+  const f = u.flame.userData.boostFx;
+  f.mode = ''; f.age = f.lastDash = f.power = f.length = 0; f.pulse = 1;
+  u.flame.visible = false;
+  u.flame.material.uniforms.power.value = 0;
+}
+function boosterFlameUpdate(u, dt) {
+  const mesh = u.flame, f = mesh.userData.boostFx, mode = u.alive ? u.dashState : '';
+  if (!u.alive) { resetBoosterFlame(u); return; }
+  const ignition = mode && (!f.mode || (mode === 'short' || mode === 'charge' || mode === 'lunge') && mode !== f.mode || mode === 'short' && u.dashT > f.lastDash + .02);
+  if (ignition) f.pulse = 0; else f.pulse = Math.min(1, f.pulse + dt);
+  f.age += dt; f.lastDash = u.dashT; f.mode = mode;
+  const target = mode === 'charge' ? 5.8 : mode === 'short' ? 4.5 : mode === 'long' ? 3.1 : mode === 'lunge' ? 3.8 : mode === 'hover' ? 1.8 : 0;
+  const a = 1 - Math.exp(-dt * (mode ? 35 : 26));
+  f.power += ((mode ? 1 : 0) - f.power) * a;
+  f.length += (target - f.length) * a;
+  const distance = camera.position.distanceToSquared(u.pos), near = u.isPlayer || distance < 180 * 180;
+  mesh.visible = f.power > .025 && (u.isPlayer || distance < 350 * 350);
+  const U = mesh.material.uniforms;
+  U.clock.value = f.age + (u.idx || 0) * .71;
+  U.length.value = Math.max(.05, f.length * (1 + (near ? .025 * Math.sin(f.age * 63) : 0)) + (near ? Math.max(0, 1 - f.pulse / .18) * .7 : 0));
+  U.power.value = f.power * (near ? 1 : .65);
+  U.pulse.value = near ? f.pulse : 1; U.charge.value = mode === 'charge' ? 1 : 0;
+}
 function buildMech(color, cfg = MECH_DEFAULT) {
   const g = new T.Group();
   const paint = PAINTS.find(p => p.id === cfg.color) || PAINTS[0];
@@ -4445,10 +4545,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   const pack = wpart('charger', 0, 2.7, 1.45), mount = wpart('cannon', 0, 2.75, 1.25, 'mount');
   gun2.visible = pack.visible = mount.visible = false;
   gun.userData.armorSlot = gun2.userData.armorSlot = blade.userData.armorSlot = 'arms'; pack.userData.armorSlot = mount.userData.armorSlot = 'body';
-  const flame = new T.Mesh(new T.ConeGeometry(0.42, 2.2, 10), new T.MeshBasicMaterial({ color: 0xbfeaff, transparent: true, opacity: 0.85 }));
-  flame.rotation.x = Math.PI / 2; // 先端を後方へ
-  flame.position.set(0, 2.9, 2.3);
-  flame.visible = false; flame.userData.own = true;
+  const flame = makeBoosterFlame(bw);
   g.add(flame);
   return { g, gun, gun2, flame, blade, pack, mount, armor: skin, rig };
 }
@@ -4631,7 +4728,7 @@ function makeUnit(team, isPlayer, idx) {
     sc: { battle: 0, plant: 0, support: 0, total: 0, kills: 0, deaths: 0, assists: 0, heads: 0, streakMax: 0, coreDmg: 0, heal: 0, caps: 0 }, /* heads 以降は表彰（v0.16）用 */ sx: scoreState(), dmgBy: new Map(), ffDmg: 0,
   };
   m.g.rotation.order = 'YXZ'; // 向き（y）を回してから前後に傾ける（よろけ・ダウン）
-  m.g.traverse(o => { if (o.isMesh) { o.userData.ref = u; hittables.push(o); } });
+  m.g.traverse(o => { if (o.isMesh && !o.userData.visualOnly) { o.userData.ref = u; hittables.push(o); } });
   u.beam = new T.Mesh(tracerGeo, new T.MeshBasicMaterial(glow(0x7dffb0)));
   u.beam.visible = false;
   scene.add(u.beam);
@@ -4665,6 +4762,7 @@ function spawnPos(u, at) {
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
 function spawn(u, at = 'base') {
+  resetBoosterFlame(u);
   stopMovementSound(u); u.stepQuiet = 0;
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
   if (u.isPlayer) { incomingShots.clear(); resetBlastShake(); resetCombatFeedback(); }
@@ -8428,7 +8526,7 @@ function weaponLook(u, dt) {
   const sp = S.sp.w, cannon = sp.type === 'cannon';
   u.pack.visible = cannon || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
   u.mount.position.set(0, 2.75, 1.25); u.mount.rotation.set(0, 0, 0);
-  u.flame.position.set(0, 2.9, 2.3); u.flame.rotation.set(Math.PI / 2, 0, 0);
+  u.flame.position.set(0, 2.85, 1.45); u.flame.rotation.set(Math.PI / 2, 0, 0);
   u.pack.rotation.set(0, sp.type === 'escort' && u.escortOn && u.escortAim ? Math.atan2(-(u.escortAim.x-u.pos.x),-(u.escortAim.z-u.pos.z))-u.yaw : 0, 0);
   u.pack.position.set(0, 2.7, sp.type === 'escort' ? .2 : 1.45);
   if (u.pack.visible) setWeaponGeo(u.pack, sp.key);
@@ -11254,7 +11352,7 @@ function loop(now) {
     movementAudioTick(u, dt);
     if (running && u.group.visible) weaponLook(u, dt);
     mainMuzzleUpdate(u, dt);
-    u.flame.visible = u.alive && !!u.dashState;
+    boosterFlameUpdate(u, running ? dt : 0);
     u.barrierMesh.visible = barrierReady(u);
     if (u.barrierMesh.visible) {
       const w = u.slots.sp.w; u.barrierMesh.geometry = w.arc === 360 ? barrierSphere : barrierHalf;
@@ -11273,7 +11371,6 @@ function loop(now) {
       u.beam.scale.set(0.12, from.distanceTo(to), 0.12);
       u.beam.material.opacity = 0.6 + 0.3 * Math.sin(now / 50);
     }
-    if (u.flame.visible) u.flame.scale.y = (u.dashState === 'short' ? 1.8 : u.dashState === 'charge' ? 2.4 : 1.1) * (0.85 + Math.random() * 0.3);
   }
   fxUpdate(dt);
   reconPulseUpdate(running ? dt : 0);
