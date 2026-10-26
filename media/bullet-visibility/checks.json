@@ -1,0 +1,567 @@
+{
+  "checks": [
+    "全武器・パーツ・装備一覧の実行時数値は変更前と一致",
+    "mg：実射と戦闘乱数を維持",
+    "mgR：実射と戦闘乱数を維持",
+    "mgP：実射と戦闘乱数を維持",
+    "mgX：実射と戦闘乱数を維持",
+    "vulcan：実射と戦闘乱数を維持",
+    "vulcanR：実射と戦闘乱数を維持",
+    "vulcanH：実射と戦闘乱数を維持",
+    "vulcanP：実射と戦闘乱数を維持",
+    "ar：実射と戦闘乱数を維持",
+    "gatling：実射と戦闘乱数を維持",
+    "shotgunQ：実射と戦闘乱数を維持",
+    "aurora：実射と戦闘乱数を維持",
+    "rail：実射と戦闘乱数を維持",
+    "lzsniper：実射と戦闘乱数を維持",
+    "zoom：実射と戦闘乱数を維持",
+    "rocket：実射と戦闘乱数を維持",
+    "scrum：実射と戦闘乱数を維持",
+    "grenade：実射と戦闘乱数を維持",
+    "gl：実射と戦闘乱数を維持",
+    "plasma：実射と戦闘乱数を維持",
+    "charge：実射と戦闘乱数を維持",
+    "glint：実射と戦闘乱数を維持",
+    "B/mg：弾種の色",
+    "mg：画面上の太さを確保、従来の2倍以上",
+    "mg：端面・明暗背景・奥行き",
+    "B/mgR：弾種の色",
+    "mgR：画面上の太さを確保、従来の2倍以上",
+    "mgR：端面・明暗背景・奥行き",
+    "B/mgP：弾種の色",
+    "mgP：画面上の太さを確保、従来の2倍以上",
+    "mgP：端面・明暗背景・奥行き",
+    "B/mgX：弾種の色",
+    "mgX：画面上の太さを確保、従来の2倍以上",
+    "mgX：端面・明暗背景・奥行き",
+    "B/vulcan：弾種の色",
+    "vulcan：画面上の太さを確保、従来の2倍以上",
+    "vulcan：端面・明暗背景・奥行き",
+    "B/vulcanR：弾種の色",
+    "vulcanR：画面上の太さを確保、従来の2倍以上",
+    "vulcanR：端面・明暗背景・奥行き",
+    "B/vulcanH：弾種の色",
+    "vulcanH：画面上の太さを確保、従来の2倍以上",
+    "vulcanH：端面・明暗背景・奥行き",
+    "B/vulcanP：弾種の色",
+    "vulcanP：画面上の太さを確保、従来の2倍以上",
+    "vulcanP：端面・明暗背景・奥行き",
+    "R/mg：弾種の色",
+    "mg：画面上の太さを確保、従来の2倍以上",
+    "mg：端面・明暗背景・奥行き",
+    "R/mgR：弾種の色",
+    "mgR：画面上の太さを確保、従来の2倍以上",
+    "mgR：端面・明暗背景・奥行き",
+    "R/mgP：弾種の色",
+    "mgP：画面上の太さを確保、従来の2倍以上",
+    "mgP：端面・明暗背景・奥行き",
+    "R/mgX：弾種の色",
+    "mgX：画面上の太さを確保、従来の2倍以上",
+    "mgX：端面・明暗背景・奥行き",
+    "R/vulcan：弾種の色",
+    "vulcan：画面上の太さを確保、従来の2倍以上",
+    "vulcan：端面・明暗背景・奥行き",
+    "R/vulcanR：弾種の色",
+    "vulcanR：画面上の太さを確保、従来の2倍以上",
+    "vulcanR：端面・明暗背景・奥行き",
+    "R/vulcanH：弾種の色",
+    "vulcanH：画面上の太さを確保、従来の2倍以上",
+    "vulcanH：端面・明暗背景・奥行き",
+    "R/vulcanP：弾種の色",
+    "vulcanP：画面上の太さを確保、従来の2倍以上",
+    "vulcanP：端面・明暗背景・奥行き",
+    "rocket：実体弾の描画だけ1.5倍",
+    "scrum：実体弾の描画だけ1.5倍",
+    "grenade：実体弾の描画だけ1.5倍",
+    "gl：実体弾の描画だけ1.5倍",
+    "plasma：砲の太さだけ1.4倍",
+    "charge：砲の太さだけ1.4倍",
+    "glint：飛翔光弾を拡大",
+    "光波剣は維持、マップ切替で弾を片付け",
+    "陣営を変更しても黄橙の実弾",
+    "mg/false：射手の真後ろから弾の色を12px以上描画",
+    "mg：明暗背景で表示面積を拡大",
+    "壁の裏へ弾を表示しない",
+    "vulcan/false：射手の真後ろから弾の色を12px以上描画",
+    "壁の裏へ弾を表示しない",
+    "mg/true：射手の真後ろから弾の色を12px以上描画",
+    "mg：明暗背景で表示面積を拡大",
+    "壁の裏へ弾を表示しない",
+    "vulcan/true：射手の真後ろから弾の色を12px以上描画",
+    "壁の裏へ弾を表示しない"
+  ],
+  "gm": [
+    "mg",
+    "mgR",
+    "mgP",
+    "mgX"
+  ],
+  "lv": [
+    "vulcan",
+    "vulcanR",
+    "vulcanH",
+    "vulcanP"
+  ],
+  "shots": 22,
+  "pixels": {
+    "before": [
+      {
+        "key": "mg",
+        "light": false,
+        "colored": 0,
+        "visible": 6,
+        "hidden": [
+          55,
+          65,
+          71,
+          255
+        ],
+        "reference": [
+          55,
+          65,
+          71,
+          255
+        ]
+      },
+      {
+        "key": "vulcan",
+        "light": false,
+        "colored": 0,
+        "visible": 0,
+        "hidden": [
+          55,
+          65,
+          71,
+          255
+        ],
+        "reference": [
+          55,
+          65,
+          71,
+          255
+        ]
+      },
+      {
+        "key": "mg",
+        "light": true,
+        "colored": 0,
+        "visible": 4,
+        "hidden": [
+          194,
+          199,
+          203,
+          255
+        ],
+        "reference": [
+          194,
+          199,
+          203,
+          255
+        ]
+      },
+      {
+        "key": "vulcan",
+        "light": true,
+        "colored": 0,
+        "visible": 0,
+        "hidden": [
+          194,
+          199,
+          203,
+          255
+        ],
+        "reference": [
+          194,
+          199,
+          203,
+          255
+        ]
+      }
+    ],
+    "after": [
+      {
+        "key": "mg",
+        "light": false,
+        "colored": 14,
+        "visible": 26,
+        "hidden": [
+          55,
+          65,
+          71,
+          255
+        ],
+        "reference": [
+          55,
+          65,
+          71,
+          255
+        ]
+      },
+      {
+        "key": "vulcan",
+        "light": false,
+        "colored": 14,
+        "visible": 26,
+        "hidden": [
+          55,
+          65,
+          71,
+          255
+        ],
+        "reference": [
+          55,
+          65,
+          71,
+          255
+        ]
+      },
+      {
+        "key": "mg",
+        "light": true,
+        "colored": 14,
+        "visible": 26,
+        "hidden": [
+          194,
+          199,
+          203,
+          255
+        ],
+        "reference": [
+          194,
+          199,
+          203,
+          255
+        ]
+      },
+      {
+        "key": "vulcan",
+        "light": true,
+        "colored": 14,
+        "visible": 26,
+        "hidden": [
+          194,
+          199,
+          203,
+          255
+        ],
+        "reference": [
+          194,
+          199,
+          203,
+          255
+        ]
+      }
+    ]
+  },
+  "visuals": [
+    {
+      "team": "B",
+      "key": "mg",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.88429999540913,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 12.272727272727273
+    },
+    {
+      "team": "B",
+      "key": "mgR",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.63311248572368,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 11.571428571428571
+    },
+    {
+      "team": "B",
+      "key": "mgP",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.88429999540913,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 12.272727272727273
+    },
+    {
+      "team": "B",
+      "key": "mgX",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.63311248572368,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 11.571428571428571
+    },
+    {
+      "team": "B",
+      "key": "vulcan",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "B",
+      "key": "vulcanR",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "B",
+      "key": "vulcanH",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "B",
+      "key": "vulcanP",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "R",
+      "key": "mg",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.88429999540913,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 12.272727272727273
+    },
+    {
+      "team": "R",
+      "key": "mgR",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.63311248572368,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 11.571428571428571
+    },
+    {
+      "team": "R",
+      "key": "mgP",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.88429999540913,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 12.272727272727273
+    },
+    {
+      "team": "R",
+      "key": "mgX",
+      "energy": false,
+      "color": 16758858,
+      "width": 0.09,
+      "pixels": 5.63311248572368,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 11.571428571428571
+    },
+    {
+      "team": "R",
+      "key": "vulcan",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "R",
+      "key": "vulcanR",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "R",
+      "key": "vulcanH",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    },
+    {
+      "team": "R",
+      "key": "vulcanP",
+      "energy": true,
+      "color": 12123954,
+      "width": 0.06,
+      "pixels": 6.169599389125935,
+      "depthTest": true,
+      "depthWrite": false,
+      "fog": false,
+      "blend": 1,
+      "open": false,
+      "length": 18
+    }
+  ],
+  "projectiles": [
+    {
+      "key": "rocket",
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "color": 16758858,
+      "energy": false,
+      "open": false
+    },
+    {
+      "key": "scrum",
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "color": 16758858,
+      "energy": false,
+      "open": false
+    },
+    {
+      "key": "grenade",
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "color": 10408703,
+      "energy": false,
+      "open": false
+    },
+    {
+      "key": "gl",
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "color": 16758858,
+      "energy": false,
+      "open": false
+    },
+    {
+      "key": "plasma",
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "color": 16737228,
+      "width": 0.504,
+      "head": 1.512,
+      "energy": true,
+      "open": false
+    },
+    {
+      "key": "charge",
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "color": 12123954,
+      "width": 0.504,
+      "head": 1.512,
+      "energy": true,
+      "open": false
+    },
+    {
+      "key": "glint",
+      "scale": [
+        0.0748751632932764,
+        2.5999999999999996,
+        0.0748751632932764
+      ],
+      "color": 12123954,
+      "energy": true,
+      "open": false
+    }
+  ],
+  "errors": []
+}

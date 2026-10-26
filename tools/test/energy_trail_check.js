@@ -1,4 +1,4 @@
-// 光学弾の色・細い軌跡・残光と、従来の実弾/衝突/ダメージを確認する。
+// 光学弾の色・拡大した軌跡・残光と、従来の実弾/衝突/ダメージを確認する。
 // node tools/test/energy_trail_check.js dbg/lime-energy [結果JSONの保存先]
 const fs=require('fs'),path=require('path');
 let chromium;
@@ -17,12 +17,12 @@ const dir=path.resolve(process.argv[2]||'dbg/lime-energy');
   for(const team of['B','R'])for(const {cls,slot,key}of energy){
    const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const laser=sl.w.series==='ln',traces=g.fx.filter(f=>f.kind===(laser?'laser':'tracer'));
    yes(traces.length>0&&traces.every(f=>(laser||f.energy)&&f.obj.material.color.getHex()===0xb8ff32),team+'/'+key+' ライム色');
-   g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):f.obj.scale.x<=.055&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 細いレーザー状'));
+   g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):f.obj.scale.x>=.06&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 遠方でも見えるレーザー状'));
   }
   reset('assault','rail');const hp=e.hp;g.fire(u,aim,0,g.WEAPONS.rail,new T.Vector3(0,202.5,0));const f=g.fx.find(f=>f.kind==='tracer');
   yes(e.hp<hp,'光学弾の命中ダメージは射撃時に発生');const impact=g.fx.find(q=>q.kind==='flash'&&q.age<0);yes(impact&&near(-impact.age,f.len/450),'着弾エフェクトの遅延は従来のまま');
   g.fxUpdate(f.len/450+.03);yes(f.obj.material.opacity>0&&f.obj.material.opacity<.95,'到達後の短い残光が薄れる');g.fxUpdate(.2);yes(!g.fx.includes(f)&&!f.obj.parent,'残光は消えて材質を片付ける');
-  for(const team of['B','R']){reset('assault','ar','main',team);g.fire(u,aim,0,g.WEAPONS.ar);const r=g.fx.find(f=>f.kind==='tracer');g.fxUpdate(.04);yes(!r.energy&&r.obj.material.color.getHex()===(team==='B'?0x8fd8ff:0xffb35c)&&r.obj.scale.y>5&&r.obj.scale.y<=24&&r.life>r.len/450,team+' 実弾の陣営色を保ち、通常弾だけ筋と短い残光を強調');}
+  for(const team of['B','R']){reset('assault','ar','main',team);g.fire(u,aim,0,g.WEAPONS.ar);const r=g.fx.find(f=>f.kind==='tracer');g.fxUpdate(.04);yes(!r.energy&&r.obj.material.color.getHex()===0xffb84a&&r.obj.scale.y>5&&r.obj.scale.y<=24&&r.life>r.len/450,team+' 実弾を黄橙に統一し、筋と短い残光を維持');}
   reset('raid','glint');const sl=u.slots.main;g.weaponsTick(u,sl.w.chargeTime,true,aim,0);yes(!g.shells.length,'充填中は弾を出さない');g.weaponsTick(u,.01,false,aim,0);
   yes(g.shells.length===2&&g.shells.every(s=>s.energyFrom&&s.mesh.material.color.getHex()===0xb8ff32),'満充填の二丁光弾もライム色');yes(g.shells[0].mesh.geometry===g.shells[1].mesh.geometry&&g.shells[0].mesh.material===g.shells[1].mesh.material,'飛翔弾の形と材質を共有');
   const sh=g.shells[0],start=sh.pos.clone(),vel=sh.vel.clone(),life=sh.life;g.shellUpdate(.04);yes(sh.pos.distanceTo(start.clone().addScaledVector(vel,.04))<1e-6&&sh.vel.equals(vel)&&near(sh.life,life-.04),'光弾の位置・速度・寿命を変更しない');
