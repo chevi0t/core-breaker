@@ -7461,6 +7461,12 @@ const WEAPON_TYPES = {
     ["強装型",{"kg":310,"dmg":9300,"mag":1,"mags":5,"blast":15,"reload":3,"rpm":60},"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆"],
     ["連射型",{"kg":340,"dmg":3800,"mag":5,"mags":3,"blast":18,"reload":4,"rpm":240},"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆"],
   ] },
+  // AC NeLIS系統（pages/694）。追加型は原表の実秒を使い、標準だけの照射5秒調整は広げない。
+  beamCannon: { w0: { kg: 700, dps: 7200, contact: 2700, use: 4.5, charge: 40, chargeKeep: 35 }, types: [
+    ['持続型', { kg: 750, dps: 4800, contact: 1800, use: 7, charge: 30, chargeKeep: 25 }, '威力を抑えて7秒照射。SPが戻りやすい持続型。旋回は標準と同じ'], // AC NeLIS-T2
+    ['高出力型', { kg: 820, dps: 10000, contact: 3750, use: 2.5, charge: 25, chargeKeep: null }, '両肩で毎秒20000の高出力。照射は2.5秒と短く、重い。旋回は標準と同じ'], // AC NeLIS-TXP。中断回復の原典値は不明
+    ['即応型', { kg: 770, dps: 7800, contact: 3000, use: 1.8, charge: 12, chargeKeep: null }, '照射1.8秒・SP回復12秒で繰り返し使える。準備と旋回は標準と同じ'], // AC NeLIS-T3V。中断回復の原典値は不明
+  ] },
   artillery: { w0: { kg: 900, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44 }, types: [
     ['連射型', { kg: 940, dmg: 7200, shots: 12, range: 250, flight: 4.5, scatter: 25, blast: 24, interval: .5, charge: 59, chargeKeep: 48 }, '広い誤差範囲へ高速で12発。射程と一発の威力は低い'], // AC コロッサス榴弾砲
     ['長射程型', { kg: 1010, dmg: 12000, shots: 5, range: 500, flight: 8, scatter: 20, blast: 25, interval: .9, charge: 55, chargeKeep: 44 }, '遠方500mまで届くが、着弾に8秒かかり重い'], // AC アトラント榴弾砲
@@ -7737,6 +7743,12 @@ const TYPE_LETTER = { 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:
 const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
 function makeType(base, w0, t) {
   const w = structuredClone(base), P = w.proj, G = P && P.gun, D = w.drone, gun = G || w;
+  // 照射砲の型はACの実値。準備・射程・判定半径・旋回制限は標準を継承する。
+  if (w.type === 'beamCannon') {
+    for (const k of ['dps', 'contact', 'use', 'charge', 'chargeKeep']) if (t[k] != null) w[k] = t[k];
+    if (t.chargeKeep === null) delete w.chargeKeep; // 原典不明時は既存SP規則でOH回復と同じ秒数
+    return w;
+  }
   const f = k => t[k] / w0[k], has = k => t[k] != null && !!w0[k];
   const by = (k, o, field, step) => { if (o && o[field] != null && has(k)) o[field] = snap(o[field] * f(k), step); };
   const n = (k, o, field) => { if (o && o[field] != null && has(k)) o[field] = Math.max(1, Math.round(o[field] * f(k))); };
