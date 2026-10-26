@@ -972,7 +972,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>サイドボタン</kbd><span>マウスの戻る・進むボタンを押している間、画面中央に武器選択が出ます。マウスを上（主武器）・右（副武器）・左（補助装備）・下（特別装備）に動かし、離して持ち替え。ホイールと1〜4キーでも持ち替えられます</span>
         <kbd>左クリック</kbd><span>選んでいる武器を使う（押しっぱなしで連射）</span>
         <kbd>右クリック</kbd><span>狙撃銃は押している間スコープ（覗かずに撃つと弾が大きくばらつき、動きながらだとさらに散る。覗いて止まっていると2.5秒で照準が収束し、撃つと乱れる）、リペアユニットは押している間自分を回復、重砲は構えをやめる、遠隔爆弾は置いた物を全部起爆</span>
-        <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると1秒動けない。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
+        <kbd>ソード</kbd><span>止まっているか歩いているときは前方150度の横なぎ。ダッシュ中に振ると、前へ16m踏み込みながら2回転する回転斬り（一撃で撃破できるが、終わると基本1秒の硬直。硬直開始から0.3秒後は左右＋Shift短押しで解除できる。踏み込みはブーストを使わず、その間ブーストが回復する）。ロック中の敵には、横なぎでも4mまで踏み込み、踏み込んでいる間もその敵を追います（横へ逃げても曲がってくる。回転斬りは刃が低いのでジャンプで避けられる）。踏み込みは勢いよく出て、振り終わった後も少し滑ります。刃が通った所に当たり、コアには当たりません</span>
         <kbd>リペアユニット</kbd><span>左クリックで照準の先の味方と自軍の防衛砲台を回復（壊れた砲台も直せば再始動。倒れて行動不能の味方は約3秒当てると蘇生）。ゲージを使い切ると満タンに戻るまで使えません</span>
         <kbd>R</kbd><span>選んでいる武器のリロード</span>
         <kbd>光波剣</kbd><span>左長押しで1.2秒充填し、離すと斬撃。満充填なら振りに合わせて威力2000の光波を1発放ちます。短押しは斬撃のみ。直接斬る威力は通常3000・ダッシュ6000。持ち替え・被弾硬直・エリア移動で充填を取り消します</span>
@@ -3158,7 +3158,7 @@ function blast(sh, at, ref) {
       if(S.stunSeconds && (e.ctrlLockT>0 || e.repairing)) continue; // jolt と同じく射出直後とポッド使用中は崩さない。
       if(S.jamSeconds) {e.jamT=Math.max(e.jamT||0,S.jamSeconds);e.healTarget=null;if(e.isPlayer)releaseLock();e.locked=false;}
       if(S.stunSeconds) {
-        e.electricT=Math.max(e.electricT||0,S.stunSeconds);e.vel.x=e.vel.z=0;e.dashT=e.lungeT=0;e.longDash=false;e.swing=null;e.healTarget=null;
+        e.electricT=Math.max(e.electricT||0,S.stunSeconds);e.vel.x=e.vel.z=0;e.dashT=e.lungeT=0;e.longDash=false;e.swing=e.meleeRecovery=null;e.healTarget=null;
         if(e.stun!=='down') {e.stun='electric';e.stunT=e.electricT;}
       }
       hit=true;
@@ -4829,7 +4829,7 @@ function makeUnit(team, isPlayer, idx) {
     role: BOT_ROLE[idx % BOT_ROLE.length],
     flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, repairing: false, podT: 0, podN: 0, spawnChoice: null,
     cls, nextCls: null, slots: null, weapon: 'main', switchT: 0, moveInput: false,
-    swing: null, lungeT: 0, lungeT0: 0, lungeDir: new T.Vector3(), lungeSpeed: 0, slideT: 0, recoverT: 0, sawSpin: null, scoped: false, scopeStep: 0, healTarget: null, botRkT: 2, rkGo: false,
+    swing: null, meleeRecovery: null, lungeT: 0, lungeT0: 0, lungeDir: new T.Vector3(), lungeSpeed: 0, slideT: 0, recoverT: 0, sawSpin: null, scoped: false, scopeStep: 0, healTarget: null, botRkT: 2, rkGo: false,
     stuckT: 0, sideT: 0, side: 1, lastPos: new T.Vector3(), think: 0, target: null,
     prevWeapon: 'main', planted: false, charging: false, chargerOn: false, cloak: false, cloakT: 0, vis: 1, shimmer: 0, cloakShown: false, stun: '', stunT: 0, tilt: 0, invulT: 0, invulCancelOnAttack: false, jumpBuf: 0, fallTry: null, ukemiTry: false, weakT: 0, weakMult: 1, act: null, actCd: 2,
     sc: { battle: 0, plant: 0, support: 0, total: 0, kills: 0, deaths: 0, assists: 0, heads: 0, streakMax: 0, coreDmg: 0, heal: 0, caps: 0 }, /* heads 以降は表彰（v0.16）用 */ sx: scoreState(), dmgBy: new Map(), ffDmg: 0,
@@ -5028,10 +5028,21 @@ const STAGGER_TIME = 0.65, STAGGER_PUSH = 9, DOWN_PUSH = 14, DOWN_UP = 12, DOWN_
 const LAND_SPEED = 28, LAND_TIME = [0.5, 1.0];
 function fwdOf(u) { return new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw)); }
 const STOP = new T.Vector3();
+const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が始まってから横ダッシュで消せるまで（ユーザー指定）。
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
 function shortDash(u, wish) {
   if (isArtilleryMode(u) || u.zip) return false;
-  if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.recoverT > 0 || u.stun) return false;
+  if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun) return false;
+  if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
+  if (u.recoverT > 0) {
+    const sw = u.meleeRecovery;
+    const side = wish.x * Math.cos(u.yaw) - wish.z * Math.sin(u.yaw);
+    const forward = -wish.x * Math.sin(u.yaw) - wish.z * Math.cos(u.yaw);
+    if (!sw?.dashAttack || u.swing && u.swing !== sw || sw.a.recover - u.recoverT < MELEE_CANCEL_WAIT - 1e-6 ||
+        wish.x * wish.x + wish.z * wish.z <= .01 || Math.abs(side) + 1e-6 < Math.abs(forward) ||
+        !u.alive || u.repairing || u.transfer || u.planted || u.electricT > 0) return false;
+    u.swing = u.meleeRecovery = null; u.recoverT = u.lungeT = u.slideT = 0;
+  }
   u.boost -= SHORT_COST; u.boostIdle = 0;
   if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   u.dashDir.copy(wish.lengthSq() > 0.01 ? wish : fwdOf(u)).setY(0).normalize();
@@ -5060,8 +5071,11 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     wish = STOP; boostHeld = jumpPressed = jumpHeld = false; u.longDash = false;
   }
   if (u.recoverT > 0 || u.planted) {
-    // 回転斬りの後の硬直と、重砲・偵察機を構えている間：その場で止まり、ダッシュもジャンプもできない
-    if (u.recoverT > 0) u.recoverT -= dt;
+    // 近接後の硬直と、重砲・偵察機の構え。横ダッシュで硬直を消す判定は shortDash 側。
+    if (u.recoverT > 0) {
+      u.recoverT -= dt;
+      if (u.recoverT <= 1e-6) { u.recoverT = 0; u.meleeRecovery = null; }
+    }
     wish = STOP; boostHeld = jumpPressed = jumpHeld = false; u.longDash = false;
   }
   // 加速装置（強襲の特別装備）：作動中にブーストを押し続けると、ロングダッシュの代わりにSPを使って向いている方へ進む（どの武器を持っていてもよい）。
@@ -5180,7 +5194,7 @@ function jolt(u, from, amount, melee) {
   const away = u.pos.clone().sub(from).setY(0);
   if (away.lengthSq() < 0.01) away.copy(fwdOf(u)).negate();
   away.normalize();
-  Object.assign(u, { swing: null, lungeT: 0, recoverT: 0, dashT: 0, longDash: false, charging: false, scoped: false });
+  Object.assign(u, { swing: null, meleeRecovery: null, lungeT: 0, recoverT: 0, dashT: 0, longDash: false, charging: false, scoped: false });
   if (down) {
     if (u.planted) selectWeapon(u, u.prevWeapon); // 重砲や偵察機の構えは解ける
     Object.assign(u, { stun: 'down', stunT: DOWN_LIE, onGround: false, ukemiTry: !u.isPlayer && Math.random() < 0.4 });
@@ -8043,7 +8057,7 @@ function equip(u, cls) {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
     lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
-    swing: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, mirageOn: false, mirageWait: 0, mirageLock: null, mirageLost: 0, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
+    swing: null, meleeRecovery: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, mirageOn: false, mirageWait: 0, mirageLock: null, mirageLost: 0, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
   });
   Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
   resetMechPose(u); weaponLook(u, 0);
@@ -8450,7 +8464,7 @@ function swordTick(u, sl, dt, trigger, aim) {
     sw.phi = phi;
     if (a.recover && !sw.stopped && sw.t >= a.windup + a.sweep) {
       // 回し終わったら硬直（隙）。踏み込みの勢いで少し滑ってから止まる（v0.13.1）
-      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.slideT = SLIDE_TIME;
+      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.meleeRecovery = sw; u.slideT = SLIDE_TIME;
     }
     if (sw.t >= a.time) u.swing = null;
     return false;
