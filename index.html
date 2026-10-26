@@ -3073,7 +3073,7 @@ function blast(sh, at, ref) {
   const fall = d => S.dmg * Math.max(0,1 - (S.linear ? 1 : .5) * d / S.blast); // 爆心で最大、端で半分
   let hitAny = false;
   if (S.weak) { cloud(at, S.blast, 0xa070ff); sfx('gas', at); }
-  else boom(at.clone().setY(at.y - 2), S.small ? 0.5 : 1);
+  else boom(at.clone().setY(at.y - 2), S.small ? 0.5 : 1, S.blast);
   if (ref && ref.kind === 'core' && ref.team !== sh.team && S.core) { scoreCore(sh.owner, S.dmg); ref.hp = Math.max(0, ref.hp - S.dmg * CORE_RATE); annCore(ref.team); hitAny = true; }
   for (const u of units) {
     // 自分の爆発物は自分にも効く（威力のある爆風だけ。v0.11.3、ユーザー指定）。
@@ -5941,7 +5941,7 @@ function boomVertex(batch,x,y,z,r,g,b,opacity,size=1,angle=0) {
   a.color.array[j]=r; a.color.array[j+1]=g; a.color.array[j+2]=b; a.opacity.array[i]=opacity;
   if(a.size){a.size.array[i]=size; a.angle.array[i]=angle;}
 }
-function boom(p,k=1) { // 既存の爆心の高さ・大小と、音の呼び分けを維持する。
+function boom(p,k=1,blastRadius=0) { // kは従来の音・寿命の区分。武器の見た目は実際の爆風半径へ合わせる。
   sfx(k<1?'explodeS':'explode',p);
   initBoomVisuals();
   let b;
@@ -5951,8 +5951,8 @@ function boom(p,k=1) { // 既存の爆心の高さ・大小と、音の呼び分
     if(p.distanceToSquared(camera.position)>score+2500)return;
     b=booms.splice(index,1)[0];
   }else b=boomFree.pop()||visualAlloc(()=>({at:new T.Vector3()}));
-  b.at.copy(p).y+=2; b.k=k; b.t=0; b.life=k<1?1.05:1.3;
-  boomSeed=Math.imul(1664525,boomSeed)+1013904223>>>0; b.seed=boomSeed;
+  b.at.copy(p).y+=2; b.k=Number.isFinite(blastRadius)&&blastRadius>0?blastRadius/10.15:k; b.t=0; b.life=k<1?1.05:1.3; // 衝撃波の最大半径10.15×倍率＝爆風半径。
+  boomSeed=Math.imul(1664525,boomSeed)+1013904223>>>0; b.seed=boomSeed; b.small=k<1;
   const distance=b.at.distanceTo(camera.position); b.detail=distance>300?0:distance>150?1:2;
   // 同じ場所の連続爆発では、後続の細粒を減らして重なり描画を抑える。
   const nearby=booms.filter(q=>q.at.distanceToSquared(b.at)<625).length;
@@ -5984,7 +5984,7 @@ function boomUpdate(dt) {
       const shade=.18+phase*.13+rand(103+i*5)*.04;
       boomVertex(smoke,at.x+Math.cos(angle)*spread+age*.7,at.y+(i*.25+age*2.2)*k,at.z+Math.sin(angle)*spread,shade,shade*.94,shade*.86,.42*fade,(2.8+phase*5.5)*k,angle+phase*.25);
     }
-    const sparkCount=b.detail===2?(k<1?12:20):b.detail===1?10:5;
+    const sparkCount=b.detail===2?(b.small?12:20):b.detail===1?10:5;
     for(let i=0;i<sparkCount;i++){
       const life=.34+rand(201+i*5)*.38,phase=t/life;if(phase>=1)continue;
       const angle=rand(202+i*5)*Math.PI*2,speed=(9+rand(203+i*5)*21)*k,vx=Math.cos(angle)*speed,vz=Math.sin(angle)*speed,vy=(3+rand(204+i*5)*14)*k;
