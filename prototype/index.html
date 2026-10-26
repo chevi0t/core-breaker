@@ -3583,6 +3583,7 @@ const mapRoot = new T.Group();
 scene.add(mapRoot);
 let miniBg = null, bigBg = null; // ミニマップと全体マップの地形（マップを替えたら作り直す）
 function buildMap(id) {
+  clearBooms();
   cityMap?.dispose();cityMap=null;cityBattle=null;
   const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : MAPS[id] || MAPS[FIRST_MAP];
   curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : MAPS[id] ? id : FIRST_MAP;
@@ -5745,13 +5746,145 @@ function medalsHtml(list) {
   return list.length ? '<div class="medals">' + list.map(m => `<div class="medal${m.mvp ? ' mvp' : ''}${m.u.isPlayer ? ' me' : ''}"><small>${m.name}</small><b class="${m.u.team}">${htmlText(m.u.name)}</b><span>${m.val}</span></div>`).join('') + '</div>' : '';
 }
 
-const booms = [];
-function boom(p, k = 1) { // k：大きさ（炸裂する弾は0.5で、音も小さい）
-  sfx(k < 1 ? 'explodeS' : 'explode', p);
-  const m = new T.Mesh(new T.SphereGeometry(1, 12, 8), new T.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.9 }));
-  m.position.copy(p).y += 2;
-  scene.add(m);
-  booms.push({ m, t: 0, k });
+// 爆発は共有バッファへまとめる。発生ごとのGPU資源生成と、戦闘用乱数の消費を避ける。
+const BOOM_MAX = 32, BOOM_FIRE = 8, BOOM_SMOKE = 5, BOOM_SPARKS = 20, BOOM_SEGMENTS = 40;
+const booms = [], boomFree = [];
+let boomVisuals = null, boomSeed = 0x71af35d9;
+function boomNoise(n) { n = Math.imul(n ^ n >>> 16, 0x45d9f3b); n = Math.imul(n ^ n >>> 16, 0x45d9f3b); return ((n ^ n >>> 16) >>> 0) / 4294967296; }
+function boomTexture(smoke) {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const ctx = c.getContext('2d'), image = ctx.createImageData(128, 128);
+  function noise(x, y, step) {
+    const ix = Math.floor(x / step), iy = Math.floor(y / step), fx = x / step - ix, fy = y / step - iy;
+    const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), at = (a, b) => boomNoise(a * 317 + b * 691 + (smoke ? 1731 : 487));
+    return (at(ix, iy) * (1-u) + at(ix+1, iy) * u) * (1-v) + (at(ix, iy+1) * (1-u) + at(ix+1, iy+1) * u) * v;
+  }
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const dx = (x-63.5)/63.5, dy = (y-63.5)/63.5, r = Math.hypot(dx, dy), angle = Math.atan2(dy, dx);
+    const n = noise(x,y,22)*.55 + noise(x,y,9)*.3 + noise(x,y,4)*.15;
+    const edge = .77 + .07*Math.sin(angle*7) + .055*Math.sin(angle*11+1) + n*.08;
+    const alpha = Math.max(0, Math.min(1, (edge-r)/.15));
+    const light = smoke ? .52 + n*.48 : .35 + n*.6 + Math.max(0,1-r)*.18, i = (y*128+x)*4;
+    image.data[i] = image.data[i+1] = image.data[i+2] = Math.min(255, light*255); image.data[i+3] = alpha*255;
+  }
+  ctx.putImageData(image,0,0); return new T.CanvasTexture(c);
+}
+function initBoomVisuals() {
+  if (boomVisuals) return;
+  boomVisuals = visualAlloc(() => {
+    const vertex = `attribute float size; attribute float opacity; attribute float angle;
+      varying vec3 vColor; varying float vOpacity; varying float vAngle; uniform float pixelScale; uniform float maxPoint;
+      void main(){ vColor=color; vOpacity=opacity; vAngle=angle; vec4 mvPosition=modelViewMatrix*vec4(position,1.0);
+      gl_PointSize=clamp(size*pixelScale/max(0.1,-mvPosition.z),1.0,maxPoint); gl_Position=projectionMatrix*mvPosition; }`;
+    const fragment = `uniform sampler2D map; uniform float hot; varying vec3 vColor; varying float vOpacity; varying float vAngle;
+      void main(){ float c=cos(vAngle),s=sin(vAngle); vec2 uv=mat2(c,-s,s,c)*(gl_PointCoord-.5)+.5;
+      if(uv.x<0.0||uv.y<0.0||uv.x>1.0||uv.y>1.0)discard;
+      vec4 tex=texture2D(map,uv); vec3 lit=mix(vColor*tex.rgb,vec3(1.0,.94,.7),hot*max(0.0,tex.r-.62)*2.4*vColor.g); gl_FragColor=vec4(lit,tex.a*vOpacity);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+      }`;
+    function points(capacity, map, additive, maxPoint, hot=0) {
+      const geometry = new T.BufferGeometry();
+      for (const [name, size] of [['position',3],['color',3],['size',1],['opacity',1],['angle',1]]) geometry.setAttribute(name,new T.BufferAttribute(new Float32Array(capacity*size),size).setUsage(T.DynamicDrawUsage));
+      const material = new T.ShaderMaterial({ uniforms:{ map:{value:map},hot:{value:hot},pixelScale:{value:1},maxPoint:{value:maxPoint} },vertexShader:vertex,fragmentShader:fragment,vertexColors:true,transparent:true,depthWrite:false,blending:additive?T.AdditiveBlending:T.NormalBlending });
+      const mesh = new T.Points(geometry,material); mesh.frustumCulled=false; mesh.visible=false;
+      const viewport = new T.Vector2();
+      mesh.onBeforeRender=(r,s,c)=>{ material.uniforms.pixelScale.value=r.getDrawingBufferSize(viewport).y/(2*Math.tan(c.fov*Math.PI/360)); };
+      scene.add(mesh); return { mesh,geometry,attributes:geometry.attributes,count:0 };
+    }
+    function triangles(capacity, lines=false) {
+      const geometry=new T.BufferGeometry();
+      for (const [name,size]of [['position',3],['color',3],['opacity',1]]) geometry.setAttribute(name,new T.BufferAttribute(new Float32Array(capacity*size),size).setUsage(T.DynamicDrawUsage));
+      const material=new T.ShaderMaterial({vertexShader:`attribute float opacity; varying vec3 vColor; varying float vOpacity; void main(){ vColor=color; vOpacity=opacity; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,fragmentShader:`varying vec3 vColor; varying float vOpacity; void main(){ gl_FragColor=vec4(vColor,vOpacity);\n#include <tonemapping_fragment>\n#include <encodings_fragment>\n}`,vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,polygonOffset:!lines,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+      const mesh=lines?new T.LineSegments(geometry,material):new T.Mesh(geometry,material); mesh.frustumCulled=false; mesh.visible=false; scene.add(mesh);
+      return { mesh,geometry,attributes:geometry.attributes,count:0 };
+    }
+    const fire=points(BOOM_MAX*BOOM_FIRE,boomTexture(false),false,512,1), smoke=points(BOOM_MAX*BOOM_SMOKE,boomTexture(true),false,512);
+    fire.mesh.renderOrder=1; smoke.mesh.renderOrder=2;
+    const sparks=points(BOOM_MAX*BOOM_SPARKS,flashTex,true,6), trails=triangles(BOOM_MAX*BOOM_SPARKS*2,true), rings=triangles(BOOM_MAX*BOOM_SEGMENTS*6);
+    sparks.mesh.renderOrder=trails.mesh.renderOrder=rings.mesh.renderOrder=3;
+    rings.unit=new Float32Array(BOOM_SEGMENTS*18);let cursor=0;
+    for(let i=0;i<BOOM_SEGMENTS;i++)for(const [n,outer]of [[i,0],[i+1,0],[i+1,1],[i,0],[i+1,1],[i,1]]){
+      const angle=n/BOOM_SEGMENTS*Math.PI*2;rings.unit[cursor++]=Math.cos(angle);rings.unit[cursor++]=Math.sin(angle);rings.unit[cursor++]=outer;
+    }
+    return {fire,smoke,sparks,trails,rings};
+  });
+}
+function boomVertex(batch,x,y,z,r,g,b,opacity,size=1,angle=0) {
+  const i=batch.count++, a=batch.attributes, j=i*3;
+  a.position.array[j]=x; a.position.array[j+1]=y; a.position.array[j+2]=z;
+  a.color.array[j]=r; a.color.array[j+1]=g; a.color.array[j+2]=b; a.opacity.array[i]=opacity;
+  if(a.size){a.size.array[i]=size; a.angle.array[i]=angle;}
+}
+function boom(p,k=1) { // 既存の爆心の高さ・大小と、音の呼び分けを維持する。
+  sfx(k<1?'explodeS':'explode',p);
+  initBoomVisuals();
+  let b;
+  if(booms.length>=BOOM_MAX){
+    let index=0,score=-Infinity;
+    for(let i=0;i<booms.length;i++){const q=booms[i],s=q.at.distanceToSquared(camera.position)+q.t*40000; if(s>score){score=s;index=i;}}
+    if(p.distanceToSquared(camera.position)>score+2500)return;
+    b=booms.splice(index,1)[0];
+  }else b=boomFree.pop()||visualAlloc(()=>({at:new T.Vector3()}));
+  b.at.copy(p).y+=2; b.k=k; b.t=0; b.life=k<1?1.05:1.3;
+  boomSeed=Math.imul(1664525,boomSeed)+1013904223>>>0; b.seed=boomSeed;
+  const distance=b.at.distanceTo(camera.position); b.detail=distance>300?0:distance>150?1:2;
+  // 同じ場所の連続爆発では、後続の細粒を減らして重なり描画を抑える。
+  const nearby=booms.filter(q=>q.at.distanceToSquared(b.at)<625).length;
+  if(nearby>=10)b.detail=0;else if(nearby>=4)b.detail=Math.min(1,b.detail);
+  booms.push(b);
+}
+function boomUpdate(dt) {
+  if(!boomVisuals)return;
+  const {fire,smoke,sparks,trails,rings}=boomVisuals;
+  for(const batch of Object.values(boomVisuals))batch.count=0;
+  for(let index=booms.length-1;index>=0;index--){
+    const b=booms[index]; b.t+=dt;
+    if(b.t>=b.life){boomFree.push(b);booms.splice(index,1);continue;}
+    const t=b.t,k=b.k,at=b.at,rand=i=>boomNoise(b.seed+i*7919);
+    const flameCount=b.detail===2?7:b.detail===1?4:2;
+    for(let i=0;i<flameCount;i++){
+      const delay=rand(i*8)*.04, life=.32+rand(i*8+1)*.16, age=t-delay, phase=age/life;
+      if(phase<0||phase>=1)continue;
+      const angle=rand(i*8+2)*Math.PI*2, spread=(.6+rand(i*8+3)*1.6)*(1-Math.exp(-phase*6))*k;
+      const heat=Math.max(0,1-phase), alpha=.9*Math.min(1,phase*8)*(1-phase)**.65;
+      boomVertex(fire,at.x+Math.cos(angle)*spread,at.y+(.3+rand(i*8+4)*1.8)*k+age*k,at.z+Math.sin(angle)*spread, 1,.18+Math.pow(heat,.7)*.77,.035+heat*heat*.48,alpha,(2+4.5*(1-Math.exp(-phase*5)))*k,angle+phase*.5);
+    }
+    if(t<.14)boomVertex(fire,at.x,at.y,at.z,1,1,.86,.95*(1-t/.14),(1.5+4.5*Math.min(1,t/.035))*k);
+    const smokeCount=b.detail===2?5:b.detail===1?3:1;
+    for(let i=0;i<smokeCount;i++){
+      const delay=.22+rand(100+i*5)*.08, age=t-delay, life=b.life-delay, phase=age/life;
+      if(phase<0||phase>=1)continue;
+      const angle=rand(101+i*5)*Math.PI*2, spread=(.8+rand(102+i*5)*1.5)*k, fade=Math.min(1,phase*6)*(1-phase)**1.3;
+      const shade=.18+phase*.13+rand(103+i*5)*.04;
+      boomVertex(smoke,at.x+Math.cos(angle)*spread+age*.7,at.y+(i*.25+age*2.2)*k,at.z+Math.sin(angle)*spread,shade,shade*.94,shade*.86,.42*fade,(2.8+phase*5.5)*k,angle+phase*.25);
+    }
+    const sparkCount=b.detail===2?(k<1?12:20):b.detail===1?10:5;
+    for(let i=0;i<sparkCount;i++){
+      const life=.34+rand(201+i*5)*.38,phase=t/life;if(phase>=1)continue;
+      const angle=rand(202+i*5)*Math.PI*2,speed=(9+rand(203+i*5)*21)*k,vx=Math.cos(angle)*speed,vz=Math.sin(angle)*speed,vy=(3+rand(204+i*5)*14)*k;
+      const end=(1-Math.exp(-t*1.4))/1.4,old=Math.max(0,t-.035-.035*(1-phase)),tail=(1-Math.exp(-old*1.4))/1.4,alpha=(1-phase)**.6;
+      const x=at.x+vx*end,y=at.y+vy*t-12*t*t,z=at.z+vz*end;
+      boomVertex(sparks,x,y,z,1,.65,.2,alpha,.15*k);
+      boomVertex(trails,at.x+vx*tail,at.y+vy*old-12*old*old,at.z+vz*tail,1,.35,.035,0);
+      boomVertex(trails,x,y,z,1,.8,.4,alpha);
+    }
+    if(t<.42){
+      const phase=t/.42,radius=(.65+9.5*(1-(1-phase)**3))*k,width=(.18+.24*phase)*k,alpha=.7*(1-phase)**2;
+      for(let i=0;i<rings.unit.length;i+=3){
+        const outer=rings.unit[i+2],r=radius-(outer?0:width);
+        boomVertex(rings,at.x+rings.unit[i]*r,at.y+.07,at.z+rings.unit[i+1]*r,1,.7,.3,outer?0:alpha);
+      }
+    }
+  }
+  for(const batch of Object.values(boomVisuals)){
+    batch.mesh.visible=batch.count>0;batch.geometry.setDrawRange(0,batch.count);
+    for(const a of Object.values(batch.attributes))a.needsUpdate=true;
+  }
+}
+function clearBooms() {
+  for(const b of booms)boomFree.push(b);booms.length=0;
+  if(boomVisuals)for(const batch of Object.values(boomVisuals)){batch.count=0;batch.mesh.visible=false;batch.geometry.setDrawRange(0,0);}
 }
 
 // ---- Bot ----
@@ -10780,6 +10913,7 @@ canvas.addEventListener('mousedown', e => {
 });
 
 function setup() {
+  clearBooms();
   resetBlastShake();
   stopMovementSounds();
   incomingShots.clear(); lockBeepT = 0;
@@ -10962,11 +11096,7 @@ function loop(now) {
   fxUpdate(dt);
   reconPulseUpdate(running ? dt : 0);
   puffUpdate(dt);
-  for (let i = booms.length - 1; i >= 0; i--) {
-    const b = booms[i]; b.t += dt;
-    b.m.scale.setScalar((1 + b.t * 10) * b.k); b.m.material.opacity = Math.max(0, 0.9 - b.t * 1.6);
-    if (b.t > 0.6) { scene.remove(b.m); booms.splice(i, 1); }
-  }
+  boomUpdate(dt);
   for (const pl of plants) pl.beacon.scale.setScalar(pl.capturing ? 1 + 0.25 * Math.sin(now / 90) : 1);
   for (const k of ['B', 'R']) if (cores[k].glow) { cores[k].glow.rotation.y += dt; cores[k].glow.material.color.setHex(cores[k].hp < CORE_MAX * 0.25 && Math.sin(now / 120) > 0 ? 0xff3030 : TEAM[k].color); }
   hitT -= dt; dmgT -= dt; spHitT -= dt;
