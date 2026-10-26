@@ -17,7 +17,7 @@ const dir=path.resolve(process.argv[2]||'dbg/lime-energy');
   for(const team of['B','R'])for(const {cls,slot,key}of energy){
    const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const laser=sl.w.series==='ln',traces=g.fx.filter(f=>f.kind===(laser?'laser':'tracer'));
    yes(traces.length>0&&traces.every(f=>(laser||f.energy)&&f.obj.material.color.getHex()===0xb8ff32),team+'/'+key+' ライム色');
-   g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):f.obj.scale.x>=.06&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 遠方でも見えるレーザー状'));
+   g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):(slot==='main'?f.obj.scale.x>=.06:f.obj.scale.x<=.055)&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 遠方でも見えるレーザー状'));
   }
   reset('assault','rail');const hp=e.hp;g.fire(u,aim,0,g.WEAPONS.rail,new T.Vector3(0,202.5,0));const f=g.fx.find(f=>f.kind==='tracer');
   yes(e.hp<hp,'光学弾の命中ダメージは射撃時に発生');const impact=g.fx.find(q=>q.kind==='flash'&&q.age<0);yes(impact&&near(-impact.age,f.len/450),'着弾エフェクトの遅延は従来のまま');
