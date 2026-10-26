@@ -72,6 +72,8 @@ window.OdaibaDetail = (() => {
     for(const rs of data.land)for(const ring of rs){const r=ring2(ring);for(let i=0;i<r.length;i++){const a=r[i],b=r[(i+1)%r.length],dx=b[0]-a[0],dz=b[1]-a[1],n=Math.hypot(dx,dz)||1,mx=(a[0]+b[0])/2,mz=(a[1]+b[1])/2;if(!isWater(mx-dz/n*.22,mz+dx/n*.22)&&!isWater(mx+dz/n*.22,mz-dx/n*.22))continue;const p=[a[0],0,a[1]],q=[b[0],0,b[1]];quad('quay',p,q,[q[0],-3,q[2]],[p[0],-3,p[2]]);beam('stone',[p[0],.07,p[2]],[q[0],.07,q[2]],.18,.25);}}
     const solid={concrete:'#a4aaa5',stone:'#b7b6a5',metal:'#616b6c',bronze:'#727267',guide:'#849395',rubber:'#626c68',girder:'#647473',paint:'#d8d7c7',quay:'#6a7f7b'};
     const mat={...mats};for(const [k,c]of Object.entries(solid))mat[k]=new T.MeshLambertMaterial({color:linear(c),side:T.DoubleSide});mat.lamp=new T.MeshBasicMaterial({color:linear('#f3ddad')});
+    // 路面に添える白線と走行帯だけ深度をずらし、遠景のちらつきを避ける。
+    for(const key of ['paint','rubber']){mat[key].polygonOffset=true;mat[key].polygonOffsetFactor=-2;mat[key].polygonOffsetUnits=-2;}
     for(const [key,arr]of bins){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(arr,3));g.computeVertexNormals();if(['asphalt','concrete','paving','grass'].includes(key))uv(g,key==='asphalt'?4:3);const m=new T.Mesh(g,mat[key]||mat.concrete);m.name='transport-'+key;scene.add(m);}
     return {stats,materials:mat};
   }

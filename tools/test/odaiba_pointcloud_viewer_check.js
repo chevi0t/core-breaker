@@ -43,11 +43,41 @@ async function main() {
       await page.evaluate(name => review.view(name), name);
       await page.screenshot({path: path.join(out, name + '.png')});
     }
+    // 保存した実地表を識別色で描き、遠景・斜視でも正しい路面が見えることを確かめる。
+    const samples = JSON.parse(fs.readFileSync(path.join(out, 'terrain-check.json'))).groundSurfaceSamples;
+    const groundCheck = await page.evaluate(samples => {
+      const scene = new THREE.Scene(), colors = {pavement: 0x0000ff, roads: 0xff0000, grass: 0x00ff00};
+      const materials = [], levels = [];
+      for (const [kind, color] of Object.entries(colors)) {
+        const original = review.scene.getObjectByName('ground-' + kind);
+        const pos = original.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) levels.push(pos.getY(i));
+        const mat = new THREE.MeshBasicMaterial({color, side: THREE.DoubleSide, toneMapped: false});
+        materials.push(mat); scene.add(new THREE.Mesh(original.geometry, mat));
+      }
+      const rt = new THREE.WebGLRenderTarget(1025, 1025), pixel = new Uint8Array(4), camera = review.camera.clone();
+      camera.aspect = 1; let checks = 0; const failures = [];
+      for (const sample of samples) for (const range of [400, 1450, 2200]) for (const polar of [.35, 1.05, 1.4]) {
+        const [x, z] = sample.at;
+        camera.position.set(x + range * Math.sin(polar) * .6, range * Math.cos(polar), z + range * Math.sin(polar) * .8);
+        camera.lookAt(x, 0, z); camera.near = range / 100; camera.far = range + 2500; camera.updateProjectionMatrix();
+        review.renderer.setRenderTarget(rt); review.renderer.render(scene, camera);
+        review.renderer.readRenderTargetPixels(rt, 512, 512, 1, 1, pixel);
+        const channel = {pavement: 2, roads: 0, grass: 1}[sample.kind];
+        if (pixel[channel] < 250 || pixel[(channel + 1) % 3] > 5 || pixel[(channel + 2) % 3] > 5) failures.push({sample, range, polar, pixel: [...pixel]});
+        checks++;
+      }
+      review.renderer.setRenderTarget(null); rt.dispose(); materials.forEach(m => m.dispose());
+      review.renderer.render(review.scene, review.camera);
+      return {checks, failures, minHeight: levels.reduce((a, v) => Math.min(a, v), Infinity), maxHeight: levels.reduce((a, v) => Math.max(a, v), -Infinity)};
+    }, samples);
+    assert.deepEqual(groundCheck.failures, []);
+    assert.equal(groundCheck.minHeight, 0); assert.equal(groundCheck.maxHeight, 0);
     await page.reload(); await page.waitForFunction(() => window.reviewReady, {timeout: 45000});
     const second = await measure();
     assert.deepEqual(first.textures, second.textures);
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
-    const report = {...first, errors, external, offline: true, deterministicTextures: true, gameplayValidated: false};
+    const report = {...first, groundCheck, errors, external, offline: true, deterministicTextures: true, gameplayValidated: false};
     fs.writeFileSync(path.join(out, 'viewer-check.json'), JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify(report));
   } finally { await browser.close(); }

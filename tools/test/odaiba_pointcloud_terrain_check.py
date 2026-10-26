@@ -65,10 +65,38 @@ def ring(s):
     return a
 
 
-for kind in ["boundary", "land", "water", "roads", "grass"]:
+surfaces = {}
+for kind in ["boundary", "land", "water", "pavement", "roads", "grass"]:
+    ps = []
     for rs in data[kind]:
         p = Polygon(ring(rs[0]), [ring(r) for r in rs[1:]])
         assert p.is_valid and p.area > 0, (kind, str(shapely.is_valid_reason(p)))
+        ps.append(p)
+    surfaces[kind] = shapely.union_all(ps)
+
+ground_kinds = ["pavement", "roads", "grass"]
+expected_land = surfaces["boundary"].difference(surfaces["water"])
+assert abs(surfaces["land"].area - expected_land.area) < 1000
+assert surfaces["pavement"].area > 300000 and surfaces["roads"].area > 30000
+for i, a in enumerate(ground_kinds):
+    for b in ground_kinds[i + 1 :]:
+        assert surfaces[a].intersection(surfaces[b]).area < 1e-6, (a, b)
+assert (
+    shapely.union_all([surfaces[k] for k in ground_kinds])
+    .symmetric_difference(surfaces["land"])
+    .area
+    < 1e-6
+)
+samples = []
+for kind in ground_kinds:
+    candidates = sorted(
+        getattr(surfaces[kind], "geoms", [surfaces[kind]]),
+        key=lambda p: p.area,
+        reverse=True,
+    )[:3]
+    for p in candidates:
+        center = shapely.maximum_inscribed_circle(p).coords[0]
+        samples.append({"kind": kind, "at": list(center)})
 for lo, hi, r, paint, kind in data["volumes"]:
     p = Polygon(ring(r))
     assert p.is_valid and p.area > 0, shapely.is_valid_reason(p)
@@ -98,6 +126,9 @@ result = {
     "specialMeshes": len(data["meshes"]),
     "specialTriangles": triangles,
     "quantizedRingsValid": True,
+    "groundSurfacesDisjointAndCoverLand": True,
+    "groundSurfaceAreas": {k: surfaces[k].area for k in ground_kinds},
+    "groundSurfaceSamples": samples,
     "finiteAndIndexed": True,
     "noFacilitiesUsedForTerrain": True,
     "gameplayValidated": False,

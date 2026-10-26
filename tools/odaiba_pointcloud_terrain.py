@@ -13,6 +13,7 @@ from affine import Affine
 from pyproj import Transformer
 from odaiba_transport_detail import build_transport
 from odaiba_pointcloud_extent import extent
+from odaiba_ground_surfaces import partition
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path(
@@ -510,7 +511,8 @@ for rec in V["roads"]:
     code = props.get("vt_code", 0)
     if g.is_empty or g.geom_type not in ["LineString", "MultiLineString"]:
         continue
-    if code not in [2701, 2703, 2711, 2713, 2731]:
+    # 高架・歩道橋・高速道路の面は交通モデルが描く。地上へ重複投影しない。
+    if code not in [2701, 2711, 2731] or props.get("vt_motorway") == 1:
         continue
     actual = props.get("vt_width", 0) / 100
     width = (
@@ -544,6 +546,7 @@ grass = (
     .difference(roadshape)
 )
 grass = shapely.union_all([p for p in parts(grass) if p.area > 800])
+ground_surfaces = partition(LAND, roadshape, grass, game, 0.05)
 
 views = {
     name: {"at": [game(p).x, game(p).y], "range": 110 if name == "conference" else 130}
@@ -577,10 +580,11 @@ model = {
     * SCALE,
     "northExtensionCoveredBoundsGameMeters": game(ORIGINAL_BOUND).bounds[1]
     - game(BOUND).bounds[1],
-    "land": geometry_encoding(LAND, 1.2),
+    "land": ground_surfaces["land"],
+    "pavement": ground_surfaces["pavement"],
     "water": geometry_encoding(WATER, 1.2),
-    "roads": geometry_encoding(roadshape, 1.5),
-    "grass": geometry_encoding(grass, 2),
+    "roads": ground_surfaces["roads"],
+    "grass": ground_surfaces["grass"],
     "palette": PALETTE,
     "volumes": volumes,
     "meshes": meshes,
