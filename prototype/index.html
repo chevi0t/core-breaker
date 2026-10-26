@@ -6960,10 +6960,10 @@ function auxiliaryMelee(hits, profile, strong=false, rank=0) {
 }
 const WEAPONS = {
   // ユーザー発案のオリジナル装備。調整値と根拠は research/weapons/mirage.md。
-  mirage: { name: 'ミラージュデバイス', type: 'mirage', decoyHp: 500, decoyLife: 10, decoyCost: 25, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
-  mirageH: { name: 'ミラージュデバイス・堅牢型', type: 'mirage', decoyHp: 1500, decoyLife: 10, decoyCost: 40, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
-  mirageL: { name: 'ミラージュデバイス・省エネ型', type: 'mirage', decoyHp: 180, decoyLife: 6, decoyCost: 15, decoyOpacity: 0.35, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
-  mirageD: { name: 'ミラージュデバイス・長時間型', type: 'mirage', decoyHp: 350, decoyLife: 20, decoyCost: 20, decoyOpacity: 0.7, hologram: true, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirage: { name: 'ミラージュデバイス', type: 'mirage', decoyHp: 1800, decoyLife: 12, decoyCost: 25, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageH: { name: 'ミラージュデバイス・堅牢型', type: 'mirage', decoyHp: 3200, decoyLife: 12, decoyCost: 40, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageL: { name: 'ミラージュデバイス・省エネ型', type: 'mirage', decoyHp: 1300, decoyLife: 9, decoyCost: 15, decoyOpacity: 0.35, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
+  mirageD: { name: 'ミラージュデバイス・長時間型', type: 'mirage', decoyHp: 800, decoyLife: 20, decoyCost: 20, decoyOpacity: 0.7, hologram: true, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
   // AC ミサイルスロアー pages/341：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
   missile: {"name":"誘導ミサイル","type":"gun","rpm":360,"mag":4,"mags":4,"reload":2.4,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":4,"locks":1,"time":0.39,"rangeMul":1.25,"freeGap":0,"rank":"D"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":30,"accel":0,"turn":0.55,"delay":18,"ramp":70,"dmg":2600,"blast":11,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.006981317007977318,"recoilH":0.003490658503988659},
   // AC 試験型MLRS pages/359：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
