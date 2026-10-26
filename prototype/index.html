@@ -3796,12 +3796,25 @@ function buildWeaponGeo(id, part) {
   const barrel = (r=.12,len=1,z=-.85,x=0,y=0) => { cyl(r,len,steel,x,y,z); cyl(r*1.2,.16,black,x,y,z-len/2); };
   const primaryShapes = ['carbine','burst','marksman','compactShot','wave','autocannon','explosive','energyMG','chargeCannon','dualSemi','dualSMG','dualEnergy','dualSpread','dualCharge','autoShot','nail','energyShot','focusShot','railRifle','pulseRifle','coilCannon'];
   if (f === 'beamCannon') {
-    box(1,.8,.8,dark,0,0,.3);box(3.7,.18,.35,steel,0,.25,0);
-    for(const side of [-1,1]) {
-      box(.85,.65,1.95,shell,side*1.6,.55,-1.05);cyl(.29,1.9,dark,side*1.6,.55,-1.1);
-      cyl(.4,.17,steel,side*1.6,.55,-2.15);cyl(.29,.1,0xb8ff32,side*1.6,.55,-2.3);
-      for(let k=0;k<3;k++){box(.94,.08,.13,accent,side*1.6,.94,-.5-k*.45);box(.12,.5,.18,black,side*2.06,.55,-.5-k*.45);}
-      box(.5,.2,.6,black,side*1.6,.12,-.7);box(.15,.46,.55,accent,side*2.03,.65,-1.6);
+    // 独自形状の折り畳み式照射器。各部の形は共有し、関節だけを動かす。
+    if (part === 'upper' || part === 'forearm') {
+      const w=part==='upper'?.13:.105;
+      box(w,1,.13,dark,0,.5,0);box(w*.45,.76,.025,steel,0,.5,-.078);
+      box(w*1.25,.12,.16,shell,0,.08,0);box(w*1.25,.12,.16,shell,0,.92,0);
+      box(.025,.42,.025,accent,w*.52,.53,-.08);
+    } else if (part === 'joint') {
+      cyl(.145,.13,dark,0,0,0,'x',.145,8);cyl(.092,.15,steel,0,0,0,'x',.092,8);
+    } else if (part === 'emitter') {
+      cyl(.205,.22,dark,0,0,.025,'z',.17,8);cyl(.225,.055,steel,0,0,-.1,'z',.225,8);
+      cyl(.14,.035,black,0,0,-.143,'z',.14,8);cyl(.105,.04,0xb8ff32,0,0,-.16,'z',.105,8);
+      box(.12,.12,.1,accent,0,0,.18);
+    } else if (part === 'vane') {
+      box(.105,.14,.06,black,0,.1,0);box(.17,.27,.045,shell,0,.285,0);
+      box(.095,.19,.015,accent,0,.29,-.031);box(.17,.035,.06,steel,0,.43,0);
+    } else {
+      box(.72,.64,.38,dark,0,-.04,.06);box(.48,.4,.08,shell,0,0,.29);
+      box(.85,.12,.2,steel,0,.15,0);box(.35,.07,.04,accent,0,.23,.3);
+      for(const side of [-1,1])box(.12,.42,.25,shell,side*.38,-.08,.08);
     }
   } else if (f === 'sabre') {
     cyl(.12,.5,dark,0,0,.22);box(.7,.12,.15,accent,0,0,-.08);
@@ -4149,7 +4162,7 @@ const weaponGeoBank = new Map();
 // 形を返す。同じ形は機体の手・背中、投げた物、設置物、カードの絵で共有する（捨てない）。part：'whole' か、重砲の背中の基部 'mount'
 function weaponGeo(id, part = 'whole') {
   const k = id + ':' + part;
-  if (!weaponGeoBank.has(k)) weaponGeoBank.set(k, buildWeaponGeo(id, part));
+  if (!weaponGeoBank.has(k)) weaponGeoBank.set(k, MODEL_OF[id]?.[0]==='beamCannon' ? visualAlloc(()=>buildWeaponGeo(id,part)) : buildWeaponGeo(id, part));
   return weaponGeoBank.get(k);
 }
 // 投げた物・設置物・偵察機の色：形の色にチームの色を半分混ぜる
@@ -8671,6 +8684,46 @@ function setWeaponGeo(m, id, part = 'whole') {
   if (m.userData.weaponId === id && m.userData.weaponPart === part) return;
   m.geometry = weaponGeo(id, part); m.userData.weaponId = id; m.userData.weaponPart = part;
 }
+function beamCannonModel(u, t) {
+  const pack=u.pack,key=u.slots.sp.w.key;
+  let rig=pack.userData.beamRig;
+  if(!rig){
+    rig=visualAlloc(()=>{
+      const rig={root:new T.Group(),arms:[],meshes:[]};rig.root.name='folding-beam-projectors';pack.add(rig.root);
+      const mesh=(part,parent=rig.root)=>{
+        const m=new T.Mesh(weaponGeo(key,part),pack.material);m.castShadow=true;
+        Object.assign(m.userData,{weaponModel:true,weaponId:key,weaponPart:part,armorSlot:'body'});
+        if(u.kind==='unit'){m.userData.ref=u;hittables.push(m);}
+        parent.add(m);rig.meshes.push(m);return m;
+      };
+      for(const side of [-1,1]){
+        const emitter=new T.Group();emitter.name=side<0?'left-projector':'right-projector';rig.root.add(emitter);
+        const upper=mesh('upper'),lower=mesh('forearm'),joint=mesh('joint'),hub=mesh('emitter',emitter),vanes=[];
+        for(let i=0;i<4;i++){
+          const radial=new T.Group(),hinge=new T.Group();radial.rotation.z=i*Math.PI/2;radial.add(hinge);emitter.add(radial);
+          mesh('vane',hinge);vanes.push(hinge);
+        }
+        rig.arms.push({side,upper,lower,joint,emitter,hub,vanes,start:new T.Vector3(),elbow:new T.Vector3(),direction:new T.Vector3()});
+      }
+      return rig;
+    });
+    pack.userData.beamRig=rig;
+  }
+  rig.root.visible=true;
+  for(const m of rig.meshes){m.visible=true;setWeaponGeo(m,key,m.userData.weaponPart);}
+  // 長さ一定の二つのリンクを折り返して収納。後半で照射器の四枚の羽根が開く。
+  const open=Math.max(0,Math.min(1,(t-.4)/.6)),leaf=open*open*(3-2*open);
+  for(const a of rig.arms){
+    const s=a.side;a.start.set(s*.25,.05,0);
+    a.direction.set(s*(.3+.4*t),.75-.4*t,.05-.5*t).normalize();
+    a.upper.position.copy(a.start);a.upper.quaternion.setFromUnitVectors(UP,a.direction);a.upper.scale.set(1,.88,1);
+    a.elbow.copy(a.start).addScaledVector(a.direction,.88);a.joint.position.copy(a.elbow);
+    a.direction.set(s*(-.12+.62*t),-1.2+1.6*t,.15-1.3*t).normalize();
+    a.lower.position.copy(a.elbow);a.lower.quaternion.setFromUnitVectors(UP,a.direction);a.lower.scale.set(1,1.25,1);
+    a.emitter.position.copy(a.elbow).addScaledVector(a.direction,1.25);a.emitter.rotation.x=Math.PI/2*(1-t);
+    for(const hinge of a.vanes)hinge.rotation.x=Math.PI/2*(1-leaf);
+  }
+}
 function weaponLook(u, dt) {
   const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
   setWeaponGeo(u.gun, hw.key); u.gun.rotation.set(pitch, u.recoilYaw || 0, 0, 'YXZ');
@@ -8697,6 +8750,10 @@ function weaponLook(u, dt) {
   }
   u.gun.visible = cur.type !== 'sword' && cur.type !== 'beamCannon'; u.gun2.visible &&= cur.type !== 'sword' && cur.type !== 'beamCannon';
   const sp = S.sp.w, cannon = sp.type === 'cannon';
+  if(sp.type!=='beamCannon'&&u.pack.userData.beamRig){
+    u.pack.userData.beamRig.root.visible=false;
+    for(const m of u.pack.userData.beamRig.meshes)m.visible=false; // 非再帰の射撃判定からも外す。
+  }
   u.pack.visible = cannon || sp.type === 'beamCannon' || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
   u.mount.position.set(0, 2.75, 1.25); u.mount.rotation.set(0, 0, 0);
   u.flame.position.set(0, 2.85, 1.45); u.flame.rotation.set(Math.PI / 2, 0, 0);
@@ -8712,8 +8769,8 @@ function weaponLook(u, dt) {
     u.pack.rotation.x = -Math.PI / 2 * (1 - t) + pitch * t;
   }
   if(sp.type==='beamCannon'){
-    const goal=u.weapon==='sp'?1:0,d=u.cannonDeploy;u.cannonDeploy=goal>d?Math.min(1,d+dt/CANNON_DEPLOY):Math.max(0,d-dt/CANNON_DEPLOY);
-    const t=u.cannonDeploy*u.cannonDeploy*(3-2*u.cannonDeploy);u.pack.rotation.x=Math.PI/2*(1-t)+pitch*t;
+    const goal=u.weapon==='sp'?1:0,d=u.cannonDeploy;u.cannonDeploy=goal?Math.min(1,d+dt/CANNON_DEPLOY):Math.max(0,d-dt/CANNON_DEPLOY);
+    const t=u.cannonDeploy*u.cannonDeploy*(3-2*u.cannonDeploy);u.pack.rotation.x=pitch*t;beamCannonModel(u,t);
   }
   mechPose(u, dt);
 }
@@ -9002,7 +9059,9 @@ function beamCannonCast(u,from,dir,range) {
   return best;
 }
 function beamCannonMuzzle(u,side) {
-  const p=new T.Vector3(side*1.6,.55,-2.3).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
+  const emitter=u.pack.userData.beamRig?.arms[side<0?0:1].emitter;
+  const p=emitter?new T.Vector3(0,0,-.18).applyEuler(emitter.rotation).add(emitter.position):new T.Vector3(side*1.6,.55,-2.3);
+  p.applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
   const center=u.pos.clone().addScaledVector(UP,2.7),v=p.clone().sub(center),distance=v.length();
   const wall=beamCannonCast(u,center,v.normalize(),distance);
   return {point:p,blocked:!!wall&&wall.dist<distance-.03};
