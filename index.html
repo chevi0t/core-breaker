@@ -309,9 +309,9 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .page { display: grid; gap: 16px; }
 .page[hidden] { display: none; }
 .menu { display: grid; gap: 8px; }
-.menu button { font-family: var(--display); font-size: 17px; letter-spacing: .1em; text-align: left; padding: 10px 14px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.menu button small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); text-align: right; }
-.menu button:disabled { opacity: .45; cursor: default; }
+.menu > button { font-family: var(--display); font-size: 17px; letter-spacing: .1em; text-align: left; padding: 10px 14px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.menu > button small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); text-align: right; }
+.menu > button:disabled { opacity: .45; cursor: default; }
 /* 戦闘中BGMのトグルスイッチ（v0.10、ユーザー指定） */
 .sw { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; font-family: var(--display); font-size: 17px; letter-spacing: .1em; color: var(--hud); }
 .sw small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); margin-left: 12px; }
@@ -326,8 +326,8 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .thanks h3 { margin: 0; font-family: var(--display); font-size: 18px; letter-spacing: .08em; }
 .thanks p { font-size: 13px; }
 .thanks a { color: var(--blue); word-break: break-all; }
-.menu button:not(:disabled):hover, .back:hover, .mapCard:hover { border-color: var(--blue); }
-.menu button:focus-visible, .back:focus-visible, .mapCard:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+.menu > button:not(:disabled):hover, .back:hover, .mapCard:hover { border-color: var(--blue); }
+.menu > button:focus-visible, .back:focus-visible, .mapCard:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 .pgh { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .pgh h2 { margin: 0; font-family: var(--display); font-size: 26px; letter-spacing: .08em; }
 .back, .optionAction { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; justify-self: start; }
@@ -440,6 +440,9 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .optionSliders output { color: var(--blue); font-variant-numeric: tabular-nums; }
 .optionSliders input { width: 100%; margin: 0 0 16px; accent-color: var(--blue); cursor: pointer; }
 #optionsResume { margin-top: 12px; border-color: var(--blue); }
+.optionHead { margin: 12px 0 0; font-family: var(--display); font-size: 18px; letter-spacing: .08em; }
+/* コントローラーでメニューを選んでいる間は、選んでいる物を太い枠で示す（2026-10-27） */
+body.padNav #overlay :focus, body.padNav #overlay label:has(> input:focus) { outline: 3px solid #ffd34d; outline-offset: 2px; }
 #overlay:has(#pgOptions:not([hidden])) { background: rgba(5, 9, 13, .96); }
 #consoleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .consoleCard { padding: 14px; background: #101c27; border: 1px solid #456074; color: var(--hud); font: inherit; text-align: left; cursor: pointer; }
@@ -808,7 +811,79 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 #tutorialHud small { color: #a9c9d6; } #tutorialHud h2 { font-size: 20px; margin: 7px 0; } #tutorialHud p { margin: 8px 0; line-height: 1.65; } #tutorialHud strong { color: #8effbd; }
 #tutorialHud[data-complete="true"] { border-color: #8effbd; } #tutorialProgress { width: 100%; height: 5px; accent-color: #70d9e8; }
 .tutorialActions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0; } .tutorialActions button { padding: 12px 18px; }
+/* 射撃場（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」） */
+#rangeHud { position: fixed; z-index: 32; top: 126px; left: 20px; width: min(300px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid #ffd34d; border-left: 4px solid #ffd34d; border-radius: 8px; background: rgba(20, 16, 6, .9); color: #fff8e6; box-shadow: 0 3px 18px #0008; pointer-events: none; font-size: 14px; }
+#rangeHud b { font-size: 18px; } #rangeHud small { display: block; color: #d8c9a0; line-height: 1.5; }
+#rangeHud dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; } #rangeHud dt { color: #d8c9a0; } #rangeHud dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.pghBtns { display: flex; gap: 10px; align-items: center; }
+/* メニューは2列（2026-10-27、ユーザーが選んだ「2列にまとめる」）：左に出撃の準備、右にほかの画面へのボタン。設定はオプションへ */
+.card.menuWide { max-width: 1060px; }
+.menuHead { display: grid; gap: 6px; }
+#pgMenu { gap: 14px; }
+#pgMenu .menuHead h1 { font-size: clamp(28px, 4vw, 42px); }
+.menuMain > button { white-space: nowrap; }
+.menuMain > button small { white-space: normal; }
+.menuCols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+.colHead { margin: 0; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .16); font: 600 13px var(--body); letter-spacing: .14em; color: var(--dim); }
+.menuSide button { flex-direction: column; align-items: flex-start; gap: 3px; }
+.menuSide button small { text-align: left; }
+.menuMain #start { justify-self: stretch; margin-top: 4px; }
+#ovCls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#battleSizeControl { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 8px 10px; }
+#battleSizeControl label { display: flex; align-items: center; gap: 10px; }
+#battleSizeControl label select { flex: 1; }
+#battleSizeControl #resetBattleSize { grid-column: auto; padding: 7px 12px; font: inherit; font-size: 13px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
+#resetBattleSize:hover { border-color: var(--blue); } #resetBattleSize:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+.teamChoice legend small { margin-left: 10px; font-size: 12px; color: var(--dim); }
+.optCols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; align-items: start; }
+.optCol { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.optCol .optionSliders { margin: 4px 0; }
+.optCol .optionHead { margin: 6px 0 0; }
+.optActions { display: flex; flex-wrap: wrap; gap: 12px; }
+#consoleList .consoleCard { padding: 10px; }
+#consoleList .consoleMini { height: 96px; }
+@media (max-width: 760px) { .menuCols, .optCols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { #ovCls { grid-template-columns: minmax(0, 1fr); } }
+#rangeStart { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 211, 77, .14); color: #ffe7a3; border: 1px solid #ffd34d; cursor: pointer; }
+#rangeStart:hover { background: rgba(255, 211, 77, .26); } #rangeStart:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 @media (max-height: 600px) { #tutorialHud { top: 83px; left: 12px; padding: 8px 12px; width: 290px; font-size: 12px; } #tutorialHud h2 { font-size: 16px; } #tutorialHud p { margin: 5px 0; } }
+/* タッチ操作（2026-10-27、ユーザー要望「次はスマホ操作ね」）：試合中だけ出す。左半分は移動スティック、右半分は視点、右下にボタン、右上に小さなボタン。
+   --tc はボタンの大きさの基準（画面の高さに合わせ、オプションの「ボタンの大きさ」で --tc-scale 倍）。各ボタンの --x・--y は右下の角から中心までの距離、--s は大きさ（--tc の倍）、--w は横長の倍率、--f は文字の大きさ */
+:root { --tc: calc(clamp(46px, 14.5vh, 66px) * var(--tc-scale, 1)); }
+#touchZone, #tcPad, #tcTop, #touchRotate { display: none; }
+#touchZone, #tcPad, #tcTop, #tcNext { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+body.touchPlay #touchZone { display: block; position: fixed; inset: 0; z-index: 3; touch-action: none; }
+body.touchPlay #tcPad { display: block; position: fixed; z-index: 4; right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); width: 0; height: 0; }
+.tcb { --d: calc(var(--tc) * var(--s, 1)); --dw: calc(var(--d) * var(--w, 1)); position: absolute; width: var(--dw); height: var(--d); right: calc(var(--x) * var(--tc) - var(--dw) / 2); bottom: calc(var(--y) * var(--tc) - var(--d) / 2); box-sizing: border-box; padding: 0; border-radius: calc(var(--d) / 2); border: 2px solid rgba(255, 255, 255, .5); background: rgba(8, 16, 24, .38); color: #eef6fb; font: 700 calc(var(--tc) * var(--f, .21)) var(--body); white-space: nowrap; text-shadow: 0 1px 2px #000; touch-action: none; }
+.tcb.tcFire { border-color: rgba(255, 138, 42, .9); background: rgba(255, 138, 42, .22); font-size: calc(var(--tc) * .3); }
+.tcb.on, #tcTop button.on, #tcNext.on { background: rgba(62, 166, 255, .5); border-color: #9fe0ff; }
+.tcb.tcFire.on { background: rgba(255, 138, 42, .6); }
+body.touchPlay #tcTop { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; position: fixed; z-index: 8; top: calc(6px + env(safe-area-inset-top, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); width: 152px; }
+#tcTop button { min-width: 44px; height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .4); background: rgba(8, 16, 24, .6); color: #eef6fb; font: 700 12px var(--body); touch-action: none; }
+#tcNext { position: fixed; z-index: 8; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); padding: 10px 30px; border-radius: 22px; border: 2px solid #8effbd; background: rgba(10, 40, 26, .85); color: #eafff2; font: 700 16px var(--body); touch-action: none; }
+#tcNext[hidden], body:not(.touchPlay) #tcNext, body.touchPlay.tcRespawn #tcPad { display: none; }
+#tcStick { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .4); background: rgba(8, 16, 24, .25); pointer-events: none; }
+#tcStick[hidden] { display: none; }
+#tcStick::after { content: ''; position: absolute; inset: -27px; border-radius: 50%; border: 1px dashed rgba(255, 211, 77, .5); } /* この輪より外へ倒すとダッシュ（半径の1.45倍） */
+#tcStick.dash::after { border: 2px solid #ffd34d; }
+#tcKnob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: rgba(216, 230, 240, .6); }
+/* 画面が狭いので、試合中の表示を上へ寄せて、下の両側を指のために空ける */
+body.touchPlay #mini { width: 72px; height: 128px; }
+body.touchPlay #top { left: calc(50% - 46px); gap: 8px; } body.touchPlay .core { width: min(20vw, 200px); } /* 右上のボタンと重ならないよう、少し左へ寄せて細くする */
+body.touchPlay #status { top: calc(152px + env(safe-area-inset-top, 0px)); bottom: auto; left: max(12px, env(safe-area-inset-left, 0px)); width: 166px; padding: 5px 8px; gap: 3px; }
+body.touchPlay #status .row { grid-template-columns: 50px 1fr 38px; gap: 5px; font-size: 10px; white-space: nowrap; }
+body.touchPlay #pilot { display: none; }
+body.touchPlay #ammoBox { top: calc(88px + env(safe-area-inset-top, 0px)); bottom: auto; right: max(12px, env(safe-area-inset-right, 0px)); }
+body.touchPlay #wpn { display: none; }
+body.touchPlay #ammo { font-size: 28px; }
+body.touchPlay #feed { top: calc(84px + env(safe-area-inset-top, 0px)); right: auto; left: 50%; transform: translateX(-50%); justify-items: center; font-size: 11px; }
+body.touchPlay #feed div:nth-child(n+4) { display: none; }
+body.touchPlay #tutorialHud, body.touchPlay #rangeHud { top: calc(6px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(380px, 48vw); padding: 6px 10px; font-size: 11px; }
+body.touchPlay #tutorialHud h2 { font-size: 14px; margin: 3px 0; } body.touchPlay #tutorialHud p { margin: 3px 0; line-height: 1.45; }
+body.touchPlay #rangeHud dl { margin: 4px 0; gap: 1px 10px; }
+@media (orientation: portrait) { body.touchPlay #touchRotate { display: grid; place-items: center; position: fixed; inset: 0; z-index: 40; background: rgba(5, 9, 13, .94); color: var(--hud); font: 700 20px var(--body); } }
+/* スマホでだけ出す説明・PC でだけ出す説明 */
+body:not(.touch) .touchOnly { display: none; }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -868,89 +943,146 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 </div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
+<!-- タッチ操作（スマホ・タブレット。試合中だけ出す） -->
+<div id="touchZone" aria-hidden="true"><div id="tcStick" hidden><i id="tcKnob"></i></div></div>
+<div id="tcPad" aria-hidden="true">
+  <button type="button" tabindex="-1" class="tcb tcFire" data-tc="fire" style="--x:1;--y:1.08;--s:1.5">射撃</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="jump" style="--x:2.3;--y:.62">ジャンプ</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="dash" style="--x:2.4;--y:1.72">ダッシュ</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="lock" style="--x:1.85;--y:2.62">ロック</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="weapon" style="--x:.72;--y:2.62">武器</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="reload" style="--x:3.5;--y:.62;--s:.85;--w:1.35;--f:.19">リロード</button>
+  <button type="button" tabindex="-1" class="tcb" data-tc="act" style="--x:3.6;--y:1.66;--s:.85;--w:1.35;--f:.19">アクション</button>
+</div>
+<div id="tcTop" aria-hidden="true">
+  <button type="button" tabindex="-1" data-tc="score">スコア</button><button type="button" tabindex="-1" data-tc="map">マップ</button><button type="button" tabindex="-1" data-tc="pause" aria-label="一時停止">II</button><button type="button" tabindex="-1" data-tc="chat">指示</button><button type="button" tabindex="-1" data-tc="xfer">移動</button>
+</div>
+<button type="button" tabindex="-1" id="tcNext" data-tc="next" hidden>次へ</button>
+<div id="touchRotate" aria-live="polite">横向きにしてください</div>
+<aside id="rangeHud" hidden aria-label="射撃場"><b>射撃場</b> <span id="rangeCls"></span>
+  <dl><dt>最後の命中</dt><dd id="rangeLast">—</dd><dt>続けて当てた合計</dt><dd id="rangeSum">—</dd><dt>毎秒</dt><dd id="rangeDps">—</dd><dt>撃破まで</dt><dd id="rangeKill">—</dd></dl>
+  <small id="rangeHint"></small></aside>
 <aside id="tutorialHud" hidden aria-label="チュートリアルの課題"><small id="tutorialCount"></small><progress id="tutorialProgress" value="0" max="13" aria-label="演習の進み具合"></progress><div aria-live="polite" aria-atomic="true"><h2 id="tutorialTitle"></h2><p id="tutorialInstruction"></p><strong id="tutorialResult"></strong></div><p><small>Esc：一時停止・やり直し・スキップ・終了</small></p></aside>
 <div id="overlay">
-  <div class="card" id="ovCard">
+  <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
-      <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
-      <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。操作説明とマップを確かめ、兵装を選んで出撃してください。</p>
+      <header class="menuHead">
+        <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
+        <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
+      </header>
+      <div id="ovBoard"></div>
+      <div class="menuCols">
+        <div class="menu menuMain" role="group" aria-labelledby="menuMainHead">
+          <h2 class="colHead" id="menuMainHead">出撃の準備</h2>
+          <button type="button" data-page="pgMap">マップ<small id="mapNow"></small></button>
+          <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
+          <fieldset class="battleSize" id="battleSizeControl">
+            <legend>参加人数</legend>
+            <label>片軍の人数<select id="teamSize" aria-label="片軍の人数"></select></label>
+            <button type="button" id="resetBattleSize">推奨に戻す</button>
+            <small id="battleSizeHint" aria-live="polite"></small>
+          </fieldset>
+          <fieldset class="teamChoice" id="teamChoice">
+            <legend>出撃側<small>自軍は青、敵軍は橙。地図の上が北</small></legend>
+            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
+            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
+          </fieldset>
+          <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
+          <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
+          <button id="start" type="button">出撃する</button>
+        </div>
+        <nav class="menu menuSide" aria-labelledby="menuSideHead">
+          <h2 class="colHead" id="menuSideHead">メニュー</h2>
+          <button type="button" data-page="pgTutorialIntro">チュートリアル<small>はじめての方へ。実際に動かして練習</small></button>
+          <button type="button" id="menuRange">射撃場<small>選んでいる兵装で試し撃ち</small></button>
+          <button type="button" data-page="pgCustom">機体カスタマイズ<small>パーツ・色と兵装ごとの武器（構成を3つ保存）</small></button>
+          <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
+          <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作・謝辞</small></button>
+          <button type="button" data-page="pgOptions">オプション<small>音・画面・コンソール・コントローラー（戦闘中はF3）</small></button>
+        </nav>
+      </div>
+      <p class="note">PCのキーボードとマウスか、コントローラー（PS5 など）で遊べます。スマホ・タブレットでは横向きにして、画面のボタンで操作します。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
+    </section>
+    <section class="page" id="pgOptions" hidden>
+      <div class="pgh"><h2>オプション</h2><button type="button" class="back">戻る</button></div>
+      <p>設定は自動保存されます。戦闘中は F3 で開き、調整後に戦闘へ戻れます。</p>
+      <div class="optCols">
+        <div class="optCol">
+          <h3 class="optionHead">音</h3>
+          <div class="optionSliders">
+            <label for="optMaster">全体音量 <output id="optMasterValue" for="optMaster"></output></label>
+            <input id="optMaster" type="range" min="0" max="100" step="1">
+            <label for="optSfx">効果音 <output id="optSfxValue" for="optSfx"></output></label>
+            <input id="optSfx" type="range" min="0" max="100" step="1">
+            <label for="optMusic">BGM <output id="optMusicValue" for="optMusic"></output></label>
+            <input id="optMusic" type="range" min="0" max="100" step="1">
+          </div>
+          <label class="sw"><span>戦闘中BGM<small id="bgmNote">試合中に曲を流す</small></span><input type="checkbox" role="switch" id="bgmSw" checked><i aria-hidden="true"></i></label>
+          <label class="sw"><span>音声アナウンス<small>戦況をブラウザの音声で読み上げる（文字はいつも出る）</small></span><input type="checkbox" role="switch" id="voiceSw" checked><i aria-hidden="true"></i></label>
+          <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
+          <h3 class="optionHead">画面</h3>
+          <div class="optionSliders">
+            <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
+            <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
+          </div>
+          <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
+        </div>
+        <div class="optCol">
+          <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
+          <p class="note">戦闘中も F2 キーで切り替えられます。</p>
+          <div id="consoleList" role="group" aria-label="コンソールの種類"></div>
+          <p class="note" id="consoleSelection" role="status"></p>
+          <h3 class="optionHead">コントローラー</h3>
+          <p class="note" id="padStatus" role="status"></p>
+          <div class="optionSliders">
+            <label for="optPadLook">視点の速さ（右スティック） <output id="optPadLookValue" for="optPadLook"></output></label>
+            <input id="optPadLook" type="range" min="0" max="100" step="1">
+          </div>
+          <label class="sw"><span>視点の上下反転<small>右スティックを上へ倒すと下を向く</small></span><input type="checkbox" role="switch" id="optPadInvert"><i aria-hidden="true"></i></label>
+          <label class="sw"><span>振動<small>被弾したときに震える（ブラウザによっては震えません）</small></span><input type="checkbox" role="switch" id="optPadRumble"><i aria-hidden="true"></i></label>
+          <div class="touchOnly"><!-- スマホ・タブレットでだけ出す -->
+            <h3 class="optionHead">タッチ操作（スマホ・タブレット）</h3>
+            <div class="optionSliders">
+              <label for="optTouchLook">視点の速さ（なぞる） <output id="optTouchLookValue" for="optTouchLook"></output></label>
+              <input id="optTouchLook" type="range" min="0" max="100" step="1">
+              <label for="optTouchSize">ボタンの大きさ <output id="optTouchSizeValue" for="optTouchSize"></output></label>
+              <input id="optTouchSize" type="range" min="0" max="100" step="1">
+            </div>
+            <p class="note">タッチ操作の試合中は、コンソールは標準の配置を使います。</p>
+          </div>
+        </div>
+      </div>
+      <div class="optActions">
+        <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
+        <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
+      </div>
+    </section>
+    <section class="page" id="pgPilot" hidden>
+      <div class="pgh"><h2>パイロット</h2><button type="button" class="back">戻る</button></div>
       <div class="playerProfile">
         <label for="playerName">プレイヤー名</label>
         <input id="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="あなた" aria-describedby="playerNameHint">
         <small id="playerNameHint">20文字まで・自動保存。空欄の場合は「あなた」。</small>
       </div>
-      <div id="ovBoard"></div>
-      <nav class="menu" aria-label="メニュー">
-        <button type="button" data-page="pgTutorialIntro">チュートリアル<small>はじめての方へ・実際に動かして練習</small></button>
-        <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
-        <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
-        <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
-        <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
-        <fieldset class="battleSize" id="battleSizeControl">
-          <legend>参加人数・BOT数</legend>
-          <label>片軍の人数（両軍共通）<select id="teamSize" aria-label="片軍の人数"></select></label>
-          <small id="battleSizeHint" aria-live="polite"></small>
-          <button type="button" id="resetBattleSize">マップの推奨人数に戻す</button>
-        </fieldset>
-        <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
-        <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
-        <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
-        <label class="sw"><span>戦闘中BGM<small id="bgmNote">試合中に曲を流す</small></span><input type="checkbox" role="switch" id="bgmSw" checked><i aria-hidden="true"></i></label>
-        <label class="sw"><span>音声アナウンス<small>戦況をブラウザの音声で読み上げる（文字はいつも出る）</small></span><input type="checkbox" role="switch" id="voiceSw" checked><i aria-hidden="true"></i></label>
-      </nav>
-      <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
-      <fieldset class="teamChoice" id="teamChoice">
-        <legend>出撃側</legend>
-        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
-        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
-      </fieldset>
-      <p class="note">自軍は青、敵軍は橙で表示します。地図の上が北、下が南です。</p>
-      <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
-      <button id="start" type="button">出撃する</button>
-      <p class="note">PCのキーボードとマウス向けです。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
-    </section>
-    <section class="page" id="pgOptions" hidden>
-      <div class="pgh"><h2>オプション</h2><button type="button" class="back">戻る</button></div>
-      <p>設定は自動保存されます。戦闘中は F3 で開き、調整後に戦闘へ戻れます。</p>
-      <div class="optionSliders">
-        <label for="optMaster">全体音量 <output id="optMasterValue" for="optMaster"></output></label>
-        <input id="optMaster" type="range" min="0" max="100" step="1">
-        <label for="optSfx">効果音 <output id="optSfxValue" for="optSfx"></output></label>
-        <input id="optSfx" type="range" min="0" max="100" step="1">
-        <label for="optMusic">BGM <output id="optMusicValue" for="optMusic"></output></label>
-        <input id="optMusic" type="range" min="0" max="100" step="1">
-        <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
-        <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
-      </div>
-      <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
-      <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
-      <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
-      <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
-    </section>
-    <section class="page" id="pgPilot" hidden>
-      <h2>パイロット</h2>
       <p>いっしょに出撃する猫を選んでください。機体の性能は変わりません。</p>
       <div id="pilotList" role="group" aria-label="猫のパイロット8匹"></div>
       <p class="note" id="pilotSelection" aria-live="polite"></p>
       <button type="button" class="back">戻る</button>
     </section>
-    <section class="page" id="pgConsole" hidden>
-      <div class="pgh"><h2>コンソール</h2><button type="button" class="back">戻る</button></div>
-      <p>戦闘画面の配置を選びます。選択は自動で保存され、戦闘中も F2 キーで切り替えられます。</p>
-      <div id="consoleList" role="group" aria-label="コンソールの種類"></div>
-      <p class="note" id="consoleSelection" role="status"></p>
-      <button type="button" class="back">戻る</button>
-    </section>
     <section class="page" id="pgTutorialIntro" hidden>
       <div class="pgh"><h2>基礎操作チュートリアル</h2><button type="button" class="back">戻る</button></div>
       <p>敵が撃ち返してこない演習場で、移動・射撃からプラント占拠とコア攻撃まで、ひとつずつ練習します。時間制限はありません。</p>
-      <p>マウスとキーボードを使います。課題ができたら <kbd>Enter</kbd> で次へ。<kbd>Esc</kbd> で一時停止し、やり直し・スキップ・終了を選べます。</p>
+      <p>マウスとキーボードを使います。課題ができたら <kbd>Enter</kbd> で次へ。<kbd>Esc</kbd> で一時停止し、やり直し・スキップ・終了を選べます。スマホ・タブレットでは、課題を達成すると下に出る「次へ」で進み、右上の II で一時停止します。コントローラーでも練習できます（課題の説明はキーボードの操作で書いています。オプションボタンで一時停止、課題を達成したら次へ）。</p>
       <p>強襲の初期機体・初期装備で練習します。いま選んでいるマップ・人数・兵装・保存したカスタマイズは、終了後に戻ります。</p>
       <div class="tutorialActions"><button type="button" id="tutorialStart">練習を始める</button></div>
     </section>
     <section class="page" id="pgTutorialPause" hidden>
       <h2>チュートリアルを一時停止中</h2><p id="tutorialPauseText"></p>
       <div class="tutorialActions"><button type="button" id="tutorialResume">練習に戻る</button><button type="button" id="tutorialRetry">この課題をやり直す</button><button type="button" id="tutorialSkip">この課題をスキップ</button><button type="button" id="tutorialExit">終了してメニューへ</button></div>
+    </section>
+    <section class="page" id="pgRangePause" hidden>
+      <h2>射撃場を一時停止中</h2><p>標的は撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
+      <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ</button><button type="button" id="rangeToMenu">メニューへ</button></div>
     </section>
     <section class="page" id="pgTutorialDone" hidden>
       <h2 id="tutorialDoneTitle">基礎演習クリア！</h2><p id="tutorialDoneText"></p>
@@ -962,7 +1094,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="pgh"><h2>操作説明</h2><button type="button" class="back">戻る</button></div>
       <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります（50対50では1/800）。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
       <div class="keys">
-        <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。メニューの「コンソール」でも選べます</span>
+        <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。オプションの「コンソール」でも選べます</span>
         <kbd>F3</kbd><span>オプション（音量・視野角）。開いている間は戦闘を一時停止</span>
         <kbd>WASD</kbd><span>移動</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
@@ -998,15 +1130,49 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
         <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
-        <kbd>N</kbd><span>効果音と音声アナウンスのオン・オフ（戦闘中BGMと音声アナウンスはメニューのスイッチでも切り替え）</span>
+        <kbd>N</kbd><span>効果音と音声アナウンスのオン・オフ（戦闘中BGMと音声アナウンスはオプションのスイッチでも切り替え）</span>
         <kbd>Tab</kbd><span>押している間、両軍のスコア表（戦闘・占拠・貢献の点と合計、撃破・撃破支援・大破の数）を表示。試合の結果画面にも出ます</span>
         <kbd>よろけ・ダウン</kbd><span>1回に3500以上（格闘は3000以上）のダメージを受けるとよろけて少し押され、7000以上（格闘は6000以上）だと吹き飛んで倒れます。吹き飛んでいる間に Space と Shift を同時に押すと、ブーストを32使って受け身</span>
         <kbd>着地硬直</kbd><span>高い所（約12m以上）から落ちて着地すると、少しの間動けません。着地の直前に Space を押すか、Space 長押しで降下を緩めれば出ません</span>
         <kbd>誘導ミサイル</kbd><span>強襲・重火力の副武器。四角い照準に敵機か敵砲台を入れ続けて捕捉し、左クリックで連射。重火力は複数回の捕捉を同じ敵や複数の敵に配分できます。右クリックで捕捉解除。捕捉せず撃つと直進し、後から誘導はかかりません。飛来するミサイルは壁や建物で防げます</span>
         <kbd>ロック外し</kbd><span>橙の方向警告中は、ショートダッシュの切り返しで敵の照準を振り切れます。誘導ミサイルは捕捉させないか、発射後は障害物へ誘い込んで回避します</span>
       </div>
+      <h3 class="optionHead">コントローラー（PS5 など）</h3>
+      <p class="note">ブラウザの Gamepad API で「標準の配置」として読めるコントローラーで遊べます。つないでからどれかのボタンを押すと使えるようになり、視点の速さ・上下反転・振動はオプションで変えられます。</p>
       <div class="keys">
-        <kbd>マップ</kbd><span>メニューの「マップ選択」で選びます。人数・プラントの数・試合時間はマップごとに違い、地形やリペアポッド・カタパルトの場所と一緒にマップ選択の説明にあります</span>
+        <kbd>左スティック</kbd><span>移動</span>
+        <kbd>右スティック</kbd><span>視点。全体マップと榴弾砲ではカーソル、指示出しでは言葉を選ぶ。横へ倒し切ったままだと振り向きが速くなります</span>
+        <kbd>R2</kbd><span>選んでいる武器を使う（左クリックと同じ）</span>
+        <kbd>L2</kbd><span>ロック・スコープ（右クリックと同じ）</span>
+        <kbd>L1</kbd><span>ブースト。短押しでショートダッシュ、長押しでロングダッシュ（Shift と同じ）</span>
+        <kbd>×</kbd><span>ジャンプ（Space と同じ）。L1 と同時押しでダウンの受け身</span>
+        <kbd>□</kbd><span>リロード</span>
+        <kbd>○</kbd><span>ジップライン（E と同じ）。行動不能のときはすぐ再出撃へ（F と同じ）</span>
+        <kbd>R1</kbd><span>次の武器（ホイールと同じ）</span>
+        <kbd>十字キー</kbd><span>上：主武器、右：副武器、左：補助装備、下：特別装備（1〜4 と同じ）。再出撃とエリア移動の画面では、左右で出撃地点、上下で兵装</span>
+        <kbd>R3</kbd><span>ロック中の対象を切り替え（Q と同じ）</span>
+        <kbd>△ 長押し</kbd><span>指示出し（G と同じ）。右スティックで選んで離すと送る</span>
+        <kbd>L3</kbd><span>エリア移動（H と同じ）</span>
+        <kbd>クリエイト</kbd><span>全体マップ（M と同じ）。開いている間は R2 で「ここへ向かえ」、L2 で「ここを守れ」</span>
+        <kbd>オプション</kbd><span>オプションと一時停止（F3 と同じ）。チュートリアルでは一時停止と、課題を達成した後の次へ</span>
+        <kbd>タッチパッド押し込み</kbd><span>押している間スコア表（Tab と同じ）。ブラウザによっては使えません</span>
+        <kbd>メニュー</kbd><span>十字キーか左スティックで選び、× で決定、○ で戻る。スライダーと選択欄は左右で値を変えます</span>
+      </div>
+      <h3 class="optionHead">スマホ・タブレット（タッチ操作）</h3>
+      <p class="note">指で触る画面の端末では、試合中に画面のボタンが出ます。横向きで遊びます。スマホでは処理を軽くするため、人数は5対5か10対10、マップは軽い物だけを選べます。</p>
+      <div class="keys">
+        <kbd>左半分</kbd><span>触った所がスティックの中心になり、指を動かした向きへ進む。外側の点線の輪まで倒すとダッシュ</span>
+        <kbd>右半分</kbd><span>なぞると視点</span>
+        <kbd>射撃</kbd><span>押している間、選んでいる武器を使う（左クリックと同じ）。押したまま指を動かすと視点も動く</span>
+        <kbd>ロック</kbd><span>ロック・スコープ（右クリックと同じ）。榴弾砲では中断</span>
+        <kbd>ジャンプ・ダッシュ</kbd><span>Space・Shift と同じ。ダッシュは短く押すとショートダッシュ、押し続けるとロングダッシュ</span>
+        <kbd>武器</kbd><span>短く押すと次の武器。押したまま上下左右へ指を動かして離すと、その向きの武器（上：主武器、右：副武器、左：補助装備、下：特別装備）</span>
+        <kbd>リロード・アクション</kbd><span>R と同じ。アクションはジップライン（E）と、行動不能のときにすぐ再出撃へ（F）</span>
+        <kbd>右上</kbd><span>スコア（押している間）、マップ（地図をタップで「ここへ向かえ」）、II（一時停止とオプション）、指示（押したまま指を動かして離すと送る）、移動（エリア移動）</span>
+        <kbd>再出撃</kbd><span>兵装と出撃地点はタップで選ぶ</span>
+      </div>
+      <div class="keys">
+        <kbd>マップ</kbd><span>メニューの「マップ」で選びます。人数・プラントの数・試合時間はマップごとに違い、地形やリペアポッド・カタパルトの場所と一緒にマップ選択の説明にあります</span>
         <kbd>プラント</kbd><span>A・B・C…の円の中で1機あたり10秒で占拠ゲージが動きます（2機目以降は半分ずつ加算、敵がいれば人数を差し引き）。敵のプラントはいったん中立に戻してから占拠。自軍プラントは再出撃地点になります</span>
         <kbd>カタパルト</kbd><span>紫の輪が付いた射出台に乗ると、輪の向きへ射出。どの台も陣営に関係なく誰でも使えます（敵も使えます）。最初の1秒は操作できず、その後は空中ダッシュやSpace長押しで着地点を調整できます</span>
         <kbd>再出撃</kbd><span>ベースか自軍プラントを選んで出撃。プラントからは、プラントの中心から自軍ベース側へ約50m離れた所に出ます。出撃してから2秒は無敵です（点滅）。撃破されると、待ち時間の前半は倒した相手を映し、後半は自由に見回せます</span>
@@ -1031,12 +1197,13 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
     <section class="page" id="pgMap" hidden>
       <div class="pgh"><h2>マップ選択</h2><button type="button" class="back">戻る</button></div>
       <p class="note">自軍は青、敵軍は橙。地図の上が北、下が南です。左右の説明は南側から見た向きです。</p>
+      <p class="note touchOnly">スマホ・タブレットでは処理を軽くするため、軽いマップ（推奨5対5・10対10）だけを出しています。</p>
       <div id="mapList"></div>
       <p class="note" id="mapAttribution"></p>
 <p class="note"><a href="credits/" target="_blank" rel="noopener noreferrer" style="color:#9bdfff">素材の出典・ライセンス</a></p>
     </section>
     <section class="page" id="pgCustom" hidden>
-      <div class="pgh"><h2>機体カスタマイズ</h2><button type="button" class="back">戻る</button></div>
+      <div class="pgh"><h2>機体カスタマイズ</h2><div class="pghBtns"><button type="button" id="rangeStart">射撃場で試す</button><button type="button" class="back">戻る</button></div></div>
       <p class="cuNote">左で部位か武器の枠を選び、中のシリーズを開いて型を選びます。型にマウスを乗せる（キーボードは↑↓）と右に今との差が出て、クリック（Enter）で付けます。選んだ物はこのブラウザの今の構成に保存され、武器は次の出撃、パーツと色は次の試合から使われます。</p>
       <div class="cuBar"><div class="ctabs" id="cuTabs" role="tablist" aria-label="兵装"></div><div class="ctabs" id="cuBuilds" role="group" aria-label="保存した構成"></div></div>
       <p id="buildSaveStatus" class="note" role="status" aria-live="polite"></p>
@@ -1061,8 +1228,10 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 (() => {
 const T = THREE;
 const canvas = document.getElementById('view');
+// スマホ・タブレット（指で触る画面だけの端末）。画面のボタンで操作し、軽いマップと5対5・10対10だけにする（2026-10-27、ユーザー指定）
+const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
 const renderer = new T.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2)); // スマホは画素が細かいので、描く画素を減らして軽くする
 renderer.shadowMap.enabled = true;
 const scene = new T.Scene();
 scene.background = new T.Color(0x9fb4c4);
@@ -1073,7 +1242,7 @@ scene.add(new T.HemisphereLight(0xdfefff, 0x4a4436, 0.75));
 const sun = new T.DirectionalLight(0xffffff, 0.9);
 sun.position.set(90, 180, 60);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(TOUCH ? 2048 : 4096, TOUCH ? 2048 : 4096);
 sun.shadow.bias = -0.0006;
 Object.assign(sun.shadow.camera, { left: -270, right: 270, top: 270, bottom: -270, near: 1, far: 650 });
 scene.add(sun);
@@ -1130,25 +1299,34 @@ const SFX = {
   chat: { file: 'beep', vol: 0.35, rate: 1.5, ui: true, gap: 0.2 }, // 指示出し（v0.17）
 };
 // 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70 };
+// padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
+// touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50 };
+const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 const gameOptions = { ...OPTION_DEFAULTS };
 try {
   const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY));
   for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(k === 'fov' ? 60 : 0, Math.min(100, saved[k])));
 } catch (_) {}
+const optionEl = k => document.getElementById('opt' + k[0].toUpperCase() + k.slice(1));
 function renderOptions() {
   for (const k of Object.keys(gameOptions)) {
-    const id = 'opt' + k[0].toUpperCase() + k.slice(1);
-    document.getElementById(id).value = gameOptions[k];
-    document.getElementById(id + 'Value').textContent = gameOptions[k] + (k === 'fov' ? '°' : '%');
+    const el = optionEl(k);
+    if (el.type === 'checkbox') { el.checked = !!gameOptions[k]; continue; }
+    el.value = gameOptions[k];
+    document.getElementById(el.id + 'Value').textContent = gameOptions[k] + (OPTION_UNIT[k] ?? '%');
   }
+  document.documentElement.style.setProperty('--tc-scale', (.75 + gameOptions.touchSize / 200).toFixed(3)); // タッチのボタンの大きさ
 }
 function saveOptions() {
   try { localStorage.setItem(OPTIONS_KEY, JSON.stringify(gameOptions)); } catch (_) {}
   renderOptions(); applyAudioSettings();
   if (!gameOptions.master) window.speechSynthesis?.cancel();
 }
-for (const k of Object.keys(gameOptions)) document.getElementById('opt' + k[0].toUpperCase() + k.slice(1)).addEventListener('input', e => { gameOptions[k] = +e.target.value; saveOptions(); });
+for (const k of Object.keys(gameOptions)) {
+  const el = optionEl(k);
+  el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => { gameOptions[k] = el.type === 'checkbox' ? +el.checked : +el.value; saveOptions(); });
+}
 document.getElementById('optionsReset').addEventListener('click', () => { Object.assign(gameOptions, OPTION_DEFAULTS); saveOptions(); });
 renderOptions();
 const MASTER_VOL = 0.8;
@@ -1212,7 +1390,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyN' && !e.repeat && !/INPUT|TEXTAREA/.test(e.target.tagName)) { muted = !muted; applyAudioSettings(); feed(muted ? '効果音と音声アナウンスをオフ（Nで戻す）' : '効果音と音声アナウンスをオン'); if (muted) window.speechSynthesis?.cancel(); } // v0.15から N（M は全体マップ）
 });
 // ---- 戦闘中BGM（v0.10、ユーザー指定の曲。Author: Centurion_of_war さんの nightmareheavy.ogg、OpenGameArt.org「Nightmare(prototype)」、CC0。出典は sounds/CREDITS.md）----
-// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかメニューのスイッチで止まる。N の効果音オフとは別
+// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかオプションのスイッチで止まる。N の効果音オフとは別
 const BGM_VOL = 0.32, BGM_KEY = 'coreBreakerBgm';
 let bgmOn = true, bgmBuf = null, bgmNode = null, bgmFail = false;
 try { bgmOn = localStorage.getItem(BGM_KEY) !== 'off'; } catch (_) {}
@@ -1975,13 +2153,26 @@ const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([i
 // 同じアリーナの地形を使う別ルール。公開中の maps.js でも選べるよう、エンジン側で派生させる。
 if (MAPS.dock) MAPS['dock-melee'] = { ...MAPS.dock, name: '港の倉庫街 〜近接限定〜', order: (MAPS.dock.order || 4) + .01, meleeOnly: true,
   desc: '近接武器限定。チーム合計10機先取、制限時間5分。光波剣のチャージ光波も使用可能。出撃前の「近接限定の武器」でソード・双短刀・杭などを選択。主武器・副武器・特別装備は使用不可。' };
-const FIRST_MAP = Object.keys(MAPS)[0];
+// スマホ・タブレットでは、重いマップ（都市モデルを使う物と、半幅×半奥行きが60000を超える広い物）と、推奨が5対5・10対10でないマップを出さず、
+// 人数も5対5と10対10だけにする（2026-10-27、ユーザー指定「スマホはもう5v5か10v10に限定、重たいマップも選択肢から削除する方向で」。重さは Claude が測った）
+const mobileOk = d => !TOUCH || ((d.team === 5 || d.team === 10) && !d.cityTerrain && d.size[0] * d.size[1] <= 60000);
+const TEAM_SIZES = TOUCH ? [5, 10] : Array.from({ length: 49 }, (_, i) => i + 2);
+const FIRST_MAP = Object.keys(MAPS).find(k => !MAPS[k].testOnly && mobileOk(MAPS[k])) || Object.keys(MAPS)[0];
 // 対戦用マップと保存データに登録しない、基礎操作だけの平らな演習場。
 const TUTORIAL_ID = '__practice';
 const TUTORIAL_MAP = { name: '基礎演習場', size: [80, 130], team: 1, time: 3600, baseZ: 100, baseLine: 80,
   desc: '基礎操作の練習専用', terrain: [], layout: [[-30, 40, 10, 5, 3], [30, 40, 10, 5, 3]],
   plants: [['A', 0, -20, null]], turrets: [], radar: [-35, 115], catapults: [], basePods: [], plantPods: [], barricades: [] };
 let tutorial = null;
+// 射撃場（2026-10-27、ユーザー要望）：カスタマイズ中の兵装と機体で、撃ち返さない標的を試し撃ちする細長い平地。対戦用マップと保存データには登録しない。
+// 自機は z=RANGE_Z から -z を向き、標的は RANGE_TARGETS の距離に並ぶ。緑の円（リペアポッド）は自機の左後ろ
+const RANGE_ID = '__range', RANGE_Z = 170;
+const RANGE_MAP = { name: '射撃場', size: [70, 230], team: 1, time: 3600, baseZ: 205, baseLine: 185,
+  desc: '試し撃ち専用', terrain: [], layout: [[-62, 0, 3, 440, 5]], // 左右の低い壁（点対称で右側にも立つ）
+  plants: [['A', -50, -170, null]], turrets: [], radar: [-55, 220], catapults: [], basePods: [[-14, 180]], plantPods: [], barricades: [] };
+// 標的：[自機からの距離 m, 左右の位置 m, 左右に動く幅 m, 1往復の秒]。動く標的はロックオンや偏差撃ちを試す用
+const RANGE_TARGETS = [[15, -9, 0], [30, 8, 0], [40, 24, 10, 5], [50, -18, 0], [80, 14, 0], [90, -26, 12, 7], [120, -5, 0], [200, 9, 0]];
+let range = null;
 let curMap = null, mapId = '';
 const meleeOnly = () => !!curMap?.meleeOnly;
 // 人数は全マップ共通で選び、再読み込みまでは維持する。未指定ならマップの推奨人数。
@@ -3723,8 +3914,8 @@ function buildMap(id) {
   resetCombatFeedback();
   clearBooms();
   cityMap?.dispose();cityMap=null;cityBattle=null;
-  const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : MAPS[id] || MAPS[FIRST_MAP];
-  curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : MAPS[id] ? id : FIRST_MAP;
+  const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : id === RANGE_ID && range ? RANGE_MAP : MAPS[id] || MAPS[FIRST_MAP];
+  curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : def === RANGE_MAP ? RANGE_ID : MAPS[id] ? id : FIRST_MAP;
   cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
   scene.fog.near=cityMap?220:110;scene.fog.far=cityMap?850:420;
   const facilityMaterials=new Set();
@@ -9677,24 +9868,28 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 addEventListener('blur', () => { keys.Tab = false; });
 canvas.addEventListener('mousedown', e => {
+  if (aimPress(e.button, false) && running && document.pointerLockElement !== canvas) grabPointer();
+});
+// 左（0）・右（2）のボタンを押した。マウスとコントローラー（pad。R2 が左、L2 が右）で共通。マウスの固定を取り直すなら true
+function aimPress(button, pad) {
   // 地点決定は押下で受け、フレーム間で終わる短いクリックも取りこぼさない。
-  if (running && isArtilleryMode(player) && (e.button === 0 || e.button === 2)) {
-    if (e.button === 2) stopArtillery(player); else { artilleryConfirm(player,mapPoint()); mouseDown = true; }
-    if (document.pointerLockElement !== canvas) grabPointer();
-    return;
+  if (running && isArtilleryMode(player) && (button === 0 || button === 2)) {
+    if (button === 2) stopArtillery(player); else { artilleryConfirm(player,mapPoint()); mouseDown = true; }
+    return true;
   }
   // 短い右クリックも照射中断として受け、次のフレームまで押し続ける必要をなくす。
-  if (running && beamCannonMode(player) && e.button === 2) { stopBeamCannon(player,true); rightDown=false; return; }
+  if (running && beamCannonMode(player) && button === 2) { stopBeamCannon(player,true); rightDown=false; return false; }
   // 全体マップを開いている間は、クリックでマップのカーソルの地点を指す（左：ここへ向かえ、右：ここを守れ。撃たない）
-  if (running && mapOpen && player && player.alive && document.pointerLockElement === canvas && (e.button === 0 || e.button === 2)) { qchatSend(player, e.button === 0 ? QC_GO : QC_DEF, mapPoint()); return; }
-  if (e.button === 0) mouseDown = true;
-  if (e.button === 2) {
+  if (running && mapOpen && player && player.alive && (pad || document.pointerLockElement === canvas) && (button === 0 || button === 2)) { qchatSend(player, button === 0 ? QC_GO : QC_DEF, mapPoint()); return false; }
+  if (button === 0) mouseDown = true;
+  if (button === 2) {
     if (running && player && player.alive && player.slots[player.weapon].w.scopeHigh && !player.repairing && !player.transfer && player.switchT<=0) player.scopeStep=((player.scopeStep||0)+1)%3;
     if (running && !mapOpen && !wsel.open) toggleLock(player);
     rightDown = true;
+    if (tutorial) tutorialRightClick();
   }
-  if (running && document.pointerLockElement !== canvas) grabPointer();
-});
+  return true;
+}
 addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; if (e.button === 2) rightDown = false; });
 // 武器選択：サイドボタン（3：戻る、4：進む）を押している間だけ開き、マウスを上（主武器）・右（副武器）・左（補助装備）・下（特別装備）に動かして離すと持ち替える
 const wsel = { open: false, x: 0, y: 0, pick: 'main' };
@@ -9726,32 +9921,36 @@ addEventListener('mousemove', e => {
   if (document.pointerLockElement !== canvas && !mouseDown) return;
   // ポインタロック直後などに来る異常な移動量は捨てる
   if (Math.abs(e.movementX) > 250 || Math.abs(e.movementY) > 250) return;
+  lookMove(e.movementX, e.movementY, 0.0025);
+});
+// マウスを動かした・画面をなぞった量（px）。指示出しの円、全体マップのカーソル、武器選択の円を開いていればそちらを動かし、でなければ視点。sens は1pxで回る角度
+function lookMove(mx, my, sens) {
   if (qc.open) {
     // 指示出しのメニュー中も視点を動かさない。真ん中から22より離れたら、その向き（上から右回りに8方向）を選ぶ
-    qc.x = Math.max(-60, Math.min(60, qc.x + e.movementX));
-    qc.y = Math.max(-60, Math.min(60, qc.y + e.movementY));
+    qc.x = Math.max(-60, Math.min(60, qc.x + mx));
+    qc.y = Math.max(-60, Math.min(60, qc.y + my));
     if (Math.hypot(qc.x, qc.y) > 22) qc.pick = (Math.round(Math.atan2(qc.x, -qc.y) / (Math.PI / 4)) + 8) % 8;
     return;
   }
   if (mapOpen || isArtilleryMode(player)) {
     // 全体マップを開いている間は、マウスでマップの上のカーソルを動かす（画面の1pxがマップの1px）
     const k = MAP_Z * 2 / (bigPx.h || 400);
-    mapCur.x = Math.max(-MAP_X, Math.min(MAP_X, mapCur.x + e.movementX * k));
-    mapCur.z = Math.max(-MAP_Z, Math.min(MAP_Z, mapCur.z + e.movementY * k));
+    mapCur.x = Math.max(-MAP_X, Math.min(MAP_X, mapCur.x + mx * k));
+    mapCur.z = Math.max(-MAP_Z, Math.min(MAP_Z, mapCur.z + my * k));
     return;
   }
   if (wsel.open) {
     // 武器選択中はマウスで視点を動かさない
-    wsel.x = Math.max(-60, Math.min(60, wsel.x + e.movementX));
-    wsel.y = Math.max(-60, Math.min(60, wsel.y + e.movementY));
+    wsel.x = Math.max(-60, Math.min(60, wsel.x + mx));
+    wsel.y = Math.max(-60, Math.min(60, wsel.y + my));
     if (Math.max(Math.abs(wsel.x), Math.abs(wsel.y)) > 20) wsel.pick = Math.abs(wsel.y) >= Math.abs(wsel.x) ? (wsel.y < 0 ? 'main' : 'sp') : (wsel.x > 0 ? 'sub' : 'aux');
     return;
   }
-  const sens = 0.0025 * camera.fov / 70 * (player.slots[player.weapon].w.turn || 1); // スコープ中は視点の動きも細かく。重砲は旋回が遅い
-  player.yaw -= e.movementX * sens;
-  player.pitch = Math.max(-0.9, Math.min(0.7, player.pitch - e.movementY * sens));
-});
-function grabPointer() { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
+  sens *= camera.fov / 70 * (player.slots[player.weapon].w.turn || 1); // スコープ中は視点の動きも細かく。重砲は旋回が遅い
+  player.yaw -= mx * sens;
+  player.pitch = Math.max(-0.9, Math.min(0.7, player.pitch - my * sens));
+}
+function grabPointer() { if (TOUCH) return; /* タッチの端末ではマウスを固定しない（固定すると指の座標が取れない端末がある） */ try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
 // 指示出し（v0.17、ユーザー指定「G 長押しの円形メニュー（マウスの向きで選び、離すと送る）と、全体マップをクリックして地点を指す」）。
 // G を押している間メニューを出し、G を離すと選んだ言葉を味方に送る（真ん中のまま離すと取り消し）。言葉・Bot の数・秒は Claude が決めた。
 // ping のある物は照準の先（全体マップを開いているときはマップのカーソル）に印を出し、order のある物は近くの味方のBotが n 機従う：
@@ -9859,8 +10058,8 @@ function playerUpdate(u, dt) {
   if (!artillery && keys.ArrowUp) u.pitch = Math.min(0.7, u.pitch + 1.5 * dt);
   if (!artillery && keys.ArrowDown) u.pitch = Math.max(-0.9, u.pitch - 1.5 * dt);
   beamCannonTurn(u,dt);
-  const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
-  const s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+  const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) + pad.fwd + touch.fwd; // pad：コントローラーの左スティック、touch：画面のスティック（向きだけ使う）
+  const s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + pad.side + touch.side;
   const fwd = new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
   const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
   const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
@@ -9940,6 +10139,300 @@ function lockStick(u, t, step) {
 function anglesTo(u, p) {
   const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
   return { yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)) };
+}
+
+// ---- コントローラー ----
+// PS5 のコントローラー（DualSense）など、ブラウザの Gamepad API が「標準の配置」で読むコントローラー（2026-10-27、ユーザー要望「PSコントローラ優先」）。
+// ボタンはキーとマウスのボタンに置き換え、試合の処理はキーボードと同じ道を通す（配置は Claude が決めた。操作説明に表）。
+// メニューでは十字キーか左スティックで選び、× で決定、○ で戻る。再出撃の画面では十字キーの左右で出撃地点、上下で兵装を選ぶ
+const PAD_DEAD = 0.15, PAD_TRIGGER = 0.5; // スティックの遊び、L2・R2 を押したとみなす深さ
+const PB = { cross: 0, circle: 1, square: 2, triangle: 3, l1: 4, r1: 5, l2: 6, r2: 7, create: 8, options: 9, l3: 10, r3: 11, up: 12, down: 13, left: 14, right: 15, touch: 17 };
+// 押している間、そのキーを押したことにするボタン。十字キーは武器選択の円と同じ向き（上：主武器、右：副武器、左：補助装備、下：特別装備）
+const PAD_KEYS = { cross: ['Space'], circle: ['KeyE', 'KeyF'], square: ['KeyR'], triangle: ['KeyG'], l1: ['ShiftLeft'], l3: ['KeyH'], r3: ['KeyQ'],
+  create: ['KeyM'], options: ['F3'], touch: ['Tab'], up: ['Digit1'], right: ['Digit2'], left: ['Digit3'], down: ['Digit4'] };
+const PAD_DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+// fwd・side：左スティックの前後・左右（playerUpdate がキーに足す）。sent：ボタンごとに押したことにしたキー。nav：メニューで押し続けている向き
+const pad = { index: -1, id: '', fwd: 0, side: 0, held: {}, sent: {}, usedT: -1e9, turnT: 0, nav: '', navT: 0 };
+const padActive = () => performance.now() - pad.usedT < 20000; // 最後にコントローラーを触ってから20秒は、画面の案内をコントローラーのボタンで出す
+const keyName = (key, padButton, touchButton) => touchPlay && touchButton ? touchButton : padActive() ? padButton : key; // touchButton：タッチ操作のボタンの名前
+function padKey(code, down) { document.body.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, bubbles: true, cancelable: true })); }
+function padRead() {
+  let list;
+  try { list = navigator.getGamepads?.() || []; } catch (_) { return null; }
+  let g = list[pad.index];
+  if (!g?.connected) g = [...list].find(x => x?.connected) || null;
+  if (g && g.index !== pad.index) { pad.index = g.index; pad.id = g.id; padStatus(); }
+  return g;
+}
+// 遊びを除いて、倒した量を 0〜1 に伸ばす
+function padStick(x, y) {
+  const m = Math.hypot(x, y);
+  if (!(m > PAD_DEAD)) return { x: 0, y: 0, m: 0 };
+  const k = Math.min(1, (m - PAD_DEAD) / (1 - PAD_DEAD));
+  return { x: x / m * k, y: y / m * k, m: k };
+}
+// 毎フレーム、ほかの処理より先に読む（ループの最初）
+function padTick(dt) {
+  const g = padRead();
+  if (!g) { pad.fwd = pad.side = 0; return; }
+  const down = {};
+  for (const [name, i] of Object.entries(PB)) {
+    const b = g.buttons[i];
+    const v = !b ? 0 : name === 'l2' || name === 'r2' ? b.value : Math.max(b.value, b.pressed ? 1 : 0);
+    down[name] = v > (pad.held[name] ? PAD_TRIGGER - .15 : PAD_TRIGGER);
+  }
+  const ls = padStick(g.axes[0] || 0, g.axes[1] || 0), rs = padStick(g.axes[2] || 0, g.axes[3] || 0);
+  if (ls.m || rs.m || Object.values(down).some(Boolean)) pad.usedT = performance.now();
+  const menu = !$('overlay').hidden, respawnUi = running && !$('respawn').hidden;
+  for (const name of Object.keys(PB)) {
+    if (down[name] && !pad.held[name]) padPress(name, menu, respawnUi);
+    else if (!down[name] && pad.held[name]) padRelease(name);
+    pad.held[name] = down[name];
+  }
+  const battle = !menu && running && !!player;
+  pad.fwd = battle && !respawnUi ? -ls.y : 0; pad.side = battle && !respawnUi ? ls.x : 0;
+  if (battle && rs.m) padLook(rs, dt, Math.abs(g.axes[2] || 0) > .92); else pad.turnT = 0;
+  if (!menu) { pad.nav = ''; return; }
+  // メニュー：十字キーか左スティックを倒した向きへ選ぶ物を移す。倒し続けると0.4秒後から繰り返す
+  let want = ['up', 'down', 'left', 'right'].find(n => down[n]) || '';
+  if (!want && ls.m > .5) want = Math.abs(ls.x) > Math.abs(ls.y) ? (ls.x > 0 ? 'right' : 'left') : (ls.y > 0 ? 'down' : 'up');
+  if (want !== pad.nav) { pad.nav = want; pad.navT = .4; if (want) padNavigate(want); }
+  else if (want && (pad.navT -= dt) <= 0) { pad.navT = .12; padNavigate(want); }
+  // 決定でページが変わり、選んでいた物が消えたら、新しいページの最初の物へ
+  if (document.body.classList.contains('padNav')) {
+    const a = document.activeElement;
+    if (!a || a === document.body || !a.getClientRects().length || !$('overlay').contains(a)) { const items = padMenuItems(); if (items.length) padFocus(padDefaultFocus(items)); }
+  }
+}
+function padPress(name, menu, respawnUi) {
+  if (menu) {
+    if (name === 'cross') padActivate();
+    else if (name === 'circle') padSend(name, ['Escape']);
+    else if (name === 'options') padSend(name, ['F3']);
+    return;
+  }
+  if (respawnUi && PAD_DIRS[name]) {
+    if (name === 'left' || name === 'right') wheelDir = name === 'right' ? 1 : -1;
+    else { const n = CLASS_KEYS.length, i = CLASS_KEYS.indexOf(chosenCls); pressed[CLASS_HOTKEYS[(i + (name === 'down' ? 1 : n - 1)) % n]] = true; }
+    return;
+  }
+  if (name === 'r2' || name === 'l2') { aimPress(name === 'r2' ? 0 : 2, true); return; }
+  if (name === 'r1') { wheelDir = 1; return; } // 次の武器（再出撃の画面では次の出撃地点）
+  let codes = PAD_KEYS[name];
+  if (tutorial && running && name === 'options') codes = [tutorial.done ? 'Enter' : 'Escape']; // チュートリアル：課題を達成したら次へ、でなければ一時停止
+  if (range && running && name === 'options') codes = ['Escape']; // 射撃場：一時停止
+  if (tutorial && running && name === 'touch') codes = ['Enter'];
+  if (codes) padSend(name, codes);
+}
+function padSend(name, codes) { pad.sent[name] = codes; for (const c of codes) padKey(c, true); }
+function padRelease(name) {
+  if (name === 'r2') mouseDown = false;
+  if (name === 'l2') rightDown = false;
+  for (const c of pad.sent[name] || []) padKey(c, false);
+  delete pad.sent[name];
+}
+// 右スティック：視点。指示出しの円と全体マップ（榴弾砲の照準も）を開いている間は、そちらを動かす
+function padLook(rs, dt, full) {
+  const p = player;
+  if (qc.open) { qc.x = rs.x * 60; qc.y = rs.y * 60; if (rs.m > .4) qc.pick = (Math.round(Math.atan2(qc.x, -qc.y) / (Math.PI / 4)) + 8) % 8; return; }
+  if (mapOpen || isArtilleryMode(p)) {
+    const v = Math.max(MAP_X, MAP_Z) * .9 * rs.m * dt; // 端まで倒すと約1秒でマップの半分
+    mapCur.x = Math.max(-MAP_X, Math.min(MAP_X, mapCur.x + rs.x * v));
+    mapCur.z = Math.max(-MAP_Z, Math.min(MAP_Z, mapCur.z + rs.y * v));
+    return;
+  }
+  if (wsel.open) return;
+  pad.turnT = full ? pad.turnT + dt : 0;
+  const boost = 1 + .6 * smooth((pad.turnT - .25) / .35); // 横へ倒し切ったままだと速くなる（振り向き用）
+  // 速さは標準（50）で毎秒約3ラジアン。マウスと同じく、スコープ中は細かく、重砲は遅い。倒した量の2乗で、少し倒すと細かく狙える
+  const rate = (.8 + 4.4 * gameOptions.padLook / 100) * camera.fov / 70 * (p.slots[p.weapon].w.turn || 1);
+  p.yaw -= rs.x * rs.m * rate * boost * dt;
+  p.pitch = Math.max(-0.9, Math.min(0.7, p.pitch - rs.y * rs.m * rate * .7 * dt * (gameOptions.padInvert ? -1 : 1)));
+}
+const PAD_FOCUS = 'button, select, input:not([type="text"]):not([type="file"]):not([type="hidden"]), [tabindex]:not([tabindex="-1"])';
+function padMenuItems() {
+  const page = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden) || $('overlay');
+  return [...page.querySelectorAll(PAD_FOCUS)].filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+}
+function padDefaultFocus(items) {
+  return items.find(el => el.matches('#start, #optionsResume, #tutorialResume, #tutorialStart, #tutorialToMenu, #rangeResume'))
+    || items.find(el => !el.classList.contains('back')) || items[0]; // 「戻る」は最初に選ばない
+}
+function padFocus(el) {
+  document.body.classList.add('padNav');
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+// 今選んでいる物から、その向きにあって一番近い物へ。横（縦）へのずれは重く数える。スライダーと選択欄は左右で値を変える
+function padNavigate(dir) {
+  const items = padMenuItems(), cur = document.activeElement;
+  if (!items.length) return;
+  if (!items.includes(cur)) { padFocus(padDefaultFocus(items)); return; }
+  const [dx, dy] = PAD_DIRS[dir];
+  if (dx && (cur.type === 'range' || cur.tagName === 'SELECT')) { padAdjust(cur, dx); return; }
+  const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  let best = null, bestScore = Infinity;
+  for (const el of items) {
+    if (el === cur) continue;
+    const q = el.getBoundingClientRect();
+    const along = dx ? (q.left + q.width / 2 - cx) * dx : (q.top + q.height / 2 - cy) * dy;
+    if (along <= 1) continue;
+    const gap = dx ? Math.max(0, q.top - r.bottom, r.top - q.bottom) : Math.max(0, q.left - r.right, r.left - q.right);
+    if (along + gap * 3 < bestScore) { best = el; bestScore = along + gap * 3; }
+  }
+  if (best) padFocus(best);
+}
+function padAdjust(el, d) {
+  if (el.tagName === 'SELECT') {
+    const i = Math.max(0, Math.min(el.options.length - 1, el.selectedIndex + d));
+    if (i === el.selectedIndex) return;
+    el.selectedIndex = i;
+  } else {
+    const min = +el.min || 0, max = el.max === '' ? 100 : +el.max, unit = +el.step || 1, step = Math.max(unit, Math.round((max - min) / 20 / unit) * unit);
+    const v = Math.max(min, Math.min(max, +el.value + d * step));
+    if (v === +el.value) return;
+    el.value = v;
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+// ×：選んでいる物を押す。選択欄は次の項目へ（最後の次は最初）
+function padActivate() {
+  const items = padMenuItems(), cur = document.activeElement;
+  if (!items.includes(cur)) { if (items.length) padFocus(padDefaultFocus(items)); return; }
+  if (cur.tagName === 'SELECT') { padAdjust(cur, cur.selectedIndex + 1 < cur.options.length ? 1 : -cur.selectedIndex); return; }
+  if (cur.type !== 'range') cur.click();
+}
+// 被弾したときに震わせる（対応しているブラウザだけ。power は 0〜1）
+function padRumble(power) {
+  if (!gameOptions.padRumble || !padActive()) return;
+  try {
+    const v = navigator.getGamepads?.()[pad.index]?.vibrationActuator;
+    v?.playEffect?.('dual-rumble', { duration: Math.round(120 + 160 * power), strongMagnitude: Math.min(1, power), weakMagnitude: Math.min(1, .4 + power * .5) })?.catch?.(() => {});
+  } catch (_) {}
+}
+function padStatus() {
+  document.getElementById('padStatus').textContent = pad.index >= 0 // 読み込み中にも呼ぶので $ はまだ使えない
+    ? `つながっています：${pad.id.replace(/\s*\(.*$/, '') || 'コントローラー'}。ボタンの配置は「操作説明」にあります。`
+    : 'つながっていません。USB か Bluetooth でつないでから、どれかのボタンを押すと使えるようになります。';
+}
+addEventListener('gamepadconnected', () => { padRead(); padStatus(); if (running) feed('コントローラーを認識しました'); });
+addEventListener('gamepaddisconnected', e => {
+  if (e.gamepad.index !== pad.index) return;
+  for (const n of Object.keys(pad.held)) if (pad.held[n]) padRelease(n);
+  Object.assign(pad, { index: -1, id: '', held: {}, fwd: 0, side: 0 });
+  padStatus(); if (running) feed('コントローラーが外れました');
+});
+// マウスかキーボードを使ったら、メニューの太い枠はやめる（コントローラーから送ったキーは isTrusted が false）
+for (const t of ['mousedown', 'keydown']) addEventListener(t, e => { if (e.isTrusted) document.body.classList.remove('padNav'); }, true);
+padStatus();
+
+// ---- タッチ操作 ----
+// スマホ・タブレットの画面のボタン（2026-10-27、ユーザー要望「次はスマホ操作ね」。配置は Claude が決めた。操作説明に表）。横向きで遊ぶ。
+// 左半分：触った所がスティックの中心になり、指を動かした向きへ進む。外の輪まで倒すとダッシュ（ShiftRight。「ダッシュ」ボタンの ShiftLeft とは別）。
+// 右半分：なぞると視点。右下のボタンは押している間そのキー（射撃・ロックはマウスの左・右のボタン）を押したことにし、コントローラーと同じ道を通す。
+// 射撃・武器・指示のボタンは、押したまま指を動かすと、視点・武器の円・指示の円も動く（lookMove）。武器は短く押すと次の武器
+const TC_R = 56, TC_DASH = 1.45; // スティックの半径（px）。中心から半径のこの倍より外へ倒すとダッシュ
+// ptr：触っている指ごとの役目（stick・look・btn）。fwd・side：スティックの前後・左右（playerUpdate がキーに足す）
+const touch = { ptr: new Map(), fwd: 0, side: 0, dash: false, console: null }; // console：試合中だけ標準にしたコンソールの、元の選択
+let touchPlay = false; // 試合中で、タッチのボタンを出している
+const TC_KEYS = { jump: ['Space'], dash: ['ShiftLeft'], reload: ['KeyR'], act: ['KeyE', 'KeyF'], score: ['Tab'], chat: ['KeyG'] }; // 押している間
+const TC_TAPS = { map: ['KeyM'], xfer: ['KeyH'], next: ['Enter'] }; // 押した時に1回
+function touchTick() {
+  const on = TOUCH && running && !!player && $('overlay').hidden;
+  if (on !== touchPlay) {
+    touchPlay = on; document.body.classList.toggle('touchPlay', on);
+    if (!on) touchEndAll();
+    // ボタンの置き場所は標準のコンソールに合わせてあるので、試合中だけ標準にする（保存した選択は変えない）
+    if (on && consoleMode !== 'standard') { touch.console = consoleMode; setConsole('standard', false); }
+    else if (!on && touch.console) { setConsole(touch.console, false); touch.console = null; }
+  }
+  if (on) { $('tcNext').hidden = !(tutorial && tutorial.done); document.body.classList.toggle('tcRespawn', !$('respawn').hidden); } // 再出撃の画面の間は右下のボタンを隠す（右上の「移動」などは残す）
+}
+// タッチの指は触った物に自然に捕まるので、捕まえ直せない端末でも止めない
+const touchCapture = (el, id) => { try { el.setPointerCapture(id); } catch (_) {} };
+const touchSens = () => 0.002 + 0.008 * gameOptions.touchLook / 100; // 1pxで回る角度。標準（50）で0.006（画面の横半分をなぞると約90度）
+function touchZoneDown(e) {
+  if (e.pointerType === 'mouse') return;
+  e.preventDefault();
+  touchCapture(e.currentTarget, e.pointerId);
+  if (e.clientX < innerWidth / 2 && ![...touch.ptr.values()].some(t => t.kind === 'stick')) {
+    touch.ptr.set(e.pointerId, { kind: 'stick', x0: e.clientX, y0: e.clientY });
+    const st = $('tcStick'); st.hidden = false; st.style.left = e.clientX + 'px'; st.style.top = e.clientY + 'px';
+    touchStick(0, 0);
+  } else touch.ptr.set(e.pointerId, { kind: 'look', x: e.clientX, y: e.clientY });
+}
+function touchStick(dx, dy) {
+  const d = Math.hypot(dx, dy), k = Math.min(1, d / TC_R), live = k >= .15; // 中心の近くは遊び
+  touch.fwd = live ? -dy / d * k : 0; touch.side = live ? dx / d * k : 0;
+  $('tcKnob').style.transform = d ? `translate(${dx / d * k * TC_R}px, ${dy / d * k * TC_R}px)` : '';
+  const dash = d > TC_R * TC_DASH;
+  if (dash !== touch.dash) { touch.dash = dash; padKey('ShiftRight', dash); $('tcStick').classList.toggle('dash', dash); }
+}
+function touchBtnDown(e) {
+  if (e.pointerType === 'mouse') return;
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget, n = el.dataset.tc;
+  touchCapture(el, e.pointerId); el.classList.add('on');
+  const t = { kind: 'btn', name: n, el, x: e.clientX, y: e.clientY, drag: n === 'fire' || n === 'weapon' || n === 'chat', moved: 0 };
+  touch.ptr.set(e.pointerId, t);
+  if (n === 'fire') { aimPress(0, true); return; }
+  if (n === 'lock') { aimPress(2, true); return; }
+  if (n === 'weapon') { if (running && player && player.alive && !meleeOnly() && !wsel.open) { Object.assign(wsel, { open: true, x: 0, y: 0, pick: player.weapon }); t.wsel = true; } return; }
+  if (n === 'pause') { const c = tutorial || range ? 'Escape' : 'F3'; padKey(c, true); padKey(c, false); return; } // チュートリアルと射撃場は一時停止の画面、対戦はオプション
+  if (TC_KEYS[n]) { t.sent = TC_KEYS[n]; for (const c of t.sent) padKey(c, true); return; }
+  for (const c of TC_TAPS[n] || []) { padKey(c, true); padKey(c, false); }
+}
+function touchMove(e) {
+  const t = touch.ptr.get(e.pointerId);
+  if (!t) return;
+  e.preventDefault();
+  if (t.kind === 'stick') { touchStick(e.clientX - t.x0, e.clientY - t.y0); return; }
+  const dx = e.clientX - t.x, dy = e.clientY - t.y;
+  t.x = e.clientX; t.y = e.clientY; t.moved = (t.moved || 0) + Math.abs(dx) + Math.abs(dy);
+  if ((t.kind === 'look' || t.drag) && running && player && player.alive) lookMove(dx, dy, touchSens());
+}
+function touchUp(e) {
+  const t = touch.ptr.get(e.pointerId);
+  if (!t) return;
+  touch.ptr.delete(e.pointerId);
+  touchEnd(t, e.type === 'pointercancel');
+}
+// 指を離した。cancel：試合が止まったなどで、武器の持ち替えはしない
+function touchEnd(t, cancel) {
+  if (t.kind === 'stick') { touchStick(0, 0); $('tcStick').hidden = true; return; }
+  if (t.kind !== 'btn') return;
+  t.el.classList.remove('on');
+  if (t.name === 'fire') mouseDown = false;
+  if (t.name === 'lock') rightDown = false;
+  if (t.name === 'weapon') {
+    const picked = t.wsel && wsel.open && Math.max(Math.abs(wsel.x), Math.abs(wsel.y)) > 20;
+    if (t.wsel) wsel.open = false;
+    if (!cancel && running && player && player.alive) { if (picked) selectWeapon(player, wsel.pick); else if (!meleeOnly()) wheelDir = 1; } // 短く押したら次の武器
+  }
+  for (const c of t.sent || []) padKey(c, false);
+}
+function touchEndAll() { for (const t of touch.ptr.values()) touchEnd(t, true); touch.ptr.clear(); }
+// 出撃で全画面・横向きにする（できる端末だけ。iPhone の Safari などは全画面にできない）
+function touchFullscreen() {
+  if (!TOUCH || document.fullscreenElement) return;
+  try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.then(() => screen.orientation?.lock?.('landscape')?.catch(() => {}), () => {}); } catch (_) {}
+}
+if (TOUCH) document.body.classList.add('touch'); // 読み込み中なので $ はまだ使えない
+{
+  const zone = document.getElementById('touchZone');
+  zone.addEventListener('pointerdown', touchZoneDown);
+  for (const b of document.querySelectorAll('[data-tc]')) b.addEventListener('pointerdown', touchBtnDown);
+  for (const el of [zone, ...document.querySelectorAll('[data-tc]')]) {
+    el.addEventListener('pointermove', touchMove);
+    for (const t of ['pointerup', 'pointercancel']) el.addEventListener(t, touchUp);
+  }
+  // 触った後にブラウザが作るマウスの押下・長押しのメニュー・拡大を止める
+  for (const el of [zone, document.getElementById('tcPad'), document.getElementById('tcTop'), document.getElementById('tcNext')]) {
+    el.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  for (const id of ['start', 'menuRange', 'rangeStart', 'tutorialStart']) document.getElementById(id).addEventListener('click', touchFullscreen);
 }
 
 // ---- ロックオン ----
@@ -10121,7 +10614,7 @@ const killcamOn = () => !!killcam && !player.alive && player.respawnT > killcam.
 // ---- HUD ----
 const $ = id => document.getElementById(id);
 // 戦況アナウンス（v0.15、ユーザーの選んだ「本家から移植」の一番：プラント占拠・コア被弾・残り時間）。画面の上の方に2.6秒出し、短い音を鳴らす。
-// 音声アナウンス（メニューのスイッチ。ブラウザの読み上げ、日本語の声があれば）でも読む。N の効果音オフで一緒に消える。
+// 音声アナウンス（オプションのスイッチ。ブラウザの読み上げ、日本語の声があれば）でも読む。N の効果音オフで一緒に消える。
 // 同じ知らせ（key）は gap 秒あけないと出さない。一度に出すのは3つまで
 const ANN_TIME = 2.6, VOICE_KEY = 'coreBreakerVoice';
 let voiceOn = true;
@@ -10207,7 +10700,7 @@ function flashDamage(origin, amount) {
   if (!(amount > 0) || !player) return;
   const power = Math.min(1, .3 + amount / Math.max(1, player.maxHp) * 3);
   dmgT = .42; damageStrength = Math.max(damageStrength, power);
-  sfx('hurt');
+  sfx('hurt'); padRumble(power);
   if (!origin) return;
   const dx = origin.x - player.pos.x, dz = origin.z - player.pos.z;
   if (dx * dx + dz * dz < .01) return; // 真上・真下は方向を偽らず画面端だけ。
@@ -10410,9 +10903,11 @@ function updatePlayerName(commit = false) {
   playerName = normalizePlayerName($('playerName').value);
   if (commit) $('playerName').value = playerName;
   if (player?.isPlayer) player.name = playerName;
-  pilotHud(player);
+  pilotHud(player); renderPilotNow();
   try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
 }
+// メニューの「パイロット」の横に名前と猫を出す（名前の入力欄はパイロットの画面。2026-10-27）
+function renderPilotNow() { const c = PILOTS.find(c => c.id === pilotChoice) || PILOTS[0]; $('pilotNow').textContent = `${playerName}・${c.name}`; }
 $('playerName').addEventListener('input', e => { if (!e.isComposing) updatePlayerName(); });
 $('playerName').addEventListener('compositionend', () => updatePlayerName(true));
 $('playerName').addEventListener('change', () => updatePlayerName(true));
@@ -10445,7 +10940,7 @@ function pilotHud(p) {
 $('pilotList').innerHTML = PILOTS.map(c => `<button type="button" class="pilotCard" data-pilot-choice="${c.id}" aria-pressed="false">${pilotFace(c.id, true)}<b>${c.name}</b><small>${c.trait}</small></button>`).join('');
 function setPilot(id, save = true) {
   const c = PILOTS.find(c => c.id === id) || PILOTS[0]; pilotChoice = c.id;
-  $('pilotNow').textContent = c.name + '・' + c.trait;
+  renderPilotNow();
   $('pilotSelection').textContent = `選択中：${c.name}・${c.trait}`;
   for (const b of $('pilotList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.pilotChoice === c.id);
   pilotHud(player);
@@ -10470,7 +10965,6 @@ function setConsole(id, save = true) {
   const c = CONSOLES.find(c => c.id === id) || CONSOLES[0];
   consoleMode = c.id;
   document.body.dataset.console = c.id;
-  $('consoleNow').textContent = c.name;
   $('consoleSelection').textContent = `選択中：${c.name}。${c.id === 'flight' ? '下中央にブーストとSP、右側に装備を表示します。' : '照準の下のSPの棒と、戦闘に必要な情報を確認できます。'}`;
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
@@ -10600,13 +11094,14 @@ function flightWeapons(p, spOn) {
 }
 function showPage(id) {
   for (const pg of document.querySelectorAll('#overlay .page')) pg.hidden = pg.id !== id;
-  $('ovCard').classList.toggle('wide', id === 'pgConsole' || id === 'pgMenu' && !!$('ovBoard').innerHTML);
+  $('ovCard').classList.toggle('wide', id === 'pgOptions');
+  $('ovCard').classList.toggle('menuWide', id === 'pgMenu');
   $('ovCard').classList.toggle('xwide', id === 'pgCustom');
   $('overlay').scrollTop = 0;
 }
 let optionsPaused = false;
 function openOptions() {
-  if (tutorial && !running) tutorial.optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
+  if ((tutorial || range) && !running) (tutorial || range).optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
   $('missileHud').hidden = true;
   optionsPaused = running;
   if (optionsPaused) {
@@ -10620,7 +11115,7 @@ function openOptions() {
   $('overlay').hidden = false; showPage('pgOptions');
 }
 function closeOptions() {
-  if (!optionsPaused) { showPage(tutorial ? tutorial.optionsPage || 'pgTutorialPause' : 'pgMenu'); return; }
+  if (!optionsPaused) { showPage(tutorial ? tutorial.optionsPage || 'pgTutorialPause' : range ? range.optionsPage || 'pgRangePause' : 'pgMenu'); return; }
   optionsPaused = false; running = true; $('overlay').hidden = true;
   for (const k in keys) delete keys[k];
   for (const k in pressed) delete pressed[k];
@@ -10652,7 +11147,7 @@ $('overlay').addEventListener('click', e => {
 });
 addEventListener('keydown', e => {
   if (e.code === 'F3') { e.preventDefault(); if (!e.repeat) { if (!$('pgOptions').hidden) closeOptions(); else openOptions(); } }
-  if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden && (!tutorial || !$('pgOptions').hidden)) { e.preventDefault(); if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
+  if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden && (!tutorial && !range || !$('pgOptions').hidden)) { e.preventDefault(); if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
 });
 // ---- 機体カスタマイズ（v0.11、ユーザー指定。v0.13で3列に作り直し、ユーザー決定）----
 // 左に部位（頭・胴・腕・脚）と武器の4枠、中に選んだ枠のシリーズ（メーカーごと。開くと型）、右にプレビューと今との差、下に重量のバー。
@@ -10978,11 +11473,11 @@ function mapCardHtml(id, d, label) {
 function renderMapList() {
   $('mapAttribution').textContent=curMap?.attribution||'';
   const count = battleTeamSize();
-  $('teamSize').innerHTML = Array.from({length:49},(_,i)=>`<option value="${i+2}">${i+2}対${i+2}${i+2===curMap.team?'（推奨）':''}</option>`).join('');
+  $('teamSize').innerHTML = TEAM_SIZES.map(n=>`<option value="${n}">${n}対${n}${n===curMap.team?'（推奨）':''}</option>`).join('');
   $('teamSize').value = count;
   $('battleSizeHint').textContent = `自分1機＋味方BOT${count-1}機 対 敵BOT${count}機。人数はマップ変更後も維持します。`;
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
-  const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
+  const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly && mobileOk(d)).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
   for (const [id, d] of list) {
     if (!d.group) { rows.push(mapCardHtml(id, d, d.name)); continue; }
     if (done.has(d.group)) continue;
@@ -11009,7 +11504,7 @@ function renderMapList() {
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
 $('teamSize').addEventListener('change',e=>{
   const n=Number(e.target.value);
-  if(Number.isInteger(n)&&n>=2&&n<=50)selectedTeamSize=n;
+  if(TEAM_SIZES.includes(n))selectedTeamSize=n;
   renderMapList();
 });
 $('resetBattleSize').addEventListener('click',()=>{selectedTeamSize=null;renderMapList();});
@@ -11033,7 +11528,7 @@ function selectMap(id, persist = true) {
     if (persist) try { localStorage.setItem(MAP_KEY, id); } catch (_) {}
     // 前の試合の結果は消す
     $('ovTitle').innerHTML = 'コア<span>ブレイカー</span> 試作';
-    $('ovText').textContent = 'ボーダーブレイクの遊びを再現するための試作です。操作説明とマップを確かめ、兵装を選んで出撃してください。';
+    $('ovText').textContent = 'ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。';
     $('ovBoard').innerHTML = '';
     $('start').textContent = '出撃する';
   }
@@ -11052,12 +11547,13 @@ function respawnPanel(p) {
   opts.forEach((o, i) => { if (pressed['Digit' + (i + 1)]) p.spawnChoice = o.id; });
   // ホイール：下で次（前線寄り）、上で前（v0.15）
   if (wheelDir) { const i = opts.findIndex(o => o.id === p.spawnChoice); p.spawnChoice = opts[(i + wheelDir + opts.length) % opts.length].id; wheelDir = 0; }
-  const key = opts.map(o => o.id).join() + '|' + p.spawnChoice + '|' + xfer + clsOk;
+  const key = opts.map(o => o.id).join() + '|' + p.spawnChoice + '|' + xfer + clsOk + padActive() + touchPlay;
   if (rs.dataset.key === key) return;
   rs.dataset.key = key;
   $('rtCls').hidden = $('rcls').hidden = !clsOk;
-  $('rtCls').textContent = xfer ? '兵装を変える（Z・X・C・V。ベースの中だけ）' : '兵装を選択（Z・X・C・V）';
-  $('rtPt').textContent = xfer ? '移動先を選択（数字キーかホイール）　H で取り消し' : '再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃';
+  const cls = keyName('Z・X・C・V', '十字キーの上下', 'タップ'), pt = keyName('数字キーかホイール', '十字キーの左右か R1', 'タップ');
+  $('rtCls').textContent = xfer ? `兵装を変える（${cls}。ベースの中だけ）` : `兵装を選択（${cls}）`;
+  $('rtPt').textContent = xfer ? `移動先を選択（${pt}）　${keyName('H', 'L3', '「移動」')} で取り消し` : `再出撃地点を選択（${pt}）　数え終わると自動で出撃`;
   $('rlist').innerHTML = opts.map((o, i) => `<button type="button" data-id="${o.id}" class="${o.id === p.spawnChoice ? 'sel' : ''}">${i + 1}　${o.label}</button>`).join('');
 }
 const mini = $('mini').getContext('2d');
@@ -11117,7 +11613,7 @@ $('bigMapC').addEventListener('mousedown', e => {
 $('bigMapC').addEventListener('contextmenu', e => e.preventDefault());
 // 指示出しのメニュー（上から右回りに8つ）
 $('qchat').innerHTML = QCHAT.map((q, i) => { const a = i * Math.PI / 4; return `<div class="opt" id="qc${i}" style="left:${Math.round(Math.sin(a) * 175)}px;top:${Math.round(-Math.cos(a) * 142)}px">${q.text}${q.note ? `<small>${q.note}</small>` : ''}</div>`; }).join('')
-  + '<div class="hint">マウスを動かして選び、G を離して送る（真ん中で離すと取り消し）</div>';
+  + '<div class="hint">マウス（右スティック）で選び、G（△）を離して送る（真ん中で離すと取り消し）</div>';
 function drawBigMap() {
   const box = $('bigMap');
   const mode = isArtilleryMode(player);
@@ -11125,7 +11621,8 @@ function drawBigMap() {
   box.hidden = (!mapOpen && !mode) || !running;
   const title = box.querySelectorAll('.bmh span');
   title[0].textContent = mode ? '榴弾砲 射撃モード' : '全体マップ';
-  title[1].textContent = mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる';
+  title[1].textContent = touchPlay ? (mode ? '地図をタップ：砲撃地点　「ロック」：中断' : '地図をタップ：ここへ向かえ　「マップ」で閉じる') : padActive() ? (mode ? '右スティック：照準　R2：砲撃開始／地点変更　L2：中断' : '右スティックで指して R2 ここへ向かえ／L2 ここを守れ　クリエイトで閉じる')
+    : mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる';
   if (box.hidden) return;
   const cv = $('bigMapC'), dpr = Math.min(2, devicePixelRatio || 1);
   const header=box.querySelector('.bmh').getBoundingClientRect().height+$('mapSizes').getBoundingClientRect().height+38;
@@ -11548,22 +12045,22 @@ function hud(timeLeft, dt) {
   }
   if (p.downT > 0) {
     const rv = reviverNear(p), hp = p.reviveAcc > 0 ? `　蘇生 ${Math.min(99, Math.floor(p.reviveAcc / REVIVE_NEED * 100))}%` : '';
-    centerEl.textContent = `行動不能　あと${Math.ceil(p.downT)}秒で大破${hp}\n${rv ? `${rv.name}（${Math.round(rv.pos.distanceTo(p.pos))}m）が起こせます` : '近くに起こせる味方がいません'}　F ですぐ再出撃へ`;
+    centerEl.textContent = `行動不能　あと${Math.ceil(p.downT)}秒で大破${hp}\n${rv ? `${rv.name}（${Math.round(rv.pos.distanceTo(p.pos))}m）が起こせます` : '近くに起こせる味方がいません'}　${keyName('F', '○', '「アクション」')} ですぐ再出撃へ`;
   }
   else if (!p.alive) centerEl.textContent = kcOn ? '' : `撃破されました　${Math.ceil(p.respawnT)}秒後に自動で再出撃`; // キルカメラ中は再出撃の画面に出す
   else if (p.transfer) centerEl.textContent = ''; // 残り時間は移動先の画面に出す
-  else if (p.stun === 'down') centerEl.textContent = p.onGround ? 'ダウン' : 'ダウン：Space と Shift の同時押しで受け身';
+  else if (p.stun === 'down') centerEl.textContent = p.onGround ? 'ダウン' : `ダウン：${keyName('Space と Shift', '× と L1', 'スティックを外まで倒しながら「ジャンプ」')} の同時押しで受け身`;
   else if (p.stun === 'roll') centerEl.textContent = '受け身';
   else if (p.stun === 'stagger') centerEl.textContent = 'よろけ';
   else if (p.stun === 'land') centerEl.textContent = '着地硬直';
   else if (p.overheat) centerEl.textContent = 'オーバーヒート';
-  else if (document.pointerLockElement !== canvas && !mouseDown) centerEl.textContent = '画面をクリックで操作に戻る'; // Esc などでマウスの固定が外れたとき
+  else if (document.pointerLockElement !== canvas && !mouseDown && !padActive() && !touchPlay) centerEl.textContent = '画面をクリックで操作に戻る'; // Esc などでマウスの固定が外れたとき
   else if (p.invulT > 0) centerEl.textContent = '出撃直後：無敵';
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
-  else if (p.zip) centerEl.textContent = 'ジップライン：Space か E で手を離す';
-  else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = 'E：ジップラインで上へ';
-  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出' : '空中：Shiftで空中ダッシュ／Space長押しで降下を緩める';
-  else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? 'リペア中：リペアユニットは使えます（移動キーで中断）' : 'リペア中：撃てません（移動キーで中断）';
+  else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
+  else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
+  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
+  else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
   else if (beamCannonMode(p)) centerEl.textContent = p.beamFire ? p.beamFire.warm>0 ? '照射準備中' : '双肩照射中：低速旋回／右クリックで中断' : '双肩照射砲：左長押しで照射／右クリックで中断';
   else if (p.planted) centerEl.textContent = `${p.slots[p.weapon].w.name}を構えています（動けません）`;
@@ -11707,7 +12204,7 @@ function tutorialTick() {
   };
   if (conditions[id]) {
     t.done = true; $('tutorialHud').dataset.complete = 'true';
-    $('tutorialResult').textContent = '達成！ Enterで次へ進みます';
+    $('tutorialResult').textContent = `達成！ ${keyName('Enter', 'オプションボタン', '「次へ」')}で次へ進みます`;
     $('tutorialProgress').value = t.index + 1; sfx('capture');
   }
 }
@@ -11724,11 +12221,115 @@ addEventListener('keydown', e => {
   else if (e.code === 'Enter') { e.preventDefault(); tutorialNext(); }
 });
 addEventListener('blur', () => { if (tutorial) tutorialPause(); });
-canvas.addEventListener('mousedown', e => {
-  if (!tutorial || !running || e.button !== 2 || TUTORIAL_STEPS[tutorial.index][0] !== 'lock') return;
+// 右クリック（コントローラーは L2）でロックした・外したかを見る。aimPress から呼ぶ
+function tutorialRightClick() {
+  if (!tutorial || !running || TUTORIAL_STEPS[tutorial.index][0] !== 'lock') return;
   if (lock.target === tutorial.target) tutorial.locked = true;
   else if (tutorial.locked && !lock.target) tutorial.lockReleased = true;
+}
+
+// ---- 射撃場 ----
+// カスタマイズ画面の「射撃場で試す」から、その画面で選んでいる兵装と今の機体で入る（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」）。
+// メニューの「射撃場」からは、出撃に選んでいる兵装で入る。
+// 標的は撃ち返さない敵機（AIも物理も動かさない。動く標的だけ rangeTick が左右に動かす）。撃破しても2秒で起き上がり、4秒当てないと耐久が戻る。
+// コアは減らず、時間切れも無い。左上に最後の命中・続けて当てた合計（2秒あくと数え直す）・毎秒・撃破までの秒を出す。Esc（コントローラーはオプション）で一時停止
+function startRange(cls = cuCls) {
+  if (tutorial || range) return;
+  range = { saved: { mapId, chosenCls, chosenTeam, selectedTeamSize, cuCls }, targets: [], t: 0, sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null, optionsPage: null };
+  chosenCls = cls; chosenTeam = 'B';
+  running = false; optionsPaused = false; tutorialClearInput();
+  selectMap(RANGE_ID, false); setup(); annReset();
+  rangePlace(); rangeResume();
+}
+function rangeSpot(t, i) {
+  const [d, x, amp] = RANGE_TARGETS[i];
+  t.pos.set(x, terrainH(x, RANGE_Z - d), RANGE_Z - d); t.vel.set(0, 0, 0);
+  t.yaw = Math.PI; t.pitch = 0; // 自機の方を向く
+  Object.assign(t, { invulT: 0, invulCancelOnAttack: false, hp: t.maxHp, rangeHp: t.maxHp, deadT: 0, hitT: -1e9, name: `標的 ${d}m${amp ? '（左右に動く）' : ''}` });
+  t.group.visible = true; t.group.position.copy(t.pos); t.group.rotation.set(0, t.yaw, 0);
+}
+// 自機を最初の位置へ（弾と耐久は全量）、標的を全部起こす
+function rangePlace() {
+  tutorialClearInput(); clearPings(); releaseLock();
+  for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
+  clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
+  player.nextCls = null; spawn(player);
+  player.pos.set(0, terrainH(0, RANGE_Z), RANGE_Z);
+  player.invulT = 0; player.invulCancelOnAttack = false; player.yaw = 0; player.pitch = -.03;
+  range.targets.forEach((t, i) => { t.downT = 0; spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
+  player.group.position.copy(player.pos); player.group.rotation.set(0, player.yaw, 0); weaponLook(player, 0);
+  Object.assign(range, { sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null });
+  scene.updateMatrixWorld(true); updateCamera(player, 1);
+}
+function rangeResume() {
+  if (!range) return;
+  tutorialClearInput(); $('overlay').hidden = true; running = true; grabPointer();
+}
+function rangePause() {
+  if (!range || !running) return;
+  running = false; tutorialClearInput(); stopMovementSounds();
+  $('rangeHud').hidden = true;
+  showPage('pgRangePause'); $('overlay').hidden = false;
+  document.exitPointerLock?.(); $('rangeResume').focus();
+}
+// 入る前のマップ・兵装・陣営・人数に戻して、カスタマイズ画面（試した兵装のタブ）かメニューへ
+function exitRange(to = 'pgCustom') {
+  if (!range) return;
+  const saved = range.saved, tried = chosenCls; range = null; running = false; optionsPaused = false;
+  tutorialClearInput(); clearPings(); stopMovementSounds(); killcam = null;
+  chosenCls = saved.chosenCls; chosenTeam = saved.chosenTeam; selectedTeamSize = saved.selectedTeamSize;
+  $('rangeHud').hidden = true;
+  selectMap(saved.mapId, false); renderClsButtons();
+  for (const radio of $('teamChoice').querySelectorAll('input')) radio.checked = radio.value === chosenTeam;
+  cuCls = to === 'pgCustom' ? tried : saved.cuCls; cuHover = null; renderCustom();
+  showPage(to); $('overlay').hidden = false; document.exitPointerLock?.(); $(to === 'pgCustom' ? 'rangeStart' : 'menuRange').focus();
+}
+function rangeHit(t, dmg, killed) {
+  const r = range;
+  if (r.t - r.last > 2) Object.assign(r, { sum: 0, start: r.t, killT: null });
+  r.sum += dmg; r.last = r.t; r.lastHit = dmg; t.hitT = r.t;
+  if (killed && r.killT == null) r.killT = r.t - r.start;
+}
+function rangeTick(dt) {
+  $('rangeHud').hidden = !running || !$('overlay').hidden;
+  $('timer').textContent = '射撃場';
+  cores.B.hp = cores.R.hp = coreMax; // 撃破でコアは減らさない
+  if (!running) return;
+  const r = range; r.t += dt;
+  if (!player.alive) { rangePlace(); feed('自分の爆風で倒れたので、最初の位置に戻りました'); return; }
+  r.targets.forEach((t, i) => {
+    const [, x, amp, period] = RANGE_TARGETS[i];
+    if (!t.alive) {
+      if (t.rangeHp > 0) { rangeHit(t, t.rangeHp, true); t.rangeHp = 0; } // 撃破した1発は、残っていた耐久の分
+      if ((t.deadT += dt) >= 2) { t.downT = 0; spawn(t); rangeSpot(t, i); }
+      return;
+    }
+    if (amp) { const nx = x + amp * Math.sin(2 * Math.PI * r.t / period); t.vel.set((nx - t.pos.x) / dt, 0, 0); t.pos.x = nx; }
+    if (t.hp < t.rangeHp) rangeHit(t, t.rangeHp - t.hp, false);
+    else if (t.hp < t.maxHp && r.t - t.hitT > 4) t.hp = t.maxHp; // 4秒当てないと耐久が戻る
+    t.rangeHp = t.hp;
+  });
+  const put = (id, text) => { const el = $(id); if (el.textContent !== text) el.textContent = text; };
+  const fmt = n => Math.round(n).toLocaleString('ja-JP'), dur = r.last - r.start, fresh = r.t - r.last < 8;
+  put('rangeCls', `${CLASSES[player.cls].name}　${player.slots[player.weapon].w.name}`);
+  put('rangeLast', r.lastHit && fresh ? fmt(r.lastHit) : '—');
+  put('rangeSum', r.sum && fresh ? fmt(r.sum) + (dur >= .05 ? `（${dur.toFixed(1)}秒）` : '') : '—');
+  put('rangeDps', r.sum && fresh && dur >= .3 ? fmt(r.sum / dur) : '—');
+  put('rangeKill', r.killT != null && fresh ? `${r.killT.toFixed(2)}秒` : '—');
+  put('rangeHint', `${keyName('Esc', 'オプションボタン', '右上の II')}：一時停止（弾と耐久を戻す・カスタマイズへ戻る）。左後ろの緑の円で回復と補給`);
+}
+$('rangeStart').addEventListener('click', () => startRange(cuCls));
+$('menuRange').addEventListener('click', () => startRange(chosenCls));
+$('rangeResume').addEventListener('click', rangeResume);
+$('rangeRefill').addEventListener('click', () => { rangePlace(); rangeResume(); });
+$('rangeToCustom').addEventListener('click', () => exitRange('pgCustom'));
+$('rangeToMenu').addEventListener('click', () => exitRange('pgMenu'));
+addEventListener('keydown', e => {
+  if (!range || e.repeat || e.defaultPrevented || e.target.closest?.('input, textarea, select')) return;
+  if (e.code === 'Escape' && running) { e.preventDefault(); rangePause(); }
+  else if (e.code === 'Escape' && !$('pgRangePause').hidden && !$('overlay').hidden) { e.preventDefault(); rangeResume(); }
 });
+addEventListener('blur', () => { if (range) rangePause(); });
 
 function setup() {
   resetCombatFeedback();
@@ -11755,11 +12356,12 @@ function setup() {
   pops.length = 0;
   renderTeamView();
   player = makeUnit(chosenTeam, true, 0);
-  const count = tutorial ? 1 : battleTeamSize();
+  const count = tutorial || range ? 1 : battleTeamSize();
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);
-  for (let i = 0; i < count; i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
+  for (let i = 0; i < (range ? RANGE_TARGETS.length : count); i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
   if (tutorial) tutorial.target = units.find(u => !u.isPlayer);
+  if (range) range.targets = units.filter(u => !u.isPlayer);
   applyAudioSettings();
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
@@ -11799,6 +12401,7 @@ $('start').addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && running) mouseDown = false;
   if (!document.pointerLockElement && tutorial && !mapOpen) tutorialPause();
+  if (!document.pointerLockElement && range && !mapOpen) rangePause();
 });
 
 function resize() {
@@ -11843,12 +12446,14 @@ resize();
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
+  touchTick(); // タッチ操作のボタンを出す・しまう
   bgmTick();
   if (running) {
-    if (!tutorial) timeLeft -= dt;
+    if (!tutorial && !range) timeLeft -= dt;
     liftUpdate(dt);
     for (const u of units) {
-      if (tutorial && u === tutorial.target) continue; // 静止標的。対戦BotのAI・物理は変えない。
+      if (tutorial && u === tutorial.target || range && !u.isPlayer) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。
       if (!u.alive) {
         if (u.downT > 0) { downTick(u, dt); continue; }
         u.respawnT -= dt;
@@ -11876,7 +12481,7 @@ function loop(now) {
     for (const pd of pods) podUpdate(pd, dt);
     catapultUpdate(dt);
     jumpPadUpdate(dt);
-    if (!tutorial && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
+    if (!tutorial && !range && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
   }
   for (const u of units) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
@@ -11925,6 +12530,7 @@ function loop(now) {
     else { if (killcam) endKillcam(); updateCamera(player, dt); }
     hud(timeLeft, dt); popUpdate(dt);
     if (tutorial) tutorialTick();
+    if (range) rangeTick(dt);
   }
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
@@ -11937,7 +12543,7 @@ if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('start').disabled = true;
   throw new Error('マップがありません');
 }
-{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} buildMap(saved); renderPlantBar(); renderMapList(); }
+{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; buildMap(saved); renderPlantBar(); renderMapList(); }
 requestAnimationFrame(loop);
 })();
 </script>
