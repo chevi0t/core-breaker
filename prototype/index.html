@@ -4815,6 +4815,17 @@ function boosterNozzle(w,h,shape){
   g.rotateY(shape.side?shape.face*Math.PI/2:shape.face<0?Math.PI:0);return g;
 }
 function mechPlate(w,h,d,shape) {
+  if(shape.outline){
+    // 正面輪郭を押し出す。共有ヘルメットの寸法違いではなく系列固有の切断面。
+    const ring=shape.outline,pos=[],v=(i,back)=>[ring[i][0]*w,ring[i][1]*h,(back?.5:-.5)*d+(ring[i][1]+.5)*(shape.rake||0)];
+    const tri=(a,b,c)=>pos.push(...a,...b,...c),n=ring.length;
+    for(let i=0;i<n;i++){const j=(i+1)%n;tri(v(i,false),v(j,true),v(j,false));tri(v(i,false),v(i,true),v(j,true));}
+    for(const face of T.ShapeUtils.triangulateShape(ring.map(p=>new T.Vector2(...p)),[])){
+      let [a,b,c]=face;const cross=(ring[b][0]-ring[a][0])*(ring[c][1]-ring[a][1])-(ring[b][1]-ring[a][1])*(ring[c][0]-ring[a][0]);if(cross>0)[b,c]=[c,b];
+      tri(v(a,false),v(b,false),v(c,false));tri(v(a,true),v(c,true),v(b,true));
+    }
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.computeVertexNormals();return g;
+  }
   if(shape.facet){
     // 前の両角を落とした六角断面。胸・頭・肩の輪郭を6面で作る。
     const ring=[[-.5,.5],[.5,.5],[.5,-.18],[.27,-.5],[-.27,-.5],[-.5,-.18]],pos=[];
@@ -4831,6 +4842,117 @@ function mechPlate(w,h,d,shape) {
   }
   b.computeVertexNormals();return b;
 }
+const MECH_OUTLINES={
+  diamond:[[-.5,.15],[-.22,.5],[.22,.5],[.5,.15],[.20,-.5],[-.20,-.5]],
+  octagon:[[-.5,.18],[-.32,.5],[.32,.5],[.5,.18],[.5,-.25],[.25,-.5],[-.25,-.5],[-.5,-.25]],
+  wing:[[-.5,.5],[-.12,.25],[.12,.25],[.5,.5],[.34,-.25],[0,-.5],[-.34,-.25]],
+  keel:[[-.5,.5],[.5,.5],[.42,-.10],[.14,-.5],[-.14,-.5],[-.42,-.10]],
+  tower:[[-.32,.5],[.32,.5],[.5,.10],[.25,-.5],[-.25,-.5],[-.5,.10]],
+  slab:[[-.5,.28],[-.35,.5],[.35,.5],[.5,.28],[.5,-.5],[-.5,-.5]]
+};
+function seriesHead(a,id,p){
+  const h=(w,height,d,c,x,y,z,shape={},tilt=0)=>a(w,height,d,c,x,y,z,'head',shape,tilt);
+  h(.30,.20,.34,'frame',0,3.3,.05,{bottom:1});
+  if(id==='hound'){
+    h(.90,.45,.8,'armor',0,3.65,.04,{facet:true,top:.74,bottom:.76,depth:.62,sweep:-.06});
+    h(.74,.15,.17,'frame',0,3.68,-.36,{bottom:.65});h(.63,.085,.10,'visor',0,3.70,-.455,{bottom:.8});
+    for(const sd of [-1,1])h(.12,.29,.48,'metal',sd*.40,3.60,.08,{bottom:.5},sd*-.18);
+    h(.34,.12,.24,'trim',0,3.47,-.28,{bottom:.5});
+  }else if(id==='swift'){
+    h(1.08,.28,.64,'armor',0,3.65,.06,{outline:MECH_OUTLINES.wing,rake:.12});
+    h(.88,.10,.16,'frame',0,3.63,-.30,{bottom:.75});h(.75,.055,.05,'visor',0,3.65,-.40,{bottom:1});
+    h(.31,.18,.48,'trim',0,3.46,.03,{bottom:.48,sweep:-.13});
+    for(const sd of [-1,1])h(.16,.17,.51,'armor',sd*.47,3.67,.15,{top:.3,bottom:1,sweep:.15},sd*-.35);
+  }else if(id==='harrier'){
+    h(.63,.43,.80,'armor',.10,3.61,.11,{outline:MECH_OUTLINES.diamond,rake:.20});
+    h(.37,.32,.60,'metal',-.32,3.70,-.08,{outline:MECH_OUTLINES.octagon});
+    h(.22,.22,.012,'visor',-.32,3.70,-.39,{kind:'nozzleCap',face:-1});
+    h(.19,.49,.67,'armor',.40,3.65,.17,{top:.35,bottom:.8,sweep:.22},-.16);
+    h(.32,.14,.23,'trim',.10,3.41,-.12,{bottom:.5});
+  }else if(id==='prism'){
+    h(.67,.17,.55,'trim',0,3.38,.04,{bottom:.75});
+    for(const sd of [-1,1]){h(.32,.57,.60,'armor',sd*.26,3.66,.05,{outline:MECH_OUTLINES.tower,rake:.04});h(.17,.32,.08,'frame',sd*.26,3.66,-.285,{bottom:1});h(.095,.24,.035,'visor',sd*.26,3.67,-.34,{bottom:1});}
+  }else if(id==='bulwark'){
+    h(1.11,.59,.88,'armor',0,3.65,.10,{outline:MECH_OUTLINES.octagon,rake:.08});
+    h(.51,.40,.13,'frame',0,3.62,-.37,{outline:MECH_OUTLINES.octagon});
+    h(.22,.22,.012,'visor',0,3.63,-.445,{kind:'nozzleCap',face:-1});
+    h(.84,.14,.29,'metal',0,3.88,-.33,{bottom:.8});
+    h(.47,.12,.18,'trim',0,3.39,-.22,{bottom:1});
+  }else if(id==='bastion'){
+    h(1.25,.33,.96,'armor',0,3.57,.09,{outline:MECH_OUTLINES.slab,rake:.09});
+    h(1.33,.13,.74,'metal',0,3.79,.06,{bottom:.88});
+    h(.46,.22,.25,'frame',-.23,3.58,-.43,{bottom:1});h(.29,.075,.055,'visor',-.23,3.60,-.57,{bottom:1});
+    h(.20,.13,.16,'trim',.37,3.58,-.43,{bottom:.6});
+  }else if(id==='wisp'){
+    h(.40,.59,.48,'armor',0,3.65,.04,{outline:MECH_OUTLINES.tower,rake:.14});
+    h(.22,.37,.11,'frame',0,3.69,-.22,{bottom:.8});h(.10,.27,.03,'visor',0,3.71,-.285,{bottom:1});
+    h(.70,.15,.33,'trim',0,3.43,.12,{bottom:.6});
+    h(.17,.30,.29,'armor',-.30,3.51,.14,{top:.4,bottom:1},-.25);
+  }else if(id==='skimmer'){
+    h(.54,.38,.65,'armor',0,3.63,.11,{outline:MECH_OUTLINES.keel,rake:.13});
+    h(1.30,.19,.42,'trim',0,3.48,-.12,{bottom:.82});
+    for(const sd of [-1,1]){h(.26,.29,.46,'armor',sd*.53,3.52,-.13,{bottom:.8});h(.16,.14,.035,'visor',sd*.53,3.53,-.38,{bottom:1});}
+  }else if(id==='anchor'){
+    h(1.02,.64,.87,'armor',0,3.62,.07,{outline:MECH_OUTLINES.keel,rake:.06});
+    h(.34,.49,.24,'trim',0,3.52,-.36,{bottom:.4});
+    for(const sd of [-1,1]){h(.29,.23,.12,'frame',sd*.30,3.80,-.39,{bottom:.65},sd*-.25);h(.17,.08,.035,'visor',sd*.30,3.81,-.47,{bottom:1},sd*-.25);}
+  }
+}
+function seriesChest(a,id,p){
+  const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
+  if(id==='hound'){
+    c(p.chest,.66,p.depth,'armor',0,2.83,.02,{facet:true,top:1,bottom:p.taper,depth:.65,sweep:p.sweep});
+    for(const sd of [-1,1])c(p.chest*.37,.31,.25,'armor',sd*p.chest*.27,2.92,-p.depth*.48,{bottom:.64,sweep:-.10},sd*-.16);
+    c(p.chest*.38,.12,.09,'trim',0,2.83,-p.depth*.53,{bottom:.7});
+  }else if(id==='swift'){
+    c(1.34,.85,.78,'armor',0,2.80,.07,{outline:MECH_OUTLINES.diamond,rake:.16});
+    for(const sd of [-1,1])c(.24,.54,.17,'metal',sd*.36,2.85,-.35,{bottom:.3},sd*-.25);
+    c(.20,.32,.08,'trim',0,2.85,-.34,{bottom:.5});
+  }else if(id==='harrier'){
+    c(1.92,.48,.91,'armor',0,2.96,.07,{outline:MECH_OUTLINES.wing,rake:.14});
+    c(.45,.55,.56,'metal',0,2.65,.02,{bottom:.38,sweep:-.14});
+    c(1.05,.10,.09,'trim',0,2.91,-.40,{bottom:.75});
+  }else if(id==='prism'){
+    c(1.32,.56,.77,'frame',0,2.83,.06,{bottom:.8});
+    for(const sd of [-1,1])c(.53,.75,.91,'armor',sd*.48,2.85,.03,{outline:MECH_OUTLINES.slab,rake:.06},sd*-.05);
+    c(.16,.42,.12,'trim',0,2.84,-.35,{bottom:1});
+  }else if(id==='bulwark'){
+    c(2.04,.79,1.25,'armor',0,2.82,.07,{outline:MECH_OUTLINES.octagon,rake:.14});
+    c(.94,.53,.21,'metal',0,2.82,-.57,{outline:MECH_OUTLINES.keel});
+    c(.50,.10,.07,'trim',0,2.98,-.69,{bottom:1});
+  }else if(id==='bastion'){
+    c(2.20,.48,1.32,'armor',0,2.99,.10,{outline:MECH_OUTLINES.slab,rake:.03});
+    c(1.43,.42,.88,'metal',0,2.59,.14,{bottom:.8});
+    c(1.71,.17,.23,'armor',0,2.95,-.62,{bottom:.9});
+    c(.80,.075,.05,'trim',0,2.68,-.32,{bottom:1});
+  }else if(id==='wisp'){
+    c(1.12,.78,.75,'armor',0,2.80,.10,{outline:MECH_OUTLINES.keel,rake:.18});
+    c(.38,.44,.19,'metal',0,2.82,-.29,{bottom:.5});
+    c(.15,.30,.07,'trim',0,2.88,-.40,{bottom:1});
+  }else if(id==='skimmer'){
+    c(1.96,.43,1.16,'armor',0,2.99,.05,{facet:true,top:.76,bottom:1,depth:.55,sweep:-.13});
+    c(1.24,.28,.60,'metal',0,2.65,.10,{bottom:.8});
+    c(1.15,.13,.16,'armor',0,2.87,-.52,{bottom:.65});
+    c(.61,.08,.06,'trim',0,2.96,-.58,{bottom:1});
+  }else if(id==='anchor'){
+    c(1.99,.83,1.26,'armor',0,2.81,.09,{outline:MECH_OUTLINES.keel,rake:.06});
+    c(.63,.74,.19,'metal',0,2.75,-.55,{bottom:.65});
+    for(const sd of [-1,1])c(.14,.32,.08,'trim',sd*.50,2.98,-.56,{bottom:.8},sd*-.12);
+  }
+}
+function seriesShoulder(a,id,p,sd){
+  const bone='arm'+(sd<0?'L':'R'),heavy=['bulwark','bastion','anchor'].includes(id),x=sd*(heavy?1.47:1.41);
+  const c=(w,h,d,col,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,bone,shape,tilt*sd);
+  if(id==='hound')c(p.shoulder,.52,.77,'armor',2.99,.03,{facet:true,top:.76,bottom:1,depth:.8,sweep:.10},-.12);
+  else if(id==='swift')c(.43,.73,.55,'armor',2.92,.09,{outline:MECH_OUTLINES.diamond,rake:.15},-.15);
+  else if(id==='harrier')c(.49,.34,1.22,'armor',3.00,.22,{top:.85,bottom:.55,sweep:.28},-.22);
+  else if(id==='prism')c(.61,.65,.73,'armor',2.98,.06,{outline:MECH_OUTLINES.slab},0);
+  else if(id==='bulwark'){c(.82,.78,.95,'armor',2.87,.04,{outline:MECH_OUTLINES.octagon,rake:.08},-.08);a(.15,.63,.81,'metal',sd*1.85,2.76,.08,bone,{bottom:.72},sd*-.10);}
+  else if(id==='bastion'){c(.88,.34,1.06,'armor',3.08,.07,{bottom:.92,sweep:.04});a(.16,.62,.78,'metal',sd*1.85,2.78,.08,bone,{bottom:.8});}
+  else if(id==='wisp')c(.43,.77,.61,'armor',2.80,.10,{outline:MECH_OUTLINES.keel,rake:.20},-.10);
+  else if(id==='skimmer')c(.61,.29,1.15,'armor',3.04,.13,{facet:true,top:.8,bottom:1,depth:.6,sweep:.20});
+  else if(id==='anchor'){c(.86,.85,.94,'armor',2.77,.12,{outline:MECH_OUTLINES.keel,rake:.12},-.08);a(.15,.68,.72,'metal',sd*1.85,2.73,.13,bone,{top:1,bottom:.5});}
+}
 function reworkMechParts(boxes,series,C) {
   const add=(slot,w,h,d,c,x,y,z,bone,shape={},tilt=0,pitch=0)=>boxes[slot].push([w,h,d,C[c],x,y,z,tilt,pitch,bone,{kind:'plate',...shape}]);
   for(const slot of PART_SLOTS){
@@ -4842,42 +4964,24 @@ function reworkMechParts(boxes,series,C) {
     if(slot==='body'){
       a(p.waist,.40,.68,'frame',0,1.94,0,'hip',{bottom:.78});
       a(p.waist*.72,.43,.62,'metal',0,2.22,.04,'chest',{bottom:.8});
-      // 胸は肩から独立した逆台形、腹部との間に隙間を残す。
-      a(p.chest,.66,p.depth,'armor',0,2.83,.02,'chest',{facet:true,top:id==='harrier'?.86:1,bottom:p.taper,depth:.65,sweep:p.sweep});
-      for(const sd of [-1,1]){
-        a(p.chest*(id==='prism'?.22:.37),id==='prism'?.53:id==='harrier'?.22:.31,.25,'armor',sd*p.chest*.27,id==='prism'?2.82:2.92,-p.depth*.48,'chest',{bottom:id==='prism'?.84:.64,sweep:-.10},sd*(id==='harrier'?-.32:-.16));
-        a(p.waist*.48,.35,.21,'armor',sd*p.waist*.3,1.91,-.42,'hip',{top:.72,bottom:1,sweep:-.1},sd*.12);
-      }
-      a(p.chest*.38,.12,.09,'trim',0,2.83,-p.depth*.53,'chest',{bottom:.7});
+      seriesChest(a,id,p);
+      for(const sd of [-1,1])a(p.waist*.48,.35,.21,'armor',sd*p.waist*.3,1.91,-.42,'hip',{top:.72,bottom:1,sweep:-.1},sd*.12);
       // 背中の装飾箱は省略。特殊兵装の既存の取付位置はそのまま。
       for(const sd of [-1,1]){
         const bone='boostWaist'+(sd<0?'L':'R');
         a(.34,.34,.72,'armor',sd,1.95,.05,bone,{bottom:.8,sweep:0,booster:true});
       }
-      if(id==='prism')for(const sd of [-1,1])a(.18,.51,.18,'metal',sd*.58,2.76,-.55,'chest',{bottom:.85},sd*.12);
-      if(id==='bastion'||id==='anchor')a(p.chest*.72,.18,.32,'metal',0,3.12,-.28,'chest',{bottom:.85});
     }else if(slot==='head'){
-      a(.34,.20,.36,'frame',0,3.3,.05,'head',{bottom:1});
-      a(p.head,.46,light?.68:.80,'armor',0,3.65,.04,'head',{facet:true,top:light?.48:heavy?.86:.70,bottom:id==='prism'?.98:.84,depth:.62,sweep:id==='harrier'?-.14:-.06});
-      a(p.head*.80,.13,.17,'frame',0,3.68,-.36,'head',{bottom:.65});
-      if(id==='prism')for(const x of [-.22,0,.22])a(.13,.12,.08,'visor',x,3.69,-.46,'head',{bottom:1});
-      else a(p.head*.59,.075,.10,'visor',0,3.70,-.455,'head',{bottom:.8});
-      for(const sd of [-1,1])a(heavy?.18:.12,.29,.48,'metal',sd*p.head*.45,3.60,.08,'head',{bottom:.5,sweep:.12},sd*-.18);
-      a(p.head*.38,.06,.12,'trim',0,3.49,-.34,'head',{bottom:.6});
-      if(id==='harrier'||id==='wisp')a(.08,.26,.26,'armor',0,3.80,.10,'head',{top:.6,bottom:1,sweep:.12});
-      if(heavy)a(p.head*.94,.12,.30,'armor',0,3.84,-.28,'head',{bottom:.85});
+      seriesHead(a,id,p);
     }else if(slot==='arms')for(const sd of [-1,1]){
       const side=sd<0?'L':'R';
       a(.24,.24,.01,'frame',sd*shoulderJetX(id),3.06,.08,'boostShoulder'+side,{kind:'nozzleCap',face:sd,side:true});
       a(.27,.58,.32,'frame',sd*1.39,2.62,0,'arm'+side,{bottom:.8});
-      a(p.shoulder,light?.44:.52,heavy?.94:.77,'armor',sd*(heavy?1.47:1.41),2.99,.03,'arm'+side,{facet:true,top:id==='bastion'?1:.76,bottom:1,depth:.8,sweep:p.sweep},sd*-.12);
+      seriesShoulder(a,id,p,sd);
       a(.28,.52,.34,'frame',sd*1.48,1.76,-.12,'forearm'+side,{bottom:1});
       a(p.shoulder*.75,.56,.58,'armor',sd*1.48,1.79,-.18,'forearm'+side,{bottom:.60,sweep:.03});
       a(.37,.23,.40,'metal',sd*1.48,1.15,-.12,'hand'+side,{bottom:.86});
       a(p.shoulder*.60,.10,.10,'trim',sd*1.44,2.98,-.40,'arm'+side,{bottom:.8});
-      if(heavy)a(.15,.63,.81,'armor',sd*1.85,2.76,.08,'arm'+side,{bottom:.72},sd*-.10);
-      if(id==='harrier'||id==='wisp')a(.10,.57,.47,'metal',sd*1.68,3.0,.15,'arm'+side,{top:.5,bottom:1,sweep:.25},sd*-.22);
-      if(id==='prism')a(.46,.16,.74,'metal',sd*1.40,3.23,.05,'arm'+side,{bottom:.82});
     }else for(const sd of [-1,1]){
       const side=sd<0?'L':'R';
       a(.30,.63,.38,'frame',sd*.58,1.45,.04,'thigh'+side,{bottom:1});
