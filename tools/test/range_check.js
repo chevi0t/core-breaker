@@ -1,7 +1,7 @@
 // 射撃場（カスタマイズ画面から入る試し撃ちの場所）を確かめる。
 // node tools/test/range_check.js dbg [出力フォルダ]
 // 入口・選んだ兵装で出ること・標的の位置・命中の表示・撃破からの復帰・動く標的・コアと時間が減らないこと・一時停止・
-// 弾と耐久を戻す・カスタマイズへ戻ると元のマップと兵装に戻ること、ブラウザのエラーが無いことを見る。
+// 弾と耐久を戻す・カスタマイズへ戻ると元のマップと兵装に戻ること、メニューからも入れること、ブラウザのエラーが無いことを見る。
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.argv[3] || '/tmp/range-check');
@@ -109,6 +109,15 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     ok(await ev(m => __g.running && !__g.range && __g.units.length > 9 && __g.mapId === m, before.mapId), '戻った後の出撃はいつもの対戦');
     await step(20);
     ok(await ev(m => __g.timeLeft < m, await ev(() => __g.MATCH)), '対戦では残り時間が減る');
+
+    // メニューの「射撃場」からは、出撃に選んでいる兵装で入り、「メニューへ」で戻る
+    await ev(() => { __g.running = false; document.exitPointerLock?.(); document.getElementById('overlay').hidden = false; __g.showPage('pgMenu'); __g.pickClass('heavy'); });
+    const menuBefore = await ev(() => ({ mapId: __g.mapId, cls: __g.chosenCls }));
+    await ev(() => document.getElementById('menuRange').click()); await step(2);
+    ok(await ev(() => __g.range && __g.running && __g.player.cls === 'heavy'), 'メニューの「射撃場」から、出撃に選んでいる兵装（重火力）で入る');
+    await key('Escape'); await step(1);
+    await ev(() => document.getElementById('rangeToMenu').click()); await step(1);
+    ok(await ev(m => !__g.range && !document.getElementById('pgMenu').hidden && __g.mapId === m.mapId && __g.chosenCls === m.cls && document.activeElement.id === 'menuRange', menuBefore), '「メニューへ」でメニューに戻り、マップと兵装も元のまま');
 
     ok(errors.length === 0, 'ブラウザのエラーなし' + (errors.length ? '\n' + errors.join('\n') : ''));
     fs.writeFileSync(path.join(out, 'checks.json'), JSON.stringify(checks, null, 1));
