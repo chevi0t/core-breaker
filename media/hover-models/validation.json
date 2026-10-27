@@ -97,5 +97,25 @@
   },
   "limitations": [
     "実GPUの描画性能とフレーム全体のFPS同等性は未検証"
-  ]
+  ],
+  "integrationRecheck": {
+    "baseCommit": "b69802b7ead6e1e33169a62e92aa165b34f1f261",
+    "gameSourceSha256": "c30cce94e577e14782f4aad0d2ba22f5c30d41c3eb6d3c692294344bd84d1f9d",
+    "hoverModels": {
+      "configurations": 36,
+      "posesPerConfiguration": 8,
+      "bipedTypes": 18,
+      "approvedModels": true,
+      "legacyHitShapesAndRays": true,
+      "catalogUnchanged": true,
+      "errors": []
+    },
+    "menuClassChecks": 16,
+    "quickCheck": {
+      "result": "success",
+      "requestedSeconds": 60,
+      "citySeconds": 60,
+      "dockSeconds": 64
+    }
+  }
 }
