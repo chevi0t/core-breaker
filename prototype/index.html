@@ -4764,6 +4764,93 @@ function hoverPrimitive(w,h,d,shape){
   geo.scale(w,h,d);return geo;
 }
 
+// 外装だけの寸法表。接続骨・性能・被弾形状は既存のものを使う。
+const MECH_SILHOUETTES = {
+  hound:   {chest:1.86,depth:1.12,waist:.84,shoulder:.68,leg:.63,head:.86,taper:.62,sweep:.10},
+  swift:   {chest:1.46,depth:.90,waist:.62,shoulder:.43,leg:.43,head:.67,taper:.48,sweep:.22},
+  harrier: {chest:1.56,depth:.94,waist:.68,shoulder:.49,leg:.47,head:.72,taper:.55,sweep:.30},
+  prism:   {chest:1.70,depth:1.04,waist:.78,shoulder:.61,leg:.57,head:.84,taper:.72,sweep:.02},
+  bulwark: {chest:2.08,depth:1.32,waist:1.02,shoulder:.82,leg:.78,head:1.0,taper:.78,sweep:.06},
+  bastion: {chest:2.14,depth:1.40,waist:1.10,shoulder:.88,leg:.84,head:1.02,taper:.86,sweep:.02},
+  wisp:    {chest:1.40,depth:.88,waist:.60,shoulder:.43,leg:.43,head:.68,taper:.46,sweep:.16},
+  skimmer: {chest:1.78,depth:1.08,waist:.80,shoulder:.61,leg:.62,head:.86,taper:.62,sweep:.16},
+  anchor:  {chest:2.12,depth:1.38,waist:1.08,shoulder:.86,leg:.84,head:1.0,taper:.82,sweep:.08}
+};
+// 12三角形の斜面多面体。箱の細分化ではなく上下面の幅と前後位置を変える。
+function mechPlate(w,h,d,shape) {
+  if(shape.facet){
+    // 前の両角を落とした六角断面。胸・頭・肩の輪郭を6面で作る。
+    const ring=[[-.5,.5],[.5,.5],[.5,-.18],[.27,-.5],[-.27,-.5],[-.5,-.18]],pos=[];
+    const v=(i,top)=>[ring[i][0]*w*(top?(shape.top??1):(shape.bottom??.65)),(top?.5:-.5)*h,ring[i][1]*d*(top?1:(shape.depth??.75))+(top?0:(shape.sweep??.1))];
+    const tri=(a,b,c)=>pos.push(...a,...b,...c);
+    for(let i=0;i<6;i++){const j=(i+1)%6;tri(v(i,false),v(j,true),v(i,true));tri(v(i,false),v(j,false),v(j,true));}
+    for(let i=1;i<5;i++){tri(v(0,true),v(i,true),v(i+1,true));tri(v(0,false),v(i+1,false),v(i,false));}
+    const b=new T.BufferGeometry();b.setAttribute('position',new T.Float32BufferAttribute(pos,3));b.computeVertexNormals();return b;
+  }
+  const b=new T.BoxGeometry(w,h,d),p=b.attributes.position;
+  for(let i=0;i<p.count;i++){
+    const top=p.getY(i)>0;
+    p.setXYZ(i,p.getX(i)*(top?(shape.top??1):(shape.bottom??.65)),p.getY(i),p.getZ(i)*(top?1:(shape.depth??.75))+(top?0:(shape.sweep??.1)));
+  }
+  b.computeVertexNormals();return b;
+}
+function reworkMechParts(boxes,series,C) {
+  const add=(slot,w,h,d,c,x,y,z,bone,shape={},tilt=0,pitch=0)=>boxes[slot].push([w,h,d,C[c],x,y,z,tilt,pitch,bone,{kind:'plate',...shape}]);
+  for(const slot of PART_SLOTS){
+    // 承認済みの膝下・外側スカート・噴射口は寸法も頂点も変えない。
+    if(slot==='legs'&&PART_SERIES[series.legs].profile)continue;
+    boxes[slot]=[];
+    const id=series[slot],p=MECH_SILHOUETTES[id],heavy=['bulwark','bastion','anchor'].includes(id),light=['swift','harrier','wisp'].includes(id);
+    const a=(w,h,d,c,x,y,z,bone,shape={},tilt=0,pitch=0)=>add(slot,w,h,d,c,x,y,z,bone,shape,tilt,pitch);
+    if(slot==='body'){
+      a(p.waist,.40,.68,'frame',0,1.94,0,'hip',{bottom:.78});
+      a(p.waist*.72,.43,.62,'metal',0,2.22,.04,'chest',{bottom:.8});
+      // 胸は肩から独立した逆台形、腹部との間に隙間を残す。
+      a(p.chest,.66,p.depth,'armor',0,2.83,.02,'chest',{facet:true,top:id==='harrier'?.86:1,bottom:p.taper,depth:.65,sweep:p.sweep});
+      for(const sd of [-1,1]){
+        a(p.chest*(id==='prism'?.22:.37),id==='prism'?.53:id==='harrier'?.22:.31,.25,'armor',sd*p.chest*.27,id==='prism'?2.82:2.92,-p.depth*.48,'chest',{bottom:id==='prism'?.84:.64,sweep:-.10},sd*(id==='harrier'?-.32:-.16));
+        a(p.waist*.48,.35,.21,'armor',sd*p.waist*.3,1.91,-.42,'hip',{top:.72,bottom:1,sweep:-.1},sd*.12);
+      }
+      a(p.chest*.38,.12,.09,'trim',0,2.83,-p.depth*.53,'chest',{bottom:.7});
+      a(light?.83:1.12,.48,.47,'armor',0,2.85,.83,'chest',{bottom:.8});
+      if(id==='prism')for(const sd of [-1,1])a(.18,.51,.18,'metal',sd*.58,2.76,-.55,'chest',{bottom:.85},sd*.12);
+      if(id==='bastion'||id==='anchor')a(p.chest*.72,.18,.32,'metal',0,3.12,-.28,'chest',{bottom:.85});
+    }else if(slot==='head'){
+      a(.34,.20,.36,'frame',0,3.3,.05,'head',{bottom:1});
+      a(p.head,.46,light?.68:.80,'armor',0,3.65,.04,'head',{facet:true,top:light?.48:heavy?.86:.70,bottom:id==='prism'?.98:.84,depth:.62,sweep:id==='harrier'?-.14:-.06});
+      a(p.head*.80,.13,.17,'frame',0,3.68,-.36,'head',{bottom:.65});
+      if(id==='prism')for(const x of [-.22,0,.22])a(.13,.12,.08,'visor',x,3.69,-.46,'head',{bottom:1});
+      else a(p.head*.59,.075,.10,'visor',0,3.70,-.455,'head',{bottom:.8});
+      for(const sd of [-1,1])a(heavy?.18:.12,.29,.48,'metal',sd*p.head*.45,3.60,.08,'head',{bottom:.5,sweep:.12},sd*-.18);
+      a(p.head*.38,.06,.12,'trim',0,3.49,-.34,'head',{bottom:.6});
+      if(id==='harrier'||id==='wisp')a(.08,.26,.26,'armor',0,3.80,.10,'head',{top:.6,bottom:1,sweep:.12});
+      if(heavy)a(p.head*.94,.12,.30,'armor',0,3.84,-.28,'head',{bottom:.85});
+    }else if(slot==='arms')for(const sd of [-1,1]){
+      const side=sd<0?'L':'R';
+      a(.27,.58,.32,'frame',sd*1.39,2.62,0,'arm'+side,{bottom:.8});
+      a(p.shoulder,light?.44:.52,heavy?.94:.77,'armor',sd*(heavy?1.47:1.41),2.99,.03,'arm'+side,{facet:true,top:id==='bastion'?1:.76,bottom:1,depth:.8,sweep:p.sweep},sd*-.12);
+      a(.28,.52,.34,'frame',sd*1.48,1.76,-.12,'forearm'+side,{bottom:1});
+      a(p.shoulder*.75,.56,.58,'armor',sd*1.48,1.79,-.18,'forearm'+side,{bottom:.60,sweep:.03});
+      a(.37,.23,.40,'metal',sd*1.48,1.15,-.12,'hand'+side,{bottom:.86});
+      a(p.shoulder*.60,.10,.10,'trim',sd*1.44,2.98,-.40,'arm'+side,{bottom:.8});
+      if(heavy)a(.15,.63,.81,'armor',sd*1.85,2.76,.08,'arm'+side,{bottom:.72},sd*-.10);
+      if(id==='harrier'||id==='wisp')a(.10,.57,.47,'metal',sd*1.68,3.0,.15,'arm'+side,{top:.5,bottom:1,sweep:.25},sd*-.22);
+      if(id==='prism')a(.46,.16,.74,'metal',sd*1.40,3.23,.05,'arm'+side,{bottom:.82});
+    }else for(const sd of [-1,1]){
+      const side=sd<0?'L':'R';
+      a(.30,.63,.38,'frame',sd*.58,1.45,.04,'thigh'+side,{bottom:1});
+      a(p.leg,.52,.62,'armor',sd*.58,1.48,-.03,'thigh'+side,{bottom:.68,sweep:.08},sd*.05);
+      a(.28,.54,.34,'frame',sd*.62,.66,.06,'shin'+side,{bottom:1});
+      a(p.leg*.73,.25,.28,'metal',sd*.62,1.01,-.25,'shin'+side,{bottom:.65,sweep:-.1});
+      a(p.leg*.88,.49,heavy?.77:.57,'armor',sd*.62,.63,.06,'shin'+side,{top:.72,bottom:1,sweep:p.sweep});
+      a(p.leg*.97,.27,.99,'armor',sd*.62,.135,-.22,'foot'+side,{top:.66,bottom:1,sweep:-.12});
+      a(p.leg*.61,.075,.11,'trim',sd*.62,.84,-.28,'shin'+side,{bottom:.8});
+      if(id==='bastion')a(.17,.57,.60,'metal',sd*.98,.66,.15,'shin'+side,{bottom:.85});
+      if(id==='harrier')a(.18,.23,.63,'metal',sd*.62,.29,.43,'foot'+side,{bottom:1,sweep:.18});
+    }
+  }
+}
+
 function buildMech(color, cfg = MECH_DEFAULT) {
   const g = new T.Group();
   const paint = PAINTS.find(p => p.id === cfg.color) || PAINTS[0];
@@ -4960,6 +5047,8 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     }
     part('arms', 0.32, 0.13, 0.12, 'trim', sd * 1.35, 2.93, -0.48 * aw);
   }
+  const legacyBoxes = Object.fromEntries(PART_SLOTS.map(slot => [slot, boxes[slot].slice()]));
+  reworkMechParts(boxes,series,C);
   const rig = makeMechRig(PARTS.legs[cfg.legs].kind), skin = new T.MeshLambertMaterial({ vertexColors: true });
   rig.legKind=PARTS.legs[cfg.legs].kind || 'biped';
   const armorMesh = (slot, records, hitOnly = false) => {
@@ -4977,7 +5066,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
         : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
         : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side);
       const box = (height, offset, name) => {
-        const b = shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
+        const b = shape?.kind === 'plate' ? mechPlate(w,height,d,shape) : shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
       };
       // 下端を含むブーツは足首側に残す。元の箱を同じ面で割るので、直立時の外形は変わらない。
       if (bone === 'shin' + side && !shape) {
@@ -5006,11 +5095,18 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     return entry;
   };
   for (const slot of PART_SLOTS) armorMesh(slot, boxes[slot]);
-  if (hoverHitBoxes.length) {
-    const hit = armorMesh('legs', hoverHitBoxes, true), visible = rig.meshes.find(m => m.mesh.userData.armorSlot === 'legs').mesh;
+  for (const slot of PART_SLOTS) {
+    const records = slot === 'legs' && hoverHitBoxes.length ? hoverHitBoxes : legacyBoxes[slot];
+    const hit = armorMesh(slot, records, true), visible = rig.meshes.find(m => m.mesh.userData.armorSlot === slot).mesh;
+    hit.lazy = !(slot === 'legs' && hoverHitBoxes.length);
     visible.userData.hitGeometry = hit.mesh.geometry;
-    // 表示を差し替えても、脚の被弾範囲・部位・姿勢は従来のままにする。
+    if(hit.lazy){visible.userData.legacyVisualGeometry=hit.mesh.geometry;visible.userData.syncLegacyVisual=()=>skinMechHit(hit);}
+    // 表示を差し替えても、各部位の被弾範囲・部位・姿勢は従来のままにする。
     visible.raycast = function(caster, hits) {
+      // 旧形状と同じ包含球で先に除外し、遠い機体へ来ない射線では頂点を更新しない。
+      mechHitSphere.copy(hit.mesh.geometry.boundingSphere).applyMatrix4(this.matrixWorld);
+      if(!caster.ray.intersectsSphere(mechHitSphere))return;
+      if (hit.lazy) skinMechHit(hit);
       const display = this.geometry;
       this.geometry = this.userData.hitGeometry;
       try { T.Mesh.prototype.raycast.call(this, caster, hits); }
@@ -5073,7 +5169,7 @@ function skinHoverJet(u){
   jet.geometry.attributes.position.needsUpdate=true;
 }
 
-// 関節はモデル内の座標で計算する。ホバー脚だけは従来の被弾形状も同じ姿勢で更新する。
+// 関節はモデル内の座標で計算する。旧被弾形状も同じ骨を参照する。
 function makeMechRig(kind = 'biped') {
   const root = new T.Group(), bones = {}, meshes = [];
   const add = (name, parent, p, slot, joint = 0) => {
@@ -5123,6 +5219,24 @@ function limbPose(rig, a, b, end, target, pole) {
   // 掌と足裏は上流の回転を打ち消しておく。
   E.node.quaternion.copy(poseParentQ).multiply(A.quaternion).multiply(B.node.quaternion).invert();
 }
+// 追加の旧被弾面は射線が来た部位だけ更新。非表示の頂点を毎フレーム送信しない。
+const mechHitSphere=new T.Sphere();
+function skinMechHit(entry) {
+  if(entry.rigid)return; // 頭は表示メッシュ自身の行列で動く。
+  const geo=entry.mesh.geometry,p=geo.attributes.position.array,n=geo.attributes.normal.array;
+  for(const range of entry.ranges){
+    const e=range.bone.matrix.elements,previous=range.hitPrevious||(range.hitPrevious=new Float64Array(16));
+    let changed=false;for(let k=0;k<16;k++)if(e[k]!==previous[k]){changed=true;break;}
+    if(!changed)continue;
+    previous.set(e);
+    for(let i=range.start;i<range.end;i+=3){
+      const x=entry.pos[i],y=entry.pos[i+1],z=entry.pos[i+2],nx=entry.nor[i],ny=entry.nor[i+1],nz=entry.nor[i+2];
+      p[i]=e[0]*x+e[4]*y+e[8]*z+e[12];p[i+1]=e[1]*x+e[5]*y+e[9]*z+e[13];p[i+2]=e[2]*x+e[6]*y+e[10]*z+e[14];
+      n[i]=e[0]*nx+e[4]*ny+e[8]*nz;n[i+1]=e[1]*nx+e[5]*ny+e[9]*nz;n[i+2]=e[2]*nx+e[6]*ny+e[10]*nz;
+    }
+    geo.boundingBox=null;
+  }
+}
 function skinMech(rig) {
   rig.root.updateMatrixWorld(true);
   for (const b of rig.list) {
@@ -5133,7 +5247,9 @@ function skinMech(rig) {
   for (let pass = 0; pass < 2; pass++) {
    const meshes = pass === 0 ? rig.meshes : rig.hitMeshes;
    if (!meshes) break;
-   for (const { mesh, pos, nor, ranges, rigid } of meshes) {
+   for (const entry of meshes) {
+    if(entry.lazy)continue;
+    const { mesh, pos, nor, ranges, rigid }=entry;
     if (rigid) { mesh.matrix.copy(ranges[0].bone.matrix); continue; }
     const p = mesh.geometry.attributes.position, n = mesh.geometry.attributes.normal;
     let changed = false;
@@ -9592,14 +9708,20 @@ function beamCannonTick(u,sl,dt,trigger,aim,on,cancel) {
 // 可視メッシュを現在の姿勢で1つに焼き込む。元の共有ジオメトリやマテリアルは変更しない。
 function mirageMesh(u, w) {
   u.group.updateMatrixWorld(true);
-  const inv = new T.Matrix4().copy(u.group.matrixWorld).invert(), data = { position: [], normal: [], color: [] };
+  const inv = new T.Matrix4().copy(u.group.matrixWorld).invert(), data = { position: [], normal: [], color: [] }, hitPos=[], hitNor=[];
   u.group.traverse(o => {
     if (!o.isMesh || o === u.flame || o.userData.visualOnly || !o.geometry.attributes.position) return;
     for (let a = o; a && a !== u.group; a = a.parent) if (!a.visible) return;
     const mat = Array.isArray(o.material) ? o.material[0] : o.material;
     if (!mat || mat.isShaderMaterial || mat.opacity < .3) return;
+    const matrix=new T.Matrix4().multiplyMatrices(inv,o.matrixWorld);
+    // 残像も外装差し替え前の被弾面を保持。ホバー脚は従来の表示形状が残像の被弾面。
+    o.userData.syncLegacyVisual?.();
+    const source=o.userData.legacyVisualGeometry||o.geometry;
+    const hit=source.index?source.toNonIndexed():source.clone();hit.applyMatrix4(matrix);if(!hit.attributes.normal)hit.computeVertexNormals();
+    hitPos.push(...hit.attributes.position.array);hitNor.push(...hit.attributes.normal.array);hit.dispose();
     const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-    geo.applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+    geo.applyMatrix4(matrix);
     if (!geo.attributes.normal) geo.computeVertexNormals();
     const c = mat.color || new T.Color(0xffffff), vc = geo.attributes.color;
     const pos = geo.attributes.position, normal = geo.attributes.normal;
@@ -9614,7 +9736,10 @@ function mirageMesh(u, w) {
   for (const k of Object.keys(data)) geo.setAttribute(k, new T.Float32BufferAttribute(data[k], 3));
   geo.computeBoundingSphere();
   const mat = new T.MeshLambertMaterial({ vertexColors: true, color: w.hologram ? 0x65eee5 : 0xffffff, emissive: w.hologram ? 0x124f55 : 0x000000, transparent: w.decoyOpacity < 1, opacity: w.decoyOpacity, depthWrite: w.decoyOpacity === 1 });
-  const mesh = new T.Mesh(geo, mat);
+  const mesh = new T.Mesh(geo, mat),hit=new T.BufferGeometry();
+  hit.setAttribute('position',new T.Float32BufferAttribute(hitPos,3));hit.setAttribute('normal',new T.Float32BufferAttribute(hitNor,3));hit.computeBoundingSphere();
+  mesh.userData.hitGeometry=hit;geo.addEventListener('dispose',()=>hit.dispose());
+  mesh.raycast=function(caster,hits){const display=this.geometry;this.geometry=hit;try{T.Mesh.prototype.raycast.call(this,caster,hits);}finally{this.geometry=display;}};
   mesh.position.copy(u.pos); mesh.quaternion.copy(u.group.quaternion); mesh.scale.copy(u.group.scale);
   return mesh;
 }

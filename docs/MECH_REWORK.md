@@ -1,0 +1,44 @@
+# 機体外装再制作のローカル検証
+
+基準はmain `05d40f8`（`88f4a15` のPR106とPR105を含む）。旧タスクは触らず、取得できない試作ZIPからの復元はしていない。変更は外装形状と旧被弾面の維持だけ。武器・マップ・性能・保存キーを変更しない。
+
+## 動かす
+
+通常版は `python3 -m http.server 8000 --directory prototype` の後 `http://localhost:8000`。ゲーム本体はビルド不要。配布レビューZIPでは `game/index.html` にthree.jsを同梱し、CDN依存を除く。リポジトリの公開用distや配布生成ツールは変更しない。
+
+レビューZIPのルートで `python3 -m http.server 8000` を実行すると、`http://localhost:8000/compare.html` で旧版と新版を並べて角度・距離・武器・屈みを操作できる。`game/` がデバッグフックを含まない実ゲーム。比較ビューアはデバッグ用コピーで、本体へ機能は追加しない。
+
+## 系列の方向
+
+- ハウンド：釣り合いの取れたくさび胸、細い腹、独立肩。全3型の頭は同形。
+- スウィフト：狭い胸と薄い肩、細い四肢。
+- ハリアー：前へ流れる胸板、後ろへ流れる肩板と踵。
+- プリズム：縦の胸パネル、三眼、二段肩。
+- ブルワーク：広い胸、厚い外肩、太い脛。
+- バスティオン：広い襟、水平な肩、外側の脚支柱。
+- ウィスプ：細い上体と頭頂板、既存の軽量ホバー脚。
+- スキマー：中量の胸・肩、既存の標準ホバー脚。
+- アンカー：厚い胸・肩・襟、既存の重量ホバー脚。
+
+## 再現可能な検査
+
+`npm install` と `npx playwright install chromium` を準備する。任意の `PLAYWRIGHT_BROWSERS_PATH` を指定してもよい。基準版は `git show 05d40f8:prototype/index.html > /tmp/mech-before.html`、`python3 tools/test/make_dbg.py /tmp/mech-before --src /tmp/mech-before.html`。新版は `python3 tools/test/make_dbg.py /tmp/mech-after`。
+
+```sh
+node tools/test/mech_rework_check.js /tmp/mech-before /tmp/mech-after /tmp/mech-compatibility
+node tools/test/mech_rework_ui_check.js /tmp/mech-after /tmp/mech-ui
+node tools/test/mech_rework_performance_check.js /tmp/mech-before,/tmp/mech-after /tmp/mech-performance.json
+node tools/test/mech_animation_check.js /tmp/mech-after
+node tools/test/mech_shapes_check.js /tmp/mech-after
+node tools/test/quick_check.js origin/main
+node tools/test/weapons_check.js /tmp/mech-after
+node tools/test/bot_battle.js /tmp/mech-after city,wide,mesa,dock 150
+```
+
+比較検査は全9系列と極端な混成2構成、各8姿勢で旧被弾面を1e-5単位へ量子化して比較し、正面格子レイの距離・法線・部位の結果を照合する。遅延更新と従来の微小変化スキップとの差は浮動小数点の微小値に現れるため、生のバイト一致とは扱わない。全型の形の統一、武器302種とパーツ120個の定義の一致、ホバー表示と噴流のバイト一致も検査する。残像の旧被弾面と解放も同じ8姿勢で照合する。
+
+性能検査は20/50/100機、同じ系列順・歩行・カメラ・640×400で3回交互に測る。姿勢CPU、各機へ1射線を加えたCPU、描画してGPU完了待ちを含む時間を分ける。これは機体の合成負荷検査であり、BOTの戦闘AIを含む実プレイFPSではない。SwiftShaderはソフトウェア描画。実GPU、スマートフォン、実プレイのFPS同等性はこの環境では証明しない。
+
+実行した版、結果、失敗・未実行はレビューZIPの `REVIEW.md` とログを参照。旧 `mech_series_check.js` は72パーツ固定で現在の120パーツに対応していない。旧 `hover_models_check.js` は二脚の外装不変と被弾面追加なしを前提にするため、この再制作にはそのまま適用できない。共有の古い試験を通すために本体を戻したり、期待値を書き換えたりはしない。
+
+被弾面の遅延更新は従来と同じ包含球のレイ判定を先に行う。球から外れる射線では旧被弾頂点を更新しない。範囲内で判定する部位だけ更新する。
