@@ -23,7 +23,8 @@ const dir = path.resolve(process.argv[2]), out = path.resolve(process.argv[3] ||
     const state = () => p.evaluate(() => ({ index: __g.tutorial?.index, done: __g.tutorial?.done, running: __g.running, hp: __g.tutorial?.target.hp, player: __g.player?.pos.toArray(), weapon: __g.player?.weapon, ammo: __g.player?.slots[__g.player.weapon].ammo, phase: document.getElementById('tutorialTitle').textContent }));
     const storage = () => p.evaluate(() => Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])));
     await p.locator('#teamSize').selectOption('50'); await p.locator('#teamChoice input[value="R"]').check();
-    await p.locator('#ovCls [data-cls="heavy"]').click();
+    await p.locator('#ovCls [data-cls="heavy"]').click(); // メニューの兵装は選んでカスタマイズを開くので、戻る
+    assert(await p.locator('#pgCustom').isVisible()); await p.locator('#pgCustom .pgh .back').click();
     const saved = await storage(), normalCatalog = await p.evaluate(() => JSON.stringify({ weapons: __g.WEAPONS, parts: __g.PARTS, maps: __g.MAPS }));
     await p.locator('[data-page="pgTutorialIntro"]').click(); assert(await p.locator('#pgTutorialIntro').isVisible());
     await p.locator('#tutorialStart').click(); await tick();

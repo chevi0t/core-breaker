@@ -163,6 +163,9 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 #rlist button, .cls button { font: inherit; font-size: 15px; padding: 6px 12px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
 #rlist button.sel, .cls button.sel { border-color: var(--blue); background: rgba(62, 166, 255, .22); }
 .cls button { text-align: left; }
+#ovCls button { position: relative; }
+#ovCls .toCu { position: absolute; top: 6px; right: 10px; font: 11px var(--body); color: var(--dim); }
+#ovCls button:hover .toCu, #ovCls button:focus-visible .toCu { color: var(--hud); }
 .cls button small { display: block; font-family: var(--body); font-size: 11px; color: var(--dim); margin-top: 2px; }
 #rlist button:focus-visible, .cls button:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 #popups { inset: 0; overflow: hidden; }
@@ -10843,7 +10846,7 @@ function pickClass(k) {
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
   const c = CLASSES[k];
-  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}">${withKey ? 'ZXCV'[i] + '　' : ''}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
+  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}"${withKey ? '' : ' title="この兵装を選び、カスタマイズを開きます"'}>${withKey ? 'ZXCV'[i] + '　' : `<em class="toCu" aria-hidden="true">カスタマイズ ›</em>`}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
 }).join('');
 // 重量超過の注記（パーツと選んだ武器で。v0.12）
 function overNote(k) { const st = mechStats(mechCfg, meleeOnly() ? { aux: arenaMeleeKey } : loadout[k]); return st.excess > 0 ? `<small class="over">重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）</small>` : ''; }
@@ -10857,7 +10860,16 @@ function renderBuildTabs() {
 }
 renderBuildTabs();
 bindBuildPersistenceUI();
-for (const el of [$('ovCls'), $('rcls')]) el.addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
+$('rcls').addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
+// メニューの兵装は、選んでからその兵装のカスタマイズを開く（2026-10-27、ユーザー要望「兵装をクリックしたらカスタマイズに飛べるように」）。部位を選んでいたら主武器の枠を出す
+$('ovCls').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  pickClass(b.dataset.cls);
+  cuCls = b.dataset.cls; cuHover = null;
+  if (isPart(cuSlot)) cuSlot = 'main';
+  renderCustom(); showPage('pgCustom');
+});
 // ---- メニュー（操作説明・マップ選択・武装選択） ----
 // 出撃側はマップ変更・再試合でも維持し、再読み込み時は南へ戻す。選択は次の試合から適用する。
 $('teamChoice').addEventListener('change', e => {
