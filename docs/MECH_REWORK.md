@@ -66,3 +66,13 @@ node tools/test/bot_battle.js /tmp/mech-after city,wide,mesa,dock 150
 ```sh
 node tools/test/mech_hit_bounds_check.js /tmp/mech-after /tmp/mech-hit-bounds.json
 ```
+
+## 腰・肩ブースターの追加改修
+
+ユーザーのJPEG参照はLibraryからこの環境に取得し、640×640の実画像を確認した。配置だけを参照し、画像や他作品のモデルは同梱しない。背面の装飾箱は除去、機能する特殊装備は維持。腰の両側に前後口を持つポッド、肩の外側に横噴射口を追加した。既存の1噴流メッシュ内を4枠に配分し、864三角形と追加1描画を維持する。装甲は4メッシュ・共通Lambert材質、外装は20三角形（60頂点）増。新規の姿勢骨4個に被弾頂点は割り当てない。既存の部位境界による射線最適化も維持する。
+
+移動処理から表示専用の方向を記録し、腰は前後、肩は左右の反対向きへ噴射。斜めでは両成分を使う。滞空は腰ノズルを下へ向ける。ホバー後方噴射は前進成分と同じ発停・余韻へ連動し、後退/横移動/静止/歩行/滞空では消す。下向き噴射の位置・頂点・表示条件・透明度は変えない。旧背中炎は残さない。炎とノズルを追加の被弾対象にしない。
+
+追加の検証：`node tools/test/booster_direction_check.js /tmp/mech-after /tmp/booster-directions`。`node tools/test/booster_gameplay_check.js /tmp/mech-before /tmp/mech-after /tmp/booster-gameplay.json` では改修前3983099と物理・装備位置・下向き噴射の軌跡を照合する。方向一覧を実ゲームのThree.js描画で撮影する。既存の全混成検査の上限は今回の正味20三角形だけを明示して加算する（それ以外の予算は同じ）。当初のリング付きノズルは108三角形増で上限を超えたため、最終形状ではポッドの端面を使い20三角形増へ削減した。
+
+ソフトウェア描画による今回差分の計測と合否はレビューZIPの `BOOSTER_REVIEW.md` を参照。以前の旧main比の性能差が解消したとは扱わない。

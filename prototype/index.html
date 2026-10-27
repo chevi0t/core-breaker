@@ -4600,15 +4600,15 @@ function botMech(cls) {
 const R = 1.3, UNIT_H = 4; // 機体の半径と高さ（ソードの当たり判定に使う）
 // 機体の形：シリーズごとに装甲の輪郭を作り分ける。箱は部位ごとに頂点の色で1つの形にまとめ、
 // 部位（userData.armorSlot）で当たった所の装甲を決める。color はチームの色、cfg.color が 'team' 以外なら装甲をその色に塗る
-// 噴流は左右の外炎・白い芯・点火リングを1メッシュで描く。形状は全機で共有。
+// 腰2箇所・肩2箇所の外炎/芯/点火リングを1メッシュで描く。形状は全機で共有。
 let boosterGeometry = null;
 function makeBoosterFlame(width) {
   return visualAlloc(() => {
     if (!boosterGeometry) {
       const pos = [], uv = [], layer = [], jet = [];
       const vertex = (a, t, l, side) => { pos.push(Math.cos(a), t, Math.sin(a)); uv.push(t, a); layer.push(l); jet.push(side); };
-      for (const side of [-1, 1]) for (let l = 0; l < 3; l++) {
-        const rows = l === 2 ? 1 : 8, slices = l === 2 ? 24 : 12;
+      for (const side of [0,1,2,3]) for (let l = 0; l < 3; l++) {
+        const rows = l === 2 ? 1 : 6, slices = l === 2 ? 12 : 8;
         for (let y = 0; y < rows; y++) for (let x = 0; x < slices; x++) {
           const a = x / slices * Math.PI * 2, b = (x + 1) / slices * Math.PI * 2, t = y / rows, n = (y + 1) / rows;
           for (const [angle, v] of [[a,t],[b,t],[a,n],[b,t],[b,n],[a,n]]) vertex(angle, v, l, side);
@@ -4620,32 +4620,36 @@ function makeBoosterFlame(width) {
       boosterGeometry.setAttribute('layer', new T.Float32BufferAttribute(layer, 1));
       boosterGeometry.setAttribute('jet', new T.Float32BufferAttribute(jet, 1));
       // 頂点シェーダーで伸ばす範囲も含める。毎フレームの再計算は不要。
-      boosterGeometry.boundingSphere = new T.Sphere(new T.Vector3(0, 3, 0), 5);
+      boosterGeometry.boundingSphere = new T.Sphere(new T.Vector3(0, 2, 0), 10);
     }
     const material = new T.ShaderMaterial({
       transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.DoubleSide,
-      uniforms: { clock: {value: 0}, length: {value: 0}, power: {value: 0}, pulse: {value: 1}, spread: {value: .38 * width}, charge: {value: 0} },
+      uniforms: { clock: {value: 0}, length: {value: 0}, power: {value: 0}, pulse: {value: 1}, spread: {value: .38 * width}, charge: {value: 0}, origins:{value:[new T.Vector3(-1,1.95,.46),new T.Vector3(1,1.95,.46),new T.Vector3(-1.65,3.06,.08),new T.Vector3(1.65,3.06,.08)]}, axes:{value:[new T.Vector3(0,0,1),new T.Vector3(0,0,1),new T.Vector3(-1,0,0),new T.Vector3(1,0,0)]}, weights:{value:new T.Vector4(.5,.5,0,0)} },
       vertexShader: `
         attribute float layer; attribute float jet;
         uniform float clock, length, power, pulse, spread;
-        varying vec2 vUv; varying float vLayer, vNear, vFacing;
+        uniform vec3 origins[4], axes[4]; uniform vec4 weights;
+        varying vec2 vUv; varying float vLayer, vNear, vFacing, vStrength;
         void main() {
           vUv = uv; vLayer = layer;
           float t = position.y;
           float ripple = 1.0 + .07 * sin(t * 34.0 - clock * 29.0 + jet);
-          float radius = (.20 + .16 * sin(t * 3.14159)) * pow(max(.001, 1.0 - t), .65) * ripple;
+          float radius = (.12 + .10 * sin(t * 3.14159)) * pow(max(.001, 1.0 - t), .65) * ripple;
           float axial = t * length;
           if (layer > .5) { radius *= .46; axial *= .72; }
-          if (layer > 1.5) { radius = (.25 + pulse * 2.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
-          vec3 p = vec3(position.x * radius + jet * spread, axial, position.z * radius);
+          if (layer > 1.5) { radius = (.14 + pulse * 1.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
+          int index=int(jet+.5);vec3 axis=axes[index];vStrength=weights[index];
+          vec3 crossAxis=normalize(cross(abs(axis.y)>.9?vec3(1,0,0):vec3(0,1,0),axis));
+          vec3 upAxis=cross(axis,crossAxis);
+          vec3 p=origins[index]+(crossAxis*position.x*radius+axis*axial+upAxis*position.z*radius)*step(.001,vStrength);
           vec4 view = modelViewMatrix * vec4(p, 1.0);
           vNear = smoothstep(.5, 2.0, -view.z);
-          vFacing = abs(dot(normalize(normalMatrix * vec3(position.x, .35, position.z)), normalize(-view.xyz)));
+          vFacing = abs(dot(normalize(normalMatrix * (crossAxis*position.x+axis*.35+upAxis*position.z)), normalize(-view.xyz)));
           gl_Position = projectionMatrix * view;
         }`,
       fragmentShader: `
         uniform float clock, power, pulse, charge;
-        varying vec2 vUv; varying float vLayer, vNear, vFacing;
+        varying vec2 vUv; varying float vLayer, vNear, vFacing, vStrength;
         void main() {
           float t = vUv.x;
           float flow = .75 + .25 * sin(t * 48.0 - clock * 40.0 + sin(vUv.y * 3.0));
@@ -4662,7 +4666,7 @@ function makeBoosterFlame(width) {
             alpha = max(0.0, 1.0 - pulse / .24) * sin(t * 3.14159) * .7;
           }
           if (vLayer < 1.5) alpha *= smoothstep(.02, .55, vFacing);
-          gl_FragColor = vec4(color, alpha * min(1.0, power) * vNear);
+          gl_FragColor = vec4(color, alpha * min(1.0, power) * vNear * vStrength);
           #include <tonemapping_fragment>
           #include <encodings_fragment>
         }`
@@ -4670,7 +4674,7 @@ function makeBoosterFlame(width) {
     const flame = new T.Mesh(boosterGeometry, material);
     flame.visible = false; flame.userData.visualOnly = true;
     flame.userData.boostFx = { mode: '', age: 0, pulse: 1, lastDash: 0, power: 0, length: 0 };
-    flame.position.set(0, 2.85, 1.45); flame.rotation.x = Math.PI / 2;
+    flame.position.set(0,0,0);
     // 発光する噴流を被弾面にしない。機体本体の装甲で判定する。
     flame.raycast = () => {};
     return flame;
@@ -4681,9 +4685,11 @@ function resetBoosterFlame(u) {
   f.mode = ''; f.age = f.lastDash = f.power = f.length = 0; f.pulse = 1;
   u.flame.visible = false;
   u.flame.material.uniforms.power.value = 0;
+  u.flame.material.uniforms.weights.value.set(0,0,0,0);
+  if(u.hoverJet?.userData.rearPower)u.hoverJet.userData.rearPower.value=0;
 }
 function boosterFlameUpdate(u, dt) {
-  const mesh = u.flame, f = mesh.userData.boostFx, mode = u.alive ? u.dashState : '';
+  const mesh = u.flame, f = mesh.userData.boostFx, mode = u.alive && !u.downT && !u.repairing && !u.transfer && !u.planted && !['down','roll'].includes(u.stun) ? u.dashState : '';
   if (!u.alive) { resetBoosterFlame(u); return; }
   const ignition = mode && (!f.mode || (mode === 'short' || mode === 'charge' || mode === 'lunge') && mode !== f.mode || mode === 'short' && u.dashT > f.lastDash + .02);
   if (ignition) f.pulse = 0; else f.pulse = Math.min(1, f.pulse + dt);
@@ -4699,7 +4705,31 @@ function boosterFlameUpdate(u, dt) {
   U.length.value = Math.max(.05, f.length * (1 + (near ? .025 * Math.sin(f.age * 63) : 0)) + (near ? Math.max(0, 1 - f.pulse / .18) * .7 : 0));
   U.power.value = f.power * (near ? 1 : .65);
   U.pulse.value = near ? f.pulse : 1; U.charge.value = mode === 'charge' ? 1 : 0;
+  if(mode){
+    boosterDirection(u,boostVisualAxis);
+    const vertical=mode==='hover',longitudinal=vertical?1:Math.abs(boostVisualAxis.z),lateral=vertical?0:boostVisualAxis.x;
+    f.front=vertical||boostVisualAxis.z<=0;f.forward=vertical?0:Math.max(0,-boostVisualAxis.z);
+    U.weights.value.set(longitudinal*.5,longitudinal*.5,Math.max(0,lateral),Math.max(0,-lateral));
+  }
+  const origins=U.origins.value,axes=U.axes.value;
+  for(let i=0;i<4;i++){
+    const side=i%2===0?-1:1,name=i<2?'boostWaist':'boostShoulder',bone=u.rig?.bones[name+(side<0?'L':'R')];
+    if(i<2){origins[i].set(side,1.95,f.front===false?-.32:.42);axes[i].set(0,0,f.front===false?-1:1);}
+    else{origins[i].set((bone?.rest.x||side*1.765)+side*.01,3.06,.08);axes[i].set(side,0,0);}
+    if(bone){origins[i].applyMatrix4(bone.matrix);axes[i].transformDirection(bone.matrix);}
+  }
+  // 固定の後方ノズルは前進成分だけ。下向きの浮上噴射とは分ける。
+  if(u.hoverJet?.userData.rearPower)u.hoverJet.userData.rearPower.value=mesh.visible?f.power*(f.forward||0):0;
 }
+const boostVisualAxis=new T.Vector3(),boostParentQ=new T.Quaternion();
+function boosterDirection(u,out){
+  if(u.dashState==='hover')return out.set(0,1,0);
+  const d=u.boostVisualDir||((u.dashState==='short'&&u.dashDir?.lengthSq()>.01)?u.dashDir:(u.dashState==='lunge'&&u.lungeDir)?u.lungeDir:u.vel);
+  if(!d||Math.hypot(d.x,d.z)<.01)return out.set(0,0,-1);
+  const c=Math.cos(u.yaw||0),s=Math.sin(u.yaw||0);
+  return out.set(d.x*c-d.z*s,0,d.x*s+d.z*c).normalize();
+}
+
 // 中量スキマーを基準に、軽量・重量のホバー脚を作り分ける。
 const HOVER_VARIANT_SPECS={
   wisp:{light:true,calf:[.22,.82,.28,.72,.24],bands:[.48,.78],bandH:.045,skirt:[.33,.65,.65,.93,.77,.10,.27],rear:.58,top:.62,cut:.10,vent:[.94,.78,-.18],trim:[.99,.62,-.22],nozzle:[.28,.25,.18,.99,.77,.99],emitZ:1.106,calfRadius:.085,calfEmitY:.26,calfLength:.25,jetRadius:.10,jetLength:.65},
@@ -4776,7 +4806,14 @@ const MECH_SILHOUETTES = {
   skimmer: {chest:1.78,depth:1.08,waist:.80,shoulder:.61,leg:.62,head:.86,taper:.62,sweep:.16},
   anchor:  {chest:2.12,depth:1.38,waist:1.08,shoulder:.86,leg:.84,head:1.0,taper:.82,sweep:.08}
 };
-// 12三角形の斜面多面体。箱の細分化ではなく上下面の幅と前後位置を変える。
+// 外肩の装甲端に合わせる小さな噴射口。
+function shoulderJetX(series){return ['bulwark','bastion','anchor'].includes(series)?1.94:1.425+MECH_SILHOUETTES[series].shoulder*.5;}
+function boosterNozzle(w,h,shape){
+  const pos=[],v=(i,r)=>[Math.cos(i*Math.PI/3)*w*r,Math.sin(i*Math.PI/3)*h*r,0],tri=(a,b,c)=>pos.push(...a,...b,...c);
+  for(let i=1;i<5;i++)tri(v(0,.5),v(i,.5),v(i+1,.5));
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+  g.rotateY(shape.side?shape.face*Math.PI/2:shape.face<0?Math.PI:0);return g;
+}
 function mechPlate(w,h,d,shape) {
   if(shape.facet){
     // 前の両角を落とした六角断面。胸・頭・肩の輪郭を6面で作る。
@@ -4812,7 +4849,11 @@ function reworkMechParts(boxes,series,C) {
         a(p.waist*.48,.35,.21,'armor',sd*p.waist*.3,1.91,-.42,'hip',{top:.72,bottom:1,sweep:-.1},sd*.12);
       }
       a(p.chest*.38,.12,.09,'trim',0,2.83,-p.depth*.53,'chest',{bottom:.7});
-      a(light?.83:1.12,.48,.47,'armor',0,2.85,.83,'chest',{bottom:.8});
+      // 背中の装飾箱は省略。特殊兵装の既存の取付位置はそのまま。
+      for(const sd of [-1,1]){
+        const bone='boostWaist'+(sd<0?'L':'R');
+        a(.34,.34,.72,'armor',sd,1.95,.05,bone,{bottom:.8,sweep:0,booster:true});
+      }
       if(id==='prism')for(const sd of [-1,1])a(.18,.51,.18,'metal',sd*.58,2.76,-.55,'chest',{bottom:.85},sd*.12);
       if(id==='bastion'||id==='anchor')a(p.chest*.72,.18,.32,'metal',0,3.12,-.28,'chest',{bottom:.85});
     }else if(slot==='head'){
@@ -4827,6 +4868,7 @@ function reworkMechParts(boxes,series,C) {
       if(heavy)a(p.head*.94,.12,.30,'armor',0,3.84,-.28,'head',{bottom:.85});
     }else if(slot==='arms')for(const sd of [-1,1]){
       const side=sd<0?'L':'R';
+      a(.24,.24,.01,'frame',sd*shoulderJetX(id),3.06,.08,'boostShoulder'+side,{kind:'nozzleCap',face:sd,side:true});
       a(.27,.58,.32,'frame',sd*1.39,2.62,0,'arm'+side,{bottom:.8});
       a(p.shoulder,light?.44:.52,heavy?.94:.77,'armor',sd*(heavy?1.47:1.41),2.99,.03,'arm'+side,{facet:true,top:id==='bastion'?1:.76,bottom:1,depth:.8,sweep:p.sweep},sd*-.12);
       a(.28,.52,.34,'frame',sd*1.48,1.76,-.12,'forearm'+side,{bottom:1});
@@ -5049,14 +5091,14 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   }
   const legacyBoxes = Object.fromEntries(PART_SLOTS.map(slot => [slot, boxes[slot].slice()]));
   reworkMechParts(boxes,series,C);
-  const rig = makeMechRig(PARTS.legs[cfg.legs].kind), skin = new T.MeshLambertMaterial({ vertexColors: true });
+  const rig = makeMechRig(PARTS.legs[cfg.legs].kind,series.arms), skin = new T.MeshLambertMaterial({ vertexColors: true });
   rig.legKind=PARTS.legs[cfg.legs].kind || 'biped';
   const armorMesh = (slot, records, hitOnly = false) => {
     const pos = [], nor = [], col = [], ranges = [];
     const merge = (b, c, bone) => {
       const geo = b.index ? b.toNonIndexed() : b, cc = new T.Color(c), start = pos.length;
       pos.push(...geo.attributes.position.array); nor.push(...geo.attributes.normal.array);
-      for (let k = 0; k < geo.attributes.position.count; k++) col.push(cc.r, cc.g, cc.b);
+      for (let k = 0; k < geo.attributes.position.count; k++) { const tint=geo.attributes.color;col.push(tint?tint.getX(k):cc.r,tint?tint.getY(k):cc.g,tint?tint.getZ(k):cc.b); }
       ranges.push({ start, end: pos.length, bone: rig.bones[bone] });
       if (geo !== b) geo.dispose(); b.dispose();
     };
@@ -5066,7 +5108,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
         : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
         : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side);
       const box = (height, offset, name) => {
-        const b = shape?.kind === 'plate' ? mechPlate(w,height,d,shape) : shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
+        const b = shape?.kind?.startsWith('nozzle') ? boosterNozzle(w,height,shape) : shape?.kind === 'plate' ? mechPlate(w,height,d,shape) : shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); if(shape?.booster){const colors=[],base=new T.Color(c),end=new T.Color(C.frame),n=b.attributes.normal;for(let i=0;i<n.count;i++){const color=Math.abs(n.getZ(i))>.8?end:base;colors.push(color.r,color.g,color.b);}b.setAttribute('color',new T.Float32BufferAttribute(colors,3));} b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
       };
       // 下端を含むブーツは足首側に残す。元の箱を同じ面で割るので、直立時の外形は変わらない。
       if (bone === 'shin' + side && !shape) {
@@ -5133,7 +5175,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
 }
 function makeHoverJet(series='skimmer') {
   return visualAlloc(() => {
-  const pos=[],col=[],ranges=[],flows=[];
+  const pos=[],col=[],ranges=[],flows=[],rear=[];
   for(const [side,sd] of [['L',-1],['R',1]]){
     const start=pos.length;
     const p=HOVER_VARIANT_SPECS[series];
@@ -5143,7 +5185,7 @@ function makeHoverJet(series='skimmer') {
      for(const [radius,length,color] of [[emitter.radius,emitter.length,0x48caff],[emitter.radius*.5,emitter.length*.74,0xe2faff]]){
       const source=new T.CylinderGeometry(radius,.012,length,8,1,true),geo=source.toNonIndexed();
       geo.translate(0,-length/2,0);geo.rotateX(emitter.pitch);geo.rotateZ(emitter.angle);geo.translate(emitter.x,emitter.y,emitter.z);const p=geo.attributes.position.array,c=new T.Color(color);
-      pos.push(...p);for(let i=0;i<p.length;i+=3)col.push(c.r,c.g,c.b);geo.dispose();source.dispose();
+      pos.push(...p);for(let i=0;i<p.length;i+=3){col.push(c.r,c.g,c.b);rear.push(emitter.kind==='cover'?1:0);}geo.dispose();source.dispose();
      }
      flows.push({kind:emitter.kind,origin:[emitter.x,emitter.y,emitter.z],start,end:pos.length});
     }
@@ -5153,6 +5195,14 @@ function makeHoverJet(series='skimmer') {
   jet.geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));
   jet.geometry.attributes.position.setUsage(T.DynamicDrawUsage);
   jet.geometry.setAttribute('color',new T.Float32BufferAttribute(col,3));
+  jet.geometry.setAttribute('rearJet',new T.Float32BufferAttribute(rear,1));
+  const rearPower={value:0};jet.userData.rearPower=rearPower;
+  jet.material.onBeforeCompile=shader=>{
+    shader.uniforms.hoverRearPower=rearPower;
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float rearJet; varying float vRearJet;').replace('void main() {','void main() { vRearJet=rearJet;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform float hoverRearPower; varying float vRearJet;').replace('#include <dithering_fragment>','gl_FragColor.a *= mix(1.0, hoverRearPower, vRearJet);\n#include <dithering_fragment>');
+  };
+  jet.material.customProgramCacheKey=()=> 'hover-rear-linked-v1';
   jet.geometry.boundingSphere=new T.Sphere(new T.Vector3(0,.6,0),4);
   Object.assign(jet.userData,{own:true,visualOnly:true,rest:new Float32Array(pos),ranges,flows});
   jet.raycast=()=>{};
@@ -5175,7 +5225,7 @@ function skinHoverJet(u){
 }
 
 // 関節はモデル内の座標で計算する。旧被弾形状も同じ骨を参照する。
-function makeMechRig(kind = 'biped') {
+function makeMechRig(kind = 'biped', arms = 'hound') {
   const root = new T.Group(), bones = {}, meshes = [];
   const add = (name, parent, p, slot, joint = 0) => {
     const node = new T.Object3D(), rest = new T.Vector3(...p), up = parent && bones[parent];
@@ -5191,6 +5241,8 @@ function makeMechRig(kind = 'biped') {
     add('arm' + side, 'chest', [sd * 1.28, 3.05, 0], 'arms', .22);
     add('forearm' + side, 'arm' + side, [sd * 1.48, 2.12, -.1], 'arms', .18);
     add('hand' + side, 'forearm' + side, [sd * 1.48, 1.15, -.12], 'arms');
+    add('boostWaist'+side,'hip',[sd,1.95,.05],'body');
+    add('boostShoulder'+side,'arm'+side,[sd*shoulderJetX(arms),3.06,.08],'arms');
   }
   root.updateMatrixWorld(true);
   for (const b of Object.values(bones)) b.bind = b.node.matrixWorld.clone().invert();
@@ -5363,7 +5415,12 @@ function mechPose(u, dt) {
     const held = cur.type === 'sword' && (s === 'R' ? u.blade : u.blade2);
     if (held?.visible) B['hand' + s].node.quaternion.multiply(held.quaternion);
   }
-  poseAttachment(u.pack); poseAttachment(u.mount); poseAttachment(u.flame);
+  // 噴射口は親の傾きを打ち消すジンバル。浮上中だけ腰の後口を下へ向ける。
+  for(const side of poseSides)for(const name of ['boostWaist','boostShoulder']){
+    const node=B[name+side].node;node.parent.getWorldQuaternion(boostParentQ);node.quaternion.copy(boostParentQ).invert();
+    if(name==='boostWaist'&&u.dashState==='hover')node.rotateX(Math.PI/2);
+  }
+  poseAttachment(u.pack); poseAttachment(u.mount);
   if (cur.type !== 'sword') { if (u.blade.visible) poseAttachment(u.blade); if (u.blade2?.visible) poseAttachment(u.blade2); }
   skinMech(r); skinHoverJet(u); r.lastPose = true;
 }
@@ -5723,6 +5780,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
   const hover = (floating ? hoverActive(u) && !charging && !u.lungeT && !u.swing?.hopped : !u.dashState) && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover && !u.dashState) u.dashState = 'hover';
+  // 噴射の方向だけ記録。速度・加速度・ブースト消費の計算には使わない。
+  if(u.dashState)(u.boostVisualDir ||= new T.Vector3()).copy(dir);
   if (!u.dashState || charging) {
     u.boostIdle += dt;
     if (u.boostIdle > 0.5) u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt * (water ? .75 : 1)); // オーバーヒートは全回復まで（約2秒）
@@ -9334,7 +9393,7 @@ function weaponLook(u, dt) {
   }
   u.pack.visible = cannon || sp.type === 'beamCannon' || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
   u.mount.position.set(0, 2.75, 1.25); u.mount.rotation.set(0, 0, 0);
-  u.flame.position.set(0, 2.85, 1.45); u.flame.rotation.set(Math.PI / 2, 0, 0);
+  u.flame.position.set(0,0,0); u.flame.rotation.set(0,0,0);
   u.pack.rotation.set(0, sp.type === 'escort' && u.escortOn && u.escortAim ? Math.atan2(-(u.escortAim.x-u.pos.x),-(u.escortAim.z-u.pos.z))-u.yaw : 0, 0);
   u.pack.position.set(0, 2.7, sp.type === 'escort' ? .2 : 1.45);
   if (u.pack.visible) setWeaponGeo(u.pack, sp.key);
