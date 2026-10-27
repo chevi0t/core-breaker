@@ -54,7 +54,7 @@ EXPOSE = """window.__g = { get hoverLegs() { return hoverLegs; }, get hoverActiv
   get hitMark() { return hitMark; }, get flashDamage() { return flashDamage; }, get damageSectors() { return damageSectors; }, get combatFeedbackUpdate() { return combatFeedbackUpdate; }, get combatFeedbackHud() { return combatFeedbackHud; }, get resetCombatFeedback() { return resetCombatFeedback; },
   get boosterFlameUpdate() { return boosterFlameUpdate; }, get resetBoosterFlame() { return resetBoosterFlame; }, get makeBoosterFlame() { return makeBoosterFlame; },
   get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get lockHud() { return lockHud; }, get spottedHud() { return spottedHud; }, get running() { return running; }, set running(v) { running = v; },
-  get pad() { return pad; }, get qc() { return qc; }, get mapOpen() { return mapOpen; }, get chosenCls() { return chosenCls; } };"""
+  get pad() { return pad; }, get qc() { return qc; }, get mapOpen() { return mapOpen; }, get chosenCls() { return chosenCls; }, get range() { return range; } };"""
 
 
 def rep(s, a, b):
