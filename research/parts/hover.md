@@ -1,6 +1,6 @@
 # ホバー機構と追加シリーズ
 
-取得・採用日：2026-10-27。Issue #93・#95。追加順は共通機構＋中量級、重量級、軽量級。各シリーズ4型×4部位。
+取得・採用日：2026-10-27。Issue #93・#95・#97。追加順は共通機構＋中量級、重量級、軽量級。各シリーズ4型×4部位。
 
 ## 出典と換算
 
@@ -8,6 +8,7 @@
 - セットボーナスの2018年3月1日表：https://w.atwiki.jp/borderbreak/pages/24.html
 - 中量級（本作スキマー）：https://w.atwiki.jp/borderbreak/pages/326.html （ネレイド45・45改・46・RT）
 - アンカー（ロージー相当）：https://w.atwiki.jp/borderbreak/pages/435.html
+- ウィスプ（B.U.Z.相当）：https://w.atwiki.jp/borderbreak/pages/469.html
 - 原表の実数、型の対応、換算基準：`types/hover-series.json`。既存標準Ⅰ型×AC採用型÷ACクーガーⅠ型で換算する。
 
 頭・胴・腕の定義は既存のパーツと同じ項目。胴のSP容量は継承し、SP供給率は回復速度にだけ反映する。DEF、チップ、索敵、エリア移動性能は今回のパーツ性能へ換算しない。
