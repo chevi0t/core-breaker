@@ -4697,18 +4697,83 @@ function boosterFlameUpdate(u, dt) {
   U.power.value = f.power * (near ? 1 : .65);
   U.pulse.value = near ? f.pulse : 1; U.charge.value = mode === 'charge' ? 1 : 0;
 }
+// 中量スキマーを基準に、軽量・重量のホバー脚を作り分ける。
+const HOVER_VARIANT_SPECS={
+  wisp:{light:true,calf:[.22,.82,.28,.72,.24],bands:[.48,.78],bandH:.045,skirt:[.33,.65,.65,.93,.77,.10,.27],rear:.58,top:.62,cut:.10,vent:[.94,.78,-.18],trim:[.99,.62,-.22],nozzle:[.28,.25,.18,.99,.77,.99],emitZ:1.106,calfRadius:.085,calfEmitY:.26,calfLength:.25,jetRadius:.10,jetLength:.65},
+  anchor:{light:false,calf:[.42,.84,.50,.70,.31],bands:[.39,.56,.73,.90],bandH:.08,skirt:[.68,.88,1.06,1.12,.76,.10,.40],rear:1.0,top:.78,cut:.32,vent:[1.14,.92,-.37],trim:[1.20,.76,-.408],nozzle:[.50,.44,.22,1.12,.76,1.61],emitZ:1.746,calfRadius:.145,calfEmitY:.23,calfLength:.22,jetRadius:.17,jetLength:1.0}
+};
+function hoverLegParts(part,sd,series='skimmer'){
+  if(HOVER_VARIANT_SPECS[series])return hoverVariantParts(part,sd,HOVER_VARIANT_SPECS[series]);
+  const side=sd<0?'L':'R',shin='shin'+side;
+  // 標準二脚の腿フレーム・腿装甲と同じ寸法、位置、骨を使う。
+  part('legs',.42,.72,.52,'frame',sd*.58,1.43,.04,0,0,'thigh'+side);
+  part('legs',.70,.65,.72,'armor',sd*.58,1.45,-.04,0,0,'thigh'+side);
+  // 長いふくらはぎそのものがブースター。膝より後ろに置き、脛側は開ける。
+  part('legs',.28,.24,.46,'frame',sd*.62,.96,.14,0,0,shin,'box');
+  part('legs',.30,.80,.38,'frame',sd*.62,.70,.27,0,0,shin,'box');
+  for(const y of [.42,.64,.86])part('legs',.32,.065,.42,'metal',sd*.62,y,.27,0,0,shin,'box');
+  part('legs',.28,.10,.28,'metal',sd*.62,.30,.27,0,0,shin,'cylinderY');
+  // 2本のふくらはぎとは別に、外側へ開くスカート型ブースターを一基ずつ。
+  part('legs',.50,.80,.86,'armor',sd*1.04,.70,.10,sd*.35,0,shin,'skirt');
+  part('legs',.20,.26,.07,'frame',sd*1.06,.65,-.303,sd*.35,.17,shin,'box');
+  part('legs',.24,.07,.08,'trim',sd*1.13,.56,-.328,sd*.35,.17,shin,'box');
+  // 延長したカバーの後端に、後方を向いた噴射口を置く。
+  part('legs',.38,.34,.20,'metal',sd*1.04,.70,1.32,sd*.35,0,shin,'cylinderZ');
+  part('legs',.26,.24,.035,'frame',sd*1.04,.70,1.426,sd*.35,0,shin,'cylinderZ');
+}
+function hoverVariantParts(part,sd,p){
+  const side=sd<0?'L':'R',shin='shin'+side;
+  part('legs',.42,.72,.52,'frame',sd*.58,1.43,.04,0,0,'thigh'+side);
+  if(p.light)part('legs',.46,.68,.54,'armor',sd*.58,1.48,-.04,sd*.12,0,'thigh'+side);
+  else part('legs',.7*1.12,.65,.72*1.12,'armor',sd*.58,1.45,-.04,0,0,'thigh'+side);
+  const [cw,ch,cd,cy,cz]=p.calf,[sw,sh,depth,sx,sy,sz,angle]=p.skirt;
+  part('legs',p.light?.24:.36,.24,p.light?.40:.54,'frame',sd*.62,.96,.14,0,0,shin,'box');
+  part('legs',cw,ch,cd,'frame',sd*.62,cy,cz,0,0,shin,'box');
+  for(const y of p.bands)part('legs',cw+.02,p.bandH,cd+.04,'metal',sd*.62,y,cz,0,0,shin,'box');
+  part('legs',p.light?.22:.38,p.light?.08:.12,p.light?.22:.38,'metal',sd*.62,p.light?.31:.30,cz,0,0,shin,'cylinderY');
+  part('legs',sw,sh,depth,'armor',sd*sx,sy,sz,sd*angle,0,shin,{kind:'skirt',rear:p.rear,top:p.top,cut:p.cut});
+  const [vx,vy,vz]=p.vent,[tx,ty,tz]=p.trim,[nw,nh,nd,nx,ny,nz]=p.nozzle;
+  part('legs',p.light?.14:.28,p.light?.22:.28,.07,'frame',sd*vx,vy,vz,sd*angle,.17,shin,'box');
+  part('legs',p.light?.18:.34,p.light?.055:.09,.08,'trim',sd*tx,ty,tz,sd*angle,.17,shin,'box');
+  part('legs',nw,nh,nd,'metal',sd*nx,ny,nz,sd*angle,0,shin,'cylinderZ');
+  part('legs',nw*.685,nh*.706,.035,'frame',sd*nx,ny,nz+nd/2+.006,sd*angle,0,shin,'cylinderZ');
+  if(!p.light)part('legs',.38,.10,1.0,'metal',sd*1.12,1.11,.67,sd*angle,0,shin,'box');
+}
+function hoverPrimitive(w,h,d,shape){
+  const kind=typeof shape==='string'?shape:shape.kind;
+  if(kind==='box')return new T.BoxGeometry(w,h,d);
+  if(kind==='skirt'){
+    // 上を絞り、下へ広げる外装。ふくらはぎを囲む筒にはしない。
+    const pos=[],ring=[[-.5,-.30],[-.30,-.5],[.30,-.5],[.5,-.30],[.5,.5],[-.5,.5]];
+    // 前端は保ち、後端だけを延長する。
+    const top=shape.top??.68,cut=shape.cut??.14,extension=shape.rear??.82;
+    const v=(i,y)=>{const f=y>0?top:1,frontCut=y<0?Math.max(0,-ring[i][1]*2)*cut:0,rear=ring[i][1]>0?extension:0;return [ring[i][0]*w*f,y*h+frontCut,ring[i][1]*d*f+rear];};
+    const tri=(a,b,c)=>pos.push(...a,...b,...c),quad=(a,b,c,d)=>{tri(a,b,c);tri(a,c,d);};
+    for(let i=0;i<ring.length;i++){
+      const j=(i+1)%ring.length;
+      quad(v(i,-.5),v(i,.5),v(j,.5),v(j,-.5));
+    }
+    for(let i=1;i<ring.length-1;i++){tri(v(0,.5),v(i+1,.5),v(i,.5));tri(v(0,-.5),v(i,-.5),v(i+1,-.5));}
+    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));geo.computeVertexNormals();return geo;
+  }
+  const geo=new T.CylinderGeometry(.5,.5,1,8);
+  if(kind==='cylinderZ')geo.rotateX(Math.PI/2);
+  geo.scale(w,h,d);return geo;
+}
+
 function buildMech(color, cfg = MECH_DEFAULT) {
   const g = new T.Group();
   const paint = PAINTS.find(p => p.id === cfg.color) || PAINTS[0];
   const C = { armor: paint.color ?? color, frame: 0x26323d, metal: 0x71828e, trim: color, visor: 0xbdf5ff };
   const series = Object.fromEntries(PART_SLOTS.map(k => [k, PARTS[k][cfg[k]].series]));
   const W = k => series[k] === 'swift' ? 0.84 : series[k] === 'harrier' ? 0.9 : ['bulwark','bastion'].includes(series[k]) ? 1.12 : 1;
-  const boxes = { head: [], body: [], arms: [], legs: [] };
-  const part = (slot, w, h, d, c, x, y, z, tilt = 0, pitch = 0, bone = null) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt, pitch, bone]);
+  const boxes = { head: [], body: [], arms: [], legs: [] }, hoverHitBoxes = [];
+  const part = (slot, w, h, d, c, x, y, z, tilt = 0, pitch = 0, bone = null, shape = null) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt, pitch, bone, shape]);
   const lw = W('legs'), bw = W('body'), hw = W('head'), aw = W('arms');
   // 接続する骨格と足裏は共通。薄い斜めの装甲、標準の面構成、厚い箱型の装甲で見分ける。
   for (const sd of [-1, 1]) {
     if (PART_SERIES[series.legs].profile) {
+      const start = boxes.legs.length; // 従来の形は被弾用に残す。描画は新しいホバー脚へ。
       const heavy=PART_SERIES[series.legs].profile==='heavy', light=PART_SERIES[series.legs].profile==='light', w=heavy ? .93 : light ? .47 : .7;
       part('legs',.38,.75,.46,'frame',sd*.58,1.43,.04);
       part('legs',w,.7,.7,'armor',sd*.62,1.45,.08);
@@ -4717,6 +4782,8 @@ function buildMech(color, cfg = MECH_DEFAULT) {
       part('legs',w*.65,.07,.5,'trim',sd*.62,.26,.08);
       part('legs',w*.7,.09,.13,'trim',sd*.62,.87,-.4);
       part('legs',.17,.6,.42,'metal',sd*(.7+w/2),.82,.3,0,0,sd<0 ? 'brakeL' : 'brakeR');
+      hoverHitBoxes.push(...boxes.legs.splice(start));
+      hoverLegParts(part,sd,series.legs);
     } else {
     part('legs', 0.42, 0.72, 0.52, 'frame', sd * 0.58, 1.43, 0.04);
     part('legs', 0.36, 0.65, 0.46, 'frame', sd * 0.62, 0.65, 0.04);
@@ -4892,7 +4959,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   }
   const rig = makeMechRig(PARTS.legs[cfg.legs].kind), skin = new T.MeshLambertMaterial({ vertexColors: true });
   rig.legKind=PARTS.legs[cfg.legs].kind || 'biped';
-  for (const slot of PART_SLOTS) {
+  const armorMesh = (slot, records, hitOnly = false) => {
     const pos = [], nor = [], col = [], ranges = [];
     const merge = (b, c, bone) => {
       const geo = b.index ? b.toNonIndexed() : b, cc = new T.Color(c), start = pos.length;
@@ -4901,16 +4968,16 @@ function buildMech(color, cfg = MECH_DEFAULT) {
       ranges.push({ start, end: pos.length, bone: rig.bones[bone] });
       if (geo !== b) geo.dispose(); b.dispose();
     };
-    for (const [w, h, d, c, x, y, z, tilt, pitch, customBone] of boxes[slot]) {
+    for (const [w, h, d, c, x, y, z, tilt, pitch, customBone, shape] of records) {
       const side = x < 0 ? 'L' : 'R';
       const bone = customBone || (slot === 'head' ? 'head' : slot === 'body' ? y < 2.15 ? 'hip' : 'chest'
         : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
         : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side);
       const box = (height, offset, name) => {
-        const b = new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
+        const b = shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
       };
       // 下端を含むブーツは足首側に残す。元の箱を同じ面で割るので、直立時の外形は変わらない。
-      if (bone === 'shin' + side) {
+      if (bone === 'shin' + side && !shape) {
         const cut = (.95 - y) / (Math.cos(pitch) * Math.cos(tilt));
         if (cut >= h / 2) box(h, 0, 'foot' + side);
         else if (cut > -h / 2) { box(cut + h / 2, (cut - h / 2) / 2, 'foot' + side); box(h / 2 - cut, (cut + h / 2) / 2, bone); }
@@ -4919,7 +4986,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     }
     // 六角の軸受も同じ部位へ統合する。関節を増やしても装甲の描画は4メッシュ。
     for (const [name, bone] of Object.entries(rig.bones)) {
-      if (bone.slot !== slot || !bone.joint) continue;
+      if (bone.slot !== slot || !bone.joint || (!hitOnly && rig.legKind === 'hover' && /^foot[LR]$/.test(name))) continue;
       const p = bone.rest, b = new T.CylinderGeometry(bone.joint, bone.joint, .3, 6);
       b.rotateZ(Math.PI / 2); b.translate(p.x, p.y, p.z); merge(b, C.metal, name);
     }
@@ -4927,10 +4994,25 @@ function buildMech(color, cfg = MECH_DEFAULT) {
     geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     // 関節の届く範囲を包含する。毎フレーム全頂点を走査して球を作り直さない。
     geo.boundingSphere = new T.Sphere(new T.Vector3(0, 2, 0), 8);
-    const m = new T.Mesh(geo, skin); m.castShadow = true; Object.assign(m.userData, { armorSlot: slot, own: true }); g.add(m);
+    const m = new T.Mesh(geo, skin); m.castShadow = true; Object.assign(m.userData, { armorSlot: slot, own: true });
+    if (!hitOnly) g.add(m);
     geo.attributes.position.setUsage(T.DynamicDrawUsage); geo.attributes.normal.setUsage(T.DynamicDrawUsage);
     if (slot === 'head') m.matrixAutoUpdate = false;
-    rig.meshes.push({ mesh: m, pos: new Float32Array(pos), nor: new Float32Array(nor), ranges, rigid: slot === 'head' });
+    const entry = { mesh: m, pos: new Float32Array(pos), nor: new Float32Array(nor), ranges, rigid: slot === 'head' };
+    if (hitOnly) (rig.hitMeshes ||= []).push(entry); else rig.meshes.push(entry);
+    return entry;
+  };
+  for (const slot of PART_SLOTS) armorMesh(slot, boxes[slot]);
+  if (hoverHitBoxes.length) {
+    const hit = armorMesh('legs', hoverHitBoxes, true), visible = rig.meshes.find(m => m.mesh.userData.armorSlot === 'legs').mesh;
+    visible.userData.hitGeometry = hit.mesh.geometry;
+    // 表示を差し替えても、脚の被弾範囲・部位・姿勢は従来のままにする。
+    visible.raycast = function(caster, hits) {
+      const display = this.geometry;
+      this.geometry = this.userData.hitGeometry;
+      try { T.Mesh.prototype.raycast.call(this, caster, hits); }
+      finally { this.geometry = display; }
+    };
   }
   // 武器（v0.11.1）：右手の武器、左手の二丁目、左腕のソード、背中の装置（加速装置・光学迷彩・リペアフィールド・重砲）と重砲の基部
   const wmat = new T.MeshLambertMaterial({ vertexColors: true });
@@ -4941,23 +5023,54 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   gun.userData.armorSlot = gun2.userData.armorSlot = blade.userData.armorSlot = 'arms'; pack.userData.armorSlot = mount.userData.armorSlot = 'body';
   const flame = makeBoosterFlame(bw);
   g.add(flame);
-  const hoverJet=rig.legKind==='hover' ? makeHoverJet() : null;
+  const hoverJet=rig.legKind==='hover' ? makeHoverJet(series.legs) : null;
   if (hoverJet) g.add(hoverJet);
   return { g, gun, gun2, flame, blade, pack, mount, armor: skin, rig, hoverJet };
 }
-function makeHoverJet() {
+function makeHoverJet(series='skimmer') {
   return visualAlloc(() => {
-    const points=[];
-    for (const side of [-1,1]) {
-      const geo=new T.CylinderGeometry(.12,.035,.22,8).toNonIndexed(); geo.translate(side*.62,.13,.08);
-      points.push(...geo.attributes.position.array); geo.dispose();
+  const pos=[],col=[],ranges=[],flows=[];
+  for(const [side,sd] of [['L',-1],['R',1]]){
+    const start=pos.length;
+    const p=HOVER_VARIANT_SPECS[series];
+    const emitters=p?[{kind:'calf',x:sd*.62,y:p.calfEmitY,z:p.calf[4],angle:0,pitch:0,radius:p.calfRadius,length:p.calfLength},{kind:'cover',x:sd*p.nozzle[3],y:p.nozzle[4],z:p.emitZ,angle:sd*p.skirt[6],pitch:-Math.PI/2,radius:p.jetRadius,length:p.jetLength}]:[{kind:'calf',x:sd*.62,y:.24,z:.27,angle:0,pitch:0,radius:.11,length:.23},{kind:'cover',x:sd*1.04,y:.70,z:1.446,angle:sd*.35,pitch:-Math.PI/2,radius:.13,length:.85}];
+    for(const emitter of emitters){
+     const start=pos.length;
+     for(const [radius,length,color] of [[emitter.radius,emitter.length,0x48caff],[emitter.radius*.5,emitter.length*.74,0xe2faff]]){
+      const source=new T.CylinderGeometry(radius,.012,length,8,1,true),geo=source.toNonIndexed();
+      geo.translate(0,-length/2,0);geo.rotateX(emitter.pitch);geo.rotateZ(emitter.angle);geo.translate(emitter.x,emitter.y,emitter.z);const p=geo.attributes.position.array,c=new T.Color(color);
+      pos.push(...p);for(let i=0;i<p.length;i+=3)col.push(c.r,c.g,c.b);geo.dispose();source.dispose();
+     }
+     flows.push({kind:emitter.kind,origin:[emitter.x,emitter.y,emitter.z],start,end:pos.length});
     }
-    const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.Float32BufferAttribute(points,3));
-    const jet=new T.Mesh(geo,new T.MeshBasicMaterial({color:0x81e9ff,transparent:true,opacity:.7,depthWrite:false}));
-    Object.assign(jet.userData,{own:true,visualOnly:true}); jet.raycast=()=>{}; return jet;
+    ranges.push({bone:'shin'+side,start,end:pos.length});
+  }
+  const jet = new T.Mesh(new T.BufferGeometry(), new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:.7,depthWrite:false,blending:T.AdditiveBlending}));
+  jet.geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+  jet.geometry.attributes.position.setUsage(T.DynamicDrawUsage);
+  jet.geometry.setAttribute('color',new T.Float32BufferAttribute(col,3));
+  jet.geometry.boundingSphere=new T.Sphere(new T.Vector3(0,.6,0),4);
+  Object.assign(jet.userData,{own:true,visualOnly:true,rest:new Float32Array(pos),ranges,flows});
+  jet.raycast=()=>{};
+  return jet;
   });
 }
-// 関節はモデル内の座標で計算し、箱ごとに同じ行列を掛ける。描画と射撃のレイが同じ頂点を見る。
+
+function skinHoverJet(u){
+  const jet=u.hoverJet;if(!jet?.visible)return;
+  // 外装と同じ膝の行列を使い、膝を曲げても噴射口と炎を揃える。
+  const p=jet.geometry.attributes.position.array,rest=jet.userData.rest;
+  for(const range of jet.userData.ranges){
+    const e=u.rig.bones[range.bone].matrix.elements;
+    for(let i=range.start;i<range.end;i+=3){
+      const x=rest[i],y=rest[i+1],z=rest[i+2];
+      p[i]=e[0]*x+e[4]*y+e[8]*z+e[12];p[i+1]=e[1]*x+e[5]*y+e[9]*z+e[13];p[i+2]=e[2]*x+e[6]*y+e[10]*z+e[14];
+    }
+  }
+  jet.geometry.attributes.position.needsUpdate=true;
+}
+
+// 関節はモデル内の座標で計算する。ホバー脚だけは従来の被弾形状も同じ姿勢で更新する。
 function makeMechRig(kind = 'biped') {
   const root = new T.Group(), bones = {}, meshes = [];
   const add = (name, parent, p, slot, joint = 0) => {
@@ -5014,7 +5127,10 @@ function skinMech(rig) {
     const e = b.matrix.elements; b.changed = false;
     for (let i = 0; i < 16; i++) { if (Math.abs(e[i] - b.previous[i]) > 1e-10) b.changed = true; b.previous[i] = e[i]; }
   }
-  for (const { mesh, pos, nor, ranges, rigid } of rig.meshes) {
+  for (let pass = 0; pass < 2; pass++) {
+   const meshes = pass === 0 ? rig.meshes : rig.hitMeshes;
+   if (!meshes) break;
+   for (const { mesh, pos, nor, ranges, rigid } of meshes) {
     if (rigid) { mesh.matrix.copy(ranges[0].bone.matrix); continue; }
     const p = mesh.geometry.attributes.position, n = mesh.geometry.attributes.normal;
     let changed = false;
@@ -5030,6 +5146,7 @@ function skinMech(rig) {
       }
     }
     if (changed) { p.needsUpdate = n.needsUpdate = true; mesh.geometry.boundingBox = null; }
+   }
   }
 }
 function resetMechPose(u) {
@@ -5110,12 +5227,12 @@ function mechPose(u, dt) {
   }
   poseAttachment(u.pack); poseAttachment(u.mount); poseAttachment(u.flame);
   if (cur.type !== 'sword') { if (u.blade.visible) poseAttachment(u.blade); if (u.blade2?.visible) poseAttachment(u.blade2); }
-  skinMech(r); r.lastPose = true;
+  skinMech(r); skinHoverJet(u); r.lastPose = true;
 }
 // 機体の形を捨てる（試合の入れ替え、プレビューの作り直し）。武器の形は共有なので捨てない
 function disposeMech(g) {
   const mats = new Set();
-  g.traverse(o => { if (!o.isMesh) return; if (o.userData.own) o.geometry.dispose(); mats.add(o.material); });
+  g.traverse(o => { if (!o.isMesh) return; if (o.userData.own) o.geometry.dispose(); o.userData.hitGeometry?.dispose(); mats.add(o.material); });
   for (const m of mats) m.dispose();
 }
 

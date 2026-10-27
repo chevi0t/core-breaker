@@ -1,0 +1,101 @@
+{
+  "baseCommit": "7b85095b8c6fa92d1b04e73e0d800d975c6c5134",
+  "gameSourceSha256": "cd8d371012b6e5e9c9c017b306035d971b195b5222dac244bb22fbd0871529f3",
+  "checks": {
+    "hoverModels": {
+      "configurations": 36,
+      "posesPerConfiguration": 8,
+      "bipedTypes": 18,
+      "approvedModels": true,
+      "legacyHitShapesAndRays": true,
+      "catalogUnchanged": true,
+      "errors": []
+    },
+    "hoverLegs": {
+      "checks": 567,
+      "ui": 48,
+      "oldCatalogAndBipedTraceCompared": true,
+      "errors": []
+    },
+    "mechShapes": {
+      "combinations": 6561,
+      "shots": 32805,
+      "maxTriangles": 1096,
+      "maxVertices": 3288,
+      "errors": []
+    },
+    "weapons": {
+      "weapons": 302,
+      "errors": []
+    },
+    "quickCheck": {
+      "ref": "origin/main",
+      "seconds": 150,
+      "result": "success"
+    },
+    "botBattles": [
+      {
+        "map": "city",
+        "seconds": 151,
+        "errors": []
+      },
+      {
+        "map": "wide",
+        "seconds": 153,
+        "errors": []
+      },
+      {
+        "map": "mesa",
+        "seconds": 150,
+        "errors": []
+      },
+      {
+        "map": "dock",
+        "seconds": 91,
+        "endedByCoreDestruction": true,
+        "errors": []
+      }
+    ]
+  },
+  "cpuReference": {
+    "measurement": "CPUの武器・姿勢・頂点更新のみ。同一編成・同一入力、描画・BOT思考・物理・GPU処理は含めない。FPSの保証ではない。",
+    "environment": "Chromium 154 / SwiftShader / shared cloud executor",
+    "rows": [
+      {
+        "variant": "models-base",
+        "count": 20,
+        "samples": 240,
+        "warmup": 60,
+        "p50Ms": 0.3999999910593033,
+        "p95Ms": 0.5
+      },
+      {
+        "variant": "models",
+        "count": 20,
+        "samples": 240,
+        "warmup": 60,
+        "p50Ms": 0.5999999940395355,
+        "p95Ms": 0.7000000029802322
+      },
+      {
+        "variant": "models-base",
+        "count": 100,
+        "samples": 240,
+        "warmup": 60,
+        "p50Ms": 2,
+        "p95Ms": 2.5
+      },
+      {
+        "variant": "models",
+        "count": 100,
+        "samples": 240,
+        "warmup": 60,
+        "p50Ms": 3.5,
+        "p95Ms": 4.799999997019768
+      }
+    ]
+  },
+  "limitations": [
+    "実GPUの描画性能とフレーム全体のFPS同等性は未検証"
+  ]
+}
