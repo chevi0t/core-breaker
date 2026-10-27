@@ -4292,8 +4292,10 @@ const PART_VARIANTS = {
 };
 // ホバー型のAC原表。通常移動・高速移動はホバー補正済み。採用記録：research/parts/types/hover-series.json。
 // ネレイド45/45改/46/RT：https://w.atwiki.jp/borderbreak/pages/326.html
+// ロージー：https://w.atwiki.jp/borderbreak/pages/435.html
 const HOVER_PART_TYPES = {
   skimmer: {"rows":{"head":[[550,1.05,1,80],[560,1.05,1,115],[580,1.05,1.08,60],[600,1.05,1.33,60]],"body":[[1200,1.05,115,0.9],[1220,1.05,100,1.2],[1260,1.13,125,1],[1290,1,100,0.9]],"arms":[[740,1.05,0.9,1,1.2,1.41],[760,1.05,1.1,1.05,1.2,1.41],[810,1,0.9,1.09,1.5,1.45],[840,0.95,0.85,1.05,1.6,1.45]],"legs":[[900,1.05,10.8,18.48,1.92,5000],[880,1.05,9.6,18.48,1.65,5150],[940,1.05,9.6,19.44,2.19,5000],[980,1,9,19.44,1.6,5150]]}},
+  anchor: {"rows":{"head":[[810,0.71,0.76,70],[880,0.71,0.76,120],[830,0.71,0.84,80],[920,0.63,0.76,40]],"body":[[1560,0.71,100,1.2],[1580,0.71,80,1.7],[1530,0.71,135,0.65],[1620,0.63,95,0.9]],"arms":[[1010,0.71,1.15,1.04,0.8,1.5],[1030,0.71,1.3,1.09,0.7,1.59],[980,0.78,1.05,0.91,0.9,1.45],[1150,0.63,1.2,1.18,0.75,1.63]],"legs":[[1370,0.71,8.4,15.84,3.27,6550],[1310,0.68,7.8,15.12,2.46,6800],[1350,0.71,7.8,16.56,3.27,6550],[1420,0.63,7.43,15.84,3.81,6800]]}},
 };
 const HOVER_PART_FIELDS = { head: ['weight','armor','aim','lock'], body: ['weight','armor','boost','supply'], arms: ['weight','armor','recoil','reload','swap','ammo'], legs: ['weight','armor','walk','dash','accelTime','cap'] };
 const HOVER_PART_BASE = { head: [600,1,1,80], body: [1250,1,100,1], arms: [850,1,1,1,1,1], legs: [900,1,6.3,21.9,1,4550] };
@@ -4322,6 +4324,7 @@ for (const [series, family] of Object.entries(HOVER_PART_TYPES)) family.rows.leg
 // スウィフト＝シュライク（ブースター+5、歩行+0.45m/s）、ハウンド＝クーガー（射撃補正+5%、重量耐性+150）、
 // ブルワーク＝ヘヴィガード（装甲+3%を各部位。もう1つの DEF耐久+250 は本作に DEF が無いので入れない）
 const PART_SERIES = {
+  anchor: {"name":"アンカー","maker":"volca","profile":"heavy","desc":"重装甲・高積載のホバー。Ⅲはブースト、Ⅳは装甲を優先","set":{"text":"装甲 +4.5%（各部位の被ダメージ −4.5%）","fx":[["head","armor","add",-0.045],["body","armor","add",-0.045],["arms","armor","add",-0.045],["legs","armor","add",-0.045]]},"types":["anchor","anchor2","anchor3","anchor4"]},
   skimmer: {"name":"スキマー","maker":"iris","profile":"balanced","desc":"中量級ホバー。水上と空中を使い分け、Ⅳは射撃と機体制御に寄せる","set":{"text":"射撃補正 +5%、巡航加速時間 −0.27秒","fx":[["head","aim","mul",1.05],["legs","accelTime","add",-0.27]]},"types":["skimmer","skimmer2","skimmer3","skimmer4"]},
   harrier: {"maker":"sylph","name":"ハリアー","desc":"薄い装甲で機動力を優先。Ⅱは歩行とブースト、ⅢはダッシュとSP回復に寄せる","types":["harrier","harrier2","harrier3"],"set":{"text":"ロック距離 +5m、ダッシュ +0.60m/s","fx":[["head","lock","add",5],["legs","dash","add",0.6]]}},
   prism: {"maker":"lumina","name":"プリズム","desc":"射撃補正・再装填・SP回復に優れるが装甲が薄い。Ⅲ胴はブーストを削って回復を優先","types":["prism","prism2","prism3"],"set":{"text":"再装填速度 +4.5%（時間を1.045で割る）","fx":[["arms","reload","mul",0.9569377990430623]]}},
