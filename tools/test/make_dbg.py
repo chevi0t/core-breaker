@@ -54,7 +54,8 @@ EXPOSE = """window.__g = { get hoverLegs() { return hoverLegs; }, get hoverActiv
   get hitMark() { return hitMark; }, get flashDamage() { return flashDamage; }, get damageSectors() { return damageSectors; }, get combatFeedbackUpdate() { return combatFeedbackUpdate; }, get combatFeedbackHud() { return combatFeedbackHud; }, get resetCombatFeedback() { return resetCombatFeedback; },
   get boosterFlameUpdate() { return boosterFlameUpdate; }, get resetBoosterFlame() { return resetBoosterFlame; }, get makeBoosterFlame() { return makeBoosterFlame; },
   get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get lockHud() { return lockHud; }, get spottedHud() { return spottedHud; }, get running() { return running; }, set running(v) { running = v; },
-  get pad() { return pad; }, get qc() { return qc; }, get mapOpen() { return mapOpen; }, get chosenCls() { return chosenCls; }, get range() { return range; } };"""
+  get pad() { return pad; }, get qc() { return qc; }, get mapOpen() { return mapOpen; }, get chosenCls() { return chosenCls; }, get range() { return range; },
+  get touch() { return touch; }, get touchPlay() { return touchPlay; }, get TOUCH() { return TOUCH; }, get mobileOk() { return mobileOk; }, get TEAM_SIZES() { return TEAM_SIZES; }, get wsel() { return wsel; }, get consoleMode() { return consoleMode; }, get mouseDown() { return mouseDown; }, get rightDown() { return rightDown; } };"""
 
 
 def rep(s, a, b):
