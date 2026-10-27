@@ -309,9 +309,9 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .page { display: grid; gap: 16px; }
 .page[hidden] { display: none; }
 .menu { display: grid; gap: 8px; }
-.menu button { font-family: var(--display); font-size: 17px; letter-spacing: .1em; text-align: left; padding: 10px 14px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.menu button small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); text-align: right; }
-.menu button:disabled { opacity: .45; cursor: default; }
+.menu > button { font-family: var(--display); font-size: 17px; letter-spacing: .1em; text-align: left; padding: 10px 14px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.menu > button small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); text-align: right; }
+.menu > button:disabled { opacity: .45; cursor: default; }
 /* 戦闘中BGMのトグルスイッチ（v0.10、ユーザー指定） */
 .sw { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; font-family: var(--display); font-size: 17px; letter-spacing: .1em; color: var(--hud); }
 .sw small { font-family: var(--body); font-size: 12px; letter-spacing: 0; color: var(--dim); margin-left: 12px; }
@@ -326,8 +326,8 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .thanks h3 { margin: 0; font-family: var(--display); font-size: 18px; letter-spacing: .08em; }
 .thanks p { font-size: 13px; }
 .thanks a { color: var(--blue); word-break: break-all; }
-.menu button:not(:disabled):hover, .back:hover, .mapCard:hover { border-color: var(--blue); }
-.menu button:focus-visible, .back:focus-visible, .mapCard:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+.menu > button:not(:disabled):hover, .back:hover, .mapCard:hover { border-color: var(--blue); }
+.menu > button:focus-visible, .back:focus-visible, .mapCard:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 .pgh { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .pgh h2 { margin: 0; font-family: var(--display); font-size: 26px; letter-spacing: .08em; }
 .back, .optionAction { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; justify-self: start; }
@@ -816,6 +816,34 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 #rangeHud b { font-size: 18px; } #rangeHud small { display: block; color: #d8c9a0; line-height: 1.5; }
 #rangeHud dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; } #rangeHud dt { color: #d8c9a0; } #rangeHud dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .pghBtns { display: flex; gap: 10px; align-items: center; }
+/* メニューは2列（2026-10-27、ユーザーが選んだ「2列にまとめる」）：左に出撃の準備、右にほかの画面へのボタン。設定はオプションへ */
+.card.menuWide { max-width: 1060px; }
+.menuHead { display: grid; gap: 6px; }
+#pgMenu { gap: 14px; }
+#pgMenu .menuHead h1 { font-size: clamp(28px, 4vw, 42px); }
+.menuMain > button { white-space: nowrap; }
+.menuMain > button small { white-space: normal; }
+.menuCols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+.colHead { margin: 0; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .16); font: 600 13px var(--body); letter-spacing: .14em; color: var(--dim); }
+.menuSide button { flex-direction: column; align-items: flex-start; gap: 3px; }
+.menuSide button small { text-align: left; }
+.menuMain #start { justify-self: stretch; margin-top: 4px; }
+#ovCls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#battleSizeControl { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 8px 10px; }
+#battleSizeControl label { display: flex; align-items: center; gap: 10px; }
+#battleSizeControl label select { flex: 1; }
+#battleSizeControl #resetBattleSize { grid-column: auto; padding: 7px 12px; font: inherit; font-size: 13px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
+#resetBattleSize:hover { border-color: var(--blue); } #resetBattleSize:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
+.teamChoice legend small { margin-left: 10px; font-size: 12px; color: var(--dim); }
+.optCols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; align-items: start; }
+.optCol { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.optCol .optionSliders { margin: 4px 0; }
+.optCol .optionHead { margin: 6px 0 0; }
+.optActions { display: flex; flex-wrap: wrap; gap: 12px; }
+#consoleList .consoleCard { padding: 10px; }
+#consoleList .consoleMini { height: 96px; }
+@media (max-width: 760px) { .menuCols, .optCols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { #ovCls { grid-template-columns: minmax(0, 1fr); } }
 #rangeStart { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 211, 77, .14); color: #ffe7a3; border: 1px solid #ffd34d; cursor: pointer; }
 #rangeStart:hover { background: rgba(255, 211, 77, .26); } #rangeStart:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 @media (max-height: 600px) { #tutorialHud { top: 83px; left: 12px; padding: 8px 12px; width: 290px; font-size: 12px; } #tutorialHud h2 { font-size: 16px; } #tutorialHud p { margin: 5px 0; } }
@@ -883,83 +911,99 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
   <small id="rangeHint"></small></aside>
 <aside id="tutorialHud" hidden aria-label="チュートリアルの課題"><small id="tutorialCount"></small><progress id="tutorialProgress" value="0" max="13" aria-label="演習の進み具合"></progress><div aria-live="polite" aria-atomic="true"><h2 id="tutorialTitle"></h2><p id="tutorialInstruction"></p><strong id="tutorialResult"></strong></div><p><small>Esc：一時停止・やり直し・スキップ・終了</small></p></aside>
 <div id="overlay">
-  <div class="card" id="ovCard">
+  <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
-      <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
-      <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。操作説明とマップを確かめ、兵装を選んで出撃してください。</p>
-      <div class="playerProfile">
-        <label for="playerName">プレイヤー名</label>
-        <input id="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="あなた" aria-describedby="playerNameHint">
-        <small id="playerNameHint">20文字まで・自動保存。空欄の場合は「あなた」。</small>
-      </div>
+      <header class="menuHead">
+        <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
+        <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
+      </header>
       <div id="ovBoard"></div>
-      <nav class="menu" aria-label="メニュー">
-        <button type="button" data-page="pgTutorialIntro">チュートリアル<small>はじめての方へ・実際に動かして練習</small></button>
-        <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作</small></button>
-        <button type="button" data-page="pgOptions">オプション<small>音量・視野角（戦闘中はF3）</small></button>
-        <button type="button" data-page="pgMap">マップ選択<small id="mapNow"></small></button>
-        <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
-        <fieldset class="battleSize" id="battleSizeControl">
-          <legend>参加人数・BOT数</legend>
-          <label>片軍の人数（両軍共通）<select id="teamSize" aria-label="片軍の人数"></select></label>
-          <small id="battleSizeHint" aria-live="polite"></small>
-          <button type="button" id="resetBattleSize">マップの推奨人数に戻す</button>
-        </fieldset>
-        <button type="button" data-page="pgCustom">機体カスタマイズ<small>機体のパーツ・色と、兵装ごとの武器を選ぶ（構成を3つ保存できる）</small></button>
-        <button type="button" data-page="pgConsole">コンソール<small id="consoleNow">標準</small></button>
-        <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
-        <label class="sw"><span>戦闘中BGM<small id="bgmNote">試合中に曲を流す</small></span><input type="checkbox" role="switch" id="bgmSw" checked><i aria-hidden="true"></i></label>
-        <label class="sw"><span>音声アナウンス<small>戦況をブラウザの音声で読み上げる（文字はいつも出る）</small></span><input type="checkbox" role="switch" id="voiceSw" checked><i aria-hidden="true"></i></label>
-      </nav>
-      <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
-      <fieldset class="teamChoice" id="teamChoice">
-        <legend>出撃側</legend>
-        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
-        <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
-      </fieldset>
-      <p class="note">自軍は青、敵軍は橙で表示します。地図の上が北、下が南です。</p>
-      <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
-      <button id="start" type="button">出撃する</button>
+      <div class="menuCols">
+        <div class="menu menuMain" role="group" aria-labelledby="menuMainHead">
+          <h2 class="colHead" id="menuMainHead">出撃の準備</h2>
+          <button type="button" data-page="pgMap">マップ<small id="mapNow"></small></button>
+          <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
+          <fieldset class="battleSize" id="battleSizeControl">
+            <legend>参加人数</legend>
+            <label>片軍の人数<select id="teamSize" aria-label="片軍の人数"></select></label>
+            <button type="button" id="resetBattleSize">推奨に戻す</button>
+            <small id="battleSizeHint" aria-live="polite"></small>
+          </fieldset>
+          <fieldset class="teamChoice" id="teamChoice">
+            <legend>出撃側<small>自軍は青、敵軍は橙。地図の上が北</small></legend>
+            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
+            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
+          </fieldset>
+          <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
+          <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
+          <button id="start" type="button">出撃する</button>
+        </div>
+        <nav class="menu menuSide" aria-labelledby="menuSideHead">
+          <h2 class="colHead" id="menuSideHead">メニュー</h2>
+          <button type="button" data-page="pgTutorialIntro">チュートリアル<small>はじめての方へ。実際に動かして練習</small></button>
+          <button type="button" id="menuRange">射撃場<small>選んでいる兵装で試し撃ち</small></button>
+          <button type="button" data-page="pgCustom">機体カスタマイズ<small>パーツ・色と兵装ごとの武器（構成を3つ保存）</small></button>
+          <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
+          <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作・謝辞</small></button>
+          <button type="button" data-page="pgOptions">オプション<small>音・画面・コンソール・コントローラー（戦闘中はF3）</small></button>
+        </nav>
+      </div>
       <p class="note">PCのキーボードとマウスか、コントローラー（PS5 など）で遊べます。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
     </section>
     <section class="page" id="pgOptions" hidden>
       <div class="pgh"><h2>オプション</h2><button type="button" class="back">戻る</button></div>
       <p>設定は自動保存されます。戦闘中は F3 で開き、調整後に戦闘へ戻れます。</p>
-      <div class="optionSliders">
-        <label for="optMaster">全体音量 <output id="optMasterValue" for="optMaster"></output></label>
-        <input id="optMaster" type="range" min="0" max="100" step="1">
-        <label for="optSfx">効果音 <output id="optSfxValue" for="optSfx"></output></label>
-        <input id="optSfx" type="range" min="0" max="100" step="1">
-        <label for="optMusic">BGM <output id="optMusicValue" for="optMusic"></output></label>
-        <input id="optMusic" type="range" min="0" max="100" step="1">
-        <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
-        <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
+      <div class="optCols">
+        <div class="optCol">
+          <h3 class="optionHead">音</h3>
+          <div class="optionSliders">
+            <label for="optMaster">全体音量 <output id="optMasterValue" for="optMaster"></output></label>
+            <input id="optMaster" type="range" min="0" max="100" step="1">
+            <label for="optSfx">効果音 <output id="optSfxValue" for="optSfx"></output></label>
+            <input id="optSfx" type="range" min="0" max="100" step="1">
+            <label for="optMusic">BGM <output id="optMusicValue" for="optMusic"></output></label>
+            <input id="optMusic" type="range" min="0" max="100" step="1">
+          </div>
+          <label class="sw"><span>戦闘中BGM<small id="bgmNote">試合中に曲を流す</small></span><input type="checkbox" role="switch" id="bgmSw" checked><i aria-hidden="true"></i></label>
+          <label class="sw"><span>音声アナウンス<small>戦況をブラウザの音声で読み上げる（文字はいつも出る）</small></span><input type="checkbox" role="switch" id="voiceSw" checked><i aria-hidden="true"></i></label>
+          <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
+          <h3 class="optionHead">画面</h3>
+          <div class="optionSliders">
+            <label for="optFov">視野角（縦） <output id="optFovValue" for="optFov"></output></label>
+            <input id="optFov" type="range" min="60" max="100" step="1" aria-describedby="fovHint">
+          </div>
+          <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
+        </div>
+        <div class="optCol">
+          <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
+          <p class="note">戦闘中も F2 キーで切り替えられます。</p>
+          <div id="consoleList" role="group" aria-label="コンソールの種類"></div>
+          <p class="note" id="consoleSelection" role="status"></p>
+          <h3 class="optionHead">コントローラー</h3>
+          <p class="note" id="padStatus" role="status"></p>
+          <div class="optionSliders">
+            <label for="optPadLook">視点の速さ（右スティック） <output id="optPadLookValue" for="optPadLook"></output></label>
+            <input id="optPadLook" type="range" min="0" max="100" step="1">
+          </div>
+          <label class="sw"><span>視点の上下反転<small>右スティックを上へ倒すと下を向く</small></span><input type="checkbox" role="switch" id="optPadInvert"><i aria-hidden="true"></i></label>
+          <label class="sw"><span>振動<small>被弾したときに震える（ブラウザによっては震えません）</small></span><input type="checkbox" role="switch" id="optPadRumble"><i aria-hidden="true"></i></label>
+        </div>
       </div>
-      <p class="note" id="fovHint">標準は70°。数値を上げると広い範囲が見えます。ダッシュ・ロックオン・スコープではここから画角が変化します。</p>
-      <p class="note">50対50では周囲の戦闘音を自動で抑えます。自機の音・警告音は聞き取りやすさを優先します。</p>
-      <h3 class="optionHead">コントローラー</h3>
-      <p class="note" id="padStatus" role="status"></p>
-      <div class="optionSliders">
-        <label for="optPadLook">視点の速さ（右スティック） <output id="optPadLookValue" for="optPadLook"></output></label>
-        <input id="optPadLook" type="range" min="0" max="100" step="1">
+      <div class="optActions">
+        <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
+        <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
       </div>
-      <label class="sw"><span>視点の上下反転<small>右スティックを上へ倒すと下を向く</small></span><input type="checkbox" role="switch" id="optPadInvert"><i aria-hidden="true"></i></label>
-      <label class="sw"><span>振動<small>被弾したときに震える（ブラウザによっては震えません）</small></span><input type="checkbox" role="switch" id="optPadRumble"><i aria-hidden="true"></i></label>
-      <button type="button" class="optionAction" id="optionsReset">標準設定に戻す</button>
-      <button type="button" class="optionAction" id="optionsResume" hidden>戦闘に戻る</button>
     </section>
     <section class="page" id="pgPilot" hidden>
-      <h2>パイロット</h2>
+      <div class="pgh"><h2>パイロット</h2><button type="button" class="back">戻る</button></div>
+      <div class="playerProfile">
+        <label for="playerName">プレイヤー名</label>
+        <input id="playerName" type="text" maxlength="20" autocomplete="nickname" placeholder="あなた" aria-describedby="playerNameHint">
+        <small id="playerNameHint">20文字まで・自動保存。空欄の場合は「あなた」。</small>
+      </div>
       <p>いっしょに出撃する猫を選んでください。機体の性能は変わりません。</p>
       <div id="pilotList" role="group" aria-label="猫のパイロット8匹"></div>
       <p class="note" id="pilotSelection" aria-live="polite"></p>
-      <button type="button" class="back">戻る</button>
-    </section>
-    <section class="page" id="pgConsole" hidden>
-      <div class="pgh"><h2>コンソール</h2><button type="button" class="back">戻る</button></div>
-      <p>戦闘画面の配置を選びます。選択は自動で保存され、戦闘中も F2 キーで切り替えられます。</p>
-      <div id="consoleList" role="group" aria-label="コンソールの種類"></div>
-      <p class="note" id="consoleSelection" role="status"></p>
       <button type="button" class="back">戻る</button>
     </section>
     <section class="page" id="pgTutorialIntro" hidden>
@@ -975,7 +1019,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
     </section>
     <section class="page" id="pgRangePause" hidden>
       <h2>射撃場を一時停止中</h2><p>標的は撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
-      <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ戻る</button></div>
+      <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ</button><button type="button" id="rangeToMenu">メニューへ</button></div>
     </section>
     <section class="page" id="pgTutorialDone" hidden>
       <h2 id="tutorialDoneTitle">基礎演習クリア！</h2><p id="tutorialDoneText"></p>
@@ -987,7 +1031,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <div class="pgh"><h2>操作説明</h2><button type="button" class="back">戻る</button></div>
       <p>敵ベースのコアを撃ってゲージを0にすれば勝ち。機体が撃破されるたびに、その陣営のコアも1/160減ります（50対50では1/800）。制限時間（マップごとに決まっている）が過ぎたら、残りコアゲージが多い側の勝ちです。コスト制のマップ（港の倉庫街など）はコアが無く、上のゲージが両軍の戦力です。</p>
       <div class="keys">
-        <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。メニューの「コンソール」でも選べます</span>
+        <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。オプションの「コンソール」でも選べます</span>
         <kbd>F3</kbd><span>オプション（音量・視野角）。開いている間は戦闘を一時停止</span>
         <kbd>WASD</kbd><span>移動</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
@@ -1023,7 +1067,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
         <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
-        <kbd>N</kbd><span>効果音と音声アナウンスのオン・オフ（戦闘中BGMと音声アナウンスはメニューのスイッチでも切り替え）</span>
+        <kbd>N</kbd><span>効果音と音声アナウンスのオン・オフ（戦闘中BGMと音声アナウンスはオプションのスイッチでも切り替え）</span>
         <kbd>Tab</kbd><span>押している間、両軍のスコア表（戦闘・占拠・貢献の点と合計、撃破・撃破支援・大破の数）を表示。試合の結果画面にも出ます</span>
         <kbd>よろけ・ダウン</kbd><span>1回に3500以上（格闘は3000以上）のダメージを受けるとよろけて少し押され、7000以上（格闘は6000以上）だと吹き飛んで倒れます。吹き飛んでいる間に Space と Shift を同時に押すと、ブーストを32使って受け身</span>
         <kbd>着地硬直</kbd><span>高い所（約12m以上）から落ちて着地すると、少しの間動けません。着地の直前に Space を押すか、Space 長押しで降下を緩めれば出ません</span>
@@ -1052,7 +1096,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
         <kbd>メニュー</kbd><span>十字キーか左スティックで選び、× で決定、○ で戻る。スライダーと選択欄は左右で値を変えます</span>
       </div>
       <div class="keys">
-        <kbd>マップ</kbd><span>メニューの「マップ選択」で選びます。人数・プラントの数・試合時間はマップごとに違い、地形やリペアポッド・カタパルトの場所と一緒にマップ選択の説明にあります</span>
+        <kbd>マップ</kbd><span>メニューの「マップ」で選びます。人数・プラントの数・試合時間はマップごとに違い、地形やリペアポッド・カタパルトの場所と一緒にマップ選択の説明にあります</span>
         <kbd>プラント</kbd><span>A・B・C…の円の中で1機あたり10秒で占拠ゲージが動きます（2機目以降は半分ずつ加算、敵がいれば人数を差し引き）。敵のプラントはいったん中立に戻してから占拠。自軍プラントは再出撃地点になります</span>
         <kbd>カタパルト</kbd><span>紫の輪が付いた射出台に乗ると、輪の向きへ射出。どの台も陣営に関係なく誰でも使えます（敵も使えます）。最初の1秒は操作できず、その後は空中ダッシュやSpace長押しで着地点を調整できます</span>
         <kbd>再出撃</kbd><span>ベースか自軍プラントを選んで出撃。プラントからは、プラントの中心から自軍ベース側へ約50m離れた所に出ます。出撃してから2秒は無敵です（点滅）。撃破されると、待ち時間の前半は倒した相手を映し、後半は自由に見回せます</span>
@@ -1264,7 +1308,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyN' && !e.repeat && !/INPUT|TEXTAREA/.test(e.target.tagName)) { muted = !muted; applyAudioSettings(); feed(muted ? '効果音と音声アナウンスをオフ（Nで戻す）' : '効果音と音声アナウンスをオン'); if (muted) window.speechSynthesis?.cancel(); } // v0.15から N（M は全体マップ）
 });
 // ---- 戦闘中BGM（v0.10、ユーザー指定の曲。Author: Centurion_of_war さんの nightmareheavy.ogg、OpenGameArt.org「Nightmare(prototype)」、CC0。出典は sounds/CREDITS.md）----
-// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかメニューのスイッチで止まる。N の効果音オフとは別
+// music.js の window.MUSIC_DATA.bgm（ogg を base64 にした文字列）を繰り返し鳴らす。試合中（running）だけ鳴り、試合が終わるかオプションのスイッチで止まる。N の効果音オフとは別
 const BGM_VOL = 0.32, BGM_KEY = 'coreBreakerBgm';
 let bgmOn = true, bgmBuf = null, bgmNode = null, bgmFail = false;
 try { bgmOn = localStorage.getItem(BGM_KEY) !== 'off'; } catch (_) {}
@@ -10372,7 +10416,7 @@ const killcamOn = () => !!killcam && !player.alive && player.respawnT > killcam.
 // ---- HUD ----
 const $ = id => document.getElementById(id);
 // 戦況アナウンス（v0.15、ユーザーの選んだ「本家から移植」の一番：プラント占拠・コア被弾・残り時間）。画面の上の方に2.6秒出し、短い音を鳴らす。
-// 音声アナウンス（メニューのスイッチ。ブラウザの読み上げ、日本語の声があれば）でも読む。N の効果音オフで一緒に消える。
+// 音声アナウンス（オプションのスイッチ。ブラウザの読み上げ、日本語の声があれば）でも読む。N の効果音オフで一緒に消える。
 // 同じ知らせ（key）は gap 秒あけないと出さない。一度に出すのは3つまで
 const ANN_TIME = 2.6, VOICE_KEY = 'coreBreakerVoice';
 let voiceOn = true;
@@ -10661,9 +10705,11 @@ function updatePlayerName(commit = false) {
   playerName = normalizePlayerName($('playerName').value);
   if (commit) $('playerName').value = playerName;
   if (player?.isPlayer) player.name = playerName;
-  pilotHud(player);
+  pilotHud(player); renderPilotNow();
   try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
 }
+// メニューの「パイロット」の横に名前と猫を出す（名前の入力欄はパイロットの画面。2026-10-27）
+function renderPilotNow() { const c = PILOTS.find(c => c.id === pilotChoice) || PILOTS[0]; $('pilotNow').textContent = `${playerName}・${c.name}`; }
 $('playerName').addEventListener('input', e => { if (!e.isComposing) updatePlayerName(); });
 $('playerName').addEventListener('compositionend', () => updatePlayerName(true));
 $('playerName').addEventListener('change', () => updatePlayerName(true));
@@ -10696,7 +10742,7 @@ function pilotHud(p) {
 $('pilotList').innerHTML = PILOTS.map(c => `<button type="button" class="pilotCard" data-pilot-choice="${c.id}" aria-pressed="false">${pilotFace(c.id, true)}<b>${c.name}</b><small>${c.trait}</small></button>`).join('');
 function setPilot(id, save = true) {
   const c = PILOTS.find(c => c.id === id) || PILOTS[0]; pilotChoice = c.id;
-  $('pilotNow').textContent = c.name + '・' + c.trait;
+  renderPilotNow();
   $('pilotSelection').textContent = `選択中：${c.name}・${c.trait}`;
   for (const b of $('pilotList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.pilotChoice === c.id);
   pilotHud(player);
@@ -10721,7 +10767,6 @@ function setConsole(id, save = true) {
   const c = CONSOLES.find(c => c.id === id) || CONSOLES[0];
   consoleMode = c.id;
   document.body.dataset.console = c.id;
-  $('consoleNow').textContent = c.name;
   $('consoleSelection').textContent = `選択中：${c.name}。${c.id === 'flight' ? '下中央にブーストとSP、右側に装備を表示します。' : '照準の下のSPの棒と、戦闘に必要な情報を確認できます。'}`;
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
@@ -10851,7 +10896,8 @@ function flightWeapons(p, spOn) {
 }
 function showPage(id) {
   for (const pg of document.querySelectorAll('#overlay .page')) pg.hidden = pg.id !== id;
-  $('ovCard').classList.toggle('wide', id === 'pgConsole' || id === 'pgMenu' && !!$('ovBoard').innerHTML);
+  $('ovCard').classList.toggle('wide', id === 'pgOptions');
+  $('ovCard').classList.toggle('menuWide', id === 'pgMenu');
   $('ovCard').classList.toggle('xwide', id === 'pgCustom');
   $('overlay').scrollTop = 0;
 }
@@ -11284,7 +11330,7 @@ function selectMap(id, persist = true) {
     if (persist) try { localStorage.setItem(MAP_KEY, id); } catch (_) {}
     // 前の試合の結果は消す
     $('ovTitle').innerHTML = 'コア<span>ブレイカー</span> 試作';
-    $('ovText').textContent = 'ボーダーブレイクの遊びを再現するための試作です。操作説明とマップを確かめ、兵装を選んで出撃してください。';
+    $('ovText').textContent = 'ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。';
     $('ovBoard').innerHTML = '';
     $('start').textContent = '出撃する';
   }
@@ -11986,12 +12032,13 @@ function tutorialRightClick() {
 
 // ---- 射撃場 ----
 // カスタマイズ画面の「射撃場で試す」から、その画面で選んでいる兵装と今の機体で入る（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」）。
+// メニューの「射撃場」からは、出撃に選んでいる兵装で入る。
 // 標的は撃ち返さない敵機（AIも物理も動かさない。動く標的だけ rangeTick が左右に動かす）。撃破しても2秒で起き上がり、4秒当てないと耐久が戻る。
 // コアは減らず、時間切れも無い。左上に最後の命中・続けて当てた合計（2秒あくと数え直す）・毎秒・撃破までの秒を出す。Esc（コントローラーはオプション）で一時停止
-function startRange() {
+function startRange(cls = cuCls) {
   if (tutorial || range) return;
   range = { saved: { mapId, chosenCls, chosenTeam, selectedTeamSize, cuCls }, targets: [], t: 0, sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null, optionsPage: null };
-  chosenCls = cuCls; chosenTeam = 'B';
+  chosenCls = cls; chosenTeam = 'B';
   running = false; optionsPaused = false; tutorialClearInput();
   selectMap(RANGE_ID, false); setup(); annReset();
   rangePlace(); rangeResume();
@@ -12027,17 +12074,17 @@ function rangePause() {
   showPage('pgRangePause'); $('overlay').hidden = false;
   document.exitPointerLock?.(); $('rangeResume').focus();
 }
-// 入る前のマップ・兵装・陣営・人数に戻して、カスタマイズ画面へ
-function exitRange() {
+// 入る前のマップ・兵装・陣営・人数に戻して、カスタマイズ画面（試した兵装のタブ）かメニューへ
+function exitRange(to = 'pgCustom') {
   if (!range) return;
-  const saved = range.saved; range = null; running = false; optionsPaused = false;
+  const saved = range.saved, tried = chosenCls; range = null; running = false; optionsPaused = false;
   tutorialClearInput(); clearPings(); stopMovementSounds(); killcam = null;
   chosenCls = saved.chosenCls; chosenTeam = saved.chosenTeam; selectedTeamSize = saved.selectedTeamSize;
   $('rangeHud').hidden = true;
   selectMap(saved.mapId, false); renderClsButtons();
   for (const radio of $('teamChoice').querySelectorAll('input')) radio.checked = radio.value === chosenTeam;
-  cuCls = saved.cuCls; cuHover = null; renderCustom();
-  showPage('pgCustom'); $('overlay').hidden = false; document.exitPointerLock?.(); $('rangeStart').focus();
+  cuCls = to === 'pgCustom' ? tried : saved.cuCls; cuHover = null; renderCustom();
+  showPage(to); $('overlay').hidden = false; document.exitPointerLock?.(); $(to === 'pgCustom' ? 'rangeStart' : 'menuRange').focus();
 }
 function rangeHit(t, dmg, killed) {
   const r = range;
@@ -12073,10 +12120,12 @@ function rangeTick(dt) {
   put('rangeKill', r.killT != null && fresh ? `${r.killT.toFixed(2)}秒` : '—');
   put('rangeHint', `${keyName('Esc', 'オプションボタン')}：一時停止（弾と耐久を戻す・カスタマイズへ戻る）。左後ろの緑の円で回復と補給`);
 }
-$('rangeStart').addEventListener('click', startRange);
+$('rangeStart').addEventListener('click', () => startRange(cuCls));
+$('menuRange').addEventListener('click', () => startRange(chosenCls));
 $('rangeResume').addEventListener('click', rangeResume);
 $('rangeRefill').addEventListener('click', () => { rangePlace(); rangeResume(); });
-$('rangeToCustom').addEventListener('click', exitRange);
+$('rangeToCustom').addEventListener('click', () => exitRange('pgCustom'));
+$('rangeToMenu').addEventListener('click', () => exitRange('pgMenu'));
 addEventListener('keydown', e => {
   if (!range || e.repeat || e.defaultPrevented || e.target.closest?.('input, textarea, select')) return;
   if (e.code === 'Escape' && running) { e.preventDefault(); rangePause(); }
