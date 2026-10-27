@@ -135,7 +135,9 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 - `cityTerrain.district.ferrisWheel`：`center:[x,y,z]`、`radius`、`roofY`、任意の`yaw`・`color`・`cabins`・`supportHalfWidth`・`supportHalfDepth`で静止観覧車を生成する。輪・スポーク・ゴンドラの描画面を接触・射線にも使う。
 - `cityTerrain.district.facadeScale`：窓模様の寸法倍率。未指定は1、環都は0.5。街を縮めても外壁の階数を保ち、他都市の表示を変えない。
 
-都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、採用済み500m四方の `kanto` は `.01`（1cm格子、旧1km版は2cm）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
+都市の `halfExtents:[半幅X,半幅Z]` は任意の長方形境界。省略時は従来の `[half,half]`。指定値をマップの `size` と一致させ、`half` はその最大値とする。接触境界・経路判定・壁・地図の切り出しに同じ範囲を使う。
+
+都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、採用済み500m四方の `kanto` は `.01`（1cm格子、旧1km版は2cm）。保存面の `step` は `.01`・`.02`・`.05`。双湾展示区は輪郭・面とも `.05`（5cm格子）で、長辺のint16座標の桁あふれを避ける。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
 
 `kanto` の傾斜大屋根は `surfaces.brid` に厚さ付きの板として保存し、既存の橋と同じ接地・下面・弾判定を使う。`district.stationCanopy` の `ring`・`top`・`color` は地図の投影と板の表示色をそろえるための属性。このマップの `brid` は大屋根だけを含む。
 
@@ -238,3 +240,7 @@ Bot同士の対戦（プラントの取り合いが起きるか、Botが詰ま�
 - コンテナは 2.6m と 5.2m（2段積み）。2026-10-20のジャンプ変更後はどちらもジャンプで乗れる。
 - Botの通り道：自軍側7節点（ベース前、左右の通り、荷揚げ場の坂の下と上、船だまり）。
 - 確認（2026-10-18）：map_check で通り道は全部つながり、ページのエラーは0。v0.10.9 でも同じ。Botだけの2対2を4回回すと13〜22秒で決着（Botは1機あたり4〜5秒で落ちる。人が入ると延びるはず）。
+
+### 双湾展示区（sowan）
+
+お台場〜有明のPLATEAU由来、XYZ半縮尺の1,650×625m。左右2基地・4プラント・10カタパルトを配置する。地形はプラント座標を参照せず生成し、占拠地点を既存の空地へ置く。非圧縮のマップ単体500,000B以下。出典・加工・再生成・実走は `mapdesign/sowan/`。
