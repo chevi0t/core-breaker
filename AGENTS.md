@@ -11,6 +11,7 @@
 - Issue に書いていない仕様は変えない。決める必要があった所は、PR の説明に「決めたこと」として書く（オーナーと Claude が確かめる）。
 - PR の説明には「変更前」「変更後」と、確かめたこと（動かしたテストとその結果）を書く。
 - 公開版のページ（claude.ai）と配布 zip（`dist/`、`tools/build_zip.py`）は Claude が作る。PR では扱わない。
+- GitHub Pages（https://chevi0t.github.io/core-breaker/ 、`gh-pages` ブランチ）は、main が変わった後に Claude でも Codex でも作り直して push してよい（オーナーの指定 2026-10-27）。手順は下の「GitHub Pages の更新」。
 
 ## 自分でマージしてよい変更（オーナーの指定 2026-10-20）
 
@@ -43,9 +44,22 @@
 
 **触らない所**（Claude かオーナーの物）
 
-- 公開ページ、`dist/`、`releases/`、`tools/build_zip.py`、`tools/repo_sync.py`。
+- claude.ai の公開ページ、`dist/`、`releases/`、`tools/build_zip.py`、`tools/repo_sync.py`、`tools/build_pages.py`（使うのはよい）。
 - 道具で作るファイル：`prototype/maps.js`・`sounds.js`・`music.js`（手で書き換えない）。
 - `AGENTS.md`、`CLAUDE.md`、`docs/codex/`（手順書と Issue の中身）、`plan.md`。
+
+## GitHub Pages の更新（Codex も push してよい。オーナーの指定 2026-10-27）
+
+https://chevi0t.github.io/core-breaker/ は `gh-pages` ブランチの直下をそのまま配信している。main に変更がマージされた後（自分でマージした PR も含む）、次の手順で作り直して `gh-pages` へ push してよい。PR は要らない。
+
+1. マージ済みの最新の main を取り出す（`git checkout main && git pull --ff-only`）。コミットしていない変更がある状態では作らない。
+2. `gh-pages` を別のフォルダに取り出す。初回は `git fetch origin gh-pages && git worktree add ../core-breaker-pages origin/gh-pages -B gh-pages`、2回目からは `git -C ../core-breaker-pages pull --ff-only origin gh-pages`。
+3. `python3 tools/build_pages.py ../core-breaker-pages` で作り直す（index.html・maps.js・sounds.js・music.js・three.min.js・credits/・build-info.json・README.md）。
+4. `node tools/test/pages_check.js ../core-breaker-pages` が成功することを確かめる（スマホと PC の大きさで出撃まで、同梱の three.js、出典のページ、ハッシュ）。
+5. `../core-breaker-pages` でコミットし（メッセージは「〇〇を公開版へ反映」）、`git push origin gh-pages`。`--force` は使わない。push が断られたら（ほかの誰かが先に更新した）、2 からやり直す。
+
+- `gh-pages` を main へマージしない。`gh-pages` の中身を手で書き換えない（いつも `tools/build_pages.py` で作る）。
+- 出すのは main の物だけ（作業中のブランチや、マージ前の PR の中身を出さない）。
 
 ## 構成
 
