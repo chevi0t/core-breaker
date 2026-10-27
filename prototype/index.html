@@ -811,6 +811,13 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 #tutorialHud small { color: #a9c9d6; } #tutorialHud h2 { font-size: 20px; margin: 7px 0; } #tutorialHud p { margin: 8px 0; line-height: 1.65; } #tutorialHud strong { color: #8effbd; }
 #tutorialHud[data-complete="true"] { border-color: #8effbd; } #tutorialProgress { width: 100%; height: 5px; accent-color: #70d9e8; }
 .tutorialActions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0; } .tutorialActions button { padding: 12px 18px; }
+/* 射撃場（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」） */
+#rangeHud { position: fixed; z-index: 32; top: 126px; left: 20px; width: min(300px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid #ffd34d; border-left: 4px solid #ffd34d; border-radius: 8px; background: rgba(20, 16, 6, .9); color: #fff8e6; box-shadow: 0 3px 18px #0008; pointer-events: none; font-size: 14px; }
+#rangeHud b { font-size: 18px; } #rangeHud small { display: block; color: #d8c9a0; line-height: 1.5; }
+#rangeHud dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; } #rangeHud dt { color: #d8c9a0; } #rangeHud dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.pghBtns { display: flex; gap: 10px; align-items: center; }
+#rangeStart { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 211, 77, .14); color: #ffe7a3; border: 1px solid #ffd34d; cursor: pointer; }
+#rangeStart:hover { background: rgba(255, 211, 77, .26); } #rangeStart:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 @media (max-height: 600px) { #tutorialHud { top: 83px; left: 12px; padding: 8px 12px; width: 290px; font-size: 12px; } #tutorialHud h2 { font-size: 16px; } #tutorialHud p { margin: 5px 0; } }
 </style>
 
@@ -871,6 +878,9 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 </div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
+<aside id="rangeHud" hidden aria-label="射撃場"><b>射撃場</b> <span id="rangeCls"></span>
+  <dl><dt>最後の命中</dt><dd id="rangeLast">—</dd><dt>続けて当てた合計</dt><dd id="rangeSum">—</dd><dt>毎秒</dt><dd id="rangeDps">—</dd><dt>撃破まで</dt><dd id="rangeKill">—</dd></dl>
+  <small id="rangeHint"></small></aside>
 <aside id="tutorialHud" hidden aria-label="チュートリアルの課題"><small id="tutorialCount"></small><progress id="tutorialProgress" value="0" max="13" aria-label="演習の進み具合"></progress><div aria-live="polite" aria-atomic="true"><h2 id="tutorialTitle"></h2><p id="tutorialInstruction"></p><strong id="tutorialResult"></strong></div><p><small>Esc：一時停止・やり直し・スキップ・終了</small></p></aside>
 <div id="overlay">
   <div class="card" id="ovCard">
@@ -962,6 +972,10 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
     <section class="page" id="pgTutorialPause" hidden>
       <h2>チュートリアルを一時停止中</h2><p id="tutorialPauseText"></p>
       <div class="tutorialActions"><button type="button" id="tutorialResume">練習に戻る</button><button type="button" id="tutorialRetry">この課題をやり直す</button><button type="button" id="tutorialSkip">この課題をスキップ</button><button type="button" id="tutorialExit">終了してメニューへ</button></div>
+    </section>
+    <section class="page" id="pgRangePause" hidden>
+      <h2>射撃場を一時停止中</h2><p>標的は撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
+      <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ戻る</button></div>
     </section>
     <section class="page" id="pgTutorialDone" hidden>
       <h2 id="tutorialDoneTitle">基礎演習クリア！</h2><p id="tutorialDoneText"></p>
@@ -1067,7 +1081,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
       <p class="note" id="mapAttribution"></p>
     </section>
     <section class="page" id="pgCustom" hidden>
-      <div class="pgh"><h2>機体カスタマイズ</h2><button type="button" class="back">戻る</button></div>
+      <div class="pgh"><h2>機体カスタマイズ</h2><div class="pghBtns"><button type="button" id="rangeStart">射撃場で試す</button><button type="button" class="back">戻る</button></div></div>
       <p class="cuNote">左で部位か武器の枠を選び、中のシリーズを開いて型を選びます。型にマウスを乗せる（キーボードは↑↓）と右に今との差が出て、クリック（Enter）で付けます。選んだ物はこのブラウザの今の構成に保存され、武器は次の出撃、パーツと色は次の試合から使われます。</p>
       <div class="cuBar"><div class="ctabs" id="cuTabs" role="tablist" aria-label="兵装"></div><div class="ctabs" id="cuBuilds" role="group" aria-label="保存した構成"></div></div>
       <p id="buildSaveStatus" class="note" role="status" aria-live="polite"></p>
@@ -2020,6 +2034,15 @@ const TUTORIAL_MAP = { name: '基礎演習場', size: [80, 130], team: 1, time: 
   desc: '基礎操作の練習専用', terrain: [], layout: [[-30, 40, 10, 5, 3], [30, 40, 10, 5, 3]],
   plants: [['A', 0, -20, null]], turrets: [], radar: [-35, 115], catapults: [], basePods: [], plantPods: [], barricades: [] };
 let tutorial = null;
+// 射撃場（2026-10-27、ユーザー要望）：カスタマイズ中の兵装と機体で、撃ち返さない標的を試し撃ちする細長い平地。対戦用マップと保存データには登録しない。
+// 自機は z=RANGE_Z から -z を向き、標的は RANGE_TARGETS の距離に並ぶ。緑の円（リペアポッド）は自機の左後ろ
+const RANGE_ID = '__range', RANGE_Z = 170;
+const RANGE_MAP = { name: '射撃場', size: [70, 230], team: 1, time: 3600, baseZ: 205, baseLine: 185,
+  desc: '試し撃ち専用', terrain: [], layout: [[-62, 0, 3, 440, 5]], // 左右の低い壁（点対称で右側にも立つ）
+  plants: [['A', -50, -170, null]], turrets: [], radar: [-55, 220], catapults: [], basePods: [[-14, 180]], plantPods: [], barricades: [] };
+// 標的：[自機からの距離 m, 左右の位置 m, 左右に動く幅 m, 1往復の秒]。動く標的はロックオンや偏差撃ちを試す用
+const RANGE_TARGETS = [[15, -9, 0], [30, 8, 0], [40, 24, 10, 5], [50, -18, 0], [80, 14, 0], [90, -26, 12, 7], [120, -5, 0], [200, 9, 0]];
+let range = null;
 let curMap = null, mapId = '';
 const meleeOnly = () => !!curMap?.meleeOnly;
 // 人数は全マップ共通で選び、再読み込みまでは維持する。未指定ならマップの推奨人数。
@@ -3761,8 +3784,8 @@ function buildMap(id) {
   resetCombatFeedback();
   clearBooms();
   cityMap?.dispose();cityMap=null;cityBattle=null;
-  const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : MAPS[id] || MAPS[FIRST_MAP];
-  curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : MAPS[id] ? id : FIRST_MAP;
+  const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : id === RANGE_ID && range ? RANGE_MAP : MAPS[id] || MAPS[FIRST_MAP];
+  curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : def === RANGE_MAP ? RANGE_ID : MAPS[id] ? id : FIRST_MAP;
   cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
   scene.fog.near=cityMap?220:110;scene.fog.far=cityMap?850:420;
   const facilityMaterials=new Set();
@@ -10063,6 +10086,7 @@ function padPress(name, menu, respawnUi) {
   if (name === 'r1') { wheelDir = 1; return; } // 次の武器（再出撃の画面では次の出撃地点）
   let codes = PAD_KEYS[name];
   if (tutorial && running && name === 'options') codes = [tutorial.done ? 'Enter' : 'Escape']; // チュートリアル：課題を達成したら次へ、でなければ一時停止
+  if (range && running && name === 'options') codes = ['Escape']; // 射撃場：一時停止
   if (tutorial && running && name === 'touch') codes = ['Enter'];
   if (codes) padSend(name, codes);
 }
@@ -10097,7 +10121,7 @@ function padMenuItems() {
   return [...page.querySelectorAll(PAD_FOCUS)].filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
 }
 function padDefaultFocus(items) {
-  return items.find(el => el.matches('#start, #optionsResume, #tutorialResume, #tutorialStart, #tutorialToMenu'))
+  return items.find(el => el.matches('#start, #optionsResume, #tutorialResume, #tutorialStart, #tutorialToMenu, #rangeResume'))
     || items.find(el => !el.classList.contains('back')) || items[0]; // 「戻る」は最初に選ばない
 }
 function padFocus(el) {
@@ -10833,7 +10857,7 @@ function showPage(id) {
 }
 let optionsPaused = false;
 function openOptions() {
-  if (tutorial && !running) tutorial.optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
+  if ((tutorial || range) && !running) (tutorial || range).optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
   $('missileHud').hidden = true;
   optionsPaused = running;
   if (optionsPaused) {
@@ -10847,7 +10871,7 @@ function openOptions() {
   $('overlay').hidden = false; showPage('pgOptions');
 }
 function closeOptions() {
-  if (!optionsPaused) { showPage(tutorial ? tutorial.optionsPage || 'pgTutorialPause' : 'pgMenu'); return; }
+  if (!optionsPaused) { showPage(tutorial ? tutorial.optionsPage || 'pgTutorialPause' : range ? range.optionsPage || 'pgRangePause' : 'pgMenu'); return; }
   optionsPaused = false; running = true; $('overlay').hidden = true;
   for (const k in keys) delete keys[k];
   for (const k in pressed) delete pressed[k];
@@ -10879,7 +10903,7 @@ $('overlay').addEventListener('click', e => {
 });
 addEventListener('keydown', e => {
   if (e.code === 'F3') { e.preventDefault(); if (!e.repeat) { if (!$('pgOptions').hidden) closeOptions(); else openOptions(); } }
-  if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden && (!tutorial || !$('pgOptions').hidden)) { e.preventDefault(); if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
+  if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden && (!tutorial && !range || !$('pgOptions').hidden)) { e.preventDefault(); if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
 });
 // ---- 機体カスタマイズ（v0.11、ユーザー指定。v0.13で3列に作り直し、ユーザー決定）----
 // 左に部位（頭・胴・腕・脚）と武器の4枠、中に選んだ枠のシリーズ（メーカーごと。開くと型）、右にプレビューと今との差、下に重量のバー。
@@ -11960,6 +11984,106 @@ function tutorialRightClick() {
   else if (tutorial.locked && !lock.target) tutorial.lockReleased = true;
 }
 
+// ---- 射撃場 ----
+// カスタマイズ画面の「射撃場で試す」から、その画面で選んでいる兵装と今の機体で入る（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」）。
+// 標的は撃ち返さない敵機（AIも物理も動かさない。動く標的だけ rangeTick が左右に動かす）。撃破しても2秒で起き上がり、4秒当てないと耐久が戻る。
+// コアは減らず、時間切れも無い。左上に最後の命中・続けて当てた合計（2秒あくと数え直す）・毎秒・撃破までの秒を出す。Esc（コントローラーはオプション）で一時停止
+function startRange() {
+  if (tutorial || range) return;
+  range = { saved: { mapId, chosenCls, chosenTeam, selectedTeamSize, cuCls }, targets: [], t: 0, sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null, optionsPage: null };
+  chosenCls = cuCls; chosenTeam = 'B';
+  running = false; optionsPaused = false; tutorialClearInput();
+  selectMap(RANGE_ID, false); setup(); annReset();
+  rangePlace(); rangeResume();
+}
+function rangeSpot(t, i) {
+  const [d, x, amp] = RANGE_TARGETS[i];
+  t.pos.set(x, terrainH(x, RANGE_Z - d), RANGE_Z - d); t.vel.set(0, 0, 0);
+  t.yaw = Math.PI; t.pitch = 0; // 自機の方を向く
+  Object.assign(t, { invulT: 0, invulCancelOnAttack: false, hp: t.maxHp, rangeHp: t.maxHp, deadT: 0, hitT: -1e9, name: `標的 ${d}m${amp ? '（左右に動く）' : ''}` });
+  t.group.visible = true; t.group.position.copy(t.pos); t.group.rotation.set(0, t.yaw, 0);
+}
+// 自機を最初の位置へ（弾と耐久は全量）、標的を全部起こす
+function rangePlace() {
+  tutorialClearInput(); clearPings(); releaseLock();
+  for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
+  clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
+  player.nextCls = null; spawn(player);
+  player.pos.set(0, terrainH(0, RANGE_Z), RANGE_Z);
+  player.invulT = 0; player.invulCancelOnAttack = false; player.yaw = 0; player.pitch = -.03;
+  range.targets.forEach((t, i) => { t.downT = 0; spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
+  player.group.position.copy(player.pos); player.group.rotation.set(0, player.yaw, 0); weaponLook(player, 0);
+  Object.assign(range, { sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null });
+  scene.updateMatrixWorld(true); updateCamera(player, 1);
+}
+function rangeResume() {
+  if (!range) return;
+  tutorialClearInput(); $('overlay').hidden = true; running = true; grabPointer();
+}
+function rangePause() {
+  if (!range || !running) return;
+  running = false; tutorialClearInput(); stopMovementSounds();
+  $('rangeHud').hidden = true;
+  showPage('pgRangePause'); $('overlay').hidden = false;
+  document.exitPointerLock?.(); $('rangeResume').focus();
+}
+// 入る前のマップ・兵装・陣営・人数に戻して、カスタマイズ画面へ
+function exitRange() {
+  if (!range) return;
+  const saved = range.saved; range = null; running = false; optionsPaused = false;
+  tutorialClearInput(); clearPings(); stopMovementSounds(); killcam = null;
+  chosenCls = saved.chosenCls; chosenTeam = saved.chosenTeam; selectedTeamSize = saved.selectedTeamSize;
+  $('rangeHud').hidden = true;
+  selectMap(saved.mapId, false); renderClsButtons();
+  for (const radio of $('teamChoice').querySelectorAll('input')) radio.checked = radio.value === chosenTeam;
+  cuCls = saved.cuCls; cuHover = null; renderCustom();
+  showPage('pgCustom'); $('overlay').hidden = false; document.exitPointerLock?.(); $('rangeStart').focus();
+}
+function rangeHit(t, dmg, killed) {
+  const r = range;
+  if (r.t - r.last > 2) Object.assign(r, { sum: 0, start: r.t, killT: null });
+  r.sum += dmg; r.last = r.t; r.lastHit = dmg; t.hitT = r.t;
+  if (killed && r.killT == null) r.killT = r.t - r.start;
+}
+function rangeTick(dt) {
+  $('rangeHud').hidden = !running || !$('overlay').hidden;
+  $('timer').textContent = '射撃場';
+  cores.B.hp = cores.R.hp = coreMax; // 撃破でコアは減らさない
+  if (!running) return;
+  const r = range; r.t += dt;
+  if (!player.alive) { rangePlace(); feed('自分の爆風で倒れたので、最初の位置に戻りました'); return; }
+  r.targets.forEach((t, i) => {
+    const [, x, amp, period] = RANGE_TARGETS[i];
+    if (!t.alive) {
+      if (t.rangeHp > 0) { rangeHit(t, t.rangeHp, true); t.rangeHp = 0; } // 撃破した1発は、残っていた耐久の分
+      if ((t.deadT += dt) >= 2) { t.downT = 0; spawn(t); rangeSpot(t, i); }
+      return;
+    }
+    if (amp) { const nx = x + amp * Math.sin(2 * Math.PI * r.t / period); t.vel.set((nx - t.pos.x) / dt, 0, 0); t.pos.x = nx; }
+    if (t.hp < t.rangeHp) rangeHit(t, t.rangeHp - t.hp, false);
+    else if (t.hp < t.maxHp && r.t - t.hitT > 4) t.hp = t.maxHp; // 4秒当てないと耐久が戻る
+    t.rangeHp = t.hp;
+  });
+  const put = (id, text) => { const el = $(id); if (el.textContent !== text) el.textContent = text; };
+  const fmt = n => Math.round(n).toLocaleString('ja-JP'), dur = r.last - r.start, fresh = r.t - r.last < 8;
+  put('rangeCls', `${CLASSES[player.cls].name}　${player.slots[player.weapon].w.name}`);
+  put('rangeLast', r.lastHit && fresh ? fmt(r.lastHit) : '—');
+  put('rangeSum', r.sum && fresh ? fmt(r.sum) + (dur >= .05 ? `（${dur.toFixed(1)}秒）` : '') : '—');
+  put('rangeDps', r.sum && fresh && dur >= .3 ? fmt(r.sum / dur) : '—');
+  put('rangeKill', r.killT != null && fresh ? `${r.killT.toFixed(2)}秒` : '—');
+  put('rangeHint', `${keyName('Esc', 'オプションボタン')}：一時停止（弾と耐久を戻す・カスタマイズへ戻る）。左後ろの緑の円で回復と補給`);
+}
+$('rangeStart').addEventListener('click', startRange);
+$('rangeResume').addEventListener('click', rangeResume);
+$('rangeRefill').addEventListener('click', () => { rangePlace(); rangeResume(); });
+$('rangeToCustom').addEventListener('click', exitRange);
+addEventListener('keydown', e => {
+  if (!range || e.repeat || e.defaultPrevented || e.target.closest?.('input, textarea, select')) return;
+  if (e.code === 'Escape' && running) { e.preventDefault(); rangePause(); }
+  else if (e.code === 'Escape' && !$('pgRangePause').hidden && !$('overlay').hidden) { e.preventDefault(); rangeResume(); }
+});
+addEventListener('blur', () => { if (range) rangePause(); });
+
 function setup() {
   resetCombatFeedback();
   clearBooms();
@@ -11985,11 +12109,12 @@ function setup() {
   pops.length = 0;
   renderTeamView();
   player = makeUnit(chosenTeam, true, 0);
-  const count = tutorial ? 1 : battleTeamSize();
+  const count = tutorial || range ? 1 : battleTeamSize();
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);
-  for (let i = 0; i < count; i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
+  for (let i = 0; i < (range ? RANGE_TARGETS.length : count); i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
   if (tutorial) tutorial.target = units.find(u => !u.isPlayer);
+  if (range) range.targets = units.filter(u => !u.isPlayer);
   applyAudioSettings();
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
@@ -12029,6 +12154,7 @@ $('start').addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && running) mouseDown = false;
   if (!document.pointerLockElement && tutorial && !mapOpen) tutorialPause();
+  if (!document.pointerLockElement && range && !mapOpen) rangePause();
 });
 
 function resize() {
@@ -12076,10 +12202,10 @@ function loop(now) {
   padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
   bgmTick();
   if (running) {
-    if (!tutorial) timeLeft -= dt;
+    if (!tutorial && !range) timeLeft -= dt;
     liftUpdate(dt);
     for (const u of units) {
-      if (tutorial && u === tutorial.target) continue; // 静止標的。対戦BotのAI・物理は変えない。
+      if (tutorial && u === tutorial.target || range && !u.isPlayer) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。
       if (!u.alive) {
         if (u.downT > 0) { downTick(u, dt); continue; }
         u.respawnT -= dt;
@@ -12107,7 +12233,7 @@ function loop(now) {
     for (const pd of pods) podUpdate(pd, dt);
     catapultUpdate(dt);
     jumpPadUpdate(dt);
-    if (!tutorial && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
+    if (!tutorial && !range && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
   }
   for (const u of units) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
@@ -12156,6 +12282,7 @@ function loop(now) {
     else { if (killcam) endKillcam(); updateCamera(player, dt); }
     hud(timeLeft, dt); popUpdate(dt);
     if (tutorial) tutorialTick();
+    if (range) rangeTick(dt);
   }
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
