@@ -5106,6 +5106,11 @@ function buildMech(color, cfg = MECH_DEFAULT) {
       // 旧形状と同じ包含球で先に除外し、遠い機体へ来ない射線では頂点を更新しない。
       mechHitSphere.copy(hit.mesh.geometry.boundingSphere).applyMatrix4(this.matrixWorld);
       if(!caster.ray.intersectsSphere(mechHitSphere))return;
+      if(hit.lazy&&!hit.rigid){
+        // 骨ごとの旧頂点を必ず包含する箱。部位に届かない射線では頂点更新を省く。
+        mechHitInverse.copy(this.matrixWorld).invert();mechHitRay.copy(caster.ray).applyMatrix4(mechHitInverse);
+        if(!mechHitRay.intersectsBox(mechHitBounds(hit)))return;
+      }
       if (hit.lazy) skinMechHit(hit);
       const display = this.geometry;
       this.geometry = this.userData.hitGeometry;
@@ -5220,7 +5225,21 @@ function limbPose(rig, a, b, end, target, pole) {
   E.node.quaternion.copy(poseParentQ).multiply(A.quaternion).multiply(B.node.quaternion).invert();
 }
 // 追加の旧被弾面は射線が来た部位だけ更新。非表示の頂点を毎フレーム送信しない。
-const mechHitSphere=new T.Sphere();
+const mechHitSphere=new T.Sphere(),mechHitInverse=new T.Matrix4(),mechHitRay=new T.Ray(),mechHitBox=new T.Box3(),mechHitPoint=new T.Vector3();
+function mechHitBounds(entry){
+  if(!entry.boundGroups){
+    const groups=new Map();
+    for(const range of entry.ranges){
+      let box=groups.get(range.bone);if(!box){box=new T.Box3();groups.set(range.bone,box);}
+      for(let i=range.start;i<range.end;i+=3)box.expandByPoint(mechHitPoint.fromArray(entry.pos,i));
+    }
+    entry.boundGroups=[...groups].map(([bone,rest])=>({bone,rest}));entry.hitBounds=new T.Box3();
+  }
+  entry.hitBounds.makeEmpty();
+  for(const {bone,rest} of entry.boundGroups)entry.hitBounds.union(mechHitBox.copy(rest).applyMatrix4(bone.matrix));
+  // Float32への書き戻しの丸め誤差も含め、端の射線を落とさない。
+  return entry.hitBounds.expandByScalar(.0001);
+}
 function skinMechHit(entry) {
   if(entry.rigid)return; // 頭は表示メッシュ自身の行列で動く。
   const geo=entry.mesh.geometry,p=geo.attributes.position.array,n=geo.attributes.normal.array;
