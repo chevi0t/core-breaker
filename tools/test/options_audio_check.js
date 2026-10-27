@@ -32,7 +32,7 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     yes(await p.evaluate(() => Math.abs(__g.audio.out.gain.value - .36) < .001 && Math.abs(__g.audio.effects.gain.value - .65) < .001 && Math.abs(__g.audio.music.gain.value - .25) < .001), '再生中にも全体・効果音・BGMの別々のゲインへ反映');
     await p.screenshot({ path: path.join(out, 'options.png') });
     await p.reload();
-    yes(await p.evaluate(() => JSON.stringify(__g.gameOptions) === JSON.stringify({ master: 45, sfx: 65, music: 25, fov: 90, padLook: 50, padInvert: 0, padRumble: 1 })), '再読み込み後にも音量と視野角を復元');
+    yes(await p.evaluate(() => JSON.stringify(__g.gameOptions) === JSON.stringify({ master: 45, sfx: 65, music: 25, fov: 90, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50 })), '再読み込み後にも音量と視野角を復元');
     await p.evaluate(() => { localStorage.setItem('coreBreakerBgm', 'off'); localStorage.setItem('coreBreakerVoice', 'off'); document.getElementById('start').click(); for (const u of __g.units) u.frozen = true; });
     const fov = await p.evaluate(() => {
       const g = __g, u = g.player; u.dashState = ''; u.scoped = false; g.lock.target = null; g.updateCamera(u, 1); const idle = g.camera.fov;
