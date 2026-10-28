@@ -99,3 +99,7 @@ python3 tools/build_maps.py
 中立Bの両陣営アクセス、再出撃経路、防壁と左右入口の寸法・実測・限界は [TERRAIN_ACCESS.md](TERRAIN_ACCESS.md)。山岳の既存blocksに防壁6要素を設定し、tunnel.rimを任意指定できるようにした。rimは屋根側の小さな接続帯で、坑道床や天井は変えない。実物理に合わない屋根縁の最短経路を修正する用途。未指定のレシピには適用しない。
 
 blocksの任意分類 `blockKind` はbuilding（既定）／wall。wallは窓を付けず、既存構造物の描画バッチへ統合する。山岳の防壁に使い、都市の建屋には適用しない。
+
+## ゲート砲台・高所侵入の追加
+
+任意のturretSitesは既存屋上砲台の定義へ出力し、指定時に地上砲台を移設する。山岳のflank_B/flank_Rは既存ground routeで山側に登り口を生成。高さのある足場と支柱は既存blocksで作る。ゲーム本体の新たな移動処理は不要。座標・通行・射撃・カタパルト・壁越えの確認と限界はTERRAIN_ACCESS.mdの最新節。
