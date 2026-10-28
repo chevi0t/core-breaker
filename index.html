@@ -1588,13 +1588,13 @@ function expandCityLayout(T,data){
     return a;
   }
   const palette=data.district.buildingPalette||['#889da8','#a69f90','#aab0ae','#7f929a','#9d9181','#8b8785','#8c9da0','#a6a39b'];
-  const layerFor={'rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
+  const layerFor={'barrier':'rail','rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
   const buildings=new Set(['grounded','infill','upper','elevated']);
   for(const v of data.volumes){
     const building=buildings.has(v.kind),layer=building?'bldg':layerFor[v.kind];if(!layer)continue;
     const center=v.rings[0].reduce((a,p)=>[a[0]+p[0]/v.rings[0].length,a[1]+p[1]/v.rings[0].length],[0,0]);
     const color=building?(v.landmarkColor||(Number.isInteger(v.paint)?palette[v.paint]:v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
-      v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
+      v.kind==='barrier'?'#768079':v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
     add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
   }
   for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
@@ -1820,7 +1820,25 @@ function createCityMap(T,layout) {
     for (const pair of candidates) if (pair[0].distanceToSquared(pair[1]) < best[0].distanceToSquared(best[1])) best = pair;
     return best;
   }
+  const boundary=data.boundary?{rings:[data.boundary]}:null;
+  function withinBoundary(x,z,r=0){
+    if(!boundary)return Math.max(Math.abs(x),Math.abs(z))<=half-r;
+    const c=contact(boundary,x,z);return c.inside&&c.distance2>=r*r-1e-6;
+  }
   function clamp(u) {
+    if(boundary){
+      for(let i=0;i<8;i++){
+        const c=contact(boundary,u.pos.x,u.pos.z),d=Math.sqrt(c.distance2);
+        if(c.inside&&d>=radius)break;
+        let dx=c.inside?u.pos.x-c.px:c.px-u.pos.x,dz=c.inside?u.pos.z-c.pz:c.pz-u.pos.z;
+        if(d<1e-8){dx=c.nx;dz=c.nz;const l=Math.hypot(dx,dz);dx/=l;dz/=l;if(!contact(boundary,c.px+dx*.01,c.pz+dz*.01).inside){dx=-dx;dz=-dz;}}
+        else {dx/=d;dz/=d;}
+        const distance=c.inside?radius-d+.001:radius+d+.001;
+        u.pos.x+=dx*distance;u.pos.z+=dz*distance;
+        const v=u.vel.x*dx+u.vel.z*dz;if(v<0){u.vel.x-=v*dx;u.vel.z-=v*dz;}
+      }
+      return;
+    }
     for (const axis of ['x', 'z']) {
       const p = Math.max(-half+radius, Math.min(half-radius, u.pos[axis]));
       if (p !== u.pos[axis]) { u.pos[axis] = p; u.vel[axis] = 0; }
@@ -1878,6 +1896,7 @@ function createCityMap(T,layout) {
     return h;
   }
   function cameraFree(p,r){
+    if(boundary&&!withinBoundary(p.x,p.z,r))return false;
     if(p.y-r<terrainH(p.x,p.z))return false;
     for(const v of nearby(p.x,p.z,r))if(p.y+r>v.bottom&&p.y-r<v.top&&overlaps(v,p.x,p.z,r))return false;
     for(const t of bridge(p.x,p.z,r))if(t.tri.closestPointToPoint(p,new T.Vector3()).distanceToSquared(p)<r*r)return false;
@@ -1911,6 +1930,11 @@ function createCityMap(T,layout) {
       mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = half*2;
       const c = mapCanvas.getContext('2d'); c.fillStyle = data.district.unifiedGround?.color||'#8a8d85'; c.fillRect(0,0,half*2,half*2);
       function path(rings) { c.beginPath(); for (const ring of rings) { ring.forEach(([x,z],i) => i ? c.lineTo(x+half,z+half) : c.moveTo(x+half,z+half)); c.closePath(); } }
+      if(boundary){
+        c.clearRect(0,0,half*2,half*2);const a=arrays.dem;
+        for(let i=0;i<a.length;i+=9){path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);const h=(a[i+1]+a[i+4]+a[i+7])/3;c.fillStyle=`hsl(35,24%,${32+Math.min(32,h*.6)}%)`;c.fill();}
+        path(boundary.rings);c.strokeStyle='#b8e2ea';c.lineWidth=1.5;c.stroke();
+      }
       for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
       for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
       for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
@@ -2047,7 +2071,12 @@ function createCityMap(T,layout) {
     }
     // 当たり判定は無限の高さで四辺を制限し、見た目にも範囲を示す。
     const barrier=new T.MeshBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.055,side:T.DoubleSide,depthWrite:false});
-    for(const axis of ['x','z']) for(const sign of [-1,1]) {
+    if(boundary){
+      for(let i=0;i<data.boundary.length;i++){
+        const a=data.boundary[i],b=data.boundary[(i+1)%data.boundary.length],len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+        const m=new T.Mesh(new T.PlaneGeometry(len,160),barrier);m.position.set((a[0]+b[0])/2,65,(a[1]+b[1])/2);m.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);root.add(m);
+      }
+    }else for(const axis of ['x','z']) for(const sign of [-1,1]) {
       const geo=new T.PlaneGeometry(half*2,220),m=new T.Mesh(geo,barrier);
       m.position.set(0,100,0); m.position[axis]=sign*half; if(axis==='x')m.rotation.y=Math.PI/2; root.add(m);
       const line=new T.LineSegments(new T.EdgesGeometry(geo),new T.LineBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.6}));
@@ -2056,7 +2085,7 @@ function createCityMap(T,layout) {
     root.traverse(m=>{for(const material of m.material?(Array.isArray(m.material)?m.material:[m.material]):[])ownedMaterials.add(material);});
     root.updateMatrixWorld(true);
   }
-  return {dispose,mount,terrainH,groundAt,ceilingAt,resolve,drawMap,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
+  return {dispose,mount,terrainH,groundAt,ceilingAt,resolve,drawMap,withinBoundary,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
     district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
     addCameraGeometry:meshes=>{for(const m of meshes){
       m.updateWorldMatrix(true,false);
@@ -2072,7 +2101,7 @@ function createCityMap(T,layout) {
 function createCityBattle(T,city,definition) {
   const radius=1.3,height=4,cache=new Map();
   function free(x,z,y,obstacles,r=radius) {
-    if(Math.max(Math.abs(x),Math.abs(z))>city.half-r)return false;
+    if(!city.withinBoundary(x,z,r))return false;
     if(city.ceilingAt(x,z,y)<y+height-.05)return false;
     for(const v of city.nearby(x,z,r)){
       if(y>=v.top-.25 || y+height<=v.bottom+.001)continue;
@@ -2632,7 +2661,9 @@ function navSteer(u, goal, gd, dt) {
   if (!NAV) return detour(u, goal, gd, dt);
   if (!u.navW || u.navW.length !== NAV.links.length) u.navW = Float32Array.from(NAV.links, () => 1 + Math.random() * 0.4);
   u.navT -= dt; u.navChk -= dt; u.navRc -= dt;
-  const direct = () => gd < (hoverLegs(u) ? 160 : NAV_SHORT) && clearPath(u.pos.x, u.pos.z, goal.x, goal.z, u.pos.y,u);
+  const goalY=curMap.nav?.heightAware?(goal.y||terrainH(goal.x,goal.z)):terrainH(goal.x,goal.z);
+  const sameFloor=y=>!curMap.nav?.heightAware||Math.abs(pathEndH-y)<1;
+  const direct = () => gd < (hoverLegs(u) ? 160 : NAV_SHORT) && clearPath(u.pos.x, u.pos.z, goal.x, goal.z, u.pos.y,u)&&sameFloor(goalY);
   const P = NAV.pts;
   // 向かっている節点（か経由点）へまっすぐ歩けなくなったら（交戦で横へ動いて崖の下に降りたなど）、今いる所から引き直す。0.5秒に1回確かめる
   if (u.navPath && u.navRc <= 0) {
@@ -2640,16 +2671,16 @@ function navSteer(u, goal, gd, dt) {
     const c = u.navVia || (u.navI < u.navPath.length ? P[u.navPath[u.navI]] : null);
     if (c && !clearPath(u.pos.x, u.pos.z, c.x, c.z, u.pos.y,u)) u.navT = 0;
   }
-  if (!u.navPath || u.navT <= 0 || Math.hypot(u.navGoal.x - goal.x, u.navGoal.z - goal.z) > 15) {
+  if (!u.navPath || u.navT <= 0 || Math.hypot(u.navGoal.x - goal.x, u.navGoal.z - goal.z) > 15 || curMap.nav?.heightAware&&Math.abs((u.navGoal?.y??goalY)-goalY)>1) {
     u.navT = NAV_REPLAN; u.navChk = 0; u.navRc = 0.5; u.navVia = null;
-    u.navGoal = { x: goal.x, z: goal.z };
+    u.navGoal = { x: goal.x, z: goal.z, y:goalY };
     // 目標までまっすぐ歩ければ通り道を使わない
     if (direct()) u.navPath = [];
     else {
       const s = navEntry(u.pos.x, u.pos.z, u.pos.y,u);
       u.navVia = s.via || null;
       if (s.stuck) u.navRc = 3; // どこへも歩けない所：引き直しを繰り返さない
-      u.navPath = navPath(u, s.i, navNear(goal.x, goal.z, terrainH(goal.x, goal.z), false)) || [];
+      u.navPath = navPath(u, s.i, navNear(goal.x, goal.z, goalY, false)) || [];
     }
     u.navI = 0;
   }
@@ -2661,8 +2692,8 @@ function navSteer(u, goal, gd, dt) {
   // 着いた節点は飛ばす。次の節点へ今の節点より自分の方が近く、そこへまっすぐ歩けるなら、今の節点も飛ばす（見通しの確認は0.5秒に1回）
   while (u.navI < path.length) {
     const c = P[path[u.navI]], nx = P[path[u.navI + 1]];
-    let skip = Math.hypot(c.x - u.pos.x, c.z - u.pos.z) < (curMap.cityBattle?.nodeReach??NAV_REACH);
-    if (!skip && nx && u.navChk <= 0 && Math.hypot(nx.x - u.pos.x, nx.z - u.pos.z) < Math.hypot(nx.x - c.x, nx.z - c.z)) { u.navChk = 0.5; skip = clearPath(u.pos.x, u.pos.z, nx.x, nx.z, u.pos.y,u); }
+    let skip = Math.hypot(c.x - u.pos.x, c.z - u.pos.z) < (curMap.cityBattle?.nodeReach??NAV_REACH)&&(!curMap.nav?.heightAware||Math.abs(c.y-u.pos.y)<1);
+    if (!skip && nx && u.navChk <= 0 && Math.hypot(nx.x - u.pos.x, nx.z - u.pos.z) < Math.hypot(nx.x - c.x, nx.z - c.z)) { u.navChk = 0.5; skip = clearPath(u.pos.x, u.pos.z, nx.x, nx.z, u.pos.y,u)&&sameFloor(nx.y); }
     if (!skip) break;
     u.navI++;
     if (u.navI < path.length && direct()) u.navI = path.length; // 節点に着くたびに、目標までまっすぐ歩けるなら残りを飛ばす
@@ -3474,12 +3505,20 @@ function blast(sh, at, ref) {
   if (hitAny && sh.owner.isPlayer) hitMark(false);
 }
 
-// カタパルト：台に乗ると輪の向き（着地点）へ射出。最初の1秒は操作できずブーストが回復し、
-// その後は空中ダッシュで飛距離を変えたり、Spaceを押し続けて降下を緩めたりできる。
+// カタパルト：台に乗ると輪の向き（着地点）へ低角射出。頂点までは移動操作を固定し、
+// 降下中は射出方向の慣性を残して横移動・空中ダッシュ・滞空で調整できる。
 // どの台も陣営に関係なく誰でも（敵も）使える（v0.10.5、ユーザー指定「チームに所属せず常にだれでも使える」）
-const CAT_FLIGHT = 2.8, CAT_R = 2.6, CAT_LOCK = 1;
+const CAT_R = 2.6;
+// 低い射出角で指定着地点へ。高度差がある場合のみ30〜45度の範囲で上げる。
+function catapultArc(pos, land, degrees=30) {
+  const distance = Math.hypot(land.x-pos.x, land.z-pos.z), rise = land.y-pos.y;
+  const angle = Math.min(Math.PI/4, Math.max(Math.max(30,Math.min(45,degrees))*Math.PI/180, Math.atan2(rise,distance)+Math.PI/36));
+  if(distance<1 || distance*Math.tan(angle)<=rise)throw Error("45度以下で届かないカタパルト配置です");
+  const flight = Math.sqrt(2*(distance*Math.tan(angle)-rise)/GRAV);
+  return { flight, angle };
+}
 const catapults = [];
-// 見た目（v0.10.5、ユーザー指定「BBのカタパルトとAPEXのグラビティキャノンを合わせた形」。打ち出し方は前のまま）：
+// 見た目（v0.10.5、ユーザー指定「BBのカタパルトとAPEXのグラビティキャノンを合わせた形」。形を維持し、傾きは現在の射出軌道に合わせる）：
 // 八角形の射出台に2本のレールと後ろの押し出し板、台の先に飛ぶ道に沿って傾けた2つの輪（砲身。中の光の膜は射出のたびに強く光る）。
 // 砲身の先に飛ぶ向きが分かる程度の光の点（30mぶん、先ほど小さく。ユーザー指定「こっちに飛んでいくよ、ってのが分かる程度に」）。
 // どの陣営の物でもないので色は紫。見た目だけで当たり判定は無い。着地点の印は付けない（ユーザー指定「着地のわっかは不要、飛んだら飛んだっきり」）。
@@ -3518,7 +3557,7 @@ function accBar(acc, key, a, b, r) {
 }
 // 1基の見た目。飛ぶ道は launch と同じ式で、台の中心から飛んだときの機体の胴の高さ（足元 + UNIT_H/2）を通る
 function catModel(cp, acc, dots) {
-  const P = cp.pos, L = cp.land, TF = cp.flight ?? CAT_FLIGHT;
+  const P = cp.pos, L = cp.land, TF = cp.flight;
   const vx = (L.x - P.x) / TF, vz = (L.z - P.z) / TF, vy = 0.5 * GRAV * TF + (L.y - P.y) / TF;
   const at = t => new T.Vector3(P.x + vx * t, P.y + UNIT_H / 2 + vy * t - 0.5 * GRAV * t * t, P.z + vz * t);
   const tan = t => new T.Vector3(vx, vy - GRAV * t, vz).normalize();
@@ -3561,7 +3600,7 @@ function catModel(cp, acc, dots) {
 function buildCatapults(list) {
 const acc = {}, dots = [];
 const entries=list.flatMap(row=>['B','R'].map(k=>({row,k,absolute:false})));
-for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row,k,absolute:true,route:curMap.bases[k].catapultFlight?{flight:curMap.bases[k].catapultFlight}:undefined});
+for(const k of ['B','R'])for(const row of curMap.bases?.[k]?.catapults||[])entries.push({row:row.slice(0,4),k,absolute:true,route:{angle:row[4]??curMap.bases[k].catapultAngle}});
 for(const route of curMap.plantCatapults||[])entries.push({row:[...route.at,...route.exit,route.plant],k:'B',absolute:true,route});
 for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const s = k === 'B' ? 1 : -1;
@@ -3569,7 +3608,7 @@ for (const {row:[x,z,lx,lz,pid],k,absolute,route} of entries) {
   const plant = own ? (absolute || k === 'B' ? own : mirrorPlant(own)) : null;
   const [px,pz]=absolute?[x,z]:pid?[x*s,z*s]:baseCoords(k,x,z),[tx,tz]=absolute?[lx,lz]:[lx*s,lz*s];
   const pos = new T.Vector3(px, terrainH(px,pz), pz), land = new T.Vector3(tx, terrainH(tx,tz), tz);
-  const cp = { side: k, plant, pos, land, flight: route?.flight, targetPlant: plants.find(p=>p.id===route?.targetPlant), flash: 0, phase: Math.random() * 6.3 };
+  const cp = { side: k, plant, pos, land, ...catapultArc(pos,land,route?.angle), targetPlant: plants.find(p=>p.id===route?.targetPlant), flash: 0, phase: Math.random() * 6.3 };
   catModel(cp, acc, dots);
   catapults.push(cp);
 }
@@ -3582,11 +3621,12 @@ dots.forEach((d, i) => im.setMatrixAt(i, m.compose(d.p, q, new T.Vector3(d.s, d.
 mapRoot.add(im);
 }
 function launch(u, cp) {
-  const t = cp.flight ?? CAT_FLIGHT;
+  const t = catapultArc(u.pos,cp.land,cp.angle*180/Math.PI||30).flight;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
-  // 軌道の飛行時間と操作禁止を分ける。高角・長距離でも最初の1秒だけ固定する。
-  Object.assign(u, { flying: true, ctrlLockT: CAT_LOCK, onGround: false, dashT: 0, longDash: false, catCd: 3, waypoint: null });
+  // 頂点までは入力を止め、以後も射出方向の慣性を保持する。着地で解除。
+  u.catMomentum = u.vel.clone().setY(0).normalize();
+  Object.assign(u, { flying: true, ctrlLockT: Math.max(0,u.vel.y/GRAV), onGround: false, dashT: 0, lungeT: 0, slideT: 0, jumpPad: null, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
 }
@@ -5598,7 +5638,7 @@ function makeUnit(team, isPlayer, idx) {
     dashT: 0, dashDir: new T.Vector3(), longDash: false, dashState: '', dodgeT: 1,
     aimTarget: null, aimPos: new T.Vector3(), aimPrev: new T.Vector3(), reacq: 0, locked: false,
     role: BOT_ROLE[idx % BOT_ROLE.length],
-    flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, repairing: false, podT: 0, podN: 0, spawnChoice: null,
+    flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, repairing: false, podT: 0, podN: 0, spawnChoice: null,
     cls, nextCls: null, slots: null, weapon: 'main', switchT: 0, moveInput: false,
     swing: null, meleeRecovery: null, lungeT: 0, lungeT0: 0, lungeDir: new T.Vector3(), lungeSpeed: 0, slideT: 0, recoverT: 0, sawSpin: null, scoped: false, scopeStep: 0, healTarget: null, botRkT: 2, rkGo: false,
     stuckT: 0, sideT: 0, side: 1, lastPos: new T.Vector3(), think: 0, target: null,
@@ -5647,7 +5687,7 @@ function spawn(u, at = 'base') {
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
-  Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
+  Object.assign(u, { flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
   u.raidRoute = null;
@@ -5689,7 +5729,7 @@ function doTransfer(u) {
   const x = u.transfer;
   u.transfer = null;
   spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
-  Object.assign(u, { flying: false, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
+  Object.assign(u, { flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
   u.vel.set(0, 0, 0);
   u.yaw = TEAM[u.team].dir > 0 ? Math.PI : 0; u.pitch = 0;
   u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
@@ -5861,7 +5901,16 @@ function shortDash(u, wish) {
 }
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
 function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
+  // 高速のカタパルトだけ細分化し、低FPSで建物角をすり抜けたり衝突先が変わるのを抑える。
+  if(u.flying && u.catMomentum && !u.jumpPad && dt>1/120+1e-8){
+    const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
+  }
   const floating=hoverLegs(u), water=hoverOnWater(u);
+  const catFlight = u.flying && !u.jumpPad && u.catMomentum;
+  if(catFlight){
+    u.ctrlLockT = Math.max(0,u.vel.y/GRAV);
+    if(u.ctrlLockT>0){wish=STOP;boostHeld=jumpPressed=jumpHeld=false;u.dashT=u.lungeT=u.slideT=0;u.longDash=false;}
+  }
   if (beamCannonMode(u)) { u.dashT=u.lungeT=0;u.longDash=false;u.vel.x=u.vel.z=0; }
   if (u.zipCd > 0) u.zipCd -= dt;
   if (u.zip && zipRide(u, dt, jumpPressed)) return; // ジップラインで昇っている（v0.21）
@@ -5943,7 +5992,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.catCd -= dt;
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
-    if (u.ctrlLockT > 0) { u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
+    if (u.ctrlLockT > 0) { if(!catFlight)u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
     else if (!u.dashState || u.dashState === 'hover') {
       accel = wish.lengthSq() > 0.01 ? 1.5 : 0;
       // 空中ダッシュ後に射出時より速くならないようにする
@@ -5961,7 +6010,16 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
     sfx('jump', u.pos, u);
   }
+  // 降下中も元の方向へ最低65%、横は35%まで。逆入力や空中ダッシュでも台へ戻らない。
+  if(catFlight){
+    const f=u.catMomentum;
+    const side=Math.max(-u.flightSpeed*.35,Math.min(u.flightSpeed*.35,-u.vel.x*f.z+u.vel.z*f.x));
+    const forward=Math.max(u.flightSpeed*.65,Math.min(Math.sqrt(u.flightSpeed*u.flightSpeed-side*side),u.vel.x*f.x+u.vel.z*f.z));
+    u.vel.x=f.x*forward-f.z*side;u.vel.z=f.z*forward+f.x*side;
+    if(u.ctrlLockT>0)grav=GRAV;
+  }
   u.vel.y -= grav * dt;
+  if(catFlight)u.ctrlLockT=Math.max(0,u.vel.y/GRAV);
   if (hover) {
     u.vel.y = Math.max(u.vel.y, floating ? -HOVER_SINK_RATE : -HOVER_SINK);
     u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
@@ -5970,8 +6028,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
-  const dx=floating && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
-  const dz=floating && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
+  const dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
+  const dz=floating && !catFlight && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
   if (!stepTo(u, u.pos.x + dx, u.pos.z)) u.vel.x = 0;
   if (!stepTo(u, u.pos.x, u.pos.z + dz)) u.vel.z = 0;
   const moved = Math.hypot(u.pos.x - x0, u.pos.z - z0);
@@ -5983,7 +6041,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
     // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null;
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null; u.catMomentum = null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
@@ -12743,7 +12801,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
+  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：頂点まで操作固定' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
   else if (beamCannonMode(p)) centerEl.textContent = p.beamFire ? p.beamFire.warm>0 ? '照射準備中' : '双肩照射中：低速旋回／右クリックで中断' : '双肩照射砲：左長押しで照射／右クリックで中断';
