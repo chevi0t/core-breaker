@@ -84,7 +84,11 @@ function compile(input,seed=input.seed){
  function levels(x,z){const s=sample(x,z);if(!s)return [];const ys=[s.floor];if(s.roof!==null)ys.push(s.roof);for(const d of decks){const n=nearSegment(x,z,d.a,d.b);if(n.d<d.width/2-.1)ys.push(n.y);}return [...new Set(ys.map(y=>Math.round(y*50)/50))].sort((a,b)=>a-b);}
  function ground(x,z,y){const ys=levels(x,z);return ys.filter(h=>h<=y+.6).pop()??ys[0]??-1000;}
  function ceiling(x,z,y){let c=Infinity,t=inTunnel(x,z);if(t&&t.ceiling>=y+3.95)c=t.ceiling;for(const d of decks){const n=nearSegment(x,z,d.a,d.b),h=n.y-d.thickness;if(n.d<d.width/2&&h>=y+3.95)c=Math.min(c,h);}return c;}
- function free(x,z,y){if(props.some(p=>Math.abs(x-p.at[0])<p.size[0]/2+1.4&&Math.abs(z-p.at[1])<p.size[1]/2+1.4&&y<p.top&&y+4>p.bottom))return false;if((r.blocks||[]).some(b=>Math.abs(x-b[0])<b[2]/2+1.4&&Math.abs(z-b[1])<b[3]/2+1.4&&y<b[5]-.25&&y+4>b[4]))return false;return inside(r.boundary,x,z)&&boundaryDistance(r.boundary,x,z)>1.4&&ceiling(x,z,y)>=y+4.1;}
+ function free(x,z,y){
+  // 上層の坑口縁は点なら通れても機体半径で角に触れるため、BOT経路を内側へ寄せる。下層の通り抜けは維持。
+  for(const t of r.tunnels){const a=t.axis==='x'?x:z,b=t.axis==='x'?z:x,lo=t.axis==='x'?t.rect[0]:t.rect[2],hi=t.axis==='x'?t.rect[1]:t.rect[3],side0=t.axis==='x'?t.rect[2]:t.rect[0],side1=t.axis==='x'?t.rect[3]:t.rect[1];if(y>t.ceiling&&a>=lo&&a<=hi&&b>=side0-(t.rim||0)*2&&b<=side1+(t.rim||0)*2&&Math.min(a-lo,hi-a)<r.grid+1.4)return false;}
+  for(const d of decks){const n=nearSegment(x,z,d.a,d.b);if(n.d<d.width/2+1.4&&y<n.y-.25&&y+4>n.y-d.thickness)return false;}
+  if(props.some(p=>Math.abs(x-p.at[0])<p.size[0]/2+1.4&&Math.abs(z-p.at[1])<p.size[1]/2+1.4&&y<p.top&&y+4>p.bottom))return false;if((r.blocks||[]).some(b=>Math.abs(x-b[0])<b[2]/2+1.4&&Math.abs(z-b[1])<b[3]/2+1.4&&y<b[5]-.25&&y+4>b[4]))return false;return inside(r.boundary,x,z)&&boundaryDistance(r.boundary,x,z)>1.4&&ceiling(x,z,y)>=y+4.1;}
  function walk(a,b){let y=a[2],n=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1]));for(let i=1;i<=n;i++){const x=mix(a[0],b[0],i/n),z=mix(a[1],b[1],i/n),h=ground(x,z,y);if(Math.abs(h-y)>1.1+.05||!free(x,z,h))return false;y=h;}return Math.abs(y-b[2])<.65;}
  const nodes=[],byXZ=new Map(),links=[];
  for(let z=-r.half+5;z<r.half;z+=r.navStep)for(let x=-r.half+5;x<r.half;x+=r.navStep){const ids=[];for(const y of levels(x,z)){if(!free(x,z,y))continue;ids.push(nodes.length);nodes.push([x,z,y]);}if(ids.length)byXZ.set(key(x,z),ids);}
@@ -94,7 +98,9 @@ function compile(input,seed=input.seed){
  const plants=r.plants,baseSpawns={},respawns={},bases={},districtBases=[];
  for(const team of ['B','R']){const s=team==='B'?1:-1,b=r.bases[team];bases[team]={at:b.slice(0,2),radius:42,catapults:[[-22+b[0],b[1]-12*s,-35,b[1]-55*s],[22+b[0],b[1]-12*s,35,b[1]-55*s]]};if(r.catapultTargets)bases[team].catapults.forEach((p,i)=>{p[2]=r.catapultTargets[team][i][0];p[3]=r.catapultTargets[team][i][1];});districtBases.push({team,at:b.slice(0,2),height:b[2]});baseSpawns[team]=[-12,0,12].map(x=>[b[0]+x,b[1]-16*s]);respawns[team]={};for(const [id,x,z] of plants)respawns[team][id]=[-8,0,8].map(dx=>[x+dx,z+48*s]);}
  // 元の地形を変えずに、施設候補を検査する。失敗を黙って承認しない。
- for(const p of [...Object.values(baseSpawns).flat(),...Object.values(respawns).flatMap(o=>Object.values(o).flat())])assert(free(...p,ground(...p,100)),'spawn outside/clearance');
+ for(const p of Object.values(baseSpawns).flat())assert(free(...p,ground(...p,100)),'base spawn outside/clearance');
+ // 再出撃の48mは拡張後にも固定。実際に出力する位置を元の地形座標へ戻して検査。
+ for(const team of Object.values(respawns))for(const [id,points] of Object.entries(team)){const z=plants.find(p=>p[0]===id)[2];for(const p of points){const q=[p[0],z+(p[1]-z)/(r.lengthScale||1)];assert(free(...q,ground(...q,100)),'plant spawn outside/clearance '+id+' '+q);}}
  const plantPods=[],shelters=[];
  for(const [i,p] of [plants[0],plants[plants.length-1]].entries()){
   const sign=i===0?1:-1,x=p[1]+36,z=p[2]+28*sign;plantPods.push([p[0],x,z]);
