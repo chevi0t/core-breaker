@@ -3643,6 +3643,7 @@ function catapultUpdate(dt) {
 
 // 昇降施設（任意）。座標は nav と同じ [x, z, 海抜y]。asym でなければ点対称に足す。
 // 数値は本作の仮置き。全陣営・プレイヤー・Bot が同じ接触判定と物理を使う。
+const JUMP_PAD_HEIGHT_SCALE = 0.4; // 全マップ共通：射出地点からの上昇高を従来の40%へ。
 const jumpPads = [], lifts = [], ziplines = [];
 const mobilitySteel = new T.MeshLambertMaterial({ color: 0x536775 });
 const mobilityGlow = new T.MeshLambertMaterial({ color: 0x80e7c0, emissive: 0x174735 });
@@ -3663,7 +3664,7 @@ function buildMobility(def) {
       const arrow = mobilityBox(0.18, 1.8, 0.18, mobilityGlow, pos.clone().add(new T.Vector3(dx, 1, 0)));
       arrow.rotation.z = dx < 0 ? -0.6 : 0.6;
     }
-    jumpPads.push({ pos, exit, radius, rise: d.rise, ring, flash: 0 });
+    jumpPads.push({ pos, exit, radius, rise: d.rise * JUMP_PAD_HEIGHT_SCALE, ring, flash: 0 });
   }
   for (const d of def.lifts || []) for (const s of placementSigns(d.from[0], d.from[1])) {
     const from = mobilityPoint(d.from, s), to = mobilityPoint(d.to, s), [w, depth] = d.size || [6, 6];
@@ -3826,7 +3827,7 @@ function botMobilityGoal(u, goal) {
   if (u.mobilityRoute && u.mobilityRoute.goal.distanceTo(goal) > 20) u.mobilityRoute = null;
   if (!u.mobilityRoute) {
     const options = [
-      ...jumpPads.map(p => ({ kind: 'pad', facility: p, from: p.pos, to: p.exit })),
+      ...jumpPads.filter(p => p.exit.y + 0.5 < p.pos.y + p.rise).map(p => ({ kind: 'pad', facility: p, from: p.pos, to: p.exit })),
       ...lifts.flatMap(l => [{ kind: 'lift', facility: l, from: l.from, to: l.to }, { kind: 'lift', facility: l, from: l.to, to: l.from }]),
       ...ziplines.map(z => ({ kind: 'zip', facility: z, from: z.bottom, to: z.top })),
     ].filter(p => Math.abs(p.from.y - u.pos.y) < 3 && p.to.y >= height - 0.5 && Math.hypot(p.to.x - goal.x, p.to.z - goal.z) < 80);
