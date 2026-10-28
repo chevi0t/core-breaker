@@ -53,7 +53,8 @@ def to_repo(clone):
 
 def from_repo(clone, base):
     git = lambda *a: subprocess.run(['git', '-C', clone, *a], capture_output=True, check=True).stdout
-    names = git('diff', '--name-status', base, 'HEAD').decode().splitlines()
+    # 名前の変更は「消す＋足す」として扱い、古い場所を消す
+    names = git('diff', '--name-status', '--no-renames', base, 'HEAD').decode().splitlines()
     for line in names:
         st, rel = line.split('\t')[0], line.split('\t')[-1]
         if skipped(rel, SKIP + REPO_ONLY):
