@@ -6,7 +6,7 @@ function nearSegment(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((x-a[0])*
 function boundaryDistance(poly,x,z){return Math.min(...poly.map((a,i)=>nearSegment(x,z,[...a,0],[...poly[(i+1)%poly.length],0]).d));}
 function validate(r){
  const num=n=>typeof n==='number'&&Number.isFinite(n),point=(p,n)=>Array.isArray(p)&&p.length===n&&p.every(num);
- assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
+ assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets','props','team'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
  assert([4,5,10].includes(r.grid)&&num(r.half)&&r.half>=120&&r.half<=300&&r.half%r.grid===0,'grid/half budget');assert(r.navStep===r.grid*2,'navStep must be twice grid');assert(Number.isInteger(r.seed),'seed');assert(/^#[0-9a-f]{6}$/i.test(r.color),'color');assert(num(r.baseHeight),'baseHeight');
  assert(Array.isArray(r.boundary)&&r.boundary.length>=4&&r.boundary.length<=40,'boundary');
  for(const [i,a] of r.boundary.entries()){const b=r.boundary[(i+1)%r.boundary.length];assert(point(a,2)&&a.every(v=>Math.abs(v)<r.half&&v%r.grid===0),'grid-aligned boundary');assert((a[0]===b[0])!==(a[1]===b[1]),'orthogonal nonzero boundary edge');
@@ -16,6 +16,8 @@ function validate(r){
  assert(Array.isArray(r.hills)&&r.hills.length<=40,'hills budget');for(const h of r.hills)assert(point(h,4)&&h[2]>=0&&h[2]<=100&&h[3]>=15,'hill [x,z,height,radius]');
  for(const b of Object.values(r.bases)){assert(point(b,3)&&inside(r.boundary,...b)&&boundaryDistance(r.boundary,...b)>35,'base clearance');}
  if(r.catapultTargets!==undefined){assert(Object.keys(r.catapultTargets).length===2,'catapultTargets B/R');for(const team of ['B','R']){const targets=r.catapultTargets[team];assert(Array.isArray(targets)&&targets.length===2&&targets.every(p=>point(p,2)&&inside(r.boundary,...p)),'catapultTargets: two interior XZ targets per base');}}
+ assert(r.team===undefined||[5,8,10].includes(r.team),'team 5/8/10');
+ assert(r.props===undefined||(Array.isArray(r.props)&&r.props.length<=24),'props budget');for(const p of r.props||[])assert(['factory','house','rock'].includes(p.kind)&&point(p.at,2)&&point(p.size,3)&&p.size.every(v=>v>=3&&v<=40)&&inside(r.boundary,...p.at),'props {kind,at:[x,z],size:[width,depth,height]}');
  assert(r.bases.B&&r.bases.R,'two bases');assert(r.routes.length>=2&&r.routes.length<=20,'routes budget');const ids=new Set();
  for(const q of r.routes){assert(!ids.has(q.id),'unique route');ids.add(q.id);assert(['ground','deck'].includes(q.kind)&&q.width>=8&&q.width<=40,'route kind/width');assert(q.kind==='deck'?q.thickness>=1&&q.thickness<=6:q.blend>=5&&q.blend<=40,'route dimensions');assert(q.conform===undefined||(num(q.conform)&&q.conform>=0&&q.conform<=1),'route conform 0..1');assert(q.points.length>=2&&q.points.length<=30,'route points');for(const p of q.points)assert(point(p,3)&&inside(r.boundary,...p)&&boundaryDistance(r.boundary,...p)>q.width/2+2,'route inside boundary');for(let i=1;i<q.points.length;i++){const a=q.points[i-1],b=q.points[i],len=Math.hypot(a[0]-b[0],a[1]-b[1]);assert(len>=5&&Math.abs(a[2]-b[2])/len<=.65,'route slope');}}
  assert(r.tunnels.length<=8,'tunnel budget');for(const t of r.tunnels){assert(t.rim===undefined||(num(t.rim)&&t.rim>=0&&t.rim<=10),'tunnel rim 0..10');assert(['x','z'].includes(t.axis)&&point(t.rect,4)&&t.rect.every(v=>v%r.grid===0),'tunnel grid rectangle');assert(t.rect[1]-t.rect[0]>=10&&t.rect[3]-t.rect[2]>=10&&num(t.floor)&&num(t.ceiling)&&t.ceiling-t.floor>=8,'tunnel clearance');}
@@ -44,7 +46,7 @@ function compile(input,seed=input.seed){
   if(r.rolling)for(const q of r.routes.filter(q=>q.kind==='deck'))for(const p of [q.points[0],q.points[q.points.length-1]]){const a=clamp((Math.hypot(x-p[0],z-p[1])-q.width*.5-3)/18,0,1);y=mix(p[2],y,a*a*(3-2*a));}
   const t=inTunnel(x,z);if(t)y=Math.max(y,t.ceiling+5);return Math.round(y*50)/50;
  }
- const meshes=Object.fromEntries(['dem','tran','fill','ramps','aprons','plazas','streets','historicGround','brid'].map(k=>[k,[]]));
+ const meshes=Object.fromEntries(['dem','tran','fill','ramps','aprons','plazas','streets','historicGround','brid','historicWall'].map(k=>[k,[]]));
  const tri=(k,a,b,c)=>meshes[k].push(...a,...b,...c);const quad=(k,a,b,c,d)=>{tri(k,a,b,c);tri(k,a,c,d);};
  const step=r.grid,grid=new Map();const key=(x,z)=>x+','+z;
  for(let z=-r.half;z<r.half;z+=step)for(let x=-r.half;x<r.half;x+=step){if(!inside(r.boundary,x+step/2,z+step/2))continue;
@@ -57,10 +59,32 @@ function compile(input,seed=input.seed){
  const decks=[];
  for(const q of r.routes.filter(q=>q.kind==='deck'))for(let i=1;i<q.points.length;i++){const a=q.points[i-1],b=q.points[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*q.width/2,nz=dx/len*q.width/2;const p=[[a[0]+nx,a[2],a[1]+nz],[b[0]+nx,b[2],b[1]+nz],[b[0]-nx,b[2],b[1]-nz],[a[0]-nx,a[2],a[1]-nz]];quad('brid',...p);quad('brid',...p.map(v=>[v[0],v[1]-q.thickness,v[2]]).reverse());for(let j=0;j<4;j++){const v=p[j],w=p[(j+1)%4];quad('brid',v,[v[0],v[1]-q.thickness,v[2]],[w[0],w[1]-q.thickness,w[2]],w);}decks.push({a,b,width:q.width,thickness:q.thickness});}
  function sample(x,z){const gx=Math.floor(x/step)*step,gz=Math.floor(z/step)*step,c=grid.get(key(gx,gz));if(!c)return null;const u=(x-gx)/step,v=(z-gz)/step;const interp=a=>v>=u?a[0]*(1-v)+a[1]*(v-u)+a[2]*u:a[0]*(1-u)+a[2]*v+a[3]*(u-v);return {floor:interp(c.floor),roof:c.top?interp(c.top):null};}
+ // 小規模な建物・岩。既存の体積と三角形層へまとめ、同じ面を衝突にも使う。
+ const props=[],propVolumes=[];
+ const rect=(x,z,w,d)=>[[x-w/2,z-d/2],[x+w/2,z-d/2],[x+w/2,z+d/2],[x-w/2,z+d/2]];
+ const volume=(kind,bottom,top,ring,meta={})=>propVolumes.push({kind,bottom,top,ring,meta});
+ for(const p of r.props||[]){
+  const [x,z]=p.at,[w,d,h]=p.size,ring=rect(x,z,w,d),ys=ring.map(q=>{const s=sample(...q);assert(s,'prop footprint outside terrain');return s.roof??s.floor;}),lo=Math.min(...ys)-.3,base=p.kind==='rock'?(sample(x,z).roof??sample(x,z).floor):Math.max(...ys);
+  props.push({kind:p.kind,at:[x,z],size:p.size,bottom:lo,top:base+h+(p.kind==='rock'?0:3)});
+  if(p.kind==='rock'){
+   const lower=[],upper=[];for(let i=0;i<7;i++){const a=i*Math.PI*2/7;lower.push([x+Math.cos(a)*w*.5,lo,z+Math.sin(a)*d*.5]);upper.push([x+Math.cos(a+.15)*w*.32,base+h*(.64+(i%3)*.12),z+Math.sin(a+.15)*d*.32]);}
+   for(let i=0;i<7;i++){const j=(i+1)%7;quad('fill',lower[i],upper[i],upper[j],lower[j]);tri('fill',upper[j],upper[i],[x-.3,base+h,z+.1]);}continue;
+  }
+  volume(p.kind==='house'?'grounded':'rail-shop',lo,base+h,ring,p.kind==='house'?{landmarkColor:'#c4b99d'}:{});
+  if(p.kind==='house'){
+   const a=[x-w/2,base+h,z-d/2],b=[x+w/2,base+h,z-d/2],c=[x+w/2,base+h,z+d/2],e=[x-w/2,base+h,z+d/2],u=[x,base+h+3,z-d/2],v=[x,base+h+3,z+d/2];
+   quad('historicWall',a,e,v,u);quad('historicWall',u,v,c,b);tri('historicWall',a,u,b);tri('historicWall',e,c,v);
+  }else{
+   volume('station-roof',base+h,base+h+.7,rect(x,z,w+1,d+1));
+   for(const off of [-d*.28,0,d*.28])volume('rail-shop',base+h+.7,base+h+3,rect(x,z+off,w*.72,2.2));
+   const chimney=Array.from({length:10},(_,i)=>[x+w*.34+Math.cos(i*Math.PI/5)*2,z+d*.28+Math.sin(i*Math.PI/5)*1.4]);volume('station-support',base+h,base+h+13,chimney);
+   volume('station-roof',base+h+12.5,base+h+13.3,chimney.map(q=>[x+w*.34+(q[0]-x-w*.34)*1.25,z+d*.28+(q[1]-z-d*.28)*1.25]));
+  }
+ }
  function levels(x,z){const s=sample(x,z);if(!s)return [];const ys=[s.floor];if(s.roof!==null)ys.push(s.roof);for(const d of decks){const n=nearSegment(x,z,d.a,d.b);if(n.d<d.width/2-.1)ys.push(n.y);}return [...new Set(ys.map(y=>Math.round(y*50)/50))].sort((a,b)=>a-b);}
  function ground(x,z,y){const ys=levels(x,z);return ys.filter(h=>h<=y+.6).pop()??ys[0]??-1000;}
  function ceiling(x,z,y){let c=Infinity,t=inTunnel(x,z);if(t&&t.ceiling>=y+3.95)c=t.ceiling;for(const d of decks){const n=nearSegment(x,z,d.a,d.b),h=n.y-d.thickness;if(n.d<d.width/2&&h>=y+3.95)c=Math.min(c,h);}return c;}
- function free(x,z,y){if((r.blocks||[]).some(b=>Math.abs(x-b[0])<b[2]/2+1.4&&Math.abs(z-b[1])<b[3]/2+1.4&&y<b[5]-.25&&y+4>b[4]))return false;return inside(r.boundary,x,z)&&boundaryDistance(r.boundary,x,z)>1.4&&ceiling(x,z,y)>=y+4.1;}
+ function free(x,z,y){if(props.some(p=>Math.abs(x-p.at[0])<p.size[0]/2+1.4&&Math.abs(z-p.at[1])<p.size[1]/2+1.4&&y<p.top&&y+4>p.bottom))return false;if((r.blocks||[]).some(b=>Math.abs(x-b[0])<b[2]/2+1.4&&Math.abs(z-b[1])<b[3]/2+1.4&&y<b[5]-.25&&y+4>b[4]))return false;return inside(r.boundary,x,z)&&boundaryDistance(r.boundary,x,z)>1.4&&ceiling(x,z,y)>=y+4.1;}
  function walk(a,b){let y=a[2],n=Math.ceil(Math.hypot(a[0]-b[0],a[1]-b[1]));for(let i=1;i<=n;i++){const x=mix(a[0],b[0],i/n),z=mix(a[1],b[1],i/n),h=ground(x,z,y);if(Math.abs(h-y)>1.1+.05||!free(x,z,h))return false;y=h;}return Math.abs(y-b[2])<.65;}
  const nodes=[],byXZ=new Map(),links=[];
  for(let z=-r.half+5;z<r.half;z+=r.navStep)for(let x=-r.half+5;x<r.half;x+=r.navStep){const ids=[];for(const y of levels(x,z)){if(!free(x,z,y))continue;ids.push(nodes.length);nodes.push([x,z,y]);}if(ids.length)byXZ.set(key(x,z),ids);}
@@ -76,7 +100,7 @@ function compile(input,seed=input.seed){
   const sign=i===0?1:-1,x=p[1]+36,z=p[2]+28*sign;plantPods.push([p[0],x,z]);
   shelters.push([x,z-sign*8,22,2,14,'hesco'],[x-10,z,2,18,14,'hesco'],[x+10,z,2,18,14,'hesco']);
  }
- const def={order:90,name:r.name,size:[r.half,r.half],team:5,time:300,baseZ:r.bases.B[1],baseLine:r.bases.B[1]-42,desc:'谷底から山腹、尾根へ。岩盤の通り抜けと横断橋の上下を使い分ける。',asym:true,terrain:[],layout:shelters,plants,turrets:r.turretSites?[]:[[-25,r.bases.B[1]-30],[25,r.bases.B[1]-30]],...(r.turretSites?{rooftopTurrets:r.turretSites}:{}),radar:[-26,r.bases.B[1]+15],catapults:[],basePods:[[-18,r.bases.B[1]-16]],plantPods,barricades:[],bases,nav:{nodes,links,heightAware:true},attribution:'手続き生成のオリジナル形状。外部画像・モデルの使用なし。',cityBattle:{nodeReach:3,baseSpawns,respawns},cityTerrain:{geometryEncoding:'city-layout-v1',half:r.half,boundary:r.boundary,groundMaximum:Math.max(r.baseHeight,...hills.map(h=>h[2]+r.baseHeight),...r.routes.flatMap(q=>q.points.map(p=>p[2])),...r.tunnels.map(t=>t.ceiling))+10+(r.rolling||[]).reduce((n,w)=>n+Math.abs(w[0]),0),river:{bed:-30,water:-29,rings:[]},ringCoordinateStep:.02,volumeKinds:[r.blockKind==='wall'?'barrier':'grounded'],volumes:(r.blocks||[]).map(([x,z,w,d,bottom,top])=>[0,bottom,top,[pack([x-w/2,z-d/2,x+w/2,z-d/2,x+w/2,z+d/2,x-w/2,z+d/2])],{}]),decorations:[],packing:{layers:Object.fromEntries(Object.keys(meshes).map(k=>[k,true]))},surfaces,district:{unifiedGround:{color:r.color},roofPads:[],bases:districtBases}},recipeMeta:{version:1,seed,grid:r.grid,routes:r.routes,tunnels:r.tunnels}};
+ const def={order:90,name:r.name,size:[r.half,r.half],team:r.team||5,time:300,baseZ:r.bases.B[1],baseLine:r.bases.B[1]-42,desc:'谷底から山腹、尾根へ。岩盤の通り抜けと横断橋の上下を使い分ける。',asym:true,terrain:[],layout:shelters,plants,turrets:r.turretSites?[]:[[-25,r.bases.B[1]-30],[25,r.bases.B[1]-30]],...(r.turretSites?{rooftopTurrets:r.turretSites}:{}),radar:[-26,r.bases.B[1]+15],catapults:[],basePods:[[-18,r.bases.B[1]-16]],plantPods,barricades:[],bases,nav:{nodes,links,heightAware:true},attribution:'手続き生成のオリジナル形状。外部画像・モデルの使用なし。',cityBattle:{nodeReach:3,baseSpawns,respawns},cityTerrain:{geometryEncoding:'city-layout-v1',half:r.half,boundary:r.boundary,groundMaximum:Math.max(r.baseHeight,...hills.map(h=>h[2]+r.baseHeight),...r.routes.flatMap(q=>q.points.map(p=>p[2])),...r.tunnels.map(t=>t.ceiling))+10+(r.rolling||[]).reduce((n,w)=>n+Math.abs(w[0]),0),river:{bed:-30,water:-29,rings:[]},ringCoordinateStep:.02,volumeKinds:[r.blockKind==='wall'?'barrier':'grounded','grounded','rail-shop','station-roof','station-support'],volumes:(r.blocks||[]).map(([x,z,w,d,bottom,top])=>[0,bottom,top,[pack([x-w/2,z-d/2,x+w/2,z-d/2,x+w/2,z+d/2,x-w/2,z+d/2])],{}]).concat(propVolumes.map(v=>[['grounded','rail-shop','station-roof','station-support'].indexOf(v.kind)+1,v.bottom,v.top,[pack(v.ring.flat())],v.meta])),decorations:[],packing:{layers:Object.fromEntries(Object.keys(meshes).map(k=>[k,true]))},surfaces,district:{unifiedGround:{color:r.color},roofPads:[],bases:districtBases}},recipeMeta:{version:1,seed,grid:r.grid,routes:r.routes,tunnels:r.tunnels,props}};
  const connectivity=validateConnectivity(r,def,sample);
  // 空のvolumesも正当な地形（施設は本体が追加する）。
  const lengthScale=r.lengthScale||1,output=lengthScale===1?def:JSON.parse(JSON.stringify(def));if(lengthScale!==1)stretchDefinition(output,lengthScale);
@@ -100,6 +124,7 @@ function stretchDefinition(d,f){
  for(const t of d.rooftopTurrets||[])xz(t.at);
  for(const q of d.recipeMeta.routes)q.points.forEach(xz);
  for(const t of d.recipeMeta.tunnels){t.rect[2]*=f;t.rect[3]*=f;}
+ for(const p of d.recipeMeta.props||[]){xz(p.at);p.size[1]*=f;}
  d.recipeMeta.lengthScale=f;d.recipeMeta.gridXZ=[d.recipeMeta.grid,d.recipeMeta.grid*f];
 }
 function validateConnectivity(r,d,sample){

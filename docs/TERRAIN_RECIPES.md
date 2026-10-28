@@ -52,6 +52,8 @@ python3 tools/build_maps.py
 | routes | id, kind, width, points。ground は blend、deck は thickness。幅8〜40m、勾配上限0.65。経路点は外周から離す |
 | tunnels | axis x/z、rect、floor、ceiling。格子沿いの直方体の貫通空間。高さ8m以上、最大8個 |
 | catapultTargets | 任意。B/Rそれぞれ左右2基の着地点 `[[x,z],[x,z]]`。レシピ座標で指定しlengthScaleも適用。省略時は従来配置 |
+| team | 任意の5/8/10。片側人数、未指定5。山岳は8 |
+| props | 任意、最大24個。factory/house/rock、at:[x,z]、size:[幅,奥行,高さ]。地形上の建物・岩を同じ生成器で追加 |
 | plants | [ID,x,z,初期所有B/R/null]、3〜6個 |
 | blocks | 任意。[x,z,幅,奥行,下面,上面] の建屋プリミティブ |
 
@@ -107,3 +109,5 @@ blocksの任意分類 `blockKind` はbuilding（既定）／wall。wallは窓を
 任意のturretSitesは既存屋上砲台の定義へ出力し、指定時に地上砲台を移設する。山岳のflank_B/flank_Rは既存ground routeで山側に登り口を生成。高さのある足場と支柱は既存blocksで作る。ゲーム本体の新たな移動処理は不要。座標・通行・射撃・カタパルト・壁越えの確認と限界はTERRAIN_ACCESS.mdの最新節。
 
 風裂山道の飛距離再調整は [TERRAIN_LAUNCH_RANGE.md](TERRAIN_LAUNCH_RANGE.md)。生成器の任意着地点指定を使い、このレシピだけを延長した。
+
+工場・住宅・岩と8対8の最新配置は [TERRAIN_SCENERY.md](TERRAIN_SCENERY.md)。
