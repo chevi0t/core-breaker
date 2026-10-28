@@ -4600,15 +4600,15 @@ function botMech(cls) {
 const R = 1.3, UNIT_H = 4; // 機体の半径と高さ（ソードの当たり判定に使う）
 // 機体の形：シリーズごとに装甲の輪郭を作り分ける。箱は部位ごとに頂点の色で1つの形にまとめ、
 // 部位（userData.armorSlot）で当たった所の装甲を決める。color はチームの色、cfg.color が 'team' 以外なら装甲をその色に塗る
-// 腰2箇所・肩2箇所の外炎/芯/点火リングを1メッシュで描く。形状は全機で共有。
+// 腰・肩の通常炎と加速装置専用の背面炎を1メッシュで描く。形状は全機で共有。
 let boosterGeometry = null;
 function makeBoosterFlame(width) {
   return visualAlloc(() => {
     if (!boosterGeometry) {
       const pos = [], uv = [], layer = [], jet = [];
       const vertex = (a, t, l, side) => { pos.push(Math.cos(a), t, Math.sin(a)); uv.push(t, a); layer.push(l); jet.push(side); };
-      for (const side of [0,1,2,3]) for (let l = 0; l < 3; l++) {
-        const rows = l === 2 ? 1 : 6, slices = l === 2 ? 12 : 8;
+      for (const side of [0,1,2,3,4]) for (let l = 0; l < (side === 4 ? 2 : 3); l++) {
+        const rows = side === 4 ? 4 : l === 2 ? 1 : 6, slices = l === 2 ? 12 : 8;
         for (let y = 0; y < rows; y++) for (let x = 0; x < slices; x++) {
           const a = x / slices * Math.PI * 2, b = (x + 1) / slices * Math.PI * 2, t = y / rows, n = (y + 1) / rows;
           for (const [angle, v] of [[a,t],[b,t],[a,n],[b,t],[b,n],[a,n]]) vertex(angle, v, l, side);
@@ -4624,24 +4624,30 @@ function makeBoosterFlame(width) {
     }
     const material = new T.ShaderMaterial({
       transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.DoubleSide,
-      uniforms: { clock: {value: 0}, length: {value: 0}, power: {value: 0}, pulse: {value: 1}, spread: {value: .38 * width}, charge: {value: 0}, origins:{value:[new T.Vector3(-1,1.95,.46),new T.Vector3(1,1.95,.46),new T.Vector3(-1.65,3.06,.08),new T.Vector3(1.65,3.06,.08)]}, axes:{value:[new T.Vector3(0,0,1),new T.Vector3(0,0,1),new T.Vector3(-1,0,0),new T.Vector3(1,0,0)]}, weights:{value:new T.Vector4(.5,.5,0,0)} },
+      uniforms: { clock: {value: 0}, length: {value: 0}, power: {value: 0}, pulse: {value: 1}, spread: {value: .38 * width}, charge: {value: 0}, origins:{value:[new T.Vector3(-1,1.95,.46),new T.Vector3(1,1.95,.46),new T.Vector3(-1.65,3.06,.08),new T.Vector3(1.65,3.06,.08)]}, axes:{value:[new T.Vector3(0,0,1),new T.Vector3(0,0,1),new T.Vector3(-1,0,0),new T.Vector3(1,0,0)]}, weights:{value:new T.Vector4(.5,.5,0,0)}, ignitionScale:{value:new T.Vector2(1,1)}, devicePower:{value:0}, deviceOrigin:{value:new T.Vector3(0,2.85,1.65)}, deviceAxis:{value:new T.Vector3(0,0,1)} },
       vertexShader: `
         attribute float layer; attribute float jet;
         uniform float clock, length, power, pulse, spread;
-        uniform vec3 origins[4], axes[4]; uniform vec4 weights;
+        uniform vec3 origins[4], axes[4], deviceOrigin, deviceAxis; uniform vec4 weights;
+        uniform vec2 ignitionScale; uniform float devicePower;
         varying vec2 vUv; varying float vLayer, vNear, vFacing, vStrength;
         void main() {
           vUv = uv; vLayer = layer;
           float t = position.y;
           float ripple = 1.0 + .07 * sin(t * 34.0 - clock * 29.0 + jet);
           float radius = (.12 + .10 * sin(t * 3.14159)) * pow(max(.001, 1.0 - t), .65) * ripple;
-          float axial = t * length;
+          bool device = jet > 3.5;
+          radius *= device ? 2.6 : ignitionScale.y;
+          float axial = t * (device ? 7.8 : length * ignitionScale.x);
           if (layer > .5) { radius *= .46; axial *= .72; }
           if (layer > 1.5) { radius = (.14 + pulse * 1.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
-          int index=int(jet+.5);vec3 axis=axes[index];vStrength=weights[index];
+          int index=int(jet+.5);
+          vec3 axis, origin;
+          if (device) { axis=deviceAxis; origin=deviceOrigin; vStrength=devicePower; }
+          else { axis=axes[index]; origin=origins[index]; vStrength=weights[index]; }
           vec3 crossAxis=normalize(cross(abs(axis.y)>.9?vec3(1,0,0):vec3(0,1,0),axis));
           vec3 upAxis=cross(axis,crossAxis);
-          vec3 p=origins[index]+(crossAxis*position.x*radius+axis*axial+upAxis*position.z*radius)*step(.001,vStrength);
+          vec3 p=origin+(crossAxis*position.x*radius+axis*axial+upAxis*position.z*radius)*step(.001,vStrength);
           vec4 view = modelViewMatrix * vec4(p, 1.0);
           vNear = smoothstep(.5, 2.0, -view.z);
           vFacing = abs(dot(normalize(normalMatrix * (crossAxis*position.x+axis*.35+upAxis*position.z)), normalize(-view.xyz)));
@@ -4682,10 +4688,12 @@ function makeBoosterFlame(width) {
 }
 function resetBoosterFlame(u) {
   const f = u.flame.userData.boostFx;
-  f.mode = ''; f.age = f.lastDash = f.power = f.length = 0; f.pulse = 1;
+  f.mode = ''; f.age = f.lastDash = f.power = f.length = f.burst = 0; f.pulse = 1;
   u.flame.visible = false;
   u.flame.material.uniforms.power.value = 0;
   u.flame.material.uniforms.weights.value.set(0,0,0,0);
+  u.flame.material.uniforms.ignitionScale.value.set(1,1);
+  u.flame.material.uniforms.devicePower.value=0;
   if(u.hoverJet?.userData.rearPower)u.hoverJet.userData.rearPower.value=0;
 }
 function boosterFlameUpdate(u, dt) {
@@ -4693,6 +4701,9 @@ function boosterFlameUpdate(u, dt) {
   if (!u.alive) { resetBoosterFlame(u); return; }
   const ignition = mode && (!f.mode || (mode === 'short' || mode === 'charge' || mode === 'lunge') && mode !== f.mode || mode === 'short' && u.dashT > f.lastDash + .02);
   if (ignition) f.pulse = 0; else f.pulse = Math.min(1, f.pulse + dt);
+  // 視覚調整値：通常点火だけ0.22秒拡大。押し続けた巡航への移行では再点火しない。
+  const normalBoost = mode === 'short' || mode === 'long' || mode === 'hover';
+  f.burst = ignition && normalBoost ? .22 : Math.max(0, (f.burst || 0) - dt);
   f.age += dt; f.lastDash = u.dashT; f.mode = mode;
   const target = mode === 'charge' ? 5.8 : mode === 'short' ? 4.5 : mode === 'long' ? 3.1 : mode === 'lunge' ? 3.8 : mode === 'hover' ? 1.8 : 0;
   const a = 1 - Math.exp(-dt * (mode ? 35 : 26));
@@ -4701,6 +4712,13 @@ function boosterFlameUpdate(u, dt) {
   const distance = camera.position.distanceToSquared(u.pos), near = u.isPlayer || distance < 180 * 180;
   mesh.visible = f.power > .025 && (u.isPlayer || distance < 350 * 350);
   const U = mesh.material.uniforms;
+  const burst = normalBoost ? (f.burst / .22) ** 2 : 0;
+  U.ignitionScale.value.set(1 + .7 * burst, 1 + .85 * burst);
+  // 装置ONかつ実際のブースト中だけ。ON待機・歩行・踏み込み・カタパルトには出さない。
+  const boostActive = mode === 'short' || mode === 'long' && u.boost > 0 && !u.overheat || mode === 'hover' && !u.onGround && u.boost > 0 && !u.overheat || mode === 'charge' && u.charging;
+  U.devicePower.value = boostActive && u.chargerOn && u.slots.sp.w.type === 'charger' && !u.slots.sp.overheat && u.slots.sp.heat > 0 ? 1 : 0;
+  U.deviceOrigin.value.set(0,2.85,1.65); U.deviceAxis.value.set(0,0,1);
+  if(u.rig?.bones.chest){U.deviceOrigin.value.applyMatrix4(u.rig.bones.chest.matrix);U.deviceAxis.value.transformDirection(u.rig.bones.chest.matrix);}
   U.clock.value = f.age + (u.idx || 0) * .71;
   U.length.value = Math.max(.05, f.length * (1 + (near ? .025 * Math.sin(f.age * 63) : 0)) + (near ? Math.max(0, 1 - f.pulse / .18) * .7 : 0));
   U.power.value = f.power * (near ? 1 : .65);
