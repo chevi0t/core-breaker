@@ -100,6 +100,15 @@ function check(d) {
     if(!c||c.geometryEncoding!=='city-layout-v1')E('cityTerrain は city-layout-v1 の都市データ');
     else {
       if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
+      if(c.boundary!==undefined){
+        const p=c.boundary;
+        if(!Array.isArray(p)||p.length<4||p.length>40)E('boundaryは4〜40頂点の直交多角形');
+        else for(let i=0;i<p.length;i++){
+          const a=p[i],b=p[(i+1)%p.length];
+          if(!Array.isArray(a)||a.length!==2||!a.every(num)||!Array.isArray(b)||b.length!==2){E('boundaryの頂点は[x,z]');continue;}
+          inMap(...a,'boundary');if((a[0]===b[0])===(a[1]===b[1]))E('boundaryの辺は直交し長さを持つ');
+        }
+      }
       if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
       if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
       const ring=(r,what)=>{
@@ -149,7 +158,7 @@ function check(d) {
         }
       }
       if(!Array.isArray(c.volumeKinds)||!c.volumeKinds.length)E('都市のvolumeKindsが必要');
-      if(!Array.isArray(c.volumes)||!c.volumes.length)E('都市のvolumesが必要');
+      if(!Array.isArray(c.volumes))E('都市のvolumesは配列');
       else for(const v of c.volumes){
         if(!Array.isArray(v)||v.length!==5||!Number.isInteger(v[0])||!c.volumeKinds?.[v[0]]||!num(v[1])||!num(v[2])||v[1]>=v[2]||!Array.isArray(v[3])||!v[3].length){E('都市の体積は [種類番号, 底, 上面, 輪郭列, 属性]');continue;}
         for(const r of v[3])ring(r,'都市の体積輪郭');
