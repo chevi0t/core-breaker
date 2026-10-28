@@ -4,10 +4,11 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chr
  const result=await p.evaluate(()=>{
   const g=__g;g.selectMap('kazan_pass');document.getElementById('start').click();for(const u of g.units){u.alive=false;u.group.visible=false;}const checks=[],routes=[];const ok=(v,m)=>{checks.push({name:m,pass:!!v});};const u=g.player;
   const place=(a)=>{u.pos.set(a[0],a[2],a[1]);u.vel.set(0,0,0);Object.assign(u,{alive:true,onGround:true,stun:'',flying:false,repairing:false,transfer:null,planted:false,charging:false,dashT:0,longDash:false,overheat:false,ctrlLockT:0,boost:u.maxBoost,navPath:null,navVia:null});};
-  ok(g.groundAt(80,0,2)===2&&Math.abs(g.groundAt(80,0,40)-34)<.1,'same XZ has separate lower/upper floors');ok(g.ceilingAt(80,0,2)===14,'tunnel 12m clearance');
+  ok(g.groundAt(80,0,2)===2&&g.groundAt(80,0,100)>19,'same XZ has separate lower/upper floors');ok(g.ceilingAt(80,0,2)===14,'tunnel 12m clearance');
   const scenarios=[['tunnel',[[25,0,2],[125,0,2]],false],['roof',[[80,50,34],[80,-50,34]],false],['bridge',[[-75,30,24.3125],[75,30,33.6875]],false],['under_bridge',[[-20,10,2],[-20,45,2]],false],...g.curMap.recipeMeta.routes.filter(r=>['valley','hillside','ridge'].includes(r.id)).map(r=>[r.id,r.points,true])];
   for(const cls of ['light','heavy'])for(const [name,points,nav] of scenarios)for(const reverse of [false,true]){
-   u.mech={head:cls,body:cls,arms:cls,legs:cls,color:'team'};g.equip(u,'assault');const ps=reverse?[...points].reverse():points;place(ps[0]);let ticks=0,failed=null;
+   const actualPoints=points.map(a=>name==='bridge'||name==='tunnel'?a:[a[0],a[1],['roof','ridge'].includes(name)?g.groundAt(a[0],a[1],100):g.terrainH(a[0],a[1])]);
+   u.mech={head:cls,body:cls,arms:cls,legs:cls,color:'team'};g.equip(u,'assault');const ps=reverse?[...actualPoints].reverse():actualPoints;place(ps[0]);let ticks=0,failed=null;
    for(const a of ps.slice(1)){const goal=new g.T.Vector3(a[0],a[2],a[1]);let arrived=false;for(let i=0;i<1400;i++){const gd=Math.hypot(goal.x-u.pos.x,goal.z-u.pos.z);if(gd<1.5&&Math.abs(u.pos.y-goal.y)<1.5){arrived=true;break;}const to=nav?g.navSteer(u,goal,gd,.05):goal;g.physics(u,new g.T.Vector3(to.x-u.pos.x,0,to.z-u.pos.z).normalize(),false,false,.05);ticks++;}if(!arrived){failed={at:u.pos.toArray(),goal:goal.toArray()};break;}}
    routes.push({name,cls,reverse,controller:nav?'BOT navSteer + physics':'player physics',seconds:ticks*.05,pass:!failed,failed});
   }

@@ -22,6 +22,7 @@ def main():
     ap.add_argument('recipe', type=pathlib.Path)
     ap.add_argument('output', type=pathlib.Path)
     ap.add_argument('--seed', type=int)
+    ap.add_argument('--skip-escape', action='store_true', help='全域脱出標本検査を省略し、未実施と記録する')
     args = ap.parse_args()
     recipe = args.recipe.resolve()
     out = args.output.resolve()
@@ -39,7 +40,8 @@ def main():
     run(['node', '-e', "global.window={};require(process.argv[1]);require('fs').writeFileSync(process.argv[2],JSON.stringify(Object.values(window.MAP_DATA)[0]));", generated, definition])
     dbg = out / 'check-game'
     run([sys.executable, ROOT / 'tools/test/make_dbg.py', dbg])
-    run(['node', ROOT / 'tools/test/terrain_escape_check.js', dbg, out / 'escape', definition])
+    if not args.skip_escape:
+        run(['node', ROOT / 'tools/test/terrain_escape_check.js', dbg, out / 'escape', definition])
     # 配信ツールのHTML整形だけを再利用する。gh-pages作成・操作は行わない。
     game = out / 'game'
     (game / 'credits').mkdir(parents=True, exist_ok=True)
@@ -50,9 +52,9 @@ def main():
     # 試遊ディレクトリ内だけ、選んだレシピの出力で同IDを上書きする。
     (game / 'maps.js').write_bytes((ROOT / 'prototype/maps.js').read_bytes() + b'\n' + generated.read_bytes())
     shutil.copyfile(recipe, out / 'recipe.json')
-    report = {'recipe':data['id'], 'seed':seed, 'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(), 'localPrototype':True, 'structuralValidation':'passed', 'sampledEscapeValidation':'passed', 'files':{p.relative_to(game).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(game.rglob('*')) if p.is_file()}}
+    report = {'recipe':data['id'], 'seed':seed, 'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(), 'localPrototype':True, 'structuralValidation':'passed', 'sampledEscapeValidation':'not run for this revision' if args.skip_escape else 'passed', 'files':{p.relative_to(game).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(game.rglob('*')) if p.is_file()}}
     (out / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
-    (out / 'README.txt').write_text(f'ローカル試遊版・未公開\nこのフォルダで python3 -m http.server 8000 を実行し、http://localhost:8000/game/ を開く。\nPCのマップ選択で「{data["name"]}」を選択。既存のモバイル都市除外条件は維持しており、この試作はPC向け。\n構造・標本脱出検査合格。連続空間での完全保証、楽しさ、公平性、実スマホ性能は未検証。\n')
+    (out / 'README.txt').write_text(f'ローカル試遊版・未公開\nこのフォルダで python3 -m http.server 8000 を実行し、http://localhost:8000/game/ を開く。\nPCのマップ選択で「{data["name"]}」を選択。既存のモバイル都市除外条件は維持しており、この試作はPC向け。\n構造検査合格。脱出検査の実施有無はvalidation.jsonを参照。連続空間での完全保証、楽しさ、公平性、実スマホ性能は未検証。\n')
     print(f'ローカル試遊版・検査結果: {out}')
 
 
