@@ -1,0 +1,35 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chromium}=require('playwright');
+(async()=>{const dir=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]);fs.mkdirSync(out,{recursive:true});const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});try{
+ const ctx=await b.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true}),p=await ctx.newPage(),errors=[],checks=[];
+ p.on('pageerror',e=>errors.push(e.stack));await p.route('https://**/*',r=>r.fulfill({body:''}));await p.addInitScript(()=>{requestAnimationFrame=()=>0;window.AudioContext=undefined});await p.goto('file://'+path.join(dir,'dbg.html'));
+ const capture=async name=>{await p.evaluate(()=>{const g=__g;for(let i=0;i<6;i++)g.loop(window.__hybridTime=(window.__hybridTime||0)+16.67);g.scene.updateMatrixWorld(true);g.renderer.render(g.scene,g.camera);let image=document.getElementById('testFrame');if(!image){image=document.createElement('img');image.id='testFrame';image.style='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';document.getElementById('game').appendChild(image);}image.src=g.renderer.domElement.toDataURL();});await p.screenshot({path:path.join(out,name)});};
+ const ok=(v,m)=>{assert.ok(v,m);checks.push(m)};const mode=()=>p.evaluate(()=>__g.inputMode.mode);
+ await p.evaluate(()=>{const g=__g;g.selectMap('dock');document.getElementById('start').click();g.touchTick()});
+ ok(await mode()==='touch','touch capable device starts touch');
+ await p.mouse.move(500,170);ok(await mode()==='touch','mouse hover alone does not switch');
+ await p.keyboard.down('w');ok(await p.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touchPlay&&__g.keys.KeyW),'real keyboard first key switches and moves');await p.keyboard.up('w');ok(await p.evaluate(()=>!__g.keys.KeyW),'key release clears');
+ ok(await p.evaluate(()=>!__g.touchAutoTrigger({},null,null)),'manual mode bypasses all touch auto');
+ const cdp=await ctx.newCDPSession(p);const tap=async()=>{await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:500,y:170,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[{x:500,y:170,id:1}]});};
+ await tap();ok(await p.evaluate(()=>__g.inputMode.mode==='touch'&&__g.touchPlay&&!__g.touch.armed),'real touch returns and requires aim gesture');
+ await p.evaluate(()=>{for(const type of ['mousedown','mousemove','mouseup','click']){const e=new MouseEvent(type,{bubbles:true,button:0});Object.defineProperty(e,'sourceCapabilities',{value:{firesTouchEvents:true}});document.getElementById('view').dispatchEvent(e)}});ok(await p.evaluate(()=>__g.inputMode.mode==='touch'&&!__g.mouseDown),'compatibility mouse ignored');
+ await p.evaluate(()=>{for(const type of ['mousedown','mouseup'])document.getElementById('view').dispatchEvent(new MouseEvent(type,{bubbles:true,button:0}))});ok(await p.evaluate(()=>__g.inputMode.mode==='touch'&&!__g.mouseDown),'unmarked compatibility mouse ignored after touch');
+ await p.evaluate(()=>{document.body.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',bubbles:true}));document.body.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',bubbles:true}))});ok(await mode()==='touch','gamepad-style synthetic keys do not switch');
+ await p.evaluate(()=>{const el=document.createElement('input');el.id='typing';el.style='position:fixed;z-index:1000';document.body.appendChild(el);el.focus()});await p.keyboard.type('wasd');ok(await p.evaluate(()=>__g.inputMode.mode==='touch'&&!__g.keys.KeyW&&!__g.keys.KeyA&&document.getElementById('typing').value==='wasd'),'form typing is not gameplay');await p.evaluate(()=>document.getElementById('typing').remove());
+ await p.evaluate(()=>__g.touchMenuOpen());await p.keyboard.press('Digit2');ok(await p.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touch.menu&&!__g.touch.ptr.size&&!__g.mouseDown&&__g.pressed.Digit2),'keyboard closes menu, preserves current key');
+ await p.keyboard.down('w');await tap();ok(await p.evaluate(()=>__g.inputMode.mode==='touch'&&!__g.keys.KeyW),'touch clears held keyboard movement');await p.keyboard.down('w');ok(await mode()==='touch','old held key repeat does not steal touch');await p.keyboard.up('w');
+ await p.mouse.move(500,170);await p.mouse.down();ok(await p.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touchPlay&&__g.mouseDown),'real mouse click immediately overrides touch and fires');await p.mouse.up();ok(await p.evaluate(()=>!__g.mouseDown),'mouse releases');
+ await tap();await p.evaluate(()=>__g.touchMenuOpen());await p.mouse.click(500,170);ok(await p.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touch.menu&&!__g.mouseDown),'mouse closes touch menu without firing');
+ await p.keyboard.down('w');await p.evaluate(()=>dispatchEvent(new Event('blur')));ok(await p.evaluate(()=>!__g.keys.KeyW&&!__g.mouseDown&&!__g.touch.armed),'blur clears hybrid held inputs');await p.keyboard.up('w');
+ await capture('hybrid-keyboard-mouse.png');
+ await tap();ok(await mode()==='touch','touch still returns after blur');await capture('hybrid-touch-return.png');
+ // 主ポインタがマウスでも、タッチ能力があれば実接触で戻れる。
+ const fine=await ctx.newPage();fine.on('pageerror',e=>errors.push(e.stack));await fine.route('https://**/*',r=>r.fulfill({body:''}));
+ await fine.addInitScript(()=>{requestAnimationFrame=()=>0;window.AudioContext=undefined;const mm=matchMedia.bind(window);window.matchMedia=q=>q==='(hover: none) and (pointer: coarse)'?{matches:false}:mm(q)});
+ await fine.goto('file://'+path.join(dir,'dbg.html'));await fine.evaluate(()=>{__g.selectMap('dock');document.getElementById('start').click();__g.touchTick()});
+ ok(await fine.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touchPlay),'fine primary pointer starts manual on touch-capable display');
+ const fineCDP=await ctx.newCDPSession(fine);await fineCDP.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:500,y:170,id:1}]});await fineCDP.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ ok(await fine.evaluate(()=>__g.inputMode.mode==='touch'&&__g.touchPlay),'actual touch activates controls despite fine primary pointer');
+ await fine.keyboard.press('KeyW');ok(await fine.evaluate(()=>__g.inputMode.mode==='manual'&&!__g.touchPlay),'fine hybrid keyboard returns manual');
+ await fine.close();
+ ok(errors.length===0,'no page errors');fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({checks,errors},null,2));console.log(checks.join('\n'));console.log('PASS '+checks.length);
+ }finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

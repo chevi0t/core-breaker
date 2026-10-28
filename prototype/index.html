@@ -1185,6 +1185,7 @@ body:not(.touch) .touchOnly { display: none; }
       <div class="keys">
         <kbd>左半分</kbd><span>触った所がスティックの中心になり、指を動かした向きへ進む。外側の点線の輪まで倒すとダッシュ</span>
         <kbd>右半分</kbd><span>なぞると視点。ダブルタップで十字の武器選択。メニューを閉じた後は再びなぞると自動攻撃再開</span>
+        <kbd>外付け入力</kbd><span>キーボード・マウスでゲーム操作すると手動操作へ切替。画面に触るとタッチ操作へ戻る。接続だけでは切り替わりません</span>
         <kbd>自動攻撃</kbd><span>既定では照準に合った敵へ自動ロック・射撃。装備中の近接は前方の攻撃範囲で発動。爆発物も対象。設定でOFFにすると射撃・ロックを手動ボタンで操作できます</span>
         <kbd>補助操作</kbd><span>照準・起爆・自己修復・解除は該当する武器で表示。装置・修理・地図砲撃は手動操作</span>
         <kbd>ジャンプ・ダッシュ</kbd><span>Space・Shift と同じ。ダッシュは短く押すとショートダッシュ、押し続けるとロングダッシュ</span>
@@ -1251,6 +1252,7 @@ const T = THREE;
 const canvas = document.getElementById('view');
 // スマホ・タブレット（指で触る画面だけの端末）。画面のボタンで操作し、軽いマップと5対5・10対10だけにする（2026-10-27、ユーザー指定）
 const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+const TOUCH_INPUT = TOUCH || navigator.maxTouchPoints > 0; // マウスが主ポインタのタッチ画面も操作切替に対応
 const renderer = new T.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2)); // スマホは画素が細かいので、描く画素を減らして軽くする
 renderer.shadowMap.enabled = true;
@@ -10414,7 +10416,7 @@ function lookMove(mx, my, sens) {
   player.yaw -= mx * sens;
   player.pitch = Math.max(-0.9, Math.min(0.7, player.pitch - my * sens));
 }
-function grabPointer() { if (TOUCH) return; /* タッチの端末ではマウスを固定しない（固定すると指の座標が取れない端末がある） */ try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
+function grabPointer() { if (TOUCH_INPUT && inputMode.mode === 'touch') return; /* タッチ操作中はマウスを固定しない（固定すると指の座標が取れない端末がある） */ try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
 // 指示出し（v0.17、ユーザー指定「G 長押しの円形メニュー（マウスの向きで選び、離すと送る）と、全体マップをクリックして地点を指す」）。
 // G を押している間メニューを出し、G を離すと選んだ言葉を味方に送る（真ん中のまま離すと取り消し）。言葉・Bot の数・秒は Claude が決めた。
 // ping のある物は照準の先（全体マップを開いているときはマップのカーソル）に印を出し、order のある物は近くの味方のBotが n 機従う：
@@ -10582,7 +10584,7 @@ function playerUpdate(u, dt) {
   }
   const healOk = !u.transfer && (!busy || cur.w.type === 'repair'); // ポッドの上でもリペアユニットは使える
   const autoFire = touchAutoTrigger(u, hit, aim);
-  const menuBlocked = TOUCH && touch.menu;
+  const menuBlocked = TOUCH_INPUT && touch.menu;
   const res = weaponsTick(u, dt, !menuBlocked && (mouseDown || autoFire) && healOk, menuBlocked ? null : aim, spread, !menuBlocked && healOk && rightDown);
   if (res) hitMark(res === 'head');
 }
@@ -10802,10 +10804,28 @@ const TC_R = 56, TC_DASH = 1.45; // スティックの半径（px）。中心か
 // ptr：触っている指ごとの役目（stick・look・btn）。fwd・side：スティックの前後・左右（playerUpdate がキーに足す）
 const touch = { ptr: new Map(), fwd: 0, side: 0, dash: false, console: null, menu:false, tap:null, armed:false, autoSlot:null, life:null, autoLock:null }; // console：試合中だけ標準にしたコンソールの、元の選択
 let touchPlay = false; // 試合中で、タッチのボタンを出している
+// ペアリングは検出しない。信頼されたゲーム操作だけで入力方式を選ぶ。
+const inputMode = { mode: TOUCH ? 'touch' : 'manual', lastTouch: -Infinity, lastMouse: -Infinity, suppressMouse: false };
+function switchInputMode(mode) {
+  if(!TOUCH_INPUT || inputMode.mode===mode)return;
+  touchEndAll(); releaseLock();
+  for(const k of Object.keys(keys))keys[k]=false;
+  for(const k of Object.keys(pressed))pressed[k]=false;
+  mouseDown=rightDown=false;wheelDir=0;wsel.open=qc.open=false;
+  inputMode.mode=mode;
+  if(mode==='touch' && document.pointerLockElement===canvas)document.exitPointerLock?.();
+  touchTick();
+}
+function hybridGameSurface(el) { return !!el?.closest?.('#game,#touchZone,#tcPad,#tcWeaponMenu,#tcTop'); }
+function hybridGameActive() { return running && !!player && $('overlay').hidden; }
+function touchCompatibilityMouse(e) {
+  return TOUCH_INPUT && (e.sourceCapabilities?.firesTouchEvents || (!e.sourceCapabilities && performance.now()-inputMode.lastTouch<800 && performance.now()-inputMode.lastMouse>100));
+}
+
 const TC_KEYS = { jump: ['Space'], dash: ['ShiftLeft'], reload: ['KeyR'], act: ['KeyE', 'KeyF'], score: ['Tab'], chat: ['KeyG'] }; // 押している間
 const TC_TAPS = { map: ['KeyM'], xfer: ['KeyH'], next: ['Enter'] }; // 押した時に1回
 function touchTick() {
-  const on = TOUCH && running && !!player && $('overlay').hidden;
+  const on = TOUCH_INPUT && inputMode.mode==='touch' && running && !!player && $('overlay').hidden;
   if (on !== touchPlay) {
     touchPlay = on; document.body.classList.toggle('touchPlay', on);
     if (!on) touchEndAll();
@@ -10909,7 +10929,7 @@ function touchAutoCancel() {
 }
 function touchMenuClose() { touch.menuPicks?.clear();touch.menu=false;touch.armed=false; $('tcWeaponMenu').hidden=true;document.body.classList.remove('tcMenu'); }
 function touchMenuOpen() {
-  if(!TOUCH || !running || !player?.alive || player.transfer || meleeOnly())return;
+  if(!TOUCH_INPUT || !running || !player?.alive || player.transfer || meleeOnly())return;
   touchAutoCancel();releaseLock();touch.armed=false;touch.menu=true;touch.tap=null;mouseDown=rightDown=false;wsel.open=qc.open=false;
   for(const [id,t] of touch.ptr)if(t.kind==='look'||t.name==='fire'||t.name==='lock'||t.name==='weapon'){touchEnd(t,true);touch.ptr.delete(id);}
   // 押下解除でチャージ弾を放たない。既に発射した弾・振り始めた攻撃はそのまま。
@@ -10939,7 +10959,7 @@ function touchMeleeTarget(u, aim) {
     });
 }
 function touchAutoTrigger(u, hit, aim) {
-  if(!TOUCH)return false;
+  if(!TOUCH_INPUT || inputMode.mode!=='touch')return false;
   const sl=u.slots[u.weapon], w=sl.w;
   const tapping=[...touch.ptr.values()].some(t=>t.kind==='look'&&(t.multi||t.moved<=8));
   if(!touchPlay||!gameOptions.touchAuto||!touch.armed||touch.menu||tapping||touch.tap&&performance.now()-touch.tap.at<300||!u.alive||u.downT||u.repairing||u.transfer||u.stun&&u.stun!=='land'||u.electricT>0||u.switchT>0||mapOpen||wsel.open||qc.open||!$('overlay').hidden||innerHeight>innerWidth||!touchOffensive(w)) {touchAutoCancel();return false;}
@@ -10964,17 +10984,56 @@ function touchAutoTrigger(u, hit, aim) {
   panel.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();const b=picks.get(e.pointerId);picks.delete(e.pointerId);if(!b||!touch.menu)return;const r=b.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(b.dataset.slot&&player?.alive)selectWeapon(player,b.dataset.slot);touchMenuClose();});
   panel.addEventListener('pointercancel',()=>{picks.clear();touchAutoCancel();touchMenuClose();});
   panel.addEventListener('contextmenu',e=>e.preventDefault());
-  addEventListener('blur',()=>{if(TOUCH)touchEndAll();});
-  addEventListener('orientationchange',()=>{if(TOUCH)touchEndAll();});
-  document.addEventListener('visibilitychange',()=>{if(TOUCH&&document.hidden)touchEndAll();});
+  addEventListener('blur',()=>{if(TOUCH_INPUT)touchEndAll();});
+  addEventListener('orientationchange',()=>{if(TOUCH_INPUT)touchEndAll();});
+  document.addEventListener('visibilitychange',()=>{if(TOUCH_INPUT&&document.hidden)touchEndAll();});
 }
 
 // 出撃で全画面・横向きにする（できる端末だけ。iPhone の Safari などは全画面にできない）
 function touchFullscreen() {
-  if (!TOUCH || document.fullscreenElement) return;
+  if (!TOUCH_INPUT || document.fullscreenElement) return;
   try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.then(() => screen.orientation?.lock?.('landscape')?.catch(() => {}), () => {}); } catch (_) {}
 }
-if (TOUCH) document.body.classList.add('touch'); // 読み込み中なので $ はまだ使えない
+// 捕捉フェーズで既存のキー/マウス処理より先に切り替え、最初の操作を取りこぼさない。
+{
+  const gameplayKeys=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyR','KeyE','KeyF','KeyG','KeyH','KeyM','Space','ShiftLeft','ShiftRight','Digit1','Digit2','Digit3','Digit4','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab','Escape','F3']);
+  addEventListener('keydown',e=>{
+    if(!TOUCH_INPUT || !e.isTrusted)return; // padKeyなどの合成キーは方式を変えない
+    if(e.target.isContentEditable||e.target.closest?.('input,textarea,select')){e.stopImmediatePropagation();return;}
+    if(!hybridGameActive()||!gameplayKeys.has(e.code))return;
+    if(e.repeat&&inputMode.mode==='touch'){e.stopImmediatePropagation();return;}
+    switchInputMode('manual');
+  },true);
+  addEventListener('pointerdown',e=>{
+    if(!TOUCH_INPUT||!e.isTrusted||!hybridGameActive()||!hybridGameSurface(e.target))return;
+    if(e.pointerType==='touch'){
+      inputMode.lastTouch=performance.now();inputMode.lastMouse=-Infinity;inputMode.suppressMouse=false;
+      const returning=inputMode.mode!=='touch';switchInputMode('touch');
+      if(returning&&e.target===canvas){
+        touchZoneDown({pointerType:'touch',pointerId:e.pointerId,clientX:e.clientX,clientY:e.clientY,currentTarget:document.getElementById('touchZone'),preventDefault:()=>e.preventDefault()});
+        e.preventDefault();e.stopImmediatePropagation();
+      }
+    }else if(e.pointerType==='mouse'&&!e.sourceCapabilities?.firesTouchEvents){
+      inputMode.lastMouse=performance.now();inputMode.suppressMouse=touch.menu;switchInputMode('manual');
+    }
+  },true);
+  addEventListener('pointermove',e=>{
+    if(TOUCH_INPUT&&e.isTrusted&&e.pointerType==='mouse'&&(e.buttons||document.pointerLockElement===canvas)&&hybridGameActive()&&hybridGameSurface(e.target)&&!e.sourceCapabilities?.firesTouchEvents){inputMode.lastMouse=performance.now();switchInputMode('manual');}
+  },true);
+  addEventListener('blur',()=>{if(TOUCH_INPUT){for(const k of Object.keys(keys))keys[k]=false;for(const k of Object.keys(pressed))pressed[k]=false;inputMode.suppressMouse=false;} });
+  for(const name of ['mousedown','mouseup','mousemove','click','auxclick'])addEventListener(name,e=>{
+    if(!TOUCH_INPUT)return;
+    if(touchCompatibilityMouse(e)){e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();return;}
+    if(inputMode.suppressMouse){if(name==='mouseup')inputMode.suppressMouse=false;e.stopImmediatePropagation();return;}
+    // 方式変更前の透明なタッチ面へ届いた最初のクリックも、通常の射撃処理へ渡す。
+    if(name==='mousedown'&&e.isTrusted&&inputMode.mode==='manual'&&e.target.closest?.('#touchZone')&&hybridGameActive()){
+      if(aimPress(e.button,false))grabPointer();e.stopImmediatePropagation();
+    }
+  },true);
+  addEventListener('wheel',e=>{if(TOUCH_INPUT&&e.isTrusted&&hybridGameActive()&&hybridGameSurface(e.target))switchInputMode('manual');},{capture:true,passive:true});
+}
+
+if (TOUCH_INPUT) document.body.classList.add('touch'); // 読み込み中なので $ はまだ使えない
 {
   const zone = document.getElementById('touchZone');
   zone.addEventListener('pointerdown', touchZoneDown);
@@ -12965,8 +13024,8 @@ $('start').addEventListener('click', () => {
 });
 document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && running) mouseDown = false;
-  if (!document.pointerLockElement && tutorial && !mapOpen) tutorialPause();
-  if (!document.pointerLockElement && range && !mapOpen) rangePause();
+  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode==='touch') && tutorial && !mapOpen) tutorialPause();
+  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode==='touch') && range && !mapOpen) rangePause();
 });
 
 function resize() {
