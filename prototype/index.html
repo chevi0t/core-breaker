@@ -885,6 +885,21 @@ body.touchPlay #tutorialHud, body.touchPlay #rangeHud { top: calc(6px + env(safe
 body.touchPlay #tutorialHud h2 { font-size: 14px; margin: 3px 0; } body.touchPlay #tutorialHud p { margin: 3px 0; line-height: 1.45; }
 body.touchPlay #rangeHud dl { margin: 4px 0; gap: 1px 10px; }
 @media (orientation: portrait) { body.touchPlay #touchRotate { display: grid; place-items: center; position: fixed; inset: 0; z-index: 40; background: rgba(5, 9, 13, .94); color: var(--hud); font: 700 20px var(--body); } }
+
+#tcAutoHint { display:none; }
+body.touchPlay.tcAuto #tcAutoHint { display:block;position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);font:11px var(--body);color:#bed9e8;pointer-events:none;z-index:4;max-width:40vw;text-align:center; }
+body.tcMenu #tcAutoHint { visibility:hidden; }
+#tcWeaponMenu[hidden] { display:none; }
+#tcWeaponMenu { position:fixed; inset:0; z-index:35; pointer-events:none; touch-action:none; }
+.tcCross { position:absolute; right:max(12px,env(safe-area-inset-right)); bottom:max(12px,env(safe-area-inset-bottom)); display:grid; grid-template:repeat(3,64px)/repeat(3,90px); gap:6px; padding:12px; border-radius:18px; background:rgba(8,18,30,.96); pointer-events:auto; }
+.tcCross button { min-width:44px; min-height:44px; padding:4px; color:#eef6fb; background:#203c53; border:1px solid #80bada; border-radius:10px; font:700 13px var(--body); touch-action:none; overflow-wrap:anywhere; }
+.tcCross button.selected { border:2px solid #ffd34d; }
+.tcCross p { grid-column:1/4; margin:3px; color:#c7dfeb; font:12px var(--body); text-align:center; }
+body.tcAuto .tcFire, body.tcAuto [data-tc="lock"] { display:none; }
+body.tcAuto.tcManualFire .tcFire, body.tcAuto.tcScope [data-tc="lock"] { display:block; }
+body.tcMenu #tcPad { visibility:hidden; }
+@media (orientation:portrait) { .tcCross { right:12px; bottom:12px; } }
+
 /* スマホでだけ出す説明・PC でだけ出す説明 */
 body:not(.touch) .touchOnly { display: none; }
 </style>
@@ -960,7 +975,11 @@ body:not(.touch) .touchOnly { display: none; }
 <div id="tcTop" aria-hidden="true">
   <button type="button" tabindex="-1" data-tc="score">スコア</button><button type="button" tabindex="-1" data-tc="map">マップ</button><button type="button" tabindex="-1" data-tc="pause" aria-label="一時停止">II</button><button type="button" tabindex="-1" data-tc="chat">指示</button><button type="button" tabindex="-1" data-tc="xfer">移動</button>
 </div>
+<div id="tcAutoHint">右側をなぞって照準・自動攻撃 ／ ダブルタップで武器</div>
 <button type="button" tabindex="-1" id="tcNext" data-tc="next" hidden>次へ</button>
+<div id="tcWeaponMenu" hidden role="dialog" aria-label="武器選択"><div class="tcCross">
+<button data-slot="main" style="grid-area:1/2">主武器</button><button data-slot="aux" style="grid-area:2/1">補助</button><button data-close style="grid-area:2/2">閉じる</button><button data-slot="sub" style="grid-area:2/3">副武器</button><button data-slot="sp" style="grid-area:3/2">特殊</button>
+<p>タップで選択・中央で取消<br>閉じた後は右側をなぞると自動攻撃再開</p></div></div>
 <div id="touchRotate" aria-live="polite">横向きにしてください</div>
 <aside id="rangeHud" hidden aria-label="射撃場"><b>射撃場</b> <span id="rangeCls"></span>
   <dl><dt>最後の命中</dt><dd id="rangeLast">—</dd><dt>続けて当てた合計</dt><dd id="rangeSum">—</dd><dt>毎秒</dt><dd id="rangeDps">—</dd><dt>撃破まで</dt><dd id="rangeKill">—</dd></dl>
@@ -1044,7 +1063,7 @@ body:not(.touch) .touchOnly { display: none; }
           <label class="sw"><span>視点の上下反転<small>右スティックを上へ倒すと下を向く</small></span><input type="checkbox" role="switch" id="optPadInvert"><i aria-hidden="true"></i></label>
           <label class="sw"><span>振動<small>被弾したときに震える（ブラウザによっては震えません）</small></span><input type="checkbox" role="switch" id="optPadRumble"><i aria-hidden="true"></i></label>
           <div class="touchOnly"><!-- スマホ・タブレットでだけ出す -->
-            <h3 class="optionHead">タッチ操作（スマホ・タブレット）</h3>
+            <h3 class="optionHead">タッチ操作（スマホ・タブレット）</h3><label class="touchOnly"><input id="optTouchAuto" type="checkbox"> 照準で自動ロック・自動攻撃（OFFで手動射撃・ロック）</label>
             <div class="optionSliders">
               <label for="optTouchLook">視点の速さ（なぞる） <output id="optTouchLookValue" for="optTouchLook"></output></label>
               <input id="optTouchLook" type="range" min="0" max="100" step="1">
@@ -1165,11 +1184,11 @@ body:not(.touch) .touchOnly { display: none; }
       <p class="note">指で触る画面の端末では、試合中に画面のボタンが出ます。横向きで遊びます。スマホでは処理を軽くするため、人数は5対5か10対10、マップは軽い物だけを選べます。</p>
       <div class="keys">
         <kbd>左半分</kbd><span>触った所がスティックの中心になり、指を動かした向きへ進む。外側の点線の輪まで倒すとダッシュ</span>
-        <kbd>右半分</kbd><span>なぞると視点</span>
-        <kbd>射撃</kbd><span>押している間、選んでいる武器を使う（左クリックと同じ）。押したまま指を動かすと視点も動く</span>
-        <kbd>ロック</kbd><span>ロック・スコープ（右クリックと同じ）。榴弾砲では中断</span>
+        <kbd>右半分</kbd><span>なぞると視点。ダブルタップで十字の武器選択。メニューを閉じた後は再びなぞると自動攻撃再開</span>
+        <kbd>自動攻撃</kbd><span>既定では照準に合った敵へ自動ロック・射撃。装備中の近接は前方の攻撃範囲で発動。爆発物も対象。設定でOFFにすると射撃・ロックを手動ボタンで操作できます</span>
+        <kbd>補助操作</kbd><span>照準・起爆・自己修復・解除は該当する武器で表示。装置・修理・地図砲撃は手動操作</span>
         <kbd>ジャンプ・ダッシュ</kbd><span>Space・Shift と同じ。ダッシュは短く押すとショートダッシュ、押し続けるとロングダッシュ</span>
-        <kbd>武器</kbd><span>短く押すと次の武器。押したまま上下左右へ指を動かして離すと、その向きの武器（上：主武器、右：副武器、左：補助装備、下：特別装備）</span>
+        <kbd>武器</kbd><span>十字メニューを開く（上：主、右：副、左：補助、下：特殊）。タップで選択、中央で取消。表示中は射撃停止</span>
         <kbd>リロード・アクション</kbd><span>R と同じ。アクションはジップライン（E）と、行動不能のときにすぐ再出撃へ（F）</span>
         <kbd>右上</kbd><span>スコア（押している間）、マップ（地図をタップで「ここへ向かえ」）、II（一時停止とオプション）、指示（押したまま指を動かして離すと送る）、移動（エリア移動）</span>
         <kbd>再出撃</kbd><span>兵装と出撃地点はタップで選ぶ</span>
@@ -1303,7 +1322,7 @@ const SFX = {
 // 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50 };
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 const gameOptions = { ...OPTION_DEFAULTS };
 try {
@@ -10562,7 +10581,9 @@ function playerUpdate(u, dt) {
     aimMark.scale.setScalar(P.blast || 2);
   }
   const healOk = !u.transfer && (!busy || cur.w.type === 'repair'); // ポッドの上でもリペアユニットは使える
-  const res = weaponsTick(u, dt, mouseDown && healOk, aim, spread, healOk && rightDown);
+  const autoFire = touchAutoTrigger(u, hit, aim);
+  const menuBlocked = TOUCH && touch.menu;
+  const res = weaponsTick(u, dt, !menuBlocked && (mouseDown || autoFire) && healOk, menuBlocked ? null : aim, spread, !menuBlocked && healOk && rightDown);
   if (res) hitMark(res === 'head');
 }
 function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
@@ -10776,10 +10797,10 @@ padStatus();
 // スマホ・タブレットの画面のボタン（2026-10-27、ユーザー要望「次はスマホ操作ね」。配置は Claude が決めた。操作説明に表）。横向きで遊ぶ。
 // 左半分：触った所がスティックの中心になり、指を動かした向きへ進む。外の輪まで倒すとダッシュ（ShiftRight。「ダッシュ」ボタンの ShiftLeft とは別）。
 // 右半分：なぞると視点。右下のボタンは押している間そのキー（射撃・ロックはマウスの左・右のボタン）を押したことにし、コントローラーと同じ道を通す。
-// 射撃・武器・指示のボタンは、押したまま指を動かすと、視点・武器の円・指示の円も動く（lookMove）。武器は短く押すと次の武器
+// 射撃・指示は押したままなぞれる。武器は十字メニューで明示選択。右側ダブルタップも同じメニュー。
 const TC_R = 56, TC_DASH = 1.45; // スティックの半径（px）。中心から半径のこの倍より外へ倒すとダッシュ
 // ptr：触っている指ごとの役目（stick・look・btn）。fwd・side：スティックの前後・左右（playerUpdate がキーに足す）
-const touch = { ptr: new Map(), fwd: 0, side: 0, dash: false, console: null }; // console：試合中だけ標準にしたコンソールの、元の選択
+const touch = { ptr: new Map(), fwd: 0, side: 0, dash: false, console: null, menu:false, tap:null, armed:false, autoSlot:null, life:null, autoLock:null }; // console：試合中だけ標準にしたコンソールの、元の選択
 let touchPlay = false; // 試合中で、タッチのボタンを出している
 const TC_KEYS = { jump: ['Space'], dash: ['ShiftLeft'], reload: ['KeyR'], act: ['KeyE', 'KeyF'], score: ['Tab'], chat: ['KeyG'] }; // 押している間
 const TC_TAPS = { map: ['KeyM'], xfer: ['KeyH'], next: ['Enter'] }; // 押した時に1回
@@ -10792,12 +10813,18 @@ function touchTick() {
     if (on && consoleMode !== 'standard') { touch.console = consoleMode; setConsole('standard', false); }
     else if (!on && touch.console) { setConsole(touch.console, false); touch.console = null; }
   }
-  if (on) { $('tcNext').hidden = !(tutorial && tutorial.done); document.body.classList.toggle('tcRespawn', !$('respawn').hidden); } // 再出撃の画面の間は右下のボタンを隠す（右上の「移動」などは残す）
+  if (on) {
+    if (!player.alive || touch.life !== player.lifeId || innerHeight > innerWidth) { touchEndAll(); touch.life = player.lifeId; }
+    const auto=!!gameOptions.touchAuto, w=player.slots[player.weapon].w;
+    document.body.classList.toggle('tcAuto',auto); document.body.classList.toggle('tcManualFire',!touchOffensive(w)); document.body.classList.toggle('tcScope',!!w.scope||w.proj?.kind==='remote'||['repair','cannon','beamCannon','artillery'].includes(w.type));
+    document.querySelector('[data-tc="lock"]').textContent=!auto?'ロック':w.proj?.kind==='remote'?'起爆':w.type==='repair'?'自己修復':w.scope?'照準':'解除';
+    $('tcNext').hidden = !(tutorial && tutorial.done); document.body.classList.toggle('tcRespawn', !$('respawn').hidden); } // 再出撃の画面の間は右下のボタンを隠す（右上の「移動」などは残す）
 }
 // タッチの指は触った物に自然に捕まるので、捕まえ直せない端末でも止めない
 const touchCapture = (el, id) => { try { el.setPointerCapture(id); } catch (_) {} };
 const touchSens = () => 0.002 + 0.008 * gameOptions.touchLook / 100; // 1pxで回る角度。標準（50）で0.006（画面の横半分をなぞると約90度）
 function touchZoneDown(e) {
+  if(touch.menu || !running || !player?.alive || innerHeight>innerWidth)return;
   if (e.pointerType === 'mouse') return;
   e.preventDefault();
   touchCapture(e.currentTarget, e.pointerId);
@@ -10805,7 +10832,11 @@ function touchZoneDown(e) {
     touch.ptr.set(e.pointerId, { kind: 'stick', x0: e.clientX, y0: e.clientY });
     const st = $('tcStick'); st.hidden = false; st.style.left = e.clientX + 'px'; st.style.top = e.clientY + 'px';
     touchStick(0, 0);
-  } else touch.ptr.set(e.pointerId, { kind: 'look', x: e.clientX, y: e.clientY });
+  } else {
+    const multi=[...touch.ptr.values()].some(t=>t.kind==='look');
+    if(multi){touch.tap=null;for(const t of touch.ptr.values())if(t.kind==='look')t.multi=true;}
+    touch.ptr.set(e.pointerId, { kind:'look', x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, at:performance.now(), moved:0, multi });
+  }
 }
 function touchStick(dx, dy) {
   const d = Math.hypot(dx, dy), k = Math.min(1, d / TC_R), live = k >= .15; // 中心の近くは遊び
@@ -10818,12 +10849,13 @@ function touchBtnDown(e) {
   if (e.pointerType === 'mouse') return;
   e.preventDefault(); e.stopPropagation();
   const el = e.currentTarget, n = el.dataset.tc;
+  if(touch.menu)return;
   touchCapture(el, e.pointerId); el.classList.add('on');
-  const t = { kind: 'btn', name: n, el, x: e.clientX, y: e.clientY, drag: n === 'fire' || n === 'weapon' || n === 'chat', moved: 0 };
+  const t = { kind: 'btn', name: n, el, x: e.clientX, y: e.clientY, drag: n === 'fire' || n === 'chat', moved: 0 };
   touch.ptr.set(e.pointerId, t);
   if (n === 'fire') { aimPress(0, true); return; }
   if (n === 'lock') { aimPress(2, true); return; }
-  if (n === 'weapon') { if (running && player && player.alive && !meleeOnly() && !wsel.open) { Object.assign(wsel, { open: true, x: 0, y: 0, pick: player.weapon }); t.wsel = true; } return; }
+  if (n === 'weapon') { touchMenuOpen(); return; }
   if (n === 'pause') { const c = tutorial || range ? 'Escape' : 'F3'; padKey(c, true); padKey(c, false); return; } // チュートリアルと射撃場は一時停止の画面、対戦はオプション
   if (TC_KEYS[n]) { t.sent = TC_KEYS[n]; for (const c of t.sent) padKey(c, true); return; }
   for (const c of TC_TAPS[n] || []) { padKey(c, true); padKey(c, false); }
@@ -10835,29 +10867,108 @@ function touchMove(e) {
   if (t.kind === 'stick') { touchStick(e.clientX - t.x0, e.clientY - t.y0); return; }
   const dx = e.clientX - t.x, dy = e.clientY - t.y;
   t.x = e.clientX; t.y = e.clientY; t.moved = (t.moved || 0) + Math.abs(dx) + Math.abs(dy);
+  if(t.kind==='look'){
+    if(t.multi || touch.menu)return;
+    if(t.moved<=8)return;
+    touch.tap=null;touch.armed=true;
+  }
   if ((t.kind === 'look' || t.drag) && running && player && player.alive) lookMove(dx, dy, touchSens());
 }
 function touchUp(e) {
   const t = touch.ptr.get(e.pointerId);
   if (!t) return;
   touch.ptr.delete(e.pointerId);
+  if(t.kind==='look' && e.type==='pointerup' && !t.multi && t.moved<=8 && performance.now()-t.at<230){
+    const now=performance.now(),prev=touch.tap;
+    if(prev && now-prev.at<300 && Math.hypot(e.clientX-prev.x,e.clientY-prev.y)<32){touch.tap=null;touchMenuOpen();}
+    else touch.tap={at:now,x:e.clientX,y:e.clientY};
+  }
+  if(e.type==='pointercancel'){touch.tap=null;touch.armed=false;touchAutoCancel();touchMenuClose();}
   touchEnd(t, e.type === 'pointercancel');
 }
 // 指を離した。cancel：試合が止まったなどで、武器の持ち替えはしない
 function touchEnd(t, cancel) {
-  if (t.kind === 'stick') { touchStick(0, 0); $('tcStick').hidden = true; return; }
+  if (t.kind === 'stick') { touchStick(0, 0); if(cancel)pressed.ShiftRight=false; $('tcStick').hidden = true; return; }
   if (t.kind !== 'btn') return;
   t.el.classList.remove('on');
   if (t.name === 'fire') mouseDown = false;
   if (t.name === 'lock') rightDown = false;
-  if (t.name === 'weapon') {
-    const picked = t.wsel && wsel.open && Math.max(Math.abs(wsel.x), Math.abs(wsel.y)) > 20;
-    if (t.wsel) wsel.open = false;
-    if (!cancel && running && player && player.alive) { if (picked) selectWeapon(player, wsel.pick); else if (!meleeOnly()) wheelDir = 1; } // 短く押したら次の武器
-  }
-  for (const c of t.sent || []) padKey(c, false);
+  for (const c of t.sent || []) { padKey(c, false); if(cancel)pressed[c]=false; }
 }
-function touchEndAll() { for (const t of touch.ptr.values()) touchEnd(t, true); touch.ptr.clear(); }
+function touchEndAll() { for (const t of touch.ptr.values()) touchEnd(t, true); touch.ptr.clear(); mouseDown=rightDown=false; touch.tap=null;touch.armed=false;touchAutoCancel();touchMenuClose(); }
+
+// 自動操作は入力だけを作る。ダメージ・発射間隔・弾薬・移動・当たり判定は既存処理。
+function touchEnemy(u,e) { return !!(e&&e.team&&e.team!==u.team&&(e.kind==='core'?e.hp>0:e.alive)&&!e.downT&&!e.cloak); }
+function touchOffensive(w) { return ['gun','sword','cannon','beamCannon'].includes(w.type); }
+function touchAutoCancel() {
+  const sl=touch.autoSlot;
+  if(sl){sl.bn=sl.chargeT=sl.holdT=0;sl.held=false; if(sl.missileQueue)sl.missileQueue=[];}
+  touch.autoSlot=null;
+  if(touch.autoLock && lock.target===touch.autoLock)releaseLock();
+  touch.autoLock=null;
+}
+function touchMenuClose() { touch.menuPicks?.clear();touch.menu=false;touch.armed=false; $('tcWeaponMenu').hidden=true;document.body.classList.remove('tcMenu'); }
+function touchMenuOpen() {
+  if(!TOUCH || !running || !player?.alive || player.transfer || meleeOnly())return;
+  touchAutoCancel();releaseLock();touch.armed=false;touch.menu=true;touch.tap=null;mouseDown=rightDown=false;wsel.open=qc.open=false;
+  for(const [id,t] of touch.ptr)if(t.kind==='look'||t.name==='fire'||t.name==='lock'||t.name==='weapon'){touchEnd(t,true);touch.ptr.delete(id);}
+  // 押下解除でチャージ弾を放たない。既に発射した弾・振り始めた攻撃はそのまま。
+  for(const sl of Object.values(player.slots)){sl.bn=sl.chargeT=sl.holdT=0;sl.held=false;if(sl.missileQueue)sl.missileQueue=[];}
+  if(beamCannonMode(player))stopBeamCannon(player,true);
+  $('tcWeaponMenu').hidden=false;document.body.classList.add('tcMenu');
+  const names={main:'主武器',sub:'副武器',aux:'補助',sp:'特殊'};
+  for(const b of document.querySelectorAll('#tcWeaponMenu [data-slot]')){const k=b.dataset.slot;b.textContent=names[k]+'：'+player.slots[k].w.name;b.classList.toggle('selected',player.weapon===k);}
+}
+function touchMeleeTarget(u, aim) {
+  const w=u.slots[u.weapon].w, a=u.dashT>0||u.longDash||(u.chargerOn&&!u.slots.sp.overheat)?w.strong:w.normal;
+  const tilt=swingTilt(u,a,aim), cy=Math.cos(u.yaw),sy=Math.sin(u.yaw);
+  const world=v=>new T.Vector3(u.pos.x+cy*v.x+sy*v.z,u.pos.y+v.y,u.pos.z-sy*v.x+cy*v.z);
+  return [...units,...turrets,...mirages].filter(e=>touchEnemy(u,e)&&e.pos.distanceTo(u.pos)<=a.reach+2)
+    .sort((a,b)=>a.pos.distanceToSquared(u.pos)-b.pos.distanceToSquared(u.pos)).find(e=>{
+      if(targetPoint(e).sub(u.pos).setY(0).dot(fwdOf(u))<=0 || !canSee(u,e,targetPoint(e)))return false;
+      const size=e.kind==='turret'?1.5:R,top=e.pos.y+(e.kind==='turret'?3.7:UNIT_H);
+      const bladeFrom=u.pos.clone().setY(u.pos.y+a.height), bladeTo=e.pos.clone().setY(Math.max(e.pos.y+.2,Math.min(top-.2,bladeFrom.y))), bladeDir=bladeTo.sub(bladeFrom), bladeDist=bladeDir.length();
+      if(castFrom(bladeFrom,bladeDir.normalize(),u,bladeDist+size)?.ref!==e)return false;
+      return (a.strikes||[a]).some(st=>{
+        if(st.pitchFrom!=null){
+          const sw={a,tilt};for(let i=0;i<=24;i++){const f=meleeSlashFrame(sw,st,i/24);if(slashSegmentHits(world(f.grip),world(f.tip),e.pos,size,e.pos.y,top))return true;}return false;
+        }
+        const pos=st.side?u.pos.clone().addScaledVector(new T.Vector3(cy,0,-sy),st.side):u.pos;
+        return bladeHits({pos},u.yaw+st.from*DEG,u.yaw+st.to*DEG,u.pos.y+a.height,a.reach,e.pos,size,e.pos.y,top,Math.tan(tilt));
+      });
+    });
+}
+function touchAutoTrigger(u, hit, aim) {
+  if(!TOUCH)return false;
+  const sl=u.slots[u.weapon], w=sl.w;
+  const tapping=[...touch.ptr.values()].some(t=>t.kind==='look'&&(t.multi||t.moved<=8));
+  if(!touchPlay||!gameOptions.touchAuto||!touch.armed||touch.menu||tapping||touch.tap&&performance.now()-touch.tap.at<300||!u.alive||u.downT||u.repairing||u.transfer||u.stun&&u.stun!=='land'||u.electricT>0||u.switchT>0||mapOpen||wsel.open||qc.open||!$('overlay').hidden||innerHeight>innerWidth||!touchOffensive(w)) {touchAutoCancel();return false;}
+  if(mouseDown){touchAutoCancel();return false;} // 手動射撃とは競合しない
+  let target=w.type==='sword'?touchMeleeTarget(u,aim):hit?.ref;
+  if(!touchEnemy(u,target)||!canSee(u,target,w.type==='sword'?targetPoint(target):hit.point)){touchAutoCancel();return false;}
+  if(w.type!=='sword'){
+    const from=muzzle(u),dir=hit.point.clone().sub(from),distance=dir.length();
+    if(castFrom(from,dir.normalize(),u,distance+.1)?.ref!==target){touchAutoCancel();return false;}
+  }
+  if(touch.autoSlot&&touch.autoSlot!==sl)touchAutoCancel();
+  if(touch.autoLock&&touch.autoLock!==target){if(lock.target===touch.autoLock)releaseLock();touch.autoLock=null;}
+  touch.autoSlot=sl;
+  // 画面中央が実際に命中する相手だけを捕捉。取得時に視点を中心へ飛ばさない。
+  if(lockAllowed(u)&&lock.target!==target){const c=lockCandidates(u).find(c=>c.e===target);if(c&&lockAcquirable(u,c)){setLock(u,target,true);touch.autoLock=target;}}
+  if(w.chargeTime)return sl.chargeT<w.chargeTime; // 対象を保った満充填時だけ離して発射
+  return !(w.semi && sl.held); // 既存cadenceのまま押下・解除を反復
+}
+{
+  const panel=document.getElementById('tcWeaponMenu'), picks=touch.menuPicks=new Map();
+  panel.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('button');if(b){picks.set(e.pointerId,b);touchCapture(b,e.pointerId);}});
+  panel.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();const b=picks.get(e.pointerId);picks.delete(e.pointerId);if(!b||!touch.menu)return;const r=b.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(b.dataset.slot&&player?.alive)selectWeapon(player,b.dataset.slot);touchMenuClose();});
+  panel.addEventListener('pointercancel',()=>{picks.clear();touchAutoCancel();touchMenuClose();});
+  panel.addEventListener('contextmenu',e=>e.preventDefault());
+  addEventListener('blur',()=>{if(TOUCH)touchEndAll();});
+  addEventListener('orientationchange',()=>{if(TOUCH)touchEndAll();});
+  document.addEventListener('visibilitychange',()=>{if(TOUCH&&document.hidden)touchEndAll();});
+}
+
 // 出撃で全画面・横向きにする（できる端末だけ。iPhone の Safari などは全画面にできない）
 function touchFullscreen() {
   if (!TOUCH || document.fullscreenElement) return;
@@ -10904,13 +11015,13 @@ function screenOf(e) {
   proj.copy(p).project(camera);
   return { x: proj.x, y: proj.y, d: Math.hypot(proj.x * camera.aspect, proj.y) };
 }
-function setLock(u, e) {
+function setLock(u, e, keepAim = false) {
   Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
   lock.visualSeq++; // 捕捉・Q切替ごとに一度だけ四隅を閉じる。同じ敵への再捕捉も数える。
   // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
   const at = targetPoint(e), view = new T.Vector3();
   updateCamera(u, 0);
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; !keepAim && i < 8; i++) {
     const to = at.clone().sub(camera.position);
     camera.getWorldDirection(view);
     const yaw = wrapAngle(Math.atan2(-to.x, -to.z) - Math.atan2(-view.x, -view.z));
