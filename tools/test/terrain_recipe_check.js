@@ -13,6 +13,8 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chr
   }
   // 凹外周へ歩く。箱範囲内でも切欠きは通れない。
   place([-105,0,2]);for(let i=0;i<180;i++)g.physics(u,new g.T.Vector3(-1,0,0),true,false,1/60);ok(g.cityMap.withinBoundary(u.pos.x,u.pos.z,1.29)&&u.pos.x>-109,'concave notch stops boosted player');
+  const boundaryChecks=[];for(const y of [2,100])for(const a of g.curMap.cityTerrain.boundary){for(const dx of [-.1,0,.1]){u.pos.set(a[0]+dx,y,a[1]);u.vel.set(-30,0,30);g.resolve(u);boundaryChecks.push(g.cityMap.withinBoundary(u.pos.x,u.pos.z,1.29));}}ok(boundaryChecks.every(Boolean),'all concave/convex boundary vertices retain capsule at ground and altitude');
+  place([80,0,2]);u.onGround=false;u.vel.y=25;let maxY=2;for(let i=0;i<120;i++){g.physics(u,new g.T.Vector3(),false,false,1/60);maxY=Math.max(maxY,u.pos.y);}ok(maxY<=10.01&&Math.abs(u.pos.y-2)<.1,'upward movement hits bore ceiling then returns to lower floor');
   const ray=(a,b)=>{const from=new g.T.Vector3(...a),to=new g.T.Vector3(...b),v=to.sub(from),len=v.length();return g.castFrom(from,v.normalize(),u,len);};
   ok(!ray([25,5,0],[125,5,0]),'projectile passes through bore');ok(!!ray([80,5,0],[80,24,0]),'projectile hits tunnel ceiling');ok(!!ray([80,5,0],[80,5,20]),'projectile hits tunnel side');ok(!!ray([-20,5,30],[-20,40,30]),'projectile hits bridge underside');
   place([80,0,2]);u.yaw=-Math.PI/2;u.pitch=0;u.group.visible=true;u.group.position.copy(u.pos);for(let i=0;i<20;i++)g.updateCamera(u,.05);ok(g.cityMap.cameraFree(g.camera.position,.2),'camera stays outside rock in tunnel');

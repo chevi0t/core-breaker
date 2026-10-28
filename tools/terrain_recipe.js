@@ -62,9 +62,24 @@ function compile(input,seed=input.seed){
  for(const team of ['B','R']){const s=team==='B'?1:-1,b=r.bases[team];bases[team]={at:b.slice(0,2),radius:42,catapults:[[-22+b[0],b[1]-12*s,-35,b[1]-55*s],[22+b[0],b[1]-12*s,35,b[1]-55*s]]};districtBases.push({team,at:b.slice(0,2),height:b[2]});baseSpawns[team]=[-12,0,12].map(x=>[b[0]+x,b[1]-16*s]);respawns[team]={};for(const [id,x,z] of plants)respawns[team][id]=[-8,0,8].map(dx=>[x+dx,z+48*s]);}
  // 元の地形を変えずに、施設候補を検査する。失敗を黙って承認しない。
  for(const p of [...Object.values(baseSpawns).flat(),...Object.values(respawns).flatMap(o=>Object.values(o).flat())])assert(free(...p,ground(...p,100)),'spawn outside/clearance');
- const def={order:90,name:r.name,size:[r.half,r.half],team:5,time:300,baseZ:r.bases.B[1],baseLine:r.bases.B[1]-42,desc:'谷底から山腹、尾根へ。岩盤の通り抜けと横断橋の上下を使い分ける。',asym:true,terrain:[],layout:[],plants,turrets:[[-25,r.bases.B[1]-30],[25,r.bases.B[1]-30]],radar:[-26,r.bases.B[1]+15],catapults:[],basePods:[[-18,r.bases.B[1]-16]],plantPods:[],barricades:[],bases,nav:{nodes,links,heightAware:true},attribution:'手続き生成のオリジナル形状。外部画像・モデルの使用なし。',cityBattle:{nodeReach:3,baseSpawns,respawns},cityTerrain:{geometryEncoding:'city-layout-v1',half:r.half,boundary:r.boundary,groundMaximum:Math.max(...hills.map(h=>h[2]))+r.baseHeight+10,river:{bed:-30,water:-29,rings:[]},ringCoordinateStep:.02,volumeKinds:['grounded'],volumes:(r.blocks||[]).map(([x,z,w,d,bottom,top])=>[0,bottom,top,[pack([x-w/2,z-d/2,x+w/2,z-d/2,x+w/2,z+d/2,x-w/2,z+d/2])],{}]),decorations:[],packing:{layers:Object.fromEntries(Object.keys(meshes).map(k=>[k,true]))},surfaces,district:{unifiedGround:{color:r.color},roofPads:[],bases:districtBases}},recipeMeta:{version:1,seed,grid:r.grid,routes:r.routes,tunnels:r.tunnels}};
+ const plantPods=[],shelters=[];
+ for(const [i,p] of [plants[0],plants[plants.length-1]].entries()){
+  const sign=i===0?1:-1,x=p[1]+36,z=p[2]+28*sign;plantPods.push([p[0],x,z]);
+  shelters.push([x,z-sign*8,22,2,14,'hesco'],[x-10,z,2,18,14,'hesco'],[x+10,z,2,18,14,'hesco']);
+ }
+ const def={order:90,name:r.name,size:[r.half,r.half],team:5,time:300,baseZ:r.bases.B[1],baseLine:r.bases.B[1]-42,desc:'谷底から山腹、尾根へ。岩盤の通り抜けと横断橋の上下を使い分ける。',asym:true,terrain:[],layout:shelters,plants,turrets:[[-25,r.bases.B[1]-30],[25,r.bases.B[1]-30]],radar:[-26,r.bases.B[1]+15],catapults:[],basePods:[[-18,r.bases.B[1]-16]],plantPods,barricades:[],bases,nav:{nodes,links,heightAware:true},attribution:'手続き生成のオリジナル形状。外部画像・モデルの使用なし。',cityBattle:{nodeReach:3,baseSpawns,respawns},cityTerrain:{geometryEncoding:'city-layout-v1',half:r.half,boundary:r.boundary,groundMaximum:Math.max(r.baseHeight,...hills.map(h=>h[2]+r.baseHeight),...r.routes.flatMap(q=>q.points.map(p=>p[2])),...r.tunnels.map(t=>t.ceiling))+10,river:{bed:-30,water:-29,rings:[]},ringCoordinateStep:.02,volumeKinds:['grounded'],volumes:(r.blocks||[]).map(([x,z,w,d,bottom,top])=>[0,bottom,top,[pack([x-w/2,z-d/2,x+w/2,z-d/2,x+w/2,z+d/2,x-w/2,z+d/2])],{}]),decorations:[],packing:{layers:Object.fromEntries(Object.keys(meshes).map(k=>[k,true]))},surfaces,district:{unifiedGround:{color:r.color},roofPads:[],bases:districtBases}},recipeMeta:{version:1,seed,grid:r.grid,routes:r.routes,tunnels:r.tunnels}};
+ const connectivity=validateConnectivity(r,def,sample);
  // 空のvolumesも正当な地形（施設は本体が追加する）。
- return {definition:def,stats:{triangles:Object.values(meshes).reduce((n,a)=>n+a.length/9,0),nodes:nodes.length,links:links.length,seed},sample,levels,walk};
+ return {definition:def,stats:{triangles:Object.values(meshes).reduce((n,a)=>n+a.length/9,0),nodes:nodes.length,links:links.length,seed,connectivity},sample,levels,walk};
+}
+function validateConnectivity(r,d,sample){
+ const adj=d.nav.nodes.map(()=>[]);for(const [u,v] of d.nav.links){adj[u].push(v);adj[v].push(u);}
+ const component=Array(adj.length).fill(-1),sizes=[];
+ for(let i=0;i<adj.length;i++)if(component[i]<0){const id=sizes.length,todo=[i];component[i]=id;let n=0;while(todo.length){const u=todo.pop();n++;for(const v of adj[u])if(component[v]<0){component[v]=id;todo.push(v);}}sizes.push(n);}
+ const near=p=>d.nav.nodes.reduce((best,n,i)=>{const distance=Math.hypot(p[0]-n[0],p[1]-n[1])+Math.abs(p[2]-n[2])*4;return distance<best.d?{i,d:distance}:best;},{i:-1,d:Infinity});
+ const root=component[near(r.bases.B).i],anchors=[...Object.values(r.bases),...r.routes.flatMap(q=>q.points),...r.plants.map(p=>[p[1],p[2],sample(p[1],p[2]).floor])];
+ for(const p of anchors){const n=near(p);assert(n.d<35&&component[n.i]===root,'disconnected route/facility anchor '+p);}
+ return {components:sizes,anchors:anchors.length};
 }
 if(require.main===module){const args=process.argv.slice(2),r=JSON.parse(fs.readFileSync(args[0])),out=args[1],seed=args[2]===undefined?r.seed:Number(args[2]),v=compile(r,seed);fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`// tools/terrain_recipe.js による生成物。レシピを編集して再生成。\n(window.MAP_DATA=window.MAP_DATA||{}).${r.id}=${JSON.stringify(v.definition)};\n`);console.log(JSON.stringify(v.stats));}
-module.exports={validate,compile,inside,boundaryDistance};
+module.exports={validate,compile,validateConnectivity,inside,boundaryDistance};

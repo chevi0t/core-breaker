@@ -1,0 +1,12 @@
+const assert=require('assert/strict'),fs=require('fs'),path=require('path'),crypto=require('crypto'),{compile,validate}=require('../terrain_recipe');
+const dir=process.argv[2]||'/tmp/terrain-recipes';fs.mkdirSync(dir,{recursive:true});const reports=[];
+for(const name of ['mountain','quarry','urban'])for(const seed of [19,41,97]){
+ const r=JSON.parse(fs.readFileSync(path.join(__dirname,'../terrain_recipes',name+'.json'))),a=compile(r,seed),b=compile(r,seed);assert.deepEqual(a.definition,b.definition,'deterministic');
+ const d=a.definition,adj=d.nav.nodes.map(()=>[]);for(const [u,v] of d.nav.links){adj[u].push(v);adj[v].push(u);}const component=Array(adj.length).fill(-1),sizes=[];for(let i=0;i<adj.length;i++)if(component[i]<0){const id=sizes.length,todo=[i];component[i]=id;let n=0;while(todo.length){const u=todo.pop();n++;for(const v of adj[u])if(component[v]<0){component[v]=id;todo.push(v);}}sizes.push(n);}
+ const near=p=>d.nav.nodes.reduce((best,n,i)=>{const distance=Math.hypot(p[0]-n[0],p[1]-n[1])+Math.abs(p[2]-n[2])*4;return distance<best.d?{i,d:distance}:best;},{i:-1,d:Infinity});const root=component[near(r.bases.B).i];
+ const anchors=[...Object.values(r.bases),...r.routes.flatMap(q=>q.points),...r.plants.map(p=>[p[1],p[2],a.sample(p[1],p[2]).floor])];
+ for(const p of anchors){const n=near(p);assert(n.d<35&&component[n.i]===root,`${name}/${seed} disconnected anchor ${p}`);}
+ const output=path.join(dir,`${name}-${seed}.json`);fs.writeFileSync(output,JSON.stringify(d));reports.push({recipe:name,seed,...a.stats,components:sizes,anchors:anchors.length,sha256:crypto.createHash('sha256').update(JSON.stringify(d)).digest('hex')});
+}
+const base=JSON.parse(fs.readFileSync(path.join(__dirname,'../terrain_recipes/mountain.json')));const invalid=[r=>r.tunnels[0].ceiling=5,r=>r.routes[0].points[1][2]=1000,r=>r.boundary[1]=r.boundary[0],r=>r.half=2000,r=>r.routes[0].width=1,r=>r.foo='arbitrary',r=>r.seed=NaN,r=>r.boundary=[[0,0],[100,0],[100,100],[50,100],[50,-50],[-50,-50],[-50,50],[0,50]]];for(const change of invalid){const r=structuredClone(base);change(r);assert.throws(()=>validate(r));}
+fs.writeFileSync(path.join(dir,'report.json'),JSON.stringify({reports,rejected:invalid.length},null,2));console.log('PASS 9 deterministic recipe/seed combinations; '+invalid.length+' invalid recipes rejected');
