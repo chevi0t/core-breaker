@@ -4,11 +4,13 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+from kanto_base_clearance import remove_north_sliver
 
 ROOT = Path(__file__).resolve().parents[1]
 source = ROOT / 'mapdesign/kanto_half/map.json'
 definition = json.loads(source.read_text())
 assert definition['size'] == [250, 250] and len(definition['rooftopTurrets']) == 4
+remove_north_sliver(definition['cityTerrain'])
 definition['name'] = '環都駅前'
 definition['desc'] = '500m四方の高層街区。実都市に対して8m級の機体比率で、屋上・街路・公園の5プラントを争う。AとEには別角度から守る屋上砲台。'
 definition['cityTerrain']['district']['facadeScale'] = .5
