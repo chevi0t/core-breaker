@@ -4640,7 +4640,7 @@ function makeBoosterFlame(width) {
           radius *= device ? 2.6 : ignitionScale.y;
           float axial = t * (device ? 7.8 : length * ignitionScale.x);
           if (layer > .5) { radius *= .46; axial *= .72; }
-          if (layer > 1.5) { radius = (.14 + pulse * 1.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
+          if (layer > 1.5) { radius = 1.3 * (.14 + pulse * 1.5) * mix(.8, 1.0, t); axial = .06 + pulse * 2.0; }
           int index=int(jet+.5);
           vec3 axis, origin;
           if (device) { axis=deviceAxis; origin=deviceOrigin; vStrength=devicePower; }
@@ -4701,7 +4701,7 @@ function boosterFlameUpdate(u, dt) {
   if (!u.alive) { resetBoosterFlame(u); return; }
   const ignition = mode && (!f.mode || (mode === 'short' || mode === 'charge' || mode === 'lunge') && mode !== f.mode || mode === 'short' && u.dashT > f.lastDash + .02);
   if (ignition) f.pulse = 0; else f.pulse = Math.min(1, f.pulse + dt);
-  // 視覚調整値：通常点火だけ0.22秒拡大。押し続けた巡航への移行では再点火しない。
+  // 視覚調整値：通常点火だけ太く短くし0.22秒で巡航へ。押し続けた巡航への移行では再点火しない。
   const normalBoost = mode === 'short' || mode === 'long' || mode === 'hover';
   f.burst = ignition && normalBoost ? .22 : Math.max(0, (f.burst || 0) - dt);
   f.age += dt; f.lastDash = u.dashT; f.mode = mode;
@@ -4713,7 +4713,7 @@ function boosterFlameUpdate(u, dt) {
   mesh.visible = f.power > .025 && (u.isPlayer || distance < 350 * 350);
   const U = mesh.material.uniforms;
   const burst = normalBoost ? (f.burst / .22) ** 2 : 0;
-  U.ignitionScale.value.set(1 + .7 * burst, 1 + .85 * burst);
+  U.ignitionScale.value.set(1 - .55 * burst, 1 + 1.2 * burst);
   // 装置ONかつ実際のブースト中だけ。ON待機・歩行・踏み込み・カタパルトには出さない。
   const boostActive = mode === 'short' || mode === 'long' && u.boost > 0 && !u.overheat || mode === 'hover' && !u.onGround && u.boost > 0 && !u.overheat || mode === 'charge' && u.charging;
   U.devicePower.value = boostActive && u.chargerOn && u.slots.sp.w.type === 'charger' && !u.slots.sp.overheat && u.slots.sp.heat > 0 ? 1 : 0;

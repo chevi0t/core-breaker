@@ -23,7 +23,7 @@ const {chromium}=require('playwright');
      for(let i=0;i<60;i++){
       g.weaponLook(u,1/60);g.boosterFlameUpdate(u,1/60);const U=u.flame.material.uniforms;
       rows.push({key,far,i,length:U.length.value,power:U.power.value,pulse:U.pulse.value,weights:U.weights.value.toArray(),axes:U.axes.value.map(a=>a.toArray()),origins:U.origins.value.map(a=>a.toArray()),visible:u.flame.visible,rear:u.hoverJet?.userData.rearPower.value||0});
-      if(U.ignitionScale){const scale=U.ignitionScale.value;if(i===0&&scale.x<=1)throw Error('点火拡大なし');if(i>=14&&(scale.x!==1||scale.y!==1))throw Error('巡航へ戻らない');}
+      if(U.ignitionScale){const scale=U.ignitionScale.value;if(i===0&&(scale.x>=1||scale.y<=1))throw Error('点火拡大なし');if(i>=14&&(scale.x!==1||scale.y!==1))throw Error('巡航へ戻らない');}
      }
      g.disposeMech(u.group);
     }return rows;
@@ -33,10 +33,10 @@ const {chromium}=require('playwright');
    const result=await page.evaluate(()=>{
     const g=__g,T=g.T;let checks=0;const ok=(v,msg)=>{if(!v)throw Error(msg);checks++};
     const u=unit();u.dashState='short';u.dashT=.2;g.resetBoosterFlame(u);g.boosterFlameUpdate(u,1/60);
-    ok(u.flame.material.uniforms.ignitionScale.value.x===1.7,'最初だけ1.7倍');
+    ok(u.flame.material.uniforms.ignitionScale.value.x===.44999999999999996&&u.flame.material.uniforms.ignitionScale.value.y===2.2,'最初は短く太い');
     for(let i=0;i<20;i++){u.dashT-=1/60;g.boosterFlameUpdate(u,1/60);}
     u.dashState='long';g.boosterFlameUpdate(u,1/60);ok(u.flame.material.uniforms.ignitionScale.value.x===1,'保持巡航で再点火なし');
-    u.dashState='';g.boosterFlameUpdate(u,1/60);u.dashState='short';u.dashT=.2;g.boosterFlameUpdate(u,1/60);ok(u.flame.material.uniforms.ignitionScale.value.x>1,'再始動で点火');
+    u.dashState='';g.boosterFlameUpdate(u,1/60);u.dashState='short';u.dashT=.2;g.boosterFlameUpdate(u,1/60);ok(u.flame.material.uniforms.ignitionScale.value.x<1,'再始動で点火');
     u.dashT=.05;g.boosterFlameUpdate(u,.02);u.dashT=.2;g.boosterFlameUpdate(u,.02);ok(u.flame.userData.boostFx.burst===.22,'連続短ダッシュの新始動');
     const triangles=u.flame.geometry.attributes.position.count/3;ok(triangles===992,'1メッシュ992三角形');g.disposeMech(u.group);
     g.selectMap('dock');document.getElementById('start').click();g.running=false;
@@ -90,16 +90,31 @@ const {chromium}=require('playwright');
     const g=__g,T=g.T;document.querySelectorAll('body > div').forEach(e=>{if(e.style.zIndex==='10001')e.remove()});
     const canvas=document.createElement('canvas');canvas.style='position:fixed;inset:0;z-index:10002';document.body.appendChild(canvas);
     const r=new T.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});r.setSize(1800,1080);r.setScissorTest(true);
-    for(let i=0;i<2;i++){
+    for(let i=0;i<3;i++){
      const u=unit();u.dashState='long';u.dashT=0;
-     for(let f=0;f<(i?37:3);f++){g.weaponLook(u,1/60);g.boosterFlameUpdate(u,1/60);}
+     for(let f=0;f<([3,8,37][i]);f++){g.weaponLook(u,1/60);g.boosterFlameUpdate(u,1/60);}
      const sc=new T.Scene();sc.background=new T.Color(0x12202e);sc.add(u.group,new T.HemisphereLight(0xe1f3ff,0x344657,1.2));
      const l=new T.DirectionalLight(0xffffff,.9);l.position.set(-3,7,5);sc.add(l,new T.GridHelper(20,20,0x506777,0x263d4b));
-     const cam=new T.PerspectiveCamera(43,900/1080,.1,100);cam.position.set(7,4,7);cam.lookAt(0,2,1);r.setViewport(i*900,0,900,1080);r.setScissor(i*900,0,900,1080);r.render(sc,cam);
-     const label=document.createElement('div');label.textContent=i?'通常巡航：既存の寸法':'通常点火：0.22秒で拡大が収束';label.style=`position:fixed;z-index:10003;left:${i*900+25}px;top:25px;color:white;font:28px sans-serif`;document.body.appendChild(label);g.disposeMech(u.group);
+     const cam=new T.PerspectiveCamera(43,600/1080,.1,100);cam.position.set(9,4.5,9);cam.lookAt(0,2,1);r.setViewport(i*600,0,600,1080);r.setScissor(i*600,0,600,1080);r.render(sc,cam);
+     const label=document.createElement('div');label.textContent=['点火 0.03秒：太く短い','移行 0.12秒','巡航 0.60秒：従来のまま'][i];label.style=`position:fixed;z-index:10003;left:${i*600+18}px;top:25px;color:white;font:23px sans-serif`;document.body.appendChild(label);g.disposeMech(u.group);
     }
    });
-   await page.screenshot({path:path.join(out,'normal-start-cruise-close.png')});assert.deepEqual(errors,[]);
+   await page.screenshot({path:path.join(out,'normal-start-cruise-close.png')});
+   await page.evaluate(()=>{
+    const g=__g,T=g.T;document.querySelectorAll('body > div').forEach(e=>{if(e.style.zIndex==='10003')e.remove()});
+    const canvas=document.createElement('canvas');canvas.style='position:fixed;inset:0;z-index:10004';document.body.appendChild(canvas);
+    const r=new T.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});r.setSize(1800,1080);r.setScissorTest(true);
+    for(let i=0;i<2;i++){
+     const u=unit();u.dashState='short';u.dashT=.3;
+     for(let f=0;f<6;f++){u.dashT-=1/60;g.weaponLook(u,1/60);g.boosterFlameUpdate(u,1/60);}
+     // リングの半径式だけを旧値へ戻して同じ時刻・炎・カメラで比較する。
+     if(!i)u.flame.material.vertexShader=u.flame.material.vertexShader.replace('1.3 * (.14 + pulse * 1.5)','(.14 + pulse * 1.5)');
+     const sc=new T.Scene();sc.background=new T.Color(0x12202e);sc.add(u.group,new T.HemisphereLight(0xe1f3ff,0x344657,1.2));const l=new T.DirectionalLight(0xffffff,.9);l.position.set(-3,7,5);sc.add(l);
+     const cam=new T.PerspectiveCamera(38,900/1080,.1,100);cam.position.set(6,3.5,6);cam.lookAt(.5,2,1);r.setViewport(i*900,0,900,1080);r.setScissor(i*900,0,900,1080);r.render(sc,cam);
+     const label=document.createElement('div');label.textContent=i?'点火リング：半径1.30倍':'点火リング：従来の半径';label.style=`position:fixed;z-index:10005;left:${i*900+25}px;top:25px;color:white;font:28px sans-serif`;document.body.appendChild(label);g.disposeMech(u.group);
+    }
+   });
+   await page.screenshot({path:path.join(out,'ring-before-after.png')});assert.deepEqual(errors,[]);
    fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({...result,errors},null,2));console.log(JSON.stringify({checks:result.checks,deviceTypes:result.types,triangles:result.triangles,cruiseFrames:result.cruiseFrames,errors}));
   }
  }finally{await browser.close();}
