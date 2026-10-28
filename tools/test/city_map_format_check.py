@@ -25,6 +25,9 @@ def check(value):
 
 assert not check(definition),'正しい都市を拒否しない'
 cases={
+ '基地の高すぎる射出角':lambda d:d['bases']['B']['catapults'][0].append(46),
+ 'プラントの高すぎる射出角':lambda d:d['plantCatapults'][0].update(angle=46),
+ 'プラントの不正角':lambda d:d['plantCatapults'][0].update(angle='30'),
  '未対応形式':lambda d:d['cityTerrain'].update(geometryEncoding='unknown'),
  '基地の不一致':lambda d:d['bases']['B'].update(at=[0,0]),
  '再出撃先なし':lambda d:d['cityBattle']['respawns']['B'].update(A=[]),

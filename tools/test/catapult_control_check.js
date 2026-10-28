@@ -1,83 +1,14 @@
-// 飛行時間と操作禁止を分離し、射出後の実入力と早期着地後の操作を検査する。
-const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
-(async()=>{
- const browser=await chromium.launch({args:['--no-sandbox','--use-gl=swiftshader']});
- try{
-  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.stack));
-  await page.route(/^https:\/\/fonts\./,r=>r.fulfill({contentType:'text/css',body:''}));
-  await page.addInitScript(()=>{requestAnimationFrame=()=>0;AudioContext=undefined;});
-  await page.goto(pathToFileURL(path.join(path.resolve(process.argv[2]||'dbg'),'dbg.html')).href);
-  const result=await page.evaluate(()=>{
-   const g=__g,T=g.T,zero=new T.Vector3(),rows=[],early=[];
-   const ok=(v,m,d)=>{if(!v)throw Error(m+' '+JSON.stringify(d));};
-   function reset(u,at,type,team,isPlayer=true){
-    for(const k of Object.keys(g.keys))delete g.keys[k];for(const k of Object.keys(g.pressed))delete g.pressed[k];
-    u.isPlayer=isPlayer;u.team=team;u.mech={head:type,body:type,arms:type,legs:type,color:'team'};g.equip(u,'assault');g.spawn(u);
-    u.pos.copy(at);u.vel.set(0,0,0);u.boost=u.maxBoost;
-    Object.assign(u,{onGround:true,catCd:0,stun:'',stunT:0,dashT:0,ctrlLockT:0,flying:false,chargerOn:false});
-   }
-   const coast=(u,seconds,dt)=>{for(let i=0;i<Math.ceil(seconds/dt);i++)g.physics(u,zero,false,false,dt);};
-   for(const map of ['hoshimichi','kanto','mesa']){
-    g.selectMap(map);g.setup();g.running=false;const u=g.player;for(const other of g.units)other.alive=other===u;
-    let count=0,maxLandingError=0;
-    for(const cp of g.catapults)for(const type of ['light','heavy'])for(const team of ['B','R'])for(const dt of [1/30,1/120]){
-     const info={map,from:cp.pos.toArray(),flight:cp.flight||2.8,type,team,dt};
-     reset(u,cp.pos,type,team);g.launch(u,cp);
-     ok(u.ctrlLockT===1,'飛行時間によらず操作禁止は最初の1秒',info);
-     coast(u,.5,dt);ok(!g.shortDash(u,new T.Vector3(1,0,0)),'射出直後の禁止は維持',info);
-     coast(u,.6,dt);ok(u.ctrlLockT===0,'1秒後には操作禁止を解く',info);
-     for(let t=1.1;t<(cp.flight||2.8)+2&&!u.onGround;t+=dt)g.physics(u,zero,false,false,dt);
-     const error=Math.hypot(u.pos.x-cp.land.x,u.pos.z-cp.land.z);
-     const floor=map==='mesa'?g.groundAt(u.pos.x,u.pos.z,u.pos.y+.5):cp.land.y;
-     ok(u.onGround&&error<6&&Math.abs(u.pos.y-floor)<.1,'無入力なら従来の着地点へ届く',{...info,error,at:u.pos.toArray()});
-     ok(u.ctrlLockT===0,'通常着地後にも禁止を残さない',info);maxLandingError=Math.max(maxLandingError,error);
-     reset(u,cp.pos,type,team);g.launch(u,cp);
-     const forward=u.vel.clone().setY(0).normalize(),launchSpeed=Math.hypot(u.vel.x,u.vel.z);let minSpeed=launchSpeed;
-     for(let t=0;t<(cp.flight||2.8)+2&&!u.onGround;t+=dt){
-      g.physics(u,forward,false,false,dt);
-      if(!u.onGround)minSpeed=Math.min(minSpeed,Math.hypot(u.vel.x,u.vel.z));
-     }
-     const forwardError=Math.hypot(u.pos.x-cp.land.x,u.pos.z-cp.land.z);
-     ok(u.onGround&&forwardError<6&&minSpeed>=launchSpeed*.99,'前進入力で歩行速度へ落ちず、射出の勢いで着地する',{...info,launchSpeed,minSpeed,forwardError});
-     // ShiftとSpaceはplayerUpdateに実際のキー状態を渡し、入力経路も調べる。
-     reset(u,cp.pos,type,team);g.launch(u,cp);coast(u,1.1,dt);const beforeDash=u.boost;
-     g.keys.KeyD=g.keys.ShiftLeft=g.pressed.ShiftLeft=true;g.playerUpdate(u,dt);
-     ok(u.dashState==='short'&&u.boost<beforeDash,'1秒後のShiftで空中ダッシュできる',info);
-     reset(u,cp.pos,type,team);g.launch(u,cp);
-     for(let t=0;t<(cp.flight||2.8)+1&&u.vel.y>=-8;t+=dt)g.physics(u,zero,false,false,dt);
-     ok(!u.onGround&&u.ctrlLockT===0,'降下中に操作できる',info);
-     const beforeHover=u.boost,fall=u.vel.y;g.keys.Space=true;g.playerUpdate(u,dt);
-     ok(u.dashState==='hover'&&u.boost<beforeHover&&u.vel.y>fall,'Space長押しで降下を緩められる',info);
-     // Botも同じ解除条件でブーストを使える。
-     reset(u,cp.pos,type,team,false);g.launch(u,cp);coast(u,1.1,dt);
-     ok(g.shortDash(u,new T.Vector3(1,0,0)),'Botにも同じ操作解除を適用',info);count++;
-    }
-    reset(u,g.catapults[0].pos,'heavy','B');g.launch(u,g.catapults[0]);coast(u,1.1,1/120);
-    const beforeTurn=u.vel.clone().setY(0),wish=beforeTurn.clone().normalize().applyAxisAngle(new T.Vector3(0,1,0),Math.PI/4);
-    for(let t=0;t<.3;t+=1/120)g.physics(u,wish,false,false,1/120);
-    ok(u.vel.clone().setY(0).normalize().dot(wish)>beforeTurn.clone().normalize().dot(wish),'1秒後も移動入力で旋回できる',map);
-    rows.push({map,catapults:g.catapults.length,cases:count,maxLandingError,forwardMomentum:true,steering:true});
-   }
-   g.selectMap('mobility');g.setup();g.running=false;const u=g.player;for(const other of g.units)other.alive=other===u;
-   // 低い天井へ触れ、操作禁止の1秒以内に地面へ戻る状況を実物理で作る。
-   const ceiling={minX:-75,maxX:-35,minZ:-10,maxZ:10,bottom:8,top:10};g.obstacles.push(ceiling);
-   for(const type of ['light','heavy'])for(const dt of [1/30,1/120])for(const isPlayer of [true,false]){
-    reset(u,new T.Vector3(-60,0,0),type,'B',isPlayer);g.launch(u,{land:new T.Vector3(-40,0,0),flight:6.4,flash:0});
-    let t=0;for(;t<1&&!u.onGround;t+=dt)g.physics(u,zero,false,false,dt);
-    ok(t<1&&u.onGround,'天井で止まり1秒以内に着地',{type,dt,t});
-    ok(u.ctrlLockT===0,'早期着地でも操作禁止を必ず解除',{type,dt,isPlayer,t,lock:u.ctrlLockT});
-    ok(g.shortDash(u,new T.Vector3(1,0,0)),'早期着地後もダッシュできる',{type,dt,isPlayer});
-    g.physics(u,zero,false,true,dt);ok(!u.onGround&&u.vel.y>0,'早期着地後も地上ジャンプできる',{type,dt,isPlayer});
-    early.push({type,dt,isPlayer,seconds:t});
-   }
-   g.obstacles.splice(g.obstacles.indexOf(ceiling),1);
-   reset(u,g.jumpPads[0].pos,'heavy','B');g.jumpPadUpdate(.05);
-   ok(u.ctrlLockT===0&&g.shortDash(u,new T.Vector3(1,0,0)),'垂直パッドは従来どおり即座に空中操作できる');
-   return {maps:rows,earlyLandings:early};
-  });
-  assert.deepEqual(errors,[]);
-  fs.writeFileSync(path.resolve('mapdesign/catapult-control-check.json'),JSON.stringify({...result,errors},null,2)+'\n');
-  console.log(JSON.stringify(result));console.log('全台で前進時の勢い・旋回・1秒後の実入力・無入力着地・Bot、早期着地8条件と垂直パッド：成功。ブラウザエラー0。');
- }finally{await browser.close();}
-})().catch(e=>{console.error(e);process.exit(1);});
+// 全マップの低角射出・着地点と、頂点ロック／降下中の慣性を実物理で確認。
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chromium}=require('playwright');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox','--use-gl=swiftshader']});try{const p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.route('https://**/*',r=>r.fulfill({body:''}));await p.addInitScript(()=>{requestAnimationFrame=()=>0;AudioContext=undefined});await p.goto('file://'+path.resolve(process.argv[2]||'dbg','dbg.html'));
+const report=await p.evaluate(()=>{const g=__g,T=g.T,zero=new T.Vector3(),rows=[],controls=[];const check=(v,label,data)=>{if(!v)throw Error(label+' '+JSON.stringify(data));};
+function reset(u,cp,type){u.mech={head:type==='anchor4'?'heavy':type,body:'heavy',arms:'heavy',legs:type,color:'team'};g.equip(u,'assault');g.spawn(u);u.pos.copy(cp.pos);u.vel.set(0,0,0);Object.assign(u,{alive:true,onGround:true,stun:'',stunT:0,dashT:0,lungeT:0,slideT:0,chargerOn:false,ctrlLockT:0,catCd:0,flying:false,longDash:false,jumpPad:null});g.launch(u,cp);}
+for(const map of Object.keys(g.MAPS)){g.selectMap(map);g.setup();g.running=false;const u=g.player;for(const other of g.units)other.alive=other===u;
+for(const [i,cp] of g.catapults.entries())for(const dt of [1/30,1/120]){reset(u,cp,'heavy');const speed=u.flightSpeed,angle=Math.atan2(u.vel.y,speed)*180/Math.PI,apex=u.ctrlLockT;check(angle<=45.001&&angle>=29.999,'射出角30〜45度',{map,i,angle});let t=0;for(;t<cp.flight+3&&!u.onGround;t+=dt)g.physics(u,zero,false,false,dt);const error=u.pos.distanceTo(cp.land);rows.push({map,i,dt,angle,speed,flight:cp.flight,apex,landingSeconds:t,error,pass:u.onGround&&error<6});}
+if(!g.catapults.length)continue;const cp=g.catapults[0];for(const type of ['light','heavy','anchor4'])for(const dt of [1/30,1/120])for(const mode of ['reverse','side','boost-reverse']){reset(u,cp,type);const f=u.catMomentum.clone(),wish=mode==='side'?new T.Vector3(-f.z,0,f.x):f.clone().negate(),speed=u.flightSpeed,origin=u.pos.clone();let minAdvance=Infinity,last=0,steered=false,lockedSteps=0,unlockedSteps=0;for(let t=0;t<12&&!u.onGround;t+=dt){const locked=u.vel.y>0;if(locked){check(u.ctrlLockT>0,'頂点前ロック',{map,type,mode,t});check(!g.shortDash(u,wish),'頂点前ダッシュ禁止',{map,type,mode,t});lockedSteps++;}else{check(u.ctrlLockT===0,'頂点後解除',{map,type,mode,t});unlockedSteps++;if(mode==='boost-reverse'&&u.dashT<=0)g.shortDash(u,wish);}g.physics(u,wish,mode==='boost-reverse',false,dt,mode==='boost-reverse');const progress=u.pos.clone().sub(origin).dot(f);minAdvance=Math.min(minAdvance,progress-last);last=progress;if(!locked&&Math.abs(u.vel.x*f.z-u.vel.z*f.x)>speed*.05)steered=true;}
+check(minAdvance>=-1.5,'衝突押し戻し幅を超えて射出台へ逆行しない',{map,type,mode,minAdvance});check(lockedSteps>0&&unlockedSteps>0,'上昇と降下を通る',{map,type,mode});check(mode!=='side'||steered,'降下中の横調整',{map,type});check(u.onGround&&u.ctrlLockT===0&&!u.catMomentum,'着地時に制約を解除',{map,type,mode,at:u.pos.toArray()});controls.push({map,type,dt,mode,lockedSteps,unlockedSteps,minAdvance,steered});}}
+// 頭をぶつけて早く降下したときも、実際の頂点と接地に従う。
+g.selectMap('mobility');g.setup();g.running=false;const u=g.player,ceiling={minX:-75,maxX:-35,minZ:-10,maxZ:10,bottom:8,top:10};g.obstacles.push(ceiling);reset(u,{pos:new T.Vector3(-60,0,0),land:new T.Vector3(-40,0,0),angle:Math.PI/6},'heavy');let t=0;for(;t<2&&!u.onGround;t+=1/120)g.physics(u,zero,false,false,1/120);check(u.onGround&&u.ctrlLockT===0,'早期接地の解除',t);g.obstacles.splice(g.obstacles.indexOf(ceiling),1);
+g.spawn(u);u.pos.copy(g.jumpPads[0].pos);u.onGround=true;u.catCd=0;u.flying=false;g.jumpPadUpdate(.05);check(u.ctrlLockT===0&&g.shortDash(u,new T.Vector3(1,0,0)),'ジャンプパッドは即操作');return {rows,controls,earlyLanding:t,jumpPad:true};});
+const out=path.resolve(process.argv[3]||'mapdesign/catapult-control-check.json');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify({...report,errors},null,2));const failed=report.rows.filter(r=>!r.pass);console.log(JSON.stringify({trajectories:report.rows.length,controls:report.controls.length,failed,errors}));assert(!failed.length&&!errors.length);
+}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

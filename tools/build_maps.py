@@ -47,9 +47,10 @@ function check(d) {
   if(d.plantCatapults!==undefined){
     if(!Array.isArray(d.plantCatapults))E('plantCatapults は配列');
     else for(const c of d.plantCatapults){
+      if(c?.angle!==undefined&&(!num(c.angle)||c.angle<30||c.angle>45))E('プラントの射出角は30〜45度');
       if(!c||!ids.includes(c.plant)||!ids.includes(c.targetPlant)||c.plant===c.targetPlant)E('plantCatapults の出発・到着プラントが不正');
       for(const key of ['at','exit'])if(!Array.isArray(c?.[key])||c[key].length!==2||!c[key].every(num))E('plantCatapults.'+key+' は [x,z]');else inMap(...c[key],'プラント間カタパルト');
-      if(!num(c?.flight)||c.flight<2.8||c.flight>8)E('plantCatapults.flight は2.8〜8秒');
+      if(c?.flight!==undefined&&(!num(c.flight)||c.flight<2.8||c.flight>8))E('plantCatapults.flight は2.8〜8秒');
     }
   }
   for (const [x,z] of [...d.turrets,...d.basePods,d.radar]) {
@@ -81,9 +82,11 @@ function check(d) {
       if(!b||!Array.isArray(b.at)||b.at.length!==2||!b.at.every(num)){E('bases.'+team+'.at は [x,z]');continue;}
       inMap(...b.at,'基地');
       if(!num(b.radius)||b.radius<=0)E('基地の radius は正の数');
+      if(b.catapultAngle!==undefined&&(!num(b.catapultAngle)||b.catapultAngle<30||b.catapultAngle>45))E('基地の射出角は30〜45度');
       if(b.catapultFlight!==undefined&&(!num(b.catapultFlight)||b.catapultFlight<2.8||b.catapultFlight>8))E('基地のcatapultFlightは2.8〜8秒');
       for(const c of b.catapults||[]){
-        if(!Array.isArray(c)||c.length!==4||!c.every(num)){E('基地のcatapultsは [x,z,着地点x,着地点z]');continue;}
+        if(!Array.isArray(c)||![4,5].includes(c.length)||!c.every(num)){E('基地のcatapultsは [x,z,着地点x,着地点z,任意の角度]');continue;}
+        if(c[4]!==undefined&&(c[4]<30||c[4]>45))E('基地の射出角は30〜45度');
         inMap(c[0],c[1],'基地の射出台');inMap(c[2],c[3],'基地の射出台の着地点');
       }
     }

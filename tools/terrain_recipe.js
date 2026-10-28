@@ -6,7 +6,7 @@ function nearSegment(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((x-a[0])*
 function boundaryDistance(poly,x,z){return Math.min(...poly.map((a,i)=>nearSegment(x,z,[...a,0],[...poly[(i+1)%poly.length],0]).d));}
 function validate(r){
  const num=n=>typeof n==='number'&&Number.isFinite(n),point=(p,n)=>Array.isArray(p)&&p.length===n&&p.every(num);
- assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites'].includes(k)),'unknown recipe field');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
+ assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
  assert([4,5,10].includes(r.grid)&&num(r.half)&&r.half>=120&&r.half<=300&&r.half%r.grid===0,'grid/half budget');assert(r.navStep===r.grid*2,'navStep must be twice grid');assert(Number.isInteger(r.seed),'seed');assert(/^#[0-9a-f]{6}$/i.test(r.color),'color');assert(num(r.baseHeight),'baseHeight');
  assert(Array.isArray(r.boundary)&&r.boundary.length>=4&&r.boundary.length<=40,'boundary');
  for(const [i,a] of r.boundary.entries()){const b=r.boundary[(i+1)%r.boundary.length];assert(point(a,2)&&a.every(v=>Math.abs(v)<r.half&&v%r.grid===0),'grid-aligned boundary');assert((a[0]===b[0])!==(a[1]===b[1]),'orthogonal nonzero boundary edge');
@@ -78,7 +78,28 @@ function compile(input,seed=input.seed){
  const def={order:90,name:r.name,size:[r.half,r.half],team:5,time:300,baseZ:r.bases.B[1],baseLine:r.bases.B[1]-42,desc:'谷底から山腹、尾根へ。岩盤の通り抜けと横断橋の上下を使い分ける。',asym:true,terrain:[],layout:shelters,plants,turrets:r.turretSites?[]:[[-25,r.bases.B[1]-30],[25,r.bases.B[1]-30]],...(r.turretSites?{rooftopTurrets:r.turretSites}:{}),radar:[-26,r.bases.B[1]+15],catapults:[],basePods:[[-18,r.bases.B[1]-16]],plantPods,barricades:[],bases,nav:{nodes,links,heightAware:true},attribution:'手続き生成のオリジナル形状。外部画像・モデルの使用なし。',cityBattle:{nodeReach:3,baseSpawns,respawns},cityTerrain:{geometryEncoding:'city-layout-v1',half:r.half,boundary:r.boundary,groundMaximum:Math.max(r.baseHeight,...hills.map(h=>h[2]+r.baseHeight),...r.routes.flatMap(q=>q.points.map(p=>p[2])),...r.tunnels.map(t=>t.ceiling))+10+(r.rolling||[]).reduce((n,w)=>n+Math.abs(w[0]),0),river:{bed:-30,water:-29,rings:[]},ringCoordinateStep:.02,volumeKinds:[r.blockKind==='wall'?'barrier':'grounded'],volumes:(r.blocks||[]).map(([x,z,w,d,bottom,top])=>[0,bottom,top,[pack([x-w/2,z-d/2,x+w/2,z-d/2,x+w/2,z+d/2,x-w/2,z+d/2])],{}]),decorations:[],packing:{layers:Object.fromEntries(Object.keys(meshes).map(k=>[k,true]))},surfaces,district:{unifiedGround:{color:r.color},roofPads:[],bases:districtBases}},recipeMeta:{version:1,seed,grid:r.grid,routes:r.routes,tunnels:r.tunnels}};
  const connectivity=validateConnectivity(r,def,sample);
  // 空のvolumesも正当な地形（施設は本体が追加する）。
- return {definition:def,stats:{triangles:Object.values(meshes).reduce((n,a)=>n+a.length/9,0),nodes:nodes.length,links:links.length,seed,connectivity},sample,levels,walk};
+ const lengthScale=r.lengthScale||1,output=lengthScale===1?def:JSON.parse(JSON.stringify(def));if(lengthScale!==1)stretchDefinition(output,lengthScale);
+ return {definition:output,stats:{triangles:Object.values(meshes).reduce((n,a)=>n+a.length/9,0),nodes:nodes.length,links:links.length,seed,connectivity,lengthScale},sample:(x,z)=>sample(x,z/lengthScale),levels:(x,z)=>levels(x,z/lengthScale),walk:(a,b)=>walk([a[0],a[1]/lengthScale,a[2]],[b[0],b[1]/lengthScale,b[2]])};
+}
+// 完成した支持面・衝突・navを一緒に伸ばす。頂点を増やさず、地形の上下関係を保つ。
+function stretchDefinition(d,f){
+ const xz=p=>{p[1]*=f;};
+ const c=d.cityTerrain;
+ for(const s of Object.values(c.surfaces)){const bytes=Buffer.from(s.points,'base64'),a=new Int16Array(bytes.buffer,bytes.byteOffset,bytes.length/2);for(let i=2;i<a.length;i+=3){const v=Math.round(a[i]*f);assert(Math.abs(v)<=32767,'scaled vertex coordinate budget');a[i]=v;}s.points=Buffer.from(a.buffer,a.byteOffset,a.byteLength).toString('base64');}
+ for(const v of c.volumes)for(let i=0;i<v[3].length;i++){const bytes=Buffer.from(v[3][i],'base64'),a=new Int16Array(bytes.buffer,bytes.byteOffset,bytes.length/2);for(let j=1;j<a.length;j+=2){const n=Math.round(a[j]*f);assert(Math.abs(n)<=32767,'scaled volume coordinate budget');a[j]=n;}v[3][i]=Buffer.from(a.buffer,a.byteOffset,a.byteLength).toString('base64');}
+ c.boundary.forEach(xz);c.half*=f;d.size=[c.half,c.half];d.baseZ*=f;d.baseLine*=f;
+ for(const p of d.layout){xz(p);p[3]*=f;}
+ d.turrets.forEach(xz);xz(d.radar);d.basePods.forEach(xz);for(const p of d.plantPods)p[2]*=f;
+ for(const p of d.plants)p[2]*=f;
+ for(const b of Object.values(d.bases)){xz(b.at);for(const p of b.catapults){p[1]*=f;p[3]*=f;}}
+ c.district.bases.forEach(b=>xz(b.at));d.nav.nodes.forEach(xz);
+ for(const a of Object.values(d.cityBattle.baseSpawns))a.forEach(xz);
+ // 再出撃のプラントから48mという既存ルールは、ステージ寸法と分離する。
+ for(const team of Object.values(d.cityBattle.respawns))for(const [id,points] of Object.entries(team)){const z=d.plants.find(p=>p[0]===id)[2];for(const p of points)p[1]=z+(p[1]-z/f);}
+ for(const t of d.rooftopTurrets||[])xz(t.at);
+ for(const q of d.recipeMeta.routes)q.points.forEach(xz);
+ for(const t of d.recipeMeta.tunnels){t.rect[2]*=f;t.rect[3]*=f;}
+ d.recipeMeta.lengthScale=f;d.recipeMeta.gridXZ=[d.recipeMeta.grid,d.recipeMeta.grid*f];
 }
 function validateConnectivity(r,d,sample){
  const adj=d.nav.nodes.map(()=>[]);for(const [u,v] of d.nav.links){adj[u].push(v);adj[v].push(u);}

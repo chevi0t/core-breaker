@@ -1,6 +1,6 @@
 # レシピから作る多層地形の試作
 
-ローカル試作。公開マップへの置換・マージ・配信は行っていない。山岳の「風裂山道」を主成果とし、採掘場・高架／地下は生成器の再利用を確かめる小さな例。既存の武器・機体・移動・被弾・入力設定は変更しない。
+ローカル試作。公開マップへの置換・マージ・配信は行っていない。山岳の「風裂山道」を主成果とし、採掘場・高架／地下は生成器の再利用を確かめる小さな例。武器・機体・被弾・通常移動は維持。後続のユーザー指定により全マップのカタパルトを低角射出へ変更した（TERRAIN_STRETCH.md）。
 
 ## 斜面戦闘への改訂（376ba3bの試作を見た後の修正）
 
@@ -19,7 +19,7 @@ Node.js・Python 3・リポジトリのPlaywright/Chromiumを使う。AIは `too
 ```sh
 npm install
 npx playwright install chromium
-python3 tools/build_terrain_preview.py tools/terrain_recipes/mountain.json /tmp/terrain-preview --seed 19
+python3 tools/build_terrain_preview.py tools/terrain_recipes/mountain.json /tmp/terrain-preview --seed 19 --skip-escape
 cd /tmp/terrain-preview
 python3 -m http.server 8000
 ```
@@ -43,6 +43,7 @@ python3 tools/build_maps.py
 |---|---|
 | version, id, name | 1、英小文字ID、オリジナル表示名 |
 | half, grid, navStep | 内部正方形の半径120〜300m、格子4/5/10m、nav間隔は格子の2倍 |
+| lengthScale | 任意の1/1.5/2。完成形のZだけ伸ばす。X・高さ・頂点数維持、内部索引のhalfは拡大。再出撃距離48mは別扱い |
 | seed | 整数。丘の高さを±5%変える。経路配置自体は変えない |
 | boundary | 4〜40頂点の単純な直交凹多角形。格子上、自己交差なし。最後と最初は自動で接続 |
 | color, baseHeight | 地形色 #rrggbb、基準高 |
