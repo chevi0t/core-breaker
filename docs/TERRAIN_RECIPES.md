@@ -111,3 +111,5 @@ blocksの任意分類 `blockKind` はbuilding（既定）／wall。wallは窓を
 風裂山道の飛距離再調整は [TERRAIN_LAUNCH_RANGE.md](TERRAIN_LAUNCH_RANGE.md)。生成器の任意着地点指定を使い、このレシピだけを延長した。
 
 工場・住宅・岩と8対8の最新配置は [TERRAIN_SCENERY.md](TERRAIN_SCENERY.md)。
+
+表示順は任意の `order`（整数0〜999、省略90）で指定。風裂山道は5。白煙循環区は `mapdesign/archive/circulation.js` に退避し、通常ビルドに含めない。旧生成器を試す場合は一時ディレクトリへ出力し、公開マップへ再登録しない。復元は別途選択一覧の入替として行う。旧マップIDの保存値は既存のFIRST_MAPフォールバックで読み込める。
