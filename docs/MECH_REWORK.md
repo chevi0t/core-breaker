@@ -1,4 +1,4 @@
-# 機体外装再制作のローカル検証
+# 機体外装再制作の検証
 
 基準はmain `05d40f8`（`88f4a15` のPR106とPR105を含む）。旧タスクは触らず、取得できない試作ZIPからの復元はしていない。変更は外装形状と旧被弾面の維持だけ。武器・マップ・性能・保存キーを変更しない。
 
@@ -84,3 +84,7 @@ node tools/test/mech_hit_bounds_check.js /tmp/mech-after /tmp/mech-hit-bounds.js
 追加の検証：`node tools/test/booster_direction_check.js /tmp/mech-after /tmp/booster-directions`。`node tools/test/booster_gameplay_check.js /tmp/mech-before /tmp/mech-after /tmp/booster-gameplay.json` では改修前3983099と物理・装備位置・下向き噴射の軌跡を照合する。方向一覧を実ゲームのThree.js描画で撮影する。既存の全混成検査の上限は今回の正味20三角形だけを明示して加算する（それ以外の予算は同じ）。当初のリング付きノズルは108三角形増で上限を超えたため、最終形状ではポッドの端面を使い20三角形増へ削減した。
 
 ソフトウェア描画による今回差分の計測と合否はレビューZIPの `BOOSTER_REVIEW.md` を参照。以前の旧main比の性能差が解消したとは扱わない。
+
+## 採用時の頭部判定確認
+
+2026-10-28、ユーザーの採用・マージ承認に伴い全30頭部型を基準mainと再比較した。縮小なし。軽量級の既存差と表示／被弾面のずれ、再現手順は [MECH_HEAD_COLLISION.md](MECH_HEAD_COLLISION.md) を参照。性能差の未解決部分は上記の通りで、採用承認を性能同等性の証明とは扱わない。
