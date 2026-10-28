@@ -14,6 +14,7 @@ from scipy.spatial import cKDTree
 from shapely.geometry import Point, LineString, box
 
 import build_kanto_map as city
+from kanto_base_clearance import remove_north_sliver
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 OUT=ROOT/'mapdesign/kanto_half'
@@ -114,6 +115,7 @@ def main():
         for part in city.parts(shapely.set_precision(poly.difference(clear),.01)):
             if part.area>.5:volumes.append([*v[:3],city.pack_polygon(part),v[4]])
     data['volumes']=volumes
+    remove_north_sliver(data)
     # 上部構造の赤い箱は観覧車の代用だったため、屋根を残し空洞のある輪へ置き換える。
     red_boxes=[v for v in volumes if v[4].get('landmark')=='red-accent' and v[4].get('landmarkColor')=='#bf3548']
     assert len(red_boxes)==1 and red_boxes[0][1:3]==[4,47], '観覧車の元形状が変化した'
