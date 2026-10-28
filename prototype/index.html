@@ -886,7 +886,8 @@ body.touchPlay #tutorialHud h2 { font-size: 14px; margin: 3px 0; } body.touchPla
 body.touchPlay #rangeHud dl { margin: 4px 0; gap: 1px 10px; }
 @media (orientation: portrait) { body.touchPlay #touchRotate { display: grid; place-items: center; position: fixed; inset: 0; z-index: 40; background: rgba(5, 9, 13, .94); color: var(--hud); font: 700 20px var(--body); } }
 
-#tcAutoHint { display:none; }
+#tcAutoHint, #mobilePadHint { display:none; }
+body.mobilePad #mobilePadHint { display:block;position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);font:11px var(--body);color:#bed9e8;background:#10202ccc;padding:4px 8px;pointer-events:none;z-index:4;max-width:80vw;text-align:center; }
 body.touchPlay.tcAuto #tcAutoHint { display:block;position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);font:11px var(--body);color:#bed9e8;pointer-events:none;z-index:4;max-width:40vw;text-align:center; }
 body.tcMenu #tcAutoHint { visibility:hidden; }
 #tcWeaponMenu[hidden] { display:none; }
@@ -975,6 +976,7 @@ body:not(.touch) .touchOnly { display: none; }
 <div id="tcTop" aria-hidden="true">
   <button type="button" tabindex="-1" data-tc="score">スコア</button><button type="button" tabindex="-1" data-tc="map">マップ</button><button type="button" tabindex="-1" data-tc="pause" aria-label="一時停止">II</button><button type="button" tabindex="-1" data-tc="chat">指示</button><button type="button" tabindex="-1" data-tc="xfer">移動</button>
 </div>
+<div id="mobilePadHint">左スティック：移動 ／ 右：視点 ／ R2：射撃 ／ L2：照準・ロック ／ 十字：武器</div>
 <div id="tcAutoHint">右側をなぞって照準・自動攻撃 ／ ダブルタップで武器</div>
 <button type="button" tabindex="-1" id="tcNext" data-tc="next" hidden>次へ</button>
 <div id="tcWeaponMenu" hidden role="dialog" aria-label="武器選択"><div class="tcCross">
@@ -1185,7 +1187,7 @@ body:not(.touch) .touchOnly { display: none; }
       <div class="keys">
         <kbd>左半分</kbd><span>触った所がスティックの中心になり、指を動かした向きへ進む。外側の点線の輪まで倒すとダッシュ</span>
         <kbd>右半分</kbd><span>なぞると視点。ダブルタップで十字の武器選択。メニューを閉じた後は再びなぞると自動攻撃再開</span>
-        <kbd>外付け入力</kbd><span>キーボード・マウスでゲーム操作すると手動操作へ切替。画面に触るとタッチ操作へ戻る。接続だけでは切り替わりません</span>
+        <kbd>外付け入力</kbd><span>キーボード・マウス・コントローラーの実操作で手動へ切替。画面に触るとタッチへ戻る。接続だけでは切り替わりません</span>
         <kbd>自動攻撃</kbd><span>既定では照準に合った敵へ自動ロック・射撃。装備中の近接は前方の攻撃範囲で発動。爆発物も対象。設定でOFFにすると射撃・ロックを手動ボタンで操作できます</span>
         <kbd>補助操作</kbd><span>照準・起爆・自己修復・解除は該当する武器で表示。装置・修理・地図砲撃は手動操作</span>
         <kbd>ジャンプ・ダッシュ</kbd><span>Space・Shift と同じ。ダッシュは短く押すとショートダッシュ、押し続けるとロングダッシュ</span>
@@ -10621,7 +10623,7 @@ const PAD_KEYS = { cross: ['Space'], circle: ['KeyE', 'KeyF'], square: ['KeyR'],
 const PAD_DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 // fwd・side：左スティックの前後・左右（playerUpdate がキーに足す）。sent：ボタンごとに押したことにしたキー。nav：メニューで押し続けている向き
 const pad = { index: -1, id: '', fwd: 0, side: 0, held: {}, sent: {}, usedT: -1e9, turnT: 0, nav: '', navT: 0 };
-const padActive = () => performance.now() - pad.usedT < 20000; // 最後にコントローラーを触ってから20秒は、画面の案内をコントローラーのボタンで出す
+const padActive = () => TOUCH_INPUT ? inputMode.mode==='gamepad' : performance.now() - pad.usedT < 20000; // タッチ併用は選択中の方式、従来PCは最後の操作から20秒で案内を選ぶ
 const keyName = (key, padButton, touchButton) => touchPlay && touchButton ? touchButton : padActive() ? padButton : key; // touchButton：タッチ操作のボタンの名前
 function padKey(code, down) { document.body.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code, bubbles: true, cancelable: true })); }
 function padRead() {
@@ -10632,6 +10634,42 @@ function padRead() {
   if (g && g.index !== pad.index) { pad.index = g.index; pad.id = g.id; padStatus(); }
   return g;
 }
+// タッチ併用時は接続ではなく操作の立ち上がりで選ぶ。各コントローラーを別々に記録する。
+const hybridPads = { samples: new Map(), suspended:false, waitNeutral:false, context:null };
+function padClearInputs() {
+  for(const name of Object.keys(pad.sent)){for(const code of pad.sent[name])pressed[code]=false;padRelease(name);}
+  if(inputMode.mode==='gamepad'){mouseDown=rightDown=false;cancelPendingFire();}
+  pad.fwd=pad.side=pad.turnT=0;pad.nav='';
+}
+function hybridPadRead() {
+  let list;try {list=[...(navigator.getGamepads?.()||[])].filter(g=>g?.connected);}catch(_){list=[];}
+  const entries=list.map(g=>{
+    const old=hybridPads.samples.get(g.index),down={};
+    for(const [name,i] of Object.entries(PB)){
+      const b=g.buttons[i],v=b?Math.max(b.value,b.pressed&&name!=='l2'&&name!=='r2'?1:0):0;
+      down[name]=v>(old?.down[name]?PAD_TRIGGER-.15:PAD_TRIGGER);
+    }
+    // 再取得は既存デッドゾーンより少し深い0.25、解除は0.15。境界の揺れを拾わない。
+    const axis=[Math.hypot(g.axes[0]||0,g.axes[1]||0),Math.hypot(g.axes[2]||0,g.axes[3]||0)];
+    const sticks=axis.map((v,i)=>v>(old?.sticks[i]?PAD_DEAD:.25));
+    const edge=!!old&&(Object.keys(down).some(n=>down[n]&&!old.down[n])||sticks.some((v,i)=>v&&!old.sticks[i]));
+    const sample={down,sticks};hybridPads.samples.set(g.index,sample);
+    return {g,old,sample,edge,neutral:!Object.values(down).some(Boolean)&&axis.every(v=>v<=PAD_DEAD)};
+  });
+  for(const i of hybridPads.samples.keys())if(!list.some(g=>g.index===i))hybridPads.samples.delete(i);
+  const context=running&&player?`${player.lifeId}:${player.alive}:${!$('overlay').hidden}`:'menu';
+  if(hybridPads.context!==null&&hybridPads.context!==context){padClearInputs();hybridPads.waitNeutral=true;}
+  hybridPads.context=context;
+  if(hybridPads.suspended||document.hidden){padClearInputs();return null;}
+  if(hybridPads.waitNeutral){if(entries.every(e=>e.neutral))hybridPads.waitNeutral=false;else {padClearInputs();return null;}}
+  const chosen=entries.find(e=>e.g.index===pad.index&&e.edge)||entries.find(e=>e.edge);
+  const current=chosen||entries.find(e=>e.g.index===pad.index);
+  if(!current){padClearInputs();if(pad.index>=0){pad.index=-1;pad.id='';padStatus();}return null;}
+  if(current.g.index!==pad.index){padClearInputs();pad.held={...current.old?.down};pad.index=current.g.index;pad.id=current.g.id;padStatus();}
+  if(chosen){switchInputMode('gamepad');pad.usedT=performance.now();}
+  if(inputMode.mode!=='gamepad'){pad.held={...current.sample.down};pad.fwd=pad.side=0;return null;}
+  return current.g;
+}
 // 遊びを除いて、倒した量を 0〜1 に伸ばす
 function padStick(x, y) {
   const m = Math.hypot(x, y);
@@ -10641,7 +10679,7 @@ function padStick(x, y) {
 }
 // 毎フレーム、ほかの処理より先に読む（ループの最初）
 function padTick(dt) {
-  const g = padRead();
+  const g = TOUCH_INPUT ? hybridPadRead() : padRead();
   if (!g) { pad.fwd = pad.side = 0; return; }
   const down = {};
   for (const [name, i] of Object.entries(PB)) {
@@ -10784,13 +10822,19 @@ function padStatus() {
     ? `つながっています：${pad.id.replace(/\s*\(.*$/, '') || 'コントローラー'}。ボタンの配置は「操作説明」にあります。`
     : 'つながっていません。USB か Bluetooth でつないでから、どれかのボタンを押すと使えるようになります。';
 }
-addEventListener('gamepadconnected', () => { padRead(); padStatus(); if (running) feed('コントローラーを認識しました'); });
+addEventListener('gamepadconnected', () => { if(!TOUCH_INPUT)padRead(); padStatus(); if (running) feed('コントローラーを認識しました'); });
 addEventListener('gamepaddisconnected', e => {
+  if(TOUCH_INPUT)hybridPads.samples.delete(e.gamepad.index);
   if (e.gamepad.index !== pad.index) return;
+  if(TOUCH_INPUT)padClearInputs();
   for (const n of Object.keys(pad.held)) if (pad.held[n]) padRelease(n);
   Object.assign(pad, { index: -1, id: '', held: {}, fwd: 0, side: 0 });
   padStatus(); if (running) feed('コントローラーが外れました');
 });
+// 復帰時に保持ボタンを再発射しない。中立へ戻してから次の操作を受ける。
+addEventListener('blur',()=>{if(TOUCH_INPUT){hybridPads.suspended=true;hybridPads.waitNeutral=true;padClearInputs();}});
+addEventListener('focus',()=>{hybridPads.suspended=false;});
+document.addEventListener('visibilitychange',()=>{if(TOUCH_INPUT&&document.hidden){hybridPads.waitNeutral=true;padClearInputs();}});
 // マウスかキーボードを使ったら、メニューの太い枠はやめる（コントローラーから送ったキーは isTrusted が false）
 for (const t of ['mousedown', 'keydown']) addEventListener(t, e => { if (e.isTrusted) document.body.classList.remove('padNav'); }, true);
 padStatus();
@@ -10808,12 +10852,12 @@ let touchPlay = false; // 試合中で、タッチのボタンを出している
 const inputMode = { mode: TOUCH ? 'touch' : 'manual', lastTouch: -Infinity, lastMouse: -Infinity, suppressMouse: false };
 function switchInputMode(mode) {
   if(!TOUCH_INPUT || inputMode.mode===mode)return;
-  touchEndAll(); releaseLock();
+  padClearInputs(); cancelPendingFire(); touchEndAll(); releaseLock();
   for(const k of Object.keys(keys))keys[k]=false;
   for(const k of Object.keys(pressed))pressed[k]=false;
   mouseDown=rightDown=false;wheelDir=0;wsel.open=qc.open=false;
   inputMode.mode=mode;
-  if(mode==='touch' && document.pointerLockElement===canvas)document.exitPointerLock?.();
+  if(mode!=='manual' && document.pointerLockElement===canvas)document.exitPointerLock?.();
   touchTick();
 }
 function hybridGameSurface(el) { return !!el?.closest?.('#game,#touchZone,#tcPad,#tcWeaponMenu,#tcTop'); }
@@ -10825,6 +10869,7 @@ function touchCompatibilityMouse(e) {
 const TC_KEYS = { jump: ['Space'], dash: ['ShiftLeft'], reload: ['KeyR'], act: ['KeyE', 'KeyF'], score: ['Tab'], chat: ['KeyG'] }; // 押している間
 const TC_TAPS = { map: ['KeyM'], xfer: ['KeyH'], next: ['Enter'] }; // 押した時に1回
 function touchTick() {
+  document.body.classList.toggle('mobilePad',TOUCH_INPUT&&inputMode.mode==='gamepad'&&pad.index>=0&&running&&!!player&&$('overlay').hidden);
   const on = TOUCH_INPUT && inputMode.mode==='touch' && running && !!player && $('overlay').hidden;
   if (on !== touchPlay) {
     touchPlay = on; document.body.classList.toggle('touchPlay', on);
@@ -10927,14 +10972,18 @@ function touchAutoCancel() {
   if(touch.autoLock && lock.target===touch.autoLock)releaseLock();
   touch.autoLock=null;
 }
+function cancelPendingFire() {
+  if(!player)return;
+  for(const sl of Object.values(player.slots)){sl.bn=sl.chargeT=sl.holdT=0;sl.held=false;if(sl.missileQueue)sl.missileQueue=[];}
+  if(beamCannonMode(player))stopBeamCannon(player,true);
+}
 function touchMenuClose() { touch.menuPicks?.clear();touch.menu=false;touch.armed=false; $('tcWeaponMenu').hidden=true;document.body.classList.remove('tcMenu'); }
 function touchMenuOpen() {
   if(!TOUCH_INPUT || !running || !player?.alive || player.transfer || meleeOnly())return;
   touchAutoCancel();releaseLock();touch.armed=false;touch.menu=true;touch.tap=null;mouseDown=rightDown=false;wsel.open=qc.open=false;
   for(const [id,t] of touch.ptr)if(t.kind==='look'||t.name==='fire'||t.name==='lock'||t.name==='weapon'){touchEnd(t,true);touch.ptr.delete(id);}
   // 押下解除でチャージ弾を放たない。既に発射した弾・振り始めた攻撃はそのまま。
-  for(const sl of Object.values(player.slots)){sl.bn=sl.chargeT=sl.holdT=0;sl.held=false;if(sl.missileQueue)sl.missileQueue=[];}
-  if(beamCannonMode(player))stopBeamCannon(player,true);
+  cancelPendingFire();
   $('tcWeaponMenu').hidden=false;document.body.classList.add('tcMenu');
   const names={main:'主武器',sub:'副武器',aux:'補助',sp:'特殊'};
   for(const b of document.querySelectorAll('#tcWeaponMenu [data-slot]')){const k=b.dataset.slot;b.textContent=names[k]+'：'+player.slots[k].w.name;b.classList.toggle('selected',player.weapon===k);}
@@ -11018,7 +11067,7 @@ function touchFullscreen() {
     }
   },true);
   addEventListener('pointermove',e=>{
-    if(TOUCH_INPUT&&e.isTrusted&&e.pointerType==='mouse'&&(e.buttons||document.pointerLockElement===canvas)&&hybridGameActive()&&hybridGameSurface(e.target)&&!e.sourceCapabilities?.firesTouchEvents){inputMode.lastMouse=performance.now();switchInputMode('manual');}
+    if(TOUCH_INPUT&&e.isTrusted&&e.pointerType==='mouse'&&(e.buttons||inputMode.mode==='manual'&&document.pointerLockElement===canvas)&&hybridGameActive()&&hybridGameSurface(e.target)&&!e.sourceCapabilities?.firesTouchEvents){inputMode.lastMouse=performance.now();switchInputMode('manual');}
   },true);
   addEventListener('blur',()=>{if(TOUCH_INPUT){for(const k of Object.keys(keys))keys[k]=false;for(const k of Object.keys(pressed))pressed[k]=false;inputMode.suppressMouse=false;} });
   for(const name of ['mousedown','mouseup','mousemove','click','auxclick'])addEventListener(name,e=>{
@@ -13023,9 +13072,9 @@ $('start').addEventListener('click', () => {
   grabPointer();
 });
 document.addEventListener('pointerlockchange', () => {
-  if (!document.pointerLockElement && running) mouseDown = false;
-  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode==='touch') && tutorial && !mapOpen) tutorialPause();
-  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode==='touch') && range && !mapOpen) rangePause();
+  if (!document.pointerLockElement && running && (!TOUCH_INPUT || inputMode.mode==='manual')) mouseDown = false;
+  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode!=='manual') && tutorial && !mapOpen) tutorialPause();
+  if (!document.pointerLockElement && !(TOUCH_INPUT && inputMode.mode!=='manual') && range && !mapOpen) rangePause();
 });
 
 function resize() {
