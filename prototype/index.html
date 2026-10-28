@@ -1581,13 +1581,13 @@ function expandCityLayout(T,data){
     return a;
   }
   const palette=data.district.buildingPalette||['#889da8','#a69f90','#aab0ae','#7f929a','#9d9181','#8b8785','#8c9da0','#a6a39b'];
-  const layerFor={'rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
+  const layerFor={'barrier':'rail','rail-deck':'rail','rail-pier':'rail','rail-shop':'shops','station-roof':'station','station-support':'station'};
   const buildings=new Set(['grounded','infill','upper','elevated']);
   for(const v of data.volumes){
     const building=buildings.has(v.kind),layer=building?'bldg':layerFor[v.kind];if(!layer)continue;
     const center=v.rings[0].reduce((a,p)=>[a[0]+p[0]/v.rings[0].length,a[1]+p[1]/v.rings[0].length],[0,0]);
     const color=building?(v.landmarkColor||(Number.isInteger(v.paint)?palette[v.paint]:v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
-      v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
+      v.kind==='barrier'?'#768079':v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
     add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
   }
   for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
