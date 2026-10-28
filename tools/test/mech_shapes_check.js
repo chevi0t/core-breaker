@@ -45,7 +45,8 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             check(armor.length === 4, label + ': 装甲は4部位のメッシュ');
             const boxes = armor.reduce((sum, m) => sum + m.geometry.attributes.position.count / 36, 0);
             const legacy=slots.every(slot=>legacyTypes.includes(cfg[slot]));
-            const joints = model.rig ? 10 * 2 + 4 + 10 : 0;
+            // 腰ポッド24面＋肩口8面−撤去した背面箱12面＝20三角形。
+            const joints = model.rig ? 10 * 2 + 4 + 10 + 20 / 12 : 0;
             const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60) + joints;
             check(boxes <= budget, label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);
@@ -123,7 +124,8 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
         __g.renderCustom(); __g.showPage('pgCustom');
         document.getElementById('overlay').hidden = false;
       }, cfg);
-      await page.click('[data-cslot="head"]');
+      // 試合後のポインタロックに依存せず、撮影用の部位切替を実行する。
+      await page.locator('[data-cslot="head"]').evaluate(e => e.click());
       await page.waitForFunction(() => !!__g.mechRig?.m);
       // 同じ角度で比較する。通常のプレビューは回転を続ける。
       await page.evaluate(() => { __g.mechRig.drag = 0; __g.mechRig.yaw = -0.45; });
