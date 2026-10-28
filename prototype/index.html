@@ -11050,8 +11050,11 @@ function touchFullscreen() {
     if(!TOUCH_INPUT || !e.isTrusted)return; // padKeyなどの合成キーは方式を変えない
     if(e.target.isContentEditable||e.target.closest?.('input,textarea,select')){e.stopImmediatePropagation();return;}
     if(!hybridGameActive()||!gameplayKeys.has(e.code))return;
-    if(e.repeat&&inputMode.mode==='touch'){e.stopImmediatePropagation();return;}
+    if(e.repeat&&inputMode.mode!=='manual'){e.stopImmediatePropagation();return;}
     switchInputMode('manual');
+  },true);
+  addEventListener('keyup',e=>{
+    if(TOUCH_INPUT&&e.isTrusted&&inputMode.mode==='gamepad'&&Object.values(pad.sent).some(codes=>codes.includes(e.code)))e.stopImmediatePropagation();
   },true);
   addEventListener('pointerdown',e=>{
     if(!TOUCH_INPUT||!e.isTrusted||!hybridGameActive()||!hybridGameSurface(e.target))return;
@@ -11072,6 +11075,7 @@ function touchFullscreen() {
   addEventListener('blur',()=>{if(TOUCH_INPUT){for(const k of Object.keys(keys))keys[k]=false;for(const k of Object.keys(pressed))pressed[k]=false;inputMode.suppressMouse=false;} });
   for(const name of ['mousedown','mouseup','mousemove','click','auxclick'])addEventListener(name,e=>{
     if(!TOUCH_INPUT)return;
+    if(inputMode.mode==='gamepad'&&name==='mouseup'){e.stopImmediatePropagation();return;}
     if(touchCompatibilityMouse(e)){e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();return;}
     if(inputMode.suppressMouse){if(name==='mouseup')inputMode.suppressMouse=false;e.stopImmediatePropagation();return;}
     // 方式変更前の透明なタッチ面へ届いた最初のクリックも、通常の射撃処理へ渡す。
