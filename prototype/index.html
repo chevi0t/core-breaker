@@ -3621,7 +3621,7 @@ function catapultReferenceRange(u, cp) {
   const floating=hoverLegs(p);
   for(let i=0;i<3600;i++){
     p.vel.y-=GRAV*dt;
-    if(floating&&hoverActive(p)&&p.vel.y<0)p.vel.y=Math.max(p.vel.y,-HOVER_FALL*(p.overheat?2:1));
+    // カタパルトの縦方向は全脚で放物運動。通常ホバーの降下制限を予測へ混ぜない。
     if(!stepTo(p,p.pos.x+p.vel.x*dt,p.pos.z))p.vel.x=0;
     if(!stepTo(p,p.pos.x,p.pos.z+p.vel.z*dt))p.vel.z=0;
     if(p.vel.y>0){const c=ceilingAt(p.pos.x,p.pos.z,p.pos.y);if(p.pos.y+p.vel.y*dt+UNIT_H>c){p.pos.y=c-UNIT_H;p.vel.y=0;}}
@@ -5919,7 +5919,7 @@ function shortDash(u, wish) {
   sfx('dash', u.pos, u);
   u.longDash = false;
   if(!(u.flying&&u.catLaunch?.free&&!u.jumpPad)){u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;}
-  if (u.vel.y < 0) u.vel.y *= 0.3;
+  if (u.vel.y < 0 && !(u.flying&&u.catLaunch)) u.vel.y *= 0.3;
   return true;
 }
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
@@ -6004,7 +6004,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.stun) accel = u.stun === 'land' ? 10 : u.onGround ? (u.stun === 'stagger' ? 4 : 6) : u.stun === 'stagger' ? 1 : 0.3;
   if(u.swing?.hopped)grav=GRAV; // 日本刀の小跳躍。通常重力で約1.2m、再加速や滞空を足さない。
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
-  const hover = (floating ? hoverActive(u) && !charging && !u.lungeT && !u.swing?.hopped : !u.dashState) && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
+  const hover = !catFlight && (floating ? hoverActive(u) && !charging && !u.lungeT && !u.swing?.hopped : !u.dashState) && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover && !u.dashState) u.dashState = 'hover';
   // 噴射の方向だけ記録。速度・加速度・ブースト消費の計算には使わない。
   if(u.dashState)(u.boostVisualDir ||= new T.Vector3()).copy(dir);
@@ -6048,7 +6048,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
     sfx('jump', u.pos, u);
   }
-  if(catFlight&&u.ctrlLockT>0)grav=GRAV;
+  if(catFlight)grav=GRAV;
   u.vel.y -= grav * dt;
 
   if (hover) {
@@ -6056,7 +6056,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
     if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   }
-  if (floating && hoverActive(u) && (u.ctrlLockT<=0||catFlight) && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
+  if (!catFlight && floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
   const dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
