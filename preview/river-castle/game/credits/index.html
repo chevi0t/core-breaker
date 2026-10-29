@@ -1,0 +1,212 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>コアブレイカー — 素材の出典・ライセンス</title><style>body{max-width:960px;margin:40px auto;padding:0 20px;background:#101c28;color:#e5edf4;font:16px/1.8 system-ui,sans-serif}a{color:#9bdfff}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}section{border-top:1px solid #526677;padding:16px 0}h1{font-size:26px}h2{font-size:19px}</style><h1>素材の出典・ライセンス</h1><p><a href="../">ゲームへ戻る</a> · <a href="https://github.com/chevi0t/core-breaker">開発リポジトリ</a></p><p>公開データと素材・ソフトウェアを制作し、整備・公開してくださった皆さまに感謝します。</p><section><h2>sounds/CREDITS.md</h2><pre># 効果音とBGMの出典とライセンス
+
+効果音は <a href="https://openverse.org/" target="_blank" rel="noopener noreferrer">Openverse</a> で探した、自由に使えるライセンスの音を使う（ユーザー指定）。
+
+- 使ってよいライセンス：CC0（表示不要）、CC BY（作者名・タイトル・ライセンス・元のURLの表示が必要）。
+- 使わないライセンス：NC（非営利のみ）、ND（改変禁止。短く切る・音量をそろえるのも改変になる）、SA（配布物全体に同じライセンスが及ぶ）。
+- 公式（SEGA・ボーダーブレイク）の音や、それを録音・抜き出した音は使わない。
+
+## 置き方
+
+1. 音を `sounds/src/&lt;名前&gt;.&lt;拡張子&gt;` に置く（名前は下の表。wav・mp3・ogg・flac など）。
+2. `python3 tools/build_sounds.py` を実行すると `prototype/sounds.js` ができる（ffmpeg が必要）。
+3. 下の表に出典を書く。
+
+## 一覧
+
+<a href="https://openverse.org/" target="_blank" rel="noopener noreferrer">Openverse</a> で探した Freesound の音（プレビューのmp3）。すべて CC0 1.0（表示義務なし・商用可・改変可）。2026-10-17 に Freesound の各ページでライセンスを確認済み。表示の義務はないが、作者への感謝として載せている。
+
+| 名前 | 使う場面 | タイトル | 作者 | ライセンス | 元のURL |
+|---|---|---|---|---|---|
+| ar | アサルトライフル・ガトリングの発射 | FX - SHOT - Machine Gun | <a href="https://freesound.org/people/bolkmar" target="_blank" rel="noopener noreferrer">bolkmar</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/bolkmar/sounds/445345 |
+| pistol | 二丁拳銃の発射 | Beretta M9 Shot | <a href="https://freesound.org/people/vabadus" target="_blank" rel="noopener noreferrer">vabadus</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/vabadus/sounds/151065 |
+| sniper | 狙撃銃の発射 | Sniper Rifle Shot [FpR3Ni1LSBg].flac | <a href="https://freesound.org/people/qubodup" target="_blank" rel="noopener noreferrer">qubodup</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/qubodup/sounds/182051 |
+| shotgun | ショットガンの発射、防衛砲台（低く再生） | Shotgun Shot | <a href="https://freesound.org/people/LeMudCrab" target="_blank" rel="noopener noreferrer">LeMudCrab</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/LeMudCrab/sounds/163455 |
+| rocket | ロケットの発射 | Rocket Launch | <a href="https://freesound.org/people/Jarusca" target="_blank" rel="noopener noreferrer">Jarusca</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/Jarusca/sounds/521377 |
+| explode | 爆発 | explosion.2.wav | <a href="https://freesound.org/people/alienbomb" target="_blank" rel="noopener noreferrer">alienbomb</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/alienbomb/sounds/39069 |
+| swing | ソードを振る音 | Fast Sword Swing Sound | <a href="https://freesound.org/people/qubodup" target="_blank" rel="noopener noreferrer">qubodup</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/qubodup/sounds/60004 |
+| slash | ソードが当たった金属音 | Sword Clash | <a href="https://freesound.org/people/loudernoises" target="_blank" rel="noopener noreferrer">loudernoises</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/loudernoises/sounds/334169 |
+| hit | 命中・被弾 | Bullet Hit Metal | <a href="https://freesound.org/people/coolguy244e" target="_blank" rel="noopener noreferrer">coolguy244e</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/coolguy244e/sounds/267893 |
+| dash | ブースト噴射・ジャンプ・カタパルト | Boomy Whoosh 1_1 | <a href="https://freesound.org/people/Joao_Janz" target="_blank" rel="noopener noreferrer">Joao_Janz</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/Joao_Janz/sounds/485242 |
+| reload | リロード・武器の持ち替え | Reload 1 | <a href="https://freesound.org/people/pumodi" target="_blank" rel="noopener noreferrer">pumodi</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/pumodi/sounds/150220 |
+| beep | ロックオン・プラント占拠 | Beep Short | <a href="https://freesound.org/people/florianreichelt" target="_blank" rel="noopener noreferrer">florianreichelt</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/florianreichelt/sounds/459992 |
+| heal | リペア | Heal Up | <a href="https://freesound.org/people/Rickplayer" target="_blank" rel="noopener noreferrer">Rickplayer</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://freesound.org/people/Rickplayer/sounds/530488 |
+
+## 移動音への再利用（2026-10-21）
+
+歩行・着地には coolguy244e さんの「Bullet Hit Metal」を短く低くし、フィルターとフェードを加えて使っています。巡航・滞空・加速装置の持続音には Jarusca さんの「Rocket Launch」の0.12〜0.42秒をクロスフェードで繋ぎ、小さく繰り返して使っています。噴射の開始は従来どおり Joao_Janz さんの「Boomy Whoosh 1_1」です。いずれも上の表に記載した既存CC0素材の再利用で、新しい外部素材は追加していません。機体の動きを支える音を公開してくださった皆さま、ありがとうございます。
+
+## 戦闘中BGM（v0.10）
+
+ユーザーが指定した OpenGameArt.org の曲を1つ（2026-10-18 にページでライセンスを確認済み。CC0 なので表示義務はないが、礼儀として操作説明の謝辞に「Author: Centurion_of_war さんの nightmareheavy.ogg を使わせていただいています。ありがとうございます」と載せる。ユーザー指定）、試合中だけ繰り返し流す（メニューのスイッチでオン・オフ）。手を加えずに `sounds/music/bgm.ogg` に置き、`python3 tools/build_sounds.py --music` で `prototype/music.js` にしている。
+
+| 名前 | 使う場面 | タイトル | 作者 | ライセンス | 元のURL |
+|---|---|---|---|---|---|
+| bgm | 試合中のBGM（19.2秒の繰り返し） | Nightmare(prototype) のうち nightmareheavy.ogg | <a href="https://opengameart.org/users/centurionofwar" target="_blank" rel="noopener noreferrer">Centurion_of_war</a> | <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener noreferrer">CC0 1.0</a> | https://opengameart.org/content/nightmareprototype |
+</pre></section><section><h2>prototype/avatars/CREDITS.md</h2><pre># 仮パイロットの猫8匹
+
+`cats.png` は、オーナーの参考画像と「太い手描き線、素朴な表情の猫8匹」という指定をもとに、OpenAIの画像生成で本作用に制作した仮素材です（2026-10-20）。続けてオーナーが指定した、垂れ目・切れ長・ボスの貫禄・保護猫の桜耳などの個性を反映しました。オーナーの参考画像はリポジトリに含めていません。
+
+4列×2行の画像で、上段左からキジトラ（垂れ目）、サバトラ（切れ長）、黒猫（ボス）、白猫（桜耳）、下段左から茶トラ（笑い顔）、三毛（いたずら顔）、ハチワレ（照れ屋）、シャム（眠たげ）です。背景は透明。CSSで8つの顔を表示しています。ページを軽くするため、生成した1774×887の画像を絵柄はそのままに768×384へ縮小して使っています（一番大きく出す選択画面の96pxでも、高解像度の画面で粗くならない大きさ。元の大きさの画像はコミット 3696fc9 にあります）。
+
+ゲームは画像を `index.html` に埋め込み、file:// とオフラインでも追加の画像通信なしで表示します。画像を差し替える場合は同じ並びの横2:縦1のPNGを置き、`python3 tools/embed_pilot_avatars.py` を実行します。
+</pre></section><section><h2>mapdesign/hoshimichi/CREDITS.md</h2><pre># 出典・利用条件と謝辞
+
+## 都市モデル
+
+出典：東京都・千代田区・台東区、国土交通省 Project PLATEAUの公開3D都市モデル。
+
+- <a href="https://www.geospatial.jp/ckan/dataset/plateau-13101-chiyoda-ku-2025" target="_blank" rel="noopener noreferrer">3D都市モデル（千代田区・2025年度）</a>
+- <a href="https://www.geospatial.jp/ckan/dataset/plateau-13106-taito-ku-2025" target="_blank" rel="noopener noreferrer">3D都市モデル（台東区・2025年度）</a>
+- <a href="https://www.mlit.go.jp/plateau/open-data/" target="_blank" rel="noopener noreferrer">PLATEAU公開データ案内</a> / <a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">サイトポリシー</a>
+
+公式公開ビューアの公開カタログとアセットCDNを利用し、建物LOD2（テクスチャなし）、道路LOD3、橋梁LOD2を取得した。b3dm・GLBのDraco圧縮を復号し、軸・座標・高さの基準を変換して600m四方へ切り出した。原典の利用条件は公共データ利用規約1.0、CC BY 4.0互換。個別URL・ハッシュは<a href="https://github.com/chevi0t/core-breaker/blob/5649404/mapdesign/akihabara_city/source-manifest.json" target="_blank" rel="noopener noreferrer">試作時の取得記録</a>。
+
+## 標高とジオイド高
+
+出典：国土地理院「地理院タイル（標高タイル（基盤地図情報数値標高モデル））」と、標高取得・ジオイド高計算サービス。
+
+- <a href="https://maps.gsi.go.jp/development/demtile.html" target="_blank" rel="noopener noreferrer">標高タイル仕様</a> / <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">タイル一覧</a>
+- <a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>：公共データ利用規約1.0
+- <a href="https://vldb.gsi.go.jp/sokuchi/surveycalc/main.html" target="_blank" rel="noopener noreferrer">測量計算サイト</a>
+
+5mメッシュのPNG標高タイルを4m格子へ補間し、欠測を含む面は描画しない。中心標高5.7m・中心ジオイド高36.8651mを参照した。道路が埋まる箇所は地面を下げて加工している。加工後の地形表示は制作側が作成したものであり、国土地理院の原データそのものではない。
+
+都市モデルと地理情報を整備・公開してくださった東京都、千代田区、台東区、国土交通省、国土地理院、関係する制作者・事業者・開発者の皆さまに心より感謝します。地区をまたぐ街並みを、共通の座標で確認できることに助けられています。
+
+このフォルダの加工済み地理データと描画画像は、原出典・加工した旨を添えて <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a> で利用できる。
+
+## ソフトウェア
+
+three.js r128はMIT License。本体と同じThree.jsを使い、[ライセンス全文](../../vendor/three-r128/LICENSE)をリポジトリで保持する。変換時の `draco3d@1.5.7` はGoogle Draco（<a href="https://github.com/google/draco/blob/1.5.7/LICENSE" target="_blank" rel="noopener noreferrer">Apache-2.0</a>）、数値計算・画像読み出しにNumPy・SciPy・Pillowを利用し、これらの変換ライブラリ自体はゲームへ同梱しない。
+
+オープンソースの開発者の皆さまにも感謝します。比較用の4m機体は本作独自の簡略形状。地理データのCC BY表記はソフトウェアの各ライセンスを変更しない。
+
+## 対戦用への加工と統合
+
+初版から高架と駅屋根を延長し、道路と川を避けて高架下に店舗を追加した。路地を保護しながら建物の区画単位で輪郭と高さを単純化し、基地の更地化、地面の平坦化、川底・水面・護岸・復帰坂を追加した。窓・ガラス・建物の色は模式表現で、写真や看板・公式ロゴの画像を使用していない。ランドマークの位置照合には国土地理院の住所検索とOpenStreetMap contributorsの施設点も参照した。色はユーザー指定、建物の形状はPLATEAU由来。
+
+4地点のプラント、各基地のカタパルト・砲台・レーダー・ポッド、補給場所の窪地・囲い・坂と再出撃地点は本作のゲーム用施設で、現実の施設・避難設備・地下構造を示さない。橙側だけにあった高層棟用ジャンプパッドはユーザー指定で撤去した。承認済みの<a href="https://github.com/chevi0t/core-breaker/tree/5649404/mapdesign/akihabara_city/battle" target="_blank" rel="noopener noreferrer">対戦試作</a>から形状と配置を引き継ぎ、通常のマップ選択へ接続している。
+
+取得・変換・再構築を支えてくださった自治体・公開データとライブラリの制作者・維持管理者、OpenStreetMap contributors、関係者の皆さまに改めて心より感謝します。
+
+追加の移動設備は共有の垂直パッド10基とD→A・C→Bの射出台。ユーザー指定の4本の地上通路は幅12mで下層だけを開口し、駅屋根・高架と上階を保持した。舗装・地図表示・Bot経路も接続する。これらの通路と射出軌道もゲーム用の加工であり、現実の通行構造を示さない。
+
+基地の8台もゲーム向けに始点・着地を調整し、街区を越える飛距離と初速を設定した。北西の3番台は発射直後の建物を避けるため移設している。
+</pre></section><section><h2>mapdesign/kanto/CREDITS.md</h2><pre># 出典・加工内容と謝辞
+
+## 都市モデル
+
+出典：大阪市・国土交通省 Project PLATEAU「3D都市モデル（大阪市・2025年度）」北区、建物LOD2・テクスチャなし。
+
+- <a href="https://www.geospatial.jp/ckan/dataset/plateau-27100-osaka-shi-2025" target="_blank" rel="noopener noreferrer">大阪市2025年度3D都市モデル</a>
+- <a href="https://www.mlit.go.jp/plateau/open-data/" target="_blank" rel="noopener noreferrer">PLATEAU公開データ</a> / <a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">サイトポリシー</a>
+- 個別の公開3D Tiles・バイナリURL・SHA-256：[source-manifest.json](source-manifest.json)
+
+公式公開カタログで参照される公開アセットを取得し、Draco圧縮を復号、座標・軸・高さを変換して1km四方を切り出した。建物の輪郭と面積のある屋根からゲーム用の体積を作り、薄い張り出し・屋上小物・小屋を省略した。道路・駅の通路上は下部を空けた。
+
+## 道路と標高
+
+出典：国土地理院「道路中心線（試験提供）」「標高タイル」、標高取得・ジオイド高計算サービス。
+
+- <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル一覧</a>
+- 道路の元データ：`https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/{x}/{y}.geojson`
+- <a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>
+- <a href="https://maps.gsi.go.jp/development/demtile.html" target="_blank" rel="noopener noreferrer">標高タイル仕様</a> / <a href="https://vldb.gsi.go.jp/sokuchi/surveycalc/main.html" target="_blank" rel="noopener noreferrer">測量計算サイト</a>
+
+道路中心線9タイルの座標・幅属性から舗装を作成した。地下・トンネル・自動車専用の線は地上道路から除外し、幅はゲーム用に補正した。地下街は作らず、中央駅を横断する通路と南北の広場を制作側で補った。収録年代・構造・幅の違いを含み、現実の地下施設・避難経路・道路構造の正確な再現を示さない。
+
+元の高さ合わせには中心標高0.4m・ジオイド高37.5980mと5m標高タイルを使用した。ゲーム用の地面は起伏を省き0mへ平坦化した。加工した表示は国土地理院の原データそのものではない。写真・店舗看板・公式ロゴの素材は使用していない。
+
+大阪市、国土交通省、国土地理院、都市モデルと道路・標高データの制作・整備・公開・維持管理に携わる皆さまに、心より感謝します。建物の形と道路の位置を公開データから確認できたことで、街区の特徴を残したゲーム用の再構築を試すことができました。
+
+このフォルダの加工済み地理データと描画画像は、原出典および加工した旨を示して <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a> で利用できる。
+
+## ソフトウェア
+
+Three.js r128はMIT Licenseで、[ライセンス全文](../../vendor/three-r128/LICENSE)をHTMLにも保持する。変換時のGoogle Draco / draco3d@1.5.7はApache-2.0。NumPy・SciPy・Pillow・Shapely・Mapbox Earcut・fast-simplificationも変換時に使用し、ライブラリ自体を地形データに同梱しない。比較用の4m機体は本作独自の形状。
+
+オープンソースの制作者・維持管理者の皆さまにも心より感謝します。地理データのCC BY表記は、ソフトウェアのライセンスを変更するものではありません。
+
+## 対戦用の加工と外観の参照
+
+承認済みの1km四方の再構築データ（commit `901911e`）を入力とし、指定された2基地と5プラントの空間を確保した。補給所の窪地・坂・壁、カタパルト・砲台・レーダー、街路経路と安全な再出撃候補は本作側で追加した。変換器は `tools/build_kanto_map.py`、加工済み入力とハッシュは `source/layout.json` と `generation.json` に保存する。
+
+建物の色分けは、[外観の採用記録](../../research/maps/umeda-landmarks.json)にある公開ページの位置情報と外観写真を参照した。中央駅、グランフロント、ヨドバシ、阪急・阪神、HEP、ヒルトン、ハービス、富国生命ビルの色・材質の傾向を確認し、ゲーム用の色値を独自に指定した。写真・店舗看板・ロゴは素材としてゲームやこのリポジトリに取り込んでいない。一般街区の8色と窓・ガラスの描画も本作の手続き的な表現で、画像テクスチャの追加はない。
+
+外観・位置の情報を公開してくださった執筆者、写真の撮影者、Wikimediaの維持に携わる皆さまにも、心より感謝します。現実の街を見分ける手掛かりを、少量の色データで表現するための参考になりました。
+
+中央駅の白い大屋根は、参照写真の輪郭と傾斜を手掛かりに本作で追加した単純な板で、PLATEAU原形状そのものではない。写真・モデルの追加素材は使わず、厚さ付き12三角形の面を制作した。
+
+2026-10-23追記：ユーザー指定で公園付近を芝生色にし、共有の垂直ジャンプパッド6基とB/D→Cのカタパルトを追加しました。芝生の範囲と対戦施設はゲーム向けの加工です。
+</pre></section><section><h2>mapdesign/kanto_half/CREDITS.md</h2><pre># 出典・加工内容と謝辞
+
+## 都市モデル
+
+出典：大阪市・国土交通省 Project PLATEAU「3D都市モデル（大阪市・2025年度）」北区、建物LOD2・テクスチャなし。
+
+- <a href="https://www.geospatial.jp/ckan/dataset/plateau-27100-osaka-shi-2025" target="_blank" rel="noopener noreferrer">大阪市2025年度3D都市モデル</a>
+- <a href="https://www.mlit.go.jp/plateau/open-data/" target="_blank" rel="noopener noreferrer">PLATEAU公開データ</a> / <a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">サイトポリシー</a>
+- 個別の公開3D Tiles・バイナリURL・SHA-256：[source-manifest.json](source-manifest.json)
+
+公式公開カタログで参照される公開アセットを取得し、Draco圧縮を復号、座標・軸・高さを変換して1km四方を切り出した。建物の輪郭と面積のある屋根からゲーム用の体積を作り、薄い張り出し・屋上小物・小屋を省略した。道路・駅の通路上は下部を空けた。
+
+## 道路と標高
+
+出典：国土地理院「道路中心線（試験提供）」「標高タイル」、標高取得・ジオイド高計算サービス。
+
+- <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地理院タイル一覧</a>
+- 道路の元データ：`https://cyberjapandata.gsi.go.jp/xyz/experimental_rdcl/16/{x}/{y}.geojson`
+- <a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>
+- <a href="https://maps.gsi.go.jp/development/demtile.html" target="_blank" rel="noopener noreferrer">標高タイル仕様</a> / <a href="https://vldb.gsi.go.jp/sokuchi/surveycalc/main.html" target="_blank" rel="noopener noreferrer">測量計算サイト</a>
+
+道路中心線9タイルの座標・幅属性から舗装を作成した。地下・トンネル・自動車専用の線は地上道路から除外し、幅はゲーム用に補正した。地下街は作らず、中央駅を横断する通路と南北の広場を制作側で補った。収録年代・構造・幅の違いを含み、現実の地下施設・避難経路・道路構造の正確な再現を示さない。
+
+元の高さ合わせには中心標高0.4m・ジオイド高37.5980mと5m標高タイルを使用した。ゲーム用の地面は起伏を省き0mへ平坦化した。加工した表示は国土地理院の原データそのものではない。写真・店舗看板・公式ロゴの素材は使用していない。
+
+大阪市、国土交通省、国土地理院、都市モデルと道路・標高データの制作・整備・公開・維持管理に携わる皆さまに、心より感謝します。建物の形と道路の位置を公開データから確認できたことで、街区の特徴を残したゲーム用の再構築を試すことができました。
+
+このフォルダの加工済み地理データと描画画像は、原出典および加工した旨を示して <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a> で利用できる。
+
+## ソフトウェア
+
+Three.js r128はMIT Licenseで、[ライセンス全文](../../vendor/three-r128/LICENSE)をHTMLにも保持する。変換時のGoogle Draco / draco3d@1.5.7はApache-2.0。NumPy・SciPy・Pillow・Shapely・Mapbox Earcut・fast-simplificationも変換時に使用し、ライブラリ自体を地形データに同梱しない。比較用の4m機体は本作独自の形状。
+
+オープンソースの制作者・維持管理者の皆さまにも心より感謝します。地理データのCC BY表記は、ソフトウェアのライセンスを変更するものではありません。
+
+## 対戦用の加工と外観の参照
+
+承認済みの1km四方の再構築データ（commit `901911e`）を入力とし、指定された2基地と5プラントの空間を確保した。補給所の窪地・坂・壁、カタパルト・砲台・レーダー、街路経路と安全な再出撃候補は本作側で追加した。変換器は `tools/build_kanto_map.py`、加工済み入力とハッシュは `source/layout.json` と `generation.json` に保存する。
+
+建物の色分けは、[外観の採用記録](../../research/maps/umeda-landmarks.json)にある公開ページの位置情報と外観写真を参照した。中央駅、グランフロント、ヨドバシ、阪急・阪神、HEP、ヒルトン、ハービス、富国生命ビルの色・材質の傾向を確認し、ゲーム用の色値を独自に指定した。写真・店舗看板・ロゴは素材としてゲームやこのリポジトリに取り込んでいない。一般街区の8色と窓・ガラスの描画も本作の手続き的な表現で、画像テクスチャの追加はない。
+
+外観・位置の情報を公開してくださった執筆者、写真の撮影者、Wikimediaの維持に携わる皆さまにも、心より感謝します。現実の街を見分ける手掛かりを、少量の色データで表現するための参考になりました。
+
+中央駅の白い大屋根は、参照写真の輪郭と傾斜を手掛かりに本作で追加した単純な板で、PLATEAU原形状そのものではない。写真・モデルの追加素材は使わず、厚さ付き12三角形の面を制作した。
+
+2026-10-23追記：ユーザー指定で公園付近を芝生色にし、共有の垂直ジャンプパッド6基とB/D→Cのカタパルトを追加しました。芝生の範囲と対戦施設はゲーム向けの加工です。
+
+
+1/2試作版：街の全軸を半分にし、立体通路の天井・施設空間・射出設備・経路を現行機体向けに補正しました。現実の構造を厳密に表すものではありません。
+</pre></section><section><h2>Three.js r128 — MIT License</h2><pre>The MIT License
+
+Copyright © 2010-2021 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre></section></html>
