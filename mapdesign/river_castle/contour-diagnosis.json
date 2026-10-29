@@ -1,0 +1,49 @@
+{
+  "baseline": "6b26b62",
+  "grid": 10,
+  "waterBankWidth": 13.5,
+  "centralHillFeather": 18,
+  "cells": {
+    "total": 5708,
+    "water": 588,
+    "cliff": 1602,
+    "union": 2084
+  },
+  "hypothetical5mSubdivision": {
+    "additionalBaseTriangles": 12504,
+    "wholeMapAdditionalBaseTriangles": 34248,
+    "excludes": "transition stitching and road clipping; not a measured runtime cost"
+  },
+  "heightApproximation": {
+    "water": {
+      "count": 588,
+      "p50": 0.22999999999999998,
+      "p95": 4.690000000000001,
+      "max": {
+        "at": [
+          -125,
+          395
+        ],
+        "zone": "water",
+        "mesh": 28.77,
+        "formula": 16.62,
+        "error": 12.149999999999999
+      }
+    },
+    "hill": {
+      "count": 1496,
+      "p50": 0.22999999999999687,
+      "p95": 5.880000000000003,
+      "max": {
+        "at": [
+          -25,
+          -175
+        ],
+        "zone": "hill",
+        "mesh": 36.18,
+        "formula": 21.66,
+        "error": 14.52
+      }
+    }
+  }
+}
