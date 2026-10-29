@@ -45,7 +45,15 @@ def main():
     # 配信ツールのHTML整形だけを再利用する。gh-pages作成・操作は行わない。
     game = out / 'game'
     (game / 'credits').mkdir(parents=True, exist_ok=True)
-    (game / 'index.html').write_text(game_page())
+    # チェックUIと起動経路は出力HTMLのみに注入。prototype/公開ビルダーは変更しない。
+    html = game_page()
+    hook = 'function loop(now) {'
+    end = 'requestAnimationFrame(loop);\n})();'
+    if html.count(hook) != 1 or html.count(end) != 1:
+        raise RuntimeError('試遊チェックモードの挿入位置が変わりました')
+    html = html.replace(hook, hook + '\n  if (previewCheck.frame(now)) { requestAnimationFrame(loop); return; }')
+    html = html.replace(end, (ROOT / 'tools/terrain_preview_check_mode.js').read_text().replace('__PREVIEW_SOURCE_VERSION__', subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()) + '\n' + end)
+    (game / 'index.html').write_text(html)
     (game / 'credits/index.html').write_text(credits_page())
     for dst, src in {'sounds.js':'prototype/sounds.js', 'music.js':'prototype/music.js', 'three.min.js':'vendor/three-r128/three.min.js', 'credits/LICENSE-THREE.txt':'vendor/three-r128/LICENSE'}.items():
         shutil.copyfile(ROOT / src, game / dst)
@@ -54,7 +62,7 @@ def main():
     shutil.copyfile(recipe, out / 'recipe.json')
     report = {'recipe':data['id'], 'seed':seed, 'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(), 'localPrototype':True, 'structuralValidation':'passed', 'sampledEscapeValidation':'not run for this revision' if args.skip_escape else 'passed', 'files':{p.relative_to(game).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(game.rglob('*')) if p.is_file()}}
     (out / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n')
-    (out / 'README.txt').write_text(f'ローカル試遊版・未公開\nこのフォルダで python3 -m http.server 8000 を実行し、http://localhost:8000/game/ を開く。\nPCのマップ選択で「{data["name"]}」を選択。既存のモバイル都市除外条件は維持しており、この試作はPC向け。\n構造検査合格。脱出検査の実施有無はvalidation.jsonを参照。連続空間での完全保証、楽しさ、公平性、実スマホ性能は未検証。\n')
+    (out / 'README.txt').write_text(f'ローカル試遊版・未公開\n左上の「試遊専用・マップチェック」から開始。歩行と自由視点、座標コピー、プラント上空移動が使えます。開始/終了時は試合をリセット。自由視点は右ドラッグ、WASD、Q/E上下、Shift高速。歩行は通常の物理・資源消費です。PCキーボード/マウス向け。\nこのフォルダで python3 -m http.server 8000 を実行し、http://localhost:8000/game/ を開く。\nPCのマップ選択で「{data["name"]}」を選択。既存のモバイル都市除外条件は維持しており、この試作はPC向け。\n構造検査合格。脱出検査の実施有無はvalidation.jsonを参照。連続空間での完全保証、楽しさ、公平性、実スマホ性能は未検証。\n')
     print(f'ローカル試遊版・検査結果: {out}')
 
 
