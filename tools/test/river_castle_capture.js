@@ -1,5 +1,9 @@
 const fs=require('fs'),path=require('path'),{chromium}=require('playwright');
 (async()=>{const out=path.resolve(process.argv[3]);fs.mkdirSync(out,{recursive:true});const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});try{const p=await b.newPage({viewport:{width:1440,height:900}});await p.route('https://**/*',r=>r.fulfill({body:''}));await p.addInitScript(()=>{requestAnimationFrame=()=>0;AudioContext=undefined});await p.goto('file://'+path.resolve(process.argv[2],'dbg.html'));for(const [name,label,pos,target,fov] of [
+ ['road-notch','指定の欠け：基地丘陵と城壁の間',[-55,110,-125],[-112,30,-128],60],
+ ['road-c-tower','C付近：道路から山城側へ建物を移動',[15,24,15],[-12,40,-35],60],
+ ['road-e-upper','プラントE右側：高台から下る坂の上部',[105,100,-270],[42,58,-230],60],
+ ['road-castle','山城の登坂路：中央岩塊を登る道',[145,95,-85],[55,48,-85],60],
  ['road-drive','舗装路：東の坂を下る視点',[94,44,-199],[116,16,-164],60],
  ['road-west','舗装路：西側の山腹カーブ',[135,95,230],[90,35,222],60],
  ['road-east','舗装路：東側の山腹カーブ',[155,85,-220],[103,30,-195],60],

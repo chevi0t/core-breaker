@@ -6,7 +6,7 @@ function nearSegment(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((x-a[0])*
 function boundaryDistance(poly,x,z){return Math.min(...poly.map((a,i)=>nearSegment(x,z,[...a,0],[...poly[(i+1)%poly.length],0]).d));}
 function validate(r){
  const num=n=>typeof n==='number'&&Number.isFinite(n),point=(p,n)=>Array.isArray(p)&&p.length===n&&p.every(num);
- assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets','props','team','order','heightZones','water','description','respawnMode','walls','smoothTerrain','rockSlope','roofColor'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
+ assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets','props','team','order','heightZones','water','description','respawnMode','walls','smoothTerrain','rockSlope','roofColor','backdropRocks'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
  assert([4,5,10].includes(r.grid)&&num(r.half)&&r.half>=120&&r.half<=900&&r.half%r.grid===0&&2*r.half/r.grid<=180,'grid/half budget');assert(r.navStep===r.grid*2,'navStep must be twice grid');assert(Number.isInteger(r.seed),'seed');assert(/^#[0-9a-f]{6}$/i.test(r.color),'color');assert(num(r.baseHeight),'baseHeight');
  assert(Array.isArray(r.boundary)&&r.boundary.length>=4&&r.boundary.length<=40,'boundary');
  for(const [i,a] of r.boundary.entries()){const b=r.boundary[(i+1)%r.boundary.length];assert(point(a,2)&&a.every(v=>Math.abs(v)<r.half&&v%r.grid===0),'grid-aligned boundary');assert(a[0]!==b[0]||a[1]!==b[1],'nonzero boundary edge');
@@ -16,6 +16,7 @@ function validate(r){
  assert(r.heightZones===undefined||(Array.isArray(r.heightZones)&&r.heightZones.length<=20),'heightZones budget');for(const q of r.heightZones||[])assert(polygon(q.ring)&&num(q.height)&&q.height>=-20&&q.height<=100&&num(q.feather)&&q.feather>=2&&q.feather<=100,'height zone polygon/height/feather');for(const q of r.heightZones||[])assert(q.edge===undefined||(q.edge==='rock'&&r.smoothTerrain&&r.water?.wall),'height edge rock requires constrained terrain');for(const q of r.heightZones||[])assert(q.surface===undefined||q.surface==='plazas','height surface plazas');
  if(r.water)assert(polygon(r.water.ring)&&num(r.water.bed)&&num(r.water.level)&&r.water.bed<r.water.level&&r.water.bank>=2&&r.water.bank<=30,'water ring/bed/level/bank');
  assert(r.walls===undefined||(Array.isArray(r.walls)&&r.walls.length<=24),'walls budget');for(const w of r.walls||[])assert(point(w.a,2)&&point(w.b,2)&&Math.hypot(w.a[0]-w.b[0],w.a[1]-w.b[1])>=2&&num(w.bottom)&&num(w.top)&&w.top>w.bottom&&w.top<=100&&w.width>=1&&w.width<=6,'wall a/b/bottom/top/width');assert(r.water?.wall===undefined||(r.smoothTerrain&&typeof r.water.wall==='boolean'),'water wall needs smoothTerrain');assert(r.rockSlope===undefined||(r.smoothTerrain&&num(r.rockSlope)&&r.rockSlope>=20&&r.rockSlope<=80),'rockSlope 20..80');for(const q of r.routes)assert(q.cut===undefined||(q.cut===true&&q.kind==='deck'&&r.water?.wall&&q.points.length===2),'deck cut');if(r.water?.color)assert(/^#[0-9a-f]{6}$/i.test(r.water.color),'water color');
+ assert((r.backdropRocks||[]).length<=8,'backdrop rock budget');for(const p of r.backdropRocks||[])assert(point(p.at,2)&&!inside(r.boundary,...p.at)&&point(p.size,3)&&p.size.every(v=>v>=10&&v<=120)&&num(p.bottom)&&p.bottom>=-20&&p.bottom+p.size[2]<=100&&p.at.every(v=>Math.abs(v)<r.half-120),'backdrop rock bounds');
  assert(r.roofColor===undefined||/^#[0-9a-f]{6}$/i.test(r.roofColor),'roof color');assert(r.smoothTerrain===undefined||typeof r.smoothTerrain==='boolean','smoothTerrain');assert(r.respawnMode===undefined||r.respawnMode==='towardBase','respawnMode');assert(r.description===undefined||typeof r.description==='string','description');
  for(const w of r.rolling||[])assert(point(w,4)&&Math.abs(w[0])<=8&&w[1]>=60&&w[1]<=400,'rolling [amplitude,wavelength,angleRadians,phaseRadians]');assert((r.rolling||[]).length<=4,'rolling budget');
  assert(Array.isArray(r.hills)&&r.hills.length<=40,'hills budget');for(const h of r.hills)assert(point(h,4)&&h[2]>=0&&h[2]<=100&&h[3]>=15,'hill [x,z,height,radius]');
@@ -60,6 +61,8 @@ function compile(input,seed=input.seed){
    else if(!road||strength>road.strength)road={strength,y:target};
   }
   if(road)y=mix(y,road.y,road.strength);
+  // 固定高さの屋根道を道路整形で埋めない。建物周囲だけ掘り下げ、屋根へ接続する足場を保つ。
+  for(const p of r.props||[]){if(p.roof!=='flat'||p.roofTop===undefined)continue;const dx=Math.max(0,Math.abs(x-p.at[0])-p.size[0]/2),dz=Math.max(0,Math.abs(z-p.at[1])-p.size[1]/2),d=Math.hypot(dx,dz),a=clamp((d-r.grid*.5)/r.grid,0,1);y=Math.min(y,mix(p.roofTop-.5,y,a*a*(3-2*a)));}
   for(const b of Object.values(r.bases)){const t=clamp((Math.hypot(x-b[0],z-b[1])-38)/18,0,1);y=mix(b[2],y,t*t*(3-2*t));}
   // 橋の端だけ狭い接続面を作る。周囲全体を平坦な段丘にはしない。
   if(r.rolling)for(const q of r.routes.filter(q=>q.kind==='deck'))for(const p of [q.points[0],q.points[q.points.length-1]]){const a=clamp((Math.hypot(x-p[0],z-p[1])-q.width*.5-3)/18,0,1);y=mix(p[2],y,a*a*(3-2*a));}
@@ -186,6 +189,11 @@ function compile(input,seed=input.seed){
    const chimney=Array.from({length:10},(_,i)=>[x+w*.34+Math.cos(i*Math.PI/5)*2,z+d*.28+Math.sin(i*Math.PI/5)*1.4]);volume('station-support',base+h,base+h+13,chimney);
    volume('station-roof',base+h+12.5,base+h+13.3,chimney.map(q=>[x+w*.34+(q[0]-x-w*.34)*1.25,z+d*.28+(q[1]-z-d*.28)*1.25]));
   }
+ }
+ // 境界外の切れ目を隠す岩塊。既存の橋/崖と同じ物理面で塞ぎ、ナビの境界は広げない。
+ for(const p of r.backdropRocks||[]){const [x,z]=p.at,[w,d,h]=p.size,lo=p.bottom,lower=[],upper=[];
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;lower.push([x+Math.cos(a)*w*.5,lo,z+Math.sin(a)*d*.5]);upper.push([x+Math.cos(a+.08)*w*.30,lo+h*(.72+(i%3)*.09),z+Math.sin(a+.08)*d*.30]);}
+  for(let i=0;i<8;i++){const j=(i+1)%8;quad('brid',lower[i],upper[i],upper[j],lower[j]);tri('brid',upper[j],upper[i],[x,lo+h,z]);}
  }
  for(const w of r.walls||[]){const dx=w.b[0]-w.a[0],dz=w.b[1]-w.a[1],len=Math.hypot(dx,dz),nx=-dz/len*w.width/2,nz=dx/len*w.width/2;volume('barrier',w.bottom,w.top,[[w.a[0]+nx,w.a[1]+nz],[w.b[0]+nx,w.b[1]+nz],[w.b[0]-nx,w.b[1]-nz],[w.a[0]-nx,w.a[1]-nz]]);}
  function levels(x,z){const s=sample(x,z);if(!s)return [];const ys=[s.floor];if(s.roof!==null)ys.push(s.roof);for(const d of decks){const n=nearSegment(x,z,d.a,d.b);if(n.d<d.width/2-.1)ys.push(n.y);}return [...new Set(ys.map(y=>Math.round(y*50)/50))].sort((a,b)=>a-b);}

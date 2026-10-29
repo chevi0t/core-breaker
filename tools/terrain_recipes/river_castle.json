@@ -797,8 +797,8 @@
     {
       "kind": "house",
       "at": [
-        -12,
-        -28
+        25,
+        -19
       ],
       "size": [
         10,
@@ -1768,7 +1768,7 @@
       ]
     },
     {
-      "id": "east_approach",
+      "id": "east_approach_upper",
       "kind": "ground",
       "width": 22,
       "blend": 18,
@@ -1788,6 +1788,21 @@
           -352.5,
           66.5
         ],
+        [
+          -105,
+          -285,
+          42
+        ]
+      ],
+      "curve": 14,
+      "gradeShoulder": 10
+    },
+    {
+      "id": "east_approach",
+      "kind": "ground",
+      "width": 22,
+      "blend": 18,
+      "points": [
         [
           -105,
           -285,
@@ -1907,7 +1922,7 @@
         ]
       ],
       "curve": 14,
-      "gradeShoulder": 7.5
+      "gradeShoulder": 10
     },
     {
       "id": "castle_ascent",
@@ -1973,7 +1988,8 @@
           -136.5,
           66.5
         ]
-      ]
+      ],
+      "gradeShoulder": 7.5
     },
     {
       "id": "east_link",
@@ -2787,5 +2803,31 @@
     }
   ],
   "rockSlope": 50,
-  "roofColor": "#56594c"
+  "roofColor": "#56594c",
+  "backdropRocks": [
+    {
+      "at": [
+        -195,
+        -202
+      ],
+      "size": [
+        100,
+        85,
+        68
+      ],
+      "bottom": -12
+    },
+    {
+      "at": [
+        -147,
+        -178
+      ],
+      "size": [
+        65,
+        75,
+        55
+      ],
+      "bottom": -12
+    }
+  ]
 }
