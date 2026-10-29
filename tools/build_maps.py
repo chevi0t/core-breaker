@@ -112,7 +112,7 @@ function check(d) {
           inMap(...a,'boundary');if(a[0]===b[0]&&a[1]===b[1])E('boundaryの辺は長さを持つ');
         }
       }
-      if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
+      if(c.ringCoordinateStep!==undefined&&![.01,.02,.04].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cm/2cm/4cm');
       if(!num(c.groundMaximum)||!num(c.river?.bed)||!num(c.river?.water)||c.river.bed>=c.river.water)E('都市の地面上限・川底・水面の高さが不正');
       const ring=(r,what)=>{
         if(typeof r!=='string'){E(what+' はbase64の座標列');return;}
@@ -168,7 +168,7 @@ function check(d) {
       }
       if(!c.surfaces||typeof c.surfaces!=='object')E('都市のsurfacesが必要');
       else for(const [name,s] of Object.entries(c.surfaces)){
-        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
+        if(!s||typeof s.points!=='string'||typeof s.indices!=='string'||![.01,.02,.04].includes(s.step)){E('都市の面 '+name+' の座標形式が不正');continue;}
         const p=Buffer.from(s.points,'base64'),ids=Buffer.from(s.indices,'base64');
         if(p.length%6||ids.length%6){E('都市の面 '+name+' の頂点・三角形が不正');continue;}
         for(let i=0;i<ids.length;i+=2)if(ids.readUInt16LE(i)>=p.length/6){E('都市の面 '+name+' が存在しない頂点を参照');break;}

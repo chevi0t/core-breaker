@@ -121,3 +121,7 @@ blocksの任意分類 `blockKind` はbuilding（既定）／wall。wallは窓を
 追加の任意項目：`heightZones:[{ring:[[x,z],...],height,feather}]`（最大20領域。外側をfeather幅で平滑接続）、`water:{ring,bed,level,bank,color}`（川床・水面・岸の幅、任意色）、`walls:[{a:[x,z],b:[x,z],bottom,top,width}]`（最大24の河岸などの壁）、`respawnMode:"towardBase"`（実ベース方向の空いた48m地点）、`description`。deck経路の `arch:{spans,pier,bottom}` は上面を保ち、12分割のアーチ下面と側面を同じ橋の衝突面へ追加する。navも下面のクリアランスを見る。
 
 斜めの外周辺を許容。half最大600、直径/grid最大150、routes最大32、props最大96。地形グリッドに道路色を割り当て、重複面を作らない。旧レシピは省略時の既定動作を継続する。高さ領域・河川はこの地形での実用例であり、任意の複雑な水系や多重交差の自動解決は未対応。10mセルの道・岸には角張りが残る。
+
+## 大きな平面範囲
+
+half上限900、直径/grid上限180へ拡張。half>650のレシピは16bit座標を4cm単位で保存し、最大座標が655mを超えても折り返さないようにする。従来の小レシピは2cmのまま。実行時は既存のstep読出しを使用し、新しいマップ名分岐を入れない。build_mapsの面/輪郭検証も4cmを許可する。river_castle_scale_check.jsで±700m超の座標、インデックス、旧レシピの精度維持を確認。
