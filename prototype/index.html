@@ -3426,7 +3426,7 @@ function blast(sh, at, ref) {
     let hit=false;
     for(const e of units) {
       if(!e.alive || e.team===sh.team || e.invulT>0 || bodyDist(e,at)>S.blast) continue;
-      if(S.stunSeconds && (e.ctrlLockT>0 || e.repairing)) continue; // jolt と同じく射出直後とポッド使用中は崩さない。
+      if(S.stunSeconds && (launchStaggerProtected(e) || e.repairing)) continue; // jolt と同じく射出直後とポッド使用中は崩さない。
       if(S.jamSeconds) {e.jamT=Math.max(e.jamT||0,S.jamSeconds);e.healTarget=null;if(e.isPlayer)releaseLock();e.locked=false;}
       if(S.stunSeconds) {
         e.electricT=Math.max(e.electricT||0,S.stunSeconds);e.vel.x=e.vel.z=0;e.dashT=e.lungeT=0;e.longDash=false;e.swing=e.meleeRecovery=null;e.healTarget=null;
@@ -3501,8 +3501,7 @@ function blast(sh, at, ref) {
   if (hitAny && sh.owner.isPlayer) hitMark(false);
 }
 
-// カタパルト：台に乗ると輪の向き（着地点）へ低角射出。頂点までは移動操作を固定し、
-// 降下中は射出方向の慣性を残して横移動・空中ダッシュ・滞空で調整できる。
+// カタパルト：無入力の予測水平飛距離の60%までは移動固定。以後はブーストで延伸・逆噴射できる。
 // どの台も陣営に関係なく誰でも（敵も）使える（v0.10.5、ユーザー指定「チームに所属せず常にだれでも使える」）
 const CAT_R = 2.6;
 // 低い射出角で指定着地点へ。高度差がある場合のみ30〜45度の範囲で上げる。
@@ -3616,13 +3615,40 @@ const im = new T.InstancedMesh(new T.OctahedronGeometry(0.4), catDotMat, dots.le
 dots.forEach((d, i) => im.setMatrixAt(i, m.compose(d.p, q, new T.Vector3(d.s, d.s, d.s))));
 mapRoot.add(im);
 }
+// 発射時だけ、現在の地形上で無入力の軌道を予測する。実機体・弾・資源・音には触れない。
+function catapultReferenceRange(u, cp) {
+  const p={...u,pos:u.pos.clone(),vel:u.vel.clone()},start=p.pos.clone(),dt=1/120;
+  const floating=hoverLegs(p);
+  for(let i=0;i<3600;i++){
+    p.vel.y-=GRAV*dt;
+    if(floating&&hoverActive(p)&&p.vel.y<0)p.vel.y=Math.max(p.vel.y,-HOVER_FALL*(p.overheat?2:1));
+    if(!stepTo(p,p.pos.x+p.vel.x*dt,p.pos.z))p.vel.x=0;
+    if(!stepTo(p,p.pos.x,p.pos.z+p.vel.z*dt))p.vel.z=0;
+    if(p.vel.y>0){const c=ceilingAt(p.pos.x,p.pos.z,p.pos.y);if(p.pos.y+p.vel.y*dt+UNIT_H>c){p.pos.y=c-UNIT_H;p.vel.y=0;}}
+    const y=p.pos.y;p.pos.y+=p.vel.y*dt;
+    const floor=floating?hoverGroundAt(p,p.pos.x,p.pos.z,y):groundAt(p.pos.x,p.pos.z,y);
+    if(p.pos.y<=floor)return Math.max(1,Math.hypot(p.pos.x-start.x,p.pos.z-start.z));
+    p.pos.x=Math.max(-MAP_X+R,Math.min(MAP_X-R,p.pos.x));p.pos.z=Math.max(-MAP_Z+R,Math.min(MAP_Z-R,p.pos.z));
+    p.boost=Math.min(p.maxBoost,p.boost+BOOST_REGEN*dt);if(p.boost>=p.maxBoost)p.overheat=false;
+  }
+  return Math.max(1,Math.hypot(cp.land.x-start.x,cp.land.z-start.z));
+}
+// 移動固定の延長で、旧来の上昇中のよろけ保護まで延長しない。
+function launchStaggerProtected(u){return u.catLaunch?u.catLaunch.staggerT>0:u.ctrlLockT>0;}
+function catapultControl(u){
+  const c=u.catLaunch;if(!c||!u.catMomentum)return;
+  const progress=(u.pos.x-c.x)*u.catMomentum.x+(u.pos.z-c.z)*u.catMomentum.z;
+  if(progress>=c.range*.6-1e-6)c.free=true;
+  u.ctrlLockT=c.free?0:Math.max(.001,(c.range*.6-progress)/Math.max(1,u.flightSpeed));
+}
 function launch(u, cp) {
   const t = catapultArc(u.pos,cp.land,cp.angle*180/Math.PI||30).flight;
   u.vel.set((cp.land.x - u.pos.x) / t, 0.5 * GRAV * t + (cp.land.y - u.pos.y) / t, (cp.land.z - u.pos.z) / t);
   u.flightSpeed = Math.hypot(u.vel.x, u.vel.z);
-  // 頂点までは入力を止め、以後も射出方向の慣性を保持する。着地で解除。
+  // 無入力で着地する水平距離を固定保存。途中のブーストで基準を変更しない。
   u.catMomentum = u.vel.clone().setY(0).normalize();
-  Object.assign(u, { flying: true, ctrlLockT: Math.max(0,u.vel.y/GRAV), onGround: false, dashT: 0, lungeT: 0, slideT: 0, jumpPad: null, longDash: false, catCd: 3, waypoint: null });
+  u.catLaunch={x:u.pos.x,z:u.pos.z,range:catapultReferenceRange(u,cp),free:false,staggerT:Math.max(0,u.vel.y/GRAV),speedCap:u.flightSpeed+2*u.dashV};
+  Object.assign(u, { flying: true, ctrlLockT: u.catLaunch.range*.6/u.flightSpeed, onGround: false, dashT: 0, lungeT: 0, slideT: 0, jumpPad: null, longDash: false, catCd: 3, waypoint: null });
   cp.flash = 1;
   sfx('catapult', u.pos, u);
 }
@@ -3740,7 +3766,7 @@ function jumpPadUpdate(dt) {
     for (const u of units) if (u.alive && u.onGround && !u.flying && !u.transfer && !u.repairing && !u.stun && u.catCd <= 0 && Math.abs(u.pos.y - p.pos.y) < 0.5 && Math.hypot(u.pos.x - p.pos.x, u.pos.z - p.pos.z) < p.radius) {
       // 水平の初速は加えない。射出後の空中操作は通常の physics を使う。
       u.vel.set(0, Math.sqrt(2 * GRAV * p.rise), 0);
-      Object.assign(u, { flying: true, onGround: false, ctrlLockT: 0, flightSpeed: u.cruiseV, dashT: 0, longDash: false, catCd: 3, jumpPad: p });
+      Object.assign(u, { flying: true, onGround: false, catMomentum:null, catLaunch:null, ctrlLockT: 0, flightSpeed: u.cruiseV, dashT: 0, longDash: false, catCd: 3, jumpPad: p });
       p.flash = 1; sfx('catapult', u.pos, u);
     }
   }
@@ -5635,7 +5661,7 @@ function makeUnit(team, isPlayer, idx) {
     dashT: 0, dashDir: new T.Vector3(), longDash: false, dashState: '', dodgeT: 1,
     aimTarget: null, aimPos: new T.Vector3(), aimPrev: new T.Vector3(), reacq: 0, locked: false,
     role: BOT_ROLE[idx % BOT_ROLE.length],
-    flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, repairing: false, podT: 0, podN: 0, spawnChoice: null,
+    flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, waypoint: null, healing: false, repairing: false, podT: 0, podN: 0, spawnChoice: null,
     cls, nextCls: null, slots: null, weapon: 'main', switchT: 0, moveInput: false,
     swing: null, meleeRecovery: null, lungeT: 0, lungeT0: 0, lungeDir: new T.Vector3(), lungeSpeed: 0, slideT: 0, recoverT: 0, sawSpin: null, scoped: false, scopeStep: 0, healTarget: null, botRkT: 2, rkGo: false,
     stuckT: 0, sideT: 0, side: 1, lastPos: new T.Vector3(), think: 0, target: null,
@@ -5684,7 +5710,7 @@ function spawn(u, at = 'base') {
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
-  Object.assign(u, { flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
+  Object.assign(u, { flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
   u.raidRoute = null;
@@ -5726,7 +5752,7 @@ function doTransfer(u) {
   const x = u.transfer;
   u.transfer = null;
   spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
-  Object.assign(u, { flying: false, catMomentum: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
+  Object.assign(u, { flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
   u.vel.set(0, 0, 0);
   u.yaw = TEAM[u.team].dir > 0 ? Math.PI : 0; u.pitch = 0;
   u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
@@ -5892,7 +5918,7 @@ function shortDash(u, wish) {
   deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
   sfx('dash', u.pos, u);
   u.longDash = false;
-  u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;
+  if(!(u.flying&&u.catLaunch?.free&&!u.jumpPad)){u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;}
   if (u.vel.y < 0) u.vel.y *= 0.3;
   return true;
 }
@@ -5905,7 +5931,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   const floating=hoverLegs(u), water=hoverOnWater(u);
   const catFlight = u.flying && !u.jumpPad && u.catMomentum;
   if(catFlight){
-    u.ctrlLockT = Math.max(0,u.vel.y/GRAV);
+    catapultControl(u);
+    if(u.catLaunch)u.catLaunch.staggerT=Math.max(0,Math.min(u.catLaunch.staggerT-dt,u.vel.y/GRAV));
     if(u.ctrlLockT>0){wish=STOP;boostHeld=jumpPressed=jumpHeld=false;u.dashT=u.lungeT=u.slideT=0;u.longDash=false;}
   }
   if (beamCannonMode(u)) { u.dashT=u.lungeT=0;u.longDash=false;u.vel.x=u.vel.z=0; }
@@ -5933,6 +5960,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   }
   // 加速装置（強襲の特別装備）：作動中にブーストを押し続けると、ロングダッシュの代わりにSPを使って向いている方へ進む（どの武器を持っていてもよい）。
   // 押した瞬間のショートダッシュはいつもどおりで、それが終わってから加速する
+  if(catFlight&&u.catLaunch?.free&&boostHeld&&!u.dashT&&!u.longDash&&!u.lungeT)shortDash(u,wish);
   const ch = u.chargerOn ? u.slots.sp : null;
   const charging = !!ch && boostHeld && !ch.overheat && u.dashT <= 0 && u.ctrlLockT <= 0 && u.lungeT <= 0;
   if (charging && !u.charging) sfx('charge', u.pos, u);
@@ -5990,7 +6018,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
     if (u.ctrlLockT > 0) { if(!catFlight)u.ctrlLockT = Math.max(0, u.ctrlLockT - dt); accel = 0; u.boost = Math.min(u.maxBoost, u.boost + 60 * dt); }
-    else if (!u.dashState || u.dashState === 'hover') {
+    else if (!catFlight&&(!u.dashState || u.dashState === 'hover')) {
       accel = wish.lengthSq() > 0.01 ? 1.5 : 0;
       // 空中ダッシュ後に射出時より速くならないようにする
       const hs = Math.hypot(u.vel.x, u.vel.z);
@@ -6000,6 +6028,13 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     }
   }
   if (floating && (u.planted || u.transfer || u.repairing || beamCannonMode(u) || u.electricT>0)) { u.vel.x=u.vel.z=0; dir=STOP; accel=10; }
+  if(catFlight&&u.catLaunch?.free){
+    // 無入力は現在速度を保持。噴射だけを加速度として足し、逆噴射はゼロを越えても再固定しない。
+    const thrust=['short','long','charge'].includes(u.dashState);
+    if(thrust){const a=8*speed;u.vel.x+=dir.x*a*dt;u.vel.z+=dir.z*a*dt;
+      const cap=u.catLaunch.speedCap=Math.max(u.catLaunch.speedCap,u.flightSpeed+2*speed),hs=Math.hypot(u.vel.x,u.vel.z);if(hs>cap){u.vel.x*=cap/hs;u.vel.z*=cap/hs;}}
+    accel=0;
+  }
   const vx=u.vel.x,vz=u.vel.z, k = 1 - Math.exp(-accel * dt);
   u.vel.x += (dir.x * speed - u.vel.x) * k;
   u.vel.z += (dir.z * speed - u.vel.z) * k;
@@ -6007,22 +6042,15 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
     sfx('jump', u.pos, u);
   }
-  // 降下中も元の方向へ最低65%、横は35%まで。逆入力や空中ダッシュでも台へ戻らない。
-  if(catFlight){
-    const f=u.catMomentum;
-    const side=Math.max(-u.flightSpeed*.35,Math.min(u.flightSpeed*.35,-u.vel.x*f.z+u.vel.z*f.x));
-    const forward=Math.max(u.flightSpeed*.65,Math.min(Math.sqrt(u.flightSpeed*u.flightSpeed-side*side),u.vel.x*f.x+u.vel.z*f.z));
-    u.vel.x=f.x*forward-f.z*side;u.vel.z=f.z*forward+f.x*side;
-    if(u.ctrlLockT>0)grav=GRAV;
-  }
+  if(catFlight&&u.ctrlLockT>0)grav=GRAV;
   u.vel.y -= grav * dt;
-  if(catFlight)u.ctrlLockT=Math.max(0,u.vel.y/GRAV);
+
   if (hover) {
     u.vel.y = Math.max(u.vel.y, floating ? -HOVER_SINK_RATE : -HOVER_SINK);
     u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
     if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   }
-  if (floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
+  if (floating && hoverActive(u) && (u.ctrlLockT<=0||catFlight) && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
   const dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
@@ -6038,10 +6066,11 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.pos.y <= gh || follow) {
     if (!wasGround) land(u, -u.vel.y);
     // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
-    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null; u.catMomentum = null;
+    u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null; u.catMomentum = null; u.catLaunch=null;
   } else u.onGround = false;
   u.pos.x = Math.max(-MAP_X + R, Math.min(MAP_X - R, u.pos.x));
   u.pos.z = Math.max(-MAP_Z + R, Math.min(MAP_Z - R, u.pos.z));
+  if(u.flying&&u.catLaunch)catapultControl(u);
 }
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
 function land(u, v) {
@@ -6057,7 +6086,7 @@ function land(u, v) {
 }
 // よろけ・ダウン：1回の攻撃のダメージ（amount）で決まる。from は押される元（爆心か撃った機体の位置）
 function jolt(u, from, amount, melee) {
-  if (!u.alive || u.repairing || u.ctrlLockT > 0) return; // リペアポッドの使用中と、カタパルトで操作できない間は崩れない（wiki）
+  if (!u.alive || u.repairing || launchStaggerProtected(u)) return; // リペアポッドの使用中と、カタパルトの射出上昇中は崩れない（移動ロックとは別）
   const resistance=hoverLegs(u) ? 5/6 : 1; // AC：3000/6000→2500/5000。既存二脚の閾値との比を保持。
   const down = amount >= (melee ? DOWN_MELEE : DOWN_DMG)*resistance;
   if (!down && (amount < (melee ? STAGGER_MELEE : STAGGER_DMG)*resistance || u.stun === 'down')) return;
@@ -6593,6 +6622,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   v.deathWeapon = attackName(by, weaponName);
   scoreKill(v, by, head);
   if (by.isPlayer && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
+  v.flying=false;v.catMomentum=v.catLaunch=null;v.ctrlLockT=0;
   v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null;
   if (v.slots.aux.w.chargeWave) v.slots.aux.chargeT = 0;
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
@@ -12798,7 +12828,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：頂点まで操作固定' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
+  else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で延伸／逆噴射で減速' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
   else if (beamCannonMode(p)) centerEl.textContent = p.beamFire ? p.beamFire.warm>0 ? '照射準備中' : '双肩照射中：低速旋回／右クリックで中断' : '双肩照射砲：左長押しで照射／右クリックで中断';
