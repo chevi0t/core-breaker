@@ -851,17 +851,39 @@
       ],
       "height": 28,
       "feather": 14
+    },
+    {
+      "ring": [
+        [
+          -40,
+          -180
+        ],
+        [
+          10,
+          -180
+        ],
+        [
+          30,
+          -135
+        ],
+        [
+          -35,
+          -120
+        ]
+      ],
+      "height": 14,
+      "feather": 12
     }
   ],
   "water": {
     "ring": [
       [
-        -263.5,
-        273.0
+        -105,
+        252
       ],
       [
-        -263.5,
-        243.75
+        -105,
+        232
       ],
       [
         -102.0,
@@ -986,6 +1008,29 @@
     ]
   ],
   "routes": [
+    {
+      "id": "viaduct_lower_street",
+      "kind": "ground",
+      "width": 20,
+      "blend": 8,
+      "points": [
+        [
+          65,
+          -155,
+          14
+        ],
+        [
+          -10,
+          -155,
+          14
+        ],
+        [
+          -55,
+          -135,
+          14
+        ]
+      ]
+    },
     {
       "id": "west_approach",
       "kind": "ground",
@@ -1311,7 +1356,7 @@
         ]
       ],
       "arch": {
-        "spans": 4,
+        "spans": 3,
         "pier": 3,
         "bottom": -2
       }
@@ -1389,6 +1434,101 @@
           28
         ]
       ]
+    },
+    {
+      "id": "east_viaduct",
+      "kind": "deck",
+      "width": 12,
+      "thickness": 2,
+      "points": [
+        [
+          -25,
+          -195,
+          32
+        ],
+        [
+          0,
+          -115,
+          28
+        ]
+      ],
+      "arch": {
+        "spans": 5,
+        "pier": 2.5,
+        "bottom": 10
+      }
+    },
+    {
+      "id": "viaduct_hill_link",
+      "kind": "ground",
+      "width": 14,
+      "blend": 8,
+      "points": [
+        [
+          -17,
+          -240.5,
+          32
+        ],
+        [
+          -25,
+          -195,
+          32
+        ]
+      ]
+    },
+    {
+      "id": "viaduct_quarter_link",
+      "kind": "ground",
+      "width": 12,
+      "blend": 6,
+      "points": [
+        [
+          0,
+          -115,
+          28
+        ],
+        [
+          17,
+          -91,
+          28
+        ]
+      ]
+    },
+    {
+      "id": "east_quay_ramp",
+      "kind": "deck",
+      "width": 24,
+      "thickness": 1,
+      "points": [
+        [
+          50,
+          10,
+          14
+        ],
+        [
+          80,
+          65,
+          -2
+        ]
+      ]
+    },
+    {
+      "id": "west_quay_ramp",
+      "kind": "deck",
+      "width": 24,
+      "thickness": 1,
+      "points": [
+        [
+          120,
+          120,
+          10
+        ],
+        [
+          80,
+          95,
+          -2
+        ]
+      ]
     }
   ],
   "catapultTargets": {
@@ -1425,32 +1565,6 @@
       ],
       "bottom": -2,
       "top": 12,
-      "width": 2
-    },
-    {
-      "a": [
-        68.0,
-        42.25
-      ],
-      "b": [
-        80.75,
-        22.75
-      ],
-      "bottom": -2,
-      "top": 12,
-      "width": 2
-    },
-    {
-      "a": [
-        72.25,
-        126.75
-      ],
-      "b": [
-        89.25,
-        113.75
-      ],
-      "bottom": -2,
-      "top": 9,
       "width": 2
     },
     {

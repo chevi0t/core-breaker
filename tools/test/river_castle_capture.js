@@ -4,5 +4,8 @@ const fs=require('fs'),path=require('path'),{chromium}=require('playwright');
  ['river','川沿いから城側の段丘へ',[145,18,135],[-90,40,-10],65],
  ['arch','主橋のアーチと川床通路',[137,3,30],[105,6,53],70],
  ['castle','街路から低い中庭・左右の坂・奥の城壁へ',[0,40,65],[-130,28,-25],65],
+ ['castle-street','街路の高さから中庭へ',[-65,22,-20],[-140,28,-20],65],
+ ['viaduct','東の丘と高台街区をつなぐ高架道',[80,48,-155],[-12,25,-155],65],
+ ['quay','河岸から街路へ上がる坂',[65,8,100],[50,12,25],65],
  ['west','西側の丘陵から低い街区へ',[10,34,300],[90,8,110],65],
  ['east','東側の広い高台街区',[20,38,-225],[50,18,-55],65]]){await p.evaluate(({name,label,pos,target,fov})=>{const g=__g;g.selectMap('river_castle');g.setup();for(const u of g.units){u.alive=false;u.group.visible=false;}g.camera.position.set(...pos);g.camera.up.set(...(name==='overview'?[-1,0,0]:[0,1,0]));g.camera.lookAt(...target);g.camera.fov=fov;g.camera.far=2400;g.camera.updateProjectionMatrix();g.scene.fog.near=1300;g.scene.fog.far=2300;g.scene.updateMatrixWorld(true);g.renderer.render(g.scene,g.camera);let im=document.getElementById('capture');if(!im){im=document.createElement('img');im.id='capture';im.style='position:fixed;inset:0;width:100%;height:100%;z-index:999';document.body.append(im);}im.src=g.renderer.domElement.toDataURL();let title=document.getElementById('shot-label');if(!title){title=document.createElement('div');title.id='shot-label';title.style='position:fixed;left:20px;top:18px;z-index:1000;background:#142327e8;padding:12px 18px;color:white;font:22px sans-serif';document.body.append(title);}title.textContent=label+' ／ ローカル試作・寸法/高さは推定';},{name,label,pos,target,fov});await p.screenshot({path:path.join(out,name+'.png')});} }finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});
