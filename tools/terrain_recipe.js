@@ -25,7 +25,7 @@ function validate(r){
  assert(r.team===undefined||[5,8,10].includes(r.team),'team 5/8/10');
  assert(r.props===undefined||(Array.isArray(r.props)&&r.props.length<=96),'props budget');for(const p of r.props||[]){assert(['factory','house','rock'].includes(p.kind)&&point(p.at,2)&&point(p.size,3)&&p.size.every(v=>v>=3&&v<=40)&&inside(r.boundary,...p.at),'props {kind,at,size}');assert(p.yaw===undefined||(p.kind==='house'&&num(p.yaw)&&Math.abs(p.yaw)<=Math.PI),'prop yaw');assert(p.roof===undefined||(p.kind==='house'&&['flat','gable','spire'].includes(p.roof)),'prop roof');assert(p.roofRise===undefined||(p.kind==='house'&&num(p.roofRise)&&p.roofRise>=1&&p.roofRise<=18),'roof rise');assert(p.roofTop===undefined||(p.kind==='house'&&p.roof==='flat'&&num(p.roofTop)&&p.roofTop>=3&&p.roofTop<=120),'flat roofTop');}
  assert(r.bases.B&&r.bases.R,'two bases');assert(r.routes.length>=2&&r.routes.length<=32,'routes budget');const ids=new Set();
- for(const q of r.routes){assert(q.underpassFloor===undefined||(q.kind==='deck'&&q.cut&&q.arch&&num(q.underpassFloor)&&q.underpassFloor>=-20&&q.underpassFloor<=q.arch.bottom),'arched underpass floor');assert(q.parapet===undefined||(q.kind==='deck'&&num(q.parapet)&&q.parapet>=.5&&q.parapet<=2),'deck parapet');if(q.arch)assert(q.kind==='deck'&&Number.isInteger(q.arch.spans)&&q.arch.spans>=1&&q.arch.spans<=8&&num(q.arch.bottom)&&q.arch.pier>=2&&q.arch.pier<=6,'arch spans/bottom/pier');assert(!ids.has(q.id),'unique route');ids.add(q.id);assert(['ground','deck'].includes(q.kind)&&q.width>=8&&q.width<=40,'route kind/width');assert(q.kind==='deck'?q.thickness>=1&&q.thickness<=6:q.blend>=5&&q.blend<=40,'route dimensions');assert(q.conform===undefined||(num(q.conform)&&q.conform>=0&&q.conform<=1),'route conform 0..1');assert(q.points.length>=2&&q.points.length<=30,'route points');for(const p of q.points)assert(point(p,3)&&inside(r.boundary,...p)&&boundaryDistance(r.boundary,...p)>q.width/2+2,'route inside boundary');for(let i=1;i<q.points.length;i++){const a=q.points[i-1],b=q.points[i],len=Math.hypot(a[0]-b[0],a[1]-b[1]);assert(len>=5&&Math.abs(a[2]-b[2])/len<=.65,'route slope');}}
+ for(const q of r.routes){assert(q.curve===undefined||(q.kind==='ground'&&num(q.curve)&&q.curve>=4&&q.curve<=20),'road curve 4..20');assert(q.underpassFloor===undefined||(q.kind==='deck'&&q.cut&&q.arch&&num(q.underpassFloor)&&q.underpassFloor>=-20&&q.underpassFloor<=q.arch.bottom),'arched underpass floor');assert(q.parapet===undefined||(q.kind==='deck'&&num(q.parapet)&&q.parapet>=.5&&q.parapet<=2),'deck parapet');if(q.arch)assert(q.kind==='deck'&&Number.isInteger(q.arch.spans)&&q.arch.spans>=1&&q.arch.spans<=8&&num(q.arch.bottom)&&q.arch.pier>=2&&q.arch.pier<=6,'arch spans/bottom/pier');assert(!ids.has(q.id),'unique route');ids.add(q.id);assert(['ground','deck'].includes(q.kind)&&q.width>=8&&q.width<=40,'route kind/width');assert(q.kind==='deck'?q.thickness>=1&&q.thickness<=6:q.blend>=5&&q.blend<=40,'route dimensions');assert(q.conform===undefined||(num(q.conform)&&q.conform>=0&&q.conform<=1),'route conform 0..1');assert(q.points.length>=2&&q.points.length<=30,'route points');for(const p of q.points)assert(point(p,3)&&inside(r.boundary,...p)&&boundaryDistance(r.boundary,...p)>q.width/2+2,'route inside boundary');for(let i=1;i<q.points.length;i++){const a=q.points[i-1],b=q.points[i],len=Math.hypot(a[0]-b[0],a[1]-b[1]);assert(len>=5&&Math.abs(a[2]-b[2])/len<=.65,'route slope');}}
  assert(r.tunnels.length<=8,'tunnel budget');for(const t of r.tunnels){assert(t.rim===undefined||(num(t.rim)&&t.rim>=0&&t.rim<=10),'tunnel rim 0..10');assert(['x','z'].includes(t.axis)&&point(t.rect,4)&&t.rect.every(v=>v%r.grid===0),'tunnel grid rectangle');assert(t.rect[1]-t.rect[0]>=10&&t.rect[3]-t.rect[2]>=10&&num(t.floor)&&num(t.ceiling)&&t.ceiling-t.floor>=8,'tunnel clearance');}
  assert(r.blockKind===undefined||['building','wall'].includes(r.blockKind),'blockKind');for(const b of r.blocks||[])assert(point(b,6)&&b[2]>=4&&b[3]>=4&&b[5]>b[4]&&b[5]<=100&&inside(r.boundary,b[0],b[1]),'block [x,z,width,depth,bottom,top]');
  for(const t of r.turretSites||[])assert(['B','R'].includes(t.team)&&point(t.at,3)&&inside(r.boundary,t.at[0],t.at[1])&&r.plants.some(p=>p[0]===t.plant)&&(t.yaw===undefined||num(t.yaw)),'turretSites {team,at:[x,z,y],plant,yaw}');assert((r.turretSites||[]).length<=8,'turret budget');
@@ -33,6 +33,14 @@ function validate(r){
 }
 function compile(input,seed=input.seed){
  const r=validate(JSON.parse(JSON.stringify({...input,seed})));let state=seed>>>0;const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
+ // 山腹の道だけ角の前後を短い二次曲線でつなぐ。交差点の共通アンカーは動かさない。
+ for(const q of r.routes){if(!q.curve)continue;const original=q.points,out=[original[0]];
+  for(let i=1;i<original.length-1;i++){const a=original[i-1],b=original[i],c=original[i+1];
+   if(r.routes.some(other=>other!==q&&other.points.some(p=>Math.hypot(p[0]-b[0],p[1]-b[1])<.1))){out.push(b);continue;}
+   const la=Math.hypot(b[0]-a[0],b[1]-a[1]),lc=Math.hypot(c[0]-b[0],c[1]-b[1]),d=Math.min(q.curve,la*.25,lc*.25),u=b.map((v,k)=>mix(v,a[k],d/la)),v=b.map((v,k)=>mix(v,c[k],d/lc));
+   for(let j=0;j<=4;j++){const t=j/4;out.push(b.map((_,k)=>(1-t)**2*u[k]+2*t*(1-t)*b[k]+t*t*v[k]));}
+  }out.push(original[original.length-1]);q.points=out;
+ }
  const hills=r.hills.map(h=>[h[0],h[1],h[2]*(.95+random()*.1),h[3]]),inTunnel=(x,z)=>r.tunnels.find(t=>x>t.rect[0]-1e-7&&x<t.rect[1]+1e-7&&z>t.rect[2]-1e-7&&z<t.rect[3]+1e-7);
  function top(x,z,label){
   // 岩盤の横縁に小さな接続帯を作り、斜面から屋根へ上がる際のカプセル引っ掛かりを防ぐ。
@@ -44,7 +52,8 @@ function compile(input,seed=input.seed){
   for(const q of r.routes.filter(q=>q.kind==='ground')){let best={d:Infinity};for(let i=1;i<q.points.length;i++){const n=nearSegment(x,z,q.points[i-1],q.points[i]);if(n.d<best.d)best=n;}
    const t=r.tunnels.find(t=>t.axis==='x'?x>=t.rect[0]&&x<=t.rect[1]:z>=t.rect[2]&&z<=t.rect[3]);
    if(t&&Math.abs(best.y-t.floor)<1&&best.d<q.width/2+q.blend)continue;
-   const a=clamp((best.d-q.width/2)/q.blend,0,1),strength=1-a*a*(3-2*a);
+   const shoulder=r.smoothTerrain&&q.curve?r.grid*.35:0;
+   const a=clamp((best.d-q.width/2-shoulder)/q.blend,0,1),strength=1-a*a*(3-2*a);
    const target=mix(best.y,y,q.conform||0);
    // 参照地形は道路の重なりを重み付きで混ぜ、強さが入れ替わる線で高さが飛ばないようにする。
    if(r.smoothTerrain){if(strength>0){if(!road)road={strength:0,w:0,wy:0};const w=strength**4;road.w+=w;road.wy+=w*target;road.strength=Math.max(road.strength,strength);road.y=road.wy/road.w;}}
@@ -64,7 +73,11 @@ function compile(input,seed=input.seed){
 
  const roadPolys=[];
  const addRoadPoly=poly=>roadPolys.push({poly,minX:Math.min(...poly.map(p=>p[0])),maxX:Math.max(...poly.map(p=>p[0])),minZ:Math.min(...poly.map(p=>p[1])),maxZ:Math.max(...poly.map(p=>p[1]))});
- if(r.smoothTerrain)for(const q of r.routes.filter(q=>q.kind==='ground')){for(let i=1;i<q.points.length;i++){const a=q.points[i-1],b=q.points[i],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*q.width/2,nz=dx/len*q.width/2;addRoadPoly([[a[0]+nx,a[1]+nz],[a[0]-nx,a[1]-nz],[b[0]-nx,b[1]-nz],[b[0]+nx,b[1]+nz]]);}for(const p of q.points)addRoadPoly(Array.from({length:12},(_,i)=>[p[0]+Math.cos(i*Math.PI/6)*q.width/2,p[1]+Math.sin(i*Math.PI/6)*q.width/2]));}
+ if(r.smoothTerrain)for(const q of r.routes.filter(q=>q.kind==='ground')){
+  // 曲線の短い区間ごとに円盤を重ねず、共有する左右端をつないで一定幅にする。
+  const edges=q.points.map((p,i)=>{const a=q.points[Math.max(0,i-1)],b=q.points[Math.min(q.points.length-1,i+1)],normal=(u,v)=>{const l=Math.hypot(v[0]-u[0],v[1]-u[1]);return [-(v[1]-u[1])/l,(v[0]-u[0])/l];},n0=i?normal(a,p):normal(p,b),n1=i<q.points.length-1?normal(p,b):normal(a,p);const l=Math.hypot(n0[0]+n1[0],n0[1]+n1[1]),nx=l>1e-6?(n0[0]+n1[0])/l:n1[0],nz=l>1e-6?(n0[1]+n1[1])/l:n1[1],w=q.width/2/Math.max(.7,nx*n1[0]+nz*n1[1]);return [[p[0]+nx*w,p[1]+nz*w],[p[0]-nx*w,p[1]-nz*w]];});
+  for(let i=1;i<edges.length;i++)addRoadPoly([edges[i-1][0],edges[i-1][1],edges[i][1],edges[i][0]]);}
+
  function clip(poly,ring){let area=0;for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];area+=a[0]*b[1]-b[0]*a[1];}const sign=area>=0?1:-1;for(let i=0;i<ring.length&&poly.length;i++){const a=ring[i],b=ring[(i+1)%ring.length],dist=p=>sign*((b[0]-a[0])*(p[2]-a[1])-(b[1]-a[1])*(p[0]-a[0])),out=[];for(let j=0;j<poly.length;j++){const p=poly[j],q=poly[(j+1)%poly.length],dp=dist(p),dq=dist(q);if(dp>=-1e-7)out.push(p);if((dp<0)!==(dq<0)){const t=dp/(dp-dq);out.push(p.map((v,k)=>mix(v,q[k],t)));}}poly=out;}return poly;}
 
  function polygonTriangles(ring){const points=ring.slice(),out=[],cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);let area=0;for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];area+=a[0]*b[1]-b[0]*a[1];}const sign=area>=0?1:-1;while(points.length>3){let found=false;for(let i=0;i<points.length;i++){const a=points[(i+points.length-1)%points.length],b=points[i],c=points[(i+1)%points.length];if(Math.abs(cross(a,b,c))<1e-8){points.splice(i,1);found=true;break;}if(cross(a,b,c)*sign<=0)continue;if(points.some(p=>p!==a&&p!==b&&p!==c&&cross(a,b,p)*sign>=-1e-8&&cross(b,c,p)*sign>=-1e-8&&cross(c,a,p)*sign>=-1e-8))continue;out.push([a,b,c]);points.splice(i,1);found=true;break;}assert(found,'boundary triangulation');}out.push(points);return out;}
@@ -124,11 +137,11 @@ function compile(input,seed=input.seed){
  }
  const rockLayer=t=>{if(!r.rockSlope)return 'dem';const u=[t[1][0]-t[0][0],t[1][1]-t[0][1],t[1][2]-t[0][2]],v=[t[2][0]-t[0][0],t[2][1]-t[0][1],t[2][2]-t[0][2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const ny=Math.abs(n[1])/Math.hypot(...n);if(ny<Math.cos(r.rockSlope*Math.PI/180))return 'fill';const x=(t[0][0]+t[1][0]+t[2][0])/3,z=(t[0][2]+t[1][2]+t[2][2])/3;return ny>.9&&(r.heightZones||[]).some(q=>q.surface==='plazas'&&inside(q.ring,x,z))?'plazas':'dem';};
  function paintedGround(floor,x,z,step,cellTris){let pieces=[];for(const t of cellTris||[[floor[0],floor[1],floor[2]],[floor[0],floor[2],floor[3]]]){if(t.every(p=>inside(r.boundary,p[0],p[2])))pieces.push({p:t,street:false});else for(const b of boundaryTriangles){const p=clip(t,b);if(p.length>=3)pieces.push({p,street:false});}}
- // 支持面は連続した元の三角形を保つ。道路の量子化境界を足場判定の継ぎ目にしない。
+ // 接地・射線は元の連続面、舗装は同じ面を切った描画用オーバーレイ。
  for(const q of pieces)for(let i=1;i+1<q.p.length;i++)tri(rockLayer([q.p[0],q.p[i],q.p[i+1]]),q.p[0],q.p[i],q.p[i+1]);
  for(const q of pieces)q.street=roadPolys.some(road=>q.p.every(p=>inside(road.poly,p[0],p[2])));
  for(const road of roadPolys){if(road.maxX<x||road.minX>x+step||road.maxZ<z||road.minZ>z+step)continue;const next=[];for(const q of pieces){if(q.street){next.push(q);continue;}const cut=splitConvex(q.p,road.poly);for(const p of cut.outside)next.push({p,street:false});if(cut.inside.length>=3)next.push({p:cut.inside,street:true});}pieces=next;}
- for(const q of pieces){if(!q.street)continue;const p=q.p;for(let i=1;i+1<p.length;i++){const a=p[0],b=p[i],c=p[i+1];if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))>1e-7)tri(q.street?'streets':'dem',a,b,c);}}}
+ for(const q of pieces){if(!q.street)continue;const p=q.p;for(let i=1;i+1<p.length;i++){const a=p[0],b=p[i],c=p[i+1];if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))>1e-7)tri('streets',a,b,c);}}}
 
  const step=r.grid,grid=new Map();const key=(x,z)=>x+','+z;
  for(let z=-r.half;z<r.half;z+=step)for(let x=-r.half;x<r.half;x+=step){if(!inside(r.boundary,x+step/2,z+step/2)&&!(r.boundary.some((p,i)=>p[0]!==r.boundary[(i+1)%r.boundary.length][0]&&p[1]!==r.boundary[(i+1)%r.boundary.length][1])&&boundaryDistance(r.boundary,x+step/2,z+step/2)<step))continue;

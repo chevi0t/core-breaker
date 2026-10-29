@@ -2005,7 +2005,7 @@ function createCityMap(T,layout) {
       compactGeometry(geo,'render');
       const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='grass'?0xffffff:colors[k];
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
-        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran'||data.smoothTerrain&&k==='streets',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran'||data.smoothTerrain&&k==='streets',polygonOffsetFactor:data.smoothTerrain&&k==='streets'?-4:-1,polygonOffsetUnits:data.smoothTerrain&&k==='streets'?-4:-1}));
       if(k==='bldg'){
         // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
         const facadeScale=data.district.facadeScale??1;
