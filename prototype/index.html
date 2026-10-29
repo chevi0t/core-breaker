@@ -1984,7 +1984,7 @@ function createCityMap(T,layout) {
     for (const [k,a] of Object.entries(arrays)) {
       if(!a.length)continue;
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
-      if(k==='historicGround'){
+      if(k==='historicGround'||data.smoothTerrain&&['dem','streets'].includes(k)){
         // 上面と斜面の陰影もつなぎ、格子ごとの三角形が斑点に見えないようにする。
         const normals=geo.attributes.normal.array,sums=new Map(),ids=[];
         for(let i=0;i<a.length;i+=3){const id=[a[i],a[i+1],a[i+2]].map(v=>Math.round(v*1000)).join(',');ids.push(id);if(!sums.has(id))sums.set(id,new T.Vector3());sums.get(id).add(new T.Vector3(normals[i],normals[i+1],normals[i+2]));}
@@ -2003,7 +2003,7 @@ function createCityMap(T,layout) {
       compactGeometry(geo,'render');
       const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='grass'?0xffffff:colors[k];
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
-        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
+        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran'||data.smoothTerrain&&k==='streets',polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
       if(k==='bldg'){
         // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
         const facadeScale=data.district.facadeScale??1;
