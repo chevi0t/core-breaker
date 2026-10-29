@@ -1980,6 +1980,7 @@ function createCityMap(T,layout) {
     for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
     for(const stats of Object.values(geometryStats))for(const key of Object.keys(stats))stats[key]=0;
     const colors={bldg:0xffffff,tran:0x424d58,streets:0x424d58,historicGround:0x858178,historicWall:0x945b43,brid:0x8d8b7e,dem:0x8a8d85,fill:0x8a8d85,plazas:0x68727b,ramps:0x79936b,aprons:0x79936b,exitMarks:0xd5f093,rail:0xffffff,ferris:0xffffff,station:0xffffff,shops:0xffffff,crossShops:0xffffff,railLinkShops:0xffffff,bank:0x667477,bed:0x6c7167,water:0x3987aa};
+    if(data.river.color)colors.water=data.river.color;
     for (const [k,a] of Object.entries(arrays)) {
       if(!a.length)continue;
       const geo=new T.BufferGeometry(); geo.setAttribute('position',new T.BufferAttribute(a,3)); geo.computeVertexNormals(); geo.computeBoundingSphere();

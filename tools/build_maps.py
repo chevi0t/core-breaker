@@ -105,11 +105,11 @@ function check(d) {
       if(c.half!==mx||c.half!==mz)E('都市のhalfとマップの縦横サイズをそろえる');
       if(c.boundary!==undefined){
         const p=c.boundary;
-        if(!Array.isArray(p)||p.length<4||p.length>40)E('boundaryは4〜40頂点の直交多角形');
+        if(!Array.isArray(p)||p.length<4||p.length>40)E('boundaryは4〜40頂点の多角形');
         else for(let i=0;i<p.length;i++){
           const a=p[i],b=p[(i+1)%p.length];
           if(!Array.isArray(a)||a.length!==2||!a.every(num)||!Array.isArray(b)||b.length!==2){E('boundaryの頂点は[x,z]');continue;}
-          inMap(...a,'boundary');if((a[0]===b[0])===(a[1]===b[1]))E('boundaryの辺は直交し長さを持つ');
+          inMap(...a,'boundary');if(a[0]===b[0]&&a[1]===b[1])E('boundaryの辺は長さを持つ');
         }
       }
       if(c.ringCoordinateStep!==undefined&&![.01,.02].includes(c.ringCoordinateStep))E('都市の輪郭格子は1cmか2cm');
