@@ -6,7 +6,7 @@ function nearSegment(x,z,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((x-a[0])*
 function boundaryDistance(poly,x,z){return Math.min(...poly.map((a,i)=>nearSegment(x,z,[...a,0],[...poly[(i+1)%poly.length],0]).d));}
 function validate(r){
  const num=n=>typeof n==='number'&&Number.isFinite(n),point=(p,n)=>Array.isArray(p)&&p.length===n&&p.every(num);
- assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets','props','team','order','heightZones','water','description','respawnMode','walls','smoothTerrain'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
+ assert(Object.keys(r).every(k=>['version','id','name','half','grid','navStep','seed','boundary','color','baseHeight','hills','bases','routes','tunnels','plants','blocks','rolling','blockKind','turretSites','lengthScale','catapultTargets','props','team','order','heightZones','water','description','respawnMode','walls','smoothTerrain','rockSlope'].includes(k)),'unknown recipe field');assert(r.lengthScale===undefined||[1,1.5,2].includes(r.lengthScale),'lengthScale 1/1.5/2');assert(r.version===1,'version must be 1');assert(/^[a-z][a-z0-9_]*$/.test(r.id),'id');assert(typeof r.name==='string'&&r.name.length<80,'name');
  assert([4,5,10].includes(r.grid)&&num(r.half)&&r.half>=120&&r.half<=900&&r.half%r.grid===0&&2*r.half/r.grid<=180,'grid/half budget');assert(r.navStep===r.grid*2,'navStep must be twice grid');assert(Number.isInteger(r.seed),'seed');assert(/^#[0-9a-f]{6}$/i.test(r.color),'color');assert(num(r.baseHeight),'baseHeight');
  assert(Array.isArray(r.boundary)&&r.boundary.length>=4&&r.boundary.length<=40,'boundary');
  for(const [i,a] of r.boundary.entries()){const b=r.boundary[(i+1)%r.boundary.length];assert(point(a,2)&&a.every(v=>Math.abs(v)<r.half&&v%r.grid===0),'grid-aligned boundary');assert(a[0]!==b[0]||a[1]!==b[1],'nonzero boundary edge');
@@ -15,7 +15,7 @@ function validate(r){
  const polygon=p=>Array.isArray(p)&&p.length>=3&&p.length<=60&&p.every(q=>point(q,2)&&q.every(v=>Math.abs(v)<r.half));
  assert(r.heightZones===undefined||(Array.isArray(r.heightZones)&&r.heightZones.length<=20),'heightZones budget');for(const q of r.heightZones||[])assert(polygon(q.ring)&&num(q.height)&&q.height>=-20&&q.height<=100&&num(q.feather)&&q.feather>=2&&q.feather<=100,'height zone polygon/height/feather');
  if(r.water)assert(polygon(r.water.ring)&&num(r.water.bed)&&num(r.water.level)&&r.water.bed<r.water.level&&r.water.bank>=2&&r.water.bank<=30,'water ring/bed/level/bank');
- assert(r.walls===undefined||(Array.isArray(r.walls)&&r.walls.length<=24),'walls budget');for(const w of r.walls||[])assert(point(w.a,2)&&point(w.b,2)&&Math.hypot(w.a[0]-w.b[0],w.a[1]-w.b[1])>=2&&num(w.bottom)&&num(w.top)&&w.top>w.bottom&&w.top<=100&&w.width>=1&&w.width<=6,'wall a/b/bottom/top/width');if(r.water?.color)assert(/^#[0-9a-f]{6}$/i.test(r.water.color),'water color');
+ assert(r.walls===undefined||(Array.isArray(r.walls)&&r.walls.length<=24),'walls budget');for(const w of r.walls||[])assert(point(w.a,2)&&point(w.b,2)&&Math.hypot(w.a[0]-w.b[0],w.a[1]-w.b[1])>=2&&num(w.bottom)&&num(w.top)&&w.top>w.bottom&&w.top<=100&&w.width>=1&&w.width<=6,'wall a/b/bottom/top/width');assert(r.water?.wall===undefined||(r.smoothTerrain&&typeof r.water.wall==='boolean'),'water wall needs smoothTerrain');assert(r.rockSlope===undefined||(r.smoothTerrain&&num(r.rockSlope)&&r.rockSlope>=20&&r.rockSlope<=80),'rockSlope 20..80');for(const q of r.routes)assert(q.cut===undefined||(q.cut===true&&q.kind==='deck'&&r.water?.wall&&q.points.length===2),'deck cut');if(r.water?.color)assert(/^#[0-9a-f]{6}$/i.test(r.water.color),'water color');
  assert(r.smoothTerrain===undefined||typeof r.smoothTerrain==='boolean','smoothTerrain');assert(r.respawnMode===undefined||r.respawnMode==='towardBase','respawnMode');assert(r.description===undefined||typeof r.description==='string','description');
  for(const w of r.rolling||[])assert(point(w,4)&&Math.abs(w[0])<=8&&w[1]>=60&&w[1]<=400,'rolling [amplitude,wavelength,angleRadians,phaseRadians]');assert((r.rolling||[]).length<=4,'rolling budget');
  assert(Array.isArray(r.hills)&&r.hills.length<=40,'hills budget');for(const h of r.hills)assert(point(h,4)&&h[2]>=0&&h[2]<=100&&h[3]>=15,'hill [x,z,height,radius]');
@@ -34,7 +34,7 @@ function validate(r){
 function compile(input,seed=input.seed){
  const r=validate(JSON.parse(JSON.stringify({...input,seed})));let state=seed>>>0;const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
  const hills=r.hills.map(h=>[h[0],h[1],h[2]*(.95+random()*.1),h[3]]),inTunnel=(x,z)=>r.tunnels.find(t=>x>t.rect[0]-1e-7&&x<t.rect[1]+1e-7&&z>t.rect[2]-1e-7&&z<t.rect[3]+1e-7);
- function top(x,z){
+ function top(x,z,label){
   // 岩盤の横縁に小さな接続帯を作り、斜面から屋根へ上がる際のカプセル引っ掛かりを防ぐ。
   for(const t of r.tunnels){const rim=t.rim||0;if(!rim)continue;const axial=t.axis==='x'?x:z,lo=t.axis==='x'?t.rect[0]:t.rect[2],hi=t.axis==='x'?t.rect[1]:t.rect[3];if(axial<lo||axial>hi)continue;let v=t.axis==='x'?z:x;const sides=t.axis==='x'?[t.rect[2],t.rect[3]]:[t.rect[0],t.rect[1]];for(const [side,sign] of [[sides[0],-1],[sides[1],1]]){const d=(v-side)*sign;if(d>0&&d<rim*2)v=side+sign*Math.max(0,(d-rim)*2);}if(t.axis==='x')z=v;else x=v;}
   let y=r.baseHeight;for(const [hx,hz,h,rad] of hills){const d=Math.hypot(x-hx,z-hz)/rad;if(d<1)y=Math.max(y,r.baseHeight+h*(1+Math.cos(Math.PI*d))/2);}
@@ -45,13 +45,18 @@ function compile(input,seed=input.seed){
    const t=r.tunnels.find(t=>t.axis==='x'?x>=t.rect[0]&&x<=t.rect[1]:z>=t.rect[2]&&z<=t.rect[3]);
    if(t&&Math.abs(best.y-t.floor)<1&&best.d<q.width/2+q.blend)continue;
    const a=clamp((best.d-q.width/2)/q.blend,0,1),strength=1-a*a*(3-2*a);
-   if(!road||strength>road.strength)road={strength,y:mix(best.y,y,q.conform||0)};
+   const target=mix(best.y,y,q.conform||0);
+   // 参照地形は道路の重なりを重み付きで混ぜ、強さが入れ替わる線で高さが飛ばないようにする。
+   if(r.smoothTerrain){if(strength>0){if(!road)road={strength:0,w:0,wy:0};const w=strength**4;road.w+=w;road.wy+=w*target;road.strength=Math.max(road.strength,strength);road.y=road.wy/road.w;}}
+   else if(!road||strength>road.strength)road={strength,y:target};
   }
   if(road)y=mix(y,road.y,road.strength);
   for(const b of Object.values(r.bases)){const t=clamp((Math.hypot(x-b[0],z-b[1])-38)/18,0,1);y=mix(b[2],y,t*t*(3-2*t));}
   // 橋の端だけ狭い接続面を作る。周囲全体を平坦な段丘にはしない。
   if(r.rolling)for(const q of r.routes.filter(q=>q.kind==='deck'))for(const p of [q.points[0],q.points[q.points.length-1]]){const a=clamp((Math.hypot(x-p[0],z-p[1])-q.width*.5-3)/18,0,1);y=mix(p[2],y,a*a*(3-2*a));}
-  if(r.water){const d=boundaryDistance(r.water.ring,x,z),a=inside(r.water.ring,x,z)?1:clamp(1-d/r.water.bank,0,1);y=mix(y,r.water.bed,a*a*(3-2*a));}
+  // 護岸のある川は土手を作らず、川の側だけ川床にする（縁の線で地形を切り、段差は壁で埋める）。
+  if(r.water?.wall&&label!==undefined){if(label==='water')y=r.water.bed;else if(label!=='land'){const q=cutRoutes[label],deck=nearSegment(x,z,q.points[0],q.points[1]).y;if(y>deck)y=deck-q.thickness*clamp(y-deck,0,1);}}
+  else if(r.water){const d=boundaryDistance(r.water.ring,x,z),a=inside(r.water.ring,x,z)?1:clamp(1-d/r.water.bank,0,1);y=mix(y,r.water.bed,a*a*(3-2*a));}
   const t=inTunnel(x,z);if(t)y=Math.max(y,t.ceiling+5);return Math.round(y*50)/50;
  }
  const meshes=Object.fromEntries(['dem','tran','fill','ramps','aprons','plazas','streets','historicGround','brid','historicWall'].map(k=>[k,[]]));
@@ -66,9 +71,60 @@ function compile(input,seed=input.seed){
  const boundaryTriangles=r.smoothTerrain?polygonTriangles(r.boundary):[];
 
  function splitConvex(poly,ring){let area=0;for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];area+=a[0]*b[1]-b[0]*a[1];}const sign=area>=0?1:-1,out=[];let inner=poly;for(let i=0;i<ring.length&&inner.length;i++){const a=ring[i],b=ring[(i+1)%ring.length],dist=p=>sign*((b[0]-a[0])*(p[2]-a[1])-(b[1]-a[1])*(p[0]-a[0])),yes=[],no=[];for(let j=0;j<inner.length;j++){const p=inner[j],q=inner[(j+1)%inner.length],dp=dist(p),dq=dist(q);(dp>=0?yes:no).push(p);if((dp<0)!==(dq<0)){const t=dp/(dp-dq),v=p.map((n,k)=>mix(n,q[k],t));yes.push(v);no.push(v);}}if(no.length>=3)out.push(no);inner=yes;}return {inside:inner,outside:out};}
- function paintedGround(floor,x,z,step){let pieces=[];for(const t of [[floor[0],floor[1],floor[2]],[floor[0],floor[2],floor[3]]]){if(t.every(p=>inside(r.boundary,p[0],p[2])))pieces.push({p:t,street:false});else for(const b of boundaryTriangles){const p=clip(t,b);if(p.length>=3)pieces.push({p,street:false});}}
+ // 縁の線（川の輪郭と、護岸を切り込む斜路）で格子のマスを切り分ける。
+ // 共有する辺の交点は、元の線分と格子線から同じ式で求めるので、隣のマスと頂点がそろい隙間が出ない。
+ const NUDGE=[.00731,.00419],cutRoutes={},regions=[];
+ if(r.water?.wall){regions.push({label:'water',ring:r.water.ring.map(p=>[p[0]+NUDGE[0],p[1]+NUDGE[1]])});
+  r.routes.forEach((q,i)=>{if(!q.cut)return;const [a,b]=q.points,dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*q.width/2,nz=dx/len*q.width/2;cutRoutes['cut'+i]=q;regions.push({label:'cut'+i,ring:[[a[0]+nx,a[1]+nz],[a[0]-nx,a[1]-nz],[b[0]-nx,b[1]-nz],[b[0]+nx,b[1]+nz]].map(p=>[p[0]+NUDGE[0],p[1]+NUDGE[1]])});});}
+ const labelAt=(x,z)=>{for(const g of regions)if(inside(g.ring,x,z))return g.label;return 'land';};
+ const area2=poly=>poly.reduce((n,a,i)=>{const b=poly[(i+1)%poly.length];return n+a[0]*b[1]-b[0]*a[1];},0);
+ // 線分abと、辺の元（格子線か、縁の線分）との交点。どちらのマスから求めても同じ値になる。
+ function crossing(a,b,src){
+  if(src.axis!==undefined){const k=src.axis,o=1-k,da=a[k]-src.value,db=b[k]-src.value;if((da<0)===(db<0)||da===db)return null;const t=da/(da-db),p=[0,0];p[k]=src.value;p[o]=a[o]+(b[o]-a[o])*t;return {t,p};}
+  const [c,d]=src.seg[0][0]<src.seg[1][0]||src.seg[0][0]===src.seg[1][0]&&src.seg[0][1]<src.seg[1][1]?src.seg:[src.seg[1],src.seg[0]];
+  const ex=b[0]-a[0],ez=b[1]-a[1],fx=d[0]-c[0],fz=d[1]-c[1],den=ex*fz-ez*fx;if(Math.abs(den)<1e-12)return null;
+  const t=((c[0]-a[0])*fz-(c[1]-a[1])*fx)/den,u=((c[0]-a[0])*ez-(c[1]-a[1])*ex)/den;if(t<=0||t>=1||u<=0||u>=1)return null;
+  return {t,p:[c[0]+fx*u,c[1]+fz*u]};
+ }
+ const onEdge=(p,a,b)=>{const ex=b[0]-a[0],ez=b[1]-a[1],L=ex*ex+ez*ez,t=((p[0]-a[0])*ex+(p[1]-a[1])*ez)/L;return t>-1e-9&&t<1+1e-9&&Math.abs((p[0]-a[0])*ez-(p[1]-a[1])*ex)/Math.sqrt(L)<1e-6;};
+ // 片(多角形・反時計回り、辺ごとの元つき)を、縁の輪の中の部分で切る。
+ function splitByRing(piece,ring){
+  const P=piece.pts,n=P.length,out=[];
+  for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];
+   if(piece.src.some(e=>e.ring===ring&&e.i===i))continue;
+   if(Math.max(a[0],b[0])<piece.minX||Math.min(a[0],b[0])>piece.maxX||Math.max(a[1],b[1])<piece.minZ||Math.min(a[1],b[1])>piece.maxZ)continue;
+   const cuts=[{t:0,p:a},{t:1,p:b}];for(let j=0;j<n;j++){const c=crossing(a,b,piece.src[j]);if(c&&onEdge(c.p,P[j],P[(j+1)%n]))cuts.push({...c,edge:j});}
+   cuts.sort((u,v)=>u.t-v.t);
+   for(let k=1;k<cuts.length;k++){const u=cuts[k-1],v=cuts[k];if(v.t-u.t<1e-12)continue;const m=[(u.p[0]+v.p[0])/2,(u.p[1]+v.p[1])/2];if(inside(P,m[0],m[1]))out.push({i,from:u,to:v,seg:[a,b],ring});}
+  }
+  if(!out.length)return null;
+  // 輪の順につないで、片の縁から入り縁へ出る一続きの線にする。
+  let s=out.findIndex(o=>o.from.edge!==undefined);assert(s>=0,'ring inside one cell');
+  const chain=[out[s]];for(let k=s+1;chain[chain.length-1].to.edge===undefined;k++){chain.push(out[k%out.length]);assert(chain.length<=out.length,'open ring chain');}
+  const e0=chain[0].from,e1=chain[chain.length-1].to;
+  // 入口と出口を片の頂点列へ差し込み、二つの多角形に分ける。
+  const pts=[],src=[];let i0=-1,i1=-1;
+  for(let j=0;j<n;j++){pts.push(P[j]);src.push(piece.src[j]);const hits=[e0,e1].filter(e=>e.edge===j).sort((u,v)=>Math.hypot(u.p[0]-P[j][0],u.p[1]-P[j][1])-Math.hypot(v.p[0]-P[j][0],v.p[1]-P[j][1]));for(const h of hits){pts.push(h.p);src.push(piece.src[j]);if(h===e0)i0=pts.length-1;else i1=pts.length-1;}}
+  const inner=chain.slice(0,-1).map(c=>c.to.p),innerSrc=chain.map(c=>({seg:c.seg,ring:c.ring,i:c.i}));
+  const walk=(from,to)=>{const p=[],q=[];for(let j=from;;j=(j+1)%pts.length){p.push(pts[j]);if(j===to)break;q.push(src[j]);}return {p,q};};
+  const A=walk(i0,i1),B=walk(i1,i0);
+  const polyA={pts:[...A.p,...inner.slice().reverse()],src:[...A.q,...innerSrc.slice().reverse()]};
+  const polyB={pts:[...B.p,...inner],src:[...B.q,...innerSrc]};
+  return [polyA,polyB].map(o=>({...o,minX:Math.min(...o.pts.map(p=>p[0])),maxX:Math.max(...o.pts.map(p=>p[0])),minZ:Math.min(...o.pts.map(p=>p[1])),maxZ:Math.max(...o.pts.map(p=>p[1]))}));
+ }
+ // 一直線に並ぶ頂点も残したまま三角形に分ける（消すと隣と頂点がずれて隙間になる）。
+ function earClip(poly){const pts=poly.slice(),out=[],cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  while(pts.length>3){let found=false;for(let i=0;i<pts.length;i++){const a=pts[(i+pts.length-1)%pts.length],b=pts[i],c=pts[(i+1)%pts.length];if(cr(a,b,c)<=1e-9)continue;if(pts.some(p=>p!==a&&p!==b&&p!==c&&cr(a,b,p)>=-1e-9&&cr(b,c,p)>=-1e-9&&cr(c,a,p)>=-1e-9))continue;out.push([a,b,c]);pts.splice(i,1);found=true;break;}assert(found,'cell triangulation');}
+  if(cr(...pts)>1e-9)out.push(pts);return out;}
+ function cellPieces(x,z,step){
+  const sq=[[x,z],[x+step,z],[x+step,z+step],[x,z+step]];let pieces=[{pts:sq,src:[{axis:1,value:z},{axis:0,value:x+step},{axis:1,value:z+step},{axis:0,value:x}],minX:x,maxX:x+step,minZ:z,maxZ:z+step}];
+  for(const g of regions)for(let guard=0;;guard++){assert(guard<40,'cell split budget');let changed=false;const next=[];for(const q of pieces){const sp=splitByRing(q,g.ring);if(sp){next.push(...sp);changed=true;}else next.push(q);}pieces=next;if(!changed)break;}
+  return pieces.map(q=>{const tris=earClip(q.pts);const c=tris[0],m=[(c[0][0]+c[1][0]+c[2][0])/3,(c[0][1]+c[1][1]+c[2][1])/3];return {...q,tris,label:labelAt(...m)};});
+ }
+ const rockLayer=t=>{if(!r.rockSlope)return 'dem';const u=[t[1][0]-t[0][0],t[1][1]-t[0][1],t[1][2]-t[0][2]],v=[t[2][0]-t[0][0],t[2][1]-t[0][1],t[2][2]-t[0][2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];return Math.abs(n[1])/Math.hypot(...n)<Math.cos(r.rockSlope*Math.PI/180)?'fill':'dem';};
+ function paintedGround(floor,x,z,step,cellTris){let pieces=[];for(const t of cellTris||[[floor[0],floor[1],floor[2]],[floor[0],floor[2],floor[3]]]){if(t.every(p=>inside(r.boundary,p[0],p[2])))pieces.push({p:t,street:false});else for(const b of boundaryTriangles){const p=clip(t,b);if(p.length>=3)pieces.push({p,street:false});}}
  // 支持面は連続した元の三角形を保つ。道路の量子化境界を足場判定の継ぎ目にしない。
- for(const q of pieces)for(let i=1;i+1<q.p.length;i++)tri('dem',q.p[0],q.p[i],q.p[i+1]);
+ for(const q of pieces)for(let i=1;i+1<q.p.length;i++)tri(rockLayer([q.p[0],q.p[i],q.p[i+1]]),q.p[0],q.p[i],q.p[i+1]);
  for(const q of pieces)q.street=roadPolys.some(road=>q.p.every(p=>inside(road.poly,p[0],p[2])));
  for(const road of roadPolys){if(road.maxX<x||road.minX>x+step||road.maxZ<z||road.minZ>z+step)continue;const next=[];for(const q of pieces){if(q.street){next.push(q);continue;}const cut=splitConvex(q.p,road.poly);for(const p of cut.outside)next.push({p,street:false});if(cut.inside.length>=3)next.push({p:cut.inside,street:true});}pieces=next;}
  for(const q of pieces){if(!q.street)continue;const p=q.p;for(let i=1;i+1<p.length;i++){const a=p[0],b=p[i],c=p[i+1];if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))>1e-7)tri(q.street?'streets':'dem',a,b,c);}}}
@@ -76,7 +132,11 @@ function compile(input,seed=input.seed){
  const step=r.grid,grid=new Map();const key=(x,z)=>x+','+z;
  for(let z=-r.half;z<r.half;z+=step)for(let x=-r.half;x<r.half;x+=step){if(!inside(r.boundary,x+step/2,z+step/2)&&!(r.boundary.some((p,i)=>p[0]!==r.boundary[(i+1)%r.boundary.length][0]&&p[1]!==r.boundary[(i+1)%r.boundary.length][1])&&boundaryDistance(r.boundary,x+step/2,z+step/2)<step))continue;
   const t=inTunnel(x+step/2,z+step/2),coords=[[x,z],[x,z+step],[x+step,z+step],[x+step,z]],upper=coords.map(([x,z])=>[x,top(x,z),z]);
-  const floor=upper.map(p=>{const portal=r.tunnels.find(q=>q.axis==='x'?([q.rect[0],q.rect[1]].includes(p[0])&&p[2]>=q.rect[2]&&p[2]<=q.rect[3]):([q.rect[2],q.rect[3]].includes(p[2])&&p[0]>=q.rect[0]&&p[0]<=q.rect[1]));return [p[0],t?t.floor:portal?portal.floor:p[1],p[2]];});const street=r.heightZones&&r.routes.some(q=>q.kind==='ground'&&q.points.slice(1).some((b,i)=>nearSegment(x+step/2,z+step/2,q.points[i],b).d<q.width/2));if(r.smoothTerrain)paintedGround(floor,x,z,step);else quad(street?'streets':'dem',...floor);grid.set(key(x,z),{floor:floor.map(p=>p[1]),top:t?upper.map(p=>p[1]):null});
+  const floor=upper.map(p=>{const portal=r.tunnels.find(q=>q.axis==='x'?([q.rect[0],q.rect[1]].includes(p[0])&&p[2]>=q.rect[2]&&p[2]<=q.rect[3]):([q.rect[2],q.rect[3]].includes(p[2])&&p[0]>=q.rect[0]&&p[0]<=q.rect[1]));return [p[0],t?t.floor:portal?portal.floor:p[1],p[2]];});const street=r.heightZones&&r.routes.some(q=>q.kind==='ground'&&q.points.slice(1).some((b,i)=>nearSegment(x+step/2,z+step/2,q.points[i],b).d<q.width/2));let cellTris=null;
+  if(regions.length&&!t){const pieces=cellPieces(x,z,step),h=(p,label)=>[p[0],top(p[0],p[1],label),p[1]];cellTris=pieces.flatMap(q=>q.tris.map(tr=>tr.map(p=>h(p,q.label))));
+   // 縁の線の段差を石積みの壁でふさぐ。どちらか一方の片からだけ作る。
+   for(const q of pieces)q.pts.forEach((a,j)=>{const src=q.src[j];if(!src.seg)return;const b=q.pts[(j+1)%q.pts.length],ex=b[0]-a[0],ez=b[1]-a[1],L=Math.hypot(ex,ez);if(L<1e-6)return;const m=[(a[0]+b[0])/2+ez/L*.02,(a[1]+b[1])/2-ex/L*.02],other=labelAt(...m);if(other===q.label||other<q.label)return;if(!inside(r.boundary,(a[0]+b[0])/2,(a[1]+b[1])/2))return;const pa=h(a,q.label),pb=h(b,q.label),oa=h(a,other),ob=h(b,other);if(Math.abs(pa[1]-oa[1])<.05&&Math.abs(pb[1]-ob[1])<.05)return;quad('brid',pa,pb,ob,oa);});}
+  if(r.smoothTerrain)paintedGround(floor,x,z,step,cellTris);else quad(street?'streets':'dem',...floor);grid.set(key(x,z),{floor:floor.map(p=>p[1]),top:t?upper.map(p=>p[1]):null,tris:cellTris});
   if(t){quad('brid',...upper);quad('brid',...coords.map(([x,z])=>[x,t.ceiling,z]).reverse());}
  }
  // 切り抜いた地形の側壁。入口の面は天井から上だけ塞ぐ。
@@ -86,7 +146,8 @@ function compile(input,seed=input.seed){
  if(q.arch){const count=q.arch.spans*12;for(let j=0;j<count;j++){const t0=j/count,t1=(j+1)/count,X=t=>mix(a[0],b[0],t),Z=t=>mix(a[1],b[1],t),Y=t=>mix(a[2],b[2],t)-q.thickness,lo=t=>archHeight(deck,t);for(const sign of [-1,1])quad('brid',[X(t0)+nx*sign,lo(t0),Z(t0)+nz*sign],[X(t1)+nx*sign,lo(t1),Z(t1)+nz*sign],[X(t1)+nx*sign,Y(t1),Z(t1)+nz*sign],[X(t0)+nx*sign,Y(t0),Z(t0)+nz*sign]);quad('brid',[X(t0)+nx,lo(t0),Z(t0)+nz],[X(t1)+nx,lo(t1),Z(t1)+nz],[X(t1)-nx,lo(t1),Z(t1)-nz],[X(t0)-nx,lo(t0),Z(t0)-nz]);}}}
  function archHeight(d,t){if(!d.arch)return mix(d.a[2],d.b[2],t)-d.thickness;const span=Math.hypot(d.b[0]-d.a[0],d.b[1]-d.a[1])/d.arch.spans,phase=(t*d.arch.spans)%1,edge=d.arch.pier/(2*span),v=clamp((phase-edge)/(1-2*edge),0,1);return d.arch.bottom+(mix(d.a[2],d.b[2],t)-d.thickness-d.arch.bottom-1)*Math.sqrt(Math.max(0,1-(2*v-1)**2));}
  function underDeck(d,x,z){const dx=d.b[0]-d.a[0],dz=d.b[1]-d.a[1],t=clamp(((x-d.a[0])*dx+(z-d.a[1])*dz)/(dx*dx+dz*dz),0,1);return archHeight(d,t);}
- function sample(x,z){const gx=Math.floor(x/step)*step,gz=Math.floor(z/step)*step,c=grid.get(key(gx,gz));if(!c)return null;const u=(x-gx)/step,v=(z-gz)/step;const interp=a=>v>=u?a[0]*(1-v)+a[1]*(v-u)+a[2]*u:a[0]*(1-u)+a[2]*v+a[3]*(u-v);return {floor:interp(c.floor),roof:c.top?interp(c.top):null};}
+ function sample(x,z){const gx=Math.floor(x/step)*step,gz=Math.floor(z/step)*step,c=grid.get(key(gx,gz));if(!c)return null;
+  if(c.tris){let best=null;for(const [a,b,d] of c.tris){const den=(b[2]-d[2])*(a[0]-d[0])+(d[0]-b[0])*(a[2]-d[2]),l1=((b[2]-d[2])*(x-d[0])+(d[0]-b[0])*(z-d[2]))/den,l2=((d[2]-a[2])*(x-d[0])+(a[0]-d[0])*(z-d[2]))/den,l3=1-l1-l2,worst=Math.min(l1,l2,l3),y=l1*a[1]+l2*b[1]+l3*d[1];if(!best||worst>best.worst)best={worst,y};}return {floor:best.y,roof:null};}const u=(x-gx)/step,v=(z-gz)/step;const interp=a=>v>=u?a[0]*(1-v)+a[1]*(v-u)+a[2]*u:a[0]*(1-u)+a[2]*v+a[3]*(u-v);return {floor:interp(c.floor),roof:c.top?interp(c.top):null};}
  // 小規模な建物・岩。既存の体積と三角形層へまとめ、同じ面を衝突にも使う。
  const props=[],propVolumes=[];
  const rect=(x,z,w,d)=>[[x-w/2,z-d/2],[x+w/2,z-d/2],[x+w/2,z+d/2],[x-w/2,z+d/2]];

@@ -1422,7 +1422,8 @@
     "bed": -2,
     "level": -0.5,
     "bank": 13.5,
-    "color": "#535b39"
+    "color": "#535b39",
+    "wall": true
   },
   "plants": [
     [
@@ -1853,7 +1854,8 @@
         "spans": 3,
         "pier": 3,
         "bottom": -2
-      }
+      },
+      "cut": true
     },
     {
       "id": "lower_crossing",
@@ -1871,7 +1873,8 @@
           -58.5,
           14
         ]
-      ]
+      ],
+      "cut": true
     },
     {
       "id": "castle_left_ramp",
@@ -2004,7 +2007,8 @@
           97.5,
           -2
         ]
-      ]
+      ],
+      "cut": true
     },
     {
       "id": "west_quay_ramp",
@@ -2013,16 +2017,17 @@
       "thickness": 1,
       "points": [
         [
-          180,
-          180,
+          152.5,
+          116.25,
           10
         ],
         [
-          120,
-          142.5,
+          123.5,
+          144,
           -2
         ]
-      ]
+      ],
+      "cut": true
     },
     {
       "id": "west_outer",
@@ -2230,7 +2235,8 @@
           202.5,
           7
         ]
-      ]
+      ],
+      "cut": true
     },
     {
       "id": "broken_bridge_east",
@@ -2248,7 +2254,8 @@
           169.5,
           9
         ]
-      ]
+      ],
+      "cut": true
     },
     {
       "id": "broken_west_approach",
@@ -2570,5 +2577,6 @@
       "plant": "E",
       "yaw": 3.141592653589793
     }
-  ]
+  ],
+  "rockSlope": 50
 }
