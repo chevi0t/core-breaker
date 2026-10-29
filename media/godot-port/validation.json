@@ -1,0 +1,194 @@
+{
+  "engine": "4.6.3.stable.official.7d41c59c4",
+  "checks": {
+    "checks": 813,
+    "failures": [],
+    "jumpPeak": 6.62103605270386,
+    "maps": 11,
+    "passed": 813,
+    "weapons": 286
+  },
+  "battles": [
+    {
+      "map": "mesa",
+      "seconds": 150.000000000012,
+      "units": 10,
+      "shots": 1069,
+      "hits": 1204,
+      "kills": 49,
+      "captures": 5,
+      "core": {
+        "B": 7650.0,
+        "R": 7706.25
+      },
+      "ended": false
+    },
+    {
+      "map": "wide",
+      "seconds": 150.000000000012,
+      "units": 20,
+      "shots": 2149,
+      "hits": 1844,
+      "kills": 77,
+      "captures": 9,
+      "core": {
+        "B": 6806.25,
+        "R": 7031.25
+      },
+      "ended": false
+    },
+    {
+      "map": "city",
+      "seconds": 150.000000000012,
+      "units": 20,
+      "shots": 1925,
+      "hits": 1542,
+      "kills": 77,
+      "captures": 5,
+      "core": {
+        "B": 7087.5,
+        "R": 6806.25
+      },
+      "ended": false
+    },
+    {
+      "map": "dock",
+      "seconds": 104.899999999995,
+      "units": 4,
+      "shots": 333,
+      "hits": 355,
+      "kills": 16,
+      "captures": 0,
+      "core": {
+        "B": 0.0,
+        "R": 8000.0
+      },
+      "ended": true
+    },
+    {
+      "map": "circulation",
+      "seconds": 150.000000000012,
+      "units": 10,
+      "shots": 1221,
+      "hits": 1269,
+      "kills": 44,
+      "captures": 4,
+      "core": {
+        "B": 8043.75,
+        "R": 7593.75
+      },
+      "ended": false
+    },
+    {
+      "map": "circulation-v2",
+      "seconds": 150.000000000012,
+      "units": 10,
+      "shots": 1204,
+      "hits": 1164,
+      "kills": 38,
+      "captures": 12,
+      "core": {
+        "B": 5478.14522674561,
+        "R": 8100.0
+      },
+      "ended": false
+    },
+    {
+      "map": "circulation-v3",
+      "seconds": 150.000000000012,
+      "units": 10,
+      "shots": 1160,
+      "hits": 1257,
+      "kills": 42,
+      "captures": 3,
+      "core": {
+        "B": 7931.25,
+        "R": 7706.25
+      },
+      "ended": false
+    },
+    {
+      "map": "tidal",
+      "seconds": 150.000000000012,
+      "units": 20,
+      "shots": 1473,
+      "hits": 1309,
+      "kills": 59,
+      "captures": 5,
+      "core": {
+        "B": 7537.5,
+        "R": 7312.5
+      },
+      "ended": false
+    },
+    {
+      "map": "tidal-v2",
+      "seconds": 150.000000000012,
+      "units": 20,
+      "shots": 1695,
+      "hits": 1467,
+      "kills": 59,
+      "captures": 9,
+      "core": {
+        "B": 7200.0,
+        "R": 7481.25
+      },
+      "ended": false
+    },
+    {
+      "map": "tidal-v3",
+      "seconds": 150.000000000012,
+      "units": 20,
+      "shots": 1400,
+      "hits": 1995,
+      "kills": 52,
+      "captures": 10,
+      "core": {
+        "B": 7593.75,
+        "R": 7537.5
+      },
+      "ended": false
+    }
+  ],
+  "packedGame": {
+    "map": "city",
+    "seconds": 30.0166666666662,
+    "units": 20,
+    "shots": 299,
+    "hits": 369,
+    "kills": 17,
+    "captures": 3,
+    "core": {
+      "B": 8550.0,
+      "R": 8775.0
+    },
+    "ended": false
+  },
+  "browserQuickCheck": {
+    "passed": true,
+    "maps": [
+      "city",
+      "dock"
+    ],
+    "secondsPerMap": 60,
+    "runtimeChanged": false
+  },
+  "rendering": {
+    "size": [
+      1280,
+      720
+    ],
+    "driver": "OpenGL / llvmpipe",
+    "errors": 0,
+    "warning": "ダミー画面ではV-Sync変更が未対応。"
+  },
+  "source": {
+    "format": 1,
+    "source": "ブラウザ版からの明示的な取り込み",
+    "sha256": {
+      "prototype/index.html": "d80a4430f12fa72d8ced43abf008e3e09801b004c524201f33ba4f6b9a5dc41a",
+      "prototype/maps.js": "edcbb0933fcb5909c7c563a0e7a1a74b7a0ac01aac34991a58d406afa0cbab72"
+    }
+  },
+  "scope": "機能・起動・無人戦の検査。ブラウザ版との全挙動一致や勝率の保証ではない。残差はgodot/PORTING.md。"
+}
