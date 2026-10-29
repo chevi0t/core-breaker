@@ -113,3 +113,11 @@ blocksの任意分類 `blockKind` はbuilding（既定）／wall。wallは窓を
 工場・住宅・岩と8対8の最新配置は [TERRAIN_SCENERY.md](TERRAIN_SCENERY.md)。
 
 表示順は任意の `order`（整数0〜999、省略90）で指定。風裂山道は5。白煙循環区は `mapdesign/archive/circulation.js` に退避し、通常ビルドに含めない。旧生成器を試す場合は一時ディレクトリへ出力し、公開マップへ再登録しない。復元は別途選択一覧の入替として行う。旧マップIDの保存値は既存のFIRST_MAPフォールバックで読み込める。
+
+## 参照地形の手描きレシピ（翠河城下・ローカル試作）
+
+`river_castle.json` は旧ブロア作戦3を参照した非対称の手描き配置。高さや縮尺は推定であり、乱数で代用しない。出典と限界は `mapdesign/river_castle/README.md`。
+
+追加の任意項目：`heightZones:[{ring:[[x,z],...],height,feather}]`（最大20領域。外側をfeather幅で平滑接続）、`water:{ring,bed,level,bank,color}`（川床・水面・岸の幅、任意色）、`walls:[{a:[x,z],b:[x,z],bottom,top,width}]`（最大24の河岸などの壁）、`respawnMode:"towardBase"`（実ベース方向の空いた48m地点）、`description`。deck経路の `arch:{spans,pier,bottom}` は上面を保ち、12分割のアーチ下面と側面を同じ橋の衝突面へ追加する。navも下面のクリアランスを見る。
+
+斜めの外周辺を許容。half最大600、直径/grid最大150、routes最大32、props最大96。地形グリッドに道路色を割り当て、重複面を作らない。旧レシピは省略時の既定動作を継続する。高さ領域・河川はこの地形での実用例であり、任意の複雑な水系や多重交差の自動解決は未対応。10mセルの道・岸には角張りが残る。
