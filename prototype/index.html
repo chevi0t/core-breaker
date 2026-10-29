@@ -1593,7 +1593,8 @@ function expandCityLayout(T,data){
   for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
   for(const lawn of data.district.lawns||[])add('grass',faces(lawn.rings,.06),lawn.color);
   for(const rings of data.river.rings){
-    add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
+    // 生成地形は川床も連続地面に含むため、同一高さの床を重ねない。
+    if(!data.smoothTerrain)add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
     add('water',faces(rings,data.river.water));
   }
 
@@ -1756,7 +1757,7 @@ function createCityMap(T,layout) {
     }
     return result;
   }
-  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas','streets','historicGround']));
+  const ground = index(triangles(['dem', 'tran', 'fill', 'ramps', 'aprons', 'plazas',...(data.smoothTerrain?[]:['streets']),'historicGround']));
   const bridgeTriangles = triangles(['brid',...(arrays.ferris?['ferris']:[])]);
   const bridge = index(bridgeTriangles);
   const walls = index(bridgeTriangles.filter(t => Math.abs(t.normal.y) < .65));
@@ -2048,7 +2049,7 @@ function createCityMap(T,layout) {
         mesh.material.customProgramCacheKey=()=> 'city-historic-wall-v1';
       }
       mesh.name='city-'+k; mesh.receiveShadow=true; mesh.castShadow=['bldg','rail','station','shops','ferris'].includes(k); root.add(mesh);
-      if(k!=='water'&&k!=='exitMarks') {
+      if(k!=='water'&&k!=='exitMarks'&&!(data.smoothTerrain&&k==='streets')) {
         // 描画は層ごとにまとめたまま、レイ判定だけを32m街区へ分けて近傍に絞る。
         const chunks=new Map();
         for(let i=0;i<a.length;i+=9){

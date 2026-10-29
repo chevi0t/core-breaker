@@ -69,6 +69,7 @@ function compile(input,seed=input.seed){
  function paintedGround(floor,x,z,step){let pieces=[];for(const t of [[floor[0],floor[1],floor[2]],[floor[0],floor[2],floor[3]]]){if(t.every(p=>inside(r.boundary,p[0],p[2])))pieces.push({p:t,street:false});else for(const b of boundaryTriangles){const p=clip(t,b);if(p.length>=3)pieces.push({p,street:false});}}
  // 支持面は連続した元の三角形を保つ。道路の量子化境界を足場判定の継ぎ目にしない。
  for(const q of pieces)for(let i=1;i+1<q.p.length;i++)tri('dem',q.p[0],q.p[i],q.p[i+1]);
+ for(const q of pieces)q.street=roadPolys.some(road=>q.p.every(p=>inside(road.poly,p[0],p[2])));
  for(const road of roadPolys){if(road.maxX<x||road.minX>x+step||road.maxZ<z||road.minZ>z+step)continue;const next=[];for(const q of pieces){if(q.street){next.push(q);continue;}const cut=splitConvex(q.p,road.poly);for(const p of cut.outside)next.push({p,street:false});if(cut.inside.length>=3)next.push({p:cut.inside,street:true});}pieces=next;}
  for(const q of pieces){if(!q.street)continue;const p=q.p;for(let i=1;i+1<p.length;i++){const a=p[0],b=p[i],c=p[i+1];if(Math.abs((b[0]-a[0])*(c[2]-a[2])-(b[2]-a[2])*(c[0]-a[0]))>1e-7)tri(q.street?'streets':'dem',a,b,c);}}}
 
