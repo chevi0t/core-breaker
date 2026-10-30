@@ -52,6 +52,7 @@ python3 tools/build_maps.py
 | routes | id, kind, width, points。ground は blend、deck は thickness。幅8〜40m、勾配上限0.65。経路点は外周から離す |
 | tunnels | axis x/z、rect、floor、ceiling。格子沿いの直方体の貫通空間。高さ8m以上、最大8個 |
 | catapultTargets | 任意。B/Rそれぞれ左右2基の着地点 `[[x,z],[x,z]]`。レシピ座標で指定しlengthScaleも適用。省略時は従来配置 |
+| catapultStarts | 任意。B/Rそれぞれ2基の射出台 `[[x,z],[x,z]]`。レシピ座標で指定しlengthScaleも適用。着地点は変更しない。省略時は基地中心からの従来配置 |
 | team | 任意の5/8/10。片側人数、未指定5。山岳は8 |
 | props | 任意、最大24個。factory/house/rock、at:[x,z]、size:[幅,奥行,高さ]。地形上の建物・岩を同じ生成器で追加 |
 | plants | [ID,x,z,初期所有B/R/null]、3〜6個 |
