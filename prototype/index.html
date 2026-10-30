@@ -908,7 +908,7 @@ body.tcMenu #tcPad { visibility:hidden; }
 body:not(.touch) .touchOnly { display: none; }
 
 /* レトロは既存の数値DOMを装飾。背景/機体/照準判定を置き換えない。 */
-#retroSilhouette,#retroWeaponState { display:none; }
+#retroWeaponState { display:none; }
 body[data-console="retro"] { --hud:#f2c374; --dim:#c6ad82; --blue:#66cfdf; --orange:#ec7257; --panel:rgba(17,23,25,.86); --console-map-width:170px; }
 body[data-console="retro"] .hud { font-family:ui-monospace,"M PLUS 1p",monospace; text-shadow:0 1px 2px #000; }
 body[data-console="retro"] :is(#status,#ammoBox,#top) { border:1px solid #c39b58; background:repeating-linear-gradient(0deg,transparent 0 3px,#e3ba6c06 3px 4px),var(--panel); box-shadow:inset 0 0 0 4px #0d1417; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%,0 12px); }
@@ -919,9 +919,8 @@ body[data-console="retro"] #timer { color:#f6c774; font-size:30px; }
 body[data-console="retro"] #plantBar { top:88px; }
 body[data-console="retro"] #mini { border:1px solid #c39b58; }
 body[data-console="retro"] #feed { max-width:25vw; font-size:11px; }
-body[data-console="retro"] #status { width:360px; min-height:175px; padding:36px 16px 14px 112px; gap:12px; }
+body[data-console="retro"] #status { width:260px; min-height:175px; padding:36px 16px 14px 16px; gap:12px; }
 body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:10px; left:14px; right:14px; padding-bottom:5px; border-bottom:1px solid #c39b5866; font-size:11px; letter-spacing:.15em; }
-body[data-console="retro"] #retroSilhouette { display:block; position:absolute; left:12px; top:43px; width:82px; height:122px; color:#c69d58; }
 body[data-console="retro"] #status .row { grid-template-columns:1fr 65px; gap:4px; font-size:10px; }
 body[data-console="retro"] #status .row .bar { grid-row:2; grid-column:1 / 3; height:8px; }
 body[data-console="retro"] #status .row b { font-size:19px; font-weight:500; }
@@ -951,7 +950,6 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
 @media(max-width:1050px),(max-height:650px) {
  body[data-console="retro"] { --console-map-width:110px; --console-edge:12px; }
  body[data-console="retro"] #status { width:260px; min-height:0; padding:30px 12px 12px; gap:6px; }
- body[data-console="retro"] #retroSilhouette { display:none; }
  body[data-console="retro"] #ammoBox { width:290px; }
  body[data-console="retro"] #top { padding:6px 10px; gap:8px; }
  body[data-console="retro"] .core { width:18vw; }
@@ -967,6 +965,36 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
  body[data-console="retro"] #wcls { grid-column:auto; }
  body[data-console="retro"] #mapHud { top:110px; }
 }
+
+
+/* パイロットはHUDから独立した共通の左下欄。アーケードの156px肖像を基準にする。 */
+body { --pilot-size:156px; --pilot-left:max(32px,2vw); --pilot-bottom:max(20px,env(safe-area-inset-bottom,0px)); }
+body[data-console] #pilot { position:fixed; left:var(--pilot-left); bottom:var(--pilot-bottom); top:auto; width:var(--pilot-size); padding:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--pilot-size) 22px 16px; gap:5px; justify-items:center; background:none; pointer-events:none; }
+body[data-console] #pilotMark { display:grid; grid-row:1; width:var(--pilot-size); height:var(--pilot-size); padding:0; background:none; clip-path:none; }
+body[data-console] #pilotName { grid-row:2; width:100%; text-align:center; font-size:16px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+body[data-console] #pilotCls { grid-row:3; justify-self:center; font-size:10px; line-height:1.4; }
+body[data-console]:not([data-console="arcade"]):not(.touchPlay) #status { left:calc(var(--pilot-left) + var(--pilot-size) + 16px); }
+@media(max-width:1000px) { body { --pilot-size:120px; --pilot-left:24px; } }
+@media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status, body[data-console="retro"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } }
+@media(max-width:700px) { body { --pilot-size:96px; --pilot-left:20px; } }
+/* タッチでは左側の情報欄の横へ小さく配置。移動スティックと右の操作ボタンを空ける。 */
+body.touchPlay { --pilot-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
+body.touchPlay #pilot { top:calc(152px + env(safe-area-inset-top,0px)); bottom:auto; }
+body.touchPlay #pilotName { font-size:10px; }
+body.touchPlay #pilotCls { font-size:9px; }
+
+
+/* アーケード/フライト共通の耐久計。横幅は従来どおり、高さを従来の1.5倍。 */
+body { --shared-hp-width:60px; --shared-hp-height:156px; }
+body:is([data-console="arcade"],[data-console="flight"]):not(.touchPlay) #status { left:calc(var(--pilot-left) + var(--pilot-size) + 16px); bottom:var(--pilot-bottom); width:calc(var(--shared-hp-width) + 44px); padding:10px 22px; border:0; background:none; clip-path:none; grid-template-columns:minmax(0,1fr); }
+body:is([data-console="arcade"],[data-console="flight"]) #status .row:first-child { grid-column:1; grid-row:1; grid-template-columns:auto auto; grid-template-areas:"bar bar" "lbl num"; justify-content:space-between; align-items:baseline; gap:4px 6px; font-size:10px; }
+body:is([data-console="arcade"],[data-console="flight"]) #status .row:first-child > span { grid-area:lbl; white-space:nowrap; }
+body:is([data-console="arcade"],[data-console="flight"]) #hp { grid-area:bar; justify-self:center; width:var(--shared-hp-width); height:var(--shared-hp-height); display:flex; align-items:flex-end; transform:skewX(-16deg); background:#0b2a14b0; border:1px solid #b7ff6e99; }
+body:is([data-console="arcade"],[data-console="flight"]) #hp > i { width:100% !important; height:var(--fill,100%); background:linear-gradient(#e2ff8a,#8ee83c); transition:height .15s; }
+body:is([data-console="arcade"],[data-console="flight"]) #status.low #hp > i { background:linear-gradient(#ffc27a,var(--warn)); }
+body:is([data-console="arcade"],[data-console="flight"]) #hpT { grid-area:num; font-size:16px; line-height:1; }
+@media(max-width:1000px) { body { --shared-hp-width:48px; --shared-hp-height:126px; } }
+@media(max-width:700px),(max-height:540px) { body { --shared-hp-height:96px; } }
 
 </style>
 
@@ -1020,12 +1048,12 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
 <div id="respawn" hidden><div id="rtXf" hidden></div><div id="killcam" hidden><div id="killerFace"></div><small>あなたを撃破した相手</small><b></b><span id="killcamWeapon"></span><span id="killcamInfo"></span></div><div class="rt" id="rtCls">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt" id="rtPt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
 <div class="hud" id="status">
-  <svg id="retroSilhouette" viewBox="0 0 80 125" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><path d="M32 6h16l3 13-11 6-11-6zM25 28l15-3 15 3-4 28H29zM27 29L13 26 8 41l12 4 6-9M54 29l13-3 5 15-12 4-6-9M10 45l-4 24 10 3 6-24M70 45l5 24-10 3-6-24M29 59h22l4 13-15 7-15-7zM26 75l11 5-4 19-12-1zM43 80l11-5 5 23-12 1zM22 101h11l-1 17H18zM47 101h12l4 17H48zM18 118h15v5H15zM47 118h16l3 5H47zM30 36h20M31 45h18M35 10h10M36 59v13M44 59v13"/><path opacity=".35" d="M0 20h80M0 60h80M0 100h80M40 0v125" stroke-dasharray="2 3"/></g></svg>
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
   <div class="row" id="boostRow"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
   <div class="row" id="spRow"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
-  <div id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
+
 </div>
+<div class="hud" id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><div id="retroWeaponState"><span id="retroWeaponLabel"></span><div class="bar" id="retroWeaponBar" role="meter" aria-label="選択武器の状態" aria-valuemin="0" aria-valuemax="100"><i></i></div></div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
 <!-- タッチ操作（スマホ・タブレット。試合中だけ出す） -->
@@ -13006,7 +13034,7 @@ function hud(timeLeft, dt) {
   pilotHud(p);
   $('status').classList.toggle('low', p.hp / p.maxHp <= .3);
   $('hp').firstChild.style.width = Math.max(0, p.hp / p.maxHp * 100) + '%'; $('hpT').textContent = Math.max(0, Math.round(p.hp));
-  if (arcade) { // 縦に伸びる耐久ゲージと機体の札
+  if (arcade || consoleMode === 'flight') { // 共通の縦型耐久ゲージ
     $('hp').style.setProperty('--fill', Math.max(0, p.hp / p.maxHp * 100) + '%');
   }
   $('boost').firstChild.style.width = p.boost / p.maxBoost * 100 + '%'; $('boostT').textContent = consoleMode === 'flight' ? Math.round(p.boost / p.maxBoost * 100) + '%' : Math.round(p.boost);
