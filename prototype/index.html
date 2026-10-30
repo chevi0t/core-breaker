@@ -968,6 +968,22 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
  body[data-console="retro"] #mapHud { top:110px; }
 }
 
+
+/* パイロットはHUDから独立した共通の左下欄。アーケードの156px肖像を基準にする。 */
+body { --pilot-size:156px; --pilot-left:max(32px,2vw); --pilot-bottom:max(20px,env(safe-area-inset-bottom,0px)); --pilot-stack:210px; }
+body[data-console] #pilot { position:fixed; left:var(--pilot-left); bottom:var(--pilot-bottom); top:auto; width:var(--pilot-size); padding:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--pilot-size) 22px 16px; gap:5px; justify-items:center; background:none; pointer-events:none; }
+body[data-console] #pilotMark { display:grid; grid-row:1; width:var(--pilot-size); height:var(--pilot-size); padding:0; background:none; clip-path:none; }
+body[data-console] #pilotName { grid-row:2; width:100%; text-align:center; font-size:16px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+body[data-console] #pilotCls { grid-row:3; justify-self:center; font-size:10px; line-height:1.4; }
+body[data-console]:not([data-console="arcade"]):not(.touchPlay) #status { bottom:calc(var(--pilot-bottom) + var(--pilot-stack)); }
+@media(max-width:1000px) { body { --pilot-size:120px; --pilot-left:24px; --pilot-stack:174px; } }
+@media(max-width:700px) { body { --pilot-size:96px; --pilot-left:20px; --pilot-stack:150px; } }
+/* タッチでは左側の情報欄の横へ小さく配置。移動スティックと右の操作ボタンを空ける。 */
+body.touchPlay { --pilot-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
+body.touchPlay #pilot { top:calc(152px + env(safe-area-inset-top,0px)); bottom:auto; }
+body.touchPlay #pilotName { font-size:10px; }
+body.touchPlay #pilotCls { font-size:9px; }
+
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -1024,8 +1040,9 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
   <div class="row" id="boostRow"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
   <div class="row" id="spRow"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
-  <div id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
+
 </div>
+<div class="hud" id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
 <div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><div id="retroWeaponState"><span id="retroWeaponLabel"></span><div class="bar" id="retroWeaponBar" role="meter" aria-label="選択武器の状態" aria-valuemin="0" aria-valuemax="100"><i></i></div></div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
 <!-- タッチ操作（スマホ・タブレット。試合中だけ出す） -->
