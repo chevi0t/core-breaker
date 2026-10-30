@@ -909,6 +909,68 @@ body.tcMenu #tcPad { visibility:hidden; }
 
 /* スマホでだけ出す説明・PC でだけ出す説明 */
 body:not(.touch) .touchOnly { display: none; }
+
+/* レトロは既存の数値DOMを装飾。背景/機体/照準判定を置き換えない。 */
+#retroSilhouette,#retroWeaponState { display:none; }
+body[data-console="retro"] { --hud:#f2c374; --dim:#c6ad82; --blue:#66cfdf; --orange:#ec7257; --panel:rgba(17,23,25,.86); --console-map-width:170px; }
+body[data-console="retro"] .hud { font-family:ui-monospace,"M PLUS 1p",monospace; text-shadow:0 1px 2px #000; }
+body[data-console="retro"] :is(#status,#ammoBox,#top) { border:1px solid #c39b58; background:repeating-linear-gradient(0deg,transparent 0 3px,#e3ba6c06 3px 4px),var(--panel); box-shadow:inset 0 0 0 4px #0d1417; clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%,0 12px); }
+body[data-console="retro"] #top { padding:10px 16px; top:12px; gap:18px; }
+body[data-console="retro"] .core { width:min(20vw,230px); }
+body[data-console="retro"] .core .lbl { font-size:10px; }
+body[data-console="retro"] #timer { color:#f6c774; font-size:30px; }
+body[data-console="retro"] #plantBar { top:88px; }
+body[data-console="retro"] #mini { border:1px solid #c39b58; }
+body[data-console="retro"] #feed { max-width:25vw; font-size:11px; }
+body[data-console="retro"] #status { width:360px; min-height:175px; padding:36px 16px 14px 112px; gap:12px; }
+body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:10px; left:14px; right:14px; padding-bottom:5px; border-bottom:1px solid #c39b5866; font-size:11px; letter-spacing:.15em; }
+body[data-console="retro"] #retroSilhouette { display:block; position:absolute; left:12px; top:43px; width:82px; height:122px; color:#c69d58; }
+body[data-console="retro"] #status .row { grid-template-columns:1fr 65px; gap:4px; font-size:10px; }
+body[data-console="retro"] #status .row .bar { grid-row:2; grid-column:1 / 3; height:8px; }
+body[data-console="retro"] #status .row b { font-size:19px; font-weight:500; }
+body[data-console="retro"] #hp > i { background:#e8b962; }
+body[data-console="retro"] .bar { border-color:#a38b5b88; position:relative; }
+body[data-console="retro"] .bar::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent 0 12px,#142023 12px 14px); pointer-events:none; }
+body[data-console="retro"] #pilot { display:none; }
+body[data-console="retro"] #status.low { border-color:var(--warn); }
+body[data-console="retro"] #ammoBox { width:380px; padding:34px 16px 12px; display:flex; flex-direction:column; gap:7px; text-align:left; }
+body[data-console="retro"] #ammoBox::before { content:"WEAPON / 兵装"; position:absolute; top:10px; left:16px; right:16px; border-bottom:1px solid #c39b5866; padding-bottom:5px; font-size:11px; letter-spacing:.15em; }
+body[data-console="retro"] #ammo { font-size:32px; line-height:1; }
+body[data-console="retro"] #ammoSub { font-size:11px; letter-spacing:0; }
+body[data-console="retro"] #wpn { order:4; display:grid; grid-template-columns:1fr 1fr; justify-items:stretch; gap:5px; font-size:10px; margin:0; }
+body[data-console="retro"] #wpn > span:not(#wcls) { border:1px solid #8b7d6266; padding:5px; line-height:1.4; }
+body[data-console="retro"] #wpn .on { border-color:#efbe69!important; box-shadow:inset 3px 0 #efbe69; background:#efbe6912; }
+body[data-console="retro"] #wcls { grid-column:1 / 3; font-size:10px; }
+body[data-console="retro"] #retroWeaponState { display:grid; gap:5px; font-size:11px; }
+body[data-console="retro"] #retroWeaponBar { height:8px; }
+body[data-console="retro"] #retroWeaponBar > i { background:#e8b962; }
+body[data-console="retro"] #retroWeaponState.warn { color:var(--warn); }
+body[data-console="retro"] #retroWeaponState.warn i { background:var(--warn); }
+body[data-console="retro"] :is(#aimGauge,#aimSp) { display:none; }
+body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.act .bar) { animation:none; }
+.consoleMini[data-preview="retro"] { --ink:#e8b962; }
+.consoleMini[data-preview="retro"] .map { left:auto; right:8px; }
+.consoleMini[data-preview="retro"] .sight { border-radius:0; width:10px; height:10px; left:calc(50% - 5px); }
+@media(max-width:1050px),(max-height:650px) {
+ body[data-console="retro"] { --console-map-width:110px; --console-edge:12px; }
+ body[data-console="retro"] #status { width:260px; min-height:0; padding:30px 12px 12px; gap:6px; }
+ body[data-console="retro"] #retroSilhouette { display:none; }
+ body[data-console="retro"] #ammoBox { width:290px; }
+ body[data-console="retro"] #top { padding:6px 10px; gap:8px; }
+ body[data-console="retro"] .core { width:18vw; }
+ body[data-console="retro"] #timer { font-size:23px; }
+ body[data-console="retro"] #mini { max-height:20vh; }
+ body[data-console="retro"] #spotAlert { font-size:10px; }
+ body[data-console="retro"] #plantBar { top:72px; }
+}
+@media(max-width:600px) {
+ body[data-console="retro"] #status { width:42vw; }
+ body[data-console="retro"] #ammoBox { width:49vw; }
+ body[data-console="retro"] #wpn { grid-template-columns:1fr; }
+ body[data-console="retro"] #wcls { grid-column:auto; }
+ body[data-console="retro"] #mapHud { top:110px; }
+}
+
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -961,12 +1023,13 @@ body:not(.touch) .touchOnly { display: none; }
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
 <div id="respawn" hidden><div id="rtXf" hidden></div><div id="killcam" hidden><div id="killerFace"></div><small>あなたを撃破した相手</small><b></b><span id="killcamWeapon"></span><span id="killcamInfo"></span></div><div class="rt" id="rtCls">兵装を選択（Z・X・C・V）</div><div class="cls" id="rcls"></div><div class="rt" id="rtPt">再出撃地点を選択（数字キーかホイール）　数え終わると自動で出撃</div><div id="rlist"></div></div>
 <div class="hud" id="status">
+  <svg id="retroSilhouette" viewBox="0 0 80 125" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><path d="M32 6h16l3 13-11 6-11-6zM25 28l15-3 15 3-4 28H29zM27 29L13 26 8 41l12 4 6-9M54 29l13-3 5 15-12 4-6-9M10 45l-4 24 10 3 6-24M70 45l5 24-10 3-6-24M29 59h22l4 13-15 7-15-7zM26 75l11 5-4 19-12-1zM43 80l11-5 5 23-12 1zM22 101h11l-1 17H18zM47 101h12l4 17H48zM18 118h15v5H15zM47 118h16l3 5H47zM30 36h20M31 45h18M35 10h10M36 59v13M44 59v13"/><path opacity=".35" d="M0 20h80M0 60h80M0 100h80M40 0v125" stroke-dasharray="2 3"/></g></svg>
   <div class="row"><span>耐久</span><div class="bar" id="hp"><i></i></div><b id="hpT">10000</b></div>
   <div class="row" id="boostRow"><span>ブースト</span><div class="bar" id="boost"><i></i></div><b id="boostT">100</b></div>
   <div class="row" id="spRow"><span>SP</span><div class="bar" id="sp"><i></i></div><b id="spT">100</b></div>
   <div id="pilot"><span id="pilotMark"></span><b id="pilotName"></b><small id="pilotCls"></small></div>
 </div>
-<div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
+<div class="hud" id="ammoBox"><div id="wpn"><span id="wcls"></span><span id="w-main"></span><span id="w-sub"></span><span id="w-aux"></span><span id="w-sp"></span></div><div id="ammo">40</div><div id="retroWeaponState"><span id="retroWeaponLabel"></span><div class="bar" id="retroWeaponBar" role="meter" aria-label="選択武器の状態" aria-valuemin="0" aria-valuemax="100"><i></i></div></div><small id="ammoSub">アサルトライフル · 予備 ∞</small></div>
 
 <!-- タッチ操作（スマホ・タブレット。試合中だけ出す） -->
 <div id="touchZone" aria-hidden="true"><div id="tcStick" hidden><i id="tcKnob"></i></div></div>
@@ -11738,6 +11801,7 @@ const CONSOLES = [
   { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右下にマップと菱形の武器枠。' },
   { id: 'flight', name: 'フライト', desc: '下中央に大きなブーストとSPの2本。右側に4枠の装備と残弾を縦に並べ、右上にマップを配置。' },
   { id: 'mechanical', name: 'メカニカル', desc: '照準の4枠の武器メーター。両端の飛行計器、下中央のブーストと方位、右下の残弾。' },
+  { id: 'retro', name: 'レトロ・ミリタリー', desc: '琥珀色の軍用計器。右上のマップ、左下の総耐久・ブースト、右下の武器・充填。タッチ操作時は標準配置。' },
 ];
 const CONSOLE_KEY = 'coreBreakerConsole';
 let consoleMode = 'standard';
@@ -12751,6 +12815,15 @@ function hud(timeLeft, dt) {
   if (p.post) small += ' · リペアビーコン 設置中（特別装備を再選択で回収）';
   if (p.fieldOn) small += ` · リペアフィールド 作動中（味方${p.fieldN || 0}機を修理・蘇生）`;
   $('ammo').textContent = big; $('ammoSub').textContent = small;
+  if(consoleMode==='retro'){
+    const state=mechanicalWeaponState(p,p.weapon),f=cw.chargeTime&&cur.chargeT>0&&!cur.overheat&&cur.reloadT<=0?Math.min(1,cur.chargeT/cw.chargeTime):state.fraction;
+    $('retroWeaponLabel').textContent=state.state;
+    $('retroWeaponState').classList.toggle('warn',state.color==='warn');
+    $('retroWeaponBar').hidden=!(cw.mag||cw.chargeTime||p.weapon==='sp');
+    $('retroWeaponBar').firstChild.style.width=(f*100)+'%';
+    $('retroWeaponBar').setAttribute('aria-valuenow',Math.round(f*100));
+  }
+
   if (arcade) { // 菱形の武器枠：持っている武器は大きな数字と同じ値、ほかは弾倉の残り（剣は∞、SPを使う物は%）
     SLOTS.forEach((k, i) => { const sl = p.slots[k], el = $('w-' + k); el.dataset.n = k === p.weapon ? big : sl.w.mag ? sl.ammo : sl.w.type === 'sword' ? '∞' : Math.round(sl.heat) + '%'; el.dataset.name = `${i + 1} ${sl.w.name}`; });
     $('w-sp').style.setProperty('--fill', sps.heat + '%');
