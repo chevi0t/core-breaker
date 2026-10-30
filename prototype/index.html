@@ -1184,7 +1184,7 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
         <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。オプションの「コンソール」でも選べます</span>
         <kbd>F3</kbd><span>オプション（音量・視野角）。開いている間は戦闘を一時停止</span>
         <kbd>WASD</kbd><span>移動</span>
-        <kbd>C / 左Ctrl</kbd><span>アクション：押している間しゃがむ（二脚は低速移動、ホバーは停止・水上では沈む）。ダッシュ・ジャンプで解除</span>
+        <kbd>C / 左Ctrl</kbd><span>アクション：押している間しゃがむ（二脚は低速移動、ホバーは停止・水上では沈む）。ダッシュ中は短く滑って停止・ブースト回復開始。ジャンプで解除</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
         <kbd>Shift 長押し</kbd><span>ロングダッシュ（押している間ブーストを毎秒約11消費して高速移動。使い切るとオーバーヒート）</span>
         <kbd>Space</kbd><span>ジャンプ（ブースト8.8消費、約6.8m）。空中で押し続けるとブーストを使って滞空（毎秒9.6）。敵の回転斬りはジャンプで避けられます</span>
@@ -5669,7 +5669,7 @@ function mechPose(u, dt) {
   r.last.copy(p); r.hasLast = true;
   const floating=hoverLegs(u);
   if (u.hoverJet) { u.hoverJet.visible=hoverActive(u); u.hoverJet.material.opacity=.55+Math.min(.3,Math.hypot(velocity.x,velocity.z)/100); }
-  const walking = !floating && grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
+  const walking = !floating && !(u.kneeSlideT > 0) && grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
   r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
   if (walking) {
     const before = Math.floor(r.phase / Math.PI);
@@ -5723,6 +5723,7 @@ function mechPose(u, dt) {
     if (floating) { foot.y=.3; foot.z=.04; foot.x=sd*.62; }
     else if (grounded) foot.y += Math.max(0, Math.sin(phase)) * .24 * r.move;
     else { foot.y += sd === 1 ? .27 : .06; foot.z += sd === 1 ? .25 : .5; }
+    if (!floating && u.kneeSlideT > 0) { foot.z = sd === 1 ? -.55 : .35; foot.y = .3; }
     if (!floating && dash && grounded) { foot.z += sd === 1 ? .42 : -.3; foot.y += sd === 1 ? .08 : 0; }
     if (!floating && cur.type === 'sword' && grounded) { foot.z += sd === 1 ? -.32 : .28; foot.x += sd * .08; }
     if(!floating&&grounded&&cur.acMelee==='pike'){const drive=u.blade.userData.pikeDrive||0;foot.z=sd===1?-.32-.5*drive:.28+.25*drive;foot.y=.3; }
@@ -5805,7 +5806,7 @@ function spawnPos(u, at) {
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
 function spawn(u, at = 'base') {
-  u.actionHeld = u.crouching = false;
+  u.actionHeld = u.crouching = u.actionBlockBoost = false; u.kneeSlideT=0;
   resetBoosterFlame(u);
   stopMovementSound(u); u.stepQuiet = 0;
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
@@ -5940,12 +5941,19 @@ function ceilingAt(x, z, y) {
 const ACTIONS = Object.freeze({ crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 } });
 const DEFAULT_ACTION = 'crouch';
 function actionUpdate(u, held, boost, jump) {
-  const action = ACTIONS[u.actionId || DEFAULT_ACTION];
-  u.crouching = !!(action && (u.actionId || DEFAULT_ACTION) === 'crouch' && held &&
+  const eligible = (u.actionId || DEFAULT_ACTION) === 'crouch' &&
     u.alive !== false && !(u.downT > 0) && (u.onGround || (u.crouching && hoverLegs(u))) &&
     !u.flying && !u.zip && !u.stun && !u.planted && !u.transfer && !u.repairing &&
-    !(u.electricT > 0) && !(u.recoverT > 0) && !u.swing && !beamCannonMode(u) &&
-    !boost && !jump && !(u.dashT > 0) && !u.longDash && !(u.lungeT > 0));
+    !(u.electricT > 0) && !(u.recoverT > 0) && !u.swing && !beamCannonMode(u) && !jump && !(u.lungeT > 0);
+  if (!boost) u.actionBlockBoost = false;
+  if (held && eligible && (u.dashT > 0 || u.longDash || u.charging)) {
+    // 噴射を止め、現在の水平速度だけを短い制動へ引き継ぐ。速度の加算なし。
+    u.kneeSlideT = .4; u.actionBlockBoost = true;
+    u.dashT = u.slideT = 0; u.longDash = u.charging = false; u.dashState = '';
+    u.boostIdle = .5;
+  }
+  u.crouching = !!(held && eligible && (!boost || u.actionBlockBoost));
+  if (!u.crouching || !u.onGround) u.kneeSlideT = 0;
 }
 function actionLower(u) { return u.crouching ? Math.min(ACTIONS.crouch.lower, u.rig?.crouch || 0) : 0; }
 function hoverLegs(u) { return (u.stats?.P.legs.kind || u.rig?.legKind) === 'hover'; }
@@ -6021,7 +6029,7 @@ const STOP = new T.Vector3();
 const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が始まってから横ダッシュで消せるまで（ユーザー指定）。
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
 function shortDash(u, wish) {
-  if (isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
+  if (u.actionBlockBoost || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
   if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun) return false;
   if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
   if (u.recoverT > 0) {
@@ -6047,6 +6055,7 @@ function shortDash(u, wish) {
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
 function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   actionUpdate(u, u.actionHeld, boostHeld, jumpPressed || jumpHeld);
+  if(u.actionBlockBoost)boostHeld=false;
   // 高速のカタパルトだけ細分化し、低FPSで建物角をすり抜けたり衝突先が変わるのを抑える。
   if(u.flying && u.catMomentum && !u.jumpPad && dt>1/120+1e-8){
     const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
@@ -6156,7 +6165,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
       if (!u.jumpPad) speed = Math.max(speed, Math.min(hs, u.flightSpeed));
     }
   }
-  if (floating && (u.crouching || u.planted || u.transfer || u.repairing || beamCannonMode(u) || u.electricT>0)) { u.vel.x=u.vel.z=0; dir=STOP; accel=10; }
+  if (floating && ((u.crouching && !(u.kneeSlideT > 0)) || u.planted || u.transfer || u.repairing || beamCannonMode(u) || u.electricT>0)) { u.vel.x=u.vel.z=0; dir=STOP; accel=10; }
   if(catFlight&&u.catLaunch?.free){
     // 60%以後は抵抗で減速。前噴射は抵抗を相殺するだけで、失った速度を取り戻さない。
     const thrust=['short','long','charge'].includes(u.dashState),hs=Math.hypot(u.vel.x,u.vel.z);
@@ -6169,6 +6178,13 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
       u.vel.x=(x*c-z*n)*keep;u.vel.z=(x*n+z*c)*keep;
     }
     accel=0;
+  }
+  let kneeDx = null, kneeDz = null;
+  if(u.kneeSlideT > 0){
+    const t=u.kneeSlideT, step=Math.min(dt,t), factor=1-step/t;
+    kneeDx=u.vel.x*step*(1+factor)/2;kneeDz=u.vel.z*step*(1+factor)/2;
+    u.vel.x*=factor;u.vel.z*=factor;u.kneeSlideT=Math.max(0,t-dt);
+    speed=0;dir=STOP;accel=0;
   }
   const vx=u.vel.x,vz=u.vel.z, k = 1 - Math.exp(-accel * dt);
   u.vel.x += (dir.x * speed - u.vel.x) * k;
@@ -6190,6 +6206,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
   let dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
   let dz=floating && !catFlight && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
+  if(kneeDx!==null){dx=kneeDx;dz=kneeDz;}
   if(u.swing?.pike&&u.dashState==='lunge'){
     // 準備中に近くの敵を通り越さない。射程内の正面で止まり、既存の判定時刻で打つ。
     const sw=u.swing,a=sw.a,len=Math.hypot(dx,dz);let allowed=len;
@@ -6766,7 +6783,7 @@ let killcam = null; // { by：倒した相手, at：撃破された場所, end�
 // プレイヤーは F ですぐ大破して再出撃へ進める。Botは REVIVE_CALL m 以内に起こせる味方（リペアユニットを持ち、ゲージの残っている機体）がいなければ1秒で大破する
 const REVIVE_WAIT = 10, REVIVE_NEED = 3000, REVIVE_HP = 0.3, REVIVE_INVUL = 3, REVIVE_BIG = DOWN_DMG, REVIVE_CALL = 120;
 function kill(v, by, head, hit = Infinity, weaponName = null) {
-  v.actionHeld = v.crouching = false;
+  v.actionHeld = v.crouching = v.actionBlockBoost = false; v.kneeSlideT=0;
   stopBeamCannon(v);
   v.deathWeapon = attackName(by, weaponName);
   scoreKill(v, by, head);

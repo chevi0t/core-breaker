@@ -41,6 +41,21 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chr
  const slot=u.slots.main;u.weapon='main';u.switchT=0;slot.cd=0;const ammo=slot.ammo;
  g.weaponsTick(u,.1,true,u.pos.clone().add(new T.Vector3(0,2,-30)),1,false);ok('しゃがみ中も発砲',slot.ammo<ammo);
  g.spawn(u);ok('再出撃リセット',!u.actionHeld&&!u.crouching);
+ for(const mode of ['short','charge']){reset();u.vel.set(25,0,0);u.actionHeld=true;u.boost=40;u.boostIdle=0;if(mode==='short')u.dashT=.2;else u.charging=true;g.physics(u,new T.Vector3(1,0,0),true,false,1/60);ok('噴射解除と回復 '+mode,u.crouching&&u.kneeSlideT>0&&!u.dashT&&!u.charging&&u.boost>40);}
+ for(const hz of [30,60,120]){
+ reset();u.vel.set(30,0,0);u.longDash=true;u.boost=40;u.boostIdle=0;u.actionHeld=true;
+ const start=u.pos.x;g.physics(u,new T.Vector3(1,0,0),true,false,1/hz);
+ ok('ダッシュから制動・即回復 '+hz,u.crouching&&!u.longDash&&!u.dashState&&u.vel.x>0&&u.vel.x<30&&u.boost>40);
+ for(let i=1;i<Math.round(.4*hz);i++)g.physics(u,new T.Vector3(1,0,0),true,false,1/hz);
+ ok('0.4秒で停止・距離6m '+hz,Math.abs(u.vel.x)<1e-6&&Math.abs(u.pos.x-start-6)<.05);
+ ok('保持ブースト再発動防止 '+hz,!g.shortDash(u,new T.Vector3(1,0,0)));
+ g.physics(u,new T.Vector3(),false,false,1/hz);ok('ブースト再押下で再発動可能 '+hz,g.shortDash(u,new T.Vector3(1,0,0)));
+ }
+ reset();u.vel.set(30,0,0);u.longDash=true;u.actionHeld=true;
+ g.obstacles.push({minX:3,maxX:5,minZ:-10,maxZ:10,top:20});
+ for(let i=0;i<24;i++)g.physics(u,new T.Vector3(1,0,0),true,false,1/60);
+ ok('制動中も壁を通り抜けない',u.pos.x<3);g.obstacles.length=0;
+ reset();u.longDash=true;u.vel.set(30,0,0);u.actionHeld=true;g.physics(u,new T.Vector3(),true,false,1/60);g.actionUpdate(u,true,false,true);ok('ジャンプで制動解除',!u.crouching&&u.kneeSlideT===0);
  reset();u.mech={...g.MECH_DEFAULT,legs:'anchor'};g.equip(u,'heavy');u.onGround=true;u.actionHeld=true;u.vel.set(4,0,0);g.physics(u,new T.Vector3(1,0,0),false,false,1/60);ok('ホバーしゃがみ移動停止',u.vel.x===0&&u.vel.z===0&&!g.hoverActive(u));
  const oldWater=g.waters.slice();g.waters.splice(0,g.waters.length,[-100,-100,100,100,30]);u.pos.set(0,30,0);u.vel.set(0,0,0);u.onGround=true;u.actionHeld=true;
  for(let i=0;i<60;i++)g.physics(u,new T.Vector3(),false,false,1/60);
