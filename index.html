@@ -6547,6 +6547,22 @@ const deathEnergyGeo = visualAlloc(() => [18, 8].map(count => {
   }
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));g.computeBoundingSphere();return g;
 }));
+// 光の根元は胴体ボーンの内部へ。大破して機体が消えた後は最後の放出位置に残して自然に消す。
+const energyAnchor = new T.Vector3(), energyRotation = new T.Quaternion(), energyTwist = new T.Quaternion();
+function followDeathEnergy(f) {
+  const u=f.energyOwner, chest=u.rig?.bones.chest.node;
+  if(!u.group?.visible || !chest)return;
+  chest.updateWorldMatrix(true,false);
+  u.group.updateWorldMatrix(true,false);
+  // 骨格は描画groupの子ではなく機体内座標。groupの変換も必ず合成する。
+  energyAnchor.set(0,.6,0).applyMatrix4(chest.matrixWorld).applyMatrix4(u.group.matrixWorld);
+  f.obj.position.copy(energyAnchor);
+  if(f.kind==='deathEnergy'){
+    chest.getWorldQuaternion(energyRotation);
+    u.group.getWorldQuaternion(f.obj.quaternion);
+    f.obj.quaternion.multiply(energyRotation).multiply(energyTwist.setFromAxisAngle(UP,f.energyTwist));
+  }
+}
 function deathEnergyBurst(u) {
   if(u.energyBurstLife===u.lifeId)return;
   u.energyBurstLife=u.lifeId;
@@ -6556,10 +6572,14 @@ function deathEnergyBurst(u) {
     const at=u.pos.clone().setY(u.pos.y+2), seed=(u.idx+1)*31+(u.lifeId||0)*101;
     const mesh=new T.Mesh(deathEnergyGeo[distance>120?1:0],new T.MeshBasicMaterial({...glow(0xffffff),map:flashTex,vertexColors:true,side:T.DoubleSide,fog:true}));
     mesh.position.copy(at);mesh.rotation.y=boomNoise(seed)*Math.PI*2;
-    addFx(mesh,.72,{kind:'deathEnergy',energyOwner:u,energyLife:u.lifeId});
+    const emission={kind:'deathEnergy',energyOwner:u,energyLife:u.lifeId,energyTwist:mesh.rotation.y};
+    followDeathEnergy({...emission,obj:mesh});
+    addFx(mesh,.72,emission);
     for(const [size,life,color] of [[6,.22,0xf5fff0],[10,.55,0x67ffc1]]){
       const sp=new T.Sprite(new T.SpriteMaterial({...glow(color),map:flashTex}));sp.position.copy(at);
-      addFx(sp,life,{kind:'flash',size,energyOwner:u,energyLife:u.lifeId});
+      const emission={kind:'flash',size,energyOwner:u,energyLife:u.lifeId};
+      followDeathEnergy({...emission,obj:sp});
+      addFx(sp,life,emission);
     }
   });
 }
@@ -6612,7 +6632,10 @@ function fxUpdate(dt) {
     f.age += dt;
     if (f.age < 0) continue;
     if (!f.shown) { scene.add(f.obj); f.shown = true; }
-    if(f.energyOwner && (f.energyOwner.alive || f.energyOwner.lifeId!==f.energyLife))f.life=0;
+    if(f.energyOwner){
+      if(f.energyOwner.alive || f.energyOwner.lifeId!==f.energyLife)f.life=0;
+      else followDeathEnergy(f);
+    }
     const k = f.life>0 ? Math.min(1, f.age / f.life) : 1;
     if (f.kind === 'tracer') {
       // 筋の先端を着弾点へ進め、遠くても見える太さにする
