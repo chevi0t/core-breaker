@@ -4199,8 +4199,18 @@ function buildWeaponGeo(id, part) {
     box(.6,.32,.7,shell);box(.45,.13,.6,accent,0,.22,0);
     for(const x of [-.22,0,.22]){box(.1,.1,1.2,steel,x,0,-.8);box(.12,.18,.22,accent,x,0,-1.42);}
   } else if (f === 'pike') {
-    box(.65,.6,.9,dark);box(.7,.12,.6,accent,0,.34,.05);cyl(.18,1.5,steel,0,0,-.7);
-    cyl(.28,.3,shell,0,0,.5);box(.2,.18,.38,steel,.34,0,-.4);
+    if(part==='hit'){ // 射撃の被弾面は従来の武器形状を保持。
+      box(.65,.6,.9,dark);box(.7,.12,.6,accent,0,.34,.05);cyl(.18,1.5,steel,0,0,-.7);
+      cyl(.28,.3,shell,0,0,.5);box(.2,.18,.38,steel,.34,0,-.4);
+    }else if(part==='ram'){
+      cyl(.17,1.15,steel,0,0,-.45);cyl(.17,.42,steel,0,0,-1.235,'z',0,6);
+      cyl(.24,.16,accent,0,0,.12);
+    }else{
+      box(.68,.58,1.16,dark,0,0,.08);box(.72,.16,.88,shell,0,.32,.12);
+      for(const x of [-.33,.33]){box(.1,.16,1.25,steel,x,0,-.05);box(.12,.12,.46,accent,x,.18,.2);}
+      cyl(.31,.22,shell,0,0,-.5);cyl(.23,.23,black,0,0,-.52);
+      cyl(.27,.45,shell,0,0,.86,'z',.36,8);cyl(.29,.05,black,0,0,1.1);
+    }
   } else if (f === 'jammer' || f === 'stunGrenade') {
     ball(.3,shell);cyl(.19,.22,accent,0,.3,0,'y');
     if(f==='jammer')for(const x of [-.22,.22])cyl(.035,.7,steel,x,.3,0,'y');
@@ -5687,6 +5697,7 @@ function mechPose(u, dt) {
     else { foot.y += sd === 1 ? .27 : .06; foot.z += sd === 1 ? .25 : .5; }
     if (!floating && dash && grounded) { foot.z += sd === 1 ? .42 : -.3; foot.y += sd === 1 ? .08 : 0; }
     if (!floating && cur.type === 'sword' && grounded) { foot.z += sd === 1 ? -.32 : .28; foot.x += sd * .08; }
+    if(!floating&&grounded&&cur.acMelee==='pike'){const drive=u.blade.userData.pikeDrive||0;foot.z=sd===1?-.32-.5*drive:.28+.25*drive;foot.y=.3; }
     limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, poseKnee);
     if (floating && B['brake'+s]) B['brake'+s].node.rotation.z=hoverActive(u) && !grounded && velocity.y<=0 && u.boost>0 && !u.overheat && !u.charging ? sd*.65 : 0;
     limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, poseHands[i], posePole.set(sd, -.3, .8));
@@ -6042,12 +6053,17 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   } else if (u.lungeT > 0) {
     // 武器ごとの踏み込み速度。ダッシュ斬りは進入時の速度・方向を保ち、武器より速い間は滑りと同じ抵抗で減速する。
     // 勢いを足し直さないので連続攻撃で加速し続けない。ブーストは使わず、その間も回復する（ユーザー指定）。
-    const p = 1 - Math.max(0, u.lungeT) / (u.lungeT0 || 1);
+    const p = 1 - Math.max(0, u.lungeT) / (u.lungeT0 || 1),remaining=u.lungeT;
     u.lungeT -= dt;
     speed = u.lungeSpeed * (1.35 - 0.7 * p); dir = u.lungeDir;
     accel = u.swing?.dashAttack && Math.hypot(u.vel.x, u.vel.z) > speed ? SLIDE_DECEL : 40; grav = GRAV * 0.35;
     u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt); u.boostIdle = 0.5; u.dashState = 'lunge';
-    if (u.lungeT <= 0 && u.swing && u.swing.a.lunge) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
+    if(u.swing?.pike){
+      // 静止時の指定距離と発動前の前方速度の大きい方を維持。加算はしない。
+      speed=u.lungeSpeed*Math.min(1,remaining/dt);accel=0;
+      u.vel.x=dir.x*speed;u.vel.z=dir.z*speed;u.slideT=0;
+    }
+    if (u.lungeT <= 0 && u.swing && !u.swing.pike && u.swing.a.lunge) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
   } else if (u.dashT > 0) {
     u.dashT -= dt;
     speed = u.dashV; dir = u.dashDir; accel = 30; grav = GRAV * 0.35;
@@ -6122,10 +6138,23 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (!catFlight && floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
-  const dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
-  const dz=floating && !catFlight && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
+  let dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
+  let dz=floating && !catFlight && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
+  if(u.swing?.pike&&u.dashState==='lunge'){
+    // 準備中に近くの敵を通り越さない。射程内の正面で止まり、既存の判定時刻で打つ。
+    const sw=u.swing,a=sw.a,len=Math.hypot(dx,dz);let allowed=len;
+    if(len>0)for(const e of units){
+      if(!e.alive||e.team===u.team)continue;
+      const ex=e.pos.x-u.pos.x,ez=e.pos.z-u.pos.z,forward=(ex*dx+ez*dz)/len,side=Math.abs(ex*dz-ez*dx)/len;
+      const h=u.pos.y+a.height+(sw.slope||0)*Math.min(a.reach,Math.max(0,forward));
+      if(forward>=0&&side<R+.25&&h>=e.pos.y-.3&&h<=e.pos.y+UNIT_H+.3)
+        allowed=Math.min(allowed,Math.max(0,forward-R-a.reach*.6));
+    }
+    if(allowed<len){dx*=allowed/len;dz*=allowed/len;}
+  }
   if (!stepTo(u, u.pos.x + dx, u.pos.z)) u.vel.x = 0;
   if (!stepTo(u, u.pos.x, u.pos.z + dz)) u.vel.z = 0;
+  if(u.swing?.pike&&u.dashState==='lunge'&&u.lungeT<=0){u.vel.x=u.vel.z=0;u.slideT=0;}
   const moved = Math.hypot(u.pos.x - x0, u.pos.z - z0);
   if (u.vel.y > 0) { const c = ceilingAt(u.pos.x, u.pos.z, u.pos.y); if (u.pos.y + u.vel.y * dt + UNIT_H > c) { u.pos.y = c - UNIT_H; u.vel.y = 0; } } // 橋の下では頭をぶつける
   u.pos.y += u.vel.y * dt;
@@ -9472,12 +9501,12 @@ function swordTick(u, sl, dt, trigger, aim) {
     sw.phi = phi;
     if (a.recover && !sw.stopped && sw.t >= a.windup + a.sweep) {
       // 回し終わったら硬直（隙）。踏み込みの勢いで少し滑ってから止まる（v0.13.1）
-      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.meleeRecovery = sw; u.slideT = SLIDE_TIME;
+      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.meleeRecovery = sw; u.slideT = sw.pike?0:SLIDE_TIME;
     }
     if (sw.t >= a.time) u.swing = null;
     return false;
   }
-  let chargeStage=0, waveReady=false;
+  let chargeStage=0, chargeRatio=0, waveReady=false;
   if (sl.w.chargeWave) {
     if (trigger) { if (sl.cd <= 0) sl.chargeT = Math.min(sl.w.chargeTime, sl.chargeT + dt); return false; }
     if (sl.chargeT <= 0 || sl.cd > 0) return false;
@@ -9490,6 +9519,7 @@ function swordTick(u, sl, dt, trigger, aim) {
       return false;
     }
     if(sl.chargeT<=0 || sl.cd>0)return false;
+    chargeRatio=Math.min(1,sl.chargeT/sl.w.chargeTime);
     chargeStage=sl.chargeT>=sl.w.chargeTime-1e-6?2:sl.chargeT>=sl.w.chargeTime*.5?1:0;
     sl.chargeT=sl.holdT=0;trigger=true;
   }
@@ -9510,7 +9540,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   if (td < (a.lunge || a.step || 0) + a.reach + R) dir.set(tgt.pos.x - u.pos.x, 0, tgt.pos.z - u.pos.z).normalize();
   else tgt = null;
   const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt, tilt = swingTilt(u, a, aim);
-  u.swing = { a, weaponName: sl.w.name, dashAttack, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
+  u.swing = { a, pike:sl.w.acMelee==='pike', chargeStage, chargeRatio, weaponName: sl.w.name, dashAttack, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false };
   if (waveReady) {
     const from = u.pos.clone().addScaledVector(UP, a.height), d = aim ? aim.clone().sub(from) : fwdOf(u);
     if (d.lengthSq() < .0001) d.copy(fwdOf(u));
@@ -9521,10 +9551,15 @@ function swordTick(u, sl, dt, trigger, aim) {
   sfx(a.spin ? 'spin' : 'swing', u.pos, u);
   sl.cd = a.time;
   // 横なぎの踏み込みは、敵が刃の6割の所に来るまで（step m まで）
-  const go = a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
+  // 通常クイックブースト1回＝当該機体のdashV×SHORT_TIME。最大充填はその80%。
+  const pileStep=sl.w.acMelee==='pike' ? u.dashV*SHORT_TIME*.8*(.25+.75*chargeRatio) : 0;
+  const go = sl.w.acMelee==='pike' ? (tgt&&!dashAttack?Math.min(pileStep,Math.max(0,td-R-a.reach*.6)):pileStep)
+    : a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
   if (go > 0.3) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
-    if (!dashAttack) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
+    // ダッシュの勢いを短い静止踏み込み速度で上書きしない。逆・横の運動は前方加速へ変換しない。
+    if(u.swing.pike)u.lungeSpeed=Math.max(u.lungeSpeed,u.vel.x*dir.x+u.vel.z*dir.z);
+    if (!dashAttack || u.swing.pike) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
   }
   return false;
 }
@@ -9592,22 +9627,31 @@ function slashSweep(u,sw,strike,hit,k0,k1){
 function bladeSweep(u, sw, phi0, phi1) {
   const a = sw.a, hb = u.pos.y + a.height, slope = sw.slope || 0, span = sw.span ?? Math.abs(a.to - a.from), turn = Math.sign(phi1 - phi0);
   // 刃の軌跡（上下の斬りは円すいの面）
+  if(!sw.pike){
   const geo = new T.RingGeometry(BLADE_IN, a.reach, 6, 1, Math.PI / 2 + Math.min(0, phi1 - phi0), Math.abs(phi1 - phi0) + 0.01).rotateX(-Math.PI / 2);
   if (slope) { const q = geo.attributes.position; for (let i = 0; i < q.count; i++) q.setY(i, Math.hypot(q.getX(i), q.getZ(i)) * slope); }
   const m = new T.Mesh(geo, new T.MeshBasicMaterial(Object.assign(glow(0xcfefff), { side: T.DoubleSide })));
   m.position.copy(u.pos).setY(hb);
   m.rotation.y = phi0;
   addFx(m, 0.2, { kind: 'arc', ownGeo: true });
+  }
   let res = false;
   const tryHit = (r, p, size, y0, y1) => {
     const c = sw.offset ? u.pos.clone().addScaledVector(new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw)), sw.offset) : u.pos;
     if (sw.hit.has(r) || !bladeHits({ pos: c }, phi0, phi1, hb, a.reach, p, size, y0, y1, slope)) return;
+    if(sw.pike){
+      const origin=c.clone().setY(hb),delta=p.clone().setY(Math.max(y0,Math.min(y1,hb))).sub(origin),distance=delta.length();
+      const block=castFrom(origin,delta.normalize(),u,distance);
+      if(block&&block.ref!==r&&block.dist<distance-.05)return;
+    }
     sw.hit.add(r);
+    const hpBefore=r.hp;
     sfx('slash', p);
     impact(new T.Vector3(p.x, hb + slope * Math.min(a.reach, Math.hypot(p.x - c.x, p.z - c.z)), p.z), 'hit', 0);
     const from = swingPushFrom(c, p, turn, span);
     if (volley) meleeFrom.set(r, from);
     if (damage(r, u, a.dmg, false, true, null, from, true, false, sw.weaponName)) res = true; // 格闘
+    if(sw.pike&&r.hp<hpBefore)pikeImpact(u,r,sw,hb);
   };
   for (const e of [...units, ...mirages]) if (e.alive && e.team !== u.team) tryHit(e, e.pos, R, e.pos.y, e.pos.y + UNIT_H);
   for (const tu of turrets) if (tu.alive && tu.team !== u.team) tryHit(tu, tu.pos, 1.5, tu.pos.y, tu.pos.y + 3.7);
@@ -9681,6 +9725,7 @@ function weaponLook(u, dt) {
   }
   if (u.blade2) { u.blade2.visible = !!S.aux.w.meleeDual; if (u.blade2.visible) setWeaponGeo(u.blade2, S.aux.w.key); }
   bladePose(u);
+  pikeLook(u);
   meleeLaserLook(u);
   if (S.aux.w.chargeWave && !u.blade.userData.chargeGlow) {
     const effect = new T.Mesh(u.blade.geometry, new T.MeshBasicMaterial({ color: 0x75e5ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
@@ -9863,11 +9908,62 @@ function dashBladePose(u, b, sd, gripZ, sw, melee) {
   b.position.copy(idle).sub(bladeOffset.set(0,0,gripZ*scale).applyQuaternion(b.quaternion));
   (b.userData.grip ||= new T.Vector3()).copy(idle);
 }
+// パイル専用：判定期間に杭を伸ばす。物理時間は止めず、命中時だけ姿勢を短く保持。
+function pikePose(u,sw,melee){
+  const b=u.blade,q=Math.min(1,u.slots.aux.chargeT/u.slots.aux.w.chargeTime),a=sw?.a;
+  let drive=0,prep=q,back=0;
+  if(sw){
+    prep=Math.min(1,sw.t/a.windup);const end=a.windup+a.sweep;
+    drive=sw.t<a.windup?0:sw.t<=end?1:Math.max(0,1-(sw.t-end)/.24);
+    back=sw.t>end?Math.min(1,(sw.t-end)/(a.time-end)):0;
+    if(sw.pikeImpactT!=null&&sw.t-sw.pikeImpactT<.055)drive=1;
+  }
+  const held=bladeHeld.set(.8-.55*drive,2.3+.1*drive,-.45+.4*prep*(1-drive)-.5*drive);
+  b.scale.set(1,1,1);b.rotation.set(sw?.tilt||.04,-.15*(1-drive),0,'YXZ');
+  b.position.copy(held).sub(bladeOffset.set(0,0,.2).applyQuaternion(b.quaternion));
+  (b.userData.grip ||= new T.Vector3()).copy(held);
+  melee.twist=-.25-.25*prep*(1-drive)+.35*drive;melee.lean=-.035-.17*drive;melee.sink=.07+.15*prep*(1-back);
+  b.userData.pikeDrive=drive;
+}
+function pikeLook(u){
+  const b=u.blade,w=u.slots.aux.w,isPike=w.acMelee==='pike';let rig=b.userData.pikeRig;
+  if(!isPike){if(rig){rig.ram.visible=rig.jet.visible=false;}return;}
+  if(!rig){rig=visualAlloc(()=>{
+    const ram=new T.Mesh(weaponGeo(w.key,'ram'),b.material);b.add(ram);
+    const geo=new T.ConeGeometry(1,1,8,1,true);geo.rotateX(Math.PI/2);geo.translate(0,0,.5);
+    const jet=new T.Mesh(geo,new T.MeshBasicMaterial({color:0xffb54d,transparent:true,opacity:.85,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide}));
+    jet.userData.own=true;jet.userData.visualOnly=true;jet.position.z=1.12;b.add(jet);
+    return {ram,jet};
+  });b.userData.pikeRig=rig;
+    b.raycast=function(caster,hits){const display=this.geometry;if(MODEL_OF[this.userData.weaponId]?.[0]==='pike')this.geometry=weaponGeo(this.userData.weaponId,'hit');try{T.Mesh.prototype.raycast.call(this,caster,hits);}finally{this.geometry=display;}};
+  }
+  const selected=u.weapon==='aux'&&u.alive!==false,sw=selected?u.swing:null;
+  const drive=selected?(b.userData.pikeDrive||0):0;
+  rig.ram.geometry=weaponGeo(w.key,'ram');rig.ram.visible=true;rig.ram.position.z=.72-.95*drive;
+  // 溜め中は無噴射。解放時の充填率を保存し、噴射と踏み込みを同時に開始する。
+  const power=sw?.pike?(.35+1.35*sw.chargeRatio)*(sw.t<=sw.a.windup+sw.a.sweep?1:drive*.8):0;
+  rig.jet.visible=selected&&power>0&&!u.stun&&!u.repairing;
+  rig.jet.material.opacity=.5+.15*Math.sin(clock()*55);
+  rig.jet.scale.set(.15+.43*power,.15+.43*power,(.3+2.7*power)*(1+.035*Math.sin(clock()*83)));
+}
+function pikeImpact(u,r,sw,hb){
+  sw.pikeImpactT ??= sw.t;
+  u.lungeT=0;u.vel.x=u.vel.z=0;u.slideT=0;
+  const at=r.pos.clone().setY(hb);flash(at,0xffe5a0,3+sw.chargeStage,.12);
+  sparkBurst(at,0xffc17a,8+sw.chargeStage*4,20,.25);
+  if(!r.alive){boom(r.pos,.7);return;}
+  // 既存のよろけ/ダウン判定・受け身を保ち、成立した押し出しだけ強める。位置を直書きしない。
+  if(r.kind==='unit'&&!launchStaggerProtected(r)&&!r.repairing&&['down','stagger'].includes(r.stun)){
+    const away=r.pos.clone().sub(u.pos).setY(0).normalize(),speed=(r.stun==='down'?20:10)+sw.chargeStage*3;
+    r.vel.x=away.x*speed;r.vel.z=away.z*speed;
+  }
+}
 function bladePose(u) {
   const w = u.slots.aux.w, selected = u.weapon === 'aux' && w.type === 'sword', sw = selected ? u.swing : null;
   const family = MODEL_OF[w.key]?.[0], thrust = family === 'spear' || family === 'pike', dual = !!w.meleeDual;
   const melee = u.meleePose ||= { twist: 0, lean: 0, sink: 0 }; melee.twist = melee.lean = melee.sink = melee.oneHand = 0;
   if (w.type !== 'sword') return;
+  if(family==='pike'&&selected){pikePose(u,sw,melee);return;}
   let twist = -.25, lean = -.035, power = 0;
   for (let hand = 0; hand < 2; hand++) {
     const b = hand === 0 ? u.blade : u.blade2, sd = hand === 0 ? 1 : -1;
