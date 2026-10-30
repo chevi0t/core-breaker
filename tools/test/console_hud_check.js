@@ -5,7 +5,7 @@ const fs = require('fs'), path = require('path');
 let chromium;
 try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
 const dir = path.resolve(process.argv[2] || 'dbg/hud-consoles');
-const modes = ['standard', 'arcade', 'flight', 'mechanical'];
+const modes = ['standard', 'arcade', 'flight', 'mechanical', 'retro'];
 const checks = [], errors = [], layouts = [];
 const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
 (async () => {
@@ -19,7 +19,7 @@ const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
     await p.goto('file://' + path.join(dir, 'dbg.html'));
     yes(await p.evaluate(() => document.body.dataset.console === 'standard'), '未設定時は標準');
     await p.locator('[data-page="pgOptions"]').click();
-    yes(await p.locator('#consoleList button').count() === 4, 'オプションに4種類');
+    yes(await p.locator('#consoleList button').count() === 5, 'オプションに5種類');
     await p.locator('[data-console-choice="flight"]').focus();
     await p.keyboard.press('Enter');
     yes(await p.evaluate(() => document.body.dataset.console === 'flight' && document.querySelectorAll('#consoleList [aria-pressed="true"]').length === 1), 'キーボードで選択し、選択状態は1つ');
