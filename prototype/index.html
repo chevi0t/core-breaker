@@ -2621,7 +2621,27 @@ function hoverClearPath(u,ax,az,bx,bz,ay) {
   }
   pathEndH=y; return true;
 }
+// BOTは水面を通常の戦闘経路にしない。橋の高さを保って判定し、落水中の退避路は塞がない。
+function botWetAt(x,z,y) {
+  const h=waterHeightAt(x,z);
+  return Number.isFinite(h)&&y<h+.2&&groundAt(x,z,y+.3)<h-.15;
+}
+function botWetPath(ax,az,bx,bz,ay,by=ay) {
+  if(!waters.length&&!cityMap?.river)return false;
+  const n=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)/2));
+  let y=ay;
+  for(let i=1;i<=n;i++){
+    const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;
+    y=groundAt(x,z,Math.max(y,ay+(by-ay)*i/n)+.6);
+    if(botWetAt(x,z,y))return true;
+  }
+  return false;
+}
 function clearPath(ax, az, bx, bz, ay, unit=null) {
+  if(unit&&!unit.isPlayer&&!botWetAt(ax,az,ay??terrainH(ax,az))&&botWetPath(ax,az,bx,bz,ay??terrainH(ax,az)))return false;
+  return walkClearPath(ax,az,bx,bz,ay,unit);
+}
+function walkClearPath(ax, az, bx, bz, ay, unit=null) {
   if (unit && hoverLegs(unit)) return hoverClearPath(unit,ax,az,bx,bz,ay);
   if(cityBattle){const result=cityBattle.clearPath(ax,az,bx,bz,ay,obstacles,groundAt);pathEndH=result.y;return result.ok;}
   const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 0.5)), step = L / n, hs = new Float32Array(n + 1);
@@ -2679,7 +2699,9 @@ function navPath(u, from, to) {
     for (let k = 0; k < N; k++) if (!done[k] && dist[k] < Infinity && (i < 0 || dist[k] < dist[i])) i = k;
     if (i < 0 || i === to) break;
     done[i] = 1;
-    for (const [j, k] of NAV.adj[i]) { const d = dist[i] + NAV.links[k].len * u.navW[k]; if (d < dist[j]) { dist[j] = d; prev[j] = i; } }
+    for (const [j, k] of NAV.adj[i]) { const link=NAV.links[k];
+      if(link.wet===undefined){const a=NAV.pts[link.a],b=NAV.pts[link.b];link.wet=botWetPath(a.x,a.z,b.x,b.z,a.y,b.y)||botWetPath(b.x,b.z,a.x,a.z,b.y,a.y);}
+      const d = dist[i] + link.len * u.navW[k] * (link.wet?100:1); if (d < dist[j]) { dist[j] = d; prev[j] = i; } }
   }
   if (dist[to] === Infinity) return null;
   const path = [];
@@ -7215,7 +7237,25 @@ function raidGoal(u, coreGoal) {
   }
   return coreGoal;
 }
+function botDryGoal(u,goal,dt) {
+  const wet=botWetAt(u.pos.x,u.pos.z,u.pos.y),goalWet=botWetAt(goal.x,goal.z,goal.y||terrainH(goal.x,goal.z));
+  if(!wet&&!goalWet){u.waterExit=null;return null;}
+  u.waterExitT=(u.waterExitT||0)-dt;
+  if(!u.waterExit||u.waterExitT<=0){
+    u.waterExitT=2;
+    const from=wet?u.pos:goal;
+    const candidates=(NAV?.pts||[]).filter(q=>!botWetAt(q.x,q.z,q.y)).sort((a,b)=>Math.hypot(a.x-from.x,a.z-from.z)+Math.abs(a.y-from.y)*3-Math.hypot(b.x-from.x,b.z-from.z)-Math.abs(b.y-from.y)*3);
+    // 直接登れる岸を優先し、無ければグラフで斜路を経由する。
+    const q=candidates.find(q=>walkClearPath(u.pos.x,u.pos.z,q.x,q.z,u.pos.y,u))||candidates[0];
+    u.waterExit=q?new T.Vector3(q.x,q.y,q.z):null;u.navT=0;
+  }
+  return u.waterExit;
+}
+function botSafeMove(u,dir,distance) {
+  return !botWetPath(u.pos.x,u.pos.z,u.pos.x+dir.x*distance,u.pos.z+dir.z*distance,u.pos.y);
+}
 function botUpdate(u, dt) {
+  if(u.transfer&&botWetAt(u.pos.x,u.pos.z,u.pos.y))cancelTransfer(u);
   if (u.transfer) { physics(u, new T.Vector3(), false, false, dt); return; } // エリア移動の待機中は止まっている（v0.17）
   const t = TEAM[u.team];
   const enemyCore = cores[u.team === 'B' ? 'R' : 'B'];
@@ -7289,11 +7329,14 @@ function botUpdate(u, dt) {
     goal = botMobilityGoal(u, goal);
     if (u.mobilityRoute && !u.lift && !u.flying && !u.zip) hold = 0.5;
   }
+  const waterEscape=botWetAt(u.pos.x,u.pos.z,u.pos.y),dryGoal=botDryGoal(u,goal,dt);
+  if(dryGoal){goal=dryGoal;hold=.5;u.snipe=false;}
+  if(waterEscape){u.act=null;if(u.beamFire)stopBeamCannon(u,true);if(u.planted)selectWeapon(u,'main');}
   const gd = Math.hypot(goal.x - u.pos.x, goal.z - u.pos.z);
   const to = navSteer(u, goal, gd, dt); // 通り道のあるマップでは次の節点へ
   const wish = new T.Vector3(to.x - u.pos.x, 0, to.z - u.pos.z);
   const sprint = u.raidRoute?.kind === 'sprint' && !baseTask && !pod;
-  if (u.target && !pod && !u.waypoint && !sprint) {
+  if (u.target && !pod && !u.waypoint && !sprint && !waterEscape) {
     const td = u.target.pos.distanceTo(u.pos);
     if ((meleeOnly() || u.cls === 'assault') && u.target.kind === 'unit' && (meleeOnly() || td < 16) && u.tReach) wish.set(u.target.pos.x - u.pos.x, 0, u.target.pos.z - u.pos.z); // ソードの間合いへ詰める
     else if (!meleeOnly() && td < 22) wish.set(0, 0, 0); // 近すぎたら横移動
@@ -7304,14 +7347,18 @@ function botUpdate(u, dt) {
   const busy = u.repairing;
   if (wish.lengthSq() > 0) wish.normalize();
   // 詰まり回避
-  if (u.sideT > 0) {
+  if (u.sideT > 0 && !waterEscape) {
     u.sideT -= dt;
     const side = new T.Vector3(-wish.z, 0, wish.x).multiplyScalar(u.side);
     wish.multiplyScalar(0.3).add(side).normalize();
-  } else if (u.target) {
+  } else if (u.target && !waterEscape) {
     wish.add(new T.Vector3(-wish.z || 1, 0, wish.x).multiplyScalar(Math.sin(performance.now() / 600 + u.idx) * 0.8)).normalize();
   }
-  if (atPod || u.snipe) wish.set(0, 0, 0); // ポッドの上では止まって回復を待つ。狙撃中も止まって照準の収束を待つ
+  if(!waterEscape&&!u.flying&&u.onGround&&wish.lengthSq()&&!botSafeMove(u,wish,Math.max(3,Math.hypot(u.vel.x,u.vel.z)*.35))){
+    wish.set(to.x-u.pos.x,0,to.z-u.pos.z).normalize();
+    if(!botSafeMove(u,wish,Math.max(3,Math.hypot(u.vel.x,u.vel.z)*.35)))wish.set(0,0,0);
+  }
+  if (!waterEscape&&(atPod || u.snipe)) wish.set(0, 0, 0); // ポッドの上では止まって回復を待つ。狙撃中も止まって照準の収束を待つ
   u.moveInput = wish.lengthSq() > 0.01;
   u.stuckT += dt;
   if (u.stuckT > 0.8) {
@@ -7321,15 +7368,16 @@ function botUpdate(u, dt) {
   // 遠ければロングダッシュで移動、交戦中はときどきショートダッシュで横に避ける。
   // 強襲は加速装置を作動させていれば、それで移動する（SPが6割以上あれば使い始め、使い切るか近づくか敵を見つけるまで）
   const chs = u.slots.sp;
-  const chargeGo = u.chargerOn && (!u.target || sprint) && !pod && !busy && !u.flying && !u.waypoint && gd > 60 && !chs.overheat && (u.charging || chs.heat >= 60);
-  const wantLong = !chargeGo && gd > 40 && (!u.target || sprint) && u.boost > 30;
-  if (wantLong && !busy && !u.longDash && u.dashT <= 0) shortDash(u, wish);
+  const chargeGo = (waterEscape||botSafeMove(u,fwdOf(u),chs.w.speed*.7||30)) && wish.lengthSq()>.01 && u.chargerOn && (!u.target || sprint) && !pod && !busy && !u.flying && !u.waypoint && gd > 60 && !chs.overheat && (u.charging || chs.heat >= 60);
+  const wantLong = wish.lengthSq()>.01 && !chargeGo && gd > 40 && (!u.target || sprint) && u.boost > 30;
+  if (wantLong && !busy && !u.longDash && u.dashT <= 0 && (waterEscape||botSafeMove(u,wish,u.dashV*(SHORT_TIME+.4)))) shortDash(u, wish);
   u.dodgeT -= dt;
-  if (u.target && !busy && !atPod && !u.snipe && u.dodgeT <= 0) {
+  if (u.target && !busy && !atPod && !u.snipe && !waterEscape && u.dodgeT <= 0) {
     u.dodgeT = 1.2 + Math.random() * 2;
     if (Math.random() < 0.5 && u.boost > 40) {
       const to = u.target.pos.clone().sub(u.pos).setY(0).normalize();
-      shortDash(u, new T.Vector3(-to.z, 0, to.x).multiplyScalar(Math.random() < 0.5 ? -1 : 1));
+      const evade=new T.Vector3(-to.z,0,to.x).multiplyScalar(Math.random()<.5?-1:1);
+      if(botSafeMove(u,evade,u.dashV*(SHORT_TIME+.4)))shortDash(u,evade);
     }
   }
   // 近くで敵が回転斬りを始めたら、6割の確率でジャンプして避ける
@@ -7351,7 +7399,7 @@ function botUpdate(u, dt) {
   // 装備を使う行動（投げる、置く、打ち上げる、構えて撃つ）。botAct が決め、done か時間切れで終わる
   u.actCd -= dt;
   if (u.act && ((u.act.t -= dt) <= 0 || u.act.done())) { u.act = null; u.actCd = 3 + Math.random() * 4; }
-  if (!meleeOnly() && !u.act && u.actCd <= 0) {
+  if (!waterEscape && !meleeOnly() && !u.act && u.actCd <= 0) {
     u.act = !busy && !pod && !u.swing && !u.flying ? botAct(u, tracking, enemyCore) : null;
     if (!u.act) u.actCd = 0.5;
   }
@@ -7375,7 +7423,7 @@ function botUpdate(u, dt) {
     if (u.target.kind !== 'unit' || Math.random() < 0.3) u.rkGo = true; else u.botRkT = 2;
   }
   if (act) slot = act.slot;
-  else if (sword && tracking && u.target.kind === 'unit' && td < (sword.w.chargeWave ? sword.w.chargeWave.range : sword.w.strong.lunge + sword.w.strong.reach)) {
+  else if (!waterEscape && sword && tracking && u.tReach && u.target.kind === 'unit' && td < (sword.w.chargeWave ? sword.w.chargeWave.range : sword.w.strong.lunge + sword.w.strong.reach)) {
     slot = 'aux';
     const sw = sword.w, close = td < sw.normal.reach + R;
     // 間合いの外ならダッシュして踏み込み斬り
@@ -7393,7 +7441,7 @@ function botUpdate(u, dt) {
   // 狙撃銃はスコープを覗き（覗かないと大きくばらつく）、止まって照準が6割まで収束してから撃つ
   const snl = u.slots[u.weapon];
   if (snl.w.missile) trig = trig && (snl.missileLocks || []).length >= Math.min(snl.w.missile.locks, Math.floor(snl.ammo / snl.w.missile.shots));
-  u.snipe = !act && !!snl.w.scope && slot === u.weapon && tracking && !busy;
+  u.snipe = !waterEscape && !act && !!snl.w.scope && slot === u.weapon && tracking && !busy;
   u.scoped = u.snipe && u.switchT <= 0;
   if (u.snipe) trig = trig && snl.conv >= 0.6;
   // 反動で狙いが体幅を外れるときは撃ち止め、同じ回復規則で落ち着いてから再開する。
