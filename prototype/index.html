@@ -5923,6 +5923,13 @@ function waterHeightAt(x,z) {
   }
   return h;
 }
+// 水面より足元が沈んだ機体に最大耐久の10%/秒。装甲で軽減しない環境ダメージ。
+function waterDamageTick(u,dt) {
+  if(!u.alive || u.invulT>0 || !(dt>0) || u.pos.y>=waterHeightAt(u.pos.x,u.pos.z)-.15)return;
+  const amount=u.maxHp*.1*dt;
+  u.hp=Math.max(0,u.hp-amount);noteDmg(u,null,amount);u.hurtT=HURT_TIME;
+  if(u.hp<1e-7)kill(u,u,false,Infinity,'浸水');
+}
 function hoverGroundAt(u,x,z,y,route=false) {
   const ground=groundAt(x,z,y);
   if (!(route ? hoverLegs(u) : hoverActive(u))) return ground;
@@ -6726,7 +6733,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
   if (v.isPlayer) aimMark.visible = false;
   if (v.isPlayer || v === lock.target) releaseLock();
-  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が自爆` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
+  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が${weaponName==='浸水'?'浸水で大破':'自爆'}` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
   if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
   v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
   downBurst(v); // 小さな爆発と煙（v0.18）
@@ -13410,6 +13417,7 @@ function loop(now) {
       specialTick(u, dt); // 背部装備はダウン・エリア移動待機中も進める
       if (u.transfer) { if (u.stun === 'down') cancelTransfer(u); else if ((u.transfer.t -= dt) <= 0) doTransfer(u); } // エリア移動の待機（v0.17）
       if (u.isPlayer) playerUpdate(u, dt); else botUpdate(u, dt);
+      waterDamageTick(u,dt);
     }
     for (const pl of plants) plantUpdate(pl, dt);
     annTick();
