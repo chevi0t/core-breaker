@@ -2642,7 +2642,7 @@ function clearPath(ax, az, bx, bz, ay, unit=null) {
   return walkClearPath(ax,az,bx,bz,ay,unit);
 }
 function walkClearPath(ax, az, bx, bz, ay, unit=null) {
-  if (unit && hoverLegs(unit)) return hoverClearPath(unit,ax,az,bx,bz,ay);
+  if (unit && (hoverLegs(unit) || !unit.isPlayer && cityMap)) return hoverClearPath(unit,ax,az,bx,bz,ay);
   if(cityBattle){const result=cityBattle.clearPath(ax,az,bx,bz,ay,obstacles,groundAt);pathEndH=result.y;return result.ok;}
   const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 0.5)), step = L / n, hs = new Float32Array(n + 1);
   let ph = ay ?? terrainH(ax, az);
@@ -2700,6 +2700,11 @@ function navPath(u, from, to) {
     if (i < 0 || i === to) break;
     done[i] = 1;
     for (const [j, k] of NAV.adj[i]) { const link=NAV.links[k];
+      // 旧navが残した建物/岩肌を横切るリンクを選び直し続けない。実接地・resolveで方向別に検査。
+      const walkKey=(hoverLegs(u)?'hover':'walk')+':'+i;
+      link.pass ||= {};
+      if(link.pass[walkKey]===undefined){const a=NAV.pts[i],b=NAV.pts[j];link.pass[walkKey]=walkClearPath(a.x,a.z,b.x,b.z,a.y,u)&&(!curMap.nav?.heightAware||Math.abs(pathEndH-b.y)<1);}
+      if(!link.pass[walkKey])continue;
       if(link.wet===undefined){const a=NAV.pts[link.a],b=NAV.pts[link.b];link.wet=botWetPath(a.x,a.z,b.x,b.z,a.y,b.y)||botWetPath(b.x,b.z,a.x,a.z,b.y,a.y);}
       const d = dist[i] + link.len * u.navW[k] * (link.wet?100:1); if (d < dist[j]) { dist[j] = d; prev[j] = i; } }
   }
