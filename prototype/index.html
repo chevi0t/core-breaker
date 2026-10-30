@@ -5937,7 +5937,7 @@ function ceilingAt(x, z, y) {
 
 // ホバーの浮遊は脚だけで決まる。構え・転送・吹き飛びでは下向き噴射を止める。OHだけでは水没させない。
 // ---- アクション（入力と動作を分離。将来は actionId とこの定義を差し替える） ----
-const ACTIONS = Object.freeze({ crouch: { name: 'しゃがみ', lower: .6, walkScale: .35 } });
+const ACTIONS = Object.freeze({ crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 } });
 const DEFAULT_ACTION = 'crouch';
 function actionUpdate(u, held, boost, jump) {
   const action = ACTIONS[u.actionId || DEFAULT_ACTION];
@@ -9491,10 +9491,12 @@ function recoilRecover(u, dt) {
 function recoilKick(u, w) {
   const kick = baseKick(w), sideways = w.recoilH || 0, absorb = u.recoilAbsorb || 1;
   if (!kick && !sideways) return;
+  // ユーザー指定：基本しゃがみに主武器の反動抑制。30%軽減は本作の初期調整。
+  const stance = u.crouching && primaryShot(u, w) ? ACTIONS.crouch.primaryRecoilScale : 1;
   const cap = (w.recoilH !== undefined ? .24 : .08) / absorb;
   // 持ち替えた直後も、残っている大きな反動を小さい上限へ瞬間的に切り詰めない。
-  u.recoil = Math.min(Math.max(cap, u.recoil), u.recoil + kick / absorb);
-  if (sideways) u.recoilYaw = Math.max(-.14 / absorb, Math.min(.14 / absorb, (u.recoilYaw || 0) + (Math.random() * 2 - 1) * sideways / absorb));
+  u.recoil = Math.min(Math.max(cap, u.recoil), u.recoil + kick * stance / absorb);
+  if (sideways) u.recoilYaw = Math.max(-.14 / absorb, Math.min(.14 / absorb, (u.recoilYaw || 0) + (Math.random() * 2 - 1) * sideways * stance / absorb));
   u.recoilWait = w.recoilDelay || 0; u.recoilRecovery = w.recoilRecovery || .04;
 }
 // 弾の照準を反動のぶん上下・左右へずらす。プレイヤーとBotで同じ角度の計算を使う。

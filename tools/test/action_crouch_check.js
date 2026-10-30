@@ -7,6 +7,17 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chr
  await page.goto('file://'+path.resolve(process.argv[2],'dbg.html'));
  const checks=await page.evaluate(()=>{
  const g=__g;g.selectMap('dock');g.setup();g.running=true;const u=g.player,T=g.T,checks=[],ok=(name,pass)=>checks.push({name,pass:!!pass});
+ const rand=Math.random;Math.random=()=>.9;
+ const main={key:'action-test-main',recoil:.02,recoilH:.01,recoilDelay:.1,recoilRecovery:.06},sub={...main,key:'action-test-sub'};
+ function kick(w,crouching,absorb=1,initial=0){const v={slots:{main:{w:main}},crouching,recoilAbsorb:absorb,recoil:initial,recoilYaw:0};g.recoilKick(v,w);return v;}
+ const standing=kick(main,false),crouched=kick(main,true);
+ ok('主武器縦反動30%軽減',Math.abs(crouched.recoil-standing.recoil*.7)<1e-9);
+ ok('主武器横反動30%軽減',Math.abs(crouched.recoilYaw-standing.recoilYaw*.7)<1e-9);
+ ok('副武器反動は維持',kick(sub,true).recoil===kick(sub,false).recoil&&kick(sub,true).recoilYaw===kick(sub,false).recoilYaw);
+ ok('腕部反動吸収と併用',Math.abs(kick(main,true,2).recoil-crouched.recoil/2)<1e-9);
+ ok('蓄積済み反動を消さない',kick(main,true,1,.3).recoil===.3);
+ ok('回復待ちと速度を変更しない',crouched.recoilWait===standing.recoilWait&&crouched.recoilRecovery===standing.recoilRecovery);
+ Math.random=rand;
  const oldObs=g.obstacles.slice();g.obstacles.length=0;
  function reset(){g.spawn(u);Object.assign(u,{alive:true,downT:0,electricT:0,recoverT:0,invulT:0,onGround:true,actionHeld:false,crouching:false,actionId:'crouch',slideT:0});u.pos.set(0,g.groundAt(0,0,100),0);u.vel.set(0,0,0);for(const k in g.keys)g.keys[k]=false;for(const k in g.pressed)g.pressed[k]=false;}
  const key=(code,down)=>dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true}));
