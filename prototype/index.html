@@ -4099,6 +4099,7 @@ function buildMap(id) {
   clearBeamCannons();
   resetCombatFeedback();
   clearBooms();
+  clearDeathEnergy();
   cityMap?.dispose();cityMap=null;cityBattle=null;
   const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : id === RANGE_ID && range ? RANGE_MAP : MAPS[id] || MAPS[FIRST_MAP];
   curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : def === RANGE_MAP ? RANGE_ID : MAPS[id] ? id : FIRST_MAP;
@@ -6518,6 +6519,46 @@ function puffUpdate(dt) {
 }
 // 煙は少し風下（+x）へ流れる
 const WIND = 1.2;
+// 撃破時の内部エネルギー漏出。公式画像は使わず、共有した薄い光帯と既存の光点だけで描く。
+// 1機につき最大3 draw calls、同時8機、300m以遠は省略。乱数を戦闘側から消費しない。
+const deathEnergyGeo = visualAlloc(() => [18, 8].map(count => {
+  const positions=[],colors=[],uvs=[];
+  for(let i=0;i<count;i++){
+    const a=i*2.399963, y=-.45+1.35*boomNoise(i+431), r=Math.sqrt(1-Math.min(.95,y*y));
+    const dir=new T.Vector3(Math.cos(a)*r,y,Math.sin(a)*r).normalize();
+    const side=new T.Vector3().crossVectors(dir,UP).normalize(), cross=new T.Vector3().crossVectors(dir,side).normalize();
+    const len=3+4*boomNoise(i+911), bend=(boomNoise(i+713)-.5)*1.4;
+    for(const widthAxis of [side,cross])for(let j=0;j<3;j++){
+      const pts=[];
+      for(const step of [j,j+1]){
+        const t=step/3, width=(1-t)*(.22+.32*boomNoise(i+51));
+        const center=dir.clone().multiplyScalar(.25+len*t).addScaledVector(side,Math.sin(t*7+i)*bend*t);
+        for(const sign of [-1,1])pts.push({p:center.clone().addScaledVector(widthAxis,width*sign),t,u:sign===-1?0:1});
+      }
+      for(const n of [0,2,1,1,2,3]){const v=pts[n];positions.push(v.p.x,v.p.y,v.p.z);colors.push(1-.65*v.t,1,1-.35*v.t);uvs.push(v.u,.15+.7*v.t);}
+    }
+  }
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));g.computeBoundingSphere();return g;
+}));
+function deathEnergyBurst(u) {
+  if(u.energyBurstLife===u.lifeId)return;
+  u.energyBurstLife=u.lifeId;
+  const distance=u.pos.distanceTo(camera.position);
+  if(distance>300 || fx.filter(f=>f.kind==='deathEnergy').length>=8)return;
+  visualAlloc(()=>{
+    const at=u.pos.clone().setY(u.pos.y+2), seed=(u.idx+1)*31+(u.lifeId||0)*101;
+    const mesh=new T.Mesh(deathEnergyGeo[distance>120?1:0],new T.MeshBasicMaterial({...glow(0xffffff),map:flashTex,vertexColors:true,side:T.DoubleSide,fog:true}));
+    mesh.position.copy(at);mesh.rotation.y=boomNoise(seed)*Math.PI*2;
+    addFx(mesh,.72,{kind:'deathEnergy',energyOwner:u,energyLife:u.lifeId});
+    for(const [size,life,color] of [[6,.22,0xf5fff0],[10,.55,0x67ffc1]]){
+      const sp=new T.Sprite(new T.SpriteMaterial({...glow(color),map:flashTex}));sp.position.copy(at);
+      addFx(sp,life,{kind:'flash',size,energyOwner:u,energyLife:u.lifeId});
+    }
+  });
+}
+function clearDeathEnergy() {
+  for(let i=fx.length-1;i>=0;i--)if(fx[i].energyOwner){const f=fx[i];scene.remove(f.obj);f.obj.material.dispose();fx.splice(i,1);}
+}
 // 倒れた・撃破された瞬間：小さな爆発と火花と煙
 function downBurst(u) {
   const at = u.pos.clone().setY(u.pos.y + 1.6);
@@ -6564,7 +6605,8 @@ function fxUpdate(dt) {
     f.age += dt;
     if (f.age < 0) continue;
     if (!f.shown) { scene.add(f.obj); f.shown = true; }
-    const k = Math.min(1, f.age / f.life);
+    if(f.energyOwner && (f.energyOwner.alive || f.energyOwner.lifeId!==f.energyLife))f.life=0;
+    const k = f.life>0 ? Math.min(1, f.age / f.life) : 1;
     if (f.kind === 'tracer') {
       // 筋の先端を着弾点へ進め、遠くても見える太さにする
       const head = Math.min(f.len, f.age * TRACER_SPEED), tail = Math.max(0, head - (f.energy ? ENERGY_TRACE_LEN : f.segment));
@@ -6585,6 +6627,9 @@ function fxUpdate(dt) {
       f.obj.position.copy(f.at);
       f.obj.scale.setScalar(f.size * Math.min(1, 0.3 + k * 3));
       f.obj.material.opacity = 0.3 * (1 - k);
+    } else if (f.kind === 'deathEnergy') {
+      f.obj.scale.setScalar(.22+.78*Math.min(1,f.age/.16));
+      f.obj.material.opacity=.95*(1-k)**1.35;
     } else if (f.kind === 'flash') {
       f.obj.scale.setScalar(f.size * (0.5 + k));
       f.obj.material.opacity = 1 - k;
@@ -6784,6 +6829,7 @@ let killcam = null; // { by：倒した相手, at：撃破された場所, end�
 const REVIVE_WAIT = 10, REVIVE_NEED = 3000, REVIVE_HP = 0.3, REVIVE_INVUL = 3, REVIVE_BIG = DOWN_DMG, REVIVE_CALL = 120;
 function kill(v, by, head, hit = Infinity, weaponName = null) {
   v.actionHeld = v.crouching = v.actionBlockBoost = false; v.kneeSlideT=0;
+  deathEnergyBurst(v);
   stopBeamCannon(v);
   v.deathWeapon = attackName(by, weaponName);
   scoreKill(v, by, head);
@@ -13378,6 +13424,7 @@ addEventListener('blur', () => { if (range) rangePause(); });
 function setup() {
   resetCombatFeedback();
   clearBooms();
+  clearDeathEnergy();
   resetBlastShake();
   stopMovementSounds();
   incomingShots.clear(); lockBeepT = 0;
