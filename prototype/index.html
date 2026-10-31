@@ -2966,11 +2966,24 @@ function plantStructure(pl) {
   const beacon=facilityMesh(light,new T.MeshBasicMaterial({color:NEUTRAL,transparent:true,opacity:.95,depthWrite:false}));
   const progress=new T.Mesh(new T.RingGeometry(2.95,3.2,64).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:NEUTRAL,side:T.DoubleSide,transparent:true,opacity:.9,depthWrite:false}));
   progress.position.y=9.4;progress.userData.facilityVisual=true;group.add(structure,beacon,progress);mapRoot.add(group);
-  // 都市の建物越しに位置を探す光柱。追加ライト/当たり判定なし、遮蔽物の奥は通常どおり隠す。
+  // 上端を座標ではなく上向きの無限遠点(w=0)として投影。遠クリップ面で棒を切らない。
   const column=new T.Group();column.name='plant-light-column';
-  for(const [radius,opacity] of [[1.4,.12],[.45,.72]]) {
-    const ray=new T.Mesh(new T.CylinderGeometry(radius,radius,180,8,1,true),new T.MeshBasicMaterial({color:0xaaaaaa,transparent:true,opacity,depthWrite:false,fog:false}));
-    ray.position.y=100;ray.userData.facilityVisual=true;column.add(ray);
+  for(const [radius,opacity,glow] of [[1.4,.18,1],[.45,.72,0]]) {
+    const color=new T.Color(0xaaaaaa);
+    const material=new T.ShaderMaterial({transparent:true,depthWrite:false,
+      uniforms:{color:{value:color},opacity:{value:opacity},glow:{value:glow}},
+      vertexShader:`varying float along;
+        void main(){along=uv.y;
+          vec4 world=modelMatrix*(position.y>.5?vec4(0.,1.,0.,0.):vec4(position,1.));
+          gl_Position=projectionMatrix*viewMatrix*world;
+          gl_Position.z=min(gl_Position.z,gl_Position.w*.99999);
+        }`,
+      fragmentShader:`uniform vec3 color;uniform float opacity;uniform float glow;varying float along;
+        void main(){float fade=mix(1.,pow(1.-along,2.),glow);gl_FragColor=vec4(color,opacity*fade);}
+      `});
+    material.color=color; // paintPlantの所有色更新を既存と共通化
+    const ray=new T.Mesh(new T.CylinderGeometry(radius,radius,1,8,1,true).translate(0,.5,0),material);
+    ray.position.y=10;ray.frustumCulled=false;ray.userData.facilityVisual=true;column.add(ray);
   }
   group.add(column);
   return {group,beacon,progress,column};
