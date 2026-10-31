@@ -2966,7 +2966,14 @@ function plantStructure(pl) {
   const beacon=facilityMesh(light,new T.MeshBasicMaterial({color:NEUTRAL,transparent:true,opacity:.95,depthWrite:false}));
   const progress=new T.Mesh(new T.RingGeometry(2.95,3.2,64).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:NEUTRAL,side:T.DoubleSide,transparent:true,opacity:.9,depthWrite:false}));
   progress.position.y=9.4;progress.userData.facilityVisual=true;group.add(structure,beacon,progress);mapRoot.add(group);
-  return {group,beacon,progress};
+  // 都市の建物越しに位置を探す光柱。追加ライト/当たり判定なし、遮蔽物の奥は通常どおり隠す。
+  const column=new T.Group();column.name='plant-light-column';
+  for(const [radius,opacity] of [[1.4,.12],[.45,.72]]) {
+    const ray=new T.Mesh(new T.CylinderGeometry(radius,radius,180,8,1,true),new T.MeshBasicMaterial({color:0xaaaaaa,transparent:true,opacity,depthWrite:false,fog:false}));
+    ray.position.y=100;ray.userData.facilityVisual=true;column.add(ray);
+  }
+  group.add(column);
+  return {group,beacon,progress,column};
 }
 function plantVisualTick(pl,time) {
   const pulse=pl.contested?.65+.25*Math.sin(time*9):pl.capturing?.8+.2*Math.sin(time*7):.94;
@@ -3003,7 +3010,7 @@ for (const pl of plants) {
   const disc = new T.Mesh(new T.CircleGeometry(PLANT_R, 48), new T.MeshBasicMaterial({ color: NEUTRAL, transparent: true, opacity: 0.055, depthWrite: false }));
   disc.rotation.x = -Math.PI / 2;
   disc.position.set(pl.pos.x, y + 0.05, pl.pos.z);
-  const {group,beacon,progress}=plantStructure(pl);
+  const {group,beacon,progress,column}=plantStructure(pl);
   // 衝突と射線の中央支柱は従来サイズ。追加した光や装飾は遮蔽物にしない。
   const pole = new T.Mesh(new T.CylinderGeometry(.5,.7,7,10),new T.MeshBasicMaterial({visible:false}));
   pole.position.set(pl.pos.x,y+3.5,pl.pos.z);pole.userData.facilityVisual=true;
@@ -3011,7 +3018,7 @@ for (const pl of plants) {
   mapRoot.add(disc,pole,label);
   hittables.push(pole);
   obstacles.push({ minX: pl.pos.x - 0.7, maxX: pl.pos.x + 0.7, minZ: pl.pos.z - 0.7, maxZ: pl.pos.z + 0.7, top: y + 7 });
-  Object.assign(pl, { disc, beacon, group, progress, owner: null, gauge: 0, capturing: false, contested: false });
+  Object.assign(pl, { disc, beacon, group, progress, column, owner: null, gauge: 0, capturing: false, contested: false });
 }
 }
 // 点対称の位置にあるプラント（敵軍側のカタパルトの台を付ける先）
@@ -3020,6 +3027,7 @@ function paintPlant(pl) {
   const c = pl.owner ? TEAM[pl.owner].color : NEUTRAL;
   pl.disc.material.color.setHex(c);
   pl.beacon.material.color.setHex(c);
+  for(const ray of pl.column.children) ray.material.color.setHex(pl.owner ? TEAM[pl.owner].color : 0xaaaaaa);
   plantVisualTick(pl,0);
 }
 function resetPlants() {
