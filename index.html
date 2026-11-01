@@ -11330,6 +11330,7 @@ padStatus();
 // 右半分：なぞると視点。右下のボタンは押している間そのキー（射撃・ロックはマウスの左・右のボタン）を押したことにし、コントローラーと同じ道を通す。
 // 射撃・指示は押したままなぞれる。武器は十字メニューで明示選択。右側ダブルタップも同じメニュー。
 const TC_R = 56, TC_DASH = 1.45; // スティックの半径（px）。中心から半径のこの倍より外へ倒すとダッシュ
+const TC_TAP_TIME = 230; // 短いタップと長押しを分ける時間（ms）。長押しは自動射撃を妨げない
 // ptr：触っている指ごとの役目（stick・look・btn）。fwd・side：スティックの前後・左右（playerUpdate がキーに足す）
 const touch = { ptr: new Map(), fwd: 0, side: 0, dash: false, console: null, menu:false, tap:null, armed:false, autoSlot:null, life:null, autoLock:null }; // console：試合中だけ標準にしたコンソールの、元の選択
 let touchPlay = false; // 試合中で、タッチのボタンを出している
@@ -11428,7 +11429,7 @@ function touchUp(e) {
   const t = touch.ptr.get(e.pointerId);
   if (!t) return;
   touch.ptr.delete(e.pointerId);
-  if(t.kind==='look' && e.type==='pointerup' && !t.multi && t.moved<=8 && performance.now()-t.at<230){
+  if(t.kind==='look' && e.type==='pointerup' && !t.multi && t.moved<=8 && performance.now()-t.at<TC_TAP_TIME){
     const now=performance.now(),prev=touch.tap;
     if(prev && now-prev.at<300 && Math.hypot(e.clientX-prev.x,e.clientY-prev.y)<32){touch.tap=null;touchMenuOpen();}
     else touch.tap={at:now,x:e.clientX,y:e.clientY};
@@ -11495,8 +11496,8 @@ function touchMeleeTarget(u, aim) {
 function touchAutoTrigger(u, hit, aim) {
   if(!TOUCH_INPUT || inputMode.mode!=='touch')return false;
   const sl=u.slots[u.weapon], w=sl.w;
-  const tapping=[...touch.ptr.values()].some(t=>t.kind==='look'&&(t.multi||t.moved<=8));
-  if(!touchPlay||!gameOptions.touchAuto||!touch.armed||touch.menu||tapping||touch.tap&&performance.now()-touch.tap.at<300||!u.alive||u.downT||u.repairing||u.transfer||u.stun&&u.stun!=='land'||u.electricT>0||u.switchT>0||mapOpen||wsel.open||qc.open||!$('overlay').hidden||innerHeight>innerWidth||!touchOffensive(w)) {touchAutoCancel();return false;}
+  const now=performance.now(), tapping=[...touch.ptr.values()].some(t=>t.kind==='look'&&(t.multi||t.moved<=8&&now-t.at<TC_TAP_TIME));
+  if(!touchPlay||!gameOptions.touchAuto||!touch.armed||touch.menu||tapping||touch.tap&&now-touch.tap.at<300||!u.alive||u.downT||u.repairing||u.transfer||u.stun&&u.stun!=='land'||u.electricT>0||u.switchT>0||mapOpen||wsel.open||qc.open||!$('overlay').hidden||innerHeight>innerWidth||!touchOffensive(w)) {touchAutoCancel();return false;}
   if(mouseDown){touchAutoCancel();return false;} // 手動射撃とは競合しない
   let target=w.type==='sword'?touchMeleeTarget(u,aim):hit?.ref;
   if(!touchEnemy(u,target)||!canSee(u,target,w.type==='sword'?targetPoint(target):hit.point)){touchAutoCancel();return false;}
