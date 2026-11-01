@@ -2203,7 +2203,7 @@ function createCityMap(T,layout) {
 }
 
 // この街区の地形と本体の対戦施設を接続する。機体の移動・射撃・索敵規則は本体を使う。
-const WALK_SLOPE_MAX = 1.1;
+const WALK_SLOPE_MAX = Math.tan(52 * Math.PI / 180); // 上昇/水平距離 ≈ 1.27994
 function createCityBattle(T,city,definition) {
   const radius=1.3,height=4,cache=new Map();
   function free(x,z,y,obstacles,r=radius) {
@@ -2229,7 +2229,7 @@ function createCityBattle(T,city,definition) {
       const h=groundAt(x,z,y);
       if(i>0 && (steepAscent(city.groundSurface(x,z,y),(bx-ax)/n,(bz-az)/n)||steepAscent(city.groundSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,y),(bx-ax)/n,(bz-az)/n)))return {ok:false,y};
       // 落下だけで通れる岸壁を「帰って来られる経路」に数えない。
-      if(Math.abs(h-y)>.45+step*1.1 || !free(x,z,h,obstacles))return {ok:false,y};
+      if(Math.abs(h-y)>.45+step*WALK_SLOPE_MAX || !free(x,z,h,obstacles))return {ok:false,y};
       y=h;
     }
     return {ok:true,y};
@@ -2663,7 +2663,7 @@ function hoverClearPath(u,ax,az,bx,bz,ay) {
   for (let i=1;i<=n;i++) {
     const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n, h=hoverGroundAt(u,x,z,y,true);
     if (steepAscent(walkSurface(x,z,y,u),(bx-ax)/n,(bz-az)/n)||steepAscent(walkSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,y,u),(bx-ax)/n,(bz-az)/n))return false;
-    if (h-y>(cityMap ? .45 : .05)+step*1.1 || ceilingAt(x,z,h)<h+UNIT_H-.01) return false;
+    if (h-y>(cityMap ? .45 : .05)+step*WALK_SLOPE_MAX || ceilingAt(x,z,h)<h+UNIT_H-.01) return false;
     probe.pos.set(x,h,z); resolve(probe);
     if (Math.hypot(probe.pos.x-x,probe.pos.z-z)>.05) return false;
     y=h;
@@ -2702,7 +2702,7 @@ function walkClearPath(ax, az, bx, bz, ay, unit=null) {
     let h = terrainH(x, z);
     for (const o of bridges) if (x > o.minX && x < o.maxX && z > o.minZ && z < o.maxZ && o.top <= ph + 0.6) h = Math.max(h, o.top);
     if (steepAscent(walkSurface(x,z,ph,unit),(bx-ax)/n,(bz-az)/n)||steepAscent(walkSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,ph,unit),(bx-ax)/n,(bz-az)/n))return false;
-    if (h - ph > 0.05 + step * 1.1) return false;
+    if (h - ph > 0.05 + step * WALK_SLOPE_MAX) return false;
     hs[i] = ph = h;
   }
   for (const o of obstacles) {
@@ -6067,7 +6067,7 @@ function movementSpread(u) {
   return (u.onGround ? 0 : stable ? .0034 : .017) + (u.dashState ? stable && u.dashState!=='short' ? .005 : .025 : 0);
 }
 
-// 従来の約48°上限。小段差の許容を連続斜面の勾配へ毎フレーム加算しない。
+// ユーザー指定の52°上限。小段差の許容を連続斜面の勾配へ毎フレーム加算しない。
 
 function walkSurface(x,z,y,u) {
   const e=.1;
