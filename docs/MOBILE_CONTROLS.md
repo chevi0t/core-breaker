@@ -12,6 +12,8 @@
 
 ダブルタップは各接触230ms未満・移動累計8px以下、2回の終了間隔300ms未満・32px以内。同時に2本以上で右側を触った場合はダブルタップや視点操作にしない。左の移動指・ブースト指は除外せず並行して使える。数値は今回の操作調整値。
 
+照準ドラッグで自動射撃を開始した後に右側へ指を置き直した場合、タップかどうかの判定で射撃を止めるのは最初の230msまで。指を止めて長押ししていても、有効な敵に照準が合っていれば自動射撃を再開する。初回と武器メニュー終了後は従来どおり新しい照準ドラッグが必要。
+
 メニュー内は専用の大きいボタンで操作し、視点を回さない。開いた瞬間と表示中は射撃を止め、未発射の溜めとバースト残りを取り消す。既に飛んだ弾や開始済みの近接攻撃は消さない。選択・取消後は右側の新しいドラッグまで自動射撃を再開しない。ポインタ取消、フォーカス喪失、ページ非表示、画面回転、死亡・再出撃でも自動操作を解除する。縦画面では既存の「横向きにしてください」を表示し、入力を解除する。
 
 ## 外付けキーボード・マウス・コントローラー
@@ -65,6 +67,7 @@ Gamepad APIはブラウザ・OS・接続方式により利用可否や標準配�
 
 ```sh
 node tools/test/mobile_auto_check.js /tmp/mobile-auto /tmp/mobile-auto-results
+node tools/test/mobile_fire_hold_check.js /tmp/mobile-auto
 node tools/test/mobile_gamepad_check.js /tmp/mobile-auto /tmp/mobile-gamepad
 node tools/test/hybrid_input_check.js /tmp/mobile-auto /tmp/mobile-hybrid
 node tools/test/gamepad_check.js /tmp/mobile-auto /tmp/mobile-gamepad
@@ -78,6 +81,8 @@ node tools/test/bot_battle.js /tmp/mobile-auto city,wide,mesa,dock 150
 画面画像は停止した実ゲーム描画と実DOMを合成したもの。ヘッドレスの停止RAFでcanvas合成が黒くなる問題を避けるため、検査だけで実際のWebGLフレームを画像として同じ場所に固定する。製品コードにはこの処理を入れない。実機の指の感触、iOS Safari、実端末性能、非ゼロsafe-areaの実機挙動は未検証。CSSではsafe-areaを考慮する。
 
 ## 検証結果
+
+2026-11-01、指を置き直して静止した場合の停止を `mobile_fire_hold_check.js` で再現し、修正後に15項目成功。長押し中の実射、小さな指の揺れ、移動との同時操作、単タップ・ダブルタップ、複数の照準指、メニュー後の再開と接触取消を確認。既存の自動操作45項目・ハイブリッド入力22項目・スマホパッド40項目も成功し、合計122項目でブラウザエラーなし。`quick_check.js origin/main` も成功（city 75秒、dock 82秒で正常終了）。Windows版Chromeのタッチ模擬検査であり、スマホ実機は未検証。
 
 - 最終専用検査：45項目成功。実タッチ接触、手動モード、単発銃の間隔・弾切れ、PCマウスの射撃・解除も確認。
 - ハイブリッド入力：22項目成功。実キー・マウス、CDPタッチ、互換マウス、保持キーの切替・リピート、入力欄、メニュー、blur、主ポインタがマウスのタッチ画面を確認。ブラウザシミュレーションであり実Bluetooth機器検査ではない。
