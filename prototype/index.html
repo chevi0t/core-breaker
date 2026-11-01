@@ -1977,7 +1977,7 @@ function createCityMap(T,layout) {
   // 実際に支持する床の高さと勾配。橋の上/下や屋根を地表と混同しない。
   function groundSurface(x,z,y) {
     let h=data.river.bed,gx=0,gz=0;
-    const take=(q,t)=>{if(q!==null&&q>h){h=q;gx=t?-t.normal.x/t.normal.y:0;gz=t?-t.normal.z/t.normal.y:0;}};
+    const take=(q,t)=>{if(q!==null&&(q>h||(!t&&Math.abs(q-h)<1e-6))){h=q;gx=t?-t.normal.x/t.normal.y:0;gz=t?-t.normal.z/t.normal.y:0;}};
     for(const t of ground(x,z))take(surface(t,x,z),t);
     for(const v of nearby(x,z,radius*.6))if(v.top<=y+.6&&overlaps(v,x,z,radius*.6))take(v.top,null);
     for(const t of bridge(x,z))if(t.normal.y>.65){const q=surface(t,x,z);if(q!==null&&q<=y+.6)take(q,t);}
@@ -6072,7 +6072,7 @@ function movementSpread(u) {
 function walkSurface(x,z,y,u) {
   const e=.1;
   let q=cityMap?cityMap.groundSurface(x,z,y):{h:terrainH(x,z),gx:(terrainH(x+e,z)-terrainH(x-e,z))/(2*e),gz:(terrainH(x,z+e)-terrainH(x,z-e))/(2*e)};
-  for(const o of obstacles)if(x>o.minX-R*.6&&x<o.maxX+R*.6&&z>o.minZ-R*.6&&z<o.maxZ+R*.6&&o.top<=y+.6&&o.top>q.h)q={h:o.top,gx:0,gz:0};
+  for(const o of obstacles)if(x>o.minX-R*.6&&x<o.maxX+R*.6&&z>o.minZ-R*.6&&z<o.maxZ+R*.6&&o.top<=y+.6&&o.top>=q.h-1e-6)q={h:o.top,gx:0,gz:0};
   const water=u&&hoverActive(u)?waterHeightAt(x,z):-Infinity;
   if(Number.isFinite(water)&&water>q.h)q={h:water,gx:0,gz:0};
   return q;

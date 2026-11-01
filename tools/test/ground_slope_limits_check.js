@@ -5,4 +5,6 @@ try{for(const [name,gx,gz,dx,dz,air,stairs,want] of [
  const u={pos:new g.T.Vector3(0,air?110:100,0),vel:new g.T.Vector3(),alive:true,onGround:!air};let completed=true;
  for(let i=0;i<20;i++){if(!g.stepTo(u,u.pos.x+dx,u.pos.z+dz)){completed=false;break;}if(!air)u.pos.y=c.groundSurface(u.pos.x,u.pos.z).h;}
  if(completed!==want)throw Error(name);rows.push({name,completed,at:u.pos.toArray()});
-}}finally{c.groundSurface=saved.surface;c.resolve=saved.resolve;g.obstacles.push(...saved.obstacles);}return rows;});console.log(JSON.stringify(rows));if(process.argv[3])fs.writeFileSync(process.argv[3],JSON.stringify(rows,null,2));}finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1});
+}
+ c.groundSurface=()=>({h:100,gx:1.5,gz:0});g.obstacles.push({minX:-2,maxX:2,minZ:-2,maxZ:2,top:100});const seam=g.walkSurface(0,0,100,{alive:true});if(seam.h!==100||seam.gx!==0||seam.gz!==0)throw Error('flat support at equal height');rows.push({name:'equal-height bridge support',completed:true});
+}finally{c.groundSurface=saved.surface;c.resolve=saved.resolve;g.obstacles.length=0;g.obstacles.push(...saved.obstacles);}return rows;});console.log(JSON.stringify(rows));if(process.argv[3])fs.writeFileSync(process.argv[3],JSON.stringify(rows,null,2));}finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1});
