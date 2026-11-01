@@ -17,10 +17,10 @@ const dir = path.resolve(process.argv[2] || 'dbg/cat-pilots');
     await p.addInitScript(() => { window.requestAnimationFrame = () => 0; });
     await p.goto('file://' + path.join(dir, 'dbg.html'));
     await p.locator('[data-page="pgPilot"]').click();
-    yes(await p.locator('[data-pilot-choice]').count() === 8, '8匹を選べる');
+    yes(await p.locator('#pilotList .catFace:not(.pilotSprite)').count() === 8, '8匹を選べる');
     yes(await p.locator('[data-pilot-choice="tabby"]').getAttribute('aria-pressed') === 'true', '未保存はキジトラ');
     const images = await p.evaluate(async () => {
-      const els = [...document.querySelectorAll('#pilotList .catFace')];
+      const els = [...document.querySelectorAll('#pilotList .catFace:not(.pilotSprite)')];
       const src = getComputedStyle(els[0]).backgroundImage.slice(5, -2), img = new Image(); img.src = src; await img.decode();
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = 48; const ctx = canvas.getContext('2d'), hashes = [];
       for (let i = 0; i < 8; i++) {
