@@ -1974,13 +1974,19 @@ function createCityMap(T,layout) {
       if (!pushed) break;
     }
   }
-  function groundAt(x, z, y) {
-    let h = terrainH(x, z);
-    for (const v of nearby(x,z,radius*.6)) if (v.top <= y+.6 && overlaps(v,x,z,radius*.6)) h = Math.max(h,v.top);
-    for (const t of bridge(x,z)) if (t.normal.y > .65) {
-      const q = surface(t,x,z);
-      if (q !== null && q <= y+.6) h = Math.max(h,q);
-    }
+  // 実際に支持する床の高さと勾配。橋の上/下や屋根を地表と混同しない。
+  function groundSurface(x,z,y) {
+    let h=data.river.bed,gx=0,gz=0;
+    const take=(q,t)=>{if(q!==null&&(q>h||(!t&&Math.abs(q-h)<1e-6))){h=q;gx=t?-t.normal.x/t.normal.y:0;gz=t?-t.normal.z/t.normal.y:0;}};
+    for(const t of ground(x,z))take(surface(t,x,z),t);
+    for(const v of nearby(x,z,radius*.6))if(v.top<=y+.6&&overlaps(v,x,z,radius*.6))take(v.top,null);
+    for(const t of bridge(x,z))if(t.normal.y>.65){const q=surface(t,x,z);if(q!==null&&q<=y+.6)take(q,t);}
+    return {h,gx,gz};
+  }
+  function groundAt(x,z,y) {
+    let h=terrainH(x,z);
+    for(const v of nearby(x,z,radius*.6))if(v.top<=y+.6&&overlaps(v,x,z,radius*.6))h=Math.max(h,v.top);
+    for(const t of bridge(x,z))if(t.normal.y>.65){const q=surface(t,x,z);if(q!==null&&q<=y+.6)h=Math.max(h,q);}
     return h;
   }
   function ceilingAt(x, z, y) {
@@ -2184,7 +2190,7 @@ function createCityMap(T,layout) {
     root.traverse(m=>{for(const material of m.material?(Array.isArray(m.material)?m.material:[m.material]):[])ownedMaterials.add(material);});
     root.updateMatrixWorld(true);
   }
-  return {dispose,mount,terrainH,groundAt,ceilingAt,resolve,drawMap,withinBoundary,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
+  return {dispose,mount,terrainH,groundSurface,groundAt,ceilingAt,resolve,drawMap,withinBoundary,volumes,arrays,geometryStats,spawns:data.spawns,river:data.river,half,
     district:data.district,landmarks:data.landmarks,streetRepairs:data.streetRepairs,heritage:data.heritage,base:team=>data.district.bases.find(b=>b.team===team),
     addCameraGeometry:meshes=>{for(const m of meshes){
       m.updateWorldMatrix(true,false);
@@ -2197,6 +2203,7 @@ function createCityMap(T,layout) {
 }
 
 // この街区の地形と本体の対戦施設を接続する。機体の移動・射撃・索敵規則は本体を使う。
+const WALK_SLOPE_MAX = Math.tan(52 * Math.PI / 180); // 上昇/水平距離 ≈ 1.27994
 function createCityBattle(T,city,definition) {
   const radius=1.3,height=4,cache=new Map();
   function free(x,z,y,obstacles,r=radius) {
@@ -2220,8 +2227,9 @@ function createCityBattle(T,city,definition) {
     for(let i=0;i<=n;i++){
       const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;
       const h=groundAt(x,z,y);
+      if(i>0 && (steepAscent(city.groundSurface(x,z,y),(bx-ax)/n,(bz-az)/n)||steepAscent(city.groundSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,y),(bx-ax)/n,(bz-az)/n)))return {ok:false,y};
       // 落下だけで通れる岸壁を「帰って来られる経路」に数えない。
-      if(Math.abs(h-y)>.45+step*1.1 || !free(x,z,h,obstacles))return {ok:false,y};
+      if(Math.abs(h-y)>.45+step*WALK_SLOPE_MAX || !free(x,z,h,obstacles))return {ok:false,y};
       y=h;
     }
     return {ok:true,y};
@@ -2654,7 +2662,8 @@ function hoverClearPath(u,ax,az,bx,bz,ay) {
   const probe={pos:new T.Vector3(),vel:new T.Vector3()};
   for (let i=1;i<=n;i++) {
     const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n, h=hoverGroundAt(u,x,z,y,true);
-    if (h-y>(cityMap ? .45 : .05)+step*1.1 || ceilingAt(x,z,h)<h+UNIT_H-.01) return false;
+    if (steepAscent(walkSurface(x,z,y,u),(bx-ax)/n,(bz-az)/n)||steepAscent(walkSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,y,u),(bx-ax)/n,(bz-az)/n))return false;
+    if (h-y>(cityMap ? .45 : .05)+step*WALK_SLOPE_MAX || ceilingAt(x,z,h)<h+UNIT_H-.01) return false;
     probe.pos.set(x,h,z); resolve(probe);
     if (Math.hypot(probe.pos.x-x,probe.pos.z-z)>.05) return false;
     y=h;
@@ -2692,7 +2701,8 @@ function walkClearPath(ax, az, bx, bz, ay, unit=null) {
     const x = ax + (bx - ax) * i / n, z = az + (bz - az) * i / n;
     let h = terrainH(x, z);
     for (const o of bridges) if (x > o.minX && x < o.maxX && z > o.minZ && z < o.maxZ && o.top <= ph + 0.6) h = Math.max(h, o.top);
-    if (h - ph > 0.05 + step * 1.1) return false;
+    if (steepAscent(walkSurface(x,z,ph,unit),(bx-ax)/n,(bz-az)/n)||steepAscent(walkSurface(x-(bx-ax)/n/2,z-(bz-az)/n/2,ph,unit),(bx-ax)/n,(bz-az)/n))return false;
+    if (h - ph > 0.05 + step * WALK_SLOPE_MAX) return false;
     hs[i] = ph = h;
   }
   for (const o of obstacles) {
@@ -6057,16 +6067,31 @@ function movementSpread(u) {
   return (u.onGround ? 0 : stable ? .0034 : .017) + (u.dashState ? stable && u.dashState!=='short' ? .005 : .025 : 0);
 }
 
-// 急な斜面（崖）へは進めない：水平に動いた距離の1.1倍（約48°）より高くなる所は壁として扱う。
-// 1回に0.5mずつ進める（v0.10.3：ショートダッシュやカタパルトの速さで、厚さ2mの壁を通り抜けていた）
+// ユーザー指定の52°上限。小段差の許容を連続斜面の勾配へ毎フレーム加算しない。
+
+function walkSurface(x,z,y,u) {
+  const e=.1;
+  let q=cityMap?cityMap.groundSurface(x,z,y):{h:terrainH(x,z),gx:(terrainH(x+e,z)-terrainH(x-e,z))/(2*e),gz:(terrainH(x,z+e)-terrainH(x,z-e))/(2*e)};
+  for(const o of obstacles)if(x>o.minX-R*.6&&x<o.maxX+R*.6&&z>o.minZ-R*.6&&z<o.maxZ+R*.6&&o.top<=y+.6&&o.top>=q.h-1e-6)q={h:o.top,gx:0,gz:0};
+  const water=u&&hoverActive(u)?waterHeightAt(x,z):-Infinity;
+  if(Number.isFinite(water)&&water>q.h)q={h:water,gx:0,gz:0};
+  return q;
+}
+function steepAscent(q,dx,dz) {
+  return Math.hypot(q.gx,q.gz)>WALK_SLOPE_MAX+1e-5 && q.gx*dx+q.gz*dz>1e-6*Math.hypot(dx,dz);
+}
 function stepTo(u, x, z) {
-  const dx = x - u.pos.x, dz = z - u.pos.z, n = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.5)), sx = dx / n, sz = dz / n, len = Math.hypot(sx, sz);
-  let py = u.pos.y; // 登っていく途中の足元の高さ
-  for (let i = 0; i < n; i++) {
-    const th = hoverLegs(u) ? hoverGroundAt(u,u.pos.x+sx,u.pos.z+sz,py) : terrainH(u.pos.x + sx, u.pos.z + sz);
-    if (th - py > (cityMap ? 0.45 : 0.05) + len * 1.1) return false;
-    u.pos.x += sx; u.pos.z += sz; resolve(u);
-    py = Math.max(py, th);
+  const dx=x-u.pos.x,dz=z-u.pos.z,n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.5)),sx=dx/n,sz=dz/n,len=Math.hypot(sx,sz);
+  let py=u.pos.y;
+  for(let i=0;i<n;i++){
+    const ox=u.pos.x,oz=u.pos.z,q=walkSurface(ox+sx,oz+sz,py,u);
+    // 空中から足より下の斜面へ降りる/飛び越す動作は妨げない。
+    if((u.onGround || (u.vel.y<=0 && q.h>py)) && q.h>=py-.05 && (steepAscent(q,sx,sz)||steepAscent(walkSurface(ox+sx*.5,oz+sz*.5,py,u),sx,sz)))return false;
+    if(q.h-py>(cityMap ? .45 : .05)+len*WALK_SLOPE_MAX)return false;
+    u.pos.x+=sx;u.pos.z+=sz;resolve(u);
+    const actual=walkSurface(u.pos.x,u.pos.z,py,u),ax=u.pos.x-ox,az=u.pos.z-oz;
+    if((u.onGround || (u.vel.y<=0 && actual.h>py))&&actual.h>=py-.05&&steepAscent(actual,ax,az)){u.pos.x=ox;u.pos.z=oz;return false;}
+    py=Math.max(py,actual.h);
   }
   return true;
 }
