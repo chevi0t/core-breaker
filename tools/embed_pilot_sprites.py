@@ -8,8 +8,8 @@ boost_left/right の絵は原画として残しても埋め込まない。
 やられ顔の差分：embed/damage_patch.webp と embed/damage_patch.json があれば、やられ顔は1枚まるごとではなく
 「標準の絵に顔の切り抜きを重ねる」形で入れる（ポーズが標準と同じ絵だけ。2026-11-02）。
 
-層：<キャラ>/layers/manifest.json があれば（tools/pilot_layers.py が作る）、層の絵も PILOT_LAYERS として入れる。
-ゲームはそのキャラを層ごとに揺らす（2026-11-02）。
+層：<キャラ>/layers/manifest.json があれば（tools/pilot_layers.py が作る）、層の絵だけを PILOT_LAYERS として入れる。
+ゲームはそのキャラを層ごとに揺らし、止まった絵（標準とやられ顔）もページを開いた時に層を重ねて作る（2026-11-02）。
 
 縮小版と差分の作り直し：python3 tools/embed_pilot_sprites.py --shrink（Pillow が要る）
   - 320pxより大きい原画は 320px・WebP 品質88 に縮める（表示は最大156px）
@@ -44,6 +44,7 @@ def shrink(folder):
     from PIL import Image, ImageChops
     for char in sorted(folder.iterdir()):
         if not char.is_dir(): continue
+        if (char/'layers'/'manifest.json').exists(): continue  # 層のキャラは止まった絵もページで層から作る
         imgs={}
         for state in STATES:
             src=original(char,state)
@@ -83,7 +84,18 @@ layers={}
 def collect(folder):
     css=['.pilotSprite { background-size:contain; background-position:center; border-radius:0; }']; registry={}; patches={}; layers.clear()
     for char in sorted(folder.iterdir()):
-        if not char.is_dir() or not source(char,'NORMAL'): continue
+        if not char.is_dir(): continue
+        man=char/'layers'/'manifest.json'
+        if man.exists():
+            # 層に分けたキャラは層だけ入れる。止まった絵（メニューのカードなど）はページが層を重ねて作る（オーナー 2026-11-02「省きましょっか」）
+            m=json.loads(man.read_text()); ls={}
+            for k,v in m['layers'].items():
+                data,mime,_=read_image(char/'layers'/(k+'.webp'))
+                ls[k]={'bbox':v['bbox'],'src':'data:'+mime+';base64,'+base64.b64encode(data).decode()}
+            layers[char.name]={'order':m['order'],'layers':ls}
+            registry[char.name]=['NORMAL','DAMAGE'] if 'headD' in ls else ['NORMAL']
+            continue
+        if not source(char,'NORMAL'): continue
         if not re.fullmatch(r'[a-z0-9_]+',char.name): raise ValueError('キャラIDは小文字英数字/_: '+char.name)
         keys=[k for k in STATES if source(char,k)]
         size=None
@@ -107,13 +119,6 @@ def collect(folder):
                 css.append(sel+' { background-image:var(--pilot-normal); }'); continue
             css.append(sel+' { background-image:'+url(data,mime)+'; }')
         registry[char.name]=keys
-        man=char/'layers'/'manifest.json'
-        if man.exists():
-            m=json.loads(man.read_text()); ls={}
-            for k,v in m['layers'].items():
-                data,mime,_=read_image(char/'layers'/(k+'.webp'))
-                ls[k]={'bbox':v['bbox'],'src':'data:'+mime+';base64,'+base64.b64encode(data).decode()}
-            layers[char.name]={'order':m['order'],'layers':ls}
     return '\n'.join(css),registry,patches
 
 if __name__=='__main__':

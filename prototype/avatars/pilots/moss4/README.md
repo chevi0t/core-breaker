@@ -9,7 +9,7 @@
 | `normal.webp` | `798edd62605a76909d0bf7a8beca12356e5dd14aa171d3f879278eab54d02c9d` |
 | `damage.webp` | `301ee768c0a6cc6a6d913faa52a4a35dacb7b3dbe51d954ee81a90feda5b3860` |
 
-ページには `embed/normal.webp`（320px）と、やられ顔の顔だけの切り抜き `embed/damage_patch.webp`（位置は `embed/damage_patch.json`）を入れる（メニューのカードや、層が使えない時の絵）。作り直しは `python3 tools/embed_pilot_sprites.py --shrink`（Pillow が要る）。
+ページには層（下）だけを入れる。メニューのカードなどの止まった絵（標準とやられ顔）は、ページを開いた時に層を重ねて作る（オーナー 2026-11-02「省きましょっか」。1人あたり約96KB → 約61KB）。
 
 ### 層（2026-11-02）
 
