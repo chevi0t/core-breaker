@@ -12176,7 +12176,7 @@ function pilotSpriteState(p, now = performance.now()) {
 // 標準の絵1枚を WebGL のフラグメントシェーダで逆写像して揺らす（試作 borderbreak-pilot-sway、オーナー承認 2026-11-02）。
 // 横ブーストの加速度を入力に、ばねで 全体のずれ・座席の上の腰の滑り・腰を軸の上半身の傾き・吹かした時の沈み・髪・胸 を動かす。
 // 重みは読み込み時に64pxの絵（R上半身 G髪 B胸 A腰）を作る。髪は絵の色相から拾う。キャラごとに要るのは RIG の数値だけ。
-// 試作ページ（https://claude.ai/artifact/9n1pRpRau5Ebi3un2bWP3k）で調整した値をそのまま貼れる。hairGrow：髪の重みを広げる回数（既定2）、hairFade：髪の付け根から揺れ始めるまでの距離（既定0.32）、chestRoot：胸の上の付け根を固定する強さ（0〜1、既定0.5）
+// 試作ページ（https://claude.ai/artifact/9n1pRpRau5Ebi3un2bWP3k）で調整した値をそのまま貼れる。hairGrow：髪の重みを広げる回数（既定2）、hairFade：髪の付け根から揺れ始めるまでの距離（既定0.32）、chestRoot：胸の上の付け根を固定する強さ（0〜1、既定0.5）、faceKeep：顔を丸ごと固定する範囲（face の楕円の倍、既定1.25。あごと首まで少し下へ広げる。髪・胸の重みがかかると顔がゆがむ。オーナー 2026-11-02）
 // sway：髪と胸の揺れの規定値（倍率。1 が 2026-11-02 の組み込み時の大きさ）。オーナーが決める値（2026-11-02「規定値をこちらで設定したい」）
 const PILOT_RIGS = {
   moss4: {
@@ -12216,7 +12216,7 @@ function pilotSwayWeights(img, rig) {
     const u=(x+.5)/N,v=(y+.5)/N,i=y*N+x;
     let hand=0; for(const [hx,hy,hr] of rig.hands) hand=Math.max(hand,gauss(u,v,hx,hy,hr));
     const keep=Math.max(hand,(u<rig.levers[0]||u>rig.levers[1])&&v>rig.levers[2]?1:0), torso=sm(rig.torsoFade[0],rig.torsoFade[1],v)*(1-keep);
-    const [fx,fy,fw,fh]=rig.face, inFace=Math.exp(-(((u-fx)/fw)**2+((v-fy)/fh)**2)*2), dist=Math.hypot(u-rig.scalp[0],(v-rig.scalp[1])*.8);
+    const [fx,fy,fw,fh]=rig.face, fk=rig.faceKeep??1.25,inFace=1-sm(1,1+.35*fk,Math.hypot((u-fx)/(fw*fk),(v-fy-fh*.2)/(fh*fk))), dist=Math.hypot(u-rig.scalp[0],(v-rig.scalp[1])*.8);
     // 胸：乳房全体を覆う楕円 [中心x,中心y,半径x,半径y]。中は一様に動かし（真ん中だけ膨らまない）、縁で滑らかに0へ。
     // 上の付け根は動かさず下ほど大きく動かす（振り子のように）。腕・操縦桿は動かさない。
     let chest=0; for(const [cx,cy,rx,ry] of rig.chest){const d=Math.hypot((u-cx)/rx,(v-cy)/ry);const root=rig.chestRoot??.5;chest=Math.max(chest,(1-sm(.55,1.15,d))*(root>0?sm(cy-ry*1.1,cy-ry*1.1+ry*2*root,v):1));}
