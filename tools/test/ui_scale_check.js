@@ -11,8 +11,9 @@ const sizes = [[1280, 720], [1920, 1080], [2560, 1440], [960, 540]];
 const checks = [], errors = [];
 const yes = (v, label) => { if (!v) throw Error(label); checks.push(label); };
 async function layout(p, mode) {
-  return p.evaluate(({ mode, IDS }) => {
-    const g = __g; localStorage.setItem('coreBreakerConsole', mode); document.body.dataset.console = mode; g.hud(240, .016);
+  await p.evaluate(mode => { const g = __g; localStorage.setItem('coreBreakerConsole', mode); document.body.dataset.console = mode; g.hud(240, .016); }, mode);
+  await p.waitForTimeout(150); // アーケードのマップの位置は ResizeObserver（右下の札の高さ）で後から決まる
+  return p.evaluate(({ IDS }) => {
     const out = {};
     for (const id of IDS) {
       const el = document.getElementById(id); if (!el || el.closest('[hidden]') || getComputedStyle(el).display === 'none') continue;
@@ -37,6 +38,7 @@ async function layout(p, mode) {
     for (const m of modes) base[m] = await layout(p, m);
     for (const [w, h] of sizes.slice(1)) {
       await p.setViewportSize({ width: w, height: h }); await p.evaluate(() => dispatchEvent(new Event('resize')));
+      await p.waitForTimeout(250); // アーケードのマップの位置は ResizeObserver（右下の札の高さ）で後から決まる
       const zoom = await p.evaluate(() => +getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom'));
       yes(Math.abs(zoom - w / 1280) < .002, `${w}×${h} で倍率 ${zoom}`);
       for (const m of modes) {
