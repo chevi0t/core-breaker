@@ -8825,6 +8825,7 @@ const WEAPON_TYPES = {
     ['強装型', { dmg: 18500, mag: 1, mags: 3, reload: 3.6, kg: 490, blast: 7 }, '威力絶大だが爆風が狭く単発'], // プラズマカノン・ネオ
     ['連射型', { dmg: 6300, rpm: 120, mag: 3, mags: 3, reload: 3.5, kg: 480, blast: 14 }, '連射が速く爆風も広いが弾数減'], // プラズマカノンUG
     ['速装型', { dmg: 7100, rpm: 80, mag: 2, mags: 4, reload: 2.5, kg: 520, blast: 12 }, 'リロードが速いが装弾数が2発'], // プラズマカノンXM
+    ['三点射型', { dmg: 4500, rpm: 750, mag: 3, mags: 7, reload: 2.5, kg: 460, blast: 8 }, '3発ずつ素早く撃つ。一発と爆風は小さいが弾数が多い'], // プラズマカノンMk-2（アーケード版 https://w.atwiki.jp/borderbreak/pages/358.html 、オーナー希望 2026-11-02）。3点射は下で
   ] },
   weaken: { w0: { count: 4, reload: 1, kg: 180, dur: 5, blast: 24, fuse: 1.2 }, types: [ // AN手榴弾（AN手榴弾系統）
     ['広域型', { count: 5, reload: 1, kg: 160, dur: 4, blast: 32, fuse: 1 }, '範囲が広く数も多いが効果が弱い'], // 試験型AN手榴弾
@@ -8997,7 +8998,7 @@ const WEAPON_TYPES = {
 };
 const RANKS = ['E-', 'E', 'E+', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S'];
 // 型番の末尾の文字（例：SR-7 の強装型は SR-7H）。キーは元のキー＋この文字（arH）
-const TYPE_LETTER = { 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高速型: 'F', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
+const TYPE_LETTER = { 三点射型:'K', 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高速型: 'F', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
 const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
 function makeType(base, w0, t) {
   const w = structuredClone(base), P = w.proj, G = P && P.gun, D = w.drone, gun = G || w;
@@ -9129,6 +9130,9 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
   Object.assign(w, { sfx: 'shotgunBurst', pellets: 4, burst: 3, rpm: 60 / interval, gap: cycle - 3 * interval, spread: w.spread / 3 * .85,
     desc: '狭くまとまる散弾を3点バーストで撃つ。装填6発で2組撃てる' });
 }
+// オーナー希望（2026-11-02）：プラズマ砲・三点射型（アーケード版 プラズマカノンMk-2、750/min の三点射）。
+// 1回押すと0.08秒間隔で3発。次の組までの間（gap 0.3秒）は wiki に無いので Claude の仮置き。
+Object.assign(WEAPONS.plasmaK, { burst: 3, gap: .3 });
 // オーナー指定（2026-10-25）：VR-8Hだけ40mで推進剤が尽きる。発射角の自動補正はせず、自分で上を狙う。
 Object.assign(WEAPONS.rocketH.proj, { burnDistance: 40, coastGrav: 24 });
 WEAPONS.rocketH.desc = '重い弾頭を撃つ。40mで噴射が止まり、その先は重力で落ちる';
