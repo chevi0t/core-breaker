@@ -6,7 +6,9 @@
 表示は最大156pxなので、320pxあれば高解像度の画面でもぼやけない。"""
 import base64, json, pathlib, re, struct, sys
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-STATES={'NORMAL':'normal.png','BOOST_LEFT':'boost_left.png','BOOST_RIGHT':'boost_right.png','DAMAGE':'damage.png'}
+# ページに入れるのは「標準」と「やられ顔」の2枚（オーナー指定 2026-11-02）。ブースト中の動きはゲーム側の揺れ（PILOT_RIGS）で出すので、
+# boost_left/right.png は原画として残しても埋め込まない
+STATES={'NORMAL':'normal.png','DAMAGE':'damage.png'}
 def webp_size(data):
     kind=data[12:16]
     if kind==b'VP8X': return (int.from_bytes(data[24:27],'little')+1,int.from_bytes(data[27:30],'little')+1)
@@ -26,7 +28,7 @@ def collect(folder):
     for char in sorted(folder.iterdir()):
         if not char.is_dir() or not (char/'normal.png').exists(): continue
         if not re.fullmatch(r'[a-z0-9_]+',char.name): raise ValueError('キャラIDは小文字英数字/_: '+char.name)
-        keys=list(STATES) if all((char/f).exists() for f in STATES.values()) else ['NORMAL']
+        keys=[k for k,f in STATES.items() if (char/f).exists()]
         size=None
         for state in keys:
             small=char/'embed'/STATES[state].replace('.png','.webp')
@@ -38,7 +40,7 @@ def collect(folder):
                 data=(char/STATES[state]).read_bytes();mime='image/png'
                 if data[:8]!=b'\x89PNG\r\n\x1a\n': raise ValueError('PNGではありません')
                 dimensions=struct.unpack('>II',data[16:24])
-            if size and size!=dimensions: raise ValueError('4枚の寸法不一致: '+char.name)
+            if size and size!=dimensions: raise ValueError('絵の寸法不一致: '+char.name)
             size=dimensions
             css.append('.pilotSprite[data-pilot="'+char.name+'"][data-state="'+state+'"] { background-image:url("data:'+mime+';base64,'+base64.b64encode(data).decode()+'"); }')
         registry[char.name]=keys
