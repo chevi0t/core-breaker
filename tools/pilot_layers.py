@@ -17,6 +17,7 @@
     hairPoly      白い髪のキャラ：体（bodyHull）の中でも明るい所を髪にする多角形の並び（肩に掛かる三つ編みなど）
     frontHair     この中の髪は前髪（顔と白衣の前）。外は後ろ髪
     head・armL・armR  顔・左腕・右腕の多角形（髪を除いた所）
+    armRefine     腕の多角形の中を袖の色で絞る {"armL": {"mode": "light"（白い袖）|"dark"（黒い袖）, "keep": 手と袖口の多角形}}
     bodyHull      体の外形。外にある細い線も髪として扱う（白い髪のキャラでは、この中は髪にしない）
   layers/plate_body.png・plate_face.png（無くてよい）  ComfyUI で腕と前の髪・前髪を消して描き足した絵
                                        （MOSS_layers_v11）。あれば隠れていた所はこの絵を使い、無ければ色をにじませて仮に描き足す
@@ -48,6 +49,20 @@ def poly(pts):
     m = Image.new('L', (WORK, WORK), 0); ImageDraw.Draw(m).polygon([(x * WORK, y * WORK) for x, y in pts], fill=255)
     return np.asarray(m) > 127
 
+def armRefine(R, k, P, fg, sat, mx):
+    """腕の多角形の中を、袖の色で絞る（armRefine：{"mode": "light"|"dark", "keep": 手と袖口の多角形}）。
+    腕に掛かった髪の筋や、腕の脇の髪を腕の層に入れない（エース：白い袖と黒い袖、2026-11-02）"""
+    ref = R.get('armRefine', {}).get(k)
+    if not ref: return P
+    cond = (sat < ref.get('sat', 0.06)) & (mx > ref.get('v', 0.7)) if ref['mode'] == 'light' else (mx < ref.get('v', 0.5))
+    core = nd.binary_opening(P & cond & fg, iterations=ref.get('open', 3))   # 細い髪の筋を落とす
+    lab, n = nd.label(core); sizes = nd.sum(core, lab, range(1, n + 1))
+    core = np.isin(lab, 1 + np.where(sizes >= ref.get('minArea', 300))[0])
+    core = nd.binary_fill_holes(nd.binary_closing(core, iterations=4))
+    core = nd.binary_dilation(core, iterations=2) & P & fg   # 袖の縁取りの線も腕に入れる
+    if ref.get('keep'): core |= poly(ref['keep']) & P
+    return core
+
 def split(img, R):
     """層のマスク（重ならず、合わせると絵の全部）"""
     rgb, a = img[..., :3], img[..., 3]
@@ -55,6 +70,7 @@ def split(img, R):
     yy, xx = np.mgrid[0:WORK, 0:WORK]; u = (xx + .5) / WORK; v = (yy + .5) / WORK
     fg = a > 0.02
     head, armL, armR, hull = poly(R['head']), poly(R['armL']), poly(R['armR']), poly(R['bodyHull'])
+    armL, armR = (armRefine(R, k, P, fg, sat, mx) for k, P in (('armL', armL), ('armR', armR)))
     notHair = np.zeros_like(fg)
     for e in R.get('notHair', []): notHair |= ((u - e[0]) / e[2]) ** 2 + ((v - e[1]) / e[3]) ** 2 < 1
     nhp = R.get('notHairPoly') or []
