@@ -8,6 +8,9 @@ boost_left/right の絵は原画として残しても埋め込まない。
 やられ顔の差分：embed/damage_patch.webp と embed/damage_patch.json があれば、やられ顔は1枚まるごとではなく
 「標準の絵に顔の切り抜きを重ねる」形で入れる（ポーズが標準と同じ絵だけ。2026-11-02）。
 
+層：<キャラ>/layers/manifest.json があれば（tools/pilot_layers.py が作る）、層の絵も PILOT_LAYERS として入れる。
+ゲームはそのキャラを層ごとに揺らす（2026-11-02）。
+
 縮小版と差分の作り直し：python3 tools/embed_pilot_sprites.py --shrink（Pillow が要る）
   - 320pxより大きい原画は 320px・WebP 品質88 に縮める（表示は最大156px）
   - 標準とやられ顔の違いが顔のまわりに収まっていれば（外側の違いが圧縮の誤差 PATCH_NOISE 以下）、その範囲を切り抜く"""
@@ -76,8 +79,9 @@ def read_image(path):
 
 def url(data,mime): return 'url("data:'+mime+';base64,'+base64.b64encode(data).decode()+'")'
 
+layers={}
 def collect(folder):
-    css=['.pilotSprite { background-size:contain; background-position:center; border-radius:0; }']; registry={}; patches={}
+    css=['.pilotSprite { background-size:contain; background-position:center; border-radius:0; }']; registry={}; patches={}; layers.clear()
     for char in sorted(folder.iterdir()):
         if not char.is_dir() or not source(char,'NORMAL'): continue
         if not re.fullmatch(r'[a-z0-9_]+',char.name): raise ValueError('キャラIDは小文字英数字/_: '+char.name)
@@ -103,15 +107,22 @@ def collect(folder):
                 css.append(sel+' { background-image:var(--pilot-normal); }'); continue
             css.append(sel+' { background-image:'+url(data,mime)+'; }')
         registry[char.name]=keys
+        man=char/'layers'/'manifest.json'
+        if man.exists():
+            m=json.loads(man.read_text()); ls={}
+            for k,v in m['layers'].items():
+                data,mime,_=read_image(char/'layers'/(k+'.webp'))
+                ls[k]={'bbox':v['bbox'],'src':'data:'+mime+';base64,'+base64.b64encode(data).decode()}
+            layers[char.name]={'order':m['order'],'layers':ls}
     return '\n'.join(css),registry,patches
 
 if __name__=='__main__':
     folder=ROOT/'prototype/avatars/pilots'
     if '--shrink' in sys.argv: shrink(folder)
     css,registry,patches=collect(folder);page=ROOT/'prototype/index.html';src=page.read_text()
-    data='const PILOT_SPRITES = '+json.dumps(registry)+';\nconst PILOT_PATCHES = '+json.dumps(patches)+';'
+    data='const PILOT_SPRITES = '+json.dumps(registry)+';\nconst PILOT_PATCHES = '+json.dumps(patches)+';\nconst PILOT_LAYERS = '+json.dumps(layers)+';'
     for kind,content in [('CSS',css),('DATA',data)]:
         pat=r'/\* PILOT_SPRITES_'+kind+r'_BEGIN \*/.*?/\* PILOT_SPRITES_'+kind+r'_END \*/'
         assert len(re.findall(pat,src,re.S))==1
         src=re.sub(pat,lambda m:'/* PILOT_SPRITES_'+kind+'_BEGIN */\n'+content+'\n/* PILOT_SPRITES_'+kind+'_END */',src,flags=re.S)
-    page.write_text(src);print(registry,patches)
+    page.write_text(src);print(registry,patches,{k:sorted(v['layers']) for k,v in layers.items()})
