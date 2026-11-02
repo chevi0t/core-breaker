@@ -12182,7 +12182,9 @@ const PILOT_RIGS = {
     sway:{hair:1, chest:1},
     // 2026-11-02 の新しい絵（標準とやられ顔でポーズが同じ）に合わせた位置
     hipPivot:[0.50,0.80], torsoFade:[0.82,0.50], hands:[[0.09,0.67,0.10],[0.91,0.67,0.10]], levers:[0.17,0.83,0.55],
-    face:[0.49,0.22,0.10,0.12], scalp:[0.48,0.04], chest:[[0.40,0.56,0.085],[0.60,0.56,0.085]], hip:[0.50,0.80,0.20,0.09], hairHue:[245,305], hairMaxY:0.56 // 髪はこの高さまで（下の服の暗い紫を拾わない）
+    face:[0.49,0.22,0.10,0.12], scalp:[0.48,0.04], chest:[[0.40,0.585,0.085],[0.60,0.585,0.085]], hip:[0.50,0.80,0.20,0.09], hairHue:[245,305], hairMaxY:0.56, // 髪はこの高さまで（下の服の暗い紫を拾わない）
+    // オーナーが試作ページで決めた値（2026-11-02）：なめらかな髪・頭の固定、胸の中心を少し下へ、腰の滑り×2.5
+    smoothHair:true, hairBlur:3, headKeep:1, amp:{hip:2.5}
   },
   // 白い髪は色だけでは白い袖と見分けられないので、明るさと「髪がある所」（楕円 [中心x,中心y,半径x,半径y]）で拾い、袖を除く
   ace: {
@@ -12210,7 +12212,7 @@ function pilotSwayWeights(img, rig) {
   for(let k=0;k<(rig.hairGrow??3);k++){const nx=new Float32Array(N*N); // 髪が動いた先も描けるよう少し広げる（hairGrow 回。試作ページで変えられる）
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<N&&Y<N)m=Math.max(m,cur[Y*N+X]*(dx||dy?.85:1))}nx[y*N+x]=m}
     cur=nx}
-  const out=x2.createImageData(N,N), o=out.data;
+  const out=x2.createImageData(N,N), o=out.data, HW=new Float32Array(N*N), LK=new Float32Array(N*N);
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
     const u=(x+.5)/N,v=(y+.5)/N,i=y*N+x;
     let hand=0; for(const [hx,hy,hr] of rig.hands) hand=Math.max(hand,gauss(u,v,hx,hy,hr));
@@ -12218,7 +12220,17 @@ function pilotSwayWeights(img, rig) {
     const [fx,fy,fw,fh]=rig.face, inFace=Math.exp(-(((u-fx)/fw)**2+((v-fy)/fh)**2)*2), dist=Math.hypot(u-rig.scalp[0],(v-rig.scalp[1])*.8);
     let chest=0; for(const [cx,cy,cr] of rig.chest) chest=Math.max(chest,gauss(u,v,cx,cy,cr));
     const [px,py,pw,ph]=rig.hip, hip=Math.exp(-(((u-px)/pw)**2+((v-py)/ph)**2)*1.2)*(1-keep);
-    o[i*4]=torso*255;o[i*4+1]=cur[i]*sm(.06,rig.hairFade??.32,dist)*(1-inFace)*(1-keep)*(rig.hairMaxY?1-sm(rig.hairMaxY-.06,rig.hairMaxY,v):1)*255;o[i*4+2]=chest*255;o[i*4+3]=Math.min(1,hip+torso)*255;
+    const hw=cur[i]*sm(.06,rig.hairFade??.32,dist)*(rig.hairMaxY?1-sm(rig.hairMaxY-.06,rig.hairMaxY,v):1);
+    o[i*4]=torso*255;o[i*4+1]=hw*(1-inFace)*(1-keep)*255;o[i*4+2]=chest*255;o[i*4+3]=Math.min(1,hip+torso)*255;
+    HW[i]=hw; LK[i]=Math.max(keep,1-sm(1.1,1.1+.7*(rig.headKeep??1),Math.hypot((u-fx)/fw,(v-fy)/fh)));
+  }
+  if(rig.smoothHair){
+    // なめらかな髪：髪の重みをぼかし、となりの画素との動きの差を小さくする（髪を大きく揺らしても服が波打たず頬が引っ張られない）。
+    // ぼかした後で、顔の楕円の1.1〜1.8倍（headKeep）の範囲を丸ごと固定する（試作 borderbreak-pilot-sway「なめらかな髪（新）」、オーナー採用 2026-11-02）
+    const R=rig.hairBlur??3, ker=[]; let ks=0; for(let k=-2*R;k<=2*R;k++){const g=Math.exp(-k*k/(2*R*R));ker.push(g);ks+=g}
+    const t1=new Float32Array(N*N);
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let a=0;for(let k=-2*R;k<=2*R;k++)a+=HW[y*N+Math.min(N-1,Math.max(0,x+k))]*ker[k+2*R];t1[y*N+x]=a/ks}
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let a=0;for(let k=-2*R;k<=2*R;k++)a+=t1[Math.min(N-1,Math.max(0,y+k))*N+x]*ker[k+2*R];const i=y*N+x;o[i*4+1]=Math.min(1,a/ks*1.6)*(1-Math.min(1,LK[i]))*255}
   }
   x2.putImageData(out,0,0); return c;
 }
@@ -12259,7 +12271,8 @@ gl_FragColor=c;}`;
     o.hairX=S.hairX.step(dt,-vel*.018,-ax*.06); o.hairY=S.hairY.step(dt,0,ay*.03);
     o.chestX=S.chestX.step(dt,0,-ax*.05); o.chestY=S.chestY.step(dt,0,ay*.05+Math.abs(ax)*.02);
     gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(U.shake,o.shakeX,o.shakeY);gl.uniform2f(U.hip,o.hip,0);gl.uniform1f(U.lean,o.lean);gl.uniform1f(U.sink,o.sink);
+    const A=rig.amp||{}, as=A.shake??1; // amp：キャラごとの 全体のずれ・腰の滑り・上半身の傾き・沈み の倍率（試作ページの値）
+    gl.uniform2f(U.shake,o.shakeX*as,o.shakeY*as);gl.uniform2f(U.hip,o.hip*(A.hip??1),0);gl.uniform1f(U.lean,o.lean*(A.lean??1));gl.uniform1f(U.sink,o.sink*(A.sink??1));
     gl.uniform2f(U.hair,o.hairX*st.hairAmp,o.hairY*st.hairAmp);gl.uniform2f(U.chest,o.chestX*st.chestAmp,o.chestY*st.chestAmp);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   }};
 }
