@@ -10,11 +10,14 @@
   normal.webp|png・damage.webp|png  標準とやられ顔（ポーズが同じ2枚）
   layers/rig.json                    層の範囲。位置は絵の幅と高さを1とした値
     hairMaxY      髪を拾う下端の高さ
+    hairLight     白い髪のキャラ：[彩度の上限, 明るさの下限]。色で拾わず、体（bodyHull）・腕の外の明るい所を髪とする
+    strayMaxY     体の外の細い毛を拾う下端（既定 hairMaxY+0.04）
     notHair       髪から除く楕円 [中心x,中心y,半径x,半径y]（目など）
-    notHairPoly   髪から除く多角形（服の紫など）
+    notHairPoly   髪から除く多角形、またはその並び（服の紫、操縦桿の頭など）
+    hairPoly      白い髪のキャラ：体（bodyHull）の中でも明るい所を髪にする多角形の並び（肩に掛かる三つ編みなど）
     frontHair     この中の髪は前髪（顔と白衣の前）。外は後ろ髪
     head・armL・armR  顔・左腕・右腕の多角形（髪を除いた所）
-    bodyHull      体の外形。外にある髪以外の細い線も髪として扱う
+    bodyHull      体の外形。外にある細い線も髪として扱う（白い髪のキャラでは、この中は髪にしない）
   layers/plate_body.png・plate_face.png（無くてよい）  ComfyUI で腕と前の髪・前髪を消して描き足した絵
                                        （MOSS_layers_v11）。あれば隠れていた所はこの絵を使い、無ければ色をにじませて仮に描き足す
 作る物（layers/）：<層>.webp と manifest.json（層の並び・範囲）。重ねると元の絵に戻ることを確かめる。
@@ -51,17 +54,31 @@ def split(img, R):
     hue, sat, mx = hsv(rgb)
     yy, xx = np.mgrid[0:WORK, 0:WORK]; u = (xx + .5) / WORK; v = (yy + .5) / WORK
     fg = a > 0.02
-    hair0 = (hue > 235) & (hue < 315) & (sat > 0.18) & (mx > 0.16) & (v < R['hairMaxY']) & fg
-    for e in R.get('notHair', []): hair0 &= ~(((u - e[0]) / e[2]) ** 2 + ((v - e[1]) / e[3]) ** 2 < 1)
-    if R.get('notHairPoly'): hair0 &= ~poly(R['notHairPoly'])
-    hair0 = nd.binary_opening(hair0, iterations=1)
-    lab, n = nd.label(hair0); sizes = nd.sum(hair0, lab, range(1, n + 1))
-    hair0 = np.isin(lab, 1 + np.where(sizes >= 12)[0])
-    coat = (sat < 0.12) & (mx > 0.72); skin = (hue < 50) & (sat > 0.12) & (mx > 0.55)
-    hair = nd.binary_dilation(hair0, iterations=2) & fg & ~coat & ~skin   # 髪の縁の線も髪に入れる
-    hair = nd.binary_closing(hair, iterations=2) & fg
-    head, armL, armR = poly(R['head']), poly(R['armL']), poly(R['armR'])
-    hair |= fg & ~poly(R['bodyHull']) & ~head & ~armL & ~armR & (v < R['hairMaxY'] + .04)  # 体の外の細い毛
+    head, armL, armR, hull = poly(R['head']), poly(R['armL']), poly(R['armR']), poly(R['bodyHull'])
+    notHair = np.zeros_like(fg)
+    for e in R.get('notHair', []): notHair |= ((u - e[0]) / e[2]) ** 2 + ((v - e[1]) / e[3]) ** 2 < 1
+    nhp = R.get('notHairPoly') or []
+    for q in ([nhp] if nhp and isinstance(nhp[0][0], (int, float)) else nhp): notHair |= poly(q)
+    hairIn = np.zeros_like(fg)   # 体の中でも髪にする所（体に掛かる三つ編みや房）
+    for q in R.get('hairPoly', []): hairIn |= poly(q)
+    skin = (hue < 50) & (sat > 0.12) & (mx > 0.55)
+    if R.get('hairLight'):
+        # 白い髪（服と同じ色）：色では分けず、体・腕の多角形の外の明るい所を髪とする。顔の多角形の中は肌でない明るい所（前髪）
+        sMax, vMin = R['hairLight']
+        skin |= (hue > 3) & (hue < 45) & (sat > 0.05) & (mx > 0.55)   # 白い肌（彩度が低い）
+        light = fg & (sat < sMax) & (mx > vMin) & (v < R['hairMaxY']) & ~skin & ~notHair
+        hair0 = light & ((~hull & ~armL & ~armR) | hairIn)
+        hair = nd.binary_closing(hair0, iterations=2) & fg & ((~hull & ~armL & ~armR) | hairIn) & ~notHair & ~skin
+    else:
+        hair0 = (hue > 235) & (hue < 315) & (sat > 0.18) & (mx > 0.16) & (v < R['hairMaxY']) & fg & ~notHair
+        hair0 = nd.binary_opening(hair0, iterations=1)
+        lab, n = nd.label(hair0); sizes = nd.sum(hair0, lab, range(1, n + 1))
+        hair0 = np.isin(lab, 1 + np.where(sizes >= 12)[0])
+        coat = (sat < 0.12) & (mx > 0.72)
+        hair = nd.binary_dilation(hair0, iterations=2) & fg & ~coat & ~skin   # 髪の縁の線も髪に入れる
+        hair = nd.binary_closing(hair, iterations=2) & fg
+    stray = fg & ~hull & ~head & ~armL & ~armR & ~notHair & (v < R.get('strayMaxY', R['hairMaxY'] + .04))  # 体の外の細い毛
+    hair |= stray & ~skin if R.get('hairLight') else stray
     front = poly(R['frontHair'])
     M = {'hairF': hair & front, 'hairB': hair & ~front}
     rest = fg & ~hair
@@ -111,9 +128,10 @@ def build(char):
         p = char / 'layers' / f'plate_{k}.png'
         if p.exists(): plates[k] = np.asarray(Image.open(p).convert('RGBA').resize((WORK, WORK), Image.LANCZOS)).astype(np.float32) / 255
     hue, sat, mx = hsv(img[..., :3])
-    purple = (hue > 235) & (hue < 315) & (sat > 0.25)
-    L = {'hairB': layer(img, M, 'hairB', [('body', 12), ('armL', 12), ('armR', 12), ('head', 10), ('hairF', 10)], core=purple),
-         'body': layer(img, M, 'body', [('armL', 12), ('armR', 12), ('head', 8), ('hairF', 14)], plate=plates.get('body')),
+    core = (sat < R['hairLight'][0]) & (mx > 0.8) & ((hue > 200) | (sat < 0.03)) if R.get('hairLight') else (hue > 235) & (hue < 315) & (sat > 0.25)   # にじませる元（髪の地の色）
+    L = {'hairB': layer(img, M, 'hairB', [('body', 12), ('armL', 12), ('armR', 12), ('head', 10), ('hairF', 10)], core=core),
+         # 白い服のキャラは、前髪の下を服の白からにじませる（黒い縁取りや紐をにじませると、髪が揺れた時に黒いしみに見える）
+         'body': layer(img, M, 'body', [('armL', 12), ('armR', 12), ('head', 8), ('hairF', 14)], core=(sat < 0.3) & (mx > 0.75) if R.get('hairLight') else None, plate=plates.get('body')),
          'armL': layer(img, M, 'armL', []), 'armR': layer(img, M, 'armR', []),
          'head': layer(img, M, 'head', [('hairF', 8)], plate=plates.get('face')),
          'hairF': layer(img, M, 'hairF', [])}

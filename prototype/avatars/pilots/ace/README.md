@@ -1,18 +1,26 @@
 # エースパイロットちゃん（内部ID ace）
 
-## 今の絵（2026-11-02、オーナー提供）
+## 今の絵（2026-11-02 13:55、オーナー提供）
 
-標準とやられ顔でポーズが同じ2枚（450×450 の透過 WebP）。オーナーの依頼「エースパイロットちゃんも同様に差し替え願います」。
+オーナーが作った、標準とやられ顔でポーズが同じ2枚（1024×1024 の透過 PNG。銀髪・赤い目・白いスーツ、やられ顔は×目と赤面）。違いは顔の中だけ。オーナーの依頼「エースパイロットちゃんも更新」。ここには WebP（品質95）にして置いた。
 
-| 格納名 | 提供ファイル | SHA-256 |
-| --- | --- | --- |
-| `normal.webp` | `MOSS4_sprite_00_normal_00013_.webp` | `b06f0e3cae0068b93efa6fdc87fe0056baa229ab25f3026c1a9a9e97997f9dbd` |
-| `damage.webp` | `MOSS4_sprite_01_defeated_00013_.webp` | `122dc219f8009d79320c84623b50a8ec8d0e0e32e7948e347a31ef236fc9d8dd` |
+| 格納名 | 元の PNG の SHA-256 |
+| --- | --- |
+| `normal.webp` | `f584c97b2fe59158aa7ebb38e8df616a4dfd9e3e64b265014222516f76327a4b` |
+| `damage.webp` | `f56b024637e90cbc2a43bd9c2b5323710b6aaf2d6b041ca6697c7d2ff0cece4b` |
 
-ページには `embed/normal.webp`（320px）と、やられ顔の顔だけの切り抜き `embed/damage_patch.webp`（位置は `embed/damage_patch.json`）を入れ、やられ顔は重ねて出す。作り直しは `python3 tools/embed_pilot_sprites.py --shrink`。
+ページには層（下）だけを入れる。メニューのカードなどの止まった絵は、ページを開いた時に層を重ねて作る（テストパイロットちゃんと同じ）。
 
-揺れの設定は `prototype/index.html` の `PILOT_RIGS.ace`。髪が白く、色だけでは白い服や袖と見分けられないので、明るさ（彩度0.13未満・明るさ0.78より上）と「髪がある所」の楕円（`hairAreas`：頭と左右の外側の房）で髪を拾い、両腕（`hairCuts`）と `hairMaxY` より下を除いている。
+### 層（2026-11-02）
+
+HUD の揺れは `layers/` の層で動かす（後ろ髪・体・左腕・右腕・顔・前髪、やられ顔の顔。7枚で約62KB）。範囲は `layers/rig.json`、作り直しは `python3 tools/pilot_layers.py ace` の後に `python3 tools/embed_pilot_sprites.py`。
+
+髪が白く、白いスーツ・左の袖と色がほとんど同じ（どちらも彩度0.1前後の薄紫）なので、色では分けない（`hairLight`）。体（`bodyHull`）と両腕の多角形の外の明るい所を髪とし、体に掛かる三つ編み（左肩）と右の房だけは `hairPoly` の中で髪にする。肌も彩度が低いので、肌は色相（橙）で拾って髪から除く。操縦桿の頭（`notHairPoly`）と白目（`notHair`）も除く。前髪（`frontHair`）は頭の上・前髪・顔の横の房・三つ編み・右の房。
+
+揺れの設定は `prototype/index.html` の `PILOT_RIGS.ace.layers`（倍率はテストパイロットちゃんでオーナーが決めた値と同じ）。
 
 ## 前の絵（履歴）
 
-300×300 の透過 WebP 2枚（`MOSS4_sprite_00_normal_00002_` と `MOSS4_sprite_01_defeated_00002_`、やられ顔はまるごとの1枚）。main 7f4a55c までの履歴に残っている。
+2026-11-02 10:19 の絵（450×450 の透過 WebP、`MOSS4_sprite_00_normal_00013_` と `MOSS4_sprite_01_defeated_00013_`。やられ顔は顔の切り抜きを重ねていた）。git の履歴（main 3ed0c04 まで）に残っている。
+
+300×300 の透過 WebP 2枚（`MOSS4_sprite_00_normal_00002_` と `MOSS4_sprite_01_defeated_00002_`）。main 7f4a55c までの履歴に残っている。
