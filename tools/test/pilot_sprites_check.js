@@ -1,5 +1,7 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
-const png=fs.readFileSync(path.resolve(__dirname,'../../prototype/avatars/pilots/moss4/normal.png')),dimensions=[png.readUInt32BE(16),png.readUInt32BE(20)];
+// ページに入れるのは embed/ の縮小WebP（320px）。無ければ原画PNG
+const dir=path.resolve(__dirname,'../../prototype/avatars/pilots/moss4'),small=path.join(dir,'embed/normal.webp');
+const dimensions=fs.existsSync(small)?[320,320]:(png=>[png.readUInt32BE(16),png.readUInt32BE(20)])(fs.readFileSync(path.join(dir,'normal.png')));
 (async()=>{const b=await chromium.launch({args:['--no-sandbox','--use-gl=swiftshader']});try{const p=await b.newPage({viewport:{width:1280,height:800}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.route('https://**/*',r=>r.fulfill({body:''}));await p.addInitScript(()=>{requestAnimationFrame=()=>0;AudioContext=undefined});await p.goto('file://'+path.resolve(process.argv[2])+'/dbg.html');
 await p.evaluate(()=>{document.querySelector('[data-pilot-choice="moss4"]').click();document.querySelector('#start').click();__g.running=false;});
 const rows=await p.evaluate(async(dimensions)=>{const g=__g,p=g.player,rows=[];p.invulT=0;p.alive=true;p.downT=0;p.hurtT=0;
