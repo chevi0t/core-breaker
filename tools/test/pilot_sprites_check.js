@@ -12,7 +12,9 @@ const face=mark.querySelector('.pilotSprite'),cv=mark.querySelector('canvas.pilo
 const shown=()=>getComputedStyle(cv).display!=='none';
 if(face.dataset.state!=='NORMAL'||!shown())throw Error('normal');
 // 標準の絵が2枚のどちらも読めて、寸法が合う
-const sizes=[];for(const st of ['NORMAL','DAMAGE']){const s=document.createElement('span');s.className='pilotSprite';s.dataset.pilot=id;s.dataset.state=st;document.body.appendChild(s);const img=new Image();img.src=getComputedStyle(s).backgroundImage.slice(5,-2);s.remove();await img.decode();if(img.naturalWidth<128||img.naturalWidth!==img.naturalHeight)throw Error('decode '+st);sizes.push(img.naturalWidth);}if(sizes[0]!==sizes[1])throw Error('size');
+const sizes=[];for(const st of ['NORMAL','DAMAGE']){const s=document.createElement('span');s.className='pilotSprite';s.dataset.pilot=id;s.dataset.state=st;document.body.appendChild(s);const img=new Image();const urls=[...getComputedStyle(s).backgroundImage.matchAll(/url\("?([^")]+)"?\)/g)].map(m=>m[1]);s.remove();img.src=urls[urls.length-1];await img.decode();if(img.naturalWidth<128||img.naturalWidth!==img.naturalHeight)throw Error('decode '+st);sizes.push(img.naturalWidth);
+// 顔の切り抜きのキャラは、やられ顔＝切り抜き＋標準の絵（重ねる）
+if(st==='DAMAGE'&&g.PILOT_PATCHES[id]){if(urls.length!==2)throw Error('patch layers');const pi=new Image();pi.src=urls[0];await pi.decode();const r=g.PILOT_PATCHES[id].DAMAGE;if(Math.abs(pi.naturalWidth/img.naturalWidth-r[2])>.01)throw Error('patch size');}}if(sizes[0]!==sizes[1])throw Error('size');
 // 止まっている間は揺れない
 const step=n=>{for(let i=0;i<n;i++){g.hud(240,.016);}};
 p.vel.set(0,0,0);p.dashState='';step(30);const rest=Math.abs(g.pilotSway.state.out.shakeX)+Math.abs(g.pilotSway.state.out.lean);
@@ -22,10 +24,12 @@ const right=side(1),left=side(-1);
 // 描けているか（真ん中付近が透明でない）
 const px=new Uint8Array(4);const gl=cv.getContext('webgl');
 // 被弾でやられ顔、揺れの絵は隠れる
-p.hurtT=.09;g.hud(240,.016);const dmg=face.dataset.state==='DAMAGE'&&!shown();
-p.alive=false;p.hurtT=0;g.hud(240,.016);const dead=face.dataset.state==='DAMAGE';p.alive=true;await new Promise(r=>setTimeout(r,400));g.hud(240,.016);const back=face.dataset.state==='NORMAL'&&shown();
+const patched=!!g.PILOT_PATCHES[id];
+// やられ顔：切り抜きのあるキャラは揺れの絵のまま顔だけ替わる。無いキャラは止まった絵
+p.hurtT=.09;g.hud(240,.016);const dmg=face.dataset.state==='DAMAGE'&&(patched?shown()&&g.pilotSway.state.damage:!shown());
+p.alive=false;p.hurtT=0;g.hud(240,.016);const dead=face.dataset.state==='DAMAGE';p.alive=true;await new Promise(r=>setTimeout(r,400));g.hud(240,.016);const back=face.dataset.state==='NORMAL'&&shown()&&!g.pilotSway.state.damage;
 document.querySelector('[data-pilot-choice="tabby"]').click();g.hud(240,.016);if(document.querySelector('#pilotMark .pilotSprite, #pilotMark canvas'))throw Error('cat changed');document.querySelector(`[data-pilot-choice="${id}"]`).click();
-return {rest,right,left,dmg,dead,back};},id);
+return {patched,rest,right,left,dmg,dead,back};},id);
 assert.ok(res.rest<1e-3,'止まっている間は揺れない');
 assert.ok(res.right.hipMin<-1e-4&&res.left.hipMax>1e-4,'左右に吹かすと腰が滑る');
 assert.ok(-res.right.hipMin>res.right.hipMax&&res.left.hipMax>-res.left.hipMin,'左右で滑る向きが逆');
