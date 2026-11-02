@@ -1174,7 +1174,7 @@ body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20
             <label for="optSwayChest">パイロット絵の胸の揺れ <output id="optSwayChestValue" for="optSwayChest"></output></label>
             <input id="optSwayChest" type="range" min="0" max="300" step="10" aria-describedby="swayHint">
           </div>
-          <p class="note" id="swayHint">ブーストで揺れる大きさ。大きくするほど、髪や服が引き伸ばされて見えることがあります。</p>
+          <p class="note" id="swayHint">ブーストで揺れる大きさ。100% がキャラごとの標準。大きくするほど、髪や服が引き伸ばされて見えることがあります。</p>
         </div>
         <div class="optCol">
           <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
@@ -1452,8 +1452,8 @@ const SFX = {
 // 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, swayHair: 200, swayChest: 200 };
-// swayHair・swayChest：パイロット絵の髪と胸の揺れ（%。100 で 2026-11-02 の組み込み時と同じ、最大300%。2026-11-02 オーナー「地味」で標準を200%に）
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, swayHair: 100, swayChest: 100 };
+// swayHair・swayChest：パイロット絵の髪と胸の揺れ（%）。100% でキャラごとの規定値（PILOT_RIGS の sway）のまま、0〜300% で好みに合わせる
 const OPTION_MAX = { swayHair: 300, swayChest: 300 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 // uiFit：UIを画面の大きさに比例させる（1280×720 で等倍）。uiSize：UIの倍率（0〜100。50で等倍、0で0.7倍、100で1.3倍）。
@@ -12176,14 +12176,17 @@ function pilotSpriteState(p, now = performance.now()) {
 // 標準の絵1枚を WebGL のフラグメントシェーダで逆写像して揺らす（試作 borderbreak-pilot-sway、オーナー承認 2026-11-02）。
 // 横ブーストの加速度を入力に、ばねで 全体のずれ・座席の上の腰の滑り・腰を軸の上半身の傾き・吹かした時の沈み・髪・胸 を動かす。
 // 重みは読み込み時に64pxの絵（R上半身 G髪 B胸 A腰）を作る。髪は絵の色相から拾う。キャラごとに要るのは RIG の数値だけ。
+// sway：髪と胸の揺れの規定値（倍率。1 が 2026-11-02 の組み込み時の大きさ）。オーナーが決める値（2026-11-02「規定値をこちらで設定したい」）
 const PILOT_RIGS = {
   moss4: {
+    sway:{hair:2, chest:2},
     // 2026-11-02 の新しい絵（標準とやられ顔でポーズが同じ）に合わせた位置
     hipPivot:[0.50,0.80], torsoFade:[0.82,0.50], hands:[[0.09,0.67,0.10],[0.91,0.67,0.10]], levers:[0.17,0.83,0.55],
     face:[0.49,0.22,0.10,0.12], scalp:[0.48,0.04], chest:[[0.40,0.56,0.085],[0.60,0.56,0.085]], hip:[0.50,0.80,0.20,0.09], hairHue:[245,305], hairMaxY:0.56 // 髪はこの高さまで（下の服の暗い紫を拾わない）
   },
   // 白い髪は色だけでは白い袖と見分けられないので、明るさと「髪がある所」（楕円 [中心x,中心y,半径x,半径y]）で拾い、袖を除く
   ace: {
+    sway:{hair:2, chest:2},
     // 2026-11-02 の新しい絵（標準とやられ顔でポーズが同じ）に合わせた位置
     hipPivot:[0.50,0.82], torsoFade:[0.82,0.50], hands:[[0.07,0.67,0.10],[0.93,0.67,0.10]], levers:[0.15,0.85,0.52],
     face:[0.49,0.17,0.09,0.10], scalp:[0.49,0.02], chest:[[0.40,0.50,0.085],[0.60,0.50,0.085]], hip:[0.50,0.82,0.20,0.09],
@@ -12293,7 +12296,7 @@ function pilotHud(p) {
       const now=performance.now(),dt=(now-pilotSwayLast)/1000;pilotSwayLast=now;
       mark.dataset.state=state;
       // 顔の切り抜きがあるキャラは、やられ顔の間も揺らしたまま顔だけ替える
-      pilotSway.state.hairAmp=gameOptions.swayHair/100;pilotSway.state.chestAmp=gameOptions.swayChest/100;
+      const sw=rig.sway||{};pilotSway.state.hairAmp=(sw.hair??1)*gameOptions.swayHair/100;pilotSway.state.chestAmp=(sw.chest??1)*gameOptions.swayChest/100;
       if(state==='NORMAL'||pilotSway.patched){pilotSway.setDamage(state==='DAMAGE');pilotSway.step(dt,...pilotSwayInput(p));}
     }
   }
