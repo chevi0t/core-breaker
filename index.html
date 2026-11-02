@@ -1175,7 +1175,12 @@ body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20
           <div class="optionSliders">
             <label for="optUiSize">UIの大きさ <output id="optUiSizeValue" for="optUiSize"></output></label>
             <input id="optUiSize" type="range" min="0" max="100" step="1">
+            <label for="optSwayHair">パイロット絵の髪の揺れ <output id="optSwayHairValue" for="optSwayHair"></output></label>
+            <input id="optSwayHair" type="range" min="0" max="300" step="10" aria-describedby="swayHint">
+            <label for="optSwayChest">パイロット絵の胸の揺れ <output id="optSwayChestValue" for="optSwayChest"></output></label>
+            <input id="optSwayChest" type="range" min="0" max="300" step="10" aria-describedby="swayHint">
           </div>
+          <p class="note" id="swayHint">ブーストで揺れる大きさ。100% がキャラごとの標準。大きくするほど、髪や服が引き伸ばされて見えることがあります。</p>
         </div>
         <div class="optCol">
           <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
@@ -1454,7 +1459,9 @@ const SFX = {
 // 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50 };
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, swayHair: 100, swayChest: 100 };
+// swayHair・swayChest：パイロット絵の髪と胸の揺れ（%）。100% でキャラごとの規定値（PILOT_RIGS の sway）のまま、0〜300% で好みに合わせる
+const OPTION_MAX = { swayHair: 300, swayChest: 300 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 // uiFit：UIを画面の大きさに比例させる（1280×720 で等倍）。uiSize：UIの倍率（0〜100。50で等倍、0で0.7倍、100で1.3倍）。
 const uiSizeScale = v => .7 + v * .006;
@@ -1466,7 +1473,7 @@ function applyUiScale() {
 const gameOptions = { ...OPTION_DEFAULTS };
 try {
   const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY));
-  for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(k === 'fov' ? 60 : 0, Math.min(100, saved[k])));
+  for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(k === 'fov' ? 60 : 0, Math.min(OPTION_MAX[k] ?? 100, saved[k])));
 } catch (_) {}
 const optionEl = k => document.getElementById('opt' + k[0].toUpperCase() + k.slice(1));
 function renderOptions() {
@@ -12176,14 +12183,19 @@ function pilotSpriteState(p, now = performance.now()) {
 // 標準の絵1枚を WebGL のフラグメントシェーダで逆写像して揺らす（試作 borderbreak-pilot-sway、オーナー承認 2026-11-02）。
 // 横ブーストの加速度を入力に、ばねで 全体のずれ・座席の上の腰の滑り・腰を軸の上半身の傾き・吹かした時の沈み・髪・胸 を動かす。
 // 重みは読み込み時に64pxの絵（R上半身 G髪 B胸 A腰）を作る。髪は絵の色相から拾う。キャラごとに要るのは RIG の数値だけ。
+// sway：髪と胸の揺れの規定値（倍率。1 が 2026-11-02 の組み込み時の大きさ）。重みの形は組み込み時のまま（作り直した形は体と顔がゆがんだのでオーナーの判断で戻した 2026-11-02）。オーナーが決める値（2026-11-02「規定値をこちらで設定したい」）
 const PILOT_RIGS = {
   moss4: {
+    sway:{hair:1, chest:1},
     // 2026-11-02 の新しい絵（標準とやられ顔でポーズが同じ）に合わせた位置
     hipPivot:[0.50,0.80], torsoFade:[0.82,0.50], hands:[[0.09,0.67,0.10],[0.91,0.67,0.10]], levers:[0.17,0.83,0.55],
-    face:[0.49,0.22,0.10,0.12], scalp:[0.48,0.04], chest:[[0.40,0.56,0.085],[0.60,0.56,0.085]], hip:[0.50,0.80,0.20,0.09], hairHue:[245,305], hairMaxY:0.56 // 髪はこの高さまで（下の服の暗い紫を拾わない）
+    face:[0.49,0.22,0.10,0.12], scalp:[0.48,0.04], chest:[[0.40,0.585,0.085],[0.60,0.585,0.085]], hip:[0.50,0.80,0.20,0.09], hairHue:[245,305], hairMaxY:0.56, // 髪はこの高さまで（下の服の暗い紫を拾わない）
+    // オーナーが試作ページで決めた値（2026-11-02）：なめらかな髪・頭の固定、胸の中心を少し下へ、腰の滑り×2.5
+    smoothHair:true, hairBlur:3, headKeep:1, amp:{hip:2.5}
   },
   // 白い髪は色だけでは白い袖と見分けられないので、明るさと「髪がある所」（楕円 [中心x,中心y,半径x,半径y]）で拾い、袖を除く
   ace: {
+    sway:{hair:1, chest:1},
     // 2026-11-02 の新しい絵（標準とやられ顔でポーズが同じ）に合わせた位置
     hipPivot:[0.50,0.82], torsoFade:[0.82,0.50], hands:[[0.07,0.67,0.10],[0.93,0.67,0.10]], levers:[0.15,0.85,0.52],
     face:[0.49,0.17,0.09,0.10], scalp:[0.49,0.02], chest:[[0.40,0.50,0.085],[0.60,0.50,0.085]], hip:[0.50,0.82,0.20,0.09],
@@ -12204,10 +12216,10 @@ function pilotSwayWeights(img, rig) {
       cur[i]=a>.5&&sat<rig.hairLight[0]&&mx>rig.hairLight[1]&&rig.hairAreas.some(inE)&&!(rig.hairCuts||[]).some(inE)?1:0;
     }
   }
-  for(let k=0;k<3;k++){const nx=new Float32Array(N*N); // 髪が動いた先も描けるよう少し広げる
+  for(let k=0;k<(rig.hairGrow??3);k++){const nx=new Float32Array(N*N); // 髪が動いた先も描けるよう少し広げる（hairGrow 回。試作ページで変えられる）
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<N&&Y<N)m=Math.max(m,cur[Y*N+X]*(dx||dy?.85:1))}nx[y*N+x]=m}
     cur=nx}
-  const out=x2.createImageData(N,N), o=out.data;
+  const out=x2.createImageData(N,N), o=out.data, HW=new Float32Array(N*N), LK=new Float32Array(N*N);
   for(let y=0;y<N;y++)for(let x=0;x<N;x++){
     const u=(x+.5)/N,v=(y+.5)/N,i=y*N+x;
     let hand=0; for(const [hx,hy,hr] of rig.hands) hand=Math.max(hand,gauss(u,v,hx,hy,hr));
@@ -12215,7 +12227,17 @@ function pilotSwayWeights(img, rig) {
     const [fx,fy,fw,fh]=rig.face, inFace=Math.exp(-(((u-fx)/fw)**2+((v-fy)/fh)**2)*2), dist=Math.hypot(u-rig.scalp[0],(v-rig.scalp[1])*.8);
     let chest=0; for(const [cx,cy,cr] of rig.chest) chest=Math.max(chest,gauss(u,v,cx,cy,cr));
     const [px,py,pw,ph]=rig.hip, hip=Math.exp(-(((u-px)/pw)**2+((v-py)/ph)**2)*1.2)*(1-keep);
-    o[i*4]=torso*255;o[i*4+1]=cur[i]*sm(.06,.32,dist)*(1-inFace)*(1-keep)*(rig.hairMaxY?1-sm(rig.hairMaxY-.06,rig.hairMaxY,v):1)*255;o[i*4+2]=chest*255;o[i*4+3]=Math.min(1,hip+torso)*255;
+    const hw=cur[i]*sm(.06,rig.hairFade??.32,dist)*(rig.hairMaxY?1-sm(rig.hairMaxY-.06,rig.hairMaxY,v):1);
+    o[i*4]=torso*255;o[i*4+1]=hw*(1-inFace)*(1-keep)*255;o[i*4+2]=chest*255;o[i*4+3]=Math.min(1,hip+torso)*255;
+    HW[i]=hw; LK[i]=Math.max(keep,1-sm(1.1,1.1+.7*(rig.headKeep??1),Math.hypot((u-fx)/fw,(v-fy)/fh)));
+  }
+  if(rig.smoothHair){
+    // なめらかな髪：髪の重みをぼかし、となりの画素との動きの差を小さくする（髪を大きく揺らしても服が波打たず頬が引っ張られない）。
+    // ぼかした後で、顔の楕円の1.1〜1.8倍（headKeep）の範囲を丸ごと固定する（試作 borderbreak-pilot-sway「なめらかな髪（新）」、オーナー採用 2026-11-02）
+    const R=rig.hairBlur??3, ker=[]; let ks=0; for(let k=-2*R;k<=2*R;k++){const g=Math.exp(-k*k/(2*R*R));ker.push(g);ks+=g}
+    const t1=new Float32Array(N*N);
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let a=0;for(let k=-2*R;k<=2*R;k++)a+=HW[y*N+Math.min(N-1,Math.max(0,x+k))]*ker[k+2*R];t1[y*N+x]=a/ks}
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let a=0;for(let k=-2*R;k<=2*R;k++)a+=t1[Math.min(N-1,Math.max(0,y+k))*N+x]*ker[k+2*R];const i=y*N+x;o[i*4+1]=Math.min(1,a/ks*1.6)*(1-Math.min(1,LK[i]))*255}
   }
   x2.putImageData(out,0,0); return c;
 }
@@ -12244,7 +12266,7 @@ gl_FragColor=c;}`;
   // ばね：x'' = -k(x-目標) - c x' + 力
   const spring=(k,c)=>({x:0,v:0,step(dt,target,f){this.v+=(-k*(this.x-target)-c*this.v+f)*dt;this.x+=this.v*dt;return this.x}});
   const S={shakeX:spring(140,14),shakeY:spring(160,14),hip:spring(70,9),lean:spring(55,7),sink:spring(120,10),hairX:spring(16,2.6),hairY:spring(20,3),chestX:spring(85,4.5),chestY:spring(110,4)};
-  const st={vel:0,vy:0,boostT:0,t:0,out:{},damage:false};
+  const st={vel:0,vy:0,boostT:0,t:0,out:{},damage:false,hairAmp:1,chestAmp:1}; // hairAmp・chestAmp：髪と胸の揺れの倍率（オプション）
   return { state:st, patched:!!patch, setDamage(on){st.damage=!!(on&&patch);gl.uniform1f(U.pOn,st.damage?1:0);}, step(dt, vel, vy, input) {
     // vel：機体の横の速さ（-1〜1、右が正）、vy：上向きの速さ（-1〜1）、input：横に吹かしている向き（-1/0/1）
     dt=Math.min(.033,Math.max(.001,dt||.016)); st.t+=dt; st.boostT=input?st.boostT+dt:0;
@@ -12256,8 +12278,9 @@ gl_FragColor=c;}`;
     o.hairX=S.hairX.step(dt,-vel*.018,-ax*.06); o.hairY=S.hairY.step(dt,0,ay*.03);
     o.chestX=S.chestX.step(dt,0,-ax*.05); o.chestY=S.chestY.step(dt,0,ay*.05+Math.abs(ax)*.02);
     gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(U.shake,o.shakeX,o.shakeY);gl.uniform2f(U.hip,o.hip,0);gl.uniform1f(U.lean,o.lean);gl.uniform1f(U.sink,o.sink);
-    gl.uniform2f(U.hair,o.hairX,o.hairY);gl.uniform2f(U.chest,o.chestX,o.chestY);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    const A=rig.amp||{}, as=A.shake??1; // amp：キャラごとの 全体のずれ・腰の滑り・上半身の傾き・沈み の倍率（試作ページの値）
+    gl.uniform2f(U.shake,o.shakeX*as,o.shakeY*as);gl.uniform2f(U.hip,o.hip*(A.hip??1),0);gl.uniform1f(U.lean,o.lean*(A.lean??1));gl.uniform1f(U.sink,o.sink*(A.sink??1));
+    gl.uniform2f(U.hair,o.hairX*st.hairAmp,o.hairY*st.hairAmp);gl.uniform2f(U.chest,o.chestX*st.chestAmp,o.chestY*st.chestAmp);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   }};
 }
 let pilotSway=null, pilotSwayLast=0;
@@ -12293,6 +12316,7 @@ function pilotHud(p) {
       const now=performance.now(),dt=(now-pilotSwayLast)/1000;pilotSwayLast=now;
       mark.dataset.state=state;
       // 顔の切り抜きがあるキャラは、やられ顔の間も揺らしたまま顔だけ替える
+      const sw=rig.sway||{};pilotSway.state.hairAmp=(sw.hair??1)*gameOptions.swayHair/100;pilotSway.state.chestAmp=(sw.chest??1)*gameOptions.swayChest/100;
       if(state==='NORMAL'||pilotSway.patched){pilotSway.setDamage(state==='DAMAGE');pilotSway.step(dt,...pilotSwayInput(p));}
     }
   }
