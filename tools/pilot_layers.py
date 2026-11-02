@@ -130,7 +130,8 @@ def build(char):
     hue, sat, mx = hsv(img[..., :3])
     core = (sat < R['hairLight'][0]) & (mx > 0.8) & ((hue > 200) | (sat < 0.03)) if R.get('hairLight') else (hue > 235) & (hue < 315) & (sat > 0.25)   # にじませる元（髪の地の色）
     L = {'hairB': layer(img, M, 'hairB', [('body', 12), ('armL', 12), ('armR', 12), ('head', 10), ('hairF', 10)], core=core),
-         'body': layer(img, M, 'body', [('armL', 12), ('armR', 12), ('head', 8), ('hairF', 14)], plate=plates.get('body')),
+         # 白い服のキャラは、前髪の下を服の白からにじませる（黒い縁取りや紐をにじませると、髪が揺れた時に黒いしみに見える）
+         'body': layer(img, M, 'body', [('armL', 12), ('armR', 12), ('head', 8), ('hairF', 14)], core=(sat < 0.3) & (mx > 0.75) if R.get('hairLight') else None, plate=plates.get('body')),
          'armL': layer(img, M, 'armL', []), 'armR': layer(img, M, 'armR', []),
          'head': layer(img, M, 'head', [('hairF', 8)], plate=plates.get('face')),
          'hairF': layer(img, M, 'hairF', [])}
