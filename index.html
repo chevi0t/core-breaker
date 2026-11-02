@@ -6187,6 +6187,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
   }
   const floating=hoverLegs(u), water=hoverOnWater(u);
+  // 空中で燃料が尽きたホバーは満充填まで制動噴射を再開しない。
+  if(floating && !u.onGround && u.boost<=0){u.boost=0;u.overheat=true;}
   const catFlight = u.flying && !u.jumpPad && u.catMomentum;
   if(catFlight){
     catapultControl(u);
@@ -6323,11 +6325,12 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.vel.y -= grav * dt;
 
   if (hover) {
+    const hoverFallBefore=u.vel.y;
     u.vel.y = Math.max(u.vel.y, floating ? -HOVER_SINK_RATE : -HOVER_SINK);
     u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
-    if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
+    if (u.boost <= 0) { u.boost = 0; u.overheat = true; if(floating)u.vel.y=hoverFallBefore; }
   }
-  if (!catFlight && floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL*(u.overheat ? 2 : 1));
+  if (!catFlight && floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && !u.overheat && u.boost>0 && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL);
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
   let dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
