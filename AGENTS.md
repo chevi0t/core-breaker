@@ -116,5 +116,6 @@ node tools/test/map_check.js dbg <マップID>            # 施設の置き場�
 | 武器 | `docs/codex/weapons.md` | 調べ物から、性能・形（モデル）を作り込んでゲームに入れるまで |
 | 機体パーツ | `docs/codex/parts.md` | 調べ物から、性能を作り込んでゲームに入れるまで |
 | 機体の形 | Issue に書いた内容と `docs/codex/parts.md` の「今の作り」 | シリーズごとの形の作り分け |
+| パイロットの絵 | `docs/codex/pilots.md` | 絵の取り込み、層の分け方（`rig.json`）、揺れの位置合わせ、ComfyUI（v11）の材料作り（オーナーの指定 2026-11-02）。マージはオーナーの OK で |
 
 どの作業も `prototype/index.html` を変えることが多い。PR を出す前に main を取り込み、衝突を直してからテストを回す。

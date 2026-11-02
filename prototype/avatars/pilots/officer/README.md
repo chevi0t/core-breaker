@@ -19,6 +19,6 @@
 
 やられ顔は顔の層だけ差し替える。帽子の右の下の湯気のしるしは一部が顔の層の外にあり、そこは出ない。
 
-隠れていた所の描き足しは今は仮（色をにじませる）。オーナーが ComfyUI の v11（共有フォルダ `borderbreak-pilot-sway/officer/OFFICER_layers_v11_fill.zip`）で描き足した2枚を `layers/plate_body.png`・`layers/plate_face.png` に置いて作り直すと本番の描き足しになる。
+隠れていた所の描き足しは今は仮（色をにじませる）。オーナーが ComfyUI の v11（材料は `python3 tools/pilot_v11.py officer <出力>` で作る。指示文は `layers/v11.json`。渡した物は共有フォルダ `borderbreak-pilot-sway/officer/OFFICER_layers_v11_fill.zip`）で描き足した2枚を `layers/plate_body.png`・`layers/plate_face.png` に置いて作り直すと本番の描き足しになる。
 
 揺れの設定は `prototype/index.html` の `PILOT_RIGS.officer.layers`（倍率はテストパイロットちゃんでオーナーが決めた値と同じ）。
