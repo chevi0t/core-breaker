@@ -66,7 +66,7 @@ const dir=path.resolve(process.argv[2]||'dbg/hover'),out=path.resolve(process.ar
      braking.push({key,rates,uncompensatedReferenceDistance:10,compensatedDistance:5});
      reset(key);yes(g.shortDash(u,new T.Vector3(1,0,0))&&near(u.maxBoost-u.boost,12*.8),key+'の瞬間ブースト消費は二脚と同じ');
      reset(key);u.vel.y=-30;g.physics(u,new T.Vector3(),false,false,1/60);yes(u.vel.y>=-6,key+'の受動エアブレーキ');
-     reset(key);u.vel.y=-30;u.boost=0;u.overheat=true;g.physics(u,new T.Vector3(),false,false,1/60,true);yes(u.vel.y<=-6&&u.vel.y>=-12,key+'のOH時は降下');
+     reset(key);u.vel.y=-30;u.boost=0;u.overheat=true;g.physics(u,new T.Vector3(),false,false,1/60,true);yes(near(u.vel.y,-30-34/60),key+'のOH時は通常重力で落下');
      reset(key);u.ctrlLockT=1;u.flying=true;u.flightSpeed=80;u.vel.set(0,15,80);g.physics(u,new T.Vector3(1,0,0),false,false,1/60,true);yes(near(u.vel.z,80),key+'のカタパルト射出の勢い');
      reset(key);g.jolt(u,u.pos.clone().add(new T.Vector3(0,0,-1)),2600,true);yes(u.stun==='stagger',key+'の転倒耐性低下');
      const model=g.buildMech(g.TEAM.B.color,{head:key,body:key,arms:key,legs:key,color:'ash'});
