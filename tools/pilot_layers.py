@@ -98,8 +98,10 @@ def smear(rgb, known, region, iters=120):
         out[new] = c[new] / w[new, None]; got |= new
     return out, got
 
-def layer(img, M, name, fill, core=None, plate=None):
-    """name の層。fill=[(手前の層, 幅px)]：その層に隠れていた所のうち、name から幅px以内を描き足す"""
+def layer(img, M, name, fill, core=None, plate=None, fade=None):
+    """name の層。fill=[(手前の層, 幅px)]：その層に隠れていた所のうち、name から幅px以内を描き足す。
+    fade=(縁px, 幅px)：描き足しを、絵の外形の縁から縁px以内と、name から幅pxの所へ向けて薄くする
+    （大きくずれて見えた時に、手前の層の輪郭の形がそのまま出ないように）"""
     m = M[name]; a = img[..., 3] * m; rgb = img[..., :3].copy()
     region = np.zeros_like(m)
     for other, band in fill: region |= M[other] & nd.binary_dilation(m, iterations=band)
@@ -115,7 +117,16 @@ def layer(img, M, name, fill, core=None, plate=None):
             w = np.maximum(nd.gaussian_filter(fr.astype(np.float32), 2.5), 1e-4)
             bl = np.dstack([nd.gaussian_filter(rgb[..., i] * fr, 2.5) for i in range(3)]) / w[..., None]
             rgb[fr] = bl[fr]
-    alpha = np.maximum(a, nd.gaussian_filter(np.where(region & got, 1.0, 0.0), 0.7) * (region | m))
+    fa = nd.gaussian_filter(np.where(region & got, 1.0, 0.0), 0.7) * (region | m)
+    if fade:
+        edge, far = fade
+        # 髪の下端より下（手や操縦桿のあたり）には描き足さない。列ごとの下端を横に少し広げる
+        rows = np.where(m.any(0), m.shape[0] - 1 - np.argmax(m[::-1], 0), -1)
+        low = nd.maximum_filter1d(rows, 15) + 3
+        fa *= np.arange(m.shape[0])[:, None] <= low[None, :]
+        dBg = nd.distance_transform_edt(img[..., 3] > 0.5); dIn = nd.distance_transform_edt(~m)
+        fa *= np.clip(dBg / edge, 0, 1) * np.clip((far - dIn) / (far * .5), 0, 1)
+    alpha = np.maximum(a, fa)
     return np.dstack([rgb, alpha])
 
 def build(char):
@@ -129,9 +140,10 @@ def build(char):
         if p.exists(): plates[k] = np.asarray(Image.open(p).convert('RGBA').resize((WORK, WORK), Image.LANCZOS)).astype(np.float32) / 255
     hue, sat, mx = hsv(img[..., :3])
     core = (sat < R['hairLight'][0]) & (mx > 0.8) & ((hue > 200) | (sat < 0.03)) if R.get('hairLight') else (hue > 235) & (hue < 315) & (sat > 0.25)   # にじませる元（髪の地の色）
-    # 後ろ髪は揺れると体・腕の縁から大きくずれる（倍率×3、オプションでさらに×3）ので、体と腕の下へ広く描き足す（12px では縁に隙間が出た 2026-11-02）
+    # 後ろ髪は揺れると体・腕の縁から大きくずれる（倍率×3、オプションでさらに×3）ので、体と腕の下へ広く描き足す（12px では縁に隙間が出た 2026-11-02）。
+    # 描き足しは絵の外形の縁と、髪から遠い所で薄くする（手前の腕や肩の輪郭の形の髪の塊がはみ出して見えないように）
     B = R.get('hairBFill', 40)
-    L = {'hairB': layer(img, M, 'hairB', [('body', B), ('armL', B), ('armR', B), ('head', 10), ('hairF', 10)], core=core),
+    L = {'hairB': layer(img, M, 'hairB', [('body', B), ('armL', B), ('armR', B), ('head', 10), ('hairF', 10)], core=core, fade=(14, B)),
          # 白い服のキャラは、前髪の下を服の白からにじませる（黒い縁取りや紐をにじませると、髪が揺れた時に黒いしみに見える）
          'body': layer(img, M, 'body', [('armL', 12), ('armR', 12), ('head', 8), ('hairF', 14)], core=(sat < 0.3) & (mx > 0.75) if R.get('hairLight') else None, plate=plates.get('body')),
          'armL': layer(img, M, 'armL', []), 'armR': layer(img, M, 'armR', []),
