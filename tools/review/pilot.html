@@ -1,0 +1,39 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>戦術士官ちゃん｜動作レビュー</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111b25;color:#e7edf1;font:16px/1.6 system-ui,sans-serif}main{max-width:1050px;margin:auto;padding:24px}h1{font-size:25px;margin:0}small,.note{color:#abc0ce}.layout{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-top:20px}.stage{background:#64717b;border:1px solid #8897a1;border-radius:12px;overflow:hidden;position:relative;display:grid;place-items:center;min-height:300px}canvas{width:100%;max-width:520px;aspect-ratio:1;display:block}.stage.dark{background:#101010}.stage.light{background:#d8d4c7}.controls{background:#1e2d3a;border-radius:12px;padding:20px}button,select{font:inherit;color:inherit;background:#314859;border:1px solid #5d7d90;border-radius:7px;padding:10px;cursor:pointer}button:hover,button.active{background:#42758c}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #f6cf73}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}label{display:block;margin:18px 0 6px}input[type=range]{width:100%;accent-color:#7bd9e9}input[type=checkbox]{accent-color:#7bd9e9}output{float:right;color:#7bd9e9}#status{position:absolute;bottom:12px;left:12px;background:#111b25dc;border-radius:6px;padding:4px 12px}.note{font-size:13px;margin-top:18px}kbd{border:1px solid #668094;border-radius:3px;padding:0 4px}#error{color:#ffbc94}footer{margin-top:20px;font-size:13px;color:#aebdca}@media(max-width:700px){main{padding:14px}.layout{grid-template-columns:1fr;gap:12px}.stage{min-height:260px}canvas{max-width:380px}h1{font-size:21px}}
+</style>
+<main><h1>戦術士官ちゃん — 動作レビュー</h1><small>未公開試作 · 元版 __VERSION__ · このHTMLだけで動作します</small>
+<div class="layout"><div class="stage" id="stage"><canvas id="pilot" width="640" height="640" aria-label="戦術士官ちゃんの動作プレビュー"></canvas><div id="status" role="status">読み込み中…</div></div>
+<section class="controls"><strong>動かして確認</strong><div class="buttons"><button data-action="left">← 左ブースト</button><button data-action="right">右ブースト →</button><button data-action="jump">↑ ジャンプ → 着地</button><button id="reset">静止に戻す</button></div>
+<label><input type="checkbox" id="damage"> 被弾顔に切り替える</label>
+<label for="hair">髪の揺れ <output id="hairValue">100%</output></label><input id="hair" type="range" min="0" max="300" step="10" value="100">
+<label for="chest">胸の揺れ <output id="chestValue">100%</output></label><input id="chest" type="range" min="0" max="300" step="10" value="100">
+<label for="background">背景</label><select id="background"><option value="">グレー</option><option value="dark">黒</option><option value="light">明るい色</option></select>
+<div class="buttons"><button id="pause">一時停止</button><button id="sequence">順番に再生</button></div>
+<p class="note">クリックで1回再生。<kbd>A</kbd>/<kbd>←</kbd>・<kbd>D</kbd>/<kbd>→</kbd> を押している間は左右ブースト、<kbd>Space</kbd>でジャンプ。停止すると余韻を残して戻ります。髪・胸を0%にしても、体の傾きは残ります。</p><p id="error" role="alert"></p></section></div>
+<footer>ゲーム本体の層描画・支点設定・入力正規化をそのまま使用。ここでは移動入力を簡易再生し、マップ上の衝突や戦闘は行いません。隠れた部分は色にじませによる仮補完です。外部通信・サイト更新は行いません。</footer></main>
+<script>
+/* GAME_DATA */
+const $=id=>document.getElementById(id),canvas=$('pilot'),keys=new Set();let sway,mode='',elapsed=0,paused=false,last=0,queue=[],hold=false;
+const unit={alive:true,vel:{x:0,y:0,z:0},yaw:0,dashV:25,dashState:'',boostVisualDir:{x:0,z:0}};
+function start(m){if(!sway)return;mode=m;elapsed=0;paused=false;$('pause').textContent='一時停止';}
+function clear(){mode='';elapsed=0;queue=[];keys.clear();unit.vel.x=unit.vel.y=0;}
+function frame(now){const dt=Math.min(.033,Math.max(.001,(now-last)/1000||.016));last=now;
+ if(sway&&!paused){elapsed+=dt;const side=keys.has('KeyA')||keys.has('ArrowLeft')?-1:keys.has('KeyD')||keys.has('ArrowRight')?1:0;
+ let vx=0,vy=0,input=0,label='静止';
+ if(side){vx=side*25;input=side;label=side<0?'左ブースト（保持）':'右ブースト（保持）';}
+ else if(mode==='left'||mode==='right'){const sign=mode==='left'?-1:1,t=elapsed;vx=sign*25*(t<.12?t/.12:t<.55?1:Math.max(0,1-(t-.55)/.3));input=t<.55?sign:0;label=t<.55?(sign<0?'左ブースト':'右ブースト'):'減速・余韻';if(t>1.8)mode='';}
+ else if(mode==='jump'){const t=elapsed,flight=1.25;vy=t<flight?21.25-34*t:0;label=t<flight?(vy>0?'ジャンプ・上昇':'落下'):t<1.6?'着地':'余韻';if(t>2.3)mode='';}
+ if(!mode&&!side&&queue.length)start(queue.shift());
+ unit.vel.x=vx;unit.vel.y=vy;unit.dashState=input?'short':'';unit.boostVisualDir.x=input;
+ sway.state.hairAmp=+$('hair').value/100;sway.state.chestAmp=+$('chest').value/100;sway.setDamage($('damage').checked);sway.step(dt,...pilotSwayInput(unit));$('status').textContent=label+($('damage').checked?' · 被弾顔':'');
+ }requestAnimationFrame(frame);}
+for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>{queue=[];start(b.dataset.action)};
+$('reset').onclick=()=>{clear();paused=false;$('pause').textContent='一時停止';for(let i=0;i<300&&sway;i++)sway.step(1/60,0,0,0);};
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'再開':'一時停止';};
+$('sequence').onclick=()=>{clear();queue=['right','jump'];start('left')};
+for(const id of ['hair','chest'])$(id).oninput=()=>$(id+'Value').textContent=$(id).value+'%';
+$('background').onchange=()=>$('stage').className='stage '+$('background').value;
+window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName))return;if(['KeyA','KeyD','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();if(e.code==='Space'){if(!e.repeat){queue=[];start('jump')}}else{keys.add(e.code);paused=false;$('pause').textContent='一時停止';}}});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());document.addEventListener('visibilitychange',()=>{keys.clear();last=performance.now()});
+(async()=>{try{const entries=await Promise.all(Object.entries(PILOT_LAYERS.officer.layers).map(async([k,v])=>{const img=new Image();img.src=v.src;await img.decode();return[k,{bbox:v.bbox,img}]}));sway=createPilotLayers(canvas,Object.fromEntries(entries),PILOT_RIGS.officer);if(!sway)throw Error('WebGLが利用できません。別のブラウザで開いてください。');requestAnimationFrame(frame);}catch(e){$('error').textContent=e.message;$('status').textContent='読み込み失敗';}})();
+</script></html>
