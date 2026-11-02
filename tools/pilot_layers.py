@@ -10,14 +10,16 @@
   normal.webp|png・damage.webp|png  標準とやられ顔（ポーズが同じ2枚）
   layers/rig.json                    層の範囲。位置は絵の幅と高さを1とした値
     hairMaxY      髪を拾う下端の高さ
+    hairDark      黒髪で服も紺のキャラ：{"satMax", "hueMin", "vMax"}。髪の色と明るい筋で拾い、範囲は hairLight と同じ
     hairLight     白い髪のキャラ：[彩度の上限, 明るさの下限]。色で拾わず、体（bodyHull）・腕の外の明るい所を髪とする
     strayMaxY     体の外の細い毛を拾う下端（既定 hairMaxY+0.04）
     notHair       髪から除く楕円 [中心x,中心y,半径x,半径y]（目など）
     notHairPoly   髪から除く多角形、またはその並び（服の紫、操縦桿の頭など）
+    hairPolyAll   服と同じ色の房：多角形の中を全部髪にする（輪郭に沿って取る）
     hairPoly      白い髪のキャラ：体（bodyHull）の中でも明るい所を髪にする多角形の並び（肩に掛かる三つ編みなど）
     frontHair     この中の髪は前髪（顔と白衣の前）。外は後ろ髪
     head・armL・armR  顔・左腕・右腕の多角形（髪を除いた所）
-    armRefine     腕の多角形の中を袖の色で絞る {"armL": {"mode": "light"（白い袖）|"dark"（黒い袖）, "keep": 手と袖口の多角形}}
+    armRefine     腕の多角形の中を袖の色で絞る {"armL": {"mode": "light"（白い袖）|"dark"（黒い袖）|"sat"（髪より彩度の高い袖）, "keep": 手と袖口の多角形}}
     bodyHull      体の外形。外にある細い線も髪として扱う（白い髪のキャラでは、この中は髪にしない）
   layers/plate_body.png・plate_face.png（無くてよい）  ComfyUI で腕と前の髪・前髪を消して描き足した絵
                                        （MOSS_layers_v11）。あれば隠れていた所はこの絵を使い、無ければ色をにじませて仮に描き足す
@@ -54,7 +56,9 @@ def armRefine(R, k, P, fg, sat, mx):
     腕に掛かった髪の筋や、腕の脇の髪を腕の層に入れない（エース：白い袖と黒い袖、2026-11-02）"""
     ref = R.get('armRefine', {}).get(k)
     if not ref: return P
-    cond = (sat < ref.get('sat', 0.06)) & (mx > ref.get('v', 0.7)) if ref['mode'] == 'light' else (mx < ref.get('v', 0.5))
+    if ref['mode'] == 'light': cond = (sat < ref.get('sat', 0.06)) & (mx > ref.get('v', 0.7))
+    elif ref['mode'] == 'sat': cond = (sat > ref.get('sat', 0.4)) | (mx < 0.08) | (sat < 0.07)   # 紺の袖（髪より彩度が高い）、縁取りの黒、袖口の灰色の線
+    else: cond = mx < ref.get('v', 0.5)
     core = nd.binary_opening(P & cond & fg, iterations=ref.get('open', 3))   # 細い髪の筋を落とす
     lab, n = nd.label(core); sizes = nd.sum(core, lab, range(1, n + 1))
     core = np.isin(lab, 1 + np.where(sizes >= ref.get('minArea', 300))[0])
@@ -78,7 +82,17 @@ def split(img, R):
     hairIn = np.zeros_like(fg)   # 体の中でも髪にする所（体に掛かる三つ編みや房）
     for q in R.get('hairPoly', []): hairIn |= poly(q)
     skin = (hue < 50) & (sat > 0.12) & (mx > 0.55)
-    if R.get('hairLight'):
+    if R.get('hairDark'): skin |= (hue > 3) & (hue < 45) & (sat > 0.05) & (mx > 0.55)
+    if R.get('hairDark'):
+        # 黒髪で服も紺のキャラ：髪の色（服より彩度が低く青寄り）と髪の明るい筋で拾い、範囲は白い髪と同じく体と腕の外（＋hairPoly）
+        d = R['hairDark']
+        col = (sat < d.get('satMax', 0.42)) & (hue > d.get('hueMin', 231)) & (hue < 265) & (mx < d.get('vMax', 0.6))
+        col |= (hue > 210) & (hue < 265) & (sat > 0.08) & (sat < 0.3) & (mx > 0.45)   # 髪の明るい筋
+        col &= fg & (v < R['hairMaxY']) & ~skin & ~notHair
+        zone = (~hull & ~armL & ~armR) | hairIn
+        hair = nd.binary_closing(col & zone, iterations=2) & fg & zone & ~notHair & ~skin
+        hair |= nd.binary_fill_holes(nd.binary_closing(hair & hairIn, iterations=4)) & hairIn & fg & ~skin   # 体に掛かる房は穴を埋めて1本に
+    elif R.get('hairLight'):
         # 白い髪（服と同じ色）：色では分けず、体・腕の多角形の外の明るい所を髪とする。顔の多角形の中は肌でない明るい所（前髪）
         sMax, vMin = R['hairLight']
         skin |= (hue > 3) & (hue < 45) & (sat > 0.05) & (mx > 0.55)   # 白い肌（彩度が低い）
@@ -94,7 +108,8 @@ def split(img, R):
         hair = nd.binary_dilation(hair0, iterations=2) & fg & ~coat & ~skin   # 髪の縁の線も髪に入れる
         hair = nd.binary_closing(hair, iterations=2) & fg
     stray = fg & ~hull & ~head & ~armL & ~armR & ~notHair & (v < R.get('strayMaxY', R['hairMaxY'] + .04))  # 体の外の細い毛
-    hair |= stray & ~skin if R.get('hairLight') else stray
+    hair |= stray & ~skin if (R.get('hairLight') or R.get('hairDark')) else stray
+    for q in R.get('hairPolyAll', []): hair |= poly(q) & fg   # 服と同じ色の房：多角形の中を全部髪にする
     front = poly(R['frontHair'])
     M = {'hairF': hair & front, 'hairB': hair & ~front}
     rest = fg & ~hair
@@ -155,7 +170,9 @@ def build(char):
         p = char / 'layers' / f'plate_{k}.png'
         if p.exists(): plates[k] = np.asarray(Image.open(p).convert('RGBA').resize((WORK, WORK), Image.LANCZOS)).astype(np.float32) / 255
     hue, sat, mx = hsv(img[..., :3])
-    core = (sat < R['hairLight'][0]) & (mx > 0.8) & ((hue > 200) | (sat < 0.03)) if R.get('hairLight') else (hue > 235) & (hue < 315) & (sat > 0.25)   # にじませる元（髪の地の色）
+    if R.get('hairLight'): core = (sat < R['hairLight'][0]) & (mx > 0.8) & ((hue > 200) | (sat < 0.03))   # にじませる元（髪の地の色）
+    elif R.get('hairDark'): core = (sat < R['hairDark'].get('satMax', 0.42)) & (hue > R['hairDark'].get('hueMin', 231)) & (hue < 265) & (mx > 0.12)
+    else: core = (hue > 235) & (hue < 315) & (sat > 0.25)
     # 後ろ髪は揺れると体・腕の縁から大きくずれる（倍率×3、オプションでさらに×3）ので、体と腕の下へ広く描き足す（12px では縁に隙間が出た 2026-11-02）。
     # 描き足しは絵の外形の縁と、髪から遠い所で薄くする（手前の腕や肩の輪郭の形の髪の塊がはみ出して見えないように）
     B = R.get('hairBFill', 40)
