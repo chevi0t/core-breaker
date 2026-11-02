@@ -26,12 +26,14 @@ def shrink(folder,size=320):
 def collect(folder):
     css=['.pilotSprite { background-size:contain; background-position:center; border-radius:0; }']; registry={}
     for char in sorted(folder.iterdir()):
-        if not char.is_dir() or not (char/'normal.png').exists(): continue
+        if not char.is_dir() or not any((char/n).exists() for n in ('normal.png','normal.webp')): continue
         if not re.fullmatch(r'[a-z0-9_]+',char.name): raise ValueError('キャラIDは小文字英数字/_: '+char.name)
-        keys=[k for k,f in STATES.items() if (char/f).exists()]
+        keys=[k for k,f in STATES.items() if (char/f).exists() or (char/f.replace('.png','.webp')).exists()]
         size=None
         for state in keys:
+            # 縮小版 embed/<状態>.webp → 原画が WebP（<状態>.webp、小さい絵ならそのまま）→ 原画 PNG の順
             small=char/'embed'/STATES[state].replace('.png','.webp')
+            if not small.exists(): small=char/STATES[state].replace('.png','.webp')
             if small.exists():
                 data=small.read_bytes();mime='image/webp'
                 if data[:4]!=b'RIFF' or data[8:12]!=b'WEBP': raise ValueError('WebPではありません: '+str(small))
