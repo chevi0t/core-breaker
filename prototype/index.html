@@ -1021,9 +1021,9 @@ body[data-console="mechanical"]:not(.touchPlay) :is(#mechBoost,#consoleHeading) 
   body[data-console="mechanical"]:not(.touchPlay) #mechBoost { bottom:calc(var(--console-edge) + 124px); }
 }
 /* 三角コンソール（2026-11-03）。周辺計器は残し、中央の残量表示だけ5種類で共通化する。 */
-body { --ta-ammo:#6cddff; --ta-hp:#80e4b1; --ta-boost:#efc373; --ta-sp:#baa8ed; --ta-text:#e7f5fa; --ta-cursor:#bcdde9; --ta-track:#c5e8f22e; --ta-heat:#ffbc66; --ta-lock:#ff586e; --ta-mark-scale:1; }
-body[data-console="mechanical"] { --ta-ammo:#dceee3; --ta-hp:#b9d5cb; --ta-boost:#adc9c0; --ta-sp:#7dffb0; --ta-text:#dceee3; --ta-cursor:#b9d5cb; --ta-track:#adc9c02e; --ta-heat:#e3c78c; }
-body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9856; --ta-sp:#efcd8c; --ta-text:#f2c374; --ta-cursor:#e8b962; --ta-track:#c39b5838; --ta-heat:#e7a24e; }
+body { --ta-ammo:#6cddff; --ta-hp:#80e4b1; --ta-boost:#efc373; --ta-sp:#baa8ed; --ta-text:#e7f5fa; --ta-cursor:#bcdde9; --ta-track:#c5e8f22e; --ta-heat:#ffb6d5; --ta-lock:#ff586e; --ta-mark-scale:1; }
+body[data-console="mechanical"] { --ta-ammo:#dceee3; --ta-hp:#b9d5cb; --ta-boost:#adc9c0; --ta-sp:#7dffb0; --ta-text:#dceee3; --ta-cursor:#b9d5cb; --ta-track:#adc9c02e; }
+body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9856; --ta-sp:#efcd8c; --ta-text:#f2c374; --ta-cursor:#e8b962; --ta-track:#c39b5838; }
 #lockRing, #aimGauge, #aimSp, #mechAim { display:none!important; }
 #triangleAim { left:50%; top:50%; transform:translate(-50%,-50%); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
 #triangleAim[hidden], #triangleAim [hidden], #trOh[hidden] { display:none; }
@@ -1044,11 +1044,10 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
 #thermalReticle .heat-track { fill:none; stroke:var(--ta-track); stroke-width:4; }
 #thermalReticle .charge-arc { fill:none; stroke:#7dffb0; stroke-width:4; stroke-linecap:butt; }
 #thermalReticle .heat-arc { fill:none; stroke:var(--ta-heat); stroke-width:4; stroke-linecap:butt; }
-#thermalReticle.hot .heat-arc, #thermalReticle.oh .heat-arc { stroke:var(--warn); }
 #thermalReticle text { fill:var(--ta-text); font-size:10px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
 #thermalReticle.charging #trHeatText { fill:#7dffb0; }
 #thermalReticle .oh-panel { fill:#461c28e8; }
-#thermalReticle .oh-text { fill:var(--ta-lock); font-size:12px; font-weight:700; letter-spacing:.04em; }
+#thermalReticle .oh-text { fill:var(--ta-heat); font-size:24px; font-weight:700; letter-spacing:.04em; }
 .preLockMark, #lockMark { width:64px; height:64px; --c:var(--ta-cursor); }
 #lockMark { --c:var(--ta-lock); }
 .preLockMark .br, #lockMark .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
@@ -1083,7 +1082,7 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
 </svg>
 <div class="hud" id="thermalReticle" hidden><svg viewBox="-64 -64 128 128" aria-label="武器の充填と熱・オーバーヒート">
   <circle class="heat-track" r="44"/><path class="charge-arc" id="trCharge0"/><path class="charge-arc" id="trCharge1"/><path class="charge-arc" id="trCharge2"/><path class="heat-arc" id="trHeat0"/><path class="heat-arc" id="trHeat1"/><path class="heat-arc" id="trHeat2"/>
-  <g id="trOh" hidden><rect class="oh-panel" x="-54" y="-11" width="108" height="22" rx="2"/><text class="oh-text" y="5">OVERHEAT</text></g><text id="trHeatText" y="-54"/>
+  <g id="trOh" hidden><rect class="oh-panel" x="-108" y="-22" width="216" height="44" rx="4"/><text class="oh-text" y="10">OVERHEAT</text></g><text id="trHeatText" y="-54"/>
 </svg></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
@@ -13424,6 +13423,7 @@ function triangleThermal(p) {
   if(layer.hidden)return;
   const target=lock.target?.alive&&!$('lockMark').hidden?screenOf(lock.target):null;
   layer.style.left=(target?(target.x+1)/2*innerWidth:innerWidth/2)+'px';layer.style.top=(target?(1-target.y)/2*innerHeight:innerHeight/2)+'px';
+  const warmth=triClamp(heat);layer.style.setProperty('--ta-heat',`rgb(255, ${Math.round(182-134*warmth)}, ${Math.round(213-165*warmth)})`);
   layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);layer.classList.toggle('charging',charging);$('trOh').toggleAttribute('hidden',!sl.overheat);
   $('trHeatText').textContent=sl.overheat?'COOLING '+Math.max(0,sl.ohT).toFixed(1)+'s':charging?'CHARGE '+Math.round(charge*100)+'%':'HEAT '+Math.round(triClamp(heat)*100)+'%';
   // 充填と熱は同じ半径・太さの3弧を共有。満充填の緑へ保持過熱の色を重ねる。

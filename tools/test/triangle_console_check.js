@@ -46,8 +46,15 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       u.overheat=true;yes(!g.shortDash(u,new g.T.Vector3(0,0,-1)),'燃料不足の噴射要求は不成立');g.boosterFlameUpdate(u,.016);draw();yes(!$('taBoostFill').getAnimations().length,'不成立の噴射要求では明滅しない');u.overheat=false;u.dashState='';
       u.slots.main=g.slotOf('gatling');u.weapon='main';u.switchT=0;u.slots.main.temp=50;draw();
       yes(!$('thermalReticle').hidden&&['trHeat0','trHeat1','trHeat2'].every(id=>+$(id).dataset.degrees===60),'熱50%で三本が各60度');
+      for(const mode of ['standard','arcade','flight','mechanical','retro']){
+        document.querySelector(`[data-console-choice="${mode}"]`).click();
+        const colors=[0,25,50,75,99].map(temp=>{u.slots.main.temp=temp;draw();return getComputedStyle($('trHeat0')).stroke.match(/\d+/g).map(Number);});
+        yes(colors[0].join(',')==='255,182,213'&&colors.every((c,i)=>c[0]===255&&(!i||c[1]<colors[i-1][1]&&c[2]<colors[i-1][2])),mode+'の熱量に合わせ桃色から赤へ段階的に変化');
+      }
       Object.assign(u.slots.main,{temp:99,spin:1,cd:0});g.weaponsTick(u,.05,true,new g.T.Vector3(0,200,-100),0);draw();
       yes(u.slots.main.overheat&&['trHeat0','trHeat1','trHeat2'].every(id=>+$(id).dataset.degrees===120)&&!$('trOh').hasAttribute('hidden'),'実過熱で120度×3の円が完成しOVERHEAT');
+      const warning=$('trOh').querySelector('text'),panel=$('trOh').querySelector('rect');
+      yes(getComputedStyle($('trHeat0')).stroke==='rgb(255, 48, 48)'&&getComputedStyle(warning).fontSize==='24px'&&panel.getAttribute('width')==='216'&&panel.getAttribute('height')==='44','実過熱は赤、OVERHEATの文字と背景は2倍の大きさ');
       g.weaponsTick(u,u.slots.main.w.ohTime+.1,false,new g.T.Vector3(0,200,-100),0);draw();yes(!u.slots.main.overheat&&$('trOh').hasAttribute('hidden'),'実冷却完了で過熱表示が消える');
       u.slots.main=g.slotOf('glint');u.weapon='main';
       const chargeIds=['trCharge0','trCharge1','trCharge2'],heatIds=['trHeat0','trHeat1','trHeat2'],aim=new g.T.Vector3(0,200,-100);
