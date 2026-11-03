@@ -928,11 +928,12 @@ body[data-console="retro"] #timer { color:#f6c774; font-size:30px; }
 body[data-console="retro"] #plantBar { top:88px; }
 body[data-console="retro"] #mini { border:1px solid #c39b58; }
 body[data-console="retro"] #feed { max-width:calc(25 * var(--vw, 1vw)); font-size:11px; }
-body[data-console="retro"] #status { width:260px; min-height:175px; padding:36px 16px 14px 16px; gap:12px; }
-body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:10px; left:14px; right:14px; padding-bottom:5px; border-bottom:1px solid #c39b5866; font-size:11px; letter-spacing:.15em; }
-body[data-console="retro"] #status .row { grid-template-columns:1fr 65px; gap:4px; font-size:10px; }
-body[data-console="retro"] #status .row .bar { grid-row:2; grid-column:1 / 3; height:8px; }
-body[data-console="retro"] #status .row b { font-size:19px; font-weight:500; }
+body[data-console="retro"] #status { width:208px; min-height:0; height:87.5px; padding:23px 10px 7px; gap:3px; grid-template-rows:repeat(3,minmax(0,1fr)); }
+body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:6px; left:10px; right:10px; padding-bottom:2px; border-bottom:1px solid #c39b5866; font-size:9px; line-height:12px; letter-spacing:.1em; }
+body[data-console="retro"] #status .row { grid-template-columns:36px minmax(0,1fr) 42px; grid-template-rows:1fr; gap:6px; font-size:9px; line-height:1.2; letter-spacing:0; }
+body[data-console="retro"] #status .row .bar { grid-row:1; grid-column:2; height:6px; }
+body[data-console="retro"] #status .row b { font-size:14px; line-height:1; font-weight:500; }
+body[data-console="retro"] #status .row :is(span,b) { white-space:nowrap; }
 body[data-console="retro"] #hp > i { background:#e8b962; }
 body[data-console="retro"] .bar { border-color:#a38b5b88; position:relative; }
 body[data-console="retro"] .bar::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent 0 12px,#142023 12px 14px); pointer-events:none; }
@@ -958,7 +959,7 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
 .consoleMini[data-preview="retro"] .sight { border-radius:0; width:10px; height:10px; left:calc(50% - 5px); }
 @media(max-width:1050px),(max-height:650px) {
  body[data-console="retro"] { --console-map-width:110px; --console-edge:12px; }
- body[data-console="retro"] #status { width:260px; min-height:0; padding:30px 12px 12px; gap:6px; }
+ body[data-console="retro"] #status { width:208px; height:78.5px; padding:21px 10px 6px; gap:2px; }
  body[data-console="retro"] #ammoBox { width:290px; }
  body[data-console="retro"] #top { padding:6px 10px; gap:8px; }
  body[data-console="retro"] .core { width:calc(18 * var(--vw, 1vw)); }
@@ -968,7 +969,7 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
  body[data-console="retro"] #plantBar { top:72px; }
 }
 @media(max-width:600px) {
- body[data-console="retro"] #status { width:calc(42 * var(--vw, 1vw)); }
+ body[data-console="retro"] #status { width:calc(33.6 * var(--vw, 1vw)); }
  body[data-console="retro"] #ammoBox { width:calc(49 * var(--vw, 1vw)); }
  body[data-console="retro"] #wpn { grid-template-columns:1fr; }
  body[data-console="retro"] #wcls { grid-column:auto; }
@@ -984,7 +985,7 @@ body[data-console] #pilotName { grid-row:2; width:100%; text-align:center; font-
 body[data-console] #pilotCls { grid-row:3; justify-self:center; font-size:10px; line-height:1.4; }
 body[data-console]:not([data-console="arcade"]):not(.touchPlay) #status { left:calc(var(--pilot-left) + var(--pilot-size) + 16px); }
 @media(max-width:1000px) { body { --pilot-size:120px; --pilot-left:24px; } }
-@media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status, body[data-console="retro"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } }
+@media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } body[data-console="retro"]:not(.touchPlay) #status { width:176px; box-sizing:border-box; } }
 @media(max-width:700px) { body { --pilot-size:96px; --pilot-left:20px; } }
 /* タッチでは左側の情報欄の横へ小さく配置。移動スティックと右の操作ボタンを空ける。 */
 body.touchPlay { --pilot-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
@@ -1067,7 +1068,6 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
 /* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。 */
 body:is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
 body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="mechanical"] #mechBoost { display:none; }
-body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:left bottom; }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
