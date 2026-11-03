@@ -680,7 +680,7 @@ body[data-console="mechanical"] #mechCompass { display: block; border-top-color:
   body[data-console="flight"] #timer { min-width: 0; font-size: 30px; }
   body[data-console="mechanical"] #status, body[data-console="mechanical"] #ammoBox { width: min(240px, calc(30 * var(--vw, 1vw))); padding: 0; }
   body[data-console="mechanical"] #consoleHeading, body[data-console="mechanical"] #mechBoost { width: calc(28 * var(--vw, 1vw)); letter-spacing: .02em; }
-  body[data-console="arcade"] #plantBar { left: auto; right: var(--console-edge); transform: none; }
+  body[data-console="arcade"] #plantBar { left: 50%; right: auto; transform: translateX(-50%); }
   body[data-console="arcade"] #status { padding: 8px 30px 8px 10px; grid-template-columns: minmax(0, 1fr) 80px; }
   body[data-console="arcade"] #pilot { grid-template-columns: 40px minmax(0, 1fr); }
   body[data-console="arcade"] #pilotMark { width: 40px; height: 40px; font-size: 20px; }
@@ -922,11 +922,12 @@ body[data-console="retro"] #timer { color:#f6c774; font-size:30px; }
 body[data-console="retro"] #plantBar { top:88px; }
 body[data-console="retro"] #mini { border:1px solid #c39b58; }
 body[data-console="retro"] #feed { max-width:calc(25 * var(--vw, 1vw)); font-size:11px; }
-body[data-console="retro"] #status { width:260px; min-height:175px; padding:36px 16px 14px 16px; gap:12px; }
-body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:10px; left:14px; right:14px; padding-bottom:5px; border-bottom:1px solid #c39b5866; font-size:11px; letter-spacing:.15em; }
-body[data-console="retro"] #status .row { grid-template-columns:1fr 65px; gap:4px; font-size:10px; }
-body[data-console="retro"] #status .row .bar { grid-row:2; grid-column:1 / 3; height:8px; }
-body[data-console="retro"] #status .row b { font-size:19px; font-weight:500; }
+body[data-console="retro"] #status { width:208px; min-height:0; height:87.5px; padding:23px 10px 7px; gap:3px; grid-template-rows:repeat(3,minmax(0,1fr)); }
+body[data-console="retro"] #status::before { content:"STATUS / 機体"; position:absolute; top:6px; left:10px; right:10px; padding-bottom:2px; border-bottom:1px solid #c39b5866; font-size:9px; line-height:12px; letter-spacing:.1em; }
+body[data-console="retro"] #status .row { grid-template-columns:36px minmax(0,1fr) 42px; grid-template-rows:1fr; gap:6px; font-size:9px; line-height:1.2; letter-spacing:0; }
+body[data-console="retro"] #status .row .bar { grid-row:1; grid-column:2; height:6px; }
+body[data-console="retro"] #status .row b { font-size:14px; line-height:1; font-weight:500; }
+body[data-console="retro"] #status .row :is(span,b) { white-space:nowrap; }
 body[data-console="retro"] #hp > i { background:#e8b962; }
 body[data-console="retro"] .bar { border-color:#a38b5b88; position:relative; }
 body[data-console="retro"] .bar::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,transparent 0 12px,#142023 12px 14px); pointer-events:none; }
@@ -952,7 +953,7 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
 .consoleMini[data-preview="retro"] .sight { border-radius:0; width:10px; height:10px; left:calc(50% - 5px); }
 @media(max-width:1050px),(max-height:650px) {
  body[data-console="retro"] { --console-map-width:110px; --console-edge:12px; }
- body[data-console="retro"] #status { width:260px; min-height:0; padding:30px 12px 12px; gap:6px; }
+ body[data-console="retro"] #status { width:208px; height:78.5px; padding:21px 10px 6px; gap:2px; }
  body[data-console="retro"] #ammoBox { width:290px; }
  body[data-console="retro"] #top { padding:6px 10px; gap:8px; }
  body[data-console="retro"] .core { width:calc(18 * var(--vw, 1vw)); }
@@ -962,7 +963,7 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
  body[data-console="retro"] #plantBar { top:72px; }
 }
 @media(max-width:600px) {
- body[data-console="retro"] #status { width:calc(42 * var(--vw, 1vw)); }
+ body[data-console="retro"] #status { width:calc(33.6 * var(--vw, 1vw)); }
  body[data-console="retro"] #ammoBox { width:calc(49 * var(--vw, 1vw)); }
  body[data-console="retro"] #wpn { grid-template-columns:1fr; }
  body[data-console="retro"] #wcls { grid-column:auto; }
@@ -978,7 +979,7 @@ body[data-console] #pilotName { grid-row:2; width:100%; text-align:center; font-
 body[data-console] #pilotCls { grid-row:3; justify-self:center; font-size:10px; line-height:1.4; }
 body[data-console]:not([data-console="arcade"]):not(.touchPlay) #status { left:calc(var(--pilot-left) + var(--pilot-size) + 16px); }
 @media(max-width:1000px) { body { --pilot-size:120px; --pilot-left:24px; } }
-@media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status, body[data-console="retro"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } }
+@media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } body[data-console="retro"]:not(.touchPlay) #status { width:176px; box-sizing:border-box; } }
 @media(max-width:700px) { body { --pilot-size:96px; --pilot-left:20px; } }
 /* タッチでは左側の情報欄の横へ小さく配置。移動スティックと右の操作ボタンを空ける。 */
 body.touchPlay { --pilot-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
@@ -1010,6 +1011,17 @@ body:not(.touchPlay) { --vw: calc(1vw / var(--ui-zoom, 1)); --vh: calc(1vh / var
 body:not(.touchPlay) :is(#top, #plantBar, #mapHud, #feed, #status, #pilot, #ammoBox, #mechBoost, #consoleTelemetry, #wsel, #center, #announce, #baseAlert, #board, #qchat, #respawn, #rangeHud, #tutorialHud, #scorePop, #headTxt, #overlay > .card) { zoom: var(--ui-zoom, 1); --vw: calc(1vw / var(--ui-zoom, 1)); --vh: calc(1vh / var(--ui-zoom, 1)); }
 body:not(.touchPlay) #center { top: max(62%, calc(50% + (var(--aim-sp-offset) + 20px) / var(--ui-zoom, 1))); }
 body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20px) / var(--ui-zoom, 1)); }
+/* マップの配置と実寸は全コンソール共通。地図の縦横比を保ち、UIの自動倍率からも独立させる。 */
+body { --mini-map-height:min(28vh,calc(144px / var(--map-aspect,.5625))); }
+body[data-console] #mapHud { position:fixed; left:auto; right:max(16px,env(safe-area-inset-right,0px)); top:calc(16px + env(safe-area-inset-top,0px)); bottom:auto; width:min(144px,calc(28vh * var(--map-aspect,.5625))); display:grid; gap:8px; padding:0; border:0; border-radius:0; background:none; pointer-events:none; zoom:1; --vw:1vw; --vh:1vh; }
+body[data-console]:not(.touchPlay) #mapHud { zoom:1; }
+body[data-console] #mini { position:static; display:block; box-sizing:border-box; width:100%; height:auto; max-height:none; object-fit:contain; }
+body[data-console] #spotAlert { position:static; width:100%; }
+body[data-console="standard"] #feed { left:max(16px,env(safe-area-inset-left,0px)); right:auto; justify-items:start; }
+body.touchPlay #tcTop { left:max(8px,env(safe-area-inset-left,0px)); right:auto; justify-content:flex-start; }
+body.touchPlay #ammoBox { top:calc(24px + var(--mini-map-height) + env(safe-area-inset-top,0px)); }
+.consoleMini[data-preview] .map { left:auto; right:8px; top:8px; bottom:auto; width:20px; height:32px; }
+#bigMap.artillery #mapSizes { visibility:hidden; pointer-events:none; }
 /* メカニカルの下段は肖像・耐久・方位・武器を重ねない。自動倍率は1600×900を基準にする。 */
 body[data-console="mechanical"]:not(.touchPlay) #status { width:220px; }
 body[data-console="mechanical"]:not(.touchPlay) #ammoBox { width:280px; }
@@ -1061,7 +1073,6 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
 /* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。 */
 body:is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
 body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="mechanical"] #mechBoost { display:none; }
-body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:left bottom; }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -1074,7 +1085,7 @@ body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:le
 </div>
 <div class="hud" id="plantBar"></div>
 <div id="mapHud"><canvas class="hud" id="mini" width="108" height="192"></canvas><div class="hud" id="spotAlert" role="status" hidden><b>被索敵</b><small id="spotAlertInfo"></small></div></div>
-<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる</span></div><div id="mapSizes" role="group" aria-label="全体マップの表示サイズ"><button type="button" data-map-size="medium" aria-pressed="false">中</button><button type="button" data-map-size="large" aria-pressed="false">大</button><button type="button" data-map-size="maximum" aria-pressed="true">最大</button></div><canvas id="bigMapC"></canvas></div>
+<div class="hud" id="bigMap" hidden><div class="bmh"><span>全体マップ</span><span>クリック：左 ここへ向かえ／右 ここを守れ　M：最大 → 大 → 小</span></div><div id="mapSizes" role="group" aria-label="全体マップの表示サイズ"><button type="button" data-map-size="maximum" aria-pressed="true">最大</button><button type="button" data-map-size="large" aria-pressed="false">大</button><button type="button" data-map-size="small" aria-pressed="false">小</button></div><canvas id="bigMapC"></canvas></div>
 <div class="hud" id="feed"></div>
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
@@ -1225,12 +1236,7 @@ body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:le
           <div class="optionSliders">
             <label for="optUiSize">UIの大きさ <output id="optUiSizeValue" for="optUiSize"></output></label>
             <input id="optUiSize" type="range" min="0" max="100" step="1">
-            <label for="optSwayHair">パイロット絵の髪の揺れ <output id="optSwayHairValue" for="optSwayHair"></output></label>
-            <input id="optSwayHair" type="range" min="0" max="300" step="10" aria-describedby="swayHint">
-            <label for="optSwayChest">パイロット絵の胸の揺れ <output id="optSwayChestValue" for="optSwayChest"></output></label>
-            <input id="optSwayChest" type="range" min="0" max="300" step="10" aria-describedby="swayHint">
           </div>
-          <p class="note" id="swayHint">ブーストで揺れる大きさ。100% がキャラごとの標準。大きくするほど、髪や服が引き伸ばされて見えることがあります。</p>
         </div>
         <div class="optCol">
           <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
@@ -1332,7 +1338,7 @@ body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:le
         <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>中央は淡緑のAMMO・AP（装甲値）と、上下に重ねたBOOST・SP。両端に飛行計器、下中央にブーストと方位計、右下に全4枠の残弾と状態を表示します。「UIを画面の大きさに合わせる」がONなら1600×900を基準に大きさを調整します</span>
         <kbd>照準のゲージ</kbd><span>左斜辺のAMMOは残弾（リロード中は進み具合）、右斜辺のAP（装甲値）は耐久。下の2本は上がBOOST、下がSPです。現在の残量だけを表示し、最大値の分母は付けません。BOOSTは噴射開始時に一度明滅、SPは特殊兵装の作動中に連続明滅します。チャージと熱はロックカーソルの周囲の3本の円弧を共有します。充填中は緑で伸び、満充填後の保持過熱は同じ円の緑に熱の色を重ねます。実際に過熱するとOVERHEATと冷却時間を表示します</span>
-        <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。表示は「中・大・最大」で選択でき、初期は最大です。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
+        <kbd>M</kbd><span>マップの大きさを「最大 → 大 → 小」で切り替えます（プラント・ベース・味方と見えている敵）。小マップは全コンソール共通で右上に表示します。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります。指示は最新の1件で置き換えます（視点は動かず、撃てません）</span>
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
         <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
@@ -1359,7 +1365,7 @@ body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:le
         <kbd>R3</kbd><span>ロック中の対象を切り替え（Q と同じ）</span>
         <kbd>△ 長押し</kbd><span>指示出し（G と同じ）。右スティックで選んで離すと送る</span>
         <kbd>L3</kbd><span>エリア移動（H と同じ）</span>
-        <kbd>クリエイト</kbd><span>全体マップ（M と同じ）。開いている間は R2 で「ここへ向かえ」、L2 で「ここを守れ」</span>
+        <kbd>クリエイト</kbd><span>マップを最大 → 大 → 小へ切り替え（M と同じ）。開いている間は R2 で「ここへ向かえ」、L2 で「ここを守れ」</span>
         <kbd>オプション</kbd><span>オプションと一時停止（F3 と同じ）。チュートリアルでは一時停止と、課題を達成した後の次へ</span>
         <kbd>タッチパッド押し込み</kbd><span>押している間スコア表（Tab と同じ）。ブラウザによっては使えません</span>
         <kbd>メニュー</kbd><span>十字キーか左スティックで選び、× で決定、○ で戻る。スライダーと選択欄は左右で値を変えます</span>
@@ -1509,7 +1515,7 @@ const SFX = {
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
 const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, swayHair: 100, swayChest: 100 };
-// swayHair・swayChest：パイロット絵の髪と胸の揺れ（%）。100% でキャラごとの規定値（PILOT_RIGS の sway）のまま、0〜300% で好みに合わせる
+// swayHair・swayChest：保存済みの揺れ倍率との互換用。新規はキャラの規定値どおりの100%。設定画面には出さない。
 const OPTION_MAX = { swayHair: 300, swayChest: 300 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 // uiFit：UIを画面の大きさに比例させる（1280×720 で等倍）。uiSize：UIの倍率（0〜100。50で等倍、0で0.7倍、100で1.3倍）。
@@ -1529,6 +1535,7 @@ const optionEl = k => document.getElementById('opt' + k[0].toUpperCase() + k.sli
 function renderOptions() {
   for (const k of Object.keys(gameOptions)) {
     const el = optionEl(k);
+    if (!el) continue; // 保存互換用の内部設定は画面に出さない。
     if (el.type === 'checkbox') { el.checked = !!gameOptions[k]; continue; }
     el.value = gameOptions[k];
     document.getElementById(el.id + 'Value').textContent = k === 'uiSize' ? Math.round(uiSizeScale(gameOptions[k]) * 100) + '%' : gameOptions[k] + (OPTION_UNIT[k] ?? '%');
@@ -1543,6 +1550,7 @@ function saveOptions() {
 }
 for (const k of Object.keys(gameOptions)) {
   const el = optionEl(k);
+  if (!el) continue;
   el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => { gameOptions[k] = el.type === 'checkbox' ? +el.checked : +el.value; saveOptions(); });
 }
 document.getElementById('optionsReset').addEventListener('click', () => { Object.assign(gameOptions, OPTION_DEFAULTS); saveOptions(); });
@@ -11112,10 +11120,13 @@ function mapPoint() { return new T.Vector3(mapCur.x, terrainH(mapCur.x, mapCur.z
 function qchatSend(u, i, at) {
   const q = QCHAT[i];
   chatLine(u, q.text);
-  if (q.ping && at) addPing(u.team, at, q.text);
   if (!q.order) return;
   const ref = q.order === 'cover' ? u.pos : at;
   if (!ref) return;
+  // 発信者ごとに指示は1件。古い地点だけでなく、それに従っていた味方の指示も解除する。
+  for (const b of units) if (b.order?.by === u) { b.order = null; b.waypoint = null; }
+  for (const p of pings.slice()) if (p.by === u) dropPing(p);
+  if (q.ping && at) addPing(u.team, at, q.text, u);
   const bots = units.filter(b => b.alive && !b.isPlayer && b.team === u.team && (q.order !== 'cover' || b.pos.distanceTo(ref) < COVER_RANGE))
     .sort((a, b) => a.pos.distanceTo(ref) - b.pos.distanceTo(ref)).slice(0, q.n);
   bots.forEach((b, k) => {
@@ -11131,9 +11142,9 @@ function chatLine(u, text) {
   feed(`<span style="color:${TEAM[u.team].css}">${htmlText(u.name)}</span>：${text}`, 'chat');
   sfx('chat');
 }
-// 地点の印：同じ陣営の味方にだけ、光の柱と、画面・ミニマップ・全体マップの印で見える。PING_TIME 秒で消え、1陣営 PING_MAX 個まで（古い物から消す）
-function addPing(team, at, text) {
-  const p = { team, pos: at.clone(), text, t: PING_TIME, mesh: null, el: null };
+// 地点の印：指示は発信者ごとに最新1件。行動不能・演習の印は別に保ち、全体では1陣営 PING_MAX 個まで。
+function addPing(team, at, text, by = null) {
+  const p = { team, pos: at.clone(), text, by, t: PING_TIME, mesh: null, el: null };
   if (player && team === player.team) {
     p.mesh = new T.Mesh(pingGeo, pingMat); p.mesh.position.set(at.x, at.y + 30, at.z); scene.add(p.mesh);
     p.el = document.createElement('div'); p.el.className = 'ping'; document.getElementById('popups').appendChild(p.el);
@@ -11726,7 +11737,7 @@ function touchFullscreen() {
   for(const name of ['mousedown','mouseup','mousemove','click','auxclick'])addEventListener(name,e=>{
     if(!TOUCH_INPUT)return;
     if(inputMode.mode==='gamepad'&&name==='mouseup'){e.stopImmediatePropagation();return;}
-    if(touchCompatibilityMouse(e)){e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();return;}
+    if(hybridGameActive()&&hybridGameSurface(e.target)&&touchCompatibilityMouse(e)){e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();return;}
     if(inputMode.suppressMouse){if(name==='mouseup')inputMode.suppressMouse=false;e.stopImmediatePropagation();return;}
     // 方式変更前の透明なタッチ面へ届いた最初のクリックも、通常の射撃処理へ渡す。
     if(name==='mousedown'&&e.isTrusted&&inputMode.mode==='manual'&&e.target.closest?.('#touchZone')&&hybridGameActive()){
@@ -12400,7 +12411,7 @@ gl_FragColor=c;}`;
   // ばね：x'' = -k(x-目標) - c x' + 力
   const spring=(k,c)=>({x:0,v:0,step(dt,target,f){this.v+=(-k*(this.x-target)-c*this.v+f)*dt;this.x+=this.v*dt;return this.x}});
   const S={shakeX:spring(140,14),shakeY:spring(160,14),hip:spring(70,9),lean:spring(55,7),sink:spring(120,10),hairX:spring(16,2.6),hairY:spring(20,3),chestX:spring(85,4.5),chestY:spring(110,4)};
-  const st={vel:0,vy:0,boostT:0,t:0,out:{},damage:false,hairAmp:1,chestAmp:1}; // hairAmp・chestAmp：髪と胸の揺れの倍率（オプション）
+  const st={vel:0,vy:0,boostT:0,t:0,out:{},damage:false,hairAmp:1,chestAmp:1}; // hairAmp・chestAmp：保存済みの髪と胸の揺れの倍率
   return { state:st, patched:!!patch, setDamage(on){st.damage=!!(on&&patch);gl.uniform1f(U.pOn,st.damage?1:0);}, step(dt, vel, vy, input) {
     // vel：機体の横の速さ（-1〜1、右が正）、vy：上向きの速さ（-1〜1）、input：横に吹かしている向き（-1/0/1）
     dt=Math.min(.033,Math.max(.001,dt||.016)); st.t+=dt; st.boostT=input?st.boostT+dt:0;
@@ -12552,10 +12563,10 @@ setPilot(savedPilot, false);
 $('pilotList').addEventListener('click', e => { const b = e.target.closest('[data-pilot-choice]'); if (b) setPilot(b.dataset.pilotChoice); });
 // コンソールは表示だけを切り替える。装備・兵装・試合の保存データとは独立させる。
 const CONSOLES = [
-  { id: 'standard', name: '標準', desc: '左上のマップと四隅の情報。照準の三角ゲージで残弾・耐久・ブースト・SPを確認する基本の画面。' },
-  { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右下にマップと菱形の武器枠。' },
-  { id: 'flight', name: 'フライト', desc: '下中央に大きなブーストとSPの2本。右側に4枠の装備と残弾を縦に並べ、右上にマップを配置。' },
-  { id: 'mechanical', name: 'メカニカル', desc: '淡緑の三角ゲージ。両端の飛行計器、下中央のブーストと方位、右下の4枠の装備と残弾。' },
+  { id: 'standard', name: '標準', desc: '右上の共通マップと四隅の情報。照準の三角ゲージで残弾・耐久・ブースト・SPを確認する基本の画面。' },
+  { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右上に共通マップ、右下に菱形の武器枠。' },
+  { id: 'flight', name: 'フライト', desc: '水色の三角ゲージと飛行計器。右側に4枠の装備と残弾、右上に共通マップを配置。' },
+  { id: 'mechanical', name: 'メカニカル', desc: '淡緑の三角ゲージ。両端の飛行計器、下中央の方位、右下の4枠の装備と残弾、右上の共通マップ。' },
   { id: 'retro', name: 'レトロ・ミリタリー', desc: '琥珀色の軍用計器。右上のマップ、左下の総耐久・ブースト、右下の武器・充填。タッチ操作時は標準配置。' },
 ];
 const CONSOLE_KEY = 'coreBreakerConsole';
@@ -13164,7 +13175,7 @@ const MINI_W = 108;
 function miniH() { return Math.round(MINI_W * MAP_Z / MAP_X); }
 function makeMiniBg(W = MINI_W, H = miniH()) {
   const c = document.createElement('canvas');
-  if (W === MINI_W) { $('mini').width = W; $('mini').height = H; }
+  if (W === MINI_W) { $('mini').width = W; $('mini').height = H; document.body.style.setProperty('--map-aspect', W / H); }
   c.width = W; c.height = H;
   if(cityMap){cityMap.drawMap(c.getContext('2d'),W,H,null);return c;}
   const g = c.getContext('2d'), img = g.createImageData(W, H);
@@ -13183,25 +13194,29 @@ function drawMini() {
   drawMapOn(mini, MINI_W, miniH(), miniBg, 1);
   drawBigMap();
 }
-// 全体マップ（M で開く・閉じる。v0.15、本家から移植）：ミニマップと同じ物を画面の高さの8割で。地形はミニマップの3倍の細かさ
+// M：小（通常HUD）→最大→大→小。砲撃中は常に最大で、Mは射撃モードを変更しない。
 let mapOpen = false, bigMapSize = 'maximum', mapHadPointer = false;
-const BIG_MAP_SIZES={medium:.65,large:.83,maximum:1};
-$('mapSizes').addEventListener('click',e=>{
-  const key=e.target.closest('[data-map-size]')?.dataset.mapSize;
-  if(!Object.hasOwn(BIG_MAP_SIZES,key))return;
-  bigMapSize=key;
-  for(const b of $('mapSizes').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mapSize===key));
+const BIG_MAP_SIZES={large:.83,maximum:1};
+function setMapSize(key) {
+  if (key !== 'small' && !Object.hasOwn(BIG_MAP_SIZES,key)) return;
+  const wasOpen=mapOpen;
+  bigMapSize=key; mapOpen=key!=='small';
+  if (mapOpen && !wasOpen) {
+    if (player) { mapCur.x=player.pos.x; mapCur.z=player.pos.z; }
+    mapHadPointer=document.pointerLockElement===canvas; mouseDown=rightDown=false;
+    if (mapHadPointer) document.exitPointerLock?.();
+  } else if (!mapOpen && wasOpen && mapHadPointer) { mapHadPointer=false; grabPointer(); }
+  for (const b of $('mapSizes').querySelectorAll('button')) b.setAttribute('aria-pressed',String(b.dataset.mapSize===key));
   drawBigMap();
+}
+$('mapSizes').addEventListener('click',e=>{
+  if (isArtilleryMode(player)) return;
+  const key=e.target.closest('[data-map-size]')?.dataset.mapSize;
+  setMapSize(key);
 });
 addEventListener('keydown', e => {
   if (e.code !== 'KeyM' || e.repeat || !running || isArtilleryMode(player)) return;
-  mapOpen = !mapOpen;
-  if (mapOpen && player) {
-    mapCur.x = player.pos.x; mapCur.z = player.pos.z;
-    mapHadPointer=document.pointerLockElement===canvas;mouseDown=rightDown=false;
-    if(mapHadPointer)document.exitPointerLock?.();
-  } else if(mapHadPointer){mapHadPointer=false;grabPointer();}
-  drawBigMap();
+  setMapSize(!mapOpen ? 'maximum' : bigMapSize==='maximum' ? 'large' : 'small');
 });
 // マウスの固定が外れているときは、全体マップを直接クリックして地点を指す（v0.17）
 $('bigMapC').addEventListener('mousedown', e => {
@@ -13223,12 +13238,12 @@ function drawBigMap() {
   box.hidden = (!mapOpen && !mode) || !running;
   const title = box.querySelectorAll('.bmh span');
   title[0].textContent = mode ? '榴弾砲 射撃モード' : '全体マップ';
-  title[1].textContent = touchPlay ? (mode ? '地図をタップ：砲撃地点　「ロック」：中断' : '地図をタップ：ここへ向かえ　「マップ」で閉じる') : padActive() ? (mode ? '右スティック：照準　R2：砲撃開始／地点変更　L2：中断' : '右スティックで指して R2 ここへ向かえ／L2 ここを守れ　クリエイトで閉じる')
-    : mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M で閉じる';
+  title[1].textContent = touchPlay ? (mode ? '地図をタップ：砲撃地点　「ロック」：中断' : '地図をタップ：ここへ向かえ　「マップ」：最大 → 大 → 小') : padActive() ? (mode ? '右スティック：照準　R2：砲撃開始／地点変更　L2：中断' : '右スティックで指して R2 ここへ向かえ／L2 ここを守れ　クリエイト：最大 → 大 → 小')
+    : mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M：最大 → 大 → 小';
   if (box.hidden) return;
   const cv = $('bigMapC'), dpr = Math.min(2, devicePixelRatio || 1);
   const header=box.querySelector('.bmh').getBoundingClientRect().height+$('mapSizes').getBoundingClientRect().height+38;
-  const scale=BIG_MAP_SIZES[bigMapSize],availableH=Math.max(80,innerHeight-header),availableW=Math.max(80,innerWidth-34);
+  const scale=BIG_MAP_SIZES[mode?'maximum':bigMapSize],availableH=Math.max(80,innerHeight-header),availableW=Math.max(80,innerWidth-34);
   const H=Math.floor(Math.min(availableH,availableW*MAP_Z/MAP_X)*scale),W=Math.floor(H*MAP_X/MAP_Z);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
   if (!bigBg || bigBg.width<W*dpr || bigBg.height<H*dpr) bigBg=makeMiniBg(Math.ceil(Math.max(W,MINI_W*3)*dpr),Math.ceil(Math.max(H,miniH()*3)*dpr));
@@ -13784,7 +13799,7 @@ const TUTORIAL_STEPS = [
   ['grenade', '副武器を使う', '2でグレネードへ持ち替え、橙色の標的を狙って左クリック。黄色い円が着弾予測です。爆風は自分にも当たるので距離を取りましょう。'],
   ['melee', '近接武器を使う', '3でソードへ持ち替え、標的へ近づいて左クリック。刃を当てましょう。実戦ではダッシュ中に振るとダッシュ攻撃になります。'],
   ['special', '特別装備を使う', '4で加速装置を起動し、W＋Shiftを長押しして加速しましょう。SPは通常ブーストとは別のゲージです。もう一度4で停止できます。'],
-  ['map', '全体マップを見る', 'Mで全体マップを開き、基地とプラントAの位置を確認しましょう。もう一度Mで閉じられます。'],
+  ['map', '全体マップを見る', 'Mで全体マップを開き、基地とプラントAの位置を確認しましょう。Mを押すごとに最大 → 大 → 小へ切り替わります。'],
   ['capture', 'プラントを占拠する', '光の柱で案内したプラントAの円の中へ入り、ゲージが青く満ちるまで待ちましょう。占拠すると、実戦では再出撃やエリア移動の足場になります。'],
   ['core', '敵コアにダメージを与える', '1で主武器。光の柱の上にある橙色の結晶へ照準を合わせて撃ちましょう。黒い支柱には効きません。実戦ではこの耐久を0にすると勝利です。'],
 ];

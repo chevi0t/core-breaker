@@ -177,7 +177,7 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
     await page.keyboard.press('m');
     await page.mouse.click(640, 360, { button: 'right' });
     await page.evaluate(() => { const { g, e, yes } = manualLockTest; yes(g.lock.target === e, '全体マップ上の防衛指示でロックを切り替えない'); });
-    await page.keyboard.press('m');
+    await page.keyboard.press('m'); await page.keyboard.press('m');
     await page.mouse.click(640, 360, { button: 'right' });
     assert.equal(await page.evaluate(() => __g.lock.target === null), true, '地図を閉じた後の右クリックは解除');
     await page.evaluate(() => {

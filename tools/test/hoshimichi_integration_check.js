@@ -65,7 +65,7 @@ function maps(source){const context={window:{}};vm.runInNewContext(source,contex
    await production.waitForFunction(()=>testPlayer.invulT<=0&&!document.getElementById('announce').textContent.trim());
    await production.keyboard.press('KeyM');await production.waitForFunction(()=>!document.getElementById('bigMap').hidden);
    if(team==='B')await production.locator('#bigMapC').screenshot({path:path.join(output,'overview.png')});
-   await production.keyboard.press('KeyM');
+   await production.keyboard.press('KeyM');await production.keyboard.press('KeyM');
    await production.keyboard.press('F3');await production.waitForFunction(()=>!document.getElementById('pgOptions').hidden);
    await production.locator('#optionsResume').click();
    assert(await production.evaluate(()=>window.__g===undefined&&window.__cityBattle===undefined));

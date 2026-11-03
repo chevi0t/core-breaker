@@ -83,7 +83,7 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       }
       reset(); g.spot(team, e, 3, null, '検査'); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' })); draw();
       yes(marks().length === 0, '全体マップ中は◆を隠す'); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyM' }));
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' })); draw(); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyM' })); yes(marks().length === 1, '全体マップを閉じると◆が戻る');
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyM' })); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' })); draw(); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyM' })); yes(marks().length === 1, '全体マップを閉じると◆が戻る');
       for (const slot of ['main', 'sub', 'aux', 'sp']) { reset(); p.weapon = slot; g.spot(team, e, 3, null, '検査'); draw(); yes(marks().length === 1, slot + '装備中も偵察情報を表示'); }
       reset(); g.spot(team, e, 3, null, '検査'); g.openOptions(); draw(); yes(marks().length === 0, '設定画面では◆を隠す');
       g.closeOptions(); draw(); yes(marks().length === 1, '設定から戻ると有効な偵察情報を再表示');

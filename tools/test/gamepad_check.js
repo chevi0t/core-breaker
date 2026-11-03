@@ -140,7 +140,9 @@ const B = { cross: 0, circle: 1, square: 2, triangle: 3, l1: 4, r1: 5, l2: 6, r2
     await tap('r2'); await step(1);
     ok((await ev(() => document.getElementById('feed').textContent)) !== feedBefore, '全体マップで R2 を押すと指示を送る');
     await tap('create'); await step(1);
-    ok(await ev(() => !__g.mapOpen), 'もう一度クリエイトで閉じる');
+    ok(await ev(() => __g.mapOpen && __g.bigMapSize === 'large'), '2回目のクリエイトで大マップ');
+    await tap('create'); await step(1);
+    ok(await ev(() => !__g.mapOpen), '3回目のクリエイトで小マップ');
 
     // 指示出し：△長押し＋右スティック
     await setBtn('triangle', 1); await step(1);
