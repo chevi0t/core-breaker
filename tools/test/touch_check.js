@@ -72,8 +72,8 @@ const W = 844, H = 390;
     ok(await ev(() => __g.touchPlay && document.body.classList.contains('touchPlay') && getComputedStyle(document.getElementById('tcPad')).display === 'block'), '試合中はボタンを出す');
     ok(await ev(() => __g.consoleMode === 'standard' && localStorage.getItem('coreBreakerConsole') === 'arcade'), '試合中はコンソールを標準にする（保存した選択は変えない）');
     ok(await ev(() => document.getElementById('center').textContent !== '画面をクリックで操作に戻る'), '「画面をクリック」を出さない');
-    // 右上のボタンが敵軍コアの表示と重ならない
-    ok(await ev(() => { const a = document.getElementById('tcTop').getBoundingClientRect(), b = document.getElementById('top').getBoundingClientRect(); return a.left >= b.right; }), '右上のボタンがコアの表示と重ならない');
+    // 左上の操作ボタンが中央のコアと右上の共通マップに重ならない
+    ok(await ev(() => { const b = document.getElementById('top').getBoundingClientRect(), m = document.getElementById('mini').getBoundingClientRect(); return [...document.querySelectorAll('#tcTop button')].every(el => { const a = el.getBoundingClientRect(); return a.right <= b.left && a.right <= m.left; }); }), '左上のボタンがコア・マップの表示と重ならない');
     ok(await ev(() => [...document.querySelectorAll('.tcb, #tcTop button')].every(b => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().height < 90)), 'ボタンの名前が折り返さず収まる');
     await page.screenshot({ path: path.join(out, 'battle.png') });
 
@@ -170,7 +170,7 @@ const W = 844, H = 390;
     await up(9); await step(1);
     ok(await ev(() => !__g.keys.KeyE && !__g.keys.KeyF), '離すと E・F も離す');
 
-    // 全体マップ：タップで開き、地図をタップで指示、もう一度で閉じる
+    // 全体マップ：タップで開き、地図をタップで指示、最大→大→小へ切り替え
     await tapBtn('[data-tc="map"]');
     ok(await ev(() => __g.mapOpen && !document.getElementById('bigMap').hidden), 'マップボタンで全体マップ');
     ok((await ev(() => document.querySelector('#bigMap .bmh span:nth-child(2)').textContent)).includes('タップ'), '全体マップの案内がタッチの言葉');
@@ -180,7 +180,9 @@ const W = 844, H = 390;
     ok((await ev(() => document.getElementById('feed').textContent)) !== feed0, '地図をタップで「ここへ向かえ」');
     await page.screenshot({ path: path.join(out, 'map.png') });
     await tapBtn('[data-tc="map"]');
-    ok(await ev(() => !__g.mapOpen), 'もう一度マップボタンで閉じる');
+    ok(await ev(() => __g.mapOpen && __g.bigMapSize === 'large'), '2回目で大マップ');
+    await tapBtn('[data-tc="map"]');
+    ok(await ev(() => !__g.mapOpen), '3回目で小マップ');
 
     // 指示：押したまま上へ、離すと送る
     const cc = await press('[data-tc="chat"]'); await step(1);
