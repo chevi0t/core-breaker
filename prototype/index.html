@@ -3254,7 +3254,7 @@ function resetTurrets() { for (const tu of turrets) reviveTurret(tu, tu.maxHp); 
 // ベースのレーダー（v0.9.3、ユーザー指定）：各ベースに1基。壊れていない間、ベースの中（ベース側の z が ±BASE_LINE より奥）に
 // 敵機が入ると警告を出し、入った敵機を味方のミニマップに映す（光学迷彩も映る）。耐久20000（仮置き）。
 // 壊せて、支援のリペアユニットで修理量7000を与えると再始動する（防衛砲台と同じ）。ロックオンはできない
-const RADAR_HP = 20000, RADAR_BODY = 0xb7b0a4;
+const RADAR_HP = 20000, RADAR_BODY = 0xb7b0a4, RADAR_HEAD_Y = 11.4;
 let BASE_LINE = 150;
 const radars = [];
 function buildRadars([rx, rz]) {
@@ -3277,32 +3277,41 @@ for (const k of ['B', 'R']) {
   const trimMat = new T.MeshLambertMaterial({ color: 0x8c826f });
   const deco = [];
   const ledge = new T.Mesh(new T.BoxGeometry(5.8, 0.18, 5), trimMat); ledge.position.set(x, pos.y + 3.05, z); deco.push(ledge);
-  const band = new T.Mesh(new T.BoxGeometry(4.5, 0.2, 4.1), trimMat); band.position.set(x, pos.y + 5.6, z); deco.push(band);
+  // 陣営の色の帯（2026-11-03、ユーザー「色玉はダサい」「他の建造物と違うのは明確に」）：指揮所の腰と基部の屋上の縁に1本ずつ
+  const teamMat = teamMaterial(k, new T.MeshLambertMaterial({ color: TEAM[k].color, emissive: TEAM[k].color, emissiveIntensity: 0.35 }));
+  const band = new T.Mesh(new T.BoxGeometry(4.5, 0.4, 4.1), teamMat); band.position.set(x, pos.y + 5.6, z); deco.push(band);
+  const edge = new T.Mesh(new T.BoxGeometry(5.84, 0.16, 5.04), teamMat); edge.position.set(x, pos.y + 2.86, z); deco.push(edge);
   const roof = new T.Mesh(new T.BoxGeometry(3.3, 0.22, 3.0), trimMat); roof.position.set(x, pos.y + 8.9, z); deco.push(roof);
   // 基部の屋上の手すり
   const railMat = new T.MeshLambertMaterial({ color: 0xa9adb1 });
   for (const [w, d, dx, dz] of [[5.6, 0.06, 0, 2.4], [5.6, 0.06, 0, -2.4], [0.06, 4.8, 2.8, 0], [0.06, 4.8, -2.8, 0]]) {
     const rail = new T.Mesh(new T.BoxGeometry(w, 0.06, d), railMat); rail.position.set(x + dx, pos.y + 4.0, z + dz); deco.push(rail);
   }
+  for (const px of [-2.8, -1.4, 0, 1.4, 2.8]) for (const pz of [-2.4, 2.4]) { const post = new T.Mesh(new T.BoxGeometry(0.06, 1, 0.06), railMat); post.position.set(x + px, pos.y + 3.5, z + pz); deco.push(post); }
+  for (const px of [-2.8, 2.8]) for (const pz of [-1.2, 0, 1.2]) { const post = new T.Mesh(new T.BoxGeometry(0.06, 1, 0.06), railMat); post.position.set(x + px, pos.y + 3.5, z + pz); deco.push(post); }
   // 四角錐台の4面に八角形の板（固定式の多面アンテナ）
   const panelMat = new T.MeshLambertMaterial({ color: 0x9aa3ab });
   for (let i = 0; i < 4; i++) {
     const side = i % 2 ? hd : hw, top = side * 1.6 / 2.2, tilt = Math.atan2(side - top, 3.2);
     const g = new T.Group(); g.rotation.y = i * Math.PI / 2; g.position.set(x, pos.y + 7.15, z);
-    const panel = new T.Mesh(new T.CylinderGeometry(0.85, 0.85, 0.06, 8), panelMat);
-    panel.rotation.set(Math.PI / 2 - tilt, 0, Math.PI / 8, 'YXZ');
-    panel.position.z = (side + top) / 2 + 0.05; g.add(panel); deco.push(g);
+    // 壁から浮かせて付ける（縁取りの台座＋板）。壁の傾きに沿って外へずらす
+    for (const [rr, th, out, mat] of [[0.98, 0.12, 0.08, trimMat], [0.84, 0.12, 0.2, panelMat]]) {
+      const plate = new T.Mesh(new T.CylinderGeometry(rr, rr, th, 8), mat);
+      plate.rotation.set(Math.PI / 2 - tilt, 0, Math.PI / 8, 'YXZ');
+      plate.position.set(0, out * Math.sin(tilt), (side + top) / 2 + out * Math.cos(tilt)); g.add(plate);
+    }
+    deco.push(g);
   }
   const domeMat = new T.MeshLambertMaterial({ color: 0xe4e6e8 });
   for (const [dx, dz, rr] of [[1.05, 0.85, 0.36], [-1.1, 0.75, 0.28], [-0.95, -0.9, 0.32], [1.15, -0.85, 0.24]]) {
     const dome = new T.Mesh(new T.SphereGeometry(rr, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), domeMat);
     dome.position.set(x + dx, pos.y + 9.0, z + dz); deco.push(dome);
   }
-  const whip = new T.Mesh(new T.CylinderGeometry(0.04, 0.06, 2.2, 5), railMat); whip.position.set(x - 1.4, pos.y + 10.1, z - 1.25); deco.push(whip);
-  const pedestal = new T.Mesh(new T.CylinderGeometry(0.45, 0.6, 0.9, 10), trimMat); pedestal.position.set(x, pos.y + 9.45, z); deco.push(pedestal);
+  const whip = new T.Mesh(new T.CylinderGeometry(0.04, 0.06, 1.2, 5), railMat); whip.position.set(x - 1.4, pos.y + 9.6, z - 1.25); deco.push(whip);
+  const pedestal = new T.Mesh(new T.CylinderGeometry(0.4, 0.6, 1.9, 10), trimMat); pedestal.position.set(x, pos.y + 9.95, z); deco.push(pedestal);
   for (const m of [...body, ...deco]) m.traverse(o => { if (o.isMesh) o.castShadow = true; });
   const head = new T.Group();
-  head.position.set(x, pos.y + 10.4, z);
+  head.position.set(x, pos.y + RADAR_HEAD_Y, z); // 回るアンテナが屋上のドームや棒に当たらない高さ
   const antMat = new T.MeshLambertMaterial({ color: 0xc9ccd1, side: T.DoubleSide });
   // 一次レーダー：横に湾曲した板（円筒の一部）。くぼんだ面を前へ向ける
   const dish = new T.Mesh(new T.CylinderGeometry(3.4, 3.4, 1.7, 12, 1, true, Math.PI - 0.55, 1.1), antMat);
@@ -3313,9 +3322,7 @@ for (const k of ['B', 'R']) {
   const ssr = new T.Group(); ssr.position.set(0, 1.15, 0.05);
   ssr.add(new T.Mesh(new T.BoxGeometry(4.2, 0.12, 0.12), antMat));
   for (let i = 0; i <= 14; i++) { const fin = new T.Mesh(new T.BoxGeometry(0.06, 0.55, 0.16), antMat); fin.position.x = -2.1 + i * 0.3; ssr.add(fin); }
-  const lamp = new T.Mesh(new T.SphereGeometry(0.35, 10, 8), teamMaterial(k, new T.MeshBasicMaterial({ color: TEAM[k].color })));
-  lamp.position.y = 1.75;
-  head.add(dish, arm, yoke, ssr, lamp);
+  head.add(dish, arm, yoke, ssr);
   dish.castShadow = true;
   mapRoot.add(...body, head, ...deco);
   obstacles.push({ minX: x - 2.8, maxX: x + 2.8, minZ: z - 2.4, maxZ: z + 2.4, top: pos.y + 3 });
@@ -11775,7 +11782,7 @@ const LOCK_ZOOM = 1.3, LOCK_ZOOM_RATE = 9;
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
 const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false, visualSeq: 0 };
 const proj = new T.Vector3();
-function targetPoint(e) { return e.gadget && e.kind === 'sentry' ? e.mesh.position.clone() : new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 自動銃は本体中心、施設攻略のレーダーはアンテナを狙う。ほかは形の高さ。
+function targetPoint(e) { return e.gadget && e.kind === 'sentry' ? e.mesh.position.clone() : new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? RADAR_HEAD_Y : e.gadget ? 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 自動銃は本体中心、施設攻略のレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
@@ -12213,7 +12220,7 @@ function renderTeamView(team = chosenTeam) {
   // 地形・乱数・当たり判定を作り直さず、既存施設の色と門の標識だけを更新する。
   mapRoot.traverse(o => {
     const mat = o.material;
-    if (mat?.userData?.team) mat.color.setHex(TEAM[mat.userData.team].color);
+    if (mat?.userData?.team) { mat.color.setHex(TEAM[mat.userData.team].color); if (mat.emissive) mat.emissive.setHex(TEAM[mat.userData.team].color); }
     if (o.userData.teamSign) {
       const ctx = mat.map.image.getContext('2d');
       ctx.strokeStyle = TEAM[o.userData.teamSign].css; ctx.lineWidth = 6; ctx.strokeRect(3, 3, 250, 58);
