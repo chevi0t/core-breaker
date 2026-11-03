@@ -66,18 +66,16 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
     await page.mouse.click(640, 400, { button: 'right' });
     await page.evaluate(() => {
       const { g, e, draw, marks, yes } = prelockTest; draw();
-      yes(g.lock.target === e && !marks().length && !document.getElementById('lockMark').hidden, '実右クリックが明るい候補を捕捉しアンバーへ切り替わる');
-      const br = document.querySelector('#lockMark .br'), a = br.getAnimations()[0];
-      yes(!!a && a.effect.getTiming().iterations === 1, 'ロック成立時だけ一回のアニメーション');
-      a.pause(); a.currentTime = 0; const w0 = br.getBoundingClientRect().width;
-      a.currentTime = 150; const w1 = br.getBoundingClientRect().width, flash = getComputedStyle(br).filter;
-      a.currentTime = 299; const w2 = br.getBoundingClientRect().width;
-      yes(w0 > w1 * 1.4 && Math.abs(w1 - w2) < .1 && flash.includes('brightness'), '0.15秒で外から閉じて発光し、その後は拡大しない');
+      yes(g.lock.target === e && !marks().length && !document.getElementById('lockMark').hidden, '実右クリックが明るい候補を捕捉し赤い六角形へ切り替わる');
+      const br = document.querySelector('#lockMark .br'), mk = document.getElementById('lockMark');
+      yes(br.querySelectorAll('.lock-arm').length === 3 && +mk.dataset.progress < 1, 'ロック成立時だけ三方向からの演出を開始');
+      const d0=br.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<6;i++)g.hud(240,1/60);const d1=br.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<14;i++)g.hud(240,1/60);const d2=br.querySelector('.lock-arm').getAttribute('d');
+      yes(d0!==d1&&d1!==d2&&+mk.dataset.progress===1,'ズームと同じ約0.3秒で回り込み・回転して輪郭に合流する');
       for (let i = 0; i < 5; i++) draw();
-      yes(br.getAnimations()[0] === a, 'フレーム更新でアニメーションを開始し直さない');
-      a.finish(); draw(); yes(br.getAnimations().length === 0, '収束後は点滅せず安定表示');
+      yes(br.querySelector('.lock-arm').getAttribute('d')===d2, 'フレーム更新で演出を開始し直さない');
+      draw(); yes(+mk.dataset.progress===1, '収束後は点滅せず安定表示');
       g.lock.visible = false; draw(); yes(document.getElementById('lockMark').classList.contains('lost'), '遮蔽の維持猶予中は薄く表示');
-      g.lock.visible = true; draw(); yes(br.getAnimations().length === 0, '遮蔽から再び見えても発光しない');
+      g.lock.visible = true; draw(); yes(+mk.dataset.progress===1, '遮蔽から再び見えても再演出しない');
     });
     await page.mouse.click(640, 400, { button: 'right' });
     await page.evaluate(() => {
@@ -131,11 +129,11 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       yes(!marks().length && !document.getElementById('missileHud').hidden, 'ミサイル専用カーソルと分離');
       reset('assault', 'aux'); yes(marks().length === 2, '近接武器もプレロック可能');
       reset(); click(); draw(); const seq = g.lock.visualSeq;
-      g.pressed.KeyQ = true; step(); yes(g.lock.target === e2 && g.lock.visualSeq > seq && document.querySelector('#lockMark .br').getAnimations().length === 1, 'Qの対象切り替えで一回だけ再演出');
+      g.pressed.KeyQ = true; step(); yes(g.lock.target === e2 && g.lock.visualSeq > seq && +document.getElementById('lockMark').dataset.progress<1, 'Qの対象切り替えで一回だけ再演出');
       const seq2 = g.lock.visualSeq; click(); click(); draw();
-      yes(g.lock.visualSeq > seq2 && document.querySelector('#lockMark .br').getAnimations().length === 1, '同じフレームで解除・再捕捉しても演出を一回再生');
+      yes(g.lock.visualSeq > seq2 && +document.getElementById('lockMark').dataset.progress<1, '同じフレームで解除・再捕捉しても演出を一回再生');
       g.openOptions(); draw(); yes(!marks().length && document.getElementById('lockMark').hidden, '設定表示中はロックマーカーを隠す');
-      g.closeOptions(); draw(); yes(!document.getElementById('lockMark').hidden && document.querySelector('#lockMark .br').getAnimations().length === 0, '設定から戻っても捕捉演出を再発火しない');
+      g.closeOptions(); draw(); yes(!document.getElementById('lockMark').hidden && +document.getElementById('lockMark').dataset.progress===1, '設定から戻っても捕捉演出を再発火しない');
       // タグなど他のHUDと分けて、通常ロック表示による遮蔽レイだけを計数する。
       reset(); const crowd = g.units.filter(q => q.team !== u.team);
       crowd.forEach((q, i) => { q.alive = true; q.cloak = false; q.downT = 0; place(q, 1.6, i / crowd.length * Math.PI * 2); });
@@ -163,20 +161,20 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
     }
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.evaluate(() => dispatchEvent(new Event('resize')));
-    for (const theme of ['standard', 'arcade', 'flight', 'mechanical']) {
+    for (const theme of ['standard', 'arcade', 'flight', 'mechanical', 'retro']) {
       await page.evaluate(theme => {
         document.querySelector(`[data-console-choice="${theme}"]`).click();
         const { reset, draw, marks, yes, click } = prelockTest; reset();
-        const s = getComputedStyle(marks()[0]); yes(s.getPropertyValue('--c').trim() === '#72e9f5', theme + 'のプレロックはシアン');
+        const outline=marks()[0].querySelector('.cursor-outline'); yes(outline.getAttribute('d').match(/[ML]/g).length===6,theme+'のプレロックは変形六角形');
         click(); draw(); const mk = document.getElementById('lockMark'), br = mk.querySelector('.br');
         for (const a of br.getAnimations()) a.finish();
-        yes(getComputedStyle(mk).getPropertyValue('--c').trim() === '#ffbd59' && parseFloat(getComputedStyle(mk).getPropertyValue('--stroke')) >= 4, theme + 'のロックは太いアンバー');
+        yes(getComputedStyle(br.querySelector('.lock-arm')).stroke==='rgb(255, 88, 110)',theme+'の捕捉線は赤');
       }, theme);
     }
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.evaluate(() => {
       const { reset, click, draw, yes } = prelockTest; reset(); click(); draw();
-      yes(!document.getElementById('lockMark').hidden && document.querySelector('#lockMark .br').getAnimations().length === 0, '動きを減らす設定では収束演出なしでロックを表示');
+      yes(!document.getElementById('lockMark').hidden && +document.getElementById('lockMark').dataset.progress===1, '動きを減らす設定では収束演出なしでロックを表示');
     });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     // 実際の地形を背景に、2体の候補とロック完了状態を保存する。
@@ -192,18 +190,17 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
     await page.screenshot({ path: path.join(out, 'prelock.png') });
     await page.evaluate(() => {
       const { click, draw, g } = prelockTest; click(); draw();
-      const a = document.querySelector('#lockMark .br').getAnimations()[0]; a.pause(); a.currentTime = 0;
       g.renderer.render(g.scene, g.camera);
     });
     await page.screenshot({ path: path.join(out, 'lock-closing.png') });
-    await page.evaluate(() => { document.querySelector('#lockMark .br').getAnimations()[0].currentTime = 150; });
+    await page.evaluate(() => {for(let i=0;i<6;i++)prelockTest.g.hud(240,1/60);});
     await page.screenshot({ path: path.join(out, 'lock-flash.png') });
-    await page.evaluate(() => { for (const a of document.querySelector('#lockMark .br').getAnimations()) a.finish(); });
+    await page.evaluate(() => {for(let i=0;i<14;i++)prelockTest.g.hud(240,1/60);});
     await page.screenshot({ path: path.join(out, 'locked.png') });
     assert.deepEqual(errors, []);
     const checks = await page.evaluate(() => prelockTest.checks);
     fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ checks, errors }, null, 2));
     console.log(JSON.stringify({ count: checks.length, checks, errors, out }));
-    console.log('プレロック・捕捉演出・状態切替・4コンソール：成功。');
+    console.log('プレロック・捕捉演出・状態切替・5コンソール：成功。');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
