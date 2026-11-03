@@ -1058,6 +1058,10 @@ body[data-console="retro"] .preLockMark.selected { filter:drop-shadow(0 0 4px #e
 #lockMark .lock-arm { fill:none; stroke:var(--ta-lock); stroke-width:2.6; stroke-linejoin:miter; stroke-linecap:butt; }
 body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-text); }
 @media(prefers-reduced-motion:reduce) { #taSp.act #taSpFill { animation:none; filter:brightness(1.3); } }
+/* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。 */
+body:is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
+body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="mechanical"] #mechBoost { display:none; }
+body[data-console="retro"] #status { transform:scale(.8,.5); transform-origin:left bottom; }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
