@@ -69,8 +69,8 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       yes(g.lock.target === e && !marks().length && !document.getElementById('lockMark').hidden, '実右クリックが明るい候補を捕捉し赤い六角形へ切り替わる');
       const br = document.querySelector('#lockMark .br'), mk = document.getElementById('lockMark');
       yes(br.querySelectorAll('.lock-arm').length === 3 && +mk.dataset.progress < 1, 'ロック成立時だけ三方向からの演出を開始');
-      const d0=br.querySelector('.lock-arm').getAttribute('d');g.hud(240,.65);const d1=br.querySelector('.lock-arm').getAttribute('d');g.hud(240,.8);const d2=br.querySelector('.lock-arm').getAttribute('d');
-      yes(d0!==d1&&d1!==d2&&+mk.dataset.progress===1,'1.4秒で回り込み・回転して輪郭に合流する');
+      const d0=br.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<6;i++)g.hud(240,1/60);const d1=br.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<14;i++)g.hud(240,1/60);const d2=br.querySelector('.lock-arm').getAttribute('d');
+      yes(d0!==d1&&d1!==d2&&+mk.dataset.progress===1,'ズームと同じ約0.3秒で回り込み・回転して輪郭に合流する');
       for (let i = 0; i < 5; i++) draw();
       yes(br.querySelector('.lock-arm').getAttribute('d')===d2, 'フレーム更新で演出を開始し直さない');
       draw(); yes(+mk.dataset.progress===1, '収束後は点滅せず安定表示');
@@ -193,9 +193,9 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       g.renderer.render(g.scene, g.camera);
     });
     await page.screenshot({ path: path.join(out, 'lock-closing.png') });
-    await page.evaluate(() => prelockTest.g.hud(240,.7));
+    await page.evaluate(() => {for(let i=0;i<6;i++)prelockTest.g.hud(240,1/60);});
     await page.screenshot({ path: path.join(out, 'lock-flash.png') });
-    await page.evaluate(() => prelockTest.g.hud(240,.7));
+    await page.evaluate(() => {for(let i=0;i<14;i++)prelockTest.g.hud(240,1/60);});
     await page.screenshot({ path: path.join(out, 'locked.png') });
     assert.deepEqual(errors, []);
     const checks = await page.evaluate(() => prelockTest.checks);

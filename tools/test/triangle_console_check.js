@@ -22,14 +22,15 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       for(const mode of ['standard','arcade','flight','mechanical','retro']){
         document.querySelector(`[data-console-choice="${mode}"]`).click();draw();
         yes(getComputedStyle($('triangleAim')).display!=='none',mode+'で三角ゲージを表示');
-        yes(['aimGauge','aimSp','mechAim'].every(id=>getComputedStyle($(id)).display==='none'),mode+'で旧中央ゲージが重ならない');
+        yes(['lockRing','aimGauge','aimSp','mechAim'].every(id=>getComputedStyle($(id)).display==='none'),mode+'で範囲円と旧中央ゲージを隠す');
         yes(fraction('taAmmoFill')===50&&fraction('taHpFill')===76&&fraction('taBoostFill')===43&&fraction('taSpFill')===37,mode+'の4残量が実値に一致');
-        yes($('taHpValue').textContent==='7,600'&&$('taSpValue').textContent==='SP 37%',mode+'の数値と名前');
+        yes($('taHpValue').textContent==='7,600'&&$('taSpValue').textContent==='SP 37%'&&$('taAmmoLabel').textContent==='AMMO'&&$('taHpLabel').textContent==='HP'&&$('taBoostValue').textContent==='BOOST 43%',mode+'の数値と英語名');
+        yes(!$('taHpMax')&&!$('taAmmoState').textContent.includes('/'),mode+'の現在値に分母を付けない');
         colors.push(getComputedStyle($('taAmmoFill')).stroke);
       }
       yes(colors[0]===colors[1]&&colors[1]===colors[2]&&colors[3]!==colors[0]&&colors[4]!==colors[3],'標準・アーケード・フライトは共通、メカニカルとレトロは専用配色');
       const sl=u.slots.main;u.reloadMul=1.5;sl.reloadT=sl.w.reload*u.reloadMul/2;draw();
-      yes(fraction('taAmmoFill')===50&&$('taAmmoState').textContent.includes('再装填'),'腕の装填倍率を含むリロード途中を表示');sl.reloadT=0;
+      yes(fraction('taAmmoFill')===50&&$('taAmmoState').textContent.includes('RELOAD'),'腕の装填倍率を含むリロード途中を英語で表示');sl.reloadT=0;
       const flags=['mirageOn','chargerOn','cloak','fieldOn','barrierOn','escortOn','post','postFlight','bombard','beamFire','healTarget'];
       for(const flag of flags){for(const k of flags)u[k]=null;u[flag]=true;draw();yes($('taSp').classList.contains('act'),flag+'の作動中はSPを連続明滅');}
       for(const k of flags)u[k]=null;draw();yes(!$('taSp').classList.contains('act'),'停止するとSP明滅を解除');
@@ -59,10 +60,15 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       const pre=document.querySelector('.preLockMark.selected .cursor-outline');yes(!!pre&&pre.getAttribute('d').match(/[ML]/g).length===6,'捕捉可能な敵へ六角形プレロックを表示');
       g.toggleLock(u);const yaw=u.yaw,pitch=u.pitch;draw(0);
       yes(g.lock.target===e&&u.yaw===yaw&&u.pitch===pitch,'HUD更新が捕捉後の向きと照準を変えない');
-      const mk=$('lockMark'),first=mk.querySelector('.lock-arm').getAttribute('d');draw(.7);const middle=mk.querySelector('.lock-arm').getAttribute('d');draw(.7);const last=mk.querySelector('.lock-arm').getAttribute('d');
+      const mk=$('lockMark'),first=mk.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<6;i++)draw(1/60);const middle=mk.querySelector('.lock-arm').getAttribute('d');for(let i=0;i<14;i++)draw(1/60);const last=mk.querySelector('.lock-arm').getAttribute('d');
       yes(first!==middle&&middle!==last&&+mk.dataset.progress===1,'三方向の赤線が回り込み回転して一度だけ収束');
       const numbers=d=>d.match(/-?\d+(?:\.\d+)?/g).map(Number),hex=numbers(mk.querySelector('.cursor-outline').getAttribute('d')),red=numbers(last),indices=[5,0,1];
       yes(red.every((n,i)=>Math.abs(n-hex[indices[Math.floor(i/2)]*2+i%2])<.002),'終点が六角形の短辺と斜辺に一致');
+      for(const fps of [30,60,120]){
+        g.lock.visualSeq++;g.camera.fov=g.gameOptions.fov;u.dashState='';draw(0);
+        let elapsed=0;while(+mk.dataset.progress<1&&elapsed<.5){g.updateCamera(u,1/fps);draw(1/fps);elapsed+=1/fps;}
+        yes(elapsed<=.35&&Math.abs(g.camera.fov-g.gameOptions.fov/1.3)<1,`${fps}fpsでズームの収束と同じ約0.3秒で赤線が完成`);
+      }
       g.lock.visible=false;draw();g.lock.visible=true;draw();yes(mk.querySelector('.lock-arm').getAttribute('d')===last,'一時遮蔽から復帰しても再演出しない');
       u.slots.main=g.slotOf('gatling');u.slots.main.temp=50;draw();
       yes(Math.abs(parseFloat($('thermalReticle').style.left)-(g.targetPoint(e).project(g.camera).x+1)/2*innerWidth)<.1,'熱リングがロック対象のカーソルへ追従');
@@ -72,16 +78,45 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       u.weapon='main';u.slots.main=g.slotOf('ar');u.scoped=true;draw();yes(getComputedStyle($('triangleAim').querySelector('.ta-side')).display==='none'&&getComputedStyle($('taSp')).display!=='none','スコープ中は左右の計器を隠しSPを維持');u.scoped=false;
       return checks;
     });
-    for(const [w,h]of [[1920,1080],[1280,720],[960,540],[640,480]]){
+    for(const [w,h]of [[3840,2160],[1920,1080],[1280,720],[960,540],[640,480]]){
       await page.setViewportSize({width:w,height:h});
       for(const mode of ['standard','arcade','flight','mechanical','retro']){
         const result=await page.evaluate(mode=>{
           const{g,u,$,draw}=triangleTest;dispatchEvent(new Event('resize'));document.querySelector(`[data-console-choice="${mode}"]`).click();draw();
-          const svg=$('triangleAim'),bounds=svg.getBoundingClientRect();
+          const svg=$('triangleAim'),bounds=svg.getBoundingClientRect(),r=Math.min(154,Math.max(78,innerHeight*.215));
+          const lines=Object.fromEntries(['Ammo','Hp','Boost','Sp'].map(k=>{const el=$('ta'+k+'Bg'),length=el.getTotalLength();return[k,{a:el.getPointAtLength(0),b:el.getPointAtLength(length),length}];}));
+          for(const k of ['Ammo','Hp']){
+            const{a,b,length}=lines[k],distance=Math.abs(a.x*b.y-a.y*b.x)/length;
+            if(Math.abs(distance-Math.max(r/2,innerHeight*.08))>.01||Math.abs(length-r*Math.sqrt(3)*.84)>.01)throw Error(k+'の接線配置と長さ');
+            const text=$('ta'+k+'Value').transform.baseVal.consolidate().matrix,tx=text.a,ty=text.b,dx=b.x-a.x,dy=b.y-a.y;
+            if(Math.abs(tx*dy-ty*dx)>.01)throw Error(k+'の文字がゲージと平行でない');
+          }
+          const boost=lines.Boost,sp=lines.Sp;
+          if(Math.abs(boost.length-(Math.sqrt(3)*r/2*.91-10))>.01||Math.abs(boost.length-sp.length)>.01||Math.abs(boost.a.x-sp.a.x)>.01||Math.abs(boost.b.x-sp.b.x)>.01||sp.a.y<=boost.a.y)throw Error('BOOST/SPの長さと上下配置');
           return [...svg.querySelectorAll('text')].map(el=>({text:el.textContent,r:el.getBoundingClientRect()})).filter(({r})=>r.left<0||r.right>innerWidth||r.top<0||r.bottom>innerHeight).map(x=>x.text);
-        },mode);assert.deepEqual(result,[],`${mode} ${w}x${h} の表示が画面内`);checks.push(`${mode} ${w}x${h} の表示が画面内`);
+        },mode);assert.deepEqual(result,[],`${mode} ${w}x${h} の表示が画面内`);checks.push(`${mode} ${w}x${h} の接線・元の長さ・文字角度・上下配置・画面内を確認`);
       }
     }
+    // 実際のコンソール選択と保存操作を使い、メカニカル専用倍率と下段の余白を確かめる。
+    for(const [w,h]of [[3840,2160],[1920,1080],[1280,720],[960,540],[640,480]]){
+      await page.setViewportSize({width:w,height:h});
+      for(const size of [0,50,100]){
+        const result=await page.evaluate(size=>{
+          const{g,$,draw}=triangleTest;document.querySelector('[data-console-choice="mechanical"]').click();g.gameOptions.uiFit=1;g.gameOptions.uiSize=size;g.saveOptions();draw();
+          const boxes=['pilot','status','mechBoost','consoleHeading','ammoBox'].map(id=>({id,r:$(id).getBoundingClientRect()}));
+          const issues=[];for(let i=0;i<boxes.length;i++){
+            const a=boxes[i];if(a.r.left<0||a.r.right>innerWidth+.5||a.r.top<0||a.r.bottom>innerHeight+.5)issues.push(a.id+'が画面外');
+            for(const b of boxes.slice(i+1))if(Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left)>1&&Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top)>1)issues.push(a.id+'と'+b.id+'が重なる');
+          }
+          return{issues,zoom:+getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom')};
+        },size);
+        assert.deepEqual(result.issues,[],`メカニカル ${w}x${h} UI${size}`);
+        assert(Math.abs(result.zoom-Math.max(.6,Math.min(3,w/1600,h/900))*(.7+size*.006))<.002);
+        checks.push(`メカニカル ${w}x${h} UI${size}：専用倍率で下段5欄が重ならず画面内`);
+      }
+    }
+    assert(await page.evaluate(()=>{const{g,draw}=triangleTest;g.gameOptions.uiFit=0;g.gameOptions.uiSize=50;g.saveOptions();draw();return+getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom')===1;}));checks.push('メカニカル自動調整OFFでは従来の等倍を維持');
+    await page.evaluate(()=>{const{g}=triangleTest;g.gameOptions.uiFit=1;g.gameOptions.uiSize=50;g.saveOptions();});
     await page.emulateMedia({reducedMotion:'reduce'});
     assert(await page.evaluate(()=>{const{g,u,$,draw}=triangleTest;u.chargerOn=true;u.dashState='';g.boosterFlameUpdate(u,.016);draw();u.dashState='short';u.dashT=.24;g.boosterFlameUpdate(u,.016);draw();return getComputedStyle($('taSpFill')).animationName==='none'&&!$('taBoostFill').getAnimations().length;}));checks.push('動きを減らす設定でSPとブーストの明滅を止める');
     await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:1280,height:720});
