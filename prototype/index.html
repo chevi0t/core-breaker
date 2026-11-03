@@ -1012,14 +1012,17 @@ body:not(.touchPlay) :is(#top, #plantBar, #mapHud, #feed, #status, #pilot, #ammo
 body:not(.touchPlay) #center { top: max(62%, calc(50% + (var(--aim-sp-offset) + 20px) / var(--ui-zoom, 1))); }
 body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20px) / var(--ui-zoom, 1)); }
 /* マップの配置と実寸は全コンソール共通。地図の縦横比を保ち、UIの自動倍率からも独立させる。 */
-body { --mini-map-height:min(28vh,calc(144px / var(--map-aspect,.5625))); }
-body[data-console] #mapHud { position:fixed; left:auto; right:max(16px,env(safe-area-inset-right,0px)); top:calc(16px + env(safe-area-inset-top,0px)); bottom:auto; width:min(144px,calc(28vh * var(--map-aspect,.5625))); display:grid; gap:8px; padding:0; border:0; border-radius:0; background:none; pointer-events:none; zoom:1; --vw:1vw; --vh:1vh; }
+body { --map-hud-scale:1; --mini-map-height:calc(min(28vh,calc(144px / var(--map-aspect,.5625))) * var(--map-hud-scale)); }
+body[data-map-size="large"] { --map-hud-scale:2; }
+body[data-console] #mapHud { position:fixed; left:auto; right:max(16px,env(safe-area-inset-right,0px)); top:calc(16px + env(safe-area-inset-top,0px)); bottom:auto; width:calc(min(144px,calc(28vh * var(--map-aspect,.5625))) * var(--map-hud-scale)); display:grid; gap:8px; padding:0; border:0; border-radius:0; background:none; pointer-events:none; zoom:1; --vw:1vw; --vh:1vh; }
 body[data-console]:not(.touchPlay) #mapHud { zoom:1; }
-body[data-console] #mini { position:static; display:block; box-sizing:border-box; width:100%; height:auto; max-height:none; object-fit:contain; }
+body[data-console] #mini { position:static; display:block; box-sizing:border-box; width:100%; height:var(--mini-map-height); max-height:none; object-fit:contain; }
 body[data-console] #spotAlert { position:static; width:100%; }
 body[data-console="standard"] #feed { left:max(16px,env(safe-area-inset-left,0px)); right:auto; justify-items:start; }
 body.touchPlay #tcTop { left:max(8px,env(safe-area-inset-left,0px)); right:auto; justify-content:flex-start; }
 body.touchPlay #ammoBox { top:calc(24px + var(--mini-map-height) + env(safe-area-inset-top,0px)); }
+body.touchPlay[data-map-size="large"] #ammoBox { left:max(12px,env(safe-area-inset-left,0px)); right:auto; top:calc(88px + env(safe-area-inset-top,0px)); }
+body.touchPlay[data-map-size="large"] [data-tc="weapon"] { transform:translateY(calc(var(--tc) * .42)); }
 .consoleMini[data-preview] .map { left:auto; right:8px; top:8px; bottom:auto; width:20px; height:32px; }
 #bigMap.artillery #mapSizes { visibility:hidden; pointer-events:none; }
 /* メカニカルの下段は肖像・耐久・方位・武器を重ねない。自動倍率は1600×900を基準にする。 */
@@ -1338,7 +1341,7 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
         <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
         <kbd>メカニカル</kbd><span>中央は淡緑のAMMO・AP（装甲値）と、上下に重ねたBOOST・SP。両端に飛行計器、下中央にブーストと方位計、右下に全4枠の残弾と状態を表示します。「UIを画面の大きさに合わせる」がONなら1600×900を基準に大きさを調整します</span>
         <kbd>照準のゲージ</kbd><span>左斜辺のAMMOは残弾（リロード中は進み具合）、右斜辺のAP（装甲値）は耐久。下の2本は上がBOOST、下がSPです。現在の残量だけを表示し、最大値の分母は付けません。BOOSTは噴射開始時に一度明滅、SPは特殊兵装の作動中に連続明滅します。チャージと熱はロックカーソルの周囲の3本の円弧を共有します。充填中は緑で伸び、満充填後の保持過熱は同じ円の緑に熱の色を重ねます。実際に過熱するとOVERHEATと冷却時間を表示します</span>
-        <kbd>M</kbd><span>マップの大きさを「最大 → 大 → 小」で切り替えます（プラント・ベース・味方と見えている敵）。小マップは全コンソール共通で右上に表示します。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります。指示は最新の1件で置き換えます（視点は動かず、撃てません）</span>
+        <kbd>M</kbd><span>マップの大きさを「最大 → 大 → 小」で切り替えます（プラント・ベース・味方と見えている敵）。大・小は全コンソール共通で右上に表示し、大は小の縦横2倍です。最大から大へ戻ると視点操作・射撃を続けられます。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります。指示は最新の1件で置き換えます（視点は動かず、撃てません）</span>
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
         <kbd>G 長押し</kbd><span>指示出し：画面の中央に8つの言葉が円く並びます。マウスを動かして選び、G を離すと味方に送ります（真ん中で離すと取り消し）。「ここへ向かえ」（近くの味方3機）・「ここを守れ」（2機）・「敵を発見」（1機）は照準の先に黄色い印を出し、味方のBotがそこへ向かいます。「援護をたのむ」は近くの味方2機があなたのそばへ来ます。指示は20〜45秒で終わります</span>
@@ -13191,16 +13194,20 @@ function makeMiniBg(W = MINI_W, H = miniH()) {
 }
 function drawMini() {
   if (!miniBg) miniBg = makeMiniBg();
+  const cv=$('mini'), scale=Math.max(1,cv.getBoundingClientRect().width/MINI_W)*Math.min(2,devicePixelRatio||1);
+  const W=Math.round(MINI_W*scale),H=Math.round(miniH()*scale);
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  mini.setTransform(W/MINI_W,0,0,H/miniH(),0,0);
   drawMapOn(mini, MINI_W, miniH(), miniBg, 1);
   drawBigMap();
 }
 // M：小（通常HUD）→最大→大→小。砲撃中は常に最大で、Mは射撃モードを変更しない。
-let mapOpen = false, bigMapSize = 'maximum', mapHadPointer = false;
-const BIG_MAP_SIZES={large:.83,maximum:1};
+let mapOpen = false, bigMapSize = 'small', mapHadPointer = false;
 function setMapSize(key) {
-  if (key !== 'small' && !Object.hasOwn(BIG_MAP_SIZES,key)) return;
+  if (!['small','large','maximum'].includes(key)) return;
   const wasOpen=mapOpen;
-  bigMapSize=key; mapOpen=key!=='small';
+  bigMapSize=key; mapOpen=key==='maximum';
+  document.body.dataset.mapSize=key;
   if (mapOpen && !wasOpen) {
     if (player) { mapCur.x=player.pos.x; mapCur.z=player.pos.z; }
     mapHadPointer=document.pointerLockElement===canvas; mouseDown=rightDown=false;
@@ -13216,7 +13223,7 @@ $('mapSizes').addEventListener('click',e=>{
 });
 addEventListener('keydown', e => {
   if (e.code !== 'KeyM' || e.repeat || !running || isArtilleryMode(player)) return;
-  setMapSize(!mapOpen ? 'maximum' : bigMapSize==='maximum' ? 'large' : 'small');
+  setMapSize(mapOpen ? 'large' : bigMapSize==='large' ? 'small' : 'maximum');
 });
 // マウスの固定が外れているときは、全体マップを直接クリックして地点を指す（v0.17）
 $('bigMapC').addEventListener('mousedown', e => {
@@ -13243,8 +13250,8 @@ function drawBigMap() {
   if (box.hidden) return;
   const cv = $('bigMapC'), dpr = Math.min(2, devicePixelRatio || 1);
   const header=box.querySelector('.bmh').getBoundingClientRect().height+$('mapSizes').getBoundingClientRect().height+38;
-  const scale=BIG_MAP_SIZES[mode?'maximum':bigMapSize],availableH=Math.max(80,innerHeight-header),availableW=Math.max(80,innerWidth-34);
-  const H=Math.floor(Math.min(availableH,availableW*MAP_Z/MAP_X)*scale),W=Math.floor(H*MAP_X/MAP_Z);
+  const availableH=Math.max(80,innerHeight-header),availableW=Math.max(80,innerWidth-34);
+  const H=Math.floor(Math.min(availableH,availableW*MAP_Z/MAP_X)),W=Math.floor(H*MAP_X/MAP_Z);
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
   if (!bigBg || bigBg.width<W*dpr || bigBg.height<H*dpr) bigBg=makeMiniBg(Math.ceil(Math.max(W,MINI_W*3)*dpr),Math.ceil(Math.max(H,miniH()*3)*dpr));
   bigPx.w = W; bigPx.h = H;
