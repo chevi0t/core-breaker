@@ -32,7 +32,7 @@ const ROOT=path.resolve(__dirname,'../..'),output=path.join(ROOT,'mapdesign/kant
    await page.waitForFunction(()=>testPlayer.invulT<=0&&!document.getElementById('announce').textContent.trim());
    await page.keyboard.press('KeyM');await page.waitForFunction(()=>!document.getElementById('bigMap').hidden);
    if(team==='B')await page.locator('#bigMapC').screenshot({path:path.join(output,'overview.png')});
-   await page.keyboard.press('KeyM');await page.keyboard.press('F3');
+   await page.keyboard.press('KeyM');await page.keyboard.press('KeyM');await page.keyboard.press('F3');
    await page.waitForFunction(()=>!document.getElementById('pgOptions').hidden);
    await page.locator('#optionsResume').click();
    assert(await page.evaluate(()=>window.__g===undefined&&window.__cityBattle===undefined));

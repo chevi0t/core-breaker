@@ -120,7 +120,7 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
         if (kind === 'overlay') document.getElementById('overlay').hidden = false;
         draw(); yes(!marks().length && document.getElementById('lockMark').hidden, kind + '中は通常ロックの表示を隠す');
       }
-      reset(); key('KeyM'); draw(); yes(!marks().length, '全体マップ操作中はプレロックを隠す'); key('KeyM'); draw(); yes(marks().length === 2, '全体マップを閉じると復帰');
+      reset(); key('KeyM'); draw(); yes(!marks().length, '全体マップ操作中はプレロックを隠す'); key('KeyM'); key('KeyM'); draw(); yes(marks().length === 2, '全体マップを閉じると復帰');
       window.dispatchEvent(new MouseEvent('mousedown', { button: 3, buttons: 8 })); draw(); yes(!marks().length, '武器選択中はプレロックを隠す');
       window.dispatchEvent(new MouseEvent('mouseup', { button: 3, buttons: 0 })); reset(); yes(marks().length === 2, '武器選択から復帰');
       reset('heavy', 'sub'); yes(!marks().length, 'ロケットランチャーは自由照準のまま');
