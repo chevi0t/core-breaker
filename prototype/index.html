@@ -3382,6 +3382,7 @@ bladeWaveGeo.computeBoundingBox(); bladeWaveGeo.scale(1 / (bladeWaveGeo.bounding
 const bladeWaveMat = Object.fromEntries(['B', 'R'].map(k => [k, new T.MeshBasicMaterial({ color: k === 'B' ? 0x9eefff : 0xffc691, transparent: true, opacity: .9, blending: T.AdditiveBlending, depthWrite: false })]));
 // 止まった所に置かれる物（設置物になる）
 const PLACED = ['mine', 'sensor', 'remote', 'sentry', 'ammo'];
+const RAID_SENTRY_SCALE = 1.8; // ユーザー指定（2026-11-04）：遊撃の3系統を現状比1.8倍。設置メッシュが被弾判定も兼ねる。
 const BALLISTIC_COLOR = 0xffb84a, PROJECTILE_VISUAL_SCALE = 1.5; // 拡大は主武器だけ。副武器は従来寸法（ユーザー指定）。
 const shellMat = { B: new T.MeshBasicMaterial({ color: BALLISTIC_COLOR, fog: false }), R: new T.MeshBasicMaterial({ color: BALLISTIC_COLOR, fog: false }) };
 const rocketMat = new T.MeshLambertMaterial({ color: BALLISTIC_COLOR, emissive: 0x6e3400, fog: false });
@@ -3422,6 +3423,7 @@ function shoot(owner, from, vel, spec = TURRET_SHELL, visualEnergy = false, visu
   const plasmaVisual = energy && visualStyle === 'plasma', chargeVisual = energy && visualStyle === 'charge';
   const m = plasmaVisual || chargeVisual ? cannonShotMesh(visualStyle) : energy ? new T.Mesh(energyShotGeo, energyShotMat) : spec.bladeWave ? new T.Mesh(bladeWaveGeo, bladeWaveMat[owner.team]) : spec.model ? new T.Mesh(weaponGeo(spec.model), toolMat[owner.team]) : new T.Mesh(spec.rocket ? rocketGeo : projGeo[spec.kind] || shellGeo, spec.rocket ? rocketMat : spec.weak ? weakMat : shellMat[owner.team]);
   if (enlarged && !energy && !spec.bladeWave && !PLACED.includes(spec.kind)) m.scale.setScalar(PROJECTILE_VISUAL_SCALE);
+  if (spec.kind === 'sentry') m.scale.setScalar(RAID_SENTRY_SCALE);
   m.position.copy(from);
   if (spec.bladeWave) { m.scale.x = spec.width; m.lookAt(from.clone().sub(vel)); }
   if (spec.rocket) m.quaternion.setFromUnitVectors(UP, vel.clone().normalize());
@@ -8040,7 +8042,7 @@ function breakGadget(g, by) {
 }
 const GADGET_NAME = { ammo:'補給コンテナ', mine: '地雷', sensor: '索敵センサー', remote: '遠隔爆弾', sentry: '自動砲台' };
 const GADGET_LIFT = { ammo:.25, mine: 0.1, sensor: 0.12, remote: 0.15, sentry: 1.04 }; // 形を置く高さ（形の底が地面に着く）
-const SENTRY_SCALE = 1.5, SENTRY_TIP = new T.Vector3(0, -0.05, -1.33); // 自動砲台の大きさと、形の中の砲身の先
+const SENTRY_SCALE = 1.5 * RAID_SENTRY_SCALE, SENTRY_TIP = new T.Vector3(0, -0.05, -1.33); // 地上型の従来倍率を残して拡大。形の中の砲身の先。
 // 投げた物が止まった所に置く。地雷と自動砲台、機体に当たった物は足元の地面へ。センサーと遠隔爆弾は当たった所（壁やコア）に貼りつく。
 // 同じ持ち主の同じ武器の物が max 個を超えたら古い物から消える
 function placeGadget(sh, at, ref) {
@@ -8052,8 +8054,9 @@ function placeGadget(sh, at, ref) {
   const own = gadgets.filter(g => g.owner === sh.owner && g.spec === S);
   if (own.length >= S.max) removeGadget(own[0]);
   const mesh = new T.Mesh(weaponGeo(S.model), toolMat[sh.team]);
-  if (S.kind === 'sentry' && !S.airDeploy) mesh.scale.setScalar(SENTRY_SCALE);
-  mesh.position.copy(pos).y += S.drawLift ?? (S.float || S.hover ? 0 : GADGET_LIFT[S.kind]);
+  if (S.kind === 'sentry') mesh.scale.setScalar(S.airDeploy ? RAID_SENTRY_SCALE : SENTRY_SCALE);
+  const lift = S.drawLift ?? (S.float || S.hover ? 0 : GADGET_LIFT[S.kind]);
+  mesh.position.copy(pos).y += lift * (S.kind === 'sentry' ? RAID_SENTRY_SCALE : 1);
   const dir = S.roamSpeed ? sh.vel.clone().setY(0).normalize() : fwdOf(sh.owner);
   if (S.cone || S.planar || S.kind === 'sentry') mesh.rotation.y = sh.owner.yaw;
   const G = S.gun;
@@ -8075,7 +8078,7 @@ function detonateRemotes(u) {
 }
 // 自動砲台：range 以内で見えている一番近い敵機を自動で撃つ（弾は無限、mag 発ごとにリロード）。撃つのは持ち主の弾として扱う
 function sentryTick(g, dt) {
-  const G = g.spec.gun, eye = g.pos.clone().setY(g.pos.y + (g.spec.eyeY??1)); // 見るのは砲身の高さから
+  const G = g.spec.gun, eye = g.pos.clone().setY(g.pos.y + (g.spec.eyeY??1) * RAID_SENTRY_SCALE); // 拡大後の砲身付近から見る。
   const decoy = heldMirage(g, dt, G.range);
   g.cd = Math.max(g.cd - dt, -dt);
   if (g.reloadT > 0) { if ((g.reloadT -= dt) <= 0) g.ammo = G.mag; return; }
@@ -8096,7 +8099,7 @@ function sentryTick(g, dt) {
   const tp = targetPoint(e);
   g.mesh.rotation.y = Math.atan2(-(tp.x - g.pos.x), -(tp.z - g.pos.z));
   let fired = false;
-  const tip = (g.spec.tip ? new T.Vector3(...g.spec.tip) : SENTRY_TIP.clone().multiplyScalar(SENTRY_SCALE)).applyAxisAngle(UP, g.mesh.rotation.y).add(g.mesh.position);
+  const tip = (g.spec.tip ? new T.Vector3(...g.spec.tip).multiplyScalar(RAID_SENTRY_SCALE) : SENTRY_TIP.clone().multiplyScalar(SENTRY_SCALE)).applyAxisAngle(UP, g.mesh.rotation.y).add(g.mesh.position);
   while (g.cd <= 0 && g.ammo > 0) { g.cd += 60 / G.rpm; g.ammo--; fired = true; for (let i = 0; i < (G.pellets || 1); i++) fire(g.owner, tp, G.spread, G, tip, g.weaponName); } // pellets：散弾の型（v0.14）
   if (fired) sfx(G.sfx, g.pos, g);
   if (g.ammo <= 0) g.reloadT = G.reload*(g.spec.airDeploy?g.owner.reloadMul:1);
@@ -8123,11 +8126,11 @@ function gadgetUpdate(dt) {
     if(g.spec.airDeploy) {
       if(g.spec.dur && (g.age+=dt)>=g.spec.dur){removeGadget(g);continue;}
       if(g.riseLeft>0) {
-        const dy=Math.min(g.riseLeft,5*dt),h=castFrom(g.pos.clone().add(new T.Vector3(0,.4,0)),UP,g,dy+.2);
+        const dy=Math.min(g.riseLeft,5*dt),h=castFrom(g.pos.clone().add(new T.Vector3(0,.4*RAID_SENTRY_SCALE,0)),UP,g,dy+.2*RAID_SENTRY_SCALE);
         if(h)g.riseLeft=0;else{g.pos.y+=dy;g.riseLeft-=dy;}
       }
       if(g.spec.roamSpeed) {
-        const dist=g.spec.roamSpeed*dt,h=castFrom(g.pos,g.dir,g,dist+.25);
+        const dist=g.spec.roamSpeed*dt,h=castFrom(g.pos,g.dir,g,dist+.25*RAID_SENTRY_SCALE);
         if(!h || h.ref?.kind==='unit' || h.ref?.gadget)g.pos.addScaledVector(g.dir,dist);
       }
       g.mesh.position.copy(g.pos);
@@ -11724,7 +11727,7 @@ const LOCK_ZOOM = 1.3, LOCK_ZOOM_RATE = 9;
 const keepScale = () => Math.max(1, Math.tan(35 * Math.PI / 180) / Math.tan(camera.fov * Math.PI / 360));
 const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, down: false, visualSeq: 0 };
 const proj = new T.Vector3();
-function targetPoint(e) { return new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? e.kind === 'sentry' ? 1 : 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 施設攻略を指定するマップのレーダーはアンテナを狙う。ほかは形の高さ。
+function targetPoint(e) { return e.gadget && e.kind === 'sentry' ? e.mesh.position.clone() : new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? 10.4 : e.gadget ? 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 自動銃は本体中心、施設攻略のレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
