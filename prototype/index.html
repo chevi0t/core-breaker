@@ -1010,6 +1010,43 @@ body:not(.touchPlay) { --vw: calc(1vw / var(--ui-zoom, 1)); --vh: calc(1vh / var
 body:not(.touchPlay) :is(#top, #plantBar, #mapHud, #feed, #status, #pilot, #ammoBox, #mechBoost, #consoleTelemetry, #wsel, #center, #announce, #baseAlert, #board, #qchat, #respawn, #rangeHud, #tutorialHud, #scorePop, #headTxt, #overlay > .card) { zoom: var(--ui-zoom, 1); --vw: calc(1vw / var(--ui-zoom, 1)); --vh: calc(1vh / var(--ui-zoom, 1)); }
 body:not(.touchPlay) #center { top: max(62%, calc(50% + (var(--aim-sp-offset) + 20px) / var(--ui-zoom, 1))); }
 body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20px) / var(--ui-zoom, 1)); }
+/* 三角コンソール（2026-11-03）。周辺計器は残し、中央の残量表示だけ5種類で共通化する。 */
+body { --ta-ammo:#6cddff; --ta-hp:#80e4b1; --ta-boost:#efc373; --ta-sp:#baa8ed; --ta-text:#e7f5fa; --ta-cursor:#bcdde9; --ta-track:#c5e8f22e; --ta-heat:#ffbc66; --ta-lock:#ff586e; --ta-mark-scale:1; }
+body[data-console="mechanical"] { --ta-ammo:#dceee3; --ta-hp:#b9d5cb; --ta-boost:#adc9c0; --ta-sp:#7dffb0; --ta-text:#dceee3; --ta-cursor:#b9d5cb; --ta-track:#adc9c02e; --ta-heat:#e3c78c; }
+body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9856; --ta-sp:#efcd8c; --ta-text:#f2c374; --ta-cursor:#e8b962; --ta-track:#c39b5838; --ta-heat:#e7a24e; }
+#aimGauge, #aimSp, #mechAim { display:none!important; }
+#triangleAim { left:50%; top:50%; transform:translate(-50%,-50%); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
+#triangleAim[hidden], #triangleAim [hidden], #trOh[hidden] { display:none; }
+#triangleAim path { fill:none; stroke-width:5; stroke-linecap:butt; }
+#triangleAim .ta-track { stroke:var(--ta-track); }
+#taAmmoFill { stroke:var(--ta-ammo); } #taHpFill { stroke:var(--ta-hp); }
+#taBoostFill { stroke:var(--ta-boost); } #taSpFill { stroke:var(--ta-sp); }
+#triangleAim .ta-low, #triangleAim .ta-oh { stroke:var(--warn); }
+#triangleAim .ta-reload { stroke:#93ceff; }
+#triangleAim text { fill:var(--ta-text); font-family:var(--display); font-size:12px; font-variant-numeric:tabular-nums; stroke:#06121dd9; stroke-width:3; paint-order:stroke fill; stroke-linejoin:round; }
+#triangleAim .ta-value { font-size:22px; font-weight:500; } #triangleAim .ta-small { font-size:11px; }
+body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:ui-monospace,"M PLUS 1p",monospace; }
+#triangleAim.scoped .ta-side { display:none; }
+#taSp.act #taSpFill { animation:triangleSpPulse .7s ease-in-out infinite; }
+@keyframes triangleSpPulse { 0%,100% { opacity:1; filter:brightness(1.4); } 50% { opacity:.3; filter:brightness(.8); } }
+#thermalReticle { width:128px; height:128px; transform:translate(-50%,-50%) scale(var(--ta-mark-scale)); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
+#thermalReticle svg { width:100%; height:100%; overflow:visible; }
+#thermalReticle .heat-track { fill:none; stroke:var(--ta-track); stroke-width:4; }
+#thermalReticle .heat-arc { fill:none; stroke:var(--ta-heat); stroke-width:4; stroke-linecap:butt; }
+#thermalReticle.hot .heat-arc, #thermalReticle.oh .heat-arc { stroke:var(--warn); }
+#thermalReticle text { fill:var(--ta-text); font-size:11px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
+#thermalReticle .oh-panel { fill:#461c28e8; }
+#thermalReticle .oh-text { fill:var(--ta-lock); font-size:13px; font-weight:700; letter-spacing:.04em; }
+.preLockMark, #lockMark { width:64px; height:64px; --c:var(--ta-cursor); }
+#lockMark { --c:var(--ta-lock); }
+.preLockMark .br, #lockMark .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
+.preLockMark .br svg, #lockMark .br svg { width:100%; height:100%; overflow:visible; }
+.preLockMark .cursor-outline, #lockMark .cursor-outline { fill:none; stroke:var(--ta-cursor); stroke-width:1.5; }
+body[data-console="mechanical"] .preLockMark.selected { filter:drop-shadow(0 0 4px #b9d5cb88); }
+body[data-console="retro"] .preLockMark.selected { filter:drop-shadow(0 0 4px #e8b96288); }
+#lockMark .lock-arm { fill:none; stroke:var(--ta-lock); stroke-width:2.6; stroke-linejoin:miter; stroke-linecap:butt; }
+body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-text); }
+@media(prefers-reduced-motion:reduce) { #taSp.act #taSpFill { animation:none; filter:brightness(1.3); } }
 </style>
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -1026,6 +1063,16 @@ body:not(.touchPlay) #headTxt { top: calc(50% + (var(--aim-sp-offset, 80px) + 20
 <div class="hud" id="feed"></div>
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
+<svg class="hud" id="triangleAim" aria-label="照準の残弾・耐久・ブースト・SP" hidden>
+  <g class="ta-side"><path class="ta-track" id="taAmmoBg"/><path id="taAmmoFill" pathLength="100"/><text id="taAmmoLabel">残弾</text><text class="ta-value" id="taAmmoValue"/><text class="ta-small" id="taAmmoState"/></g>
+  <g class="ta-side"><path class="ta-track" id="taHpBg"/><path id="taHpFill" pathLength="100"/><text id="taHpLabel">耐久</text><text class="ta-value" id="taHpValue"/><text class="ta-small" id="taHpMax"/></g>
+  <g id="taBoost"><path class="ta-track" id="taBoostBg"/><path id="taBoostFill" pathLength="100"/><text class="ta-small" id="taBoostValue"/></g>
+  <g id="taSp"><path class="ta-track" id="taSpBg"/><path id="taSpFill" pathLength="100"/><text class="ta-small" id="taSpValue"/></g>
+</svg>
+<div class="hud" id="thermalReticle" hidden><svg viewBox="-64 -64 128 128" aria-label="武器の熱とオーバーヒート">
+  <circle class="heat-track" r="44"/><path class="heat-arc" id="trHeat0"/><path class="heat-arc" id="trHeat1"/><path class="heat-arc" id="trHeat2"/>
+  <g id="trOh" hidden><rect class="oh-panel" x="-54" y="-11" width="108" height="22" rx="2"/><text class="oh-text" y="5">OVERHEAT</text></g><text id="trHeatText" y="62"/>
+</svg></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
 <div id="mechanicalHud" hidden>
@@ -4995,6 +5042,7 @@ function boosterFlameUpdate(u, dt) {
   if (ignition) f.pulse = 0; else f.pulse = Math.min(1, f.pulse + dt);
   // 視覚調整値：通常点火だけ太く短くし0.22秒で巡航へ。押し続けた巡航への移行では再点火しない。
   const normalBoost = mode === 'short' || mode === 'long' || mode === 'hover';
+  if (ignition && (normalBoost || mode === 'charge')) f.hudIgnition = (f.hudIgnition || 0) + 1; // 表示だけ。成功した噴射開始をゲージへ渡す。
   f.burst = ignition && normalBoost ? .22 : Math.max(0, (f.burst || 0) - dt);
   f.age += dt; f.lastDash = u.dashT; f.mode = mode;
   const target = mode === 'charge' ? 5.8 : mode === 'short' ? 4.5 : mode === 'long' ? 3.1 : mode === 'lunge' ? 3.8 : mode === 'hover' ? 1.8 : 0;
@@ -11674,7 +11722,7 @@ function screenOf(e) {
 }
 function setLock(u, e, keepAim = false) {
   Object.assign(lock, { target: e, losT: 0.15, lostT: 0, visible: true, prevAng: null, down: false });
-  lock.visualSeq++; // 捕捉・Q切替ごとに一度だけ四隅を閉じる。同じ敵への再捕捉も数える。
+  lock.visualSeq++; // 捕捉・Q切替ごとに一度だけ赤線を輪郭へ合流させる。同じ敵への再捕捉も数える。
   // 捕捉時だけ視点を胴へ合わせる。肩越しのずれ・反動・壁で寄るカメラを含め、実際の画面中心から角度を直す。
   const at = targetPoint(e), view = new T.Vector3();
   updateCamera(u, 0);
@@ -12447,10 +12495,10 @@ setPilot(savedPilot, false);
 $('pilotList').addEventListener('click', e => { const b = e.target.closest('[data-pilot-choice]'); if (b) setPilot(b.dataset.pilotChoice); });
 // コンソールは表示だけを切り替える。装備・兵装・試合の保存データとは独立させる。
 const CONSOLES = [
-  { id: 'standard', name: '標準', desc: '現在の配置。左上のマップ、四隅の情報、照準の弧を使う基本の画面。' },
+  { id: 'standard', name: '標準', desc: '左上のマップと四隅の情報。照準の三角ゲージで残弾・耐久・ブースト・SPを確認する基本の画面。' },
   { id: 'arcade', name: 'アーケード', desc: '左上に両軍のコアと秒の残り時間、左下に機体の札と縦の耐久ゲージ、右下にマップと菱形の武器枠。' },
   { id: 'flight', name: 'フライト', desc: '下中央に大きなブーストとSPの2本。右側に4枠の装備と残弾を縦に並べ、右上にマップを配置。' },
-  { id: 'mechanical', name: 'メカニカル', desc: '照準の4枠の武器メーター。両端の飛行計器、下中央のブーストと方位、右下の残弾。' },
+  { id: 'mechanical', name: 'メカニカル', desc: '淡緑の三角ゲージ。両端の飛行計器、下中央のブーストと方位、右下の4枠の装備と残弾。' },
   { id: 'retro', name: 'レトロ・ミリタリー', desc: '琥珀色の軍用計器。右上のマップ、左下の総耐久・ブースト、右下の武器・充填。タッチ操作時は標準配置。' },
 ];
 const CONSOLE_KEY = 'coreBreakerConsole';
@@ -12461,7 +12509,7 @@ function setConsole(id, save = true) {
   const c = CONSOLES.find(c => c.id === id) || CONSOLES[0];
   consoleMode = c.id;
   document.body.dataset.console = c.id;
-  $('consoleSelection').textContent = `選択中：${c.name}。${c.id === 'flight' ? '下中央にブーストとSP、右側に装備を表示します。' : '照準の下のSPの棒と、戦闘に必要な情報を確認できます。'}`;
+  $('consoleSelection').textContent = `選択中：${c.name}。照準の三角ゲージに残弾・耐久・ブースト・SPを表示します。`;
   for (const b of $('consoleList').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.consoleChoice === c.id);
   // 戦闘のループを待たず、スコープ中・撃破中の切り替えにも反映する。
   consoleTelemetry(player);
@@ -13308,11 +13356,87 @@ function missileHud(p) {
     labels.push({ x: lx, y: ly, width }); ctx.fillText(label, lx, ly);
   }
 }
+// ---- 三角コンソールの表示 ----
+// 円は既存の捕捉範囲のまま。ゲージと捕捉演出は状態を読むだけで、照準・弾道・判定へ書き戻さない。
+const TRI_LOCK_TIME = 1.4, TRI_CURSOR_R = 30;
+const triangleHudState = { unit:null, life:null, ignition:0, pulse:[], lockT:TRI_LOCK_TIME };
+const triClamp = v => Math.max(0, Math.min(1, Number(v) || 0));
+const triPoint = (x,y) => ({x,y});
+const triMix = (a,b,t) => triPoint(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t);
+const triNum = n => Number(n.toFixed(3));
+const triPath = points => points.map((v,i)=>(i?'L':'M')+triNum(v.x)+','+triNum(v.y)).join(' ');
+function triangleVertices(r) {
+  const v=[triPoint(0,-r),triPoint(Math.sqrt(3)*r/2,r/2),triPoint(-Math.sqrt(3)*r/2,r/2)],out=[];
+  for(let i=0;i<3;i++)out.push(triMix(v[i],v[(i+1)%3],.18),triMix(v[i],v[(i+1)%3],.82));
+  return out;
+}
+function triangleLockPath(progress) {
+  const p=triClamp(progress),q=1-p,r=TRI_CURSOR_R,v=triangleVertices(r),end=v[0];
+  const start=triPoint(end.x-r*.45,end.y-r*1.7),c1=triPoint(end.x+r*1.05,end.y-r*1.7),c2=triPoint(end.x+r*1.35,end.y-r*.2);
+  const at=triPoint(q*q*q*start.x+3*q*q*p*c1.x+3*q*p*p*c2.x+p*p*p*end.x,q*q*q*start.y+3*q*q*p*c1.y+3*q*p*p*c2.y+p*p*p*end.y);
+  const a=-Math.PI/3*q,turn=v=>triPoint(v.x*Math.cos(a)-v.y*Math.sin(a),v.x*Math.sin(a)+v.y*Math.cos(a));
+  const short=turn(triPoint(v[5].x-end.x,v[5].y-end.y)),long=turn(triPoint(v[1].x-end.x,v[1].y-end.y));
+  return triPath([triPoint(at.x+short.x,at.y+short.y),at,triPoint(at.x+long.x,at.y+long.y)]);
+}
+function triangleCursor(br,locked) {
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','-32 -32 64 64');svg.setAttribute('aria-hidden','true');
+  const outline=document.createElementNS(svg.namespaceURI,'path');outline.setAttribute('class','cursor-outline');outline.setAttribute('d',triPath(triangleVertices(TRI_CURSOR_R))+' Z');svg.appendChild(outline);
+  if(locked)for(let i=0;i<3;i++){const arm=document.createElementNS(svg.namespaceURI,'path');arm.setAttribute('class','lock-arm');arm.setAttribute('transform','rotate('+i*120+')');arm.setAttribute('d',triangleLockPath(1));svg.appendChild(arm);}
+  br.appendChild(svg);
+}
+function triangleAimResize() {
+  const r=Math.min(154,Math.max(78,innerHeight*.215)),half=Math.sqrt(3)*r/2,size=r*2+180,height=r*2+80;
+  const svg=$('triangleAim');svg.setAttribute('width',size);svg.setAttribute('height',height);svg.setAttribute('viewBox',`${-size/2} ${-height/2} ${size} ${height}`);
+  const top=triPoint(0,-r),left=triPoint(-half,r/2),right=triPoint(half,r/2);
+  const pairs={Ammo:[triMix(left,top,.08),triMix(left,top,.92)],Hp:[triMix(right,top,.08),triMix(right,top,.92)],Boost:[triMix(left,right,.045),triPoint(-10,r/2)],Sp:[triPoint(10,r/2),triMix(left,right,.955)]};
+  for(const [name,points]of Object.entries(pairs))for(const suffix of ['Bg','Fill'])$('ta'+name+suffix).setAttribute('d',triPath(points));
+  for(const [name,sign]of [['Ammo',-1],['Hp',1]])for(const [suffix,dy]of [['Label',-13],['Value',13],[name==='Ammo'?'State':'Max',30]]){const el=$('ta'+name+suffix);el.setAttribute('x',sign*(half/2+22));el.setAttribute('y',-r/4+dy);el.setAttribute('text-anchor',sign<0?'end':'start');}
+  for(const [id,sign]of [['taBoostValue',-1],['taSpValue',1]]){$(id).setAttribute('x',sign*(half/2+4));$(id).setAttribute('y',r/2+24);$(id).setAttribute('text-anchor','middle');}
+  document.documentElement.style.setProperty('--aim-sp-offset',(r/2+44)+'px');
+  document.body.style.setProperty('--ta-mark-scale',Math.max(.75,Math.min(1,innerHeight/600)));
+}
+function triangleSpecialActive(p) {
+  return !!(!p.slots.sp.overheat && (p.mirageOn||p.chargerOn||p.cloak||p.fieldOn||p.barrierOn||p.escortOn||p.post||p.postFlight||p.bombard||p.beamFire||p.healTarget||p.weapon==='sp'&&p.planted));
+}
+function triangleThermal(p) {
+  const sl=p.slots[p.weapon],w=sl.w,enabled=!!(w.heat||w.chargeHold);
+  const heat=sl.overheat?1:w.heat?sl.temp/100:w.chargeHold?sl.holdT/w.chargeHold:0;
+  const layer=$('thermalReticle');layer.hidden=!enabled||!p.alive||!running||!$('overlay').hidden||mapOpen||wsel.open||touchPlay&&innerHeight>innerWidth;
+  if(layer.hidden)return;
+  const target=lock.target?.alive&&!$('lockMark').hidden?screenOf(lock.target):null;
+  layer.style.left=(target?(target.x+1)/2*innerWidth:innerWidth/2)+'px';layer.style.top=(target?(1-target.y)/2*innerHeight:innerHeight/2)+'px';
+  layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);$('trOh').toggleAttribute('hidden',!sl.overheat);
+  $('trHeatText').textContent=sl.overheat?'冷却 '+Math.max(0,sl.ohT).toFixed(1)+'s':'熱 '+Math.round(triClamp(heat)*100)+'%';
+  for(let i=0;i<3;i++){
+    const angle=-Math.PI/2+i*Math.PI*2/3,sweep=triClamp(heat)*Math.PI*2/3,r=44;
+    const a=triPoint(r*Math.cos(angle),r*Math.sin(angle)),b=triPoint(r*Math.cos(angle+sweep),r*Math.sin(angle+sweep));
+    $('trHeat'+i).setAttribute('d',sweep>0?`M${a.x},${a.y} A${r},${r} 0 0 1 ${b.x},${b.y}`:'');$('trHeat'+i).dataset.degrees=(triClamp(heat)*120).toFixed(2);
+  }
+}
+function triangleHud(p) {
+  const svg=$('triangleAim'),on=!!(running&&p.alive&&$('overlay').hidden&&!mapOpen&&!wsel.open&&!(touchPlay&&innerHeight>innerWidth));
+  svg.toggleAttribute('hidden',!on);svg.classList.toggle('scoped',!!p.scoped);
+  const fx=p.flame.userData.boostFx,seq=fx.hudIgnition||0,s=triangleHudState;
+  if(s.unit!==p||s.life!==p.lifeId||!on){s.pulse.forEach(a=>a.cancel());s.pulse=[];s.ignition=seq;s.unit=p;s.life=p.lifeId;}
+  if(on&&seq!==s.ignition){s.ignition=seq;s.pulse.forEach(a=>a.cancel());s.pulse=lockReducedMotion.matches?[]:[$('taBoostFill'),$('boost').firstChild].map(el=>el.animate([{opacity:1},{opacity:.25},{opacity:1}],{duration:220,iterations:1}));}
+  const active=on&&triangleSpecialActive(p);$('taSp').classList.toggle('act',active);
+  $('taSp').toggleAttribute('hidden',meleeOnly());
+  const cur=p.slots[p.weapon],w=cur.w,read=mechanicalWeaponState(p,p.weapon),fill=(id,value)=>$(id).setAttribute('stroke-dasharray',(triClamp(value)*100).toFixed(1)+' 100');
+  fill('taAmmoFill',read.fraction);fill('taHpFill',p.hp/p.maxHp);fill('taBoostFill',p.boost/p.maxBoost);fill('taSpFill',p.slots.sp.heat/100);
+  $('taAmmoFill').setAttribute('class',cur.reloadT>0?'ta-reload':w.mag&&cur.ammo/w.mag<=.25?'ta-low':'');
+  $('taHpFill').setAttribute('class',p.hp/p.maxHp<=.3?'ta-low':'');$('taBoostFill').setAttribute('class',p.overheat?'ta-oh':'');$('taSpFill').setAttribute('class',p.slots.sp.overheat?'ta-oh':'');
+  $('taSpFill').classList.toggle('ta-low',spHitT>0);
+  $('taAmmoLabel').textContent=p.weapon==='sp'?'特殊':w.mag?'残弾':w.type==='sword'?'近接':'装備';
+  $('taAmmoValue').textContent=read.count;$('taAmmoState').textContent=cur.reloadT>0||w.chargeTime&&cur.chargeT>0||cur.overheat?read.state:w.mag?'/ '+w.mag:read.state;
+  $('taHpValue').textContent=Math.max(0,Math.round(p.hp)).toLocaleString('ja-JP');$('taHpMax').textContent='/ '+p.maxHp.toLocaleString('ja-JP');
+  $('taBoostValue').textContent='ブースト '+Math.round(triClamp(p.boost/p.maxBoost)*100)+'%';$('taSpValue').textContent='SP '+Math.round(triClamp(p.slots.sp.heat/100)*100)+'%';
+  triangleThermal(p);
+}
 const preLockPool = [];
 const preLockSight = new Map();
 let preLockTime = 0;
 const lockReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let lockHudSeq = 0, lockHudAnimation = null;
+let lockHudSeq = 0;
 function preLockCandidates(p, dt) {
   preLockTime += dt;
   const list = lockCandidates(p).filter(c => c.d <= ACQ_R * 2), current = new Set(list.map(c => c.e));
@@ -13341,7 +13465,7 @@ function lockHud(p, dt) {
     let el = preLockPool[i];
     if (!el) {
       el = document.createElement('div'); el.className = 'preLockMark';
-      const br = document.createElement('div'); br.className = 'br'; el.appendChild(br);
+      const br = document.createElement('div'); br.className = 'br'; triangleCursor(br,false); el.appendChild(br);
       layer.appendChild(el); preLockPool.push(el);
     }
     const c = candidates[i]; el.hidden = !c;
@@ -13354,7 +13478,7 @@ function lockHud(p, dt) {
   $('lockRing').classList.toggle('on', !!shown);
   mk.hidden = !sp;
   if (!sp) {
-    lockHudAnimation?.cancel(); lockHudAnimation = null;
+    triangleHudState.lockT = TRI_LOCK_TIME;
     lockHudSeq = lock.visualSeq;
     return;
   }
@@ -13363,21 +13487,15 @@ function lockHud(p, dt) {
   $('lockName').textContent = `LOCK ${shown.name}`;
   $('lockDist').textContent = Math.round(shown.pos.distanceTo(p.pos)) + 'm';
   $('lockHp').style.width = Math.max(0, shown.hp / shown.maxHp * 100) + '%';
-  if (lockReducedMotion.matches) { lockHudAnimation?.cancel(); lockHudAnimation = null; }
+  const br=mk.querySelector('.br');if(!br.firstChild)triangleCursor(br,true);
   if (lockHudSeq !== lock.visualSeq) {
     lockHudSeq = lock.visualSeq;
-    lockHudAnimation?.cancel(); lockHudAnimation = null;
-    if (!lockReducedMotion.matches) {
-      const br = mk.querySelector('.br'), shadow = getComputedStyle(br).filter;
-      // 0.15秒で外側から収束して一度発光、続く0.15秒で通常の太いアンバーへ戻す。
-      // 移動や遮蔽明けでは再生しない。文字やカメラは動かさない。
-      lockHudAnimation = br.animate([
-        { offset: 0, transform: 'scale(1.65)', filter: shadow, easing: 'cubic-bezier(.16,1,.3,1)' },
-        { offset: .5, transform: 'scale(1)', filter: `${shadow} brightness(1.8) drop-shadow(0 0 8px #ffe0a3)` },
-        { offset: 1, transform: 'scale(1)', filter: shadow }
-      ], { duration: 300, iterations: 1 });
-    }
+    triangleHudState.lockT=0;
   }
+  triangleHudState.lockT=lockReducedMotion.matches?TRI_LOCK_TIME:Math.min(TRI_LOCK_TIME,triangleHudState.lockT+Math.max(0,dt));
+  const t=triangleHudState.lockT/TRI_LOCK_TIME,progress=t*t*(3-2*t),d=triangleLockPath(progress);
+  for(const arm of br.querySelectorAll('.lock-arm'))if(arm.getAttribute('d')!==d)arm.setAttribute('d',d);
+  mk.dataset.progress=progress.toFixed(4);
 }
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
@@ -13404,7 +13522,7 @@ function hud(timeLeft, dt) {
   $('sp').firstChild.style.width = sps.heat + '%'; $('spT').textContent = Math.round(sps.heat) + (consoleMode === 'flight' ? '%' : '');
   $('sp').classList.toggle('oh', sps.overheat);
   $('sp').classList.toggle('hit', spHitT > 0);
-  const spOn = p.mirageOn || p.chargerOn || p.cloak || p.fieldOn || p.barrierOn || p.escortOn || !!p.post || !!p.beamFire; // 光学迷彩・加速装置・リペアフィールドの作動中は光って点滅
+  const spOn = triangleSpecialActive(p); // 既存の作動状態に従い、特殊兵装のSP表示を明滅させる。
   $('sp').classList.toggle('act', spOn); $('sp').parentElement.classList.toggle('act', spOn);
   const aimSp = $('aimSp');
   aimSp.hidden = !p.alive || meleeOnly();
@@ -13536,6 +13654,7 @@ function hud(timeLeft, dt) {
   respawnPanel(p);
   missileHud(p);
   lockHud(p, dt);
+  triangleHud(p);
   const kcOn = killcamOn(), kc = $('killcam');
   kc.hidden = !kcOn;
   $('respawn').classList.toggle('kc', kcOn || (!!p.transfer && p.alive)); // キルカメラとエリア移動の待機中は画面の下に
@@ -13593,7 +13712,7 @@ const TUTORIAL_STEPS = [
   ['boost', 'ブーストで移動する', 'Wを押しながらShiftを押して、すばやく移動しましょう。短押しでステップ、長押しで巡航。使い切ると回復するまで使えません。'],
   ['shoot', '主武器を当てる', '1で主武器。橙色の標的を照準の中心に入れ、左クリックで数発当てましょう。押し続けると連射します。'],
   ['reload', '弾を補充する', '弾を使った状態から始めます。1で主武器を持ち、Rでリロード。装填が終わるまで待ちましょう。'],
-  ['lock', 'ロックして、解除する', '1で主武器を持ち、シアンの四隅が出る標的へ右クリック。アンバーの四隅でロックします。もう一度右クリックで解除してみましょう。'],
+  ['lock', 'ロックして、解除する', '1で主武器を持ち、六角形のプレロックが出る標的へ右クリック。赤い線が輪郭に重なってロックします。もう一度右クリックで解除してみましょう。'],
   ['grenade', '副武器を使う', '2でグレネードへ持ち替え、橙色の標的を狙って左クリック。黄色い円が着弾予測です。爆風は自分にも当たるので距離を取りましょう。'],
   ['melee', '近接武器を使う', '3でソードへ持ち替え、標的へ近づいて左クリック。刃を当てましょう。実戦ではダッシュ中に振るとダッシュ攻撃になります。'],
   ['special', '特別装備を使う', '4で加速装置を起動し、W＋Shiftを長押しして加速しましょう。SPは通常ブーストとは別のゲージです。もう一度4で停止できます。'],
@@ -13946,6 +14065,7 @@ function resize() {
   for (const id of ['mechTargetBg', 'mechTargetHp']) $(id).setAttribute('d', ma(r0 + 28, -28, 28));
   $('mechTargetName').setAttribute('x', mc); $('mechTargetName').setAttribute('y', mc - r0 - 38);
   $('mechRange').setAttribute('x', mc); $('mechRange').setAttribute('y', mc + 25);
+  triangleAimResize();
 }
 addEventListener('resize', resize);
 resize();
