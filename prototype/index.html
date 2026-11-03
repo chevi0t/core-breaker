@@ -680,7 +680,7 @@ body[data-console="mechanical"] #mechCompass { display: block; border-top-color:
   body[data-console="flight"] #timer { min-width: 0; font-size: 30px; }
   body[data-console="mechanical"] #status, body[data-console="mechanical"] #ammoBox { width: min(240px, calc(30 * var(--vw, 1vw))); padding: 0; }
   body[data-console="mechanical"] #consoleHeading, body[data-console="mechanical"] #mechBoost { width: calc(28 * var(--vw, 1vw)); letter-spacing: .02em; }
-  body[data-console="arcade"] #plantBar { left: auto; right: var(--console-edge); transform: none; }
+  body[data-console="arcade"] #plantBar { left: 50%; right: auto; transform: translateX(-50%); }
   body[data-console="arcade"] #status { padding: 8px 30px 8px 10px; grid-template-columns: minmax(0, 1fr) 80px; }
   body[data-console="arcade"] #pilot { grid-template-columns: 40px minmax(0, 1fr); }
   body[data-console="arcade"] #pilotMark { width: 40px; height: 40px; font-size: 20px; }
