@@ -24,7 +24,7 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
         yes(getComputedStyle($('triangleAim')).display!=='none',mode+'で三角ゲージを表示');
         yes(['lockRing','aimGauge','aimSp','mechAim'].every(id=>getComputedStyle($(id)).display==='none'),mode+'で範囲円と旧中央ゲージを隠す');
         yes(fraction('taAmmoFill')===50&&fraction('taHpFill')===76&&fraction('taBoostFill')===43&&fraction('taSpFill')===37,mode+'の4残量が実値に一致');
-        yes($('taHpValue').textContent==='7,600'&&$('taSpValue').textContent==='SP 37%'&&$('taAmmoLabel').textContent==='AMMO'&&$('taHpLabel').textContent==='HP'&&$('taBoostValue').textContent==='BOOST 43%',mode+'の数値と英語名');
+        yes($('taHpValue').textContent==='7,600'&&$('taSpValue').textContent==='SP 37%'&&$('taAmmoLabel').textContent==='AMMO'&&$('taHpLabel').textContent==='AP'&&$('taBoostValue').textContent==='BOOST 43%',mode+'の数値と英語名');
         yes(!$('taHpMax')&&!$('taAmmoState').textContent.includes('/'),mode+'の現在値に分母を付けない');
         colors.push(getComputedStyle($('taAmmoFill')).stroke);
       }
@@ -49,8 +49,26 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       Object.assign(u.slots.main,{temp:99,spin:1,cd:0});g.weaponsTick(u,.05,true,new g.T.Vector3(0,200,-100),0);draw();
       yes(u.slots.main.overheat&&['trHeat0','trHeat1','trHeat2'].every(id=>+$(id).dataset.degrees===120)&&!$('trOh').hasAttribute('hidden'),'実過熱で120度×3の円が完成しOVERHEAT');
       g.weaponsTick(u,u.slots.main.w.ohTime+.1,false,new g.T.Vector3(0,200,-100),0);draw();yes(!u.slots.main.overheat&&$('trOh').hasAttribute('hidden'),'実冷却完了で過熱表示が消える');
-      u.slots.aux=g.slotOf('pike');u.weapon='aux';u.slots.aux.holdT=u.slots.aux.w.chargeHold/2;draw();
-      yes(['trHeat0','trHeat1','trHeat2'].every(id=>+$(id).dataset.degrees===60),'保持過熱する武器は満充填の保持時間から熱を表示');
+      u.slots.main=g.slotOf('glint');u.weapon='main';
+      const chargeIds=['trCharge0','trCharge1','trCharge2'],heatIds=['trHeat0','trHeat1','trHeat2'],aim=new g.T.Vector3(0,200,-100);
+      g.weaponsTick(u,u.slots.main.w.chargeTime/2,true,aim,0);draw();
+      yes(!$('thermalReticle').hidden&&chargeIds.every(id=>+$(id).dataset.degrees===60)&&heatIds.every(id=>+$(id).dataset.degrees===0)&&$('trHeatText').textContent==='CHARGE 50%','過熱しない充填銃も実充填50%で共有円の三本が各60度');
+      const chargeText=$('trHeatText').getBoundingClientRect(),boostText=$('taBoostValue').getBoundingClientRect();
+      yes(chargeText.bottom<boostText.top,'充填の数値は円の上へ置いてBOOSTの文字と重ねない');
+      for(const mode of ['standard','arcade','flight','mechanical','retro']){document.querySelector(`[data-console-choice="${mode}"]`).click();draw();yes(chargeIds.every(id=>getComputedStyle($(id)).stroke==='rgb(125, 255, 176)'),mode+'のチャージは緑色');}
+      g.weaponsTick(u,u.slots.main.w.chargeTime/2,true,aim,0);draw();
+      yes(chargeIds.every(id=>+$(id).dataset.degrees===120)&&!u.slots.main.overheat&&$('trOh').hasAttribute('hidden'),'満充填で緑の円が完成しても実過熱前はOVERHEATを出さない');
+      const ammo=u.slots.main.ammo;g.weaponsTick(u,.016,false,aim,0);draw();
+      yes(u.slots.main.ammo<ammo&&chargeIds.every(id=>+$(id).dataset.degrees===0),'実際に離して撃つと充填円を空に戻す');
+      u.slots.main=g.slotOf('wave');for(let i=0;i<25;i++)g.weaponsTick(u,.05,true,aim,0);draw();
+      yes(chargeIds.every(id=>+$(id).dataset.degrees===120)&&heatIds.some(id=>+$(id).dataset.degrees>0)&&!u.slots.main.overheat,'満充填の緑へ実保持時間の熱を同じ円で重ねる');
+      for(let i=0;i<200&&!u.slots.main.overheat;i++)g.weaponsTick(u,.05,true,aim,0);draw();
+      yes(u.slots.main.overheat&&heatIds.every(id=>+$(id).dataset.degrees===120)&&chargeIds.every(id=>+$(id).dataset.degrees===0)&&!$('trOh').hasAttribute('hidden'),'実保持過熱では共有円を赤く満たしてOVERHEAT');
+      g.weaponsTick(u,u.slots.main.w.ohTime+.1,false,aim,0);draw();yes(!u.slots.main.overheat&&$('trOh').hasAttribute('hidden'),'保持過熱の冷却完了で警告を解除');
+      u.slots.aux=g.slotOf('waveSword');u.weapon='aux';u.swing=null;g.weaponsTick(u,u.slots.aux.w.chargeTime/2,true,aim,0);draw();
+      yes(chargeIds.every(id=>+$(id).dataset.degrees===60)&&$('trHeatText').textContent==='CHARGE 50%','光波剣の実充填も同じ緑の円で表示');
+      u.slots.aux=g.slotOf('pike');u.slots.aux.chargeT=u.slots.aux.w.chargeTime;u.slots.aux.holdT=u.slots.aux.w.chargeHold/2;draw();
+      yes(heatIds.every(id=>+$(id).dataset.degrees===60)&&chargeIds.every(id=>+$(id).dataset.degrees===120),'保持過熱の50%が満充填の緑と同じ円を共有');
       u.weapon='main';u.slots.main=g.slotOf('ar');draw();yes($('thermalReticle').hidden,'熱のない武器では熱リングを隠す');
       for(const v of g.units)if(v!==u)v.alive=false;for(const t of g.turrets)t.alive=false;
       Object.assign(u,{yaw:0,pitch:0,recoil:0,recoilYaw:0,alive:true,downT:0,stun:'',electricT:0,repairing:false,transfer:null,switchT:0});u.pos.set(0,160,0);u.group.position.copy(u.pos);
@@ -88,11 +106,14 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
           for(const k of ['Ammo','Hp']){
             const{a,b,length}=lines[k],distance=Math.abs(a.x*b.y-a.y*b.x)/length;
             if(Math.abs(distance-Math.max(r/2,innerHeight*.08))>.01||Math.abs(length-r*Math.sqrt(3)*.84)>.01)throw Error(k+'の接線配置と長さ');
-            const text=$('ta'+k+'Value').transform.baseVal.consolidate().matrix,tx=text.a,ty=text.b,dx=b.x-a.x,dy=b.y-a.y;
+            const text=$('ta'+k+'Text').transform.baseVal.consolidate().matrix,tx=text.a,ty=text.b,dx=b.x-a.x,dy=b.y-a.y;
             if(Math.abs(tx*dy-ty*dx)>.01)throw Error(k+'の文字がゲージと平行でない');
+            const value=$('ta'+k+'Value'),label=$('ta'+k+'Label');
+            if(value.parentElement!==label.parentElement||value.parentElement.tagName!=='text'||value.hasAttribute('y')||label.hasAttribute('y'))throw Error(k+'の文字が1行でない');
+            if(parseFloat(getComputedStyle(value).fontSize)>=22||parseFloat(getComputedStyle(label).fontSize)>=12)throw Error(k+'の文字が一段小さくない');
           }
           const boost=lines.Boost,sp=lines.Sp;
-          if(Math.abs(boost.length-(Math.sqrt(3)*r/2*.91-10))>.01||Math.abs(boost.length-sp.length)>.01||Math.abs(boost.a.x-sp.a.x)>.01||Math.abs(boost.b.x-sp.b.x)>.01||sp.a.y<=boost.a.y)throw Error('BOOST/SPの長さと上下配置');
+          if(Math.abs(boost.length-lines.Ammo.length)>.01||Math.abs(boost.length-lines.Hp.length)>.01||Math.abs(boost.length-sp.length)>.01||Math.abs(boost.a.x-sp.a.x)>.01||Math.abs(boost.b.x-sp.b.x)>.01||sp.a.y<=boost.a.y)throw Error('4ゲージの長さとBOOST/SPの上下配置');
           return [...svg.querySelectorAll('text')].map(el=>({text:el.textContent,r:el.getBoundingClientRect()})).filter(({r})=>r.left<0||r.right>innerWidth||r.top<0||r.bottom>innerHeight).map(x=>x.text);
         },mode);assert.deepEqual(result,[],`${mode} ${w}x${h} の表示が画面内`);checks.push(`${mode} ${w}x${h} の接線・元の長さ・文字角度・上下配置・画面内を確認`);
       }

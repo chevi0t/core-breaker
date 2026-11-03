@@ -1033,8 +1033,8 @@ body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9
 #taBoostFill { stroke:var(--ta-boost); } #taSpFill { stroke:var(--ta-sp); }
 #triangleAim .ta-low, #triangleAim .ta-oh { stroke:var(--warn); }
 #triangleAim .ta-reload { stroke:#93ceff; }
-#triangleAim text { fill:var(--ta-text); font-family:var(--display); font-size:12px; font-variant-numeric:tabular-nums; stroke:#06121dd9; stroke-width:3; paint-order:stroke fill; stroke-linejoin:round; }
-#triangleAim .ta-value { font-size:22px; font-weight:500; } #triangleAim .ta-small { font-size:11px; }
+#triangleAim text { fill:var(--ta-text); font-family:var(--display); font-size:10px; font-variant-numeric:tabular-nums; stroke:#06121dd9; stroke-width:3; paint-order:stroke fill; stroke-linejoin:round; }
+#triangleAim .ta-value { font-size:18px; font-weight:500; } #triangleAim .ta-small { font-size:10px; }
 body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:ui-monospace,"M PLUS 1p",monospace; }
 #triangleAim.scoped .ta-side { display:none; }
 #taSp.act #taSpFill { animation:triangleSpPulse .7s ease-in-out infinite; }
@@ -1042,11 +1042,13 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
 #thermalReticle { width:128px; height:128px; transform:translate(-50%,-50%) scale(var(--ta-mark-scale)); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
 #thermalReticle svg { width:100%; height:100%; overflow:visible; }
 #thermalReticle .heat-track { fill:none; stroke:var(--ta-track); stroke-width:4; }
+#thermalReticle .charge-arc { fill:none; stroke:#7dffb0; stroke-width:4; stroke-linecap:butt; }
 #thermalReticle .heat-arc { fill:none; stroke:var(--ta-heat); stroke-width:4; stroke-linecap:butt; }
 #thermalReticle.hot .heat-arc, #thermalReticle.oh .heat-arc { stroke:var(--warn); }
-#thermalReticle text { fill:var(--ta-text); font-size:11px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
+#thermalReticle text { fill:var(--ta-text); font-size:10px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
+#thermalReticle.charging #trHeatText { fill:#7dffb0; }
 #thermalReticle .oh-panel { fill:#461c28e8; }
-#thermalReticle .oh-text { fill:var(--ta-lock); font-size:13px; font-weight:700; letter-spacing:.04em; }
+#thermalReticle .oh-text { fill:var(--ta-lock); font-size:12px; font-weight:700; letter-spacing:.04em; }
 .preLockMark, #lockMark { width:64px; height:64px; --c:var(--ta-cursor); }
 #lockMark { --c:var(--ta-lock); }
 .preLockMark .br, #lockMark .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
@@ -1074,14 +1076,14 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="triangleAim" aria-label="照準の残弾・耐久・ブースト・SP" hidden>
-  <g class="ta-side"><path class="ta-track" id="taAmmoBg"/><path id="taAmmoFill" pathLength="100"/><text id="taAmmoLabel">AMMO</text><text class="ta-value" id="taAmmoValue"/><text class="ta-small" id="taAmmoState"/></g>
-  <g class="ta-side"><path class="ta-track" id="taHpBg"/><path id="taHpFill" pathLength="100"/><text id="taHpLabel">HP</text><text class="ta-value" id="taHpValue"/></g>
+  <g class="ta-side"><path class="ta-track" id="taAmmoBg"/><path id="taAmmoFill" pathLength="100"/><text id="taAmmoText"><tspan id="taAmmoLabel">AMMO</tspan> <tspan class="ta-value" id="taAmmoValue"/> <tspan class="ta-small" id="taAmmoState"/></text></g>
+  <g class="ta-side"><path class="ta-track" id="taHpBg"/><path id="taHpFill" pathLength="100"/><text id="taHpText"><tspan id="taHpLabel">AP</tspan> <tspan class="ta-value" id="taHpValue"/></text></g>
   <g id="taBoost"><path class="ta-track" id="taBoostBg"/><path id="taBoostFill" pathLength="100"/><text class="ta-small" id="taBoostValue"/></g>
   <g id="taSp"><path class="ta-track" id="taSpBg"/><path id="taSpFill" pathLength="100"/><text class="ta-small" id="taSpValue"/></g>
 </svg>
-<div class="hud" id="thermalReticle" hidden><svg viewBox="-64 -64 128 128" aria-label="武器の熱とオーバーヒート">
-  <circle class="heat-track" r="44"/><path class="heat-arc" id="trHeat0"/><path class="heat-arc" id="trHeat1"/><path class="heat-arc" id="trHeat2"/>
-  <g id="trOh" hidden><rect class="oh-panel" x="-54" y="-11" width="108" height="22" rx="2"/><text class="oh-text" y="5">OVERHEAT</text></g><text id="trHeatText" y="62"/>
+<div class="hud" id="thermalReticle" hidden><svg viewBox="-64 -64 128 128" aria-label="武器の充填と熱・オーバーヒート">
+  <circle class="heat-track" r="44"/><path class="charge-arc" id="trCharge0"/><path class="charge-arc" id="trCharge1"/><path class="charge-arc" id="trCharge2"/><path class="heat-arc" id="trHeat0"/><path class="heat-arc" id="trHeat1"/><path class="heat-arc" id="trHeat2"/>
+  <g id="trOh" hidden><rect class="oh-panel" x="-54" y="-11" width="108" height="22" rx="2"/><text class="oh-text" y="5">OVERHEAT</text></g><text id="trHeatText" y="-54"/>
 </svg></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
@@ -1321,12 +1323,12 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
         <kbd>支援</kbd><span>ショットガン、地雷（敵が踏むと爆発）、索敵センサー（周り65mの敵を味方のミニマップに映す）、リペアユニット</span>
         <kbd>機体カスタマイズ</kbd><span>上の4行は初期装備です。メニューの「機体カスタマイズ」で、頭・胴・腕・脚のパーツ（3シリーズ各Ⅰ〜Ⅲ型、全部で36点）と色、兵装ごとに4つの枠の武器を選べます。武器とパーツはメーカーごとの「シリーズ」と、その中の「型」に分かれています（武器は全217種。同じシリーズの型は撃ち方が同じで、威力・連射・弾数・精度・反動・重さなどの数値だけが違います）。頭・胴・腕・脚を同じシリーズで揃えるとセットボーナスが付きます（スウィフトはブースト+5・歩行+0.45m/s、ハウンドは射撃補正+5%・重量耐性+150kg、ブルワークは装甲+3%。初期の機体はハウンドで揃っています）。機体と武器の組み合わせは「構成」として3つまで保存でき、メニューでも切り替えられます（このブラウザに保存）。パーツと武器の重量の合計が脚の重量耐性を超えると、40kgごとに1%遅くなります。撃たれた部位の装甲でダメージが変わります（爆風は4部位の平均）。Botの武器は出撃のたびにランダムです</span>
         <kbd>ミラージュデバイス</kbd><span>強襲の特別装備。選ぶと起動し、もう一度選ぶと停止。起動中のクイックブーストごとにSPを消費して出発点に残像を置き、受けていたロックと誘導ミサイルの捕捉を移します。標準は耐久500・10秒。最大4体、攻撃や占拠はしません。SP不足でも移動はできますが残像は作れません。</span>
-        <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（照準左側にCHARGEで表示）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
+        <kbd>武器の使い方</kbd><span>3点射の武器は1回押すと3発ずつ、単発の武器（マークスマンライフル、マグナム、単射二丁拳銃、軽量散弾銃、エナジー散弾銃）は1回押すごとに1発。チャージ撃ちの武器（波動ライフル、蓄積エナジー砲、二丁蓄積銃、収束散弾銃）は押している間に溜まり（ロックカーソルと同じ円形ゲージが緑に伸びて充填量を表示）、離すと撃ちます。満タンで撃つと威力が上がり、蓄積エナジー砲は爆発、二丁蓄積銃は爆発する光弾、収束散弾銃は散弾がまとまります（波動ライフルと収束散弾銃は満タンのまま長く持つとオーバーヒート）。炸裂機関砲の弾は当たった所で爆発します。全方向加速装置は加速装置と同じ使い方で、入力した方向へ進みます。時限グレネードは落ちてから2.5秒で爆発。遠隔爆弾は置いてから、持っている間に右クリックで起爆（敵のコアに貼りつければコアにも当たる）。自分の爆発物の爆風は自分にも当たります。自分の爆風で大破すると「自爆」でスコア−10。味方にはダメージは無いものの、よろけ・ダウンは起こり、誤射のダメージ1万ごとにスコアが−10されます。自動砲台は置くと近くの見える敵を撃ち続けます。索敵ソナーは炸裂した瞬間に周りの敵を映し、滞空センサーは上空から50秒見張り、扇形センサーは置いた向きの前方を見張ります。衝撃グレネードはダメージなしで敵を倒し（ダウン。敵機に直接当てるとすぐ炸裂）、衝撃散弾銃はよろけ・ダウンを起こしやすい。リペアフィールドは選ぶと作動し（もう一度選ぶと停止）、自分と周り12mの味方を回復し続けます（回復する味方が多いほどSPが早く減る）</span>
         <kbd>投げる物</kbd><span>照準の先に落ちます（黄色い円が落ちる所と爆風の範囲。届かない所は届く所まで）</span>
         <kbd>ロックオン</kbd><span>主武器・近接武器で50m以内の敵を照準に近づけ、六角形のプレロックが出た対象へ右クリックでロック。捕捉時に対象の胴体を画面中央へ合わせ、もう一度右クリックで解除します。ロック中だけ視点が約1.3倍にズームして敵を追い、照準が機体から外れると機体の端まで引き戻します。捕捉後は頭などを自由に狙えます。弾は照準どおりに飛びます（頭に当てるとダメージ1.3倍。金色の大きな火花と高い金属音、照準の×で分かります）。副武器・特別装備へ持ち替えると解除。狙撃のズーム・ミサイルの捕捉は別操作です</span>
         <kbd>Q</kbd><span>ロック中の対象を切り替え</span>
-        <kbd>メカニカル</kbd><span>中央は淡緑のAMMO・HPと、上下に重ねたBOOST・SP。両端に飛行計器、下中央にブーストと方位計、右下に全4枠の残弾と状態を表示します。「UIを画面の大きさに合わせる」がONなら1600×900を基準に大きさを調整します</span>
-        <kbd>照準のゲージ</kbd><span>左斜辺のAMMOは残弾（リロード中は進み具合）、右斜辺のHPは耐久。下の2本は上がBOOST、下がSPです。現在の残量だけを表示し、最大値の分母は付けません。BOOSTは噴射開始時に一度明滅、SPは特殊兵装の作動中に連続明滅します。発熱する武器はロックカーソルの周囲に3本の円弧が伸び、一周するとOVERHEATと冷却時間を表示します</span>
+        <kbd>メカニカル</kbd><span>中央は淡緑のAMMO・AP（装甲値）と、上下に重ねたBOOST・SP。両端に飛行計器、下中央にブーストと方位計、右下に全4枠の残弾と状態を表示します。「UIを画面の大きさに合わせる」がONなら1600×900を基準に大きさを調整します</span>
+        <kbd>照準のゲージ</kbd><span>左斜辺のAMMOは残弾（リロード中は進み具合）、右斜辺のAP（装甲値）は耐久。下の2本は上がBOOST、下がSPです。現在の残量だけを表示し、最大値の分母は付けません。BOOSTは噴射開始時に一度明滅、SPは特殊兵装の作動中に連続明滅します。チャージと熱はロックカーソルの周囲の3本の円弧を共有します。充填中は緑で伸び、満充填後の保持過熱は同じ円の緑に熱の色を重ねます。実際に過熱するとOVERHEATと冷却時間を表示します</span>
         <kbd>M</kbd><span>全体マップを開く・閉じる（プラント・ベース・味方と見えている敵）。表示は「中・大・最大」で選択でき、初期は最大です。開くとマウスを解放し、閉じると元の視点操作へ戻ります。左クリックで「ここへ向かえ」、右クリックで「ここを守れ」をその地点に送ります（視点は動かず、撃てません）</span>
         <kbd>E</kbd><span>ジップライン：綱の近く（足元に光る輪のある柱）で押すと掴み、綱に沿って上へ一気に昇り、上に着くと崖の上へ降ります。途中で Space か E を押すと手を離します。昇る間は銃を撃てますが、近接・重砲・榴弾砲とダッシュは使えません。よろけ・ダウンで落ちます。Botも使います</span>
         <kbd>H</kbd><span>エリア移動：その場で待機し、待ち終わるとベースか自軍のプラント（数字キーかホイールで選ぶ）へ移ります。もう一度 H で取り消し。待っている間は動けず撃てず、ダウンすると取り消し。待ち時間は機体と武器の重さで変わり、標準のパーツと初期装備で強襲・遊撃2.5秒、支援約3.7秒、重火力7秒。自軍ベースの中なら半分の時間で、兵装も変えられます（Z・X・C・V）。耐久・弾・SPはそのまま（兵装を変えたら武器は全量）。撃破ではなく、コアも減りません。移った先では2秒無敵。守りのBotもベースやプラントが攻められると使います。コスト制のマップでは使えません</span>
@@ -13400,12 +13402,12 @@ function triangleAimResize() {
   const r=Math.min(154,Math.max(78,innerHeight*.215)),half=Math.sqrt(3)*r/2,clearance=Math.max(r/2,ACQ_R*innerHeight/2),size=clearance*2+half+200,height=clearance*2+180;
   const svg=$('triangleAim');svg.setAttribute('width',size);svg.setAttribute('height',height);svg.setAttribute('viewBox',`${-size/2} ${-height/2} ${size} ${height}`);
   const top=triPoint(0,-r),left=triPoint(-half,r/2),right=triPoint(half,r/2);
-  const offset=clearance-r/2,shift=(points,sign)=>points.map(p=>triPoint(p.x+sign*Math.sqrt(3)/2*offset,p.y-offset/2)),bar=(half*.91-10)/2;
+  const offset=clearance-r/2,shift=(points,sign)=>points.map(p=>triPoint(p.x+sign*Math.sqrt(3)/2*offset,p.y-offset/2)),bar=half*.84;
   const pairs={Ammo:shift([triMix(left,top,.08),triMix(left,top,.92)],-1),Hp:shift([triMix(right,top,.08),triMix(right,top,.92)],1),Boost:[triPoint(-bar,clearance),triPoint(bar,clearance)],Sp:[triPoint(-bar,clearance+32),triPoint(bar,clearance+32)]};
   for(const [name,points]of Object.entries(pairs))for(const suffix of ['Bg','Fill'])$('ta'+name+suffix).setAttribute('d',triPath(points));
   for(const [name,angle]of [['Ammo',-60],['Hp',60]]){
     const mid=triMix(...pairs[name],.5);
-    for(const [suffix,dy]of [['Label',-48],['Value',-25],...(name==='Ammo'?[['State',-10]]:[])]){const el=$('ta'+name+suffix);el.setAttribute('x',0);el.setAttribute('y',dy);el.setAttribute('transform',`translate(${mid.x} ${mid.y}) rotate(${angle})`);el.setAttribute('text-anchor','middle');}
+    const el=$('ta'+name+'Text');el.setAttribute('x',0);el.setAttribute('y',-10);el.setAttribute('transform',`translate(${mid.x} ${mid.y}) rotate(${angle})`);el.setAttribute('text-anchor','middle');
   }
   for(const [id,y]of [['taBoostValue',clearance],['taSpValue',clearance+32]]){$(id).setAttribute('x',0);$(id).setAttribute('y',y-9);$(id).setAttribute('text-anchor','middle');}
   document.documentElement.style.setProperty('--aim-sp-offset',(clearance+52)+'px');
@@ -13415,18 +13417,20 @@ function triangleSpecialActive(p) {
   return !!(!p.slots.sp.overheat && (p.mirageOn||p.chargerOn||p.cloak||p.fieldOn||p.barrierOn||p.escortOn||p.post||p.postFlight||p.bombard||p.beamFire||p.healTarget||p.weapon==='sp'&&p.planted));
 }
 function triangleThermal(p) {
-  const sl=p.slots[p.weapon],w=sl.w,enabled=!!(w.heat||w.chargeHold);
+  const sl=p.slots[p.weapon],w=sl.w,enabled=!!(w.heat||w.chargeHold||w.chargeTime);
   const heat=sl.overheat?1:w.heat?sl.temp/100:w.chargeHold?sl.holdT/w.chargeHold:0;
+  const charge=w.chargeTime&&!sl.overheat&&sl.reloadT<=0?triClamp(sl.chargeT/w.chargeTime):0,charging=!!(w.chargeTime&&!sl.overheat&&heat<=0);
   const layer=$('thermalReticle');layer.hidden=!enabled||!p.alive||!running||!$('overlay').hidden||mapOpen||wsel.open||touchPlay&&innerHeight>innerWidth;
   if(layer.hidden)return;
   const target=lock.target?.alive&&!$('lockMark').hidden?screenOf(lock.target):null;
   layer.style.left=(target?(target.x+1)/2*innerWidth:innerWidth/2)+'px';layer.style.top=(target?(1-target.y)/2*innerHeight:innerHeight/2)+'px';
-  layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);$('trOh').toggleAttribute('hidden',!sl.overheat);
-  $('trHeatText').textContent=sl.overheat?'COOLING '+Math.max(0,sl.ohT).toFixed(1)+'s':'HEAT '+Math.round(triClamp(heat)*100)+'%';
-  for(let i=0;i<3;i++){
-    const angle=-Math.PI/2+i*Math.PI*2/3,sweep=triClamp(heat)*Math.PI*2/3,r=44;
+  layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);layer.classList.toggle('charging',charging);$('trOh').toggleAttribute('hidden',!sl.overheat);
+  $('trHeatText').textContent=sl.overheat?'COOLING '+Math.max(0,sl.ohT).toFixed(1)+'s':charging?'CHARGE '+Math.round(charge*100)+'%':'HEAT '+Math.round(triClamp(heat)*100)+'%';
+  // 充填と熱は同じ半径・太さの3弧を共有。満充填の緑へ保持過熱の色を重ねる。
+  for(const [prefix,value]of [['trCharge',charge],['trHeat',heat]])for(let i=0;i<3;i++){
+    const angle=-Math.PI/2+i*Math.PI*2/3,sweep=triClamp(value)*Math.PI*2/3,r=44;
     const a=triPoint(r*Math.cos(angle),r*Math.sin(angle)),b=triPoint(r*Math.cos(angle+sweep),r*Math.sin(angle+sweep));
-    $('trHeat'+i).setAttribute('d',sweep>0?`M${a.x},${a.y} A${r},${r} 0 0 1 ${b.x},${b.y}`:'');$('trHeat'+i).dataset.degrees=(triClamp(heat)*120).toFixed(2);
+    $(prefix+i).setAttribute('d',sweep>0?`M${a.x},${a.y} A${r},${r} 0 0 1 ${b.x},${b.y}`:'');$(prefix+i).dataset.degrees=(triClamp(value)*120).toFixed(2);
   }
 }
 function triangleHud(p) {
