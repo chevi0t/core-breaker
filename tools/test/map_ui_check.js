@@ -99,6 +99,15 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
           yes(r.x >= -1 && r.y >= -1 && r.x + r.width <= viewport.width + 1 && r.y + r.height <= viewport.height + 1, `${viewport.width}×${viewport.height}で最大マップが画面内`);
           await cycle(); await cycle();
         }
+        for (let i = 0; i < 5; i++) {
+          const state = await p.evaluate(() => {
+            const m = document.getElementById('mini').getBoundingClientRect(), pl = document.getElementById('plantBar').getBoundingClientRect();
+            return { mode: __g.consoleMode, right: innerWidth - m.right, top: m.top, clear: m.right <= pl.left || pl.right <= m.left || m.bottom <= pl.top || pl.bottom <= m.top };
+          });
+          yes(Math.abs(state.right - 16) < 1 && Math.abs(state.top - 16) < 1, `狭いPC ${state.mode}も右上`);
+          yes(state.clear, `狭いPC ${state.mode}の拠点一覧がマップに重ならない`);
+          await p.keyboard.press('F2');
+        }
       }
       await context.close();
     }
