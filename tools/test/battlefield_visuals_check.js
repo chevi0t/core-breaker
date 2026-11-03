@@ -66,12 +66,12 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   // Mで開き、サイズボタンと3段階の循環を実際の入力で確認。
   await p.evaluate(()=>{__g.setup();__g.running=true;document.getElementById('overlay').hidden=true;});
   await p.keyboard.press('KeyM');assert(await p.locator('#bigMap').isVisible());checks.push('Mで全体マップを開く');
-  let previous=0;
-  for(const size of ['large','maximum']){
-   await p.locator('[data-map-size="'+size+'"]').click();
-   const r=await p.locator('#bigMapC').boundingBox();assert(r.width*r.height>previous);previous=r.width*r.height;
-   assert.equal(await p.locator('[data-map-size="'+size+'"]').getAttribute('aria-pressed'),'true');checks.push(size+'を実クリックで選択して拡大');
-  }
+  const small=await p.locator('#mini').boundingBox();
+  await p.locator('[data-map-size="large"]').click();
+  assert(await p.locator('#bigMap').isHidden());const large=await p.locator('#mini').boundingBox();
+  assert(Math.abs(large.width-small.width*2)<.1&&Math.abs(large.height-small.height*2)<.1);checks.push('大ボタンで右上の小マップを縦横2倍にする');
+  await p.keyboard.press('KeyM');await p.keyboard.press('KeyM');
+  assert(await p.locator('#bigMap').isVisible());assert.equal(await p.locator('[data-map-size="maximum"]').getAttribute('aria-pressed'),'true');
   await p.keyboard.press('KeyM');assert.equal(await p.evaluate(()=>__g.bigMapSize),'large');await p.keyboard.press('KeyM');assert(await p.locator('#bigMap').isHidden());await p.keyboard.press('KeyM');assert.equal(await p.evaluate(()=>__g.bigMapSize),'maximum');checks.push('Mで最大→大→小→最大へ循環');
   for(const viewport of [{width:800,height:600},{width:360,height:640},{width:1280,height:800}]){
    await p.setViewportSize(viewport);await p.evaluate(()=>__g.drawBigMap());const r=await p.locator('#bigMap').boundingBox();

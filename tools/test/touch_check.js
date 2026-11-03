@@ -180,7 +180,7 @@ const W = 844, H = 390;
     ok((await ev(() => document.getElementById('feed').textContent)) !== feed0, '地図をタップで「ここへ向かえ」');
     await page.screenshot({ path: path.join(out, 'map.png') });
     await tapBtn('[data-tc="map"]');
-    ok(await ev(() => __g.mapOpen && __g.bigMapSize === 'large'), '2回目で大マップ');
+    ok(await ev(() => !__g.mapOpen && __g.bigMapSize === 'large'), '2回目で右上の大マップ');
     await tapBtn('[data-tc="map"]');
     ok(await ev(() => !__g.mapOpen), '3回目で小マップ');
 

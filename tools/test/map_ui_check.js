@@ -4,6 +4,8 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
 (async () => {
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   const out = path.resolve(process.argv[3] || 'dbg/map-ui-results'); fs.mkdirSync(out, { recursive: true });
+  const dir = path.resolve(process.argv[2] || 'dbg/map-ui'), fixture = path.join(dir, 'map-ui-standards.html');
+  fs.writeFileSync(fixture, '<!DOCTYPE html>\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' + fs.readFileSync(path.join(dir, 'dbg.html'), 'utf8'));
   const checks = [], errors = [];
   const yes = (v, s) => { assert(v, s); checks.push(s); };
   try {
@@ -13,7 +15,7 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       p.on('pageerror', e => errors.push(e.message)); p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
       await p.route('**fonts.g*/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
       await p.addInitScript(() => { requestAnimationFrame = () => 0; AudioContext = undefined; localStorage.setItem('coreBreakerOptions', JSON.stringify({ uiFit: 1 })); });
-      await p.goto(pathToFileURL(path.resolve(process.argv[2] || 'dbg/map-ui', 'dbg.html')).href);
+      await p.goto(pathToFileURL(fixture).href);
       await p.evaluate(touch => {
         const g = __g; g.selectMap('city'); g.setup(); g.running = true;
         document.getElementById('overlay').hidden = true;
@@ -32,7 +34,7 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
         if (!baseline) baseline = state;
         yes(Math.abs(state.w - baseline.w) < .1 && Math.abs(state.h - baseline.h) < .1, `${state.mode}：マップの実寸共通`);
         await p.screenshot({ path: path.join(out, `${touch ? 'touch' : 'pc'}-${state.mode}.png`) });
-        await p.keyboard.press('F2');
+        if (!touch) await p.keyboard.press('F2');
       }
       if (touch) yes(await p.evaluate(() => document.getElementById('ammoBox').getBoundingClientRect().top >= document.getElementById('mini').getBoundingClientRect().bottom + 7), 'スマホの残弾表示がマップに重ならない');
       const cycle = async () => {
@@ -44,8 +46,20 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       await cycle(); const maximum = await size();
       yes(await p.evaluate(() => __g.mapOpen && __g.bigMapSize === 'maximum'), '小からMで最大');
       await p.evaluate(() => { __g.mapCur.x = 50; __g.mapCur.z = -50; });
-      await cycle(); const large = await size();
-      yes(large.width < maximum.width && large.height < maximum.height, '2回目のMで大へ縮小');
+      await cycle(); const large = await p.locator('#mini').boundingBox();
+      yes(await p.locator('#bigMap').isHidden() && await p.evaluate(() => !__g.mapOpen), '2回目のMで全体マップを閉じ、右上の大マップへ');
+      yes(Math.abs(large.width - baseline.w * 2) < .1 && Math.abs(large.height - baseline.h * 2) < .1, '大マップは小マップの縦横2倍');
+      yes(Math.abs((touch ? 844 : 1600) - large.x - large.width - 16) < 1 && Math.abs(large.y - 16) < 1, '拡大しても右上の位置を維持');
+      if (touch) yes(await p.evaluate(() => {
+        const m = document.getElementById('mini').getBoundingClientRect();
+        return ['#ammoBox', '[data-tc="weapon"]'].every(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return m.right <= r.left || r.right <= m.left || m.bottom <= r.top || r.bottom <= m.top; });
+      }), 'スマホの大マップが残弾・武器ボタンに重ならない');
+      for (let i = 0; i < (touch ? 1 : 5); i++) {
+        const r = await p.locator('#mini').boundingBox();
+        yes(Math.abs(r.width - baseline.w * 2) < .1 && Math.abs(r.height - baseline.h * 2) < .1, '大マップの実寸もGUI共通');
+        await p.screenshot({ path: path.join(out, `${touch ? 'touch' : 'pc'}-large-${i}.png`) });
+        if (!touch) await p.keyboard.press('F2');
+      }
       yes(await p.evaluate(() => __g.mapCur.x === 50 && __g.mapCur.z === -50), 'サイズ変更で地点を維持');
       await cycle(); yes(await p.locator('#bigMap').isHidden(), '3回目で小へ戻る');
       await cycle();
@@ -84,14 +98,20 @@ const { pathToFileURL } = require('node:url'), { chromium } = require('playwrigh
       const artillery = await p.evaluate(() => ({ bombard: !!__g.player.bombard, pings: __g.pings.length, before: beforeArtilleryPings.length, repairing: __g.player.repairing, transfer: __g.player.transfer, stun: __g.player.stun, switchT: __g.player.switchT, overheat: __g.player.slots.sp.overheat }));
       yes(artillery.bombard && artillery.pings === artillery.before, '砲撃指定は味方への地点指示を追加しない ' + JSON.stringify({ touch, ...artillery }));
       await p.evaluate(() => __g.stopArtillery(__g.player));
-      await p.keyboard.press('KeyM'); await p.locator('[data-map-size="small"]').click();
+      await p.keyboard.press('KeyM'); await p.keyboard.press('KeyM'); await p.locator('[data-map-size="small"]').click();
       yes(await p.locator('#bigMap').isHidden(), '小ボタンでも通常の小マップへ戻る');
       if (!touch) {
         await p.locator('#view').click(); await p.waitForFunction(() => document.pointerLockElement?.id === 'view');
         await cycle(); await p.waitForFunction(() => !document.pointerLockElement);
-        await cycle(); yes(await p.evaluate(() => !document.pointerLockElement), '最大から大ではマウスを解放したまま');
         await cycle(); await p.waitForFunction(() => document.pointerLockElement?.id === 'view');
-        yes(await p.locator('#bigMap').isHidden(), '小へ戻る時だけ元の視点操作へ復帰');
+        yes(await p.locator('#bigMap').isHidden(), '最大から大へ切り替えた時点で視点操作へ復帰');
+        const yaw = await p.evaluate(() => __g.player.yaw); await p.mouse.move(650, 350);
+        yes(await p.evaluate(yaw => __g.player.yaw !== yaw, yaw), '大マップ中もマウスで視点を動かせる');
+        await p.evaluate(() => { __g.player.switchT = 0; });
+        const ammo = await p.evaluate(() => __g.player.slots.main.ammo);
+        await p.mouse.down(); await p.evaluate(() => { for (let i = 0; i < 5; i++) __g.loop(performance.now()); }); await p.mouse.up();
+        yes(await p.evaluate(ammo => __g.player.slots.main.ammo < ammo, ammo), '大マップ中も射撃できる');
+        await cycle(); yes(await p.evaluate(() => document.pointerLockElement?.id === 'view'), '大から小でも視点操作を維持');
         await p.evaluate(() => document.exitPointerLock());
         for (const viewport of [{ width: 360, height: 640 }, { width: 844, height: 390 }]) {
           await p.setViewportSize(viewport); await cycle();
