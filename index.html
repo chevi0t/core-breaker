@@ -1056,7 +1056,10 @@ body[data-console="mechanical"]:not(.touchPlay) :is(#mechBoost,#consoleHeading) 
 body { --ta-ammo:#6cddff; --ta-hp:#80e4b1; --ta-boost:#efc373; --ta-sp:#baa8ed; --ta-text:#e7f5fa; --ta-cursor:#bcdde9; --ta-track:#c5e8f22e; --ta-heat:#ffb6d5; --ta-lock:#ff586e; --ta-mark-scale:1; }
 body[data-console="mechanical"] { --ta-ammo:#dceee3; --ta-hp:#b9d5cb; --ta-boost:#adc9c0; --ta-sp:#7dffb0; --ta-text:#dceee3; --ta-cursor:#b9d5cb; --ta-track:#adc9c02e; }
 body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9856; --ta-sp:#efcd8c; --ta-text:#f2c374; --ta-cursor:#e8b962; --ta-track:#c39b5838; }
-#lockRing, #aimGauge, #aimSp, #mechAim { display:none!important; }
+body:not(.aimClassic) :is(#lockRing, #aimGauge, #aimSp, #mechAim) { display:none!important; }
+/* 旧い照準（2026-11-04 オーナー要望「旧仕様GUIを一つ二つ復旧、選択肢として」）：オプションの aimClassic で三角ゲージの前の中央計器に戻す。
+   標準・アーケード・フライトは照準円の弧（左が残弾、右が耐久、外側が熱とブースト）と捕捉円、メカニカルは照準の4枠。ロックは四隅の形。三角ゲージと充填・熱の輪は隠す */
+body.aimClassic :is(#triangleAim, #thermalReticle) { display:none!important; }
 #triangleAim { left:50%; top:50%; transform:translate(-50%,-50%) scale(var(--hud-triangle-scale,1)); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
 #triangleAim[hidden], #triangleAim [hidden], #trOh[hidden] { display:none; }
 #triangleAim path { fill:none; stroke-width:5; stroke-linecap:butt; }
@@ -1080,9 +1083,10 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
 #thermalReticle.charging #trHeatText { fill:#7dffb0; }
 #thermalReticle .oh-panel { fill:#461c28e8; }
 #thermalReticle .oh-text { fill:var(--ta-heat); font-size:24px; font-weight:700; letter-spacing:.04em; }
-.preLockMark, #lockMark { width:64px; height:64px; --c:var(--ta-cursor); }
-#lockMark { --c:var(--ta-lock); }
-.preLockMark .br, #lockMark .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
+body:not(.aimClassic) :is(.preLockMark, #lockMark) { width:64px; height:64px; --c:var(--ta-cursor); }
+body:not(.aimClassic) #lockMark { --c:var(--ta-lock); }
+body:not(.aimClassic) :is(.preLockMark, #lockMark) .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
+body.aimClassic :is(.preLockMark, #lockMark) .br svg { display:none; }
 .preLockMark .br svg, #lockMark .br svg { width:100%; height:100%; overflow:visible; }
 .preLockMark .cursor-outline, #lockMark .cursor-outline { fill:none; stroke:var(--ta-cursor); stroke-width:1.5; }
 body[data-console="mechanical"] .preLockMark.selected { filter:drop-shadow(0 0 4px #b9d5cb88); }
@@ -1265,6 +1269,7 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
           </div>
           <section id="hudSizeOptions">
             <h3 class="optionHead">HUD</h3>
+            <label class="sw"><span>旧い照準を使う<small>三角ゲージの前の形。標準などは照準円の弧と捕捉円、メカニカルは照準の4枠、ロックは四隅の形</small></span><input type="checkbox" role="switch" id="optAimClassic"><i aria-hidden="true"></i></label>
             <div class="optionSliders" id="hudSizeControls">
               <label for="optHudTriangle">三角ゲージの大きさ <output id="optHudTriangleValue" for="optHudTriangle"></output></label>
               <input id="optHudTriangle" type="range" min="100" max="200" step="1">
@@ -1555,7 +1560,7 @@ const SFX = {
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
 let hudPreview = false, hudPreviewFresh = false;
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, hudTriangle: 100, hudPilot: 100, swayHair: 100, swayChest: 100 };
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, aimClassic: 0, hudTriangle: 100, hudPilot: 100, swayHair: 100, swayChest: 100 };
 // swayHair・swayChest：保存済みの揺れ倍率との互換用。新規はキャラの規定値どおりの100%。設定画面には出さない。
 const OPTION_MIN = { fov: 60, hudTriangle: 100, hudPilot: 100 };
 const OPTION_MAX = { hudTriangle: 200, hudPilot: 200, swayHair: 300, swayChest: 300 };
@@ -1578,8 +1583,9 @@ function applyHudScale() {
   const style = document.documentElement.style;
   style.setProperty('--hud-triangle-scale', (gameOptions.hudTriangle / 100).toFixed(2));
   style.setProperty('--hud-pilot-scale', (gameOptions.hudPilot / 100).toFixed(2));
-  const base = parseFloat(style.getPropertyValue('--aim-sp-base'));
-  if (Number.isFinite(base)) style.setProperty('--aim-sp-offset', (base * gameOptions.hudTriangle / 100) + 'px');
+  const base = parseFloat(style.getPropertyValue('--aim-sp-base')), classic = parseFloat(style.getPropertyValue('--aim-sp-classic'));
+  if (gameOptions.aimClassic && Number.isFinite(classic)) style.setProperty('--aim-sp-offset', classic + 'px'); // 旧い照準は照準円のすぐ下
+  else if (Number.isFinite(base)) style.setProperty('--aim-sp-offset', (base * gameOptions.hudTriangle / 100) + 'px');
 }
 function renderOptions() {
   for (const k of Object.keys(gameOptions)) {
@@ -1589,6 +1595,7 @@ function renderOptions() {
     el.value = gameOptions[k];
     document.getElementById(el.id + 'Value').textContent = k === 'uiSize' ? Math.round(uiSizeScale(gameOptions[k]) * 100) + '%' : gameOptions[k] + (OPTION_UNIT[k] ?? '%');
   }
+  document.body.classList.toggle('aimClassic', !!gameOptions.aimClassic); // 旧い照準（三角ゲージの前の中央計器）
   document.documentElement.style.setProperty('--tc-scale', (.75 + gameOptions.touchSize / 200).toFixed(3)); // タッチのボタンの大きさ
   applyHudScale();
   applyUiScale();
@@ -8476,7 +8483,8 @@ const WEAPONS = {
   // AC インパクトマイン系統 pages/976：{"kg": 170, "dmg": 7300, "mag": 1, "mags": 4, "blast": 19, "reload": 1, "knockMult": 3}。不明値・再現用の値は secondary.json に区別
   delayMine: {"name":"衝撃吸着地雷","type":"gun","rpm":60,"mag":1,"mags":4,"reload":1,"spread":0,"semi":false,"desc":"壁にも貼りつく地雷。接近を感知して1秒後に炸裂。実ダメージより強く姿勢を崩す","proj":{"dmg":7300,"blast":19,"core":true,"kind":"mine","speed":32,"grav":24,"model":"delayMine","hp":2000,"max":4,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true,"sticky":true,"triggerSphere":true,"detDelay":1,"knockMult":3}},
   // AC デトネーター系統 pages/491：{"kg": 260, "dmg": 5800, "mag": 2, "mags": 4, "blast": 17, "reload": 3.2, "rpm": 120}。不明値・再現用の値は secondary.json に区別
-  detonator: {"name":"遠隔ボムランチャー","type":"gun","rpm":120,"mag":2,"mags":4,"reload":3.2,"spread":0,"semi":true,"desc":"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆","proj":{"dmg":5800,"blast":17,"core":true,"kind":"remote","attachUnit":true,"speed":70,"grav":12,"model":"detonator","hp":1000,"max":5,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true}},
+  // 遠隔ボムランチャー（2026-11-04 オーナー指摘「爆発しない弾がある」「銃身発射してない？」）：弾の寿命が既定の3秒で、高く撃つと着地前に消えていた → 15秒。弾と設置した爆弾はランチャーの形ではなく遠隔爆弾の形
+  detonator: {"name":"遠隔ボムランチャー","type":"gun","rpm":120,"mag":2,"mags":4,"reload":3.2,"spread":0,"semi":true,"desc":"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆","proj":{"dmg":5800,"blast":17,"core":true,"kind":"remote","attachUnit":true,"speed":70,"grav":12,"life":15,"model":"remote","hp":1000,"max":5,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true}},
   // AC タイタン榴弾砲：900kg、10000×6、300m、5.5秒、誤差15m、爆風25m、54(44)秒。発射間隔1秒（364.html本文）。
   artillery: { name: '榴弾砲', type: 'artillery', noLock: true, plant: true, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44, desc: 'マップで爆撃中心を指定して自動連射。移動・旋回不可。右クリックで即中断。着弾2秒前に火柱と落下音' },
   // AC現行表：バリアユニット（413）。前方LV2、12500、50秒、50(45)秒、710kg。
@@ -9284,7 +9292,7 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
     while (se.types.some(([, m]) => m === model)) model += '2';
     const w = makeType(base, w0, t);
     Object.assign(w, { key, name: base.name.split('・')[0] + '・' + label, desc, kg: t.kg });
-    if (w.proj && w.proj.model) w.proj.model = key;
+    if (w.proj && w.proj.model === bk) w.proj.model = key; // 投げる物は型の形。遠隔ボムランチャーの弾（model: 'remote'）は爆弾の形のまま
     WEAPONS[key] = w; WEAPON_KG[key] = t.kg; MODEL_OF[key] = [fam, (v0 + i + 1) % 3];
     // カスタマイズの画面では同じシリーズの型の後ろに並べる
     const last = Math.max(...se.types.map(([k]) => list.indexOf(k)));
@@ -14311,6 +14319,7 @@ function resize() {
   // 照準円のすぐ外側に、左右の半円（上下に少し隙間）。どちらも下から上へ伸びる。その6px外側にもう1周（左は熱、右はブースト）
   const R = Math.round(ACQ_R * h / 2) + 7, R2 = R + 6, S = 2 * R2 + 8, c = S / 2, gap = 0.22;
   document.documentElement.style.setProperty('--aim-sp-offset', (R2 + 10) + 'px');
+  document.documentElement.style.setProperty('--aim-sp-classic', (R2 + 10) + 'px'); // 旧い照準ではSPの棒をここに置く（applyHudScale）
   document.documentElement.style.setProperty('--lock-warning-diameter', (R2 * 3) + 'px'); // 三角の中心を照準の外周半径の1.5倍へ
   const pt = (a, r) => `${(c + r * Math.sin(a)).toFixed(1)} ${(c - r * Math.cos(a)).toFixed(1)}`;
   const left = r => `M ${pt(Math.PI + gap, r)} A ${r} ${r} 0 0 1 ${pt(2 * Math.PI - gap, r)}`, right = r => `M ${pt(Math.PI - gap, r)} A ${r} ${r} 0 0 0 ${pt(gap, r)}`;
