@@ -8469,7 +8469,8 @@ const WEAPONS = {
   // AC インパクトマイン系統 pages/976：{"kg": 170, "dmg": 7300, "mag": 1, "mags": 4, "blast": 19, "reload": 1, "knockMult": 3}。不明値・再現用の値は secondary.json に区別
   delayMine: {"name":"衝撃吸着地雷","type":"gun","rpm":60,"mag":1,"mags":4,"reload":1,"spread":0,"semi":false,"desc":"壁にも貼りつく地雷。接近を感知して1秒後に炸裂。実ダメージより強く姿勢を崩す","proj":{"dmg":7300,"blast":19,"core":true,"kind":"mine","speed":32,"grav":24,"model":"delayMine","hp":2000,"max":4,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true,"sticky":true,"triggerSphere":true,"detDelay":1,"knockMult":3}},
   // AC デトネーター系統 pages/491：{"kg": 260, "dmg": 5800, "mag": 2, "mags": 4, "blast": 17, "reload": 3.2, "rpm": 120}。不明値・再現用の値は secondary.json に区別
-  detonator: {"name":"遠隔ボムランチャー","type":"gun","rpm":120,"mag":2,"mags":4,"reload":3.2,"spread":0,"semi":true,"desc":"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆","proj":{"dmg":5800,"blast":17,"core":true,"kind":"remote","attachUnit":true,"speed":70,"grav":12,"model":"detonator","hp":1000,"max":5,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true}},
+  // 遠隔ボムランチャー（2026-11-04 オーナー指摘「爆発しない弾がある」「銃身発射してない？」）：弾の寿命が既定の3秒で、高く撃つと着地前に消えていた → 15秒。弾と設置した爆弾はランチャーの形ではなく遠隔爆弾の形
+  detonator: {"name":"遠隔ボムランチャー","type":"gun","rpm":120,"mag":2,"mags":4,"reload":3.2,"spread":0,"semi":true,"desc":"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆","proj":{"dmg":5800,"blast":17,"core":true,"kind":"remote","attachUnit":true,"speed":70,"grav":12,"life":15,"model":"remote","hp":1000,"max":5,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true}},
   // AC タイタン榴弾砲：900kg、10000×6、300m、5.5秒、誤差15m、爆風25m、54(44)秒。発射間隔1秒（364.html本文）。
   artillery: { name: '榴弾砲', type: 'artillery', noLock: true, plant: true, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44, desc: 'マップで爆撃中心を指定して自動連射。移動・旋回不可。右クリックで即中断。着弾2秒前に火柱と落下音' },
   // AC現行表：バリアユニット（413）。前方LV2、12500、50秒、50(45)秒、710kg。
@@ -9277,7 +9278,7 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
     while (se.types.some(([, m]) => m === model)) model += '2';
     const w = makeType(base, w0, t);
     Object.assign(w, { key, name: base.name.split('・')[0] + '・' + label, desc, kg: t.kg });
-    if (w.proj && w.proj.model) w.proj.model = key;
+    if (w.proj && w.proj.model === bk) w.proj.model = key; // 投げる物は型の形。遠隔ボムランチャーの弾（model: 'remote'）は爆弾の形のまま
     WEAPONS[key] = w; WEAPON_KG[key] = t.kg; MODEL_OF[key] = [fam, (v0 + i + 1) % 3];
     // カスタマイズの画面では同じシリーズの型の後ろに並べる
     const last = Math.max(...se.types.map(([k]) => list.indexOf(k)));
