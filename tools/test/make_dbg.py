@@ -7,55 +7,101 @@
 - sounds.js・music.js・maps.js・three.min.js も出力フォルダへコピーする。マップを変えたら先に tools/build_maps.py を実行する。
 - --src を付けると prototype/index.html の代わりにそのファイルを元にする（エンジン側が置き換える前の版を試すとき）。
 - --trace を付けると対戦の観測用イベントを出す。ゲームの計算や乱数は変更しない。
-- Botの通り道を調べる navPath・navNear・clearPath と NAV、橋（bridges）、水面（waters）、renderer も __g に出す。
-- 機体カスタマイズ（v0.11）の ARMORY・loadout・toggleSp・detonateRemotes・weaponsTick・slotOf も出す（それより前の版では読むと止まるので getter にしてある）。
+- __g には本体の行頭で宣言した関数・変数を全部自動で出す（下の EXTRA・SETTERS を参照）。
 """
 import pathlib
+import re
 import shutil
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 P = ROOT / "prototype"
 CDN_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
-EXPOSE = """window.__g = { get camFade(){return camFade;}, get CAM_FADE(){return CAM_FADE;}, get addBox(){return addBox;}, get mapRoot(){return mapRoot;}, get weaponGeo(){return weaponGeo;}, get pilotSway(){return pilotSway;}, get pilotSwayWeights(){return pilotSwayWeights;}, get PILOT_RIGS(){return PILOT_RIGS;}, get PILOT_PATCHES(){return PILOT_PATCHES;}, get PILOT_LAYERS(){return PILOT_LAYERS;}, get pilotStillsReady(){return pilotStillsReady;}, get stepTo(){return stepTo;}, get walkSurface(){return walkSurface;}, get deathEnergyBurst() { return deathEnergyBurst; }, get clearDeathEnergy() { return clearDeathEnergy; }, get ACTIONS() { return ACTIONS; }, get actionUpdate() { return actionUpdate; }, get cameraPivot() { return cameraPivot; }, get hoverLegs() { return hoverLegs; }, get hoverActive() { return hoverActive; }, get hoverGroundAt() { return hoverGroundAt; }, get hoverOnWater() { return hoverOnWater; }, get waterDamageTick() { return waterDamageTick; }, get waterHeightAt() { return waterHeightAt; }, get hoverClearPath() { return hoverClearPath; }, get movementSpread() { return movementSpread; }, get shortDash() { return shortDash; }, get jolt() { return jolt; }, get setBonus() { return setBonus; }, get PART_SERIES() { return PART_SERIES; }, get HOVER_PART_TYPES() { return HOVER_PART_TYPES; }, get beamCannonTick() { return beamCannonTick; }, get beamCannonTurn() { return beamCannonTurn; }, get beamCannonCast() { return beamCannonCast; }, get beamCannonMuzzle() { return beamCannonMuzzle; }, get stopBeamCannon() { return stopBeamCannon; }, get beamCannonOwners() { return beamCannonOwners; }, get plantVisualTick() { return plantVisualTick; }, get paintPlant() { return paintPlant; }, get bigMapSize() { return bigMapSize; }, get lockUpdate() { return lockUpdate; }, get lockCandidates() { return lockCandidates; }, get toggleLock() { return toggleLock; }, get mirages() { return mirages; }, get mirageMesh() { return mirageMesh; }, get deployMirage() { return deployMirage; }, get mirageTick() { return mirageTick; }, get heldMirage() { return heldMirage; }, get damageGadget() { return damageGadget; }, get missileTargetValid() { return missileTargetValid; }, get pressed() { return pressed; }, get cityMap() { return cityMap; }, get cityBattle() { return cityBattle; }, get getCityMap() { return getCityMap; }, get ceilingAt() { return ceilingAt; }, get resolve() { return resolve; }, get plantUpdate() { return plantUpdate; }, get podUpdate() { return podUpdate; }, get catapultUpdate() { return catapultUpdate; }, get player() { return player; }, units, lock, T, cores, plants, turrets, pods, catapults, shells, barricades, fx, WEAPONS, CLASSES,
-  equip, selectWeapon, pickClass, destroyTurret, kill, spawn, spawnPos, setup, loop, get ended() { return ended; }, obstacles, TEAM, terrainH, terrainHit, castFrom, gadgets, drones, spotted, SLOTS,
-  physics, damage, radars, SC, impact, keys, blast, shoot, shot, repairTick, MAPS, buildMap, selectMap, showPage, PLANT_R, resetPlants,
-  get botWetAt() { return botWetAt; }, get botWetPath() { return botWetPath; }, get botDryGoal() { return botDryGoal; }, get botSafeMove() { return botSafeMove; }, navPath, navNear, navSteer, clearPath, buildNav, groundAt, botUpdate, launch, renderer, get pathEndH() { return pathEndH; }, get NAV() { return NAV; }, get bridges() { return bridges; }, get waters() { return waters; },
-  get curMap() { return curMap; }, get mapId() { return mapId; }, get MATCH() { return MATCH; },
-  get timeLeft() { return timeLeft; }, set timeLeft(v) { timeLeft = v; },
-  get ARMORY() { return ARMORY; }, get loadout() { return loadout; }, get builds() { return builds; }, get buildSaveState() { return buildSaveState; }, get toggleSp() { return toggleSp; }, get detonateRemotes() { return detonateRemotes; },
-  get weaponsTick() { return weaponsTick; }, get slotOf() { return slotOf; },
-  get baseKick() { return baseKick; }, get recoilKick() { return recoilKick; }, get recoilRecover() { return recoilRecover; }, get recoilAim() { return recoilAim; }, get lockStick() { return lockStick; }, get botRecoilReady() { return botRecoilReady; },
-  get PARTS() { return PARTS; }, get mechCfg() { return mechCfg; }, get mechStats() { return mechStats; }, get MECH_DEFAULT() { return MECH_DEFAULT; },
-  get botMech() { return botMech; }, get renderCustom() { return renderCustom; }, get weaponGeoBank() { return weaponGeoBank; }, get nearestPod() { return nearestPod; },
-  get jumpPads() { return jumpPads; }, get lifts() { return lifts; }, get ziplines() { return ziplines; }, get zipGrab() { return zipGrab; }, get zipNear() { return zipNear; }, get zipDrop() { return zipDrop; }, get zipCan() { return zipCan; }, get jumpPadUpdate() { return jumpPadUpdate; }, get liftUpdate() { return liftUpdate; },
-  get resetMobility() { return resetMobility; }, get botMobilityGoal() { return botMobilityGoal; },
-  get baseDefenseTask() { return baseDefenseTask; }, get raidGoal() { return raidGoal; }, get botTransfer() { return botTransfer; }, get radarUpdate() { return radarUpdate; }, get spot() { return spot; }, get camera() { return camera; }, get scene() { return scene; }, get targetPoint() { return targetPoint; },
-  get canSee() { return canSee; }, get areaTime() { return areaTime; }, get placeGadget() { return placeGadget; },
-  get buildMech() { return buildMech; }, get disposeMech() { return disposeMech; },
-  get hittables() { return hittables; }, get fire() { return fire; }, get mechRig() { return mechRig; },
-  get specialTick() { return specialTick; }, get barrierAbsorb() { return barrierAbsorb; }, get barrierReady() { return barrierReady; }, get postTick() { return postTick; }, get postFlightTick() { return postFlightTick; }, get postFieldTick() { return postFieldTick; }, get botAct() { return botAct; }, get removeGadget() { return removeGadget; }, get gadgetUpdate() { return gadgetUpdate; }, get revive() { return revive; }, get wreck() { return wreck; }, get canRevive() { return canRevive; }, get downTick() { return downTick; },
-  get auxiliaryStatusTick() { return auxiliaryStatusTick; }, get radarToolTick() { return radarToolTick; }, get planarSensorTick() { return planarSensorTick; }, get ammoBoxTick() { return ammoBoxTick; }, get needsAmmo() { return needsAmmo; }, get placeGadget() { return placeGadget; }, get swordTick() { return swordTick; }, get weaponLook() { return weaponLook; }, get camera() { return camera; }, get tagsHud() { return tagsHud; }, get updateCamera() { return updateCamera; },
-  get blastShake() { return blastShake; }, get updateBlastShake() { return updateBlastShake; }, get renderView() { return renderView; },
-  get bladeSweep() { return bladeSweep; }, get mainMuzzleUpdate() { return mainMuzzleUpdate; }, get fxUpdate() { return fxUpdate; }, get cloakPass() { return cloakPass; }, get cloakLook() { return cloakLook; },
-  get mechPose() { return mechPose; }, get resetMechPose() { return resetMechPose; }, get muzzle() { return muzzle; }, get land() { return land; }, get jolt() { return jolt; },
-  get botUpdate() { return botUpdate; }, get trackAim() { return trackAim; }, get fieldTick() { return fieldTick; }, get sentryTick() { return sentryTick; },
-  get heatFields() { return heatFields; }, get chains() { return chains; }, get secondaryBurst() { return secondaryBurst; }, get secondaryUpdate() { return secondaryUpdate; }, get clearSecondaryEffects() { return clearSecondaryEffects; }, get startChain() { return startChain; }, get shellUpdate() { return shellUpdate; }, get scopePower() { return scopePower; }, get wStats() { return wStats; }, get itemNums() { return itemNums; },
-  get barrages() { return barrages; }, get artilleryTick() { return artilleryTick; }, get artilleryUpdate() { return artilleryUpdate; }, get artilleryConfirm() { return artilleryConfirm; }, get isArtilleryMode() { return isArtilleryMode; }, get stopArtillery() { return stopArtillery; }, get clearArtillery() { return clearArtillery; }, get artillerySurface() { return artillerySurface; }, get drawBigMap() { return drawBigMap; }, get playerUpdate() { return playerUpdate; }, get mapCur() { return mapCur; }, get startTransfer() { return startTransfer; }, get shortDash() { return shortDash; },
-  get boom() { return boom; }, get booms() { return booms; }, get boomUpdate() { return boomUpdate; }, get clearBooms() { return clearBooms; }, get boomVisuals() { return boomVisuals; }, get BOOM_MAX() { return BOOM_MAX; },
-  get tracer() { return tracer; }, get tutorial() { return tutorial; },
-  get baseAt() { return baseAt; }, get inBase() { return inBase; }, get inOwnBase() { return inOwnBase; }, get scoreTick() { return scoreTick; }, get scoreDefend() { return scoreDefend; },
-  get missileLockTick() { return missileLockTick; }, get missileFlight() { return missileFlight; }, get missileHud() { return missileHud; }, get clearMissileLocks() { return clearMissileLocks; }, get puffUpdate() { return puffUpdate; },
-  get tracerProfile() { return tracerProfile; }, get lockWarning() { return lockWarning; }, get incomingShots() { return incomingShots; }, get incomingFire() { return incomingFire; }, get turretUpdate() { return turretUpdate; },
-  get gameOptions() { return gameOptions; }, get audio() { return audio; }, get sfx() { return sfx; }, get sfxBuf() { return sfxBuf; }, get soundVoices() { return soundVoices; }, get applyAudioSettings() { return applyAudioSettings; }, get bgmTick() { return bgmTick; }, get initAudio() { return initAudio; }, get openOptions() { return openOptions; }, get closeOptions() { return closeOptions; }, get saveOptions() { return saveOptions; },
-  get movementAudioTick() { return movementAudioTick; }, get movementStep() { return movementStep; }, get stopMovementSounds() { return stopMovementSounds; },
-  get cannonTick() { return cannonTick; }, get gadgetUpdate() { return gadgetUpdate; },
-  get emitReconPulse() { return emitReconPulse; }, get reconPulseUpdate() { return reconPulseUpdate; }, get clearReconPulses() { return clearReconPulses; }, get reconPulses() { return reconPulses; }, get reconPulseBatches() { return reconPulseBatches; }, get launchDrone() { return launchDrone; }, get clearGadgets() { return clearGadgets; },
-  get hitMark() { return hitMark; }, get flashDamage() { return flashDamage; }, get damageSectors() { return damageSectors; }, get combatFeedbackUpdate() { return combatFeedbackUpdate; }, get combatFeedbackHud() { return combatFeedbackHud; }, get resetCombatFeedback() { return resetCombatFeedback; },
-  get boosterFlameUpdate() { return boosterFlameUpdate; }, get resetBoosterFlame() { return resetBoosterFlame; }, get makeBoosterFlame() { return makeBoosterFlame; },
-  get barrierAxis() { return barrierAxis; }, get hud() { return hud; }, get lockHud() { return lockHud; }, get spottedHud() { return spottedHud; }, get running() { return running; }, set running(v) { running = v; },
-  get pad() { return pad; }, padTick, padActive, get hybridPads() { return hybridPads; }, get qc() { return qc; }, get pings() { return pings; }, get qchatSend() { return qchatSend; }, get addPing() { return addPing; }, get mapOpen() { return mapOpen; }, get chosenCls() { return chosenCls; }, get range() { return range; },
-  get touchAutoTrigger() { return touchAutoTrigger; }, get touchTick() { return touchTick; }, get touchMeleeTarget() { return touchMeleeTarget; }, get touchMenuOpen() { return touchMenuOpen; }, get touchMenuClose() { return touchMenuClose; }, get touchAutoCancel() { return touchAutoCancel; }, get inputMode() { return inputMode; }, get touch() { return touch; }, get touchPlay() { return touchPlay; }, get TOUCH() { return TOUCH; }, get mobileOk() { return mobileOk; }, get TEAM_SIZES() { return TEAM_SIZES; }, get wsel() { return wsel; }, get consoleMode() { return consoleMode; }, get mouseDown() { return mouseDown; }, get rightDown() { return rightDown; } };"""
+# __g に出す名前（2026-11-04 リファクタ）：index.html の本体の <script> で行頭に宣言した関数・const・let・var・class を全部自動で出す。
+# 新しい関数や変数を足しても、ここを書き換える必要はない（Codex との並行作業で、この1行に何百個も並べていた所がいつもぶつかっていた）。
+# どれも getter なので、読んだときに初めて評価する（古い版を --src で試しても、無い名前を読まなければ止まらない）。
+# 自動で拾えない名前（ブロックの中で宣言した物など）は EXTRA に1行1つで足す。値を書き換えたい変数は SETTERS に1行1つで足す。
+EXTRA = [
+]
+SETTERS = [
+    "timeLeft",
+    "running",
+]
+ID = r"[A-Za-z_$][\w$]*"
+
+
+def declared_names(code):
+    """行頭（字下げなし）の宣言から名前を拾う。分割代入（const [a, b] = ...、const {a, b} = ...）と、カンマ区切りの複数宣言も拾う。"""
+    names = []
+
+    def add(n):
+        if n not in names:
+            names.append(n)
+
+    for line in code.split("\n"):
+        m = re.match(r"(?:async\s+)?function\s*\*?\s*(" + ID + r")\s*\(", line) or re.match(r"class\s+(" + ID + ")", line)
+        if m:
+            add(m.group(1))
+            continue
+        m = re.match(r"(?:const|let|var)\s+(.*)", line)
+        if not m:
+            continue
+        rest, k, depth, start = m.group(1), 0, 0, True
+        while k < len(rest):
+            ch = rest[k]
+            if start:
+                start = False
+                m2 = re.match(r"\s*(" + ID + ")", rest[k:])
+                if m2 and depth == 0:
+                    add(m2.group(1))
+                    k += m2.end()
+                    continue
+                m2 = re.match(r"\s*[\[{]", rest[k:])
+                if m2:  # 分割代入：対応する括弧の中の名前
+                    k += m2.end()
+                    d, seg = 1, ""
+                    while k < len(rest) and d > 0:
+                        c = rest[k]
+                        d += c in "[{"
+                        d -= c in "]}"
+                        if d > 0:
+                            seg += c
+                        k += 1
+                    for part in seg.split(","):
+                        part = part.split("=")[0].strip()
+                        part = (part.split(":")[1] if ":" in part else part).strip().lstrip(".")
+                        if re.fullmatch(ID, part):
+                            add(part)
+                    continue
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}":
+                depth -= 1
+            elif ch in "\"'`":  # 文字列の中のカンマは数えない
+                k += 1
+                while k < len(rest) and rest[k] != ch:
+                    k += 2 if rest[k] == "\\" else 1
+            elif rest.startswith("//", k):
+                break
+            elif ch == "," and depth == 0:
+                start = True
+            elif ch == ";" and depth == 0:
+                break
+            k += 1
+    return names
+
+
+def build_expose(html):
+    """window.__g を作る1行。本体の <script>（maps.js の後）の中身から名前を拾う。"""
+    i = html.index("<script>\n", html.index('src="maps.js"'))
+    code = html[i:html.rindex("</script>")]
+    names = declared_names(code)
+    for n in EXTRA + SETTERS:
+        if n not in names:
+            names.append(n)
+    items = [f"get {n}() {{ return {n}; }}" + (f", set {n}(v) {{ {n} = v; }}" if n in SETTERS else "") for n in names]
+    return "window.__g = { " + ", ".join(items) + " };"
+
 
 
 def rep(s, a, b):
@@ -79,6 +125,7 @@ def main():
     out = pathlib.Path(args[0])
     out.mkdir(parents=True, exist_ok=True)
     s = src.read_text(encoding="utf-8")
+    EXPOSE = build_expose(s)
     s = rep(s, "const dt = Math.min(0.05, (now - last) / 1000); last = now;", "const dt = window.__dt || 0.05; last = now;")
     s = rep(s, "function botUpdate(u, dt) {\n", "function botUpdate(u, dt) {\n  if (u.frozen) return;\n")
     # Bot戦では選択陣営の1番機も最初から通常Botとして生成し、機体抽選と初動を同じにする。
@@ -101,8 +148,8 @@ def main():
             "if (ref && ref.kind === 'core' && ref.team !== sh.team && S.core) { scoreCore(sh.owner, S.dmg); ref.hp = Math.max(0, ref.hp - S.dmg * CORE_RATE); annCore(ref.team); hitAny = true; }",
             "if (ref && ref.kind === 'core' && ref.team !== sh.team && S.core) { const before = ref.hp; scoreCore(sh.owner, S.dmg); ref.hp = Math.max(0, ref.hp - S.dmg * CORE_RATE); annCore(ref.team); window.__battleEvent?.({type:'coreHit', via:'blast', team:ref.team, unit:sh.owner?.kind === 'unit' ? sh.owner.team+(sh.owner.idx+1) : null, pos:sh.owner?.pos?.toArray(), amount:before-ref.hp, raw:S.dmg}); hitAny = true; }")
         s = rep(s,
-            "cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : KILL_CORE));",
-            "const before = cores[v.team].hp;\n  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : KILL_CORE));\n  window.__battleEvent?.({type:'wreck', team:v.team, unit:v.team+(v.idx+1), pos:v.pos.toArray(), amount:before-cores[v.team].hp});")
+            "cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : killCore));",
+            "const before = cores[v.team].hp;\n  cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : killCore));\n  window.__battleEvent?.({type:'wreck', team:v.team, unit:v.team+(v.idx+1), pos:v.pos.toArray(), amount:before-cores[v.team].hp});")
         s = rep(s,
             "u.pos.y = terrainH(u.pos.x, u.pos.z);\n}\nfunction spawn(u, at = 'base')",
             "u.pos.y = terrainH(u.pos.x, u.pos.z);\n  window.__battleEvent?.({type:'deploy', unit:u.team+(u.idx+1), team:u.team, at:pl ? pl.id : 'base', reason:u.alive ? 'transfer' : 'respawn', pos:u.pos.toArray()});\n}\nfunction spawn(u, at = 'base')")
