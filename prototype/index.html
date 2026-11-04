@@ -443,6 +443,17 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 .optionSliders output { color: var(--blue); font-variant-numeric: tabular-nums; }
 .optionSliders input { width: 100%; margin: 0 0 16px; accent-color: var(--blue); cursor: pointer; }
 #optionsResume { margin-top: 12px; border-color: var(--blue); }
+#hudPreviewPanel { position:fixed; z-index:60; right:max(12px,env(safe-area-inset-right,0px)); top:calc(12px + env(safe-area-inset-top,0px)); width:min(300px,calc(100vw - 24px)); max-height:calc(100vh - 24px); overflow:auto; box-sizing:border-box; padding:12px 16px; border:1px solid #7bbed6; border-radius:8px; background:#091923ed; color:var(--hud); box-shadow:0 4px 24px #0008; font:14px var(--body); }
+#hudPreviewPanel[hidden] { display:none; }
+#hudPreviewHandle { display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:move; touch-action:none; user-select:none; }
+#hudPreviewPanel button { padding:6px 10px; font:inherit; color:var(--hud); background:#1b3444; border:1px solid #6496ae; border-radius:4px; cursor:pointer; }
+#hudPreviewPanel .optionSliders { gap:6px; margin:14px 0 8px; }
+#hudPreviewPanel .optionSliders input { margin:0 0 8px; min-height:24px; }
+#hudPreviewPanel p { margin:8px 0; color:var(--dim); font-size:11px; }
+body.hud-preview :is(#touchZone,#tcPad,#tcTop,#tcNext) { pointer-events:none; }
+body.hud-preview :is(#center,#respawn,#tutorialHud,#rangeHud) { display:none; }
+body.touchPlay #hudPreviewPanel { width:min(236px,calc(100vw - 24px)); padding:10px 12px; font-size:12px; }
+body.padNav #hudPreviewPanel :focus { outline:3px solid #ffd34d; outline-offset:2px; }
 .optionHead { margin: 12px 0 0; font-family: var(--display); font-size: 18px; letter-spacing: .08em; }
 /* コントローラーでメニューを選んでいる間は、選んでいる物を太い枠で示す（2026-10-27） */
 body.padNav #overlay :focus, body.padNav #overlay label:has(> input:focus) { outline: 3px solid #ffd34d; outline-offset: 2px; }
@@ -972,17 +983,17 @@ body[data-console="retro"] :is(#wpn .act,#status .row.act > span,#sp.act,#aimSp.
 
 
 /* パイロットはHUDから独立した共通の左下欄。アーケードの156px肖像を基準にする。 */
-body { --pilot-size:156px; --pilot-left:max(32px,calc(2 * var(--vw, 1vw))); --pilot-bottom:max(20px,env(safe-area-inset-bottom,0px)); }
+body { --pilot-base-size:156px; --pilot-size:calc(var(--pilot-base-size) * var(--hud-pilot-scale,1)); --pilot-left:max(32px,calc(2 * var(--vw, 1vw))); --pilot-bottom:max(20px,env(safe-area-inset-bottom,0px)); }
 body[data-console] #pilot { position:fixed; left:var(--pilot-left); bottom:var(--pilot-bottom); top:auto; width:var(--pilot-size); padding:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--pilot-size) 22px 16px; gap:5px; justify-items:center; background:none; pointer-events:none; }
 body[data-console] #pilotMark { display:grid; grid-row:1; width:var(--pilot-size); height:var(--pilot-size); padding:0; background:none; clip-path:none; }
 body[data-console] #pilotName { grid-row:2; width:100%; text-align:center; font-size:16px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
 body[data-console] #pilotCls { grid-row:3; justify-self:center; font-size:10px; line-height:1.4; }
 body[data-console]:not([data-console="arcade"]):not(.touchPlay) #status { left:calc(var(--pilot-left) + var(--pilot-size) + 16px); }
-@media(max-width:1000px) { body { --pilot-size:120px; --pilot-left:24px; } }
+@media(max-width:1000px) { body { --pilot-base-size:120px; --pilot-left:24px; } }
 @media(max-width:1000px) { body[data-console="standard"]:not(.touchPlay) #status { width:220px; box-sizing:border-box; } body[data-console="retro"]:not(.touchPlay) #status { width:176px; box-sizing:border-box; } }
-@media(max-width:700px) { body { --pilot-size:96px; --pilot-left:20px; } }
+@media(max-width:700px) { body { --pilot-base-size:96px; --pilot-left:20px; } }
 /* タッチでは左側の情報欄の横へ小さく配置。移動スティックと右の操作ボタンを空ける。 */
-body.touchPlay { --pilot-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
+body.touchPlay { --pilot-base-size:48px; --pilot-left:calc(max(12px,env(safe-area-inset-left,0px)) + 188px); }
 body.touchPlay #pilot { top:calc(152px + env(safe-area-inset-top,0px)); bottom:auto; }
 body.touchPlay #pilotName { font-size:10px; }
 body.touchPlay #pilotCls { font-size:9px; }
@@ -1040,7 +1051,7 @@ body { --ta-ammo:#6cddff; --ta-hp:#80e4b1; --ta-boost:#efc373; --ta-sp:#baa8ed; 
 body[data-console="mechanical"] { --ta-ammo:#dceee3; --ta-hp:#b9d5cb; --ta-boost:#adc9c0; --ta-sp:#7dffb0; --ta-text:#dceee3; --ta-cursor:#b9d5cb; --ta-track:#adc9c02e; }
 body[data-console="retro"] { --ta-ammo:#f2c374; --ta-hp:#d5b781; --ta-boost:#dc9856; --ta-sp:#efcd8c; --ta-text:#f2c374; --ta-cursor:#e8b962; --ta-track:#c39b5838; }
 #lockRing, #aimGauge, #aimSp, #mechAim { display:none!important; }
-#triangleAim { left:50%; top:50%; transform:translate(-50%,-50%); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
+#triangleAim { left:50%; top:50%; transform:translate(-50%,-50%) scale(var(--hud-triangle-scale,1)); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
 #triangleAim[hidden], #triangleAim [hidden], #trOh[hidden] { display:none; }
 #triangleAim path { fill:none; stroke-width:5; stroke-linecap:butt; }
 #triangleAim .ta-track { stroke:var(--ta-track); }
@@ -1171,6 +1182,12 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
   <dl><dt>最後の命中</dt><dd id="rangeLast">—</dd><dt>続けて当てた合計</dt><dd id="rangeSum">—</dd><dt>毎秒</dt><dd id="rangeDps">—</dd><dt>撃破まで</dt><dd id="rangeKill">—</dd></dl>
   <small id="rangeHint"></small></aside>
 <aside id="tutorialHud" hidden aria-label="チュートリアルの課題"><small id="tutorialCount"></small><progress id="tutorialProgress" value="0" max="13" aria-label="演習の進み具合"></progress><div aria-live="polite" aria-atomic="true"><h2 id="tutorialTitle"></h2><p id="tutorialInstruction"></p><strong id="tutorialResult"></strong></div><p><small>Esc：一時停止・やり直し・スキップ・終了</small></p></aside>
+<aside id="hudPreviewPanel" role="dialog" aria-modal="true" aria-label="HUDの大きさ調整" aria-describedby="hudPreviewHint" hidden>
+  <div id="hudPreviewHandle"><b>HUDの大きさ</b><button type="button" class="back" id="hudPreviewClose">調整を終える</button></div>
+  <p id="hudPreviewHint">一時停止中・自動保存。見出しをドラッグして移動できます。</p>
+  <div id="hudPreviewControls"></div>
+  <button type="button" id="hudSizeReset">両方100%に戻す</button>
+</aside>
 <div id="overlay">
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
@@ -1240,6 +1257,17 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
             <label for="optUiSize">UIの大きさ <output id="optUiSizeValue" for="optUiSize"></output></label>
             <input id="optUiSize" type="range" min="0" max="100" step="1">
           </div>
+          <section id="hudSizeOptions">
+            <h3 class="optionHead">HUD</h3>
+            <div class="optionSliders" id="hudSizeControls">
+              <label for="optHudTriangle">三角ゲージの大きさ <output id="optHudTriangleValue" for="optHudTriangle"></output></label>
+              <input id="optHudTriangle" type="range" min="100" max="200" step="1">
+              <label for="optHudPilot">パイロットの大きさ <output id="optHudPilotValue" for="optHudPilot"></output></label>
+              <input id="optHudPilot" type="range" min="100" max="200" step="1">
+            </div>
+            <button type="button" class="optionAction" id="hudPreviewOpen">実画面で調整</button>
+            <p class="note">100%が今の大きさです。実際のゲーム画面を見ながら、それぞれ200%まで拡大できます。</p>
+          </section>
         </div>
         <div class="optCol">
           <h3 class="optionHead">コンソール（戦闘画面の配置）</h3>
@@ -1517,9 +1545,11 @@ const SFX = {
 // 既存の装備・音声スイッチの保存とは独立させる。保存不可でもその場の調整は使える。
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, swayHair: 100, swayChest: 100 };
+let hudPreview = false, hudPreviewFresh = false;
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, hudTriangle: 100, hudPilot: 100, swayHair: 100, swayChest: 100 };
 // swayHair・swayChest：保存済みの揺れ倍率との互換用。新規はキャラの規定値どおりの100%。設定画面には出さない。
-const OPTION_MAX = { swayHair: 300, swayChest: 300 };
+const OPTION_MIN = { fov: 60, hudTriangle: 100, hudPilot: 100 };
+const OPTION_MAX = { hudTriangle: 200, hudPilot: 200, swayHair: 300, swayChest: 300 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 // uiFit：UIを画面の大きさに比例させる（1280×720 で等倍）。uiSize：UIの倍率（0〜100。50で等倍、0で0.7倍、100で1.3倍）。
 const uiSizeScale = v => .7 + v * .006;
@@ -1532,9 +1562,16 @@ function applyUiScale() {
 const gameOptions = { ...OPTION_DEFAULTS };
 try {
   const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY));
-  for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(k === 'fov' ? 60 : 0, Math.min(OPTION_MAX[k] ?? 100, saved[k])));
+  for (const k of Object.keys(gameOptions)) if (typeof saved?.[k] === 'number' && Number.isFinite(saved[k])) gameOptions[k] = Math.round(Math.max(OPTION_MIN[k] ?? 0, Math.min(OPTION_MAX[k] ?? 100, saved[k])));
 } catch (_) {}
 const optionEl = k => document.getElementById('opt' + k[0].toUpperCase() + k.slice(1));
+function applyHudScale() {
+  const style = document.documentElement.style;
+  style.setProperty('--hud-triangle-scale', (gameOptions.hudTriangle / 100).toFixed(2));
+  style.setProperty('--hud-pilot-scale', (gameOptions.hudPilot / 100).toFixed(2));
+  const base = parseFloat(style.getPropertyValue('--aim-sp-base'));
+  if (Number.isFinite(base)) style.setProperty('--aim-sp-offset', (base * gameOptions.hudTriangle / 100) + 'px');
+}
 function renderOptions() {
   for (const k of Object.keys(gameOptions)) {
     const el = optionEl(k);
@@ -1544,6 +1581,7 @@ function renderOptions() {
     document.getElementById(el.id + 'Value').textContent = k === 'uiSize' ? Math.round(uiSizeScale(gameOptions[k]) * 100) + '%' : gameOptions[k] + (OPTION_UNIT[k] ?? '%');
   }
   document.documentElement.style.setProperty('--tc-scale', (.75 + gameOptions.touchSize / 200).toFixed(3)); // タッチのボタンの大きさ
+  applyHudScale();
   applyUiScale();
 }
 function saveOptions() {
@@ -11352,7 +11390,7 @@ function padTick(dt) {
   }
   const ls = padStick(g.axes[0] || 0, g.axes[1] || 0), rs = padStick(g.axes[2] || 0, g.axes[3] || 0);
   if (ls.m || rs.m || Object.values(down).some(Boolean)) pad.usedT = performance.now();
-  const menu = !$('overlay').hidden, respawnUi = running && !$('respawn').hidden;
+  const menu = hudPreview || !$('overlay').hidden, respawnUi = running && !$('respawn').hidden;
   for (const name of Object.keys(PB)) {
     if (down[name] && !pad.held[name]) padPress(name, menu, respawnUi);
     else if (!down[name] && pad.held[name]) padRelease(name);
@@ -11370,7 +11408,7 @@ function padTick(dt) {
   // 決定でページが変わり、選んでいた物が消えたら、新しいページの最初の物へ
   if (document.body.classList.contains('padNav')) {
     const a = document.activeElement;
-    if (!a || a === document.body || !a.getClientRects().length || !$('overlay').contains(a)) { const items = padMenuItems(); if (items.length) padFocus(padDefaultFocus(items)); }
+    if (!a || a === document.body || !a.getClientRects().length || !(hudPreview ? $('hudPreviewPanel') : $('overlay')).contains(a)) { const items = padMenuItems(); if (items.length) padFocus(padDefaultFocus(items)); }
   }
 }
 function padPress(name, menu, respawnUi) {
@@ -11420,7 +11458,7 @@ function padLook(rs, dt, full) {
 }
 const PAD_FOCUS = 'button, select, input:not([type="text"]):not([type="file"]):not([type="hidden"]), [tabindex]:not([tabindex="-1"])';
 function padMenuItems() {
-  const page = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden) || $('overlay');
+  const page = hudPreview ? $('hudPreviewPanel') : [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden) || $('overlay');
   return [...page.querySelectorAll(PAD_FOCUS)].filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
 }
 function padDefaultFocus(items) {
@@ -11534,7 +11572,7 @@ const TC_KEYS = { jump: ['Space'], dash: ['ShiftLeft'], reload: ['KeyR'], act: [
 const TC_TAPS = { map: ['KeyM'], xfer: ['KeyH'], next: ['Enter'] }; // 押した時に1回
 function touchTick() {
   document.body.classList.toggle('mobilePad',TOUCH_INPUT&&inputMode.mode==='gamepad'&&pad.index>=0&&running&&!!player&&$('overlay').hidden);
-  const on = TOUCH_INPUT && inputMode.mode==='touch' && running && !!player && $('overlay').hidden;
+  const on = TOUCH_INPUT && inputMode.mode==='touch' && (running || hudPreview) && !!player && $('overlay').hidden;
   if (on !== touchPlay) {
     touchPlay = on; document.body.classList.toggle('touchPlay', on);
     if (!on) touchEndAll();
@@ -11712,6 +11750,7 @@ function touchFullscreen() {
   const gameplayKeys=new Set(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyR','KeyE','KeyF','KeyG','KeyH','KeyM','Space','ShiftLeft','ShiftRight','Digit1','Digit2','Digit3','Digit4','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab','Escape','F3']);
   addEventListener('keydown',e=>{
     if(!TOUCH_INPUT || !e.isTrusted)return; // padKeyなどの合成キーは方式を変えない
+    if(hudPreview && (e.code==='F3' || e.code==='Escape'))return;
     if(e.target.isContentEditable||e.target.closest?.('input,textarea,select')){e.stopImmediatePropagation();return;}
     if(!hybridGameActive()||!gameplayKeys.has(e.code))return;
     if(e.repeat&&inputMode.mode!=='manual'){e.stopImmediatePropagation();return;}
@@ -12731,12 +12770,70 @@ function openOptions() {
   $('overlay').hidden = false; showPage('pgOptions');
 }
 function closeOptions() {
+  if (hudPreview) { closeHudPreview(); return; }
   if (!optionsPaused) { showPage(tutorial ? tutorial.optionsPage || 'pgTutorialPause' : range ? range.optionsPage || 'pgRangePause' : 'pgMenu'); return; }
   optionsPaused = false; running = true; $('overlay').hidden = true;
   for (const k in keys) delete keys[k];
   for (const k in pressed) delete pressed[k];
   grabPointer();
 }
+function openHudPreview() {
+  if (hudPreview) return;
+  hudPreviewFresh = !player || ended;
+  if (hudPreviewFresh) setup();
+  running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = qc.open = false;
+  touchEndAll(); stopMovementSounds();
+  for (const k in keys) delete keys[k];
+  for (const k in pressed) delete pressed[k];
+  hudPreview = true; document.body.classList.add('hud-preview');
+  $('overlay').hidden = true;
+  const panel = $('hudPreviewPanel'); panel.style.left = panel.style.right = panel.style.top = ''; panel.hidden = false;
+  $('hudPreviewControls').appendChild($('hudSizeControls'));
+  document.exitPointerLock?.();
+  if (hudPreviewFresh) updateCamera(player, 1);
+  touchTick(); hud(timeLeft, 0); renderView();
+  $('optHudTriangle').focus();
+}
+function closeHudPreview() {
+  if (!hudPreview) return;
+  hudPreview = false; hudPreviewDrag = null; document.body.classList.remove('hud-preview');
+  $('hudSizeOptions').insertBefore($('hudSizeControls'), $('hudPreviewOpen'));
+  $('hudPreviewPanel').hidden = true;
+  if (hudPreviewFresh) ended = true; // メニューからの見本で準備した試合は、出撃時に作り直す。
+  hudPreviewFresh = false; running = false; mouseDown = rightDown = false; touchEndAll();
+  for (const k in keys) delete keys[k];
+  for (const k in pressed) delete pressed[k];
+  $('overlay').hidden = false; showPage('pgOptions');
+  touchTick(); hud(timeLeft, 0);
+  $('hudPreviewOpen').focus();
+}
+let hudPreviewDrag = null;
+function placeHudPreview(x, y) {
+  const panel = $('hudPreviewPanel'), r = panel.getBoundingClientRect();
+  panel.style.right = 'auto';
+  panel.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x)) + 'px';
+  panel.style.top = Math.max(8, Math.min(innerHeight - r.height - 8, y)) + 'px';
+}
+$('hudPreviewOpen').addEventListener('click', openHudPreview);
+$('hudPreviewClose').addEventListener('click', closeHudPreview);
+$('hudSizeReset').addEventListener('click', () => { gameOptions.hudTriangle = gameOptions.hudPilot = 100; saveOptions(); });
+$('hudPreviewHandle').addEventListener('pointerdown', e => {
+  if (e.target.closest('button')) return;
+  const r = $('hudPreviewPanel').getBoundingClientRect();
+  hudPreviewDrag = { id:e.pointerId, x:e.clientX, y:e.clientY, left:r.left, top:r.top };
+  e.currentTarget.setPointerCapture(e.pointerId); e.preventDefault();
+});
+$('hudPreviewHandle').addEventListener('pointermove', e => {
+  const d = hudPreviewDrag;
+  if (d?.id === e.pointerId) placeHudPreview(d.left + e.clientX - d.x, d.top + e.clientY - d.y);
+});
+for (const name of ['pointerup','pointercancel']) $('hudPreviewHandle').addEventListener(name, () => { hudPreviewDrag = null; });
+$('hudPreviewPanel').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const items = [...e.currentTarget.querySelectorAll('button,input')], first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 $('optionsResume').addEventListener('click', closeOptions);
 $('overlay').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -12762,6 +12859,7 @@ $('overlay').addEventListener('click', e => {
   } else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
 });
 addEventListener('keydown', e => {
+  if (hudPreview && (e.code === 'F3' || e.code === 'Escape')) { e.preventDefault(); if (!e.repeat) closeHudPreview(); return; }
   if (e.code === 'F3') { e.preventDefault(); if (!e.repeat) { if (!$('pgOptions').hidden) closeOptions(); else openOptions(); } }
   if (e.code === 'Escape' && !$('overlay').hidden && $('pgMenu').hidden && (!tutorial && !range || !$('pgOptions').hidden)) { e.preventDefault(); if (!$('pgOptions').hidden) closeOptions(); else showPage('pgMenu'); }
 });
@@ -13476,7 +13574,8 @@ function triangleAimResize() {
     const el=$('ta'+name+'Text');el.setAttribute('x',0);el.setAttribute('y',-10);el.setAttribute('transform',`translate(${mid.x} ${mid.y}) rotate(${angle})`);el.setAttribute('text-anchor','middle');
   }
   for(const [id,y]of [['taBoostValue',clearance],['taSpValue',clearance+32]]){$(id).setAttribute('x',0);$(id).setAttribute('y',y-9);$(id).setAttribute('text-anchor','middle');}
-  document.documentElement.style.setProperty('--aim-sp-offset',(clearance+52)+'px');
+  document.documentElement.style.setProperty('--aim-sp-base',(clearance+52)+'px');
+  applyHudScale();
   document.body.style.setProperty('--ta-mark-scale',Math.max(.75,Math.min(1,innerHeight/600)));
 }
 function triangleSpecialActive(p) {
@@ -13501,8 +13600,8 @@ function triangleThermal(p) {
   }
 }
 function triangleHud(p) {
-  const svg=$('triangleAim'),on=!!(running&&p.alive&&$('overlay').hidden&&!mapOpen&&!wsel.open&&!(touchPlay&&innerHeight>innerWidth));
-  svg.toggleAttribute('hidden',!on);svg.classList.toggle('scoped',!!p.scoped);
+  const svg=$('triangleAim'),on=!!((running||hudPreview)&&(p.alive||hudPreview)&&$('overlay').hidden&&!mapOpen&&!wsel.open&&!(touchPlay&&innerHeight>innerWidth));
+  svg.toggleAttribute('hidden',!on);svg.classList.toggle('scoped',!!p.scoped&&!hudPreview);
   const fx=p.flame.userData.boostFx,seq=fx.hudIgnition||0,s=triangleHudState;
   if(s.unit!==p||s.life!==p.lifeId||!on){s.pulse.forEach(a=>a.cancel());s.pulse=[];s.ignition=seq;s.unit=p;s.life=p.lifeId;}
   if(on&&seq!==s.ignition){s.ignition=seq;s.pulse.forEach(a=>a.cancel());s.pulse=lockReducedMotion.matches?[]:[$('taBoostFill'),$('boost').firstChild].map(el=>el.animate([{opacity:1},{opacity:.25},{opacity:1}],{duration:220,iterations:1}));}
@@ -14156,6 +14255,7 @@ function resize() {
   $('mechTargetName').setAttribute('x', mc); $('mechTargetName').setAttribute('y', mc - r0 - 38);
   $('mechRange').setAttribute('x', mc); $('mechRange').setAttribute('y', mc + 25);
   triangleAimResize();
+  if (hudPreview) { const r = $('hudPreviewPanel').getBoundingClientRect(); placeHudPreview(r.left, r.top); }
 }
 addEventListener('resize', resize);
 resize();
