@@ -80,6 +80,23 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     await ev(() => { __g.player.slots.main.ammo = 0; __g.player.pos.z -= 30; });
     await key('Escape'); await step(1);
     ok(await ev(() => !__g.running && !document.getElementById('pgRangePause').hidden && document.getElementById('rangeHud').hidden), 'Esc で一時停止');
+    ok(await ev(() => document.querySelectorAll('#rangeClasses button').length === 4 && document.querySelector('#rangeClasses [aria-pressed="true"]').dataset.cls === 'support'), 'ポーズに4兵装を並べ現在の支援を強調');
+    await ev(() => { window.rangeClassRef = __g.range; window.rangeClassTargets = __g.range.targets.slice(); window.rangeClassSaved = JSON.stringify(__g.loadout); });
+    for (const cls of ['assault', 'heavy', 'raid', 'support']) {
+      await page.locator('#rangeClasses [data-cls="' + cls + '"]').click(); await step(1);
+      ok(await ev(cls => {
+        const g = __g, p = g.player;
+        return !g.running && g.range === rangeClassRef && p.cls === cls && g.chosenCls === cls && p.weapon === 'main'
+          && g.SLOTS.every(k => p.slots[k].w.key === g.loadout[cls][k])
+          && document.querySelector('#rangeClasses [aria-pressed="true"]').dataset.cls === cls;
+      }, cls), cls + 'の保存済み4枠を装備し、一時停止のまま選択');
+      ok(await ev(() => {
+        const g = __g, p = g.player;
+        return p.hp === p.maxHp && p.boost === p.maxBoost && p.slots.main.ammo === p.slots.main.w.mag && p.pos.x === 0 && Math.abs(p.pos.z - 170) < .01
+          && g.units.length === 13 && g.range.targets.every((t, i) => t === rangeClassTargets[i] && t.alive && t.hp === t.maxHp)
+          && g.range.targets.filter(t => t.rangeA).length === 4 && JSON.stringify(g.loadout) === rangeClassSaved;
+      }), cls + 'で全回復・開始位置・12標的と装備保存を維持');
+    }
     await ev(() => document.getElementById('rangeRefill').click()); await step(1);
     ok(await ev(() => __g.running && __g.player.slots.main.ammo === __g.player.slots.main.w.mag && Math.abs(__g.player.pos.z - 170) < .01), '「弾と耐久を戻して最初の位置へ」');
     await key('Escape'); await step(1);
@@ -101,6 +118,7 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     await ev(() => document.getElementById('rangeToCustom').click()); await step(1);
     const after = await ev(() => ({ range: __g.range, mapId: __g.mapId, cls: __g.chosenCls, custom: !document.getElementById('pgCustom').hidden, tab: document.querySelector('#cuTabs [aria-selected="true"], #cuTabs .sel')?.dataset.cu, hud: document.getElementById('rangeHud').hidden }));
     ok(after.range === null && after.custom && after.hud, 'カスタマイズ画面へ戻る');
+    ok(after.tab === 'support', '最後に試した支援のカスタマイズを開く');
     ok(after.mapId === before.mapId && after.cls === before.cls, `入る前のマップと兵装に戻る（${after.mapId}・${after.cls}）`);
 
     // 戻った後の通常の試合はいつもどおり
