@@ -6356,6 +6356,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
   }
   const floating=hoverLegs(u), water=hoverOnWater(u);
+  // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C・左Ctrl）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
+  const hoverDive=floating && !u.onGround && !!u.actionHeld && !u.flying;
   // 空中で燃料が尽きたホバーは満充填まで制動噴射を再開しない。
   if(floating && !u.onGround && u.boost<=0){u.boost=0;u.overheat=true;}
   const catFlight = u.flying && !u.jumpPad && u.catMomentum;
@@ -6439,7 +6441,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.stun) accel = u.stun === 'land' ? 10 : u.onGround ? (u.stun === 'stagger' ? 4 : 6) : u.stun === 'stagger' ? 1 : 0.3;
   if(u.swing?.hopped)grav=GRAV; // 日本刀の小跳躍。通常重力で約1.2m、再加速や滞空を足さない。
   // 滞空：空中でジャンプを押し続けると、ブーストを使って高度を保つ
-  const hover = !catFlight && (floating ? hoverActive(u) && !charging && !u.lungeT && !u.swing?.hopped : !u.dashState) && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
+  const hover = !catFlight && (floating ? hoverActive(u) && !hoverDive && !charging && !u.lungeT && !u.swing?.hopped : !u.dashState) && jumpHeld && !u.onGround && u.ctrlLockT <= 0 && u.vel.y < 0 && !u.overheat && u.boost > 0;
   if (hover && !u.dashState) u.dashState = 'hover';
   // 噴射の方向だけ記録。速度・加速度・ブースト消費の計算には使わない。
   if(u.dashState)(u.boostVisualDir ||= new T.Vector3()).copy(dir);
@@ -6499,7 +6501,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
     if (u.boost <= 0) { u.boost = 0; u.overheat = true; if(floating)u.vel.y=hoverFallBefore; }
   }
-  if (!catFlight && floating && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && !u.overheat && u.boost>0 && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL);
+  if (!catFlight && floating && !hoverDive && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && !u.overheat && u.boost>0 && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL);
   const x0 = u.pos.x, z0 = u.pos.z, wasGround = u.onGround;
   // ホバーの慣性は解析積分し、フレームレートで停止距離を変えない。
   let dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
