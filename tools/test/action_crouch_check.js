@@ -21,8 +21,8 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chr
  const oldObs=g.obstacles.slice();g.obstacles.length=0;
  function reset(){g.spawn(u);Object.assign(u,{alive:true,downT:0,electricT:0,recoverT:0,invulT:0,onGround:true,actionHeld:false,crouching:false,actionId:'crouch',slideT:0});u.pos.set(0,g.groundAt(0,0,100),0);u.vel.set(0,0,0);for(const k in g.keys)g.keys[k]=false;for(const k in g.pressed)g.pressed[k]=false;}
  const key=(code,down)=>dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{code,bubbles:true}));
- reset();for(const code of ['KeyC','ControlLeft']){key(code,true);g.playerUpdate(u,1/60);ok(code+'保持',u.crouching);key(code,false);g.playerUpdate(u,1/60);ok(code+'解放',!u.crouching);}
- key('KeyC',true);key('ControlLeft',true);key('KeyC',false);g.playerUpdate(u,1/60);ok('片方を離しても他方の保持有効',u.crouching);key('ControlLeft',false);
+ reset();key('KeyC',true);g.playerUpdate(u,1/60);ok('KeyC保持',u.crouching);key('KeyC',false);g.playerUpdate(u,1/60);ok('KeyC解放',!u.crouching);
+ key('ControlLeft',true);g.playerUpdate(u,1/60);ok('左Ctrlではしゃがまない（2026-11-04、ブラウザの Ctrl+W などと重なるので外した）',!u.crouching);key('ControlLeft',false);
  reset();key('ControlRight',true);g.playerUpdate(u,1/60);ok('右Ctrlは未割当',!u.crouching);
  reset();key('KeyC',true);g.playerUpdate(u,1/60);dispatchEvent(new Event('blur'));ok('フォーカス喪失で解除',!u.crouching&&!g.keys.KeyC);
  const input=document.createElement('input');document.body.append(input);input.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyC',bubbles:true}));ok('入力欄のCを無視',!g.keys.KeyC);input.remove();
