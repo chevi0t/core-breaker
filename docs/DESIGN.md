@@ -12,6 +12,7 @@
 | `three.min.js` | three.js r128（MITライセンス）。配布zipでは同梱、開発版はCDNから読む |
 | `sounds.js` | 効果音のデータ（`window.SOUND_DATA`）。`tools/build_sounds.py` が作る。無くても無音で動く |
 | `maps.js` | マップのデータ（`window.MAP_DATA`）。`tools/build_maps.py` が `prototype/maps/*.js` から作る。無いと遊べない |
+| `weapons.js`・`parts.js` | 武器とパーツの表（2026-11-04 に index.html から分けた）。手で書くファイルで、無いと動かない |
 | `MAPS.md` | マップの書き方と今あるマップの詳細（開発版では `prototype/maps/README.md`） |
 | `music.js` | 戦闘中BGMのデータ（`window.MUSIC_DATA`）。`tools/build_sounds.py --music` が作る。無くてもBGMが鳴らないだけ |
 | `SOUND-CREDITS.md` | 効果音とBGMの出典とライセンス（開発版では `sounds/CREDITS.md`） |
@@ -21,6 +22,7 @@
 
 - 遊ぶ：`index.html` をブラウザで開く。マウスが固定されないときは `python -m http.server 8000` を実行して `http://localhost:8000` を開く。
 - 改造する：`index.html` を直接編集してブラウザを再読み込みするだけ。
+- 武器とパーツの表は `weapons.js`・`parts.js`（2026-11-04 リファクタで index.html から分けた）。どちらも `function weaponModels() {…}`・`function weaponTables() {…}`・`function partTables() {…}` の中に元のコードをそのまま置き、最後の `return { … }` で名前を返す。本体は元の位置（「武器のモデル」「機体パーツ」「兵装と武器」の見出し）で `const { … } = weaponTables();` のように受け取る。本体の `<script>` は包まず（`(() => { … })()` をやめた）、行頭の定数と関数はページの中で共通なので、表の関数の中からも本体の定数・関数をそのまま使える。表に新しい名前を足したら `return` にも足す（本体と試験の `__g` から見える）。
 
 ## 2. ゲームの骨組み
 
@@ -41,7 +43,7 @@
 | マップ | 地形（`featuresOf`、`terrainShape`、`bakeTerrain`、`terrainH`、`terrainHit`、`buildGround`）、障害物（`addBox`、`buildBoxes`）、外周の壁、`TEAM`、コア（`cores`、`buildCores`）。マップの物はすべて `mapRoot` の下に置く |
 | マップ要素 | プラント（`plants`、`buildPlants`、`plantUpdate`、`spawnPoints`）、防衛砲台（`turrets`、`turretUpdate`、`destroyTurret`、`reviveTurret`）、砲弾・ロケット・投げる物（`shoot`、`lobTo`、`shellUpdate`、`blast`）、カタパルト（`launch`）、リペアポッド（`pods`、`podUpdate`）、バリケード（`barricades`、`damageBarricade`）、コアの傘（`buildUmbrellas`）。施設は `buildTurrets`・`buildRadars`・`buildCatapults`・`buildPods`・`buildBarricades` が `MAPS` の座標から作る |
 | マップの切り替え | `buildMap(id)`：今のマップの物を消し、地形を焼き直して施設を作り直す（起動時と `selectMap` から呼ぶ） |
-| 機体パーツ（v0.12） | メーカー `MAKERS`（v0.13）、`PARTS`（部位×型の数値）、パーツのシリーズとセットボーナス `PART_SERIES`・`setBonus`（v0.13）、`WEAPON_KG`（武器の重量）、塗装 `PAINTS`、プレイヤーの機体 `mechCfg`（`normMech`、`saveMech`）、`mechStats`（重量・重量超過・速さ・装甲。セットボーナスを含む）、`botMech` |
+| 機体パーツ（v0.12） | 表は `parts.js` の `partTables()`（`WEAPON_KG` は `weapons.js`）。メーカー `MAKERS`（v0.13）、`PARTS`（部位×型の数値）、パーツのシリーズとセットボーナス `PART_SERIES`・`setBonus`（v0.13）、`WEAPON_KG`（武器の重量）、塗装 `PAINTS`、プレイヤーの機体 `mechCfg`（`normMech`、`saveMech`）、`mechStats`（重量・重量超過・速さ・装甲。セットボーナスを含む）、`botMech` |
 | 機体 | 見た目（`buildMech`：パーツの型で太さと飾りが変わり、部位ごとに1つの形）、`disposeMech`、`makeUnit`、`spawn`、`botSpawn` |
 | 当たり判定 | 障害物との押し戻し（`resolve`）、足場の高さ（`groundAt`）、急斜面で止める（`stepTo`） |
 | 移動 | 定数、`shortDash`、`physics`（歩き・ショートダッシュ・ロングダッシュ・ジャンプ・滞空・カタパルト飛行・ソードの踏み込み（回転斬り・横なぎ）と硬直・よろけ・ダウン・受け身）、`land`（着地硬直）、`jolt`（よろけ・ダウンを起こす） |
@@ -49,7 +51,7 @@
 | スコア | 点数表 `SC`、`addScore(機体, 'battle'・'plant'・'support', 点, 名前)`、行動ごとの加点（`scoreKill`、`scoreDefend`、`scoreCore`、`scoreCapture`、`scoreCapProgress`、`scoreHeal`、`scoreFac`、`scoreSpot`、`noteDmg`）、毎フレームの加点（`scoreTick`：占拠の維持・敵ベース侵入・敵陣急襲）、スコア表（`boardHtml`） |
 | Bot | `botUpdate`（目標地点、移動、武器の使い分け）、`botAct`（補助装備・特別装備を使う判断）、`noticed`（光学迷彩の敵に気づけるか）、`hurtAlly`、照準の追従（`trackAim`） |
 | 設置物と索敵 | `gadgets`（地雷・センサー）、`drones`（偵察機）、`spotted`・`spot`（索敵で見つけた敵）、`spotSrc`（索敵している物ごとの残り秒）、`SPOT_LOCK`・`spotMul`（索敵を受けている機体のロックされる距離）、`botGadget`（Botが壊す設置物）、`addGadget`、`removeGadget`、`damageGadget`、`placeGadget`、`launchDrone`、`gadgetUpdate`、`clearGadgets` |
-| 兵装と武器 | `WEAPONS`、武器のシリーズ `SERIES`（v0.13）、型の表 `WEAPON_TYPES` と型を作る `makeType`（v0.14）、`SLOTS`、`CLASSES`、選べる武器 `ARMORY` と選んだ武器 `loadout`（`normLoadout`、`saveLoadout`）、保存した構成 `builds`（`snapBuild`、`saveBuilds`、`switchBuild`、`renderBuildTabs`。v0.13）、`equip`、`selectWeapon`（光学迷彩・加速装置・リペアフィールドは `toggleSp`）、`weaponsTick`、`gunTick`（チャージ撃ちは v0.15）、`shot`（横一列の散弾 `fan` は v0.15）、`swordTick`（近接の誘導は `meleeHome`）、`slash`、SPゲージ（`spRegen`、`spUse`）、`repairTick`、`chargerTick`、`fieldTick`、`cannonTick`、光学迷彩（`camoTick`、`reveal`、`cloakHit`、`cloakLook`） |
+| 兵装と武器 | 表と型の生成は `weapons.js` の `weaponTables()`（武器の形は `weaponModels()`）、撃つ・振る動きは index.html。`WEAPONS`、武器のシリーズ `SERIES`（v0.13）、型の表 `WEAPON_TYPES` と型を作る `makeType`（v0.14）、`SLOTS`、`CLASSES`、選べる武器 `ARMORY` と選んだ武器 `loadout`（`normLoadout`、`saveLoadout`）、保存した構成 `builds`（`snapBuild`、`saveBuilds`、`switchBuild`、`renderBuildTabs`。v0.13）、`equip`、`selectWeapon`（光学迷彩・加速装置・リペアフィールドは `toggleSp`）、`weaponsTick`、`gunTick`（チャージ撃ちは v0.15）、`shot`（横一列の散弾 `fan` は v0.15）、`swordTick`（近接の誘導は `meleeHome`）、`slash`、SPゲージ（`spRegen`、`spUse`）、`repairTick`、`chargerTick`、`fieldTick`、`cannonTick`、光学迷彩（`camoTick`、`reveal`、`cloakHit`、`cloakLook`） |
 | プレイヤー入力 | キーとマウス、武器選択画面（`wsel`）、`playerUpdate`、左右のボタン（`aimPress`。マウスとコントローラーで共通） |
 | コントローラー | `padTick`（毎フレーム最初に読む）、ボタンからキーへの置き換え（`PAD_KEYS`、`padPress`・`padRelease`）、右スティック（`padLook`）、メニューの選択（`padNavigate`・`padActivate`・`padAdjust`）、振動（`padRumble`）、案内のボタン名（`keyName`） |
 | タッチ操作 | `touchTick`（試合中だけボタンを出し、コンソールを標準にする）、移動スティック（`touchStick`）、視点（`lookMove`。マウスと共通）、ボタン（`touchBtnDown`・`touchEnd`。`TC_KEYS`・`TC_TAPS`）、全画面（`touchFullscreen`） |

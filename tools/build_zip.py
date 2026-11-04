@@ -266,6 +266,8 @@ def main():
         z.write(ROOT / "prototype" / "sounds.js", "core-breaker/sounds.js")
         z.write(ROOT / "prototype" / "music.js", "core-breaker/music.js")
         z.write(maps, "core-breaker/maps.js")
+        z.write(ROOT / "prototype" / "parts.js", "core-breaker/parts.js")
+        z.write(ROOT / "prototype" / "weapons.js", "core-breaker/weapons.js")
         z.write(ROOT / "prototype" / "maps" / "README.md", "core-breaker/MAPS.md")
         z.write(ROOT / "sounds" / "CREDITS.md", "core-breaker/SOUND-CREDITS.md")
         z.write(VENDOR / "LICENSE", "core-breaker/LICENSE-three.js.txt")
