@@ -1330,6 +1330,8 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
     </section>
     <section class="page" id="pgRangePause" hidden>
       <h2>射撃場を一時停止中</h2><p>撃ってくる標的は4機（ガトリング2機・ロックオン射撃・近接）で、ほかは撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
+      <h3>兵装選択</h3><div class="cls" id="rangeClasses" role="group" aria-label="射撃場の兵装選択"></div>
+      <p class="note">兵装を選ぶと弾と耐久を全回復し、最初の位置へ戻ります。「射撃に戻る」で再開します。</p>
       <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ</button><button type="button" id="rangeToMenu">メニューへ</button></div>
     </section>
     <section class="page" id="pgTutorialDone" hidden>
@@ -14130,11 +14132,11 @@ function rangeAttack(t, dt) {
   weaponsTick(t, dt, trig, aim, 0.04);
 }
 // 自機を最初の位置へ（弾と耐久は全量）、標的を全部起こす
-function rangePlace() {
+function rangePlace(cls = player.cls) {
   tutorialClearInput(); clearPings(); releaseLock(); killcam = null; incomingShots.clear();
   for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
   clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
-  player.nextCls = null; spawn(player);
+  player.nextCls = cls; spawn(player);
   player.pos.set(0, terrainH(0, RANGE_Z), RANGE_Z);
   player.invulT = 0; player.invulCancelOnAttack = false; player.yaw = 0; player.pitch = -.03;
   range.targets.forEach((t, i) => { t.downT = 0; spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
@@ -14146,10 +14148,14 @@ function rangeResume() {
   if (!range) return;
   tutorialClearInput(); $('overlay').hidden = true; running = true; grabPointer();
 }
+function renderRangeClasses() {
+  $('rangeClasses').innerHTML = CLASS_KEYS.map(k => `<button type="button" data-cls="${k}" class="${player.cls === k ? 'sel' : ''}" aria-pressed="${player.cls === k}">${classMark(k)}${CLASSES[k].name}</button>`).join('');
+}
 function rangePause() {
   if (!range || !running) return;
   running = false; tutorialClearInput(); stopMovementSounds();
   $('rangeHud').hidden = true;
+  renderRangeClasses();
   showPage('pgRangePause'); $('overlay').hidden = false;
   document.exitPointerLock?.(); $('rangeResume').focus();
 }
@@ -14198,11 +14204,17 @@ function rangeTick(dt) {
   put('rangeSum', r.sum && fresh ? fmt(r.sum) + (dur >= .05 ? `（${dur.toFixed(1)}秒）` : '') : '—');
   put('rangeDps', r.sum && fresh && dur >= .3 ? fmt(r.sum / dur) : '—');
   put('rangeKill', r.killT != null && fresh ? `${r.killT.toFixed(2)}秒` : '—');
-  put('rangeHint', `${keyName('Esc', 'オプションボタン', '右上の II')}：一時停止（弾と耐久を戻す・カスタマイズへ戻る）。左後ろの緑の円で回復と補給`);
+  put('rangeHint', `${keyName('Esc', 'オプションボタン', '右上の II')}：一時停止（兵装選択・弾と耐久を戻す・カスタマイズへ戻る）。左後ろの緑の円で回復と補給`);
 }
 $('rangeStart').addEventListener('click', () => startRange(cuCls));
 $('menuRange').addEventListener('click', () => startRange(chosenCls));
 $('rangeResume').addEventListener('click', rangeResume);
+$('rangeClasses').addEventListener('click', e => {
+  const cls = e.target.closest('[data-cls]')?.dataset.cls;
+  if (!range || running || $('pgRangePause').hidden || !CLASS_KEYS.includes(cls)) return;
+  pickClass(cls); rangePlace(cls); renderRangeClasses();
+  $('rangeClasses').querySelector(`[data-cls="${cls}"]`).focus();
+});
 $('rangeRefill').addEventListener('click', () => { rangePlace(); rangeResume(); });
 $('rangeToCustom').addEventListener('click', () => exitRange('pgCustom'));
 $('rangeToMenu').addEventListener('click', () => exitRange('pgMenu'));
