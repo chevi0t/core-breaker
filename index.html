@@ -11987,20 +11987,21 @@ function updateCamera(u, dt) {
   cameraFade(pivot, dt);
 }
 // 視界をふさぐ建物を薄くする（2026-11-04、オーナーの要望「思いっきり薄く透過するように」）。
-// 機体の肩の上（pivot）からカメラへ5本の線を引き、当たった建物・壁・コアの支柱を CAM_FADE.opacity まで薄くする。見た目だけで、当たり判定はそのまま。
-// 材質は共有なので、薄くする間だけそのメッシュに複製を付け、ふさがなくなって戻りきったら元の材質に戻す。地面や大きな塊（半径 CAM_FADE.maxR 超）と、
-// 機体・設置物など ref の付いた物（コアの結晶も）は対象外。市街地マップ（cityMap）は自分のカメラ位置の決め方があるので触らない
-const CAM_FADE = { opacity: 0.12, rate: 10, maxR: 80 };
+// 機体の肩の上（pivot）からカメラへ5本の線を引き、当たった建物・壁（外周の壁も）・コアの支柱・レーダー・砲台を CAM_FADE.opacity まで薄くする。見た目だけで、当たり判定はそのまま。
+// 材質は共有なので、薄くする間だけそのメッシュに複製を付け、ふさがなくなって戻りきったら元の材質に戻す。地面や大きな塊（半径 CAM_FADE.maxR 超で当たる箱でない物）と、
+// 機体・設置物・コアの結晶は対象外。市街地マップ（cityMap）は自分のカメラ位置の決め方があるので触らない
+const CAM_FADE = { opacity: 0.12, rate: 10, maxR: 80, refKinds: ['radar', 'turret', 'umbrella'] };
 const camFade = { list: null, count: -1, faded: new Map() }, camFadeRay = new T.Raycaster();
 function camFadeCandidates() {
   if (camFade.list && camFade.count === mapRoot.children.length) return camFade.list;
   const list = [];
   mapRoot.traverse(o => {
-    if (!o.isMesh || !o.geometry || refOf(o) || o.userData.facilityVisual) return; // 施設の飾り（色が変わるプラントなど）も触らない
+    const ref = refOf(o);
+    if (!o.isMesh || !o.geometry || o.userData.facilityVisual || ref && !CAM_FADE.refKinds.includes(ref.kind)) return; // 機体・設置物・コアの結晶と、施設の飾り（色が変わるプラントなど）は触らない
     const ms = Array.isArray(o.material) ? o.material : [o.material];
     if (ms.some(m => !m || !m.visible || (m.transparent && !o.userData.camFade))) return; // もともと透ける物（ベース床、傘など）は触らない
     if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
-    if (o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) > CAM_FADE.maxR) return;
+    if (o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) > CAM_FADE.maxR && !hittables.includes(o)) return; // 地面などの大きな塊は外す（外周の壁は当たる箱なので入れる）
     list.push(o);
   });
   camFade.list = list; camFade.count = mapRoot.children.length;
@@ -12016,7 +12017,8 @@ function camFadeSet(o, a) {
     camFade.faded.set(o, f);
   }
   f.a = a;
-  for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.opacity = a * (m.userData.baseOpacity ??= 1);
+  const ms = Array.isArray(o.material) ? o.material : [o.material], os = Array.isArray(f.orig) ? f.orig : [f.orig];
+  ms.forEach((m, i) => { m.opacity = a; if (m.color && os[i]?.color) m.color.copy(os[i].color); }); // 壊れたレーダーなどの色の変化はそのまま映す
 }
 function camFadeRestore(o, f) {
   for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
@@ -14214,7 +14216,7 @@ function rangePlace(cls = player.cls) {
   tutorialClearInput(); clearPings(); releaseLock(); killcam = null; incomingShots.clear();
   for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
   clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
-  player.nextCls = cls; spawn(player);
+  player.nextCls = cls; player.downT = 0; spawn(player); // 倒れた（行動不能の）まま戻すと、動けず F も効かなくなる
   player.pos.set(0, terrainH(0, RANGE_Z), RANGE_Z);
   player.invulT = 0; player.invulCancelOnAttack = false; player.yaw = 0; player.pitch = -.03;
   range.targets.forEach((t, i) => { t.downT = 0; spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
