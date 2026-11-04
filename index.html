@@ -4378,6 +4378,7 @@ function buildMap(id) {
   clearBooms();
   clearDeathEnergy();
   cityMap?.dispose();cityMap=null;cityBattle=null;
+  clearCameraFade();
   const def = id === TUTORIAL_ID && tutorial ? TUTORIAL_MAP : id === RANGE_ID && range ? RANGE_MAP : MAPS[id] || MAPS[FIRST_MAP];
   curMap = def; mapId = def === TUTORIAL_MAP ? TUTORIAL_ID : def === RANGE_MAP ? RANGE_ID : MAPS[id] ? id : FIRST_MAP;
   cityMap=getCityMap(def);if(cityMap)cityBattle=createCityBattle(T,cityMap,def);
@@ -11983,10 +11984,79 @@ function updateCamera(u, dt) {
   camera.position.y = Math.min(camera.position.y, ceilingAt(camera.position.x, camera.position.z, u.pos.y) - 0.3); // 橋の下では床の下から見る
   camera.lookAt(pivot.clone().addScaledVector(dir, 50));
   camera.updateMatrixWorld();
+  cameraFade(pivot, dt);
+}
+// 視界をふさぐ建物を薄くする（2026-11-04、オーナーの要望「思いっきり薄く透過するように」）。
+// 機体の肩の上（pivot）からカメラへ5本の線を引き、当たった建物・壁・コアの支柱を CAM_FADE.opacity まで薄くする。見た目だけで、当たり判定はそのまま。
+// 材質は共有なので、薄くする間だけそのメッシュに複製を付け、ふさがなくなって戻りきったら元の材質に戻す。地面や大きな塊（半径 CAM_FADE.maxR 超）と、
+// 機体・設置物など ref の付いた物（コアの結晶も）は対象外。市街地マップ（cityMap）は自分のカメラ位置の決め方があるので触らない
+const CAM_FADE = { opacity: 0.12, rate: 10, maxR: 80 };
+const camFade = { list: null, count: -1, faded: new Map() }, camFadeRay = new T.Raycaster();
+function camFadeCandidates() {
+  if (camFade.list && camFade.count === mapRoot.children.length) return camFade.list;
+  const list = [];
+  mapRoot.traverse(o => {
+    if (!o.isMesh || !o.geometry || refOf(o) || o.userData.facilityVisual) return; // 施設の飾り（色が変わるプラントなど）も触らない
+    const ms = Array.isArray(o.material) ? o.material : [o.material];
+    if (ms.some(m => !m || !m.visible || (m.transparent && !o.userData.camFade))) return; // もともと透ける物（ベース床、傘など）は触らない
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    if (o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) > CAM_FADE.maxR) return;
+    list.push(o);
+  });
+  camFade.list = list; camFade.count = mapRoot.children.length;
+  return list;
+}
+function camFadeSet(o, a) {
+  let f = camFade.faded.get(o);
+  if (!f) {
+    const orig = o.material, clone = m => Object.assign(m.clone(), { transparent: true, depthWrite: false });
+    f = { orig, a: 1, want: 1 };
+    o.material = Array.isArray(orig) ? orig.map(clone) : clone(orig);
+    o.userData.camFade = true;
+    camFade.faded.set(o, f);
+  }
+  f.a = a;
+  for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.opacity = a * (m.userData.baseOpacity ??= 1);
+}
+function camFadeRestore(o, f) {
+  for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose();
+  o.material = f.orig; delete o.userData.camFade;
+  camFade.faded.delete(o);
+}
+function clearCameraFade() {
+  for (const [o, f] of camFade.faded) camFadeRestore(o, f);
+  camFade.list = null; camFade.count = -1;
+}
+function cameraFade(pivot, dt) {
+  const hit = new Set();
+  if (pivot) {
+    const to = camera.position, dist = pivot.distanceTo(to);
+    if (dist > 0.5) {
+      const cand = camFadeCandidates().filter(o => {
+        const s = o.geometry.boundingSphere, c = o.localToWorld(s.center.clone()), r = s.radius * Math.max(o.scale.x, o.scale.y, o.scale.z);
+        return c.distanceTo(pivot) < dist + r + 2;
+      });
+      if (cand.length) {
+        const right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), up = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+        for (const [sx, sy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const end = to.clone().addScaledVector(right, sx * 1.2).addScaledVector(up, sy * 0.8), d = end.clone().sub(pivot), len = d.length();
+          camFadeRay.set(pivot, d.divideScalar(len)); camFadeRay.far = len + 0.6;
+          for (const h of camFadeRay.intersectObjects(cand, false)) hit.add(h.object);
+        }
+      }
+    }
+  }
+  for (const o of hit) if (!camFade.faded.has(o)) camFadeSet(o, 1);
+  const k = Math.min(1, dt * CAM_FADE.rate);
+  for (const [o, f] of camFade.faded) {
+    const want = hit.has(o) ? CAM_FADE.opacity : 1, a = f.a + (want - f.a) * k;
+    if (want === 1 && a > 0.98) camFadeRestore(o, f); else camFadeSet(o, a);
+  }
 }
 
 // キルカメラ：撃破された場所の側から、倒した相手を少し上から映す
 function killcamCamera(dt) {
+  cameraFade(null, dt); // キルカメラでは薄くした建物を元に戻す
   const e = killcam.by, tgt = e.pos.clone().setY(e.pos.y + (e.kind === 'unit' ? 2.2 : 2));
   const dir = killcam.at.clone().sub(tgt).setY(0);
   if (dir.lengthSq() < 1) dir.set(Math.sin(e.yaw || 0), 0, Math.cos(e.yaw || 0)); // すぐそばで倒されたときは相手の後ろから
