@@ -33,9 +33,9 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     ok(await ev(() => __g.range && __g.running && __g.mapId === '__range' && document.getElementById('overlay').hidden), '射撃場に入る');
     ok(await ev(() => __g.player.cls === 'support'), 'カスタマイズで選んでいた兵装（支援）で出る');
     const tg = await ev(() => __g.range.targets.map(t => ({ alive: t.alive, z: t.pos.z, x: t.pos.x, name: t.name, team: t.team })));
-    ok(tg.length === 8 && tg.every(t => t.alive && t.team !== 'B'), '標的が8機（敵側）');
-    ok(await ev(() => __g.units.length === 9), '自機と標的のほかに機体はいない');
-    ok(tg.map(t => Math.round(170 - t.z)).join() === '15,30,40,50,80,90,120,200', `標的の距離 ${tg.map(t => Math.round(170 - t.z)).join('・')}m`);
+    ok(tg.length === 12 && tg.every(t => t.alive && t.team !== 'B'), '標的が12機（撃ち返さない8機と撃ってくる4機、敵側）');
+    ok(await ev(() => __g.units.length === 13), '自機と標的のほかに機体はいない');
+    ok(tg.map(t => Math.round(170 - t.z)).join() === '15,30,40,50,80,90,120,200,60,140,100,190', `標的の距離 ${tg.map(t => Math.round(170 - t.z)).join('・')}m`);
     ok(await ev(() => !document.getElementById('rangeHud').hidden), '左上に射撃場の表示');
 
     // 15m の標的を主武器で撃つ
@@ -106,7 +106,7 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     // 戻った後の通常の試合はいつもどおり
     await ev(() => { document.querySelector('#pgCustom .back').click(); document.getElementById('start').click(); });
     await step(3);
-    ok(await ev(m => __g.running && !__g.range && __g.units.length > 9 && __g.mapId === m, before.mapId), '戻った後の出撃はいつもの対戦');
+    ok(await ev(m => __g.running && !__g.range && !__g.units.some(u => u.rangeA) && __g.units.length > 9 && __g.mapId === m, before.mapId), '戻った後の出撃はいつもの対戦');
     await step(20);
     ok(await ev(m => __g.timeLeft < m, await ev(() => __g.MATCH)), '対戦では残り時間が減る');
 
