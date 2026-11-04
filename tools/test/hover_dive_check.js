@@ -1,5 +1,5 @@
 // ホバーの急降下（2026-11-04）を確かめる。node tools/test/hover_dive_check.js dbg
-// ホバー脚は空中でしゃがみ（C・左Ctrl）を押している間、毎秒6mの降下上限を外して二脚と同じ重力で落ちる。離せば元の降下に戻る。
+// ホバー脚は空中でしゃがみ（C）を押している間、毎秒6mの降下上限を外して二脚と同じ重力で落ちる。離せば元の降下に戻る。
 // ブーストは使わない。滞空（Space）より急降下が優先。二脚の空中は変わらない。ブラウザのエラーが無いこと。
 const path = require('node:path'), assert = require('node:assert/strict');
 const { chromium } = require('playwright');
@@ -38,7 +38,7 @@ const dir = path.resolve(process.argv[2] || 'dbg');
     ok(dive.v < -25 && dive.y < 80 - 12, `空中でCを押すと重力で急降下する（1秒で ${dive.v.toFixed(1)}m/s、${(80 - dive.y).toFixed(1)}m）`);
     ok(dive.boost === dive.max, '急降下はブーストを使わない');
     const ctrl = await drop(['ControlLeft']);
-    ok(ctrl.v < -25, `左Ctrlでも急降下する（${ctrl.v.toFixed(1)}）`);
+    ok(Math.abs(ctrl.v + 6) < .01, `左Ctrlでは急降下しない（しゃがみはCだけ。${ctrl.v.toFixed(1)}）`);
     const both = await drop(['KeyC', 'Space']);
     ok(both.v < -25, `滞空（Space）と一緒に押しても急降下が優先（${both.v.toFixed(1)}）`);
     await drop(['KeyC'], 10); await step(4);
