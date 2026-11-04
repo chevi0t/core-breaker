@@ -54,6 +54,17 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     await ev(() => { __g.selectMap('wide'); document.getElementById('start').click(); });
     await step(2);
     ok(await ev(() => window.__box.mid.material === window.__box.shared && !__g.camFade.faded.has(window.__box.mid)), 'マップを作り直すと元に戻る');
+    // 外周の壁（大きな箱）も薄くなる。敵コアの奥で外周の壁を背にすると、カメラが壁の外に出て画面が灰色で埋まっていた（オーナーの報告 2026-11-04、広域演習場）
+    await step(2);
+    const wall = await ev(() => {
+      const p = __g.player, c = __g.cores.R, x = c.pos.x + 12, z = -297;
+      for (const u of __g.units) if (u !== p) { u.alive = false; u.pos.set(9999, -999, 9999); }
+      const place = () => { p.pos.set(x, __g.terrainH(x, z), z); p.vel.set(0, 0, 0); p.yaw = Math.atan2(-(c.pos.x - x), -(c.pos.z - z)); p.pitch = .35; p.invulT = 1e9; };
+      for (let i = 0; i < 8; i++) { place(); __g.loop(window.__t = (window.__t || 0) + 50); }
+      const o = [...__g.camFade.faded.keys()].find(o => o.geometry.parameters && o.geometry.parameters.width > 300);
+      return { camZ: __g.camera.position.z, a: o ? o.material.opacity : null };
+    });
+    ok(wall.camZ < -302 && wall.a !== null && wall.a < 0.2, `敵コアの奥で外周の壁の外に出たカメラでも、外周の壁が薄くなる（カメラ z ${wall.camZ.toFixed(1)}、不透明度 ${wall.a}）`);
     ok(errors.length === 0, 'ブラウザのエラーなし' + (errors.length ? '\n' + errors.join('\n') : ''));
     console.log(checks.map(c => '  ' + c).join('\n'));
     console.log(`視界をふさぐ建物を薄くする：${checks.length}項目 成功`);

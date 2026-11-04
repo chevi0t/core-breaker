@@ -29,7 +29,8 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     ok(A[2].cls === 'assault' && A[3].cls === 'assault', `ロックオン射撃と近接は強襲（${A[2].main}・${A[3].aux}）`);
     // 自機を置いて数フレーム進め、その間に受けたダメージ
     const at = (x, z) => ev(([x, z]) => { const p = __g.player; p.pos.set(x, __g.terrainH(x, z), z); p.vel.set(0, 0, 0); p.hp = p.maxHp; p.invulT = 0; }, [x, z]);
-    const dmg = async n => { const h0 = await ev(() => __g.player.hp); await step(n); return h0 - await ev(() => __g.player.hp); };
+    // 受けたダメージ。倒れると最初の位置へ戻ってしまうので、5フレームごとに耐久を満タンに戻しながら足す
+    const dmg = async n => ev(n => { let sum = 0; for (let i = 0; i < n; i += 5) { const p = __g.player; p.hp = p.maxHp; for (let j = 0; j < Math.min(5, n - i); j++) __g.loop(window.__t = (window.__t || 0) + 50); sum += p.alive ? p.maxHp - p.hp : p.maxHp; } return sum; }, n);
     const byKind = k => `__g.range.targets.find(t => t.rangeA && t.rangeA.kind === '${k}')`;
 
     // 最初の位置では何も当たらない
@@ -59,13 +60,14 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     await at(lk.x, lk.z + 50);
     let lockSeen = false, dLock = 0;
     for (let i = 0; i < 8; i++) { dLock += await dmg(10); lockSeen ||= await ev(new Function(`const t = ${byKind('lock')}; return t.target === __g.player && t.locked;`)); }
-    ok(lockSeen, 'ロックオン射撃は50mで自機をロックする');
+    ok(lockSeen, 'ロックオン射撃は50mで自機をロックする' + (lockSeen ? '' : JSON.stringify(await ev(new Function(`const t = ${byKind('lock')}; return { tg: t.target && t.target.name, locked: t.locked, p: __g.player.pos.toArray(), alive: __g.player.alive, home: t.home, tp: t.pos.toArray() };`)))));
     ok(dLock > 0, `ロックオン射撃は50mで撃ってくる（4秒で ${dLock}）`);
 
     // 近接：40m では動かず、20m で斬りかかる。離れると元の位置へ戻る
     const ml = await ev(new Function(`const t = ${byKind('melee')}; return { x: t.home.x, z: t.home.z };`));
     await at(ml.x, ml.z + 40);
-    ok(await dmg(20) === 0 && await ev(new Function(`const t = ${byKind('melee')}; return Math.hypot(t.pos.x - t.home.x, t.pos.z - t.home.z) < 1.5;`)), '近接は40mでは動かない');
+    await dmg(20); // ここはほかの標的の弾が届くことがあるので、ダメージではなく近接の動きを見る
+    ok(await ev(new Function(`const t = ${byKind('melee')}; return !t.swing && Math.hypot(t.pos.x - t.home.x, t.pos.z - t.home.z) < 1.5;`)), '近接は40mでは動かない');
     await at(ml.x, ml.z + 20);
     let swung = false, dMelee = 0;
     for (let i = 0; i < 12; i++) {
@@ -83,6 +85,14 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     await at(0, 110); await ev(() => { __g.player.hp = 30; });
     await step(20);
     ok(await ev(() => __g.player.alive && Math.abs(__g.player.pos.z - 170) < .01 && __g.player.hp === __g.player.maxHp), '撃ってくる標的に倒されても最初の位置からやり直す');
+    // 行動不能になる撃破（小さい一撃）でも、行動不能を残さずに戻る（オーナーの報告 2026-11-04「射撃演習場でFを押してもリスポーンできない」）
+    await at(0, 110); await ev(new Function(`__g.kill(__g.player, ${byKind('lock')}, false, 3000);`));
+    await step(2);
+    const back = await ev(() => ({ alive: __g.player.alive, downT: __g.player.downT || 0, z: __g.player.pos.z, center: document.getElementById('center').textContent }));
+    ok(back.alive && back.downT === 0 && Math.abs(back.z - 170) < .01 && !back.center.includes('行動不能'), '行動不能になる撃破でも、行動不能を残さず最初の位置に戻る');
+    await ev(() => { __g.keys.KeyW = true; }); await step(10); await ev(() => { __g.keys.KeyW = false; });
+    ok(await ev(() => __g.player.pos.z < 168), '戻った後は前へ歩ける');
+    await at(0, 170); await step(2);
     // 撃ってくる標的も撃破でき、2秒で戻る
     await ev(new Function(`const t = ${byKind('lock')}; __g.kill(t, __g.player);`));
     await step(45);
