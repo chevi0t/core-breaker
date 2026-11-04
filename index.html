@@ -1352,7 +1352,7 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
         <kbd>F2</kbd><span>コンソールを切り替え（標準・アーケード・フライト・メカニカル）。オプションの「コンソール」でも選べます</span>
         <kbd>F3</kbd><span>オプション（音量・視野角）。開いている間は戦闘を一時停止</span>
         <kbd>WASD</kbd><span>移動</span>
-        <kbd>C / 左Ctrl</kbd><span>アクション：押している間しゃがむ（二脚は低速移動、ホバーは停止・水上では沈む）。ダッシュ中は短く滑って停止・ブースト回復開始。ジャンプで解除</span>
+        <kbd>C</kbd><span>アクション：押している間しゃがむ（ホバーは空中で押すと急降下。二脚は低速移動、ホバーは停止・水上では沈む）。ダッシュ中は短く滑って停止・ブースト回復開始。ジャンプで解除</span>
         <kbd>Shift 短押し</kbd><span>ショートダッシュ（入力方向へ一気に踏み込む。ブースト9.6消費）</span>
         <kbd>Shift 長押し</kbd><span>ロングダッシュ（押している間ブーストを毎秒約11消費して高速移動。使い切るとオーバーヒート）</span>
         <kbd>Space</kbd><span>ジャンプ（ブースト8.8消費、約6.8m）。空中で押し続けるとブーストを使って滞空（毎秒9.6）。敵の回転斬りはジャンプで避けられます</span>
@@ -6356,7 +6356,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
   }
   const floating=hoverLegs(u), water=hoverOnWater(u);
-  // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C・左Ctrl）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
+  // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
   const hoverDive=floating && !u.onGround && !!u.actionHeld && !u.flying;
   // 空中で燃料が尽きたホバーは満充填まで制動噴射を再開しない。
   if(floating && !u.onGround && u.boost<=0){u.boost=0;u.overheat=true;}
@@ -11057,13 +11057,13 @@ const keys = {}, pressed = {};
 let mouseDown = false, rightDown = false, running = false, ended = false;
 addEventListener('keydown', e => {
   if(e.target?.matches?.('input,textarea,select,[contenteditable=true]'))return;
-  if(running && (e.code==='KeyC' || e.code==='ControlLeft'))e.preventDefault();
+  if(running && e.code==='KeyC')e.preventDefault();
   keys[e.code] = true;
   if (!e.repeat) pressed[e.code] = true;
   if (e.code === 'Space' || (e.code === 'Tab' && running)) e.preventDefault(); // 試合中の Tab はスコア表（フォーカス移動させない）
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { keys.Tab = keys.KeyC = keys.ControlLeft = false; if(player)player.actionHeld=player.crouching=false; });
+addEventListener('blur', () => { keys.Tab = keys.KeyC = false; if(player)player.actionHeld=player.crouching=false; });
 canvas.addEventListener('mousedown', e => {
   if (aimPress(e.button, false) && running && document.pointerLockElement !== canvas) grabPointer();
 });
@@ -11252,7 +11252,7 @@ function scopePower(u) {
 }
 let player;
 function playerUpdate(u, dt) {
-  u.actionHeld = !!(keys.KeyC || keys.ControlLeft);
+  u.actionHeld = !!keys.KeyC; // 左Ctrlは外した（2026-11-04、オーナー指定。ブラウザの Ctrl+W などと重なるため）
   const artillery = isArtilleryMode(u);
   if (!artillery && keys.ArrowLeft) u.yaw += 2.2 * dt;
   if (!artillery && keys.ArrowRight) u.yaw -= 2.2 * dt;
@@ -13975,7 +13975,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.crouching) centerEl.textContent = 'しゃがみ：C / 左Ctrlを離すと立ち上がる';
+  else if (p.crouching) centerEl.textContent = 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
