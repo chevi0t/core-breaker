@@ -882,6 +882,8 @@ WebGLが必要です（ヘッドレスなら `--use-gl=swiftshader` で動く）
 
 `python3 tools/test/make_dbg.py 作業フォルダ` が 1・2 の書き換え（`__g` の公開、`frozen`、three.js をローカルから読む）をした `dbg.html` と、`sounds.js`・`music.js`・`maps.js`・`three.min.js` を作業フォルダに用意する。マップの確認（施設の置き場所、ポッドの見え方、カタパルトの着地点、再出撃位置）は `node tools/test/map_check.js 作業フォルダ マップID`（`prototype/maps/README.md`）。
 
+`__g` に出す名前（2026-11-04 リファクタ）：`make_dbg.py` が本体の `<script>` の行頭（字下げなし）で宣言した関数・`const`・`let`・`var`・`class` を全部拾い、getter で出す（読んだときに初めて評価するので、`--src` で古い版を試しても無い名前を読まなければ止まらない）。新しい関数や変数を足しても `make_dbg.py` は書き換えなくてよい。ブロックの中で宣言した物など自動で拾えない名前は `EXTRA`、テストから値を書き換えたい変数は `SETTERS`（今は `timeLeft`・`running`）に1行1つで足す。今までの手書きの一覧（323項目）は全部同じ値で読めることを確かめた。
+
 `node tools/test/arcade_weapons_check.js dbg` は追加10種をACの転記JSONと照合し、射撃数値・縦反動・重量・射程・射撃方式・カスタマイズの比較を確認して画像を保存する。変更前の実行時数値JSONを第4引数に渡すと、既存武器・機体・初期装備の互換性も照合する。
 
 `node tools/test/gamepad_check.js dbg` は偽のコントローラー（`navigator.getGamepads` を差し替える）で、メニューの選択・決定・戻る、オプションの値、出撃、移動・視点・射撃・リロード・持ち替え・ダッシュ・ジャンプ・全体マップ・指示出し・一時停止・スコア表・再出撃の画面・振動と、キーボードがそのまま使えることを確かめる。

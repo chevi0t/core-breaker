@@ -31,7 +31,7 @@
 | 新しい武器・パーツ・特別装備を足す | `index.html` の「武器のモデル」「機体パーツ」「兵装と武器」「武器の型」「特別装備」「AC由来の追加特別装備」の節と、機体カスタマイズで選べる一覧（`ARMORY`・`SERIES` など）。数値はアーケード版 wiki、採用記録は `research/` |
 | 見た目だけの変更 | 武器の形（`buildWeaponGeo`）、光る演出（発砲炎など）。威力・当たり判定・動きの数値は変えない |
 | 新しいマップ | 新しい `prototype/maps/<新しいID>.js` と、マップの自動生成（`tools/mapgen*.js`、`tools/generate_map.js`）。`maps.js` の作り直しと公開はマップ製作スレッド（Claude）がする |
-| 調べ物・記録・試験 | `research/`、`media/`（大きな動画や試合の記録は入れない）、新しい `tools/test/*_check.js`、`make_dbg.py` の `__g` に読み口を足すこと、自分が足した物の `docs/DESIGN.md` の説明 |
+| 調べ物・記録・試験 | `research/`、`media/`（大きな動画や試合の記録は入れない）、新しい `tools/test/*_check.js`、`make_dbg.py` の `EXTRA`・`SETTERS` に名前を足すこと（`__g` は本体の行頭の宣言を自動で全部出すので、ふつうは足さなくてよい）、自分が足した物の `docs/DESIGN.md` の説明 |
 
 **確認する所**（今までどおり PR を出し、Claude かオーナーがマージ）
 
