@@ -6078,8 +6078,25 @@ function spawnPos(u, at) {
   resolve(u);
   u.pos.y = terrainH(u.pos.x, u.pos.z);
 }
+// 出撃し直すときに、前の命の一時的な状態を全部消す（2026-11-04 リファクタ）。行動不能・感電・よろけ・格闘の途中・特別装備の作動などが
+// 残ると、射撃場で倒れた後に動けなかった不具合（行動不能が残っていた）のようになる。新しい一時的な状態を足したら、ここにも足す。
+// 撃破の瞬間に止める物は kill、大破で消す物は wreck にもある（倒れている間の見た目のため）。出撃はいつもここを通る
+function resetLifeState(u) {
+  if (u.downPing) { if (pings.includes(u.downPing)) dropPing(u.downPing); u.downPing = null; }
+  stopBeamCannon(u);
+  Object.assign(u, {
+    downT: 0, downBy: null, reviveAcc: 0, deathWeapon: null,
+    actionHeld: false, crouching: false, actionBlockBoost: false, kneeSlideT: 0,
+    stun: '', stunT: 0, tilt: 0, electricT: 0, jamT: 0, recoverT: 0,
+    dashT: 0, longDash: false, dashState: '', slideT: 0, lungeT: 0, charging: false,
+    swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null,
+    cloak: false, chargerOn: false, fieldOn: false, barrierOn: false, escortOn: false, mirageLock: null,
+    flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, jumpPad: null, mobilityRoute: null, lift: null, zip: null, transfer: null,
+    waypoint: null, order: null, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, raidRoute: null,
+  });
+}
 function spawn(u, at = 'base') {
-  u.actionHeld = u.crouching = u.actionBlockBoost = false; u.kneeSlideT=0;
+  resetLifeState(u);
   resetBoosterFlame(u);
   stopMovementSound(u); u.stepQuiet = 0;
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
@@ -6087,20 +6104,16 @@ function spawn(u, at = 'base') {
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
-  Object.assign(u, { flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, transfer: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0 });
   u.vel.set(0, 0, 0);
-  u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
-  u.raidRoute = null;
   u.yaw = t.dir > 0 ? Math.PI : 0;
   u.pitch = 0;
-  u.hp = u.maxHp; u.alive = true; u.deathWeapon = null; u.overheat = false; // ブーストは equip で満タン
-  u.dashT = 0; u.longDash = false; u.dashState = ''; u.stun = ''; u.tilt = 0;
+  u.hp = u.maxHp; u.alive = true; u.overheat = false; // ブーストは equip で満タン
   u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
   u.dmgBy = new Map(); u.sx.streak = u.sx.capStreak = 0; // 撃破支援のダメージと連続撃破・連続占拠は出撃ごと
   equip(u, u.nextCls || u.cls); // 再出撃で兵装を切り替え、弾薬は全量
   u.hp = u.maxHp; // 耐久は兵装で違う
   if (VS && cores[u.team].hp < VS.death) u.hp = Math.max(1, Math.round(u.maxHp * Math.max(0, cores[u.team].hp) / VS.death)); // コストオーバー
-  u.nextCls = null; u.repairing = false;
+  u.nextCls = null;
   u.group.visible = true;
 }
 
@@ -14211,10 +14224,10 @@ function rangePlace(cls = player.cls) {
   tutorialClearInput(); clearPings(); releaseLock(); killcam = null; incomingShots.clear();
   for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
   clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
-  player.nextCls = cls; player.downT = 0; spawn(player); // 倒れた（行動不能の）まま戻すと、動けず F も効かなくなる
+  player.nextCls = cls; spawn(player); // 行動不能などは spawn（resetLifeState）が消す
   player.pos.set(0, terrainH(0, RANGE_Z), RANGE_Z);
   player.invulT = 0; player.invulCancelOnAttack = false; player.yaw = 0; player.pitch = -.03;
-  range.targets.forEach((t, i) => { t.downT = 0; spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
+  range.targets.forEach((t, i) => { spawn(t); rangeSpot(t, i); weaponLook(t, 0); });
   player.group.position.copy(player.pos); player.group.rotation.set(0, player.yaw, 0); weaponLook(player, 0);
   Object.assign(range, { sum: 0, start: 0, last: -1e9, lastHit: 0, killT: null });
   scene.updateMatrixWorld(true); updateCamera(player, 1);
@@ -14263,7 +14276,7 @@ function rangeTick(dt) {
     const [, x, amp, period] = RANGE_TARGETS[i] || [];
     if (!t.alive) {
       if (t.rangeHp > 0) { rangeHit(t, t.rangeHp, true); t.rangeHp = 0; } // 撃破した1発は、残っていた耐久の分
-      if ((t.deadT += dt) >= 2) { t.downT = 0; spawn(t); rangeSpot(t, i); }
+      if ((t.deadT += dt) >= 2) { spawn(t); rangeSpot(t, i); }
       return;
     }
     if (t.rangeA) rangeAttack(t, dt);
