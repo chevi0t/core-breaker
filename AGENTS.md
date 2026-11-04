@@ -28,7 +28,7 @@
 
 | 変更 | 場所と条件 |
 |---|---|
-| 新しい武器・パーツ・特別装備を足す | `index.html` の「武器のモデル」「機体パーツ」「兵装と武器」「武器の型」「特別装備」「AC由来の追加特別装備」の節と、機体カスタマイズで選べる一覧（`ARMORY`・`SERIES` など）。数値はアーケード版 wiki、採用記録は `research/` |
+| 新しい武器・パーツ・特別装備を足す | `prototype/weapons.js`（武器のモデル・`WEAPON_KG`・`WEAPONS`・`CLASSES`・`ARMORY`・`SERIES`・`WEAPON_TYPES` と型の生成・主武器の反動）と `prototype/parts.js`（`MAKERS`・`PARTS`・`PART_VARIANTS`・`PART_SERIES`・`PAINTS`）。特別装備の動きは `index.html` の「特別装備」「AC由来の追加特別装備」の節。数値はアーケード版 wiki、採用記録は `research/` |
 | 見た目だけの変更 | 武器の形（`buildWeaponGeo`）、光る演出（発砲炎など）。威力・当たり判定・動きの数値は変えない |
 | 新しいマップ | 新しい `prototype/maps/<新しいID>.js` と、マップの自動生成（`tools/mapgen*.js`、`tools/generate_map.js`）。`maps.js` の作り直しと公開はマップ製作スレッド（Claude）がする |
 | 調べ物・記録・試験 | `research/`、`media/`（大きな動画や試合の記録は入れない）、新しい `tools/test/*_check.js`、`make_dbg.py` の `EXTRA`・`SETTERS` に名前を足すこと（`__g` は本体の行頭の宣言を自動で全部出すので、ふつうは足さなくてよい）、自分が足した物の `docs/DESIGN.md` の説明 |
@@ -66,6 +66,7 @@ https://chevi0t.github.io/core-breaker/ は `gh-pages` ブランチの直下を�
 | パス | 中身 |
 |---|---|
 | `prototype/index.html` | ゲーム本体（HTML・CSS・JavaScript の1ファイル、three.js r128、ビルド不要）。`// ---- 見出し ----` で区切ってある（`docs/DESIGN.md` 第2章） |
+| `prototype/weapons.js`・`parts.js` | 武器とパーツの表（2026-11-04 に index.html から分けた）。`weaponModels()`・`weaponTables()`・`partTables()` の関数で、本体が元の位置で呼んで中の名前を受け取る。新しい名前は最後の `return { ... }` にも足す。手で書いてよい |
 | `prototype/maps/<id>.js` | マップのデータ（書き方 `prototype/maps/README.md`、決まり `prototype/maps/RULES.md`） |
 | `prototype/maps.js` | `python3 tools/build_maps.py` が `maps/` から作る。手で書き換えない |
 | `prototype/sounds.js`・`music.js` | `tools/build_sounds.py` が `sounds/` から作る |

@@ -4,7 +4,7 @@
 
 ## 今の作り
 
-`prototype/index.html`（名前で検索。行番号は変わる）：
+`prototype/parts.js`（パーツの表。2026-11-04 から index.html の外）と `prototype/index.html`（機体の形・性能の計算）。名前で検索する（行番号は変わる）：
 
 | 所 | 中身 |
 |---|---|
