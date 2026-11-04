@@ -14197,7 +14197,8 @@ function rangeAttack(t, dt) {
     t.target = td <= near && canSee(t, p, targetPoint(p)) || a.kind === 'melee' && t.target && td <= near + 10 ? p : null;
     if (a.kind === 'lock') {
       const aimed = trackAim(t, dt, muzzle(t, false, false));
-      if (t.target) { aim = t.aimPos; trig = aimed && botRecoilReady(t, aim); }
+      // 被ロックオンの警告は撃つ範囲（60m）全体で出す。頭部のロック距離（Bot の機体は毎回ちがう）で途切れさせない
+      if (t.target) { aim = t.aimPos; trig = aimed && botRecoilReady(t, aim); t.locked = aimed && !(t.jamT > 0); }
     } else if (t.target) {
       slot = 'aux'; aim = targetPoint(p);
       const sword = t.slots.aux, sw = sword.w, close = td < sw.normal.reach + R;
