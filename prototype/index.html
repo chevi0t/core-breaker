@@ -1295,7 +1295,7 @@ body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="me
       <div class="tutorialActions"><button type="button" id="tutorialResume">練習に戻る</button><button type="button" id="tutorialRetry">この課題をやり直す</button><button type="button" id="tutorialSkip">この課題をスキップ</button><button type="button" id="tutorialExit">終了してメニューへ</button></div>
     </section>
     <section class="page" id="pgRangePause" hidden>
-      <h2>射撃場を一時停止中</h2><p>標的は撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
+      <h2>射撃場を一時停止中</h2><p>撃ってくる標的は4機（ガトリング2機・ロックオン射撃・近接）で、ほかは撃ち返してきません。撃破しても2秒で起き上がり、4秒当てないと耐久が戻ります。自機のそばの緑の円に止まると、耐久と弾が戻ります。</p>
       <div class="tutorialActions"><button type="button" id="rangeResume">射撃に戻る</button><button type="button" id="rangeRefill">弾と耐久を戻して最初の位置へ</button><button type="button" id="rangeToCustom">カスタマイズへ</button><button type="button" id="rangeToMenu">メニューへ</button></div>
     </section>
     <section class="page" id="pgTutorialDone" hidden>
@@ -2441,6 +2441,18 @@ const RANGE_MAP = { name: '射撃場', size: [70, 230], team: 1, time: 3600, bas
   plants: [['A', -50, -170, null]], turrets: [], radar: [-55, 220], catapults: [], basePods: [[-14, 180]], plantPods: [], barricades: [] };
 // 標的：[自機からの距離 m, 左右の位置 m, 左右に動く幅 m, 1往復の秒]。動く標的はロックオンや偏差撃ちを試す用
 const RANGE_TARGETS = [[15, -9, 0], [30, 8, 0], [40, 24, 10, 5], [50, -18, 0], [80, 14, 0], [90, -26, 12, 7], [120, -5, 0], [200, 9, 0]];
+// 撃ってくる標的（2026-11-04、ユーザー要望）：{ 種類, 兵装, 自機からの距離 m, 左右の位置 m, 向き（ラジアン。0 は -z、-π/2 は +x）, 名前 }。
+// stream：ガトリングを一方向へ撃ち続ける。sweep：ガトリングで30度（±15度）を往復して掃射。どちらも通路を横切る向きで、最初の位置には届かない。
+// lock：立ったまま、自機が RANGE_LOCK_DIST m 以内で見えるとロックオンして主武器（アサルトライフル）で撃つ。
+// melee：自機が RANGE_MELEE_DIST m 以内に入るとソードで斬りかかる（届かなければ踏み込み斬り）。離れると元の位置へ戻る。
+// 武器は兵装の初期装備（重火力＝ガトリング、強襲＝アサルトライフルとソード）。弾は減らず、ガトリングは過熱しない
+const RANGE_ATTACKERS = [
+  { kind: 'stream', cls: 'heavy', d: 60, x: -55, yaw: -Math.PI / 2, name: '標的 ガトリング（一方向に撃ち続ける）' },
+  { kind: 'sweep', cls: 'heavy', d: 140, x: 55, yaw: Math.PI / 2, name: '標的 ガトリング（30度を掃射）' },
+  { kind: 'lock', cls: 'assault', d: 100, x: 30, yaw: Math.PI, name: '標的 ロックオン射撃（60m以内）' },
+  { kind: 'melee', cls: 'assault', d: 190, x: -28, yaw: Math.PI, name: '標的 近接（25m以内）' },
+];
+const RANGE_LOCK_DIST = 60, RANGE_MELEE_DIST = 25, RANGE_SWEEP = Math.PI / 12, RANGE_SWEEP_T = 4;
 let range = null;
 let curMap = null, mapId = '';
 const meleeOnly = () => !!curMap?.meleeOnly;
@@ -13946,7 +13958,7 @@ function tutorialRightClick() {
 // ---- 射撃場 ----
 // カスタマイズ画面の「射撃場で試す」から、その画面で選んでいる兵装と今の機体で入る（2026-10-27、ユーザー要望「カスタマイズ画面に射撃場の入り口作って」）。
 // メニューの「射撃場」からは、出撃に選んでいる兵装で入る。
-// 標的は撃ち返さない敵機（AIも物理も動かさない。動く標的だけ rangeTick が左右に動かす）。撃破しても2秒で起き上がり、4秒当てないと耐久が戻る。
+// 標的は撃ち返さない敵機（AIも物理も動かさない。動く標的だけ rangeTick が左右に動かす）。撃ってくる4機（RANGE_ATTACKERS）だけは rangeAttack が動かす。撃破しても2秒で起き上がり、4秒当てないと耐久が戻る。
 // コアは減らず、時間切れも無い。左上に最後の命中・続けて当てた合計（2秒あくと数え直す）・毎秒・撃破までの秒を出す。Esc（コントローラーはオプション）で一時停止
 function startRange(cls = cuCls) {
   if (tutorial || range) return;
@@ -13957,15 +13969,63 @@ function startRange(cls = cuCls) {
   rangePlace(); rangeResume();
 }
 function rangeSpot(t, i) {
-  const [d, x, amp] = RANGE_TARGETS[i];
+  const a = RANGE_ATTACKERS[i - RANGE_TARGETS.length];
+  const [d, x, amp] = a ? [a.d, a.x, 0] : RANGE_TARGETS[i];
+  if (a) { // 撃ってくる標的は兵装の初期装備に揃える（Botの出撃は枠ごとにランダム）
+    t.slots = Object.fromEntries(SLOTS.map(k => [k, slotOf(CLASSES[a.cls][k])]));
+    t.weapon = t.prevWeapon = 'main'; t.switchT = 0;
+    Object.assign(t, { rangeA: a, home: new T.Vector3(x, 0, RANGE_Z - d), target: null, aimTarget: null, recoil: 0, recoilYaw: 0, swing: null, act: null });
+  }
   t.pos.set(x, terrainH(x, RANGE_Z - d), RANGE_Z - d); t.vel.set(0, 0, 0);
-  t.yaw = Math.PI; t.pitch = 0; // 自機の方を向く
-  Object.assign(t, { invulT: 0, invulCancelOnAttack: false, hp: t.maxHp, rangeHp: t.maxHp, deadT: 0, hitT: -1e9, name: `標的 ${d}m${amp ? '（左右に動く）' : ''}` });
+  t.yaw = a ? a.yaw : Math.PI; t.pitch = 0; // 自機の方を向く（撃ってくる標的は決めた向き）
+  Object.assign(t, { invulT: 0, invulCancelOnAttack: false, hp: t.maxHp, rangeHp: t.maxHp, deadT: 0, hitT: -1e9, name: a ? a.name : `標的 ${d}m${amp ? '（左右に動く）' : ''}` });
   t.group.visible = true; t.group.position.copy(t.pos); t.group.rotation.set(0, t.yaw, 0);
+}
+// 撃ってくる標的を1フレーム進める（rangeTick から。対戦BotのAIは使わない）
+function rangeAttack(t, dt) {
+  const a = t.rangeA, sl = t.slots.main, p = player;
+  auxiliaryStatusTick(t, dt);
+  sl.reserve = sl.resMax; // 弾は減らない
+  if (a.kind === 'stream' || a.kind === 'sweep') { sl.ammo = sl.w.mag; sl.temp = 0; sl.overheat = false; t.recoil = t.recoilYaw = 0; }
+  const td = p.alive && !p.downT ? p.pos.distanceTo(t.pos) : Infinity;
+  const fromHome = Math.hypot(t.home.x - t.pos.x, t.home.z - t.pos.z);
+  const wish = new T.Vector3();
+  let aim = null, trig = false, slot = 'main', face = null;
+  if (a.kind === 'stream' || a.kind === 'sweep') {
+    face = a.yaw + (a.kind === 'sweep' ? RANGE_SWEEP * Math.sin(2 * Math.PI * range.t / RANGE_SWEEP_T) : 0);
+    const eye = muzzle(t, false, false);
+    aim = new T.Vector3(eye.x - Math.sin(face) * 100, t.pos.y + 2.4, eye.z - Math.cos(face) * 100);
+    trig = true;
+  } else {
+    const near = a.kind === 'lock' ? RANGE_LOCK_DIST : RANGE_MELEE_DIST;
+    t.target = td <= near && canSee(t, p, targetPoint(p)) || a.kind === 'melee' && t.target && td <= near + 10 ? p : null;
+    if (a.kind === 'lock') {
+      const aimed = trackAim(t, dt, muzzle(t, false, false));
+      if (t.target) { aim = t.aimPos; trig = aimed && botRecoilReady(t, aim); }
+    } else if (t.target) {
+      slot = 'aux'; aim = targetPoint(p);
+      const sword = t.slots.aux, sw = sword.w, close = td < sw.normal.reach + R;
+      const want = Math.atan2(-(p.pos.x - t.pos.x), -(p.pos.z - t.pos.z));
+      const ready = Math.abs(Math.atan2(Math.sin(want - t.yaw), Math.cos(want - t.yaw))) < 0.35;
+      if (!close && !t.swing) wish.set(p.pos.x - t.pos.x, 0, p.pos.z - t.pos.z).normalize();
+      if (ready && !close && td < sw.strong.lunge + sw.strong.reach && t.weapon === 'aux' && t.switchT <= 0 && !t.swing && sword.cd <= 0) shortDash(t, wish.clone());
+      trig = ready && (close || t.dashT > 0);
+    }
+    if (aim) face = Math.atan2(-(aim.x - t.pos.x), -(aim.z - t.pos.z));
+    else if (fromHome > 1.5) { wish.set(t.home.x - t.pos.x, 0, t.home.z - t.pos.z).normalize(); face = Math.atan2(-wish.x, -wish.z); } // 離れたら元の位置へ歩いて戻る
+    else face = a.yaw;
+  }
+  if (a.kind !== 'melee' && fromHome > 1.5) wish.set(t.home.x - t.pos.x, 0, t.home.z - t.pos.z).normalize(); // 押し出されたら戻る
+  t.moveInput = wish.lengthSq() > 0;
+  physics(t, wish, false, false, dt);
+  let dy = face - t.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+  t.yaw += a.kind === 'stream' || a.kind === 'sweep' ? dy : dy * Math.min(1, dt * 6);
+  if (!t.swing && !t.stun) selectWeapon(t, slot);
+  weaponsTick(t, dt, trig, aim, 0.04);
 }
 // 自機を最初の位置へ（弾と耐久は全量）、標的を全部起こす
 function rangePlace() {
-  tutorialClearInput(); clearPings(); releaseLock();
+  tutorialClearInput(); clearPings(); releaseLock(); killcam = null; incomingShots.clear();
   for (const sh of shells) scene.remove(sh.mesh); shells.length = 0;
   clearSecondaryEffects(); clearArtillery(); clearBeamCannons(); clearGadgets();
   player.nextCls = null; spawn(player);
@@ -14011,14 +14071,15 @@ function rangeTick(dt) {
   cores.B.hp = cores.R.hp = coreMax; // 撃破でコアは減らさない
   if (!running) return;
   const r = range; r.t += dt;
-  if (!player.alive) { rangePlace(); feed('自分の爆風で倒れたので、最初の位置に戻りました'); return; }
+  if (!player.alive) { rangePlace(); feed('倒れたので、最初の位置に戻りました'); return; }
   r.targets.forEach((t, i) => {
-    const [, x, amp, period] = RANGE_TARGETS[i];
+    const [, x, amp, period] = RANGE_TARGETS[i] || [];
     if (!t.alive) {
       if (t.rangeHp > 0) { rangeHit(t, t.rangeHp, true); t.rangeHp = 0; } // 撃破した1発は、残っていた耐久の分
       if ((t.deadT += dt) >= 2) { t.downT = 0; spawn(t); rangeSpot(t, i); }
       return;
     }
+    if (t.rangeA) rangeAttack(t, dt);
     if (amp) { const nx = x + amp * Math.sin(2 * Math.PI * r.t / period); t.vel.set((nx - t.pos.x) / dt, 0, 0); t.pos.x = nx; }
     if (t.hp < t.rangeHp) rangeHit(t, t.rangeHp - t.hp, false);
     else if (t.hp < t.maxHp && r.t - t.hitT > 4) t.hp = t.maxHp; // 4秒当てないと耐久が戻る
@@ -14075,7 +14136,10 @@ function setup() {
   const count = tutorial || range ? 1 : battleTeamSize();
   killCore = count >= 50 ? KILL_CORE_LARGE : KILL_CORE;
   for (let i = 1; i < count; i++) makeUnit(chosenTeam, false, i);
-  for (let i = 0; i < (range ? RANGE_TARGETS.length : count); i++) makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i);
+  for (let i = 0; i < (range ? RANGE_TARGETS.length + RANGE_ATTACKERS.length : count); i++) {
+    const e = makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i), a = range && RANGE_ATTACKERS[i - RANGE_TARGETS.length];
+    if (a) { e.cls = a.cls; e.rangeA = a; }
+  }
   if (tutorial) tutorial.target = units.find(u => !u.isPlayer);
   if (range) range.targets = units.filter(u => !u.isPlayer);
   applyAudioSettings();
