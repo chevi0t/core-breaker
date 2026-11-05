@@ -848,7 +848,7 @@ const SERIES = {
   vp: { maker: 'volca', types: [['missile', 'VP-4']] },
   gq: { maker: 'gard', types: [['mlrs', 'GQ-6']] },
   lj: { maker: 'lumina', types: [['waveSword', 'LJ-6']] },
-  ie: { maker: 'iris', types: [['stunner', 'IE-3']] },
+  ik: { maker: 'iris', types: [['stunner', 'IK-3']] }, // 2026-11-06：前は ie で、索敵センサーの ie と重なり、支援の補助装備の一覧が開けなかった
   sy: { maker: 'sylph', types: [['sabre', 'SY-2']] },
   lk: { maker: 'lumina', types: [['rod', 'LK-4']] },
   sc: { maker: 'sylph', types: [['claw', 'SC-9']] },
