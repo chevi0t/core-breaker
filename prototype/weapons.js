@@ -15,7 +15,7 @@ const MODEL_OF = {
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
-  artillery: ['artillery', 0], reflector: ['artillery', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
+  artillery: ['artillery', 0], reflector: ['reflector', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
   ar: ['ar', 0], burst: ['burst', 0], marks: ['marksman', 0], grenade: ['grenade', 0], timed: ['grenade', 1], gl: ['explosive', 0],
   sword: ['sword', 0], blade: ['sword', 2], spear: ['spear', 0], charger: ['charger', 0], chargerD: ['charger', 1], chargerS: ['charger', 2],
   gatling: ['gatling', 0], mg: ['lmg', 0], acannon: ['autocannon', 0], rocket: ['rocket', 0], scrum: ['rocket', 1], plasma: ['chargeCannon', 0],
@@ -161,6 +161,16 @@ function buildWeaponGeo(id, part) {
     box(1.5,.45,.85,dark,0,-.35,0); box(1.2,.65,.65,shell,0,0,0);
     for (const x of [-.45,0,.45]) { cyl(.2,1.3,steel,x,.35,0,'y'); cyl(.23,.12,black,x,1,0,'y'); box(.12,.7,.08,accent,x,.25,-.22); }
     box(.9,.18,.2,accent,0,-.5,-.5);
+  } else if (f === 'reflector') {
+    // 反射衛星砲（2026-11-05、オーナーのオリジナル。形は本作のオリジナル）：背中に載せる、真上を向いた照射塔。
+    // 台座と左右の蓄電器、縦の照射筒に3つの収束リング、頂の発光レンズ（照射の光の柱はここから出る。muzzle は台の上 1.08m）、横に衛星との交信アンテナ
+    box(1.3,.4,.85,dark,0,-.38,0); box(.95,.22,.7,shell,0,-.12,0);
+    for (const x of [-.56,.56]) { box(.32,.62,.56,shell,x,.08,.05); box(.34,.08,.58,accent,x,.3,.05); box(.06,.4,.04,0x7cfbd1,x+(x>0?.17:-.17),.08,-.18); }
+    cyl(.17,1.05,steel,0,.42,0,'y',.21,12); cyl(.24,.14,dark,0,-.02,0,'y',.24,12);
+    for (const [y,r] of [[.2,.3],[.48,.27],[.76,.24]]) add(new T.TorusGeometry(r,.045,6,18),accent,0,y,0,Math.PI/2);
+    cyl(.2,.1,black,0,.95,0,'y',.17,12); ball(.16,0x9fe8ff,0,1.02,0);
+    add(new T.CylinderGeometry(.34,.08,.12,14),steel,-.62,.62,.28,-.55,0,-.35); cyl(.025,.32,black,-.62,.52,.32,'y'); ball(.05,accent,-.66,.72,.22);
+    box(.62,.3,.36,dark,0,-.3,-.58); box(.5,.12,.18,accent,0,-.48,-.78); // 背中への取り付け金具
   } else if (f === 'barrier') {
     box(1.1,1.25,.5,dark); box(.7,.9,.22,shell,0,0,-.35);
     for (const x of [-.7,.7]) { box(.22,1.55,.45,steel,x,0,-.2); ball(.22,accent,x,.65,-.4); }
