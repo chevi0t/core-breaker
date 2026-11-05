@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver168</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver169</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -4876,6 +4876,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     const p = 1 - Math.max(0, u.lungeT) / (u.lungeT0 || 1),remaining=u.lungeT;
     u.lungeT -= dt;
     speed = u.lungeSpeed * (1.35 - 0.7 * p); dir = u.lungeDir;
+    if (u.swing?.a.iai) { speed = u.lungeSpeed; u.vel.x = dir.x * speed; u.vel.z = dir.z * speed; if (u.lungeT <= 0) { u.vel.x *= .2; u.vel.z *= .2; speed = 0; } } // 居合は決めた速さ・距離で一気に抜けて止まる
     accel = u.swing?.dashAttack && Math.hypot(u.vel.x, u.vel.z) > speed ? SLIDE_DECEL : 40; grav = GRAV * 0.35;
     u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt); u.boostIdle = 0.5; u.dashState = 'lunge';
     if(u.swing?.pike){
@@ -4883,7 +4884,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
       speed=u.lungeSpeed*Math.min(1,remaining/dt);accel=0;
       u.vel.x=dir.x*speed;u.vel.z=dir.z*speed;u.slideT=0;
     }
-    if (u.lungeT <= 0 && u.swing && !u.swing.pike && u.swing.a.lunge) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
+    if (u.lungeT <= 0 && u.swing && !u.swing.pike && u.swing.a.lunge && !u.swing.a.iai) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
   } else if (u.dashT > 0) {
     u.dashT -= dt;
     speed = u.dashV; dir = u.dashDir; accel = 30; grav = GRAV * 0.35;
@@ -7498,11 +7499,33 @@ function meleeHome(u, sw, dt) {
 }
 // 居合（2026-11-06）：背負った刀を右肩の上から抜いて袈裟に斬り下ろしながら、溜めに応じて 8〜20m 突進する（斬り抜け）。
 // 威力は溜めで 3000〜6500（満タンはダウンの閾値 6000 を超える）。数値は Claude の仮置き
-function iaiSwing(w, q) {
-  const I = w.iai, dmg = Math.round((I.dmg[0] + (I.dmg[1] - I.dmg[0]) * q) / 100) * 100, lunge = I.lunge[0] + (I.lunge[1] - I.lunge[0]) * q;
-  const windup = .08, sweep = .4, recover = .45;
-  return { dmg, reach: 4.6, height: 2.4, from: -70, to: 60, windup, sweep, recover, time: windup + sweep + recover, step: 0, homing: 3, lunge, dashMotion: 'sabre', iai: true, iaiQ: q, dashName: '居合・抜刀一閃',
-    strikes: [{ dmg, at: .16, sweep: .22, hand: 1, from: -70, to: 60, pitchFrom: 55, pitchTo: -20, gripFrom: [.6, 3.3, -.1], gripTo: [-.45, 2.1, -.75], motion: 'iai' }] };
+function iaiSwing(w, q, u) {
+  // 溜めに応じて、前ブースト（dashV×SHORT_TIME）の1〜mult倍の距離を、dashV の1〜mult倍の速さで踏み込む（オーナー 2026-11-06：満タンで2倍・2倍）。
+  // 刀を抜いたまま走り抜け、通り道の前で刃の届く敵を全員斬る（pathCut）。満タンでも威力はダウンの閾値より下で、よろけ
+  const I = w.iai, k = 1 + q * ((I.mult || 2) - 1), dmg = Math.round((I.dmg[0] + (I.dmg[1] - I.dmg[0]) * q) / 100) * 100;
+  const speed = u.dashV * k, dist = u.dashV * SHORT_TIME * k, run = dist / speed;
+  const windup = .06, sweep = run + .12, recover = .4;
+  return { dmg, reach: 4.6, height: 2.4, from: -70, to: 60, windup, sweep, recover, time: windup + sweep + recover, step: 0, homing: 3, lunge: dist, iaiSpeed: speed, pathCut: true,
+    dashMotion: 'sabre', iai: true, iaiQ: q, iaiDown: !!I.down, dashName: I.down ? '居合・重閃' : I.chain ? '居合・連閃' : '居合・抜刀一閃',
+    strikes: [{ dmg: 0, noHit: true, at: 0, sweep: Math.max(.16, run), hand: 1, from: -70, to: 60, pitchFrom: 55, pitchTo: -20, gripFrom: [.6, 3.3, -.1], gripTo: [-.45, 2.1, -.75], motion: 'iai' }] };
+}
+// 居合の通り道の斬撃：踏み込んでいる間、前（横に並んだ所まで）で刃の届く敵を1回ずつ斬る
+function iaiPathCut(u, sw) {
+  const a = sw.a, f = u.lungeDir, from = u.pos;
+  volley = meleeVolley; volley.clear();
+  const cut = (t, size, y0, y1) => {
+    if (sw.hit.has(t)) return;
+    const dx = t.pos.x - u.pos.x, dz = t.pos.z - u.pos.z, d = Math.hypot(dx, dz);
+    if (d - size > a.reach || dx * f.x + dz * f.z < -size || y1 < u.pos.y - .5 || y0 > u.pos.y + UNIT_H + 1) return;
+    sw.hit.add(t); meleeFrom.set(t, from);
+    sfx('slash', t.pos, null, .7); impact(new T.Vector3(t.pos.x, t.pos.y + 2, t.pos.z), 'hit', 0);
+    if (damage(t, u, a.dmg, false, true, null, from, true, false, sw.weaponName) && u.isPlayer) hitMark(false);
+    if (t.kind !== 'barricade') { sw.stopT = Math.max(sw.stopT || 0, .05); if (u.isPlayer) kickBlastShake(1800); sparkBurst(t.pos.clone().setY(t.pos.y + 2.2), 0xdff4ff, 12, 18, .22); }
+  };
+  for (const e of [...units, ...mirages]) if (e.alive && e.team !== u.team) cut(e, R, e.pos.y, e.pos.y + UNIT_H);
+  for (const t of turrets) if (t.alive && t.team !== u.team) cut(t, 1.5, t.pos.y, t.pos.y + 3.7);
+  for (const [t, amount] of volley) jolt(t, meleeFrom.get(t) || from, a.iaiDown ? Math.max(amount, DOWN_MELEE) : Math.min(Math.max(amount, STAGGER_MELEE), DOWN_MELEE - 1), true); // 当てた敵は必ずよろけ
+  volley = null; meleeFrom.clear();
 }
 // 斬馬刀の止まる所：ロックした敵の中心からこの距離（機体2つ分と少し）。刃（4.6m）は十分届く
 const SABRE_STOP = 2 * R + .4, SABRE_PULL = 10, SABRE_HOMING = 10; // 止まる距離、ロックした敵へ詰める距離（m）、踏み込み中に向きを変える速さ（rad/秒）
@@ -7535,6 +7558,7 @@ function swordTick(u, sl, dt, trigger, aim) {
     if (sw.tgt && u.lungeT > 0) meleeHome(u, sw, dt);
     // 斬馬刀：ロックした敵へ向かう踏み込み・突進・滑りは、敵の手前（刃の届く所）で止める。通り過ぎない（オーナー 2026-11-06）
     if (sw.stopTgt) sabreStop(u, sw);
+    if (sw.a.pathCut && sw.t <= sw.a.windup + sw.a.sweep) iaiPathCut(u, sw);
     const a = sw.a, phi = swingPhi(u, sw);
     if(a.hop && !sw.hopDone && sw.t>=a.hop.at){
       sw.hopDone=true;
@@ -7569,6 +7593,12 @@ function swordTick(u, sl, dt, trigger, aim) {
       if (press) sw.queued = true;
       const next = sl.w.combo?.[a.combo + 1];
       if (sw.queued && next && sw.t >= a.windup + a.sweep && !u.stun) { chain = next; carry = u.isPlayer && press && wasQueued; }
+    }
+    // 連閃（強装型）：満タンの居合で抜けた直後（振りの途中から押しておける）にもう一度押すと、続けて満タンの居合をもう一度
+    if (a.iai && a.iaiQ >= 1 && sl.w.iai.chain && !a.second) {
+      const press = u.isPlayer ? trigger && !sl.comboHeld : false;
+      if (press && sw.t > a.windup) sw.queued = true;
+      if (sw.queued && sw.t >= a.windup + a.sweep - .06 && !u.stun) chain = { ...iaiSwing(sl.w, 1, u), second: true, dashName: '居合・連閃（二の太刀）' };
     }
     sl.comboHeld = trigger;
     if (chain) Object.assign(u, { swing: null, recoverT: 0, meleeRecovery: null, slideT: 0, lungeT: 0 });
@@ -7607,7 +7637,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   }
   if (!chain && (sl.cd > 0 || !trigger)) return false;
   cancelSpawnInvul(u);
-  let a = chain || (iaiQ >= 0 ? iaiSwing(sl.w, iaiQ) : sl.w.normal);
+  let a = chain || (iaiQ >= 0 ? iaiSwing(sl.w, iaiQ, u) : sl.w.normal);
   const dashAttack = !chain && iaiQ < 0 && (u.dashT > 0 || u.longDash || (u.chargerOn && !u.slots.sp.overheat));
   if (dashAttack) {
     // 加速装置ON中も各武器のダッシュ技を使い、進入時の勢いを踏み込みへ引き継ぐ。
@@ -7639,12 +7669,14 @@ function swordTick(u, sl, dt, trigger, aim) {
   const pileStep=sl.w.acMelee==='pike' ? u.dashV*SHORT_TIME*.8*(.25+.75*chargeRatio) : 0;
   // 斬馬刀はロック中の敵（30m以内）を止まる目印にする。踏み込みの届かない距離でも、ダッシュの勢いで通り過ぎないように
   const lk = u.isPlayer ? lock.target : u.target;
-  if (sl.w.combo && lk?.alive && lk.kind === 'unit' && Math.hypot(lk.pos.x - u.pos.x, lk.pos.z - u.pos.z) < 30) u.swing.stopTgt = lk;
+  if (sl.w.combo && !a.iai && lk?.alive && lk.kind === 'unit' && Math.hypot(lk.pos.x - u.pos.x, lk.pos.z - u.pos.z) < 30) u.swing.stopTgt = lk;
   const go = sl.w.acMelee==='pike' ? (tgt&&!dashAttack?Math.min(pileStep,Math.max(0,td-R-a.reach*.6)):pileStep)
+    : a.iai ? a.lunge // 居合は止まらず斬り抜ける
     : sl.w.combo && tgt ? Math.min(pull, Math.max(0, td - SABRE_STOP)) // 斬馬刀はロックした敵の手前まで詰める
     : a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
   if (go > 0.3) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
+    if (a.iaiSpeed) { u.lungeT = u.lungeT0 = go / a.iaiSpeed; u.lungeSpeed = a.iaiSpeed; } // 居合：ブーストの1〜2倍の速さで一気に
     // ダッシュの勢いを短い静止踏み込み速度で上書きしない。逆・横の運動は前方加速へ変換しない。
     if(u.swing.pike)u.lungeSpeed=Math.max(u.lungeSpeed,u.vel.x*dir.x+u.vel.z*dir.z);
     if (!dashAttack || u.swing.pike) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
@@ -7696,7 +7728,7 @@ function slashSweep(u,sw,strike,hit,k0,k1){
     const f=meleeSlashFrame(sw,strike,k0+(k1-k0)*n/steps);slashGrip1.copy(f.grip);slashTip1.copy(f.tip);world(slashGrip1);world(slashTip1);
     let vi=(n-1)*18;for(const v of [slashGrip0,slashTip0,slashTip1,slashGrip0,slashTip1,slashGrip1]){vertices[vi++]=v.x;vertices[vi++]=v.y;vertices[vi++]=v.z;}
     const tryHit=(target,p,size,y0,y1)=>{
-      if(hit.has(target)||!slashSegmentHits(slashGrip1,slashTip1,p,size,y0,y1))return;
+      if(strike.noHit||hit.has(target)||!slashSegmentHits(slashGrip1,slashTip1,p,size,y0,y1))return;
       hit.add(target);const from=strike.from===strike.to?u.pos:swingPushFrom(u.pos,p,Math.sign(strike.to-strike.from),Math.abs(strike.to-strike.from));
       if(volley)meleeFrom.set(target,from);
       const big=sw.a.dashMotion==='sabre';
@@ -11310,9 +11342,9 @@ function triangleSpecialActive(p) {
   return !!(!p.slots.sp.overheat && (p.mirageOn||p.chargerOn||p.cloak||p.fieldOn||p.barrierOn||p.escortOn||p.post||p.postFlight||p.bombard||p.beamFire||p.healTarget||p.weapon==='sp'&&p.planted));
 }
 function triangleThermal(p) {
-  const sl=p.slots[p.weapon],w=sl.w,enabled=!!(w.heat||w.chargeHold||w.chargeTime);
-  const heat=sl.overheat?1:w.heat?sl.temp/100:w.chargeHold?sl.holdT/w.chargeHold:0;
-  const charge=w.chargeTime&&!sl.overheat&&sl.reloadT<=0?triClamp(sl.chargeT/w.chargeTime):0,charging=!!(w.chargeTime&&!sl.overheat&&heat<=0);
+  const sl=p.slots[p.weapon],w=sl.w,iai=!!(w.iai&&sl.sheathed),enabled=!!(w.heat||w.chargeHold||w.chargeTime||iai); // 斬馬刀は納刀中に居合の溜めの円
+  const heat=iai?0:sl.overheat?1:w.heat?sl.temp/100:w.chargeHold?sl.holdT/w.chargeHold:0;
+  const charge=iai?triClamp((sl.chargeT||0)/w.iai.charge):w.chargeTime&&!sl.overheat&&sl.reloadT<=0?triClamp(sl.chargeT/w.chargeTime):0,charging=iai||!!(w.chargeTime&&!sl.overheat&&heat<=0);
   const layer=$('thermalReticle');layer.hidden=!enabled||!p.alive||!running||!$('overlay').hidden||mapOpen||wsel.open||touchPlay&&innerHeight>innerWidth;
   if(layer.hidden)return;
   const target=lock.target?.alive&&!$('lockMark').hidden?screenOf(lock.target):null;
