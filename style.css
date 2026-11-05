@@ -291,6 +291,7 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #center { left: 50%; top: max(62%, calc(50% + var(--aim-sp-offset) + 20px)); transform: translateX(-50%); font-size: 18px; letter-spacing: .1em; text-shadow: 0 0 8px #000; text-align: center; white-space: pre-line; }
 #overlay[hidden] { display: none; }
 #overlay { position: fixed; inset: 0; display: flex; overflow-y: auto; padding-block: 24px; background: rgba(5, 9, 13, .82); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#appVersion { position: fixed; top: max(8px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); z-index: 1; font: 600 13px/1.2 system-ui, sans-serif; letter-spacing: .04em; color: rgba(214, 228, 240, .75); background: rgba(5, 9, 13, .6); border: 1px solid rgba(214, 228, 240, .25); border-radius: 4px; padding: 3px 8px; pointer-events: none; }
 .card { margin: auto; max-width: 560px; display: grid; gap: 16px; }
 .card h1 { font-family: var(--display); font-size: clamp(30px, calc(6 * var(--vw, 1vw)), 52px); margin: 0; letter-spacing: .04em; text-wrap: balance; }
 .card h1 span { color: var(--orange); }
