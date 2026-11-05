@@ -10991,34 +10991,82 @@ function lockWarning(p, dt) {
   }
 }
 $('lockDirections').innerHTML = LOCK_DIRS.map((_, k) => `<div class="lockSector" id="lockDir${k}" hidden><i aria-hidden="true"></i></div>`).join('');
+// ミサイルの捕捉表示（2026-11-05、オーナー「ミサイルロックのロックオンカーソルが地味だからもうちょい派手にしたい」。形と色は Claude の案）。
+// 捕捉中：四隅の鉤が外から敵へ寄っていき、太い進み具合の輪と目盛りが回る。捕捉した瞬間：赤い菱形が大きい所から敵へ締まり、広がる輪が光る。
+// 捕捉済み：二重の赤い菱形が回って脈打ち、4方向の矢じりが敵を指す。表示だけで、捕捉の仕組みと時間は変えない。
+const missileHudFx = new Map(); // 敵 → { n: 捕捉数, t: 最後に捕捉した playT }
 function missileHud(p) {
   const canvas = $('missileHud'), sl = p.slots[p.weapon], M = sl.w.missile;
   canvas.hidden = !M || !p.alive || !running || ended || !!p.transfer;
-  if (canvas.hidden) return;
+  if (canvas.hidden) { missileHudFx.clear(); return; }
   if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
-  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1;
-  ctx.clearRect(0, 0, w, h); ctx.lineWidth = 1.5; ctx.strokeStyle = '#7bdfd9';
-  ctx.strokeRect(w / 2 - r, h / 2 - r, r * 2, r * 2);
-  ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
-  ctx.fillStyle = '#b9f3ef';
+  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1, now = playT, TAU = Math.PI * 2;
+  ctx.clearRect(0, 0, w, h); ctx.lineCap = 'round';
   const locks = sl.missileLocks || [], capacity = Math.min(M.locks, Math.floor(sl.ammo / M.shots));
-  ctx.fillText(`捕捉 ${locks.length}/${capacity}　左：発射　右：解除`, w / 2, h / 2 + r + 20);
+  // 捕捉の範囲：四隅の鉤（捕捉があると赤く光る）
+  const armed = locks.length > 0, cx = w / 2, cy = h / 2, k = r * .32;
+  ctx.shadowColor = armed ? '#ff3b2f' : '#2fd6cf'; ctx.shadowBlur = armed ? 10 : 6;
+  ctx.strokeStyle = armed ? '#ff7a5c' : '#7bdfd9'; ctx.lineWidth = 2.5;
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    ctx.beginPath(); ctx.moveTo(cx + sx * r, cy + sy * (r - k)); ctx.lineTo(cx + sx * r, cy + sy * r); ctx.lineTo(cx + sx * (r - k), cy + sy * r); ctx.stroke();
+  }
+  ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
+  ctx.fillStyle = armed ? '#ffc2a8' : '#b9f3ef';
+  const info = `捕捉 ${locks.length}/${capacity}　左：発射　右：解除`;
+  ctx.fillText(info, cx, cy + r + 22);
   const list = new Set([...(sl.missileCandidates || []), ...locks.map(entry => entry.target)]);
-  const labels = [];
+  for (const e of [...missileHudFx.keys()]) if (!list.has(e)) missileHudFx.delete(e);
+  const labels = [{ x: cx, y: cy + r + 22, width: ctx.measureText(info).width }]; // 下の操作の文字とも重ねない
   for (const e of list) {
+    const n = locks.filter(entry => entry.target === e).length, fx = missileHudFx.get(e) || { n: 0, t: -9 };
+    if (n > fx.n) fx.t = now; fx.n = n; missileHudFx.set(e, fx);
     const s = screenOf(e);
     if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
-    const n = locks.filter(entry => entry.target === e).length, progress = (sl.missileProgress?.get(e) || 0) / M.time;
+    const progress = Math.min(1, (sl.missileProgress?.get(e) || 0) / M.time);
     const x = (s.x + 1) * w / 2, y = (1 - s.y) * h / 2;
-    ctx.strokeStyle = ctx.fillStyle = n ? '#ffba64' : '#b0d7dc';
-    ctx.strokeRect(x - 19, y - 19, 38, 38);
-    if (progress > 0) { ctx.beginPath(); ctx.arc(x, y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke(); }
-    const label = n ? `LOCK ×${n} / ${n * M.shots}発` : `${Math.round(e.pos.distanceTo(p.pos))}m`, width = ctx.measureText(label).width;
+    ctx.save(); ctx.translate(x, y);
+    if (n) {
+      const age = now - fx.t, snap = Math.max(0, 1 - age / .22), pulse = .5 + .5 * Math.sin(now * 12);
+      const size = 34 * (1 + 1.4 * snap * snap);
+      ctx.shadowColor = '#ff2a1f'; ctx.shadowBlur = 10 + 8 * pulse;
+      ctx.strokeStyle = '#ff5a3c'; ctx.lineWidth = 3;
+      ctx.save(); ctx.rotate(Math.PI / 4 + now * 1.6); ctx.strokeRect(-size / 2, -size / 2, size, size); ctx.restore();
+      ctx.strokeStyle = `rgba(255,214,120,${.55 + .45 * pulse})`; ctx.lineWidth = 1.5;
+      ctx.save(); ctx.rotate(Math.PI / 4 - now * 2.4); const s2 = size * 1.45; ctx.strokeRect(-s2 / 2, -s2 / 2, s2, s2); ctx.restore();
+      ctx.fillStyle = '#ff6a48';
+      const d = size * .95 + 4 * pulse; // 4方向の矢じりが敵を指す
+      for (let i = 0; i < 4; i++) { ctx.save(); ctx.rotate(i * Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, -d); ctx.lineTo(-6, -d - 10); ctx.lineTo(6, -d - 10); ctx.closePath(); ctx.fill(); ctx.restore(); }
+      if (age < .45) { // 捕捉した瞬間の広がる輪
+        const t = age / .45; ctx.strokeStyle = `rgba(255,120,80,${1 - t})`; ctx.lineWidth = 4 * (1 - t) + 1;
+        ctx.beginPath(); ctx.arc(0, 0, 20 + 60 * t, 0, TAU); ctx.stroke();
+      }
+    } else {
+      // 捕捉中・候補：四隅の鉤が外から寄ってくる。進み具合の輪と目盛りが回る
+      const gap = 34 - 16 * progress, len = 9;
+      ctx.shadowColor = '#2fd6cf'; ctx.shadowBlur = progress ? 8 : 3;
+      ctx.strokeStyle = progress ? '#9ff6ee' : 'rgba(176,215,220,.8)'; ctx.lineWidth = progress ? 2.5 : 1.5;
+      ctx.save(); ctx.rotate(progress * Math.PI / 2);
+      for (let i = 0; i < 4; i++) { ctx.save(); ctx.rotate(i * Math.PI / 2); ctx.beginPath(); ctx.moveTo(-gap, -gap + len); ctx.lineTo(-gap, -gap); ctx.lineTo(-gap + len, -gap); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
+      if (progress > 0) {
+        ctx.strokeStyle = 'rgba(159,246,238,.25)'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, 40, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = '#ffd36a'; ctx.shadowColor = '#ffb020'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI / 2, -Math.PI / 2 + TAU * progress); ctx.stroke();
+        ctx.strokeStyle = '#9ff6ee'; ctx.lineWidth = 2; ctx.shadowBlur = 4;
+        for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + now * 3; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 46, Math.sin(a) * 46); ctx.lineTo(Math.cos(a) * 51, Math.sin(a) * 51); ctx.stroke(); }
+      }
+    }
+    ctx.restore();
+    ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
+    ctx.font = n ? 'bold 16px sans-serif' : progress ? 'bold 13px sans-serif' : '13px sans-serif';
+    ctx.fillStyle = n ? '#ffb08a' : progress ? '#ffe39a' : '#b0d7dc';
+    const label = n ? `LOCK ×${n}  ${n * M.shots}発` : progress ? `LOCKING ${Math.round(progress * 100)}%` : `${Math.round(e.pos.distanceTo(p.pos))}m`, width = ctx.measureText(label).width;
     const lx = Math.max(width / 2 + 4, Math.min(w - width / 2 - 4, x));
-    let ly = y + 36;
-    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 6 && Math.abs(a.y - ly) < 16)) ly += 18;
+    let ly = y + (n ? 58 : progress ? 68 : 46);
+    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 6 && Math.abs(a.y - ly) < 18)) ly += 20;
     labels.push({ x: lx, y: ly, width }); ctx.fillText(label, lx, ly);
   }
+  ctx.shadowBlur = 0;
 }
 // ---- 三角コンソールの表示 ----
 // 捕捉範囲の円は描かず、その接線に計器を置く。照準・弾道・判定へ書き戻さない。
