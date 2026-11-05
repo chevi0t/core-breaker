@@ -20,7 +20,7 @@
 <div class="hud" id="cross"></div>
 <div class="hud" id="lockRing"></div>
 <svg class="hud" id="triangleAim" aria-label="照準の残弾・耐久・ブースト・SP" hidden>
-  <circle id="taRing" r="40"/>
+  <circle id="taRing" r="40" fill="none" stroke="#bcdde9" stroke-width="1.5" opacity=".7" style="display:none"/>
   <g class="ta-side"><path class="ta-track" id="taAmmoBg"/><path id="taAmmoFill" pathLength="100"/><text id="taAmmoText"><tspan id="taAmmoLabel">AMMO</tspan> <tspan class="ta-value" id="taAmmoValue"/> <tspan class="ta-small" id="taAmmoState"/></text></g>
   <g class="ta-side"><path class="ta-track" id="taHpBg"/><path id="taHpFill" pathLength="100"/><text id="taHpText"><tspan id="taHpLabel">AP</tspan> <tspan class="ta-value" id="taHpValue"/></text></g>
   <g id="taBoost"><path class="ta-track" id="taBoostBg"/><path id="taBoostFill" pathLength="100"/><text class="ta-small" id="taBoostValue"/></g>
@@ -176,8 +176,9 @@
           </div>
           <section id="hudSizeOptions">
             <h3 class="optionHead">HUD</h3>
-            <label class="aimStyle" for="optAimStyle"><span>照準の形<small>三角：照準のまわりに三角のゲージ。X字：照準のまわりの円と、斜めに伸びる4本（左上ブースト・右上耐久・左下SP・右下残弾）。旧い照準：三角の前の形（照準円の弧と捕捉円、メカニカルは照準の4枠、ロックは四隅の形）</small></span>
-              <select id="optAimStyle"><option value="0">三角</option><option value="1">X字</option><option value="2">旧い照準</option></select></label>
+            <label class="aimStyle" for="optAimStyle"><b>照準の形</b>
+              <select id="optAimStyle"><option value="0">三角</option><option value="1">X字</option><option value="2">旧い照準</option></select>
+              <small>三角：照準のまわりに三角のゲージ。X字：照準のまわりの円と、斜めに伸びる4本（左上ブースト・右上耐久・左下SP・右下残弾）。旧い照準：三角の前の形（照準円の弧と捕捉円、メカニカルは照準の4枠、ロックは四隅の形）</small></label>
             <div class="optionSliders" id="hudSizeControls">
               <label for="optHudTriangle">照準ゲージの大きさ <output id="optHudTriangleValue" for="optHudTriangle"></output></label>
               <input id="optHudTriangle" type="range" min="100" max="200" step="1">
@@ -8360,7 +8361,7 @@ function reflectPath(from, b) {
 }
 // 1回目のクリックで始点（細いレーザーが降りる）、2回目で終点（溜め warn 秒の後に照射）。溜め・照射の間のクリックは行先の変更
 function reflectorConfirm(u, p, end = null) {
-  const sl = u.slots.sp, w = sl.w, now = clock(), f0 = u.reflect;
+  const sl = u.slots.sp, w = sl.w, now = playT, f0 = u.reflect; // clock() は射撃場で止まるので、2回目のクリックを同じクリックと見てしまっていた
   if (!isArtilleryMode(u) || u.switchT > 0 || u.repairing || u.transfer || u.stun || !p || !artilleryInRange(u, p)) return false;
   if (now - (u.reflectClickAt ?? -9) < .2) return false; // 押した時とフレームの両方から来る同じクリックを2回と数えない
   if (f0 && f0.phase !== 'aim') {
@@ -8395,7 +8396,7 @@ function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
     else if (u.isPlayer) reflectorConfirm(u, aim);
   }
   // Bot も始点を決めてから少し置いて終点を決める（プレイヤーと同じく、始点の細いレーザーが先に見える）
-  if (!u.isPlayer && f?.phase === 'aim' && u.reflectPlan && clock() - f.since >= (u.reflectPlan.wait ?? .8)) reflectorConfirm(u, u.reflectPlan.b, u.reflectPlan.b);
+  if (!u.isPlayer && f?.phase === 'aim' && u.reflectPlan && playT - f.since >= (u.reflectPlan.wait ?? .8)) reflectorConfirm(u, u.reflectPlan.b, u.reflectPlan.b);
   sl.held = on && trigger;
   if (!f) return false;
   spot(u.team === 'B' ? 'R' : 'B', u, .6, null, w.name); // 真上への光で位置が知られる（始点を決めた時から）
@@ -8438,7 +8439,7 @@ function reflectorUpdate() {
   for (const u of units) {
     const f = u.alive ? u.reflect : null;
     if (!f) { if (u.reflectVisual) u.reflectVisual.root.visible = false; continue; }
-    const v = reflectorVisual(u), w = u.slots.sp.w, fire = f.phase === 'fire', thin = f.phase === 'aim', t = clock();
+    const v = reflectorVisual(u), w = u.slots.sp.w, fire = f.phase === 'fire', thin = f.phase === 'aim', t = playT;
     v.root.visible = true;
     // 自機から真上へ伸びる光の柱（始点を決めた時から。始点だけの間は細い）
     const top = muzzle(u), sky = u.pos.y + REFLECT_SKY;
@@ -8480,12 +8481,24 @@ function reflectWarning(p, dt) {
   if ((reflectBeepT -= dt) <= 0) { sfx('lockWarn'); reflectBeepT = f.phase === 'fire' ? .3 : .6; }
 }
 // マップの表示：射程の円、照準の円、始点からの線（最長 sweep）、照射中は今の位置
+// マップ指定の特別装備の射程（反射衛星砲・榴弾砲）：射程の外を暗くし、円をはっきり描いて「射程 Nm」と書く
+// （2026-11-05 オーナー「射程円表示がマップに出ねぇ」：細い点線の弧だけで、細長いマップでは見えにくかった）
+function drawMapRange(g, W, H, u, range) {
+  const cx = (u.pos.x + MAP_X) / (MAP_X * 2) * W, cy = (u.pos.z + MAP_Z) / (MAP_Z * 2) * H, r = range / (MAP_X * 2) * W;
+  g.save();
+  g.fillStyle = 'rgba(0, 0, 0, .42)'; g.beginPath(); g.rect(0, 0, W, H); g.arc(cx, cy, r, 0, Math.PI * 2, true); g.fill('evenodd');
+  g.setLineDash([8, 5]); g.lineWidth = 2.5; g.strokeStyle = '#7ff0c8'; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+  g.setLineDash([]); g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.fillStyle = '#7ff0c8'; g.strokeStyle = '#000'; g.lineWidth = 3;
+  const ty = Math.max(16, cy - r - 6), label = `射程 ${range}m`;
+  if (cy - r - 6 > -2) { g.strokeText(label, cx, ty); g.fillText(label, cx, ty); }
+  g.restore();
+}
 function drawReflectorMap(g, W, H) {
   const u = player, w = u.slots.sp.w, f = u.reflect, sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H, px = m => m / (MAP_X * 2) * W;
   const cur = mapPoint(), inRange = artilleryInRange(u, cur);
-  g.save(); g.lineWidth = 1.5; g.strokeStyle = '#69d7b2'; g.setLineDash([5, 4]);
-  g.beginPath(); g.arc(sx(u.pos.x), sz(u.pos.z), px(w.range), 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = inRange ? '#ffd36f' : '#ff6c58';
+  drawMapRange(g, W, H, u, w.range);
+  g.save(); g.lineWidth = 1.5; g.textAlign = 'left'; g.setLineDash([5, 4]);
+  g.strokeStyle = inRange ? '#ffd36f' : '#ff6c58';
   g.beginPath(); g.arc(sx(cur.x), sz(cur.z), Math.max(3, px(w.radius)), 0, Math.PI * 2); g.stroke();
   if (f) {
     // 終点（行先）はマップに出さない（オーナー指定）。始点と、照射中は今の光の位置
@@ -10706,8 +10719,8 @@ function drawBigMap() {
   if (mode && player.slots.sp.w.type === 'reflector') drawReflectorMap(g, W, H);
   else if (mode) {
     const u = player, w = u.slots.sp.w, sx = x => (x+MAP_X)/(MAP_X*2)*W, sz = z => (z+MAP_Z)/(MAP_Z*2)*H;
-    g.save(); g.lineWidth = 1.5; g.strokeStyle = '#69d7b2'; g.setLineDash([5,4]);
-    g.beginPath(); g.arc(sx(u.pos.x),sz(u.pos.z),w.range/(MAP_X*2)*W,0,Math.PI*2); g.stroke();
+    drawMapRange(g, W, H, u, w.range);
+    g.save(); g.lineWidth = 1.5; g.textAlign = 'left'; g.setLineDash([5,4]);
     g.strokeStyle = artilleryInRange(u,mapPoint()) ? '#ffd36f' : '#ff6c58';
     g.beginPath(); g.arc(sx(mapCur.x),sz(mapCur.z),Math.max(3,w.scatter/(MAP_X*2)*W),0,Math.PI*2); g.stroke();
     if (u.bombard) { g.setLineDash([]); g.strokeStyle='#ff934d'; g.beginPath(); g.arc(sx(u.bombard.x),sz(u.bombard.z),Math.max(5,w.scatter/(MAP_X*2)*W),0,Math.PI*2); g.stroke(); }
@@ -10916,7 +10929,7 @@ function xAimResize() {
   const rc=Math.max(46,ACQ_R*innerHeight/2+10),ang=24*Math.PI/180,c=Math.cos(ang),s=Math.sin(ang),gap=10,L=Math.min(300,Math.max(130,innerHeight*.3)),out=rc+gap+L;
   const svg=$('triangleAim'),w=2*(out*c+60),h=2*(out*s+60);
   svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox',`${-w/2} ${-h/2} ${w} ${h}`);
-  $('taRing').setAttribute('r',rc);
+  $('taRing').setAttribute('r',rc);$('taRing').style.display=''; // 塗りなしは要素の属性にも書く（CSS が古いまま読まれても黒い円にならない）
   const bars={Boost:[-1,-1],Hp:[1,-1],Sp:[-1,1],Ammo:[1,1]};
   for(const [name,[sx,sy]]of Object.entries(bars)){
     const a=triPoint(sx*(rc+gap)*c,sy*(rc+gap)*s),b=triPoint(sx*out*c,sy*out*s);
@@ -10929,6 +10942,7 @@ function xAimResize() {
   document.documentElement.style.setProperty('--aim-sp-base',(out*s+30)+'px');
 }
 function triangleAimResize() {
+  $('taRing').style.display='none';
   if(gameOptions.aimX&&!gameOptions.aimClassic){xAimResize();applyHudScale();document.body.style.setProperty('--ta-mark-scale',Math.max(.75,Math.min(1,innerHeight/600)));return;}
   const r=Math.min(154,Math.max(78,innerHeight*.215)),half=Math.sqrt(3)*r/2,clearance=Math.max(r/2,ACQ_R*innerHeight/2),size=clearance*2+half+200,height=clearance*2+180;
   const svg=$('triangleAim');svg.setAttribute('width',size);svg.setAttribute('height',height);svg.setAttribute('viewBox',`${-size/2} ${-height/2} ${size} ${height}`);
@@ -11695,6 +11709,7 @@ addEventListener('resize', resize);
 resize();
 
 let last = performance.now();
+let playT = 0; // 出撃中に進む秒。clock() は試合の残り時間から数えるので、時間の進まない射撃場・チュートリアルでは止まる
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
@@ -11702,6 +11717,7 @@ function loop(now) {
   bgmTick();
   if (running) {
     if (!tutorial && !range) timeLeft -= dt;
+    playT += dt;
     liftUpdate(dt);
     for (const u of units) {
       if (tutorial && u === tutorial.target || range && !u.isPlayer) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。

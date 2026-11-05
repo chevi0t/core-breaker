@@ -1095,11 +1095,11 @@ body:not(.aimClassic)[data-console="flight"] #status :is(#boostRow,#spRow), body
 #reflectAlert[hidden] { display: none; }
 @keyframes reflectBlink { 50% { opacity: .55; } }
 /* X字の照準（2026-11-05 オーナーのスケッチ）：照準のまわりの円と斜めの4本。スコアは右下の残弾の棒の下 */
-#taRing { display:none; fill:none; stroke:var(--ta-cursor); stroke-width:1.5; opacity:.7; }
-body.aimX #taRing { display:inline; }
+#taRing { fill:none; stroke:var(--ta-cursor); stroke-width:1.5; opacity:.7; } /* 出す・隠すは triangleAimResize（要素の style）で */
 body.aimX #triangleAim path { stroke-width:6; }
 body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(--xs-y, 46px)); }
 /* 照準の形のプルダウン（オプションの HUD） */
-.aimStyle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 12px; }
-.aimStyle span { display: grid; gap: 2px; } .aimStyle small { opacity: .7; font-size: 11px; }
-.aimStyle select { flex: none; padding: 6px 8px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
+.aimStyle { display: grid; gap: 8px; margin: 4px 0 14px; }
+.aimStyle b { font-weight: 500; }
+.aimStyle small { opacity: .7; font-size: 12px; line-height: 1.5; }
+.aimStyle select { width: 100%; max-width: 360px; padding: 12px 16px; font-size: 22px; background: #101c27; color: var(--hud); font-family: inherit; border: 2px solid var(--dim); border-radius: 4px; cursor: pointer; }
