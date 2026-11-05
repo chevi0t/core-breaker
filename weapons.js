@@ -544,12 +544,12 @@ const WEAPONS = {
   // AC スタングレネード系統 pages/957：{"kg": 210, "count": 3, "stunSeconds": 2.5, "blast": 15, "fuse": 3, "reload": 1}。原典と再現値の区別は auxiliary.json。
   // スタンガン（2026-11-05、オーナーのオリジナル：「チャージ武器、前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」。数値は本作の仮の値）。
   // 左長押しで溜め、離すと前方に電撃の範囲を張る。範囲の長さと幅・残る秒・威力・妨害の秒（スタン時間）は、溜めた割合で len・width・time・dmg・shock の間を進む。
-  // 範囲に入った敵機は1回だけ dmg を受け、範囲の中にいる間と出てから shock 秒、ブースト・ダッシュ・ジャンプができず歩きも遅い（射撃はできる）。
+  // 範囲に入った敵機は1回だけ dmg を受け、shock 秒行動不能（電撃グレネードと同じ硬直。2026-11-06 オーナー「ちゃんと行動不能なってる？」。前は機動の妨害だけ）。
   // 2026-11-06 オーナー指定：ロックオンできる、過熱は遅く（満タンのまま chargeHold 8秒。前は3秒）、弾は無限でリロードなし（infinite）、
   // 範囲とスタン時間は溜めで変わる。撃った後に次を溜められるまでの間（rpm）は 0.5秒（Claude の値）。
   stunner: { name: 'スタンガン', type: 'gun', sfx: 'beam', rpm: 120, mag: 1, mags: 1, reload: 0, infinite: true, spread: 0, chargeTime: 1, chargeHold: 8, ohTime: 2,
     stunField: { len: [6, 12], width: [4, 7], height: 5, time: [.6, 1.4], dmg: [300, 1200], shock: [.3, 1], slow: .35 },
-    desc: '左長押しで溜め、離すと前方に電撃の範囲を張る。溜めるほど範囲が広く、妨害が長い。ロックオンでき、弾は無限。範囲の敵機はブースト・ダッシュ・ジャンプができず歩きも遅くなる' },
+    desc: '左長押しで溜め、離すと前方に電撃の範囲を張る。溜めるほど範囲が広く、痺れが長い。範囲に入った敵機は痺れて動けず撃てない。ロックオンでき、弾は無限' },
   stunGrenade: {"name":"電撃グレネード","type":"gun","rpm":60,"mag":1,"mags":3,"reload":1,"spread":0,"noResupply":true,"desc":"時間で炸裂し、範囲内の敵だけを立ったまま硬直させる。ダメージはない","proj":{"kind":"grenade","speed":32,"grav":24,"fuse":3,"blast":15,"stunSeconds":2.5}},
   // AC ND索敵センサー系統 pages/692：{"kg": 340, "count": 2, "scan": 160, "keep": 10}。原典と再現値の区別は auxiliary.json。
   planeSensor: {"name":"索敵カーテン","type":"gun","rpm":60,"mag":1,"mags":2,"reload":1,"spread":0,"noResupply":true,"desc":"設置した向きの真横へ、上下左右の円盤状の索敵面を展開。面を横切る敵を10秒表示する","proj":{"kind":"sensor","model":"planeSensor","speed":24,"grav":24,"life":5,"hp":3000,"max":2,"scan":160,"keep":10,"planar":true}},
@@ -951,7 +951,7 @@ const WEAPON_TYPES = {
   // 本作の値＝本作の基本の値×型の値÷J の値（makeType の stunField の所）。威力は最小と最大を別々に、妨害の秒は最大の比、溜めは充填の比。
   // 攻撃範囲の Lv は長さと幅の倍率にする（Lv1 ×0.8・Lv2 ×1・Lv3 ×1.25。Claude の値）。重さも本作の基本 260kg × 型÷320。
   stunner: { w0: { kg: 320, dmg: [1800, 3600], shock: 1, area: 2, charge: 2 }, types: [
-    ["持続型", { kg: 284, dmg: [1200, 4800], shock: 2, area: 1, charge: 4 }, '溜めに時間がかかるが、満タンの威力と妨害の長さ（最大2倍）が大きい。範囲は狭い。ロックオンでき、弾は無限'], // スタナーJ2
+    ["持続型", { kg: 284, dmg: [1200, 4800], shock: 2, area: 1, charge: 4 }, '溜めに時間がかかるが、満タンの威力と痺れの長さ（最大2秒）が大きい。範囲は狭い。ロックオンでき、弾は無限'], // スタナーJ2
     ["広域型", { kg: 301, dmg: [2000, 4000], shock: 1, area: 3, charge: 3 }, '範囲が広く、威力も少し高い。溜めは少し長い。ロックオンでき、弾は無限'], // スタナーK
   ] },
   stunGrenade: { w0: {"kg":210,"count":3,"stunSeconds":2.5,"blast":15,"fuse":3,"reload":1}, types: [

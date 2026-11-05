@@ -113,7 +113,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver163</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver164</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -2680,7 +2680,7 @@ function heatDamage(h,e,dt) {
   damage(e,h.owner,dmg,false,false,null,h.pos,false,true,h.weaponName);
 }
 // ---- スタンガンの電撃範囲（2026-11-05、オーナーのオリジナル「前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」）----
-// 撃った時の足元から前へ len m・幅 width m・高さ height m の箱。time 秒残り、入った敵機は1回だけ dmg、中にいる間と出てから shock 秒は shockT（機動の妨害）。
+// 撃った時の足元から前へ len m・幅 width m・高さ height m の箱。time 秒残り、入った敵機は1回だけ dmg を受け、shock 秒行動不能（電撃グレネードと同じ electricT。2026-11-06）。
 // len・width・time・dmg・shock は [溜め0, 満タン] で、溜めた割合で間を取る。見た目は箱の中の放電だけ（2026-11-06 オーナー「四角いボックスは見た目がよくない」で箱と縁を消した）。
 // 壁越しには効かない（撃った位置から敵の体が見える時だけ）。見た目の乱数は戦闘用の Math.random を使わない。
 const stunFields = [];
@@ -2710,8 +2710,13 @@ function stunFieldUpdate(dt) {
     const f = stunFields[i];
     for (const e of units) {
       if (!e.alive || e.team === f.team || e.invulT > 0 || !inStunField(f, e)) continue;
-      if (!f.touched.has(e)) { f.touched.add(e); damage(e, f.owner, f.dmg, false, false, null, f.from, false, true, f.name); if (f.owner.isPlayer) hitMark(false); }
-      e.shockT = Math.max(e.shockT || 0, f.shock); e.shockSlow = f.slow; e.dashT = e.lungeT = 0; e.longDash = false;
+      if (f.touched.has(e)) continue;
+      f.touched.add(e); damage(e, f.owner, f.dmg, false, false, null, f.from, false, true, f.name); if (f.owner.isPlayer) hitMark(false);
+      // 行動不能（2026-11-06 オーナー「ちゃんと行動不能なってる？」。アーケード版のスタナーに合わせ、電撃グレネードと同じ硬直を shock 秒。
+      // 前は範囲の中にいる間と出てから shock 秒の機動の妨害 shockT だけで、歩きと射撃はできた）。入った時に1回だけで、範囲の中にいても延びない
+      if (!e.alive || launchStaggerProtected(e) || e.repairing) continue; // 電撃グレネードと同じく、射出直後とポッド使用中は崩さない
+      e.electricT = Math.max(e.electricT || 0, f.shock); e.vel.x = e.vel.z = 0; e.dashT = e.lungeT = 0; e.longDash = false; e.swing = e.meleeRecovery = null; e.healTarget = null;
+      if (e.stun !== 'down') { e.stun = 'electric'; e.stunT = e.electricT; }
     }
     f.life -= dt;
     const fade = Math.min(1, f.life / .25, (f.max - f.life) / .08 + .3);
@@ -6303,8 +6308,8 @@ function botUpdate(u, dt) {
     trig = sw.chargeWave ? sword.cd <= 0 && (sword.chargeT < sw.chargeTime || !ready)
       : sw.meleeCharge ? sword.cd <= 0 && !sword.overheat && (sword.chargeT < sw.chargeTime * .5 || !close || !ready)
       : ready && (close || u.dashT > 0);
-  } else if (!waterEscape && u.slots.aux.w.stunField && tracking && u.target.kind === 'unit' && !(u.target.shockT > 0) && td < u.slots.aux.w.stunField.len[1] - 2 && u.slots.aux.ammo + u.slots.aux.reserve > 0) {
-    slot = 'aux'; trig = ready; // スタンガン：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）。弾が無限なので、もう痺れている敵には使わない
+  } else if (!waterEscape && u.slots.aux.w.stunField && tracking && u.target.kind === 'unit' && !(u.target.electricT > 0) && td < u.slots.aux.w.stunField.len[1] - 2 && u.slots.aux.ammo + u.slots.aux.reserve > 0) {
+    slot = 'aux'; trig = ready; // スタンガン：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）。弾が無限なので、もう痺れている敵（electricT）には使わない
   } else if (u.cls === 'heavy' && u.rkGo) slot = 'sub';
   else if (u.cls === 'raid' && sub.w.scope && tracking && td > 35) slot = 'sub'; // 遠い敵は狙撃銃で
   else if (ally || selfHeal) { slot = 'sp'; alt = selfHeal; }
@@ -10373,7 +10378,7 @@ function wStats(w) {
     }
   } else if (w.stunField) {
     const F = w.stunField;
-    st.push(`威力 ${F.dmg[0]}〜${F.dmg[1]}（1回）`, `範囲 前方${F.len[0]}〜${F.len[1]}m・幅${F.width[0]}〜${F.width[1]}m`, `範囲が残る ${F.time[0]}〜${F.time[1]}秒`, `妨害 範囲の中と出て${F.shock[0]}〜${F.shock[1]}秒：ブースト・ジャンプ不可、歩き×${F.slow}`, `溜め ${w.chargeTime}秒・満タン保持${w.chargeHold}秒で過熱`, w.infinite ? '弾数 無限（リロードなし）' : `弾数 ${w.mag}×${w.mags}`, 'ロックオン可');
+    st.push(`威力 ${F.dmg[0]}〜${F.dmg[1]}（1回）`, `範囲 前方${F.len[0]}〜${F.len[1]}m・幅${F.width[0]}〜${F.width[1]}m`, `範囲が残る ${F.time[0]}〜${F.time[1]}秒`, `行動不能 ${F.shock[0]}〜${F.shock[1]}秒（溜めで変わる）`, `溜め ${w.chargeTime}秒・満タン保持${w.chargeHold}秒で過熱`, w.infinite ? '弾数 無限（リロードなし）' : `弾数 ${w.mag}×${w.mags}`, 'ロックオン可');
   } else if (w.type === 'gun') {
     st.push(`威力 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.dual ? '×2丁' : ''}`, `連射 ${w.rpm}発/分${w.burst ? `（${w.burst}発ずつ）` : w.semi ? '（単発）' : ''}`, ammo(), `リロード ${w.reload}秒`);
     if (w.spin) st.push(`空転 ${w.spin}秒`);
