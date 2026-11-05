@@ -9,7 +9,7 @@
   cd ../core-breaker-pages && git add -A && git commit -m "…を公開版へ反映" && git push origin gh-pages
 
 書き出す物：index.html（prototype/index.html に骨組みを付け、three.js を同梱の物に替え、マップ選択の画面に出典のリンクを足す）、
-maps.js・parts.js・weapons.js・sounds.js・music.js（prototype/ のまま）、three.min.js、credits/（各 CREDITS.md と three.js のライセンス）、
+style.css・maps.js・parts.js・weapons.js・pilots.js・sounds.js・music.js（prototype/ のまま）、three.min.js、credits/（各 CREDITS.md と three.js のライセンス）、
 build-info.json（元の main のコミットと各ファイルのハッシュ）、README.md。.nojekyll はそのまま残す。
 gh-pages は配信専用のブランチで、main へマージしない。push を強制（--force）しない。
 """
@@ -91,7 +91,7 @@ def main():
         "index.html": game_page().encode("utf-8"),
         "credits/index.html": credits_page().encode("utf-8"),
     }
-    copies = {"maps.js": "prototype/maps.js", "parts.js": "prototype/parts.js", "weapons.js": "prototype/weapons.js", "sounds.js": "prototype/sounds.js", "music.js": "prototype/music.js",
+    copies = {"style.css": "prototype/style.css", "maps.js": "prototype/maps.js", "parts.js": "prototype/parts.js", "weapons.js": "prototype/weapons.js", "pilots.js": "prototype/pilots.js", "sounds.js": "prototype/sounds.js", "music.js": "prototype/music.js",
               "three.min.js": "vendor/three-r128/three.min.js", "credits/LICENSE-THREE.txt": "vendor/three-r128/LICENSE"}
     for dst, src in copies.items():
         files[dst] = (ROOT / src).read_bytes()
@@ -99,7 +99,7 @@ def main():
     for dst, data in files.items():
         (out / dst).write_bytes(data)
     (out / ".nojekyll").touch()
-    names = [".nojekyll", "index.html", "maps.js", "parts.js", "weapons.js", "sounds.js", "music.js", "three.min.js", "credits/index.html", "credits/LICENSE-THREE.txt"]
+    names = [".nojekyll", "index.html", "style.css", "maps.js", "parts.js", "weapons.js", "pilots.js", "sounds.js", "music.js", "three.min.js", "credits/index.html", "credits/LICENSE-THREE.txt"]
     info = {
         "sourceRepository": REPO,
         "sourceBranch": "main",

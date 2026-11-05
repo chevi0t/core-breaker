@@ -8,11 +8,13 @@
 
 | ファイル | 中身 |
 |---|---|
-| `index.html` | ゲーム本体。HTML・CSS・JavaScriptが1ファイルにまとまっている。ビルド不要 |
+| `index.html` | ゲーム本体（HTML と JavaScript）。ビルド不要 |
+| `style.css` | 画面の見た目（2026-11-05 に index.html の `<style>` から分けた）。無いと画面が崩れる |
 | `three.min.js` | three.js r128（MITライセンス）。配布zipでは同梱、開発版はCDNから読む |
 | `sounds.js` | 効果音のデータ（`window.SOUND_DATA`）。`tools/build_sounds.py` が作る。無くても無音で動く |
 | `maps.js` | マップのデータ（`window.MAP_DATA`）。`tools/build_maps.py` が `prototype/maps/*.js` から作る。無いと遊べない |
 | `weapons.js`・`parts.js` | 武器とパーツの表（2026-11-04 に index.html から分けた）。手で書くファイルで、無いと動かない |
+| `pilots.js` | パイロットの一覧・埋め込んだ絵・揺れ（2026-11-05 に index.html から分けた）。無いと動かない |
 | `MAPS.md` | マップの書き方と今あるマップの詳細（開発版では `prototype/maps/README.md`） |
 | `music.js` | 戦闘中BGMのデータ（`window.MUSIC_DATA`）。`tools/build_sounds.py --music` が作る。無くてもBGMが鳴らないだけ |
 | `SOUND-CREDITS.md` | 効果音とBGMの出典とライセンス（開発版では `sounds/CREDITS.md`） |
@@ -23,6 +25,8 @@
 - 遊ぶ：`index.html` をブラウザで開く。マウスが固定されないときは `python -m http.server 8000` を実行して `http://localhost:8000` を開く。
 - 改造する：`index.html` を直接編集してブラウザを再読み込みするだけ。
 - 武器とパーツの表は `weapons.js`・`parts.js`（2026-11-04 リファクタで index.html から分けた）。どちらも `function weaponModels() {…}`・`function weaponTables() {…}`・`function partTables() {…}` の中に元のコードをそのまま置き、最後の `return { … }` で名前を返す。本体は元の位置（「武器のモデル」「機体パーツ」「兵装と武器」の見出し）で `const { … } = weaponTables();` のように受け取る。本体の `<script>` は包まず（`(() => { … })()` をやめた）、行頭の定数と関数はページの中で共通なので、表の関数の中からも本体の定数・関数をそのまま使える。表に新しい名前を足したら `return` にも足す（本体と試験の `__g` から見える）。
+- パイロットの一覧・絵・揺れは `pilots.js` の `pilotTables()`（2026-11-05、同じ書き方）。本体は「パイロット」の見出しで受け取り、最初の `setPilot` は受け取った後に本体で呼ぶ。あとから値を入れ直す変数（`pilotChoice`・`pilotSway`・`pilotSwayLast`）は本体が呼ぶ前に `let` で宣言し、表の関数の中では代入だけする（`const { … }` で受け取った名前は入れ直せないため）。
+- 画面の見た目（CSS）は `style.css`（2026-11-05 に `<style>` から分けた）。パイロットの絵の CSS は `tools/embed_pilot_sprites.py`・`embed_pilot_avatars.py` が印の間に書き込む。
 
 ## 2. ゲームの骨組み
 

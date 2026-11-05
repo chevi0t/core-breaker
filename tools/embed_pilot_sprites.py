@@ -124,10 +124,11 @@ def collect(folder):
 if __name__=='__main__':
     folder=ROOT/'prototype/avatars/pilots'
     if '--shrink' in sys.argv: shrink(folder)
-    css,registry,patches=collect(folder);page=ROOT/'prototype/index.html';src=page.read_text()
+    css,registry,patches=collect(folder);page=ROOT/'prototype/pilots.js';src=page.read_text();sheet=ROOT/'prototype/style.css';style=sheet.read_text()  # 絵の CSS は style.css、表は pilots.js（2026-11-05 から。前は index.html）
     data='const PILOT_SPRITES = '+json.dumps(registry)+';\nconst PILOT_PATCHES = '+json.dumps(patches)+';\nconst PILOT_LAYERS = '+json.dumps(layers)+';'
-    for kind,content in [('CSS',css),('DATA',data)]:
+    def put(text,kind,content):
         pat=r'/\* PILOT_SPRITES_'+kind+r'_BEGIN \*/.*?/\* PILOT_SPRITES_'+kind+r'_END \*/'
-        assert len(re.findall(pat,src,re.S))==1
-        src=re.sub(pat,lambda m:'/* PILOT_SPRITES_'+kind+'_BEGIN */\n'+content+'\n/* PILOT_SPRITES_'+kind+'_END */',src,flags=re.S)
-    page.write_text(src);print(registry,patches,{k:sorted(v['layers']) for k,v in layers.items()})
+        assert len(re.findall(pat,text,re.S))==1
+        return re.sub(pat,lambda m:'/* PILOT_SPRITES_'+kind+'_BEGIN */\n'+content+'\n/* PILOT_SPRITES_'+kind+'_END */',text,flags=re.S)
+    style=put(style,'CSS',css);src=put(src,'DATA',data)
+    sheet.write_text(style);page.write_text(src);print(registry,patches,{k:sorted(v['layers']) for k,v in layers.items()})

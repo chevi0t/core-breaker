@@ -11,11 +11,11 @@
 | `<id>/layers/*.webp`・`manifest.json` | `tools/pilot_layers.py <id>` が作る7枚（後ろ髪 hairB・体 body・左腕 armL・右腕 armR・顔 head・やられ顔 headD・前髪 hairF）。手で書き換えない |
 | `<id>/layers/v11.json` | ComfyUI の描き足し（v11）の指示文。`tools/pilot_v11.py` が読む |
 | `<id>/layers/plate_body.png`・`plate_face.png` | オーナーが v11 で描き足した絵（無ければ色をにじませた仮の描き足し） |
-| `prototype/index.html` の `PILOTS` | 選べるパイロットの一覧（`id`・`name`・`trait`）。`if (PILOT_SPRITES.<id>) PILOTS.push(...)` の形で足す |
-| `prototype/index.html` の `PILOT_RIGS.<id>` | 揺れの設定。`layers` の中が層で揺らす時の値（腰の支点 `pivot`、胸 `chest`、首 `neck`、腕の肩と手 `arms`、髪の根元と届く範囲 `hairB`・`hairF`、倍率 `amp`）。外側は層が読めない時の1枚絵用のおおよその値 |
+| `prototype/pilots.js` の `PILOTS` | 選べるパイロットの一覧（`id`・`name`・`trait`）。`if (PILOT_SPRITES.<id>) PILOTS.push(...)` の形で足す |
+| `prototype/pilots.js` の `PILOT_RIGS.<id>` | 揺れの設定。`layers` の中が層で揺らす時の値（腰の支点 `pivot`、胸 `chest`、首 `neck`、腕の肩と手 `arms`、髪の根元と届く範囲 `hairB`・`hairF`、倍率 `amp`）。外側は層が読めない時の1枚絵用のおおよその値 |
 | `PILOT_SPRITES`・`PILOT_LAYERS` | `tools/embed_pilot_sprites.py --shrink` が埋め込む。手で書き換えない |
 
-揺れの仕組み（ばね、網目、髪の3節の鎖）は `createPilotLayers` と `docs/DESIGN.md`「パイロット絵の揺れ」。仕組みは変えない（変えるなら「確認する所」）。
+揺れの仕組み（ばね、網目、髪の3節の鎖）は `prototype/pilots.js`（2026-11-05 に index.html から分けた）の `createPilotLayers` と `docs/DESIGN.md`「パイロット絵の揺れ」。仕組みは変えない（変えるなら「確認する所」）。
 
 ## 手順
 
@@ -49,7 +49,7 @@
    node tools/test/pilot_sway_frames.js <id> out/<id>   # 止まる・左右に吹かす・着地・被弾の7枚。目で見て、顔や体がゆがまないか
    node tools/test/quick_check.js origin/main
    ```
-   ページの大きさ（`index.html` は claude.ai の上限 16MB。今は約1.8MB）も PR に書く。層は1人あたり約60KB で、オーナーの上限は1人100KB 前後。
+   ファイルの大きさ（絵を足すと `pilots.js` と `style.css` が大きくなる。claude.ai の上限は1ファイル16MB で、今は `pilots.js` 約0.33MB、`style.css` 約0.54MB）も PR に書く。層は1人あたり約60KB で、オーナーの上限は1人100KB 前後。
 6. **v11 の材料を作る**：`<id>/layers/v11.json` に指示文を書き（`officer` を写して、消す物と描き足す物をその絵に合わせて英語で書く）、
    ```sh
    python3 tools/pilot_v11.py <id> <出力フォルダ>
@@ -60,5 +60,5 @@
 ## PR とマージ
 
 - 1キャラ1つの PR。説明は AGENTS.md のとおり（変更前・変更後・決めたこと・確かめたこと）。7枚の重ね絵と揺れの絵を、PR の説明に貼るかオーナーに渡す。
-- `index.html` の `PILOTS`・`PILOT_RIGS` に足すだけで、`createPilotLayers` などの仕組みを変えていなければ、オーナーの OK でマージする（オーナーが別に決めるまで、自分ではマージしない）。仕組みや `tools/pilot_layers.py` の共通の処理を変えたら「確認する所」。
+- `pilots.js` の `PILOTS`・`PILOT_RIGS` に足すだけで、`createPilotLayers` などの仕組みを変えていなければ、オーナーの OK でマージする（オーナーが別に決めるまで、自分ではマージしない）。仕組みや `tools/pilot_layers.py` の共通の処理を変えたら「確認する所」。
 - 公開ページと GitHub Pages は今までどおり（AGENTS.md）。

@@ -65,8 +65,10 @@ https://chevi0t.github.io/core-breaker/ は `gh-pages` ブランチの直下を�
 
 | パス | 中身 |
 |---|---|
-| `prototype/index.html` | ゲーム本体（HTML・CSS・JavaScript の1ファイル、three.js r128、ビルド不要）。`// ---- 見出し ----` で区切ってある（`docs/DESIGN.md` 第2章） |
+| `prototype/index.html` | ゲーム本体（HTML と JavaScript、three.js r128、ビルド不要。見た目は `style.css`）。`// ---- 見出し ----` で区切ってある（`docs/DESIGN.md` 第2章） |
 | `prototype/weapons.js`・`parts.js` | 武器とパーツの表（2026-11-04 に index.html から分けた）。`weaponModels()`・`weaponTables()`・`partTables()` の関数で、本体が元の位置で呼んで中の名前を受け取る。新しい名前は最後の `return { ... }` にも足す。手で書いてよい |
+| `prototype/pilots.js` | パイロットの一覧・埋め込んだ絵・揺れ（`PILOTS`・`PILOT_RIGS`・`createPilotLayers` など。2026-11-05 に index.html から分けた）。`pilotTables()` の関数で、書き方は weapons.js と同じ。`PILOT_SPRITES` などの埋め込みは道具が書く |
+| `prototype/style.css` | 画面の見た目（CSS。2026-11-05 に index.html の `<style>` から分けた）。パイロットの絵の CSS（`PILOT_ATLAS`・`PILOT_SPRITES_CSS` の印の間）は道具が書く |
 | `prototype/maps/<id>.js` | マップのデータ（書き方 `prototype/maps/README.md`、決まり `prototype/maps/RULES.md`） |
 | `prototype/maps.js` | `python3 tools/build_maps.py` が `maps/` から作る。手で書き換えない |
 | `prototype/sounds.js`・`music.js` | `tools/build_sounds.py` が `sounds/` から作る |
@@ -120,6 +122,6 @@ node tools/test/map_check.js dbg <マップID>            # 施設の置き場�
 | 武器 | `docs/codex/weapons.md` | 調べ物から、性能・形（モデル）を作り込んでゲームに入れるまで |
 | 機体パーツ | `docs/codex/parts.md` | 調べ物から、性能を作り込んでゲームに入れるまで |
 | 機体の形 | Issue に書いた内容と `docs/codex/parts.md` の「今の作り」 | シリーズごとの形の作り分け |
-| パイロットの絵 | `docs/codex/pilots.md` | 絵の取り込み、層の分け方（`rig.json`）、揺れの位置合わせ、ComfyUI（v11）の材料作り（オーナーの指定 2026-11-02）。マージはオーナーの OK で |
+| パイロットの絵（`prototype/pilots.js`） | `docs/codex/pilots.md` | 絵の取り込み、層の分け方（`rig.json`）、揺れの位置合わせ、ComfyUI（v11）の材料作り（オーナーの指定 2026-11-02）。マージはオーナーの OK で |
 
 どの作業も `prototype/index.html` を変えることが多い。PR を出す前に main を取り込み、衝突を直してからテストを回す。

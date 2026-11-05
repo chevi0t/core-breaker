@@ -1,6 +1,6 @@
 """パイロットの絵を層に分ける（後ろ髪・体・左腕・右腕・顔・前髪、やられ顔の顔）。2026-11-02、オーナーの決定で導入。
 
-ゲームでは層ごとに網目に貼って別々のばねで揺らす（index.html「パイロット絵の揺れ」の createPilotLayers）。
+ゲームでは層ごとに網目に貼って別々のばねで揺らす（pilots.js の createPilotLayers）。
 胸は体の層の中で網目で弾ませ、腕は上の層なので胸に巻き込まれない。手は操縦桿に固定、肩は体について行く。
 
   python3 tools/pilot_layers.py moss4        # prototype/avatars/pilots/moss4/layers/ を作り直す
