@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver169</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver170</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -2571,7 +2571,7 @@ function shellUpdate(dt) {
     if (!sh.stuck) {
       if (S.grav) sh.vel.y -= S.grav * dt;
       const dir = sh.vel.clone().normalize();
-      hit = castFrom(sh.pos, dir, sh.owner, sh.vel.length() * step, !!(S.chainCount || S.bounceUnit));
+      hit = castFrom(sh.pos, dir, sh.owner, sh.vel.length() * step, !!(S.chainCount || S.bounceUnit || S.sticky));
       // 当たった面の少し手前で爆発させる
       at = hit ? hit.point.clone().addScaledVector(dir, -0.2) : null;
       if (!at) {
@@ -2594,7 +2594,9 @@ function shellUpdate(dt) {
       }
     }
     if (at && PLACED.includes(S.kind)) {
-      placeGadget(sh, at, hit && hit.ref);
+      let n = hit && hit.normal ? hit.normal.clone() : UP.clone(); // 貼りついた面の向き（地面は上）。裏面なら投げた側へ向け直す
+      if (n.dot(sh.vel) > 0) n.negate();
+      placeGadget(sh, at, hit && hit.ref, n);
       at = null; sh.life = 0;
     } else if (at && S.fuse && !S.impact && !(S.knock && hit && hit.ref && hit.ref.kind === 'unit' && hit.ref.team !== sh.team)) {
       // 時限式：止まった所で起爆を待つ（衝撃グレネードは敵機に直接当たればすぐ炸裂。v0.11.2）
@@ -6659,12 +6661,22 @@ function breakGadget(g, by) {
     addScore(by, 'support', SC[sk] + (g.pos.z * TEAM[by.team].dir > 0 ? SC.gadgetEnemy : 0), g.name + '破壊');
   }
 }
+// 地雷の感知。壁や天井に貼りついた吸着地雷は、貼りついた面の正面（面の向きから60度以内）だけを見る（クレイモアのように。オーナー 2026-11-06「上方向に検知判定あるからクレイモア的に使えない」）
+const MINE_FACE_COS = .5;
+function mineSenses(g, e) {
+  const S = g.spec;
+  if (g.face) {
+    const v = new T.Vector3(e.pos.x - g.pos.x, e.pos.y + UNIT_H * .5 - g.pos.y, e.pos.z - g.pos.z), d = v.length();
+    return d < S.trigger + R && v.dot(g.face) > d * MINE_FACE_COS;
+  }
+  return (S.triggerSphere ? e.pos.distanceTo(g.pos) : bodyDist(e, g.pos)) < S.trigger;
+}
 const GADGET_NAME = { ammo:'補給コンテナ', mine: '地雷', sensor: '索敵センサー', remote: '遠隔爆弾', sentry: '自動砲台' };
 const GADGET_LIFT = { ammo:.25, mine: 0.1, sensor: 0.12, remote: 0.15, sentry: 1.04 }; // 形を置く高さ（形の底が地面に着く）
 const SENTRY_SCALE = 1.5 * RAID_SENTRY_SCALE, SENTRY_TIP = new T.Vector3(0, -0.05, -1.33); // 地上型の従来倍率を残して拡大。形の中の砲身の先。
 // 投げた物が止まった所に置く。地雷と自動砲台、機体に当たった物は足元の地面へ。センサーと遠隔爆弾は当たった所（壁やコア）に貼りつく。
 // 同じ持ち主の同じ武器の物が max 個を超えたら古い物から消える
-function placeGadget(sh, at, ref) {
+function placeGadget(sh, at, ref, normal = null) {
   const S = sh.spec, onUnit = !!ref && ref.kind === 'unit';
   const stick = S.airDeploy || ((S.kind === 'sensor' && !S.planar || S.kind === 'remote' || S.sticky) && (!onUnit || S.attachUnit));
   const pos = stick ? at.clone() : new T.Vector3(at.x, groundAt(at.x, at.z, at.y + 0.5), at.z);
@@ -6681,7 +6693,7 @@ function placeGadget(sh, at, ref) {
   const G = S.gun;
   addGadget({ kind: S.kind, name: S.float ? '浮遊機雷' : GADGET_NAME[S.kind], weaponName: sh.weaponName, team: sh.team, owner: sh.owner, pos, hp: S.hp, maxHp: S.hp, spec: S, mesh, riseLeft:S.riseHeight||0, planarPrev:S.planar?new Map():null, armT: S.kind === 'remote' ? 0.5 : 1, scanT: 0, dir, age: 0,
     attached: S.attachUnit && onUnit ? ref : null, offset: S.attachUnit && onUnit ? pos.clone().sub(ref.pos).applyAxisAngle(UP,-ref.yaw) : null,
-    onCore: ref && ref.kind === 'core' && ref.team !== sh.team ? ref : null, ammo: G ? G.mag : 0, cd: 0, reloadT: 0, target: null });
+    onCore: ref && ref.kind === 'core' && ref.team !== sh.team ? ref : null, face: S.sticky && stick && normal && normal.y < .7 ? normal.clone().normalize() : null, ammo: G ? G.mag : 0, cd: 0, reloadT: 0, target: null });
   if (S.kind === 'sensor') sfx('sensor', pos);
 }
 // 遠隔爆弾の起爆。敵のコアに貼りついていればコアにも当たる
@@ -6758,7 +6770,7 @@ function gadgetUpdate(dt) {
       const S = g.spec;
       if (S.jumpDelay || S.detDelay) {
         g.armT-=dt;
-        if (g.triggerT == null && g.armT<=0 && units.some(e=>e.alive && e.team!==g.team && (S.triggerSphere ? e.pos.distanceTo(g.pos) : bodyDist(e,g.pos))<S.trigger)) {
+        if (g.triggerT == null && g.armT<=0 && units.some(e=>e.alive && e.team!==g.team && mineSenses(g,e))) {
           g.triggerT=0;g.y0=g.pos.y;sfx('sensor',g.pos);flash(g.pos,0xffc46b,1,.15);
           continue;
         }
