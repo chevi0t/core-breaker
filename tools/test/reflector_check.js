@@ -1,7 +1,7 @@
 // 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、マップで2点、始点の細いレーザー、溜め、照射、行先の変更、動けない、敵のマップに映る、味方に当たらない、中断、警告、Bot の線
 // node tools/test/reflector_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
-check('反射衛星砲', async ({ ev, ok, sortie }) => {
+check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
   await sortie('dock');
   const log = await ev(() => {
     const g = __g, T = g.T, u = g.player, e = g.units.find(q => q.team !== u.team), a = g.units.find(q => q.team === u.team && q !== u), out = [];
@@ -112,4 +112,16 @@ check('反射衛星砲', async ({ ev, ok, sortie }) => {
     return out;
   });
   for (const m of log) ok(true, m);
+  // 射撃場（時間が進まない）でも、実際のクリックで2点目が決まる（2026-11-05 オーナー「2点目クリック出来ねぇ」：clock() が止まり、2回目を同じクリックと見ていた）
+  await ev(() => { const g = __g; g.running = false; g.loadout.heavy.sp = 'reflector'; g.startRange('heavy'); });
+  await step(10);
+  await ev(() => { const u = __g.player; u.slots.sp.heat = 100; u.slots.sp.overheat = false; });
+  await page.keyboard.press('4'); await step(20);
+  ok(await ev(() => !!__g.range && __g.isArtilleryMode(__g.player)), '射撃場で反射衛星砲を構える');
+  await ev(() => { __g.mapCur.x = __g.player.pos.x; __g.mapCur.z = __g.player.pos.z - 40; });
+  await page.mouse.down(); await step(2); await page.mouse.up(); await step(10);
+  ok(await ev(() => __g.player.reflect?.phase === 'aim'), '射撃場：1回目のクリックで始点');
+  await ev(() => { __g.mapCur.x = __g.player.pos.x + 30; });
+  await page.mouse.down(); await step(2); await page.mouse.up(); await step(2);
+  ok(await ev(() => __g.player.reflect?.phase === 'warn' && Math.abs(__g.player.reflect.len - 30) < .5), '射撃場：2回目のクリックで終点が決まり、照射の溜めに入る');
 });

@@ -9,6 +9,7 @@ check('X字の照準', async ({ page, ev, step, ok, sortie, out }) => {
   await style(1); await step(2);
   ok(await ev(() => __g.gameOptions.aimX === 1 && document.body.classList.contains('aimX') && JSON.parse(localStorage.getItem('coreBreakerOptions')).aimStyle === 1), '照準の形のプルダウンで X字を選べて、保存される');
   ok(await ev(() => !document.getElementById('triangleAim').hasAttribute('hidden') && getComputedStyle(document.getElementById('taRing')).display !== 'none'), '照準のまわりに円が出る');
+  ok(await ev(() => document.getElementById('taRing').getAttribute('fill') === 'none' && getComputedStyle(document.getElementById('taRing')).fill === 'none'), '円は塗りなし（要素にも書くので、古い style.css が読まれても黒い円にならない）');
   const W = 1280 / 2, H = 720 / 2;
   const ring = await box('taRing');
   ok(Math.abs(ring.cx - W) < 2 && Math.abs(ring.cy - H) < 2, '円は画面の真ん中');
