@@ -6361,9 +6361,9 @@ function hurtAlly(u, range) {
   return best;
 }
 // Botの反射衛星砲の線：狙う敵機（無ければ取られかけの敵プラント）を通り、近くのもう1機の敵へ向かう線（いなければ敵の動く向き、止まっていれば横向き）。
-// 長さは最長と30mの短い方。味方と自分が光の円の近くに入る線は使わない
+// 長さは30mか、SP満タンで追える長さ（速さ×照射の秒）の7割の短い方。味方と自分が光の円の近くに入る線は使わない
 function reflectorPlan(u, target) {
-  const w = u.slots.sp.w, len = Math.min(w.sweep, 30);
+  const w = u.slots.sp.w, len = Math.min(w.speed * reflectTime(w) * .7, 30);
   const pl = !target ? plants.find(p => p.owner && p.owner !== u.team && p.contested && artilleryInRange(u, p.pos)) : null;
   const c = target ? target.pos : pl?.pos;
   if (!c || !artilleryInRange(u, c)) return null;
@@ -6375,7 +6375,7 @@ function reflectorPlan(u, target) {
   if (!artilleryInRange(u, a) || !artilleryInRange(u, b)) return null;
   const near = (e, m) => { const ax = e.pos.x - a.x, az = e.pos.z - a.z, k = Math.max(0, Math.min(len, ax * dir.x + az * dir.z)); return Math.hypot(ax - dir.x * k, az - dir.z * k) < m; };
   if (near(u, w.radius + 12) || units.some(e => e.alive && e.team === u.team && e !== u && near(e, w.radius + 5))) return null;
-  return { a, b, len, wait: .8 + Math.random() * .7 }; // wait：始点を決めてから終点を決めるまで（プレイヤーの2回のクリックの間に当たる）
+  return { a, b, len }; // a で押して、光が b に着くまで押し続ける（プレイヤーが右クリックを押したままカーソルを動かすのと同じ）
 }
 // Botの装備の使い方。返すのは行動 { slot（使う枠）, aim（狙う点。無ければ今の目標）, t（最長の秒）, done（終わったら true） }
 // Botがコアを撃つ点：結晶の中心から撃つ側へ水平に6m（近ければその距離）、1m下。結晶の張り出した下面なので、近くからでも支柱に隠れない
@@ -6414,7 +6414,7 @@ function botAct(u, tracking, enemyCore) {
     }
     if (sp.w.type === 'reflector' && sp.heat >= 100 - .01 && !sp.overheat) {
       const plan = reflectorPlan(u, tracking ? u.target : null);
-      if (plan) { u.reflectPlan = plan; const n = u.reflectFired || 0; return { slot: 'sp', aim: plan.a, t: plan.wait + sp.w.warn + plan.len / sp.w.speed + 3, done: () => (u.reflectFired || 0) > n && !isArtilleryMode(u) }; }
+      if (plan) { u.reflectPlan = plan; const n = u.reflectFired || 0; return { slot: 'sp', aim: plan.a, t: sp.w.warn + plan.len / sp.w.speed + 3, done: () => (u.reflectFired || 0) > n && !isArtilleryMode(u) }; }
     }
     if (sp.w.type === 'cannon' && tracking && !u.target.gadget && td > 30 && sp.heat >= 100 && Math.random() < 0.5) return { slot: 'sp', t: 12, done: () => sp.heat < cost - 0.01 || !u.target || !u.target.alive };
   } else if (u.cls === 'raid') {
@@ -8449,10 +8449,12 @@ function artilleryUpdate(dt) {
 }
 
 // ---- 反射衛星砲（オーナーのオリジナル、2026-11-05） ----
-// 真上の衛星へレーザーを撃ち、跳ね返した光でマップの始点から終点へ地上をなぞる。始点・終点はマップで左クリック2回（終点は最長 sweep m まで）。
-// 始点で細いターゲットレーザーと照準マーカー、終点で溜め（warn 秒、1秒以内）の後に照射。照射中の左クリックで行先の変更。線の近くの敵に警告。照射の間は構えたまま動けず、真上への光の柱が見え、敵のマップにも映る。
+// 真上の衛星へレーザーを撃ち、跳ね返した光で地上を焼く。操作（2026-11-05、オーナー「右クリック押しっぱなしの間照射にしよう。ドラッグしてるとこに追従して、離したら照射終了」）：
+// マップの射撃モードで右クリックを押した所が始点。押している間、溜め（warn 秒。始点に細いターゲットレーザーと照準マーカー）の後に照射し、光はマップのカーソルを
+// 最大 speed m/秒で追う（カーソルを止めれば同じ所を照射し続ける）。離すと照射終了で元の武器に戻る（溜めの間に離せば中止）。左クリックは、照射していない時に構えを解く。
+// 照射の間は構えたまま動けず、真上への光の柱が見え、敵のマップにも映る。光の今の位置からカーソルまでの線の近くの敵に警告。
 // 地上の光の円（半径 radius）の中の敵機・デコイ・自機に毎秒 dps。屋根の下は当たらない。コアと砲台・レーダーは光が当たった所だけ。味方には当たらない。
-// SPは満タンで使え、予告が始まった時に全部使う（右クリックで中断しても戻らない）。
+// SPは満タンで使い始め、照射の間だけ毎秒 100÷fireTime 減る（fireTime 秒で全部。オーナー「照射時間に応じてSP消費してほしい」）。尽きると照射が終わる。
 const REFLECT_SKY = 320; // 衛星の高さ（見た目）
 const reflectOwners = new Set();
 const reflectCoreMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: .92, depthWrite: false, fog: false }));
@@ -8470,66 +8472,52 @@ const reflectReticleGeo = visualAlloc(() => {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); return g;
 });
 const reflectRingMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xbfeaff, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
-function reflectorClamp(u, a, p, max = u.slots.sp.w.sweep) {
-  const d = new T.Vector3(p.x - a.x, 0, p.z - a.z), len = d.length();
-  if (len > max) d.multiplyScalar(max / len);
-  return new T.Vector3(a.x + d.x, 0, a.z + d.z).setY(terrainH(a.x + d.x, a.z + d.z));
+// 射程の円の中に収めた点（光が追う先）
+function reflectGoal(u, p) {
+  const r = u.slots.sp.w.range, dx = p.x - u.pos.x, dz = p.z - u.pos.z, d = Math.hypot(dx, dz), k = d > r ? (r - .01) / d : 1;
+  const x = u.pos.x + dx * k, z = u.pos.z + dz * k;
+  return new T.Vector3(x, terrainH(x, z), z);
 }
-// 始点から終点までの線（ground は始点の光が当たる面）
-function reflectPath(from, b) {
-  const dir = new T.Vector3(b.x - from.x, 0, b.z - from.z), len = dir.length();
-  if (len > .01) dir.multiplyScalar(1 / len); else dir.set(0, 0, -1);
-  return { a: from, b, dir, len, ground: artillerySurface(from).point };
-}
-// 1回目のクリックで始点（細いレーザーが降りる）、2回目で終点（溜め warn 秒の後に照射）。溜め・照射の間のクリックは行先の変更
-function reflectorConfirm(u, p, end = null) {
-  const sl = u.slots.sp, w = sl.w, now = playT, f0 = u.reflect; // clock() は射撃場で止まるので、2回目のクリックを同じクリックと見てしまっていた
-  if (!isArtilleryMode(u) || u.switchT > 0 || u.repairing || u.transfer || u.stun || !p || !artilleryInRange(u, p)) return false;
-  if (now - (u.reflectClickAt ?? -9) < .2) return false; // 押した時とフレームの両方から来る同じクリックを2回と数えない
-  if (f0 && f0.phase !== 'aim') {
-    // 今の光の位置から、なぞれる残り（最長 − 通った分）までの新しい線
-    const left = w.sweep - f0.used - f0.along;
-    if (left < 1) return false;
-    const from = new T.Vector3(f0.at.x, terrainH(f0.at.x, f0.at.z), f0.at.z), b = reflectorClamp(u, from, p, left);
-    if (!artilleryInRange(u, b)) return false;
-    u.reflectClickAt = now; f0.used += f0.along;
-    Object.assign(f0, reflectPath(from, b), { along: 0 }); f0.at.copy(from); f0.redirects = (f0.redirects || 0) + 1;
-    return true;
-  }
+// 照射できる最長の秒（SP満タンから）
+function reflectTime(w) { return w.fireTime; }
+// 右クリックを押した所を始点にして、溜めに入る。SPは満タンが要る
+function reflectorConfirm(u, p) {
+  const sl = u.slots.sp, w = sl.w;
+  if (!isArtilleryMode(u) || u.reflect || u.switchT > 0 || u.repairing || u.transfer || u.stun || !p || !artilleryInRange(u, p)) return false;
   if (sl.overheat || sl.heat < 100 - .01) return false;
-  u.reflectClickAt = now;
   const a = new T.Vector3(p.x, terrainH(p.x, p.z), p.z);
-  if (!f0 && !end) { u.reflect = { phase: 'aim', a, since: now, ground: artillerySurface(a).point }; return true; }
-  const from = f0 ? f0.a : a, b = reflectorClamp(u, from, end || p);
-  if (!artilleryInRange(u, b)) return false;
-  u.reflect = { phase: 'warn', ...reflectPath(from, b), t: w.warn, along: 0, used: 0, at: from.clone() };
-  spUse(sl, sl.heat); cancelSpawnInvul(u); sfx(w.sfx, u.pos, u, w.sfxRate);
+  u.reflect = { phase: 'warn', a, at: a.clone(), goal: a.clone(), t: w.warn, along: 0, ground: artillerySurface(a).point };
+  cancelSpawnInvul(u); sfx(w.sfx, u.pos, u, w.sfxRate);
   return true;
 }
-function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
+// hold：右クリック（コントローラーは L2）を押しているか。Bot は決めておいた線（reflectPlan の a→b）を、光が b に着くまで押し続ける
+function reflectorTick(u, sl, dt, trigger, aim, on, hold) {
   const w = sl.w;
   if (!isArtilleryMode(u)) { sl.held = false; u.reflect = null; spRegen(sl, dt); return false; }
-  const f = u.reflect;
-  if (cancel || u.repairing || u.transfer || u.stun || u.electricT > 0) { stopArtillery(u); sl.held = false; return false; }
-  if (!f && (sl.overheat || sl.heat < 100 - .01)) { stopArtillery(u); sl.held = false; return false; } // 満タンでなければ構えない
-  if (on && trigger && !sl.held && aim) {
-    // Bot は決めておいた2点を一度に決める。プレイヤーはクリックごとに1点
-    if (!u.isPlayer && u.reflectPlan && !f) reflectorConfirm(u, u.reflectPlan.a);
-    else if (u.isPlayer) reflectorConfirm(u, aim);
+  const f = u.reflect, plan = u.isPlayer ? null : u.reflectPlan;
+  if (u.repairing || u.transfer || u.stun || u.electricT > 0) { stopArtillery(u); sl.held = false; return false; }
+  if (!f) {
+    if (sl.overheat || sl.heat < 100 - .01) { stopArtillery(u); sl.held = false; return false; } // 満タンでなければ構えない
+    const click = on && trigger && !sl.held;
+    sl.held = on && trigger;
+    if (u.isPlayer) { if (click) stopArtillery(u); } // 左クリックで構えを解く（照射は右クリック）
+    else if (on && trigger && plan) reflectorConfirm(u, plan.a);
+    return false;
   }
-  // Bot も始点を決めてから少し置いて終点を決める（プレイヤーと同じく、始点の細いレーザーが先に見える）
-  if (!u.isPlayer && f?.phase === 'aim' && u.reflectPlan && playT - f.since >= (u.reflectPlan.wait ?? .8)) reflectorConfirm(u, u.reflectPlan.b, u.reflectPlan.b);
   sl.held = on && trigger;
-  if (!f) return false;
-  spot(u.team === 'B' ? 'R' : 'B', u, .6, null, w.name); // 真上への光で位置が知られる（始点を決めた時から）
-  if (f.phase === 'aim') return false;
+  const goal = plan ? (f.phase === 'fire' ? plan.b : plan.a) : aim ? reflectGoal(u, aim) : f.goal;
+  const keep = plan ? !(f.phase === 'fire' && Math.hypot(f.at.x - plan.b.x, f.at.z - plan.b.z) < .3) : on && hold;
+  if (!keep) { stopArtillery(u); return false; } // 離したら照射終了（溜めの間なら中止）
+  f.goal.copy(goal);
+  spot(u.team === 'B' ? 'R' : 'B', u, .6, null, w.name); // 真上への光で位置が知られる
   if (f.phase === 'warn') {
     f.t -= dt;
     if (f.t > 0) return false;
     f.phase = 'fire'; u.reflectFired = (u.reflectFired || 0) + 1; sfx('sniper', f.a, u, .5);
   }
-  f.along = Math.min(f.len, f.along + w.speed * dt);
-  f.at.copy(f.a).addScaledVector(f.dir, f.along);
+  // 光はカーソルへ最大 speed m/秒で追う
+  const dx = goal.x - f.at.x, dz = goal.z - f.at.z, d = Math.hypot(dx, dz), step = Math.min(d, w.speed * dt);
+  if (d > 1e-6) { f.at.x += dx / d * step; f.at.z += dz / d * step; f.along += step; }
   const surface = artillerySurface(f.at), roof = surface.point.y, amount = w.dps * dt;
   f.at.y = roof;
   let hit = false;
@@ -8544,7 +8532,8 @@ function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
   if (ref && ref.team && ref.team !== u.team && ['core', 'turret', 'radar', 'barricade'].includes(ref.kind) && (ref.kind === 'core' ? ref.hp > 0 : ref.alive !== false)) { damage(ref, u, amount, false, false, null, f.at, false, true, w.name); hit = true; }
   sfx('beam', f.at, u);
   if ((f.sparkT = (f.sparkT || 0) - dt) <= 0) { f.sparkT = .06; flash(f.at.clone().add(new T.Vector3((Math.random() - .5) * w.radius, .4, (Math.random() - .5) * w.radius)), 0xbfeaff, 1.2, .2); }
-  if (f.along >= f.len - 1e-6) stopArtillery(u);
+  spUse(sl, Math.min(sl.heat, 100 / reflectTime(w) * dt)); // 照射した時間の分だけ
+  if (sl.overheat) stopArtillery(u); // SPが尽きたら終わる
   return hit;
 }
 function reflectorVisual(u) {
@@ -8578,18 +8567,19 @@ function clearReflectors() {
   for (const u of reflectOwners) { if (u.reflectVisual) scene.remove(u.reflectVisual.root); u.reflectVisual = null; u.reflect = null; }
   reflectOwners.clear();
 }
-// 敵の反射衛星砲の線（溜め・照射中。照射中は残りの区間）から u が margin m 以内なら、線から離れる向きを返す
+// 敵の反射衛星砲の線（今の光の位置から、光が追っているカーソルまで。溜めの間は始点のまわり）から u が margin m 以内なら、線から離れる向きを返す
 function reflectDanger(u, margin = 4) {
   let best = null, bestD = Infinity, src = null;
   for (const e of units) {
     const f = e.alive ? e.reflect : null;
     if (!f || e.team === u.team) continue;
-    const w = e.slots.sp.w, start = f.phase === 'fire' ? Math.max(0, f.along - w.radius) : 0, dir = f.dir || { x: 0, z: 0 }, len = f.len || 0; // 始点だけの間は始点のまわり
-    const ax = u.pos.x - f.a.x, az = u.pos.z - f.a.z, k = Math.max(start, Math.min(len, ax * dir.x + az * dir.z));
-    const px = ax - dir.x * k, pz = az - dir.z * k, d = Math.hypot(px, pz);
+    const w = e.slots.sp.w, from = f.phase === 'fire' ? f.at : f.a, to = f.phase === 'fire' ? f.goal : f.a;
+    const lx = to.x - from.x, lz = to.z - from.z, len = Math.hypot(lx, lz), dir = len > 1e-6 ? { x: lx / len, z: lz / len } : null;
+    const ax = u.pos.x - from.x, az = u.pos.z - from.z, k = dir ? Math.max(0, Math.min(len, ax * dir.x + az * dir.z)) : 0;
+    const px = ax - (dir ? dir.x * k : 0), pz = az - (dir ? dir.z * k : 0), d = Math.hypot(px, pz);
     if (d > w.radius + R + margin || d >= bestD) continue;
     bestD = d; src = e;
-    best = d > .3 ? new T.Vector3(px / d, 0, pz / d) : f.dir ? new T.Vector3(-f.dir.z, 0, f.dir.x).multiplyScalar(u.side || 1) : new T.Vector3(1, 0, 0);
+    best = d > .3 ? new T.Vector3(px / d, 0, pz / d) : dir ? new T.Vector3(-dir.z, 0, dir.x).multiplyScalar(u.side || 1) : new T.Vector3(1, 0, 0);
   }
   return best ? { dir: best, by: src } : null;
 }
@@ -8598,11 +8588,11 @@ function reflectWarning(p, dt) {
   const hit = p.alive && running && !ended ? reflectDanger(p, 10) : null;
   $('reflectAlert').hidden = !hit;
   if (!hit) { reflectBeepT = 0; return; }
-  const f = hit.by.reflect, info = f.phase === 'fire' ? '照射中・線から離れろ' : f.phase === 'aim' ? '照準レーザー・離れろ' : `照射まで ${Math.max(0, f.t).toFixed(1)}秒・線から離れろ`;
+  const f = hit.by.reflect, info = f.phase === 'fire' ? '照射中・光から離れろ' : `照射まで ${Math.max(0, f.t).toFixed(1)}秒・線から離れろ`;
   if ($('reflectAlertInfo').textContent !== info) $('reflectAlertInfo').textContent = info;
   if ((reflectBeepT -= dt) <= 0) { sfx('lockWarn'); reflectBeepT = f.phase === 'fire' ? .3 : .6; }
 }
-// マップの表示：射程の円、照準の円、始点からの線（最長 sweep）、照射中は今の位置
+// マップの表示：射程の円、カーソルの円、溜めの間は始点、照射中は今の光の位置
 // マップ指定の特別装備の射程（反射衛星砲・榴弾砲）：射程の外を暗くし、円をはっきり描いて「射程 Nm」と書く
 // （2026-11-05 オーナー「射程円表示がマップに出ねぇ」：細い点線の弧だけで、細長いマップでは見えにくかった）
 function drawMapRange(g, W, H, u, range) {
@@ -8623,13 +8613,14 @@ function drawReflectorMap(g, W, H) {
   g.strokeStyle = inRange ? '#ffd36f' : '#ff6c58';
   g.beginPath(); g.arc(sx(cur.x), sz(cur.z), Math.max(3, px(w.radius)), 0, Math.PI * 2); g.stroke();
   if (f) {
-    // 終点（行先）はマップに出さない（オーナー指定）。始点と、照射中は今の光の位置
+    // 溜めの間は始点、照射中は今の光の位置（光はカーソルの円を追う）
     g.setLineDash([]); g.strokeStyle = '#9fe3ff'; g.lineWidth = 1.5;
     if (f.phase !== 'fire') { g.beginPath(); g.arc(sx(f.a.x), sz(f.a.z), Math.max(4, px(w.radius)), 0, Math.PI * 2); g.stroke(); }
     else { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(sx(f.at.x), sz(f.at.z), Math.max(4, px(w.radius)), 0, Math.PI * 2); g.fill(); }
   }
   g.setLineDash([]); g.fillStyle = '#fff'; g.font = '12px sans-serif';
-  g.fillText(!inRange && (!f || f.phase === 'aim') ? '射程外：範囲内を指定してください' : f && f.phase !== 'aim' ? `${f.phase === 'fire' ? '照射中' : '照射準備中'}：左クリックで行先変更（残り${Math.max(0, Math.floor(w.sweep - f.used - f.along))}m）・右クリックで中断` : f ? `左クリックで終点を決定（最長${w.sweep}m）` : '左クリックで始点を決定', 8, H - 10);
+  const sp = u.slots.sp, left = Math.max(0, sp.heat / 100 * reflectTime(w));
+  g.fillText(!f ? (inRange ? `右クリックを押している間、照射（離すと終了・最長${reflectTime(w).toFixed(1)}秒）。左クリックで構えを解く` : '射程外：範囲内を指定してください') : f.phase === 'fire' ? `照射中：光がカーソルを追う（残り${left.toFixed(1)}秒）。離すと終了` : '照射準備中：押したまま。離すと中止', 8, H - 10);
   g.restore();
 }
 
@@ -8749,7 +8740,9 @@ canvas.addEventListener('mousedown', e => {
 function aimPress(button, pad) {
   // 地点決定は押下で受け、フレーム間で終わる短いクリックも取りこぼさない。
   if (running && isArtilleryMode(player) && (button === 0 || button === 2)) {
-    if (button === 2) stopArtillery(player); else { artilleryConfirm(player,mapPoint()); mouseDown = true; }
+    // 反射衛星砲：右（L2）を押した所から照射を始め、押している間（rightDown）続ける。左は構えを解く（照射していない時。reflectorTick）
+    if (player.slots.sp.w.type === 'reflector') { if (button === 2) { reflectorConfirm(player, mapPoint()); rightDown = true; } else mouseDown = true; }
+    else if (button === 2) stopArtillery(player); else { artilleryConfirm(player,mapPoint()); mouseDown = true; }
     return true;
   }
   // 短い右クリックも照射中断として受け、次のフレームまで押し続ける必要をなくす。
@@ -10394,7 +10387,7 @@ function wStats(w) {
   else if (w.type === 'beamCannon') st.push(`毎秒 ${w.dps}×2・接触 ${w.contact}×2`,`照射 ${w.use}秒・射程${w.range}m`,`準備 ${w.warmup}秒`,`旋回 毎秒${Math.round(w.turnRate/DEG)}度`);
   else if (w.type === 'cannon') st.push(`威力 ${w.proj.dmg}×${w.shots}発`, `爆発半径 ${w.proj.blast}m`, `弾速 ${w.proj.speed}m/s`);
   else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
-  else if (w.type === 'reflector') st.push(`毎秒 ${w.dps}`, `射程 ${w.range}m`, `なぞる 毎秒${w.speed}m・最長${w.sweep}m`, `光の半径 ${w.radius}m`, `溜め ${w.warn}秒`);
+  else if (w.type === 'reflector') st.push(`毎秒 ${w.dps}`, `射程 ${w.range}m`, `光が追う速さ 毎秒${w.speed}m`, `照射 最長${+reflectTime(w).toFixed(1)}秒（SP満タンから）`, `光の半径 ${w.radius}m`, `溜め ${w.warn}秒`, `SP 照射1秒で${+(w.speed * 100 / w.sweep).toFixed(1)}（最長で全部）`);
   else if (w.type === 'barrier') st.push(`防御 ${w.arc}度・LV${w.level}`, `耐久 ${w.shieldHp}`, `連続 ${w.use}秒`);
   else if (w.type === 'escort') st.push(`威力 ${w.dmg}`, `射程 ${w.range}m・射角${w.arc}度`, `弾倉 ${w.mag}発×無制限`, `連射 ${w.rpm}発/分`, `再装填 ${w.reload}秒`, `連続 ${w.use}秒`);
   else if (w.type === 'repairPost') st.push(`回復 毎秒${w.heal}`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒`);
@@ -10459,7 +10452,7 @@ function itemNums(sl, key) {
   if (x.strong) r.push([x.strong.spin ? '回転斬り' : '突進突き', x.strong.dmg, n0, true], ['間合い', x.normal.reach, u('m'), true], ['ダッシュ中の踏み込み', x.strong.lunge, u('m'), true]);
   if (x.type === 'artillery' && x.interval!=null) r.push(['発射間隔',x.interval,u('秒'),false]);
   if (x.type === 'artillery') r.push(['発数',x.shots,n0,true],['着弾時間',x.flight,u('秒'),false],['着弾誤差',x.scatter,u('m'),false]);
-  if (x.type === 'reflector') r.push(['毎秒の威力',x.dps,n0,true],['なぞる速さ',x.speed,u('m/s'),true],['なぞる最長',x.sweep,u('m'),true],['光の半径',x.radius,u('m'),true]);
+  if (x.type === 'reflector') r.push(['毎秒の威力',x.dps,n0,true],['光が追う速さ',x.speed,u('m/s'),true],['照射の最長',x.fireTime,u('秒'),true],['光の半径',x.radius,u('m'),true]);
   if (x.type === 'beamCannon') r.push(['毎秒の威力（両肩）',x.dps*2,n0,true],['接触威力（両肩）',x.contact*2,n0,true],['準備',x.warmup,u('秒'),false]);
   if (x.type === 'cannon') r.push(['発数', x.shots, n0, true]);
   if (x.type === 'gun' && !x.drone && x.rpm > 60) r.push(['連射', x.rpm, u('発/分'), true]);
@@ -10813,9 +10806,16 @@ $('bigMapC').addEventListener('mousedown', e => {
   if (!running || !player || !player.alive || (e.button !== 0 && e.button !== 2) || document.pointerLockElement === canvas) return;
   const r = e.currentTarget.getBoundingClientRect();
   mapCur.x = ((e.clientX - r.left) / r.width * 2 - 1) * MAP_X; mapCur.z = ((e.clientY - r.top) / r.height * 2 - 1) * MAP_Z;
-  if (isArtilleryMode(player)) { if (e.button === 2) stopArtillery(player); else artilleryConfirm(player,mapPoint()); }
+  if (isArtilleryMode(player) && player.slots.sp.w.type === 'reflector') { if (e.button === 2) { reflectorConfirm(player, mapPoint()); rightDown = true; } else mouseDown = true; }
+  else if (isArtilleryMode(player)) { if (e.button === 2) stopArtillery(player); else artilleryConfirm(player,mapPoint()); }
   else qchatSend(player, e.button === 0 ? QC_GO : QC_DEF, mapPoint());
   e.preventDefault();
+});
+// マウスの固定が外れているときの反射衛星砲：右ボタンを押したまま全体マップの上を動かすと、光がカーソルを追う
+$('bigMapC').addEventListener('mousemove', e => {
+  if (!running || !player || !isArtilleryMode(player) || document.pointerLockElement === canvas || !(e.buttons & 2)) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  mapCur.x = Math.max(-MAP_X, Math.min(MAP_X, ((e.clientX - r.left) / r.width * 2 - 1) * MAP_X)); mapCur.z = Math.max(-MAP_Z, Math.min(MAP_Z, ((e.clientY - r.top) / r.height * 2 - 1) * MAP_Z));
 });
 $('bigMapC').addEventListener('contextmenu', e => e.preventDefault());
 // 指示出しのメニュー（上から右回りに8つ）
@@ -11300,7 +11300,7 @@ function hud(timeLeft, dt) {
   }
   else if(cw.type==='radarTool'){big=Math.round(cur.scanRadius||0)+'m';small=cw.name+' · 展開中（動けない） · 他の武器を選ぶと解除';}
   else if (cw.type === 'artillery') { big = Math.floor(cur.heat/artilleryCost(cur)+.01); small = cw.name + (p.bombard ? ' · 連続砲撃中' : ' · マップで地点を指定') + ' · 右クリックで中断'; }
-  else if (cw.type === 'reflector') { const f = p.reflect; big = cur.overheat ? '回復中' : Math.floor(cur.heat) + '%'; small = cw.name + (f?.phase === 'fire' ? ' · 照射中（動けない）' : f?.phase === 'warn' ? ' · 照射準備' : f ? ' · マップで終点を指定' : ' · マップで始点を指定') + ' · 右クリックで中断'; }
+  else if (cw.type === 'reflector') { const f = p.reflect; big = cur.overheat ? '回復中' : Math.floor(cur.heat) + '%'; small = cw.name + (f?.phase === 'fire' ? ' · 照射中（動けない）・離すと終了' : f?.phase === 'warn' ? ' · 照射準備' : ' · 右クリック長押しで照射'); }
   else if (cw.type === 'beamCannon') {
     big = cur.overheat ? '回復中' : (cw.use*cur.heat/100).toFixed(1)+'s';
     small = cw.name + (cur.overheat ? ' · SP回復中' : p.beamFire?.warm>0 ? ` · 準備 ${p.beamFire.warm.toFixed(1)}秒` : p.beamFire ? ' · 照射中（低速旋回）' : ' · 左長押しで照射') + ' · 右クリックで戻る';
@@ -11434,7 +11434,7 @@ function hud(timeLeft, dt) {
   else if (p.crouching) centerEl.textContent = 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
-  else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。左クリックで行先変更、右クリックで中断` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射まで ${Math.max(0, p.reflect.t).toFixed(1)}秒。右クリックで中断` : `${p.slots.sp.w.name}：左クリックで始点、もう一度で終点（最長${p.slots.sp.w.sweep}m）。右クリックで中断`;
+  else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。光はカーソルを追う。右クリックを離すと終了` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射まで ${Math.max(0, p.reflect.t).toFixed(1)}秒。離すと中止` : `${p.slots.sp.w.name}：マップで右クリックを押している間、照射（最長${reflectTime(p.slots.sp.w).toFixed(1)}秒）。左クリックで構えを解く`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
   else if (beamCannonMode(p)) centerEl.textContent = p.beamFire ? p.beamFire.warm>0 ? '照射準備中' : '双肩照射中：低速旋回／右クリックで中断' : '双肩照射砲：左長押しで照射／右クリックで中断';
   else if (p.planted) centerEl.textContent = `${p.slots[p.weapon].w.name}を構えています（動けません）`;

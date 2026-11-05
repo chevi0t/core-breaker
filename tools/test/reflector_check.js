@@ -1,4 +1,4 @@
-// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、マップで2点、始点の細いレーザー、溜め、照射、行先の変更、動けない、敵のマップに映る、味方に当たらない、中断、警告、Bot の線
+// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、右クリックを押している間の照射とカーソルの追従、離して終了、照射した時間のSP、始点の細いレーザー、溜め、動けない、敵のマップに映る、味方に当たらない、警告、Bot の線
 // node tools/test/reflector_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
 check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
@@ -6,10 +6,10 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
   const log = await ev(() => {
     const g = __g, T = g.T, u = g.player, e = g.units.find(q => q.team !== u.team), a = g.units.find(q => q.team === u.team && q !== u), out = [];
     const yes = (v, m) => { if (!v) throw new Error(m); out.push(m); };
-    const want = { reflector: [12000, 12, 80, 4, 300], reflectorW: [10000, 25, 120, 3, 250], reflectorG: [15000, 6, 40, 7, 250], reflectorF: [9000, 10, 60, 4, 500] };
-    for (const [k, [dps, speed, sweep, radius, range]] of Object.entries(want)) {
+    const want = { reflector: [12000, 4, 6.7, 4, 300], reflectorW: [10000, 8.3, 4.8, 3, 250], reflectorG: [15000, 2, 6.7, 7, 250], reflectorF: [9000, 3.3, 6, 4, 500] };
+    for (const [k, [dps, speed, fireTime, radius, range]] of Object.entries(want)) {
       const w = g.WEAPONS[k];
-      yes(w && w.type === 'reflector' && w.dps === dps && w.speed === speed && w.sweep === sweep && w.radius === radius && w.range === range && g.ARMORY.heavy.sp.includes(k), `${w?.name}：毎秒${dps}・毎秒${speed}m・最長${sweep}m・半径${radius}m・射程${range}m`);
+      yes(w && w.type === 'reflector' && w.dps === dps && w.speed === speed && w.fireTime === fireTime && w.radius === radius && w.range === range && g.ARMORY.heavy.sp.includes(k), `${w?.name}：毎秒${dps}・毎秒${speed}m・照射${fireTime}秒・半径${radius}m・射程${range}m`);
     }
     for (const q of g.units) { q.alive = false; q.downT = 0; q.respawnT = 1e9; q.pos.set(10000, 0, 10000); }
     // 開けた平らな所を探す
@@ -33,54 +33,63 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     };
     const step = (t, aim = P(0), alt = false) => { for (let n = 0; n < Math.round(t / .02); n++) { g.weaponsTick(u, .02, false, aim, 0, alt); g.reflectorUpdate(); sync(); } };
     let sl = reset(), w = sl.w;
+    const T0 = w.fireTime, rate = 100 / T0; // 照射できる秒と、毎秒のSP
     yes(g.isArtilleryMode(u) && u.planted, '選ぶとマップの射撃モード（動けない）');
-    yes(g.reflectorConfirm(u, P(0)) && u.reflect.phase === 'aim' && sl.heat === 100, '1回目のクリックで始点。SPはまだ使わない');
-    step(.1);
-    yes(u.reflectVisual?.root.visible && u.reflectVisual.downCore.visible && u.reflectVisual.downCore.scale.x < .2 && u.reflectVisual.ret.visible, '始点に細いターゲットレーザーと照準マーカーが出る');
-    yes(g.spotted[e.team].has(u), '始点を決めた時から敵のマップに映る');
+    yes(g.reflectorConfirm(u, P(0)) && u.reflect.phase === 'warn' && sl.heat === 100, '右クリックを押した所が始点で、溜めに入る。SPはまだ減らない');
+    step(.1, P(0), true);
+    yes(u.reflectVisual?.root.visible && u.reflectVisual.downCore.visible && u.reflectVisual.downCore.scale.x < .2 && u.reflectVisual.ret.visible, '溜めの間は始点に細いターゲットレーザーと照準マーカー');
+    yes(u.reflectVisual.upCore.scale.y > 200, '真上へ光の柱が伸びる');
+    yes(g.spotted[e.team].has(u), '押した時から敵のマップに映る');
     yes(g.reflectDanger(e, 10) === null && (e.pos.copy(P(2)), sync(), g.reflectDanger(e, 10)?.by === u), '始点の近くの敵機に警告が出る（遠ければ出ない）');
     e.pos.copy(P(20)); sync();
-    u.reflectClickAt = -9;
-    yes(g.reflectorConfirm(u, P(200)) && u.reflect.phase === 'warn', '2回目のクリックで終点、予告が始まる');
-    yes(Math.abs(u.reflect.len - w.sweep) < .01, `終点は最長${w.sweep}mに収まる`);
-    yes(sl.heat === 0 && sl.overheat, '予告が始まるとSPを全部使う');
-    yes(u.reflectVisual?.root.visible && u.reflectVisual.upCore.scale.y > 200, '真上へ光の柱が伸びる');
-    step(w.warn);
-    yes(u.reflect?.phase === 'fire' && u.reflectFired === 1, `終点を決めて${w.warn}秒で照射`);
+    step(w.warn, P(0), true);
+    yes(u.reflect?.phase === 'fire' && u.reflectFired === 1, `押したまま${w.warn}秒で照射が始まる`);
     yes(u.reflectVisual.downCore.scale.x > 1 && !u.reflectVisual.ret.visible, '照射が始まるとターゲットレーザーと照準マーカーは消え、太い光になる');
+    // カーソルを止めると同じ所を照射し続ける
+    const h0 = sl.heat; step(.5, P(0), true);
+    yes(Math.hypot(u.reflect.at.x - P(0).x, u.reflect.at.z - P(0).z) < .01, 'カーソルを動かさなければ、同じ所を照射し続ける');
+    yes(Math.abs(h0 - sl.heat - rate / 2) < .6, `SPは照射した時間の分だけ減る（0.5秒で${(h0 - sl.heat).toFixed(1)}、最長${T0.toFixed(1)}秒で全部）`);
+    // カーソルを遠くへ動かすと、光は最大の速さで追う
+    e.pos.copy(P(10)); a.pos.copy(P(14)); a.pos.x += .5; sync();
+    const at0 = u.reflect.at.clone(); step(1, P(70), true);
+    const moved = Math.hypot(u.reflect.at.x - at0.x, u.reflect.at.z - at0.z);
+    yes(Math.abs(moved - w.speed) < .3, `光はカーソルを毎秒${w.speed}mまでの速さで追う（1秒で${moved.toFixed(1)}m）`);
     const hp0 = e.hp, ahp0 = a.hp, pos0 = u.pos.clone();
-    step(4);
+    step(4, P(70), true);
     const got = hp0 - e.hp, expect = w.dps * g.armorMult(e) * (2 * (w.radius + g.R)) / w.speed; // 装甲の倍率込み
     yes(got > expect * .8 && got < expect * 1.2, `光が通った敵機に約${Math.round(expect)}のダメージ（${Math.round(got)}）`);
     yes(a.hp === ahp0, '光が通った味方には当たらない');
     yes(u.pos.distanceTo(pos0) < .01 && u.planted && g.isArtilleryMode(u), '照射中は構えたまま動けない');
-    step(w.sweep / w.speed);
-    yes(!g.isArtilleryMode(u) && u.weapon === 'sub' && !u.reflect, '最後までなぞると前の武器に戻る');
-    yes(!u.reflectVisual.root.visible, '終わると光が消える');
-    // 中断
+    const hMid = sl.heat;
+    step(.02, P(70), false);
+    yes(!g.isArtilleryMode(u) && u.weapon === 'sub' && !u.reflect, '右クリックを離すと照射が終わり、前の武器に戻る');
+    yes(Math.abs(sl.heat - hMid) < .5 && !sl.overheat, `離した所でSPは止まり、残り${sl.heat.toFixed(0)}`);
+    g.reflectorUpdate(); yes(!u.reflectVisual.root.visible, '終わると光が消える');
+    // 押し続ければ、SPが尽きた所で終わる
     sl = reset(); sl.heat = 100; sl.overheat = false;
-    g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(40)); step(w.warn + .5);
-    step(.02, P(0), true);
-    yes(!g.isArtilleryMode(u) && !u.reflect && !u.reflectVisual.root.visible, '右クリックで中断できる');
-    // 照射中の左クリックで行先の変更（今の光の位置から、なぞれる残りまで）
-    sl = reset(); g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(60)); step(w.warn + 2);
-    const at0 = u.reflect.at.clone(), gone = u.reflect.along; u.reflectClickAt = -9;
-    const side = P(0); side.x += 200;
-    yes(g.reflectorConfirm(u, side) && u.reflect.redirects === 1 && u.reflect.phase === 'fire', '照射中の左クリックで行先を変えられる');
-    yes(Math.hypot(u.reflect.a.x - at0.x, u.reflect.a.z - at0.z) < .01 && u.reflect.dir.x > .99, '新しい線は今の光の位置から、クリックした向きへ');
-    yes(Math.abs(u.reflect.len - (w.sweep - gone)) < .01, `なぞれる長さは最長${w.sweep}mから通った分（${gone.toFixed(1)}m）を引いた残り`);
-    step(.5); yes(u.reflect.at.x > at0.x + 1, '光が新しい向きへ進む');
-    step(.04, P(0), true);
-    yes(!u.reflect, '照射中も右クリックで中断できる');
+    g.reflectorConfirm(u, P(0)); step(w.warn + T0 - .3, P(0), true);
+    yes(u.reflect?.phase === 'fire', `SP満タンから${T0.toFixed(1)}秒近く照射できる`);
+    step(.6, P(0), true);
+    yes(!u.reflect && !g.isArtilleryMode(u) && sl.overheat, 'SPが尽きると照射が終わる');
+    // 溜めの間に離せば中止（SPは減らない）
+    sl = reset(); sl.heat = 100; sl.overheat = false;
+    const fired0 = u.reflectFired; g.reflectorConfirm(u, P(0)); step(w.warn / 2, P(0), true); step(.02, P(0), false);
+    yes(!u.reflect && !g.isArtilleryMode(u) && u.reflectFired === fired0 && sl.heat === 100, '溜めの間に離すと中止になり、SPは減らない');
+    // 射程の外へカーソルを出しても、光は射程の円の中で止まる
+    sl = reset(); sl.heat = 100; sl.overheat = false;
+    const far = u.pos.clone(); far.x -= w.range + 200;
+    const gl = g.reflectGoal(u, far);
+    yes(Math.hypot(gl.x - u.pos.x, gl.z - u.pos.z) <= w.range, '射程の外のカーソルは、射程の円の端に収める');
+    // 照射していない時の左クリックで構えを解く
+    g.weaponsTick(u, .02, true, P(0), 0, false);
+    yes(!g.isArtilleryMode(u) && !u.reflect, '照射していない時の左クリックで構えを解く');
     // 満タンでなければ構えない
     sl = reset(); sl.heat = 60; sl.overheat = false; step(.04);
     yes(!g.isArtilleryMode(u), 'SPが満タンでなければ構えを解く');
-    // 型ごとの最長
-    for (const k of ['reflectorW', 'reflectorG', 'reflectorF']) {
-      sl = reset(k); g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(sl.w.sweep + 20));
-      yes(Math.abs(u.reflect.len - sl.w.sweep) < .01, `${sl.w.name}：最長${sl.w.sweep}m`);
-    }
-    // Bot の線：狙う敵機を通り、味方と自分を避ける
+    // 型ごとの照射できる秒
+    const secs = { reflectorW: 4.8, reflectorG: 6.7, reflectorF: 6 };
+    for (const [k, t] of Object.entries(secs)) yes(Math.abs(g.reflectTime(g.WEAPONS[k]) - t) < .01, `${g.WEAPONS[k].name}：最長${t.toFixed(1)}秒`);
+    // Bot の線：狙う敵機を通り、味方と自分を避ける。押して、光が終点に着くまで押し続ける
     reset();
     const bot = e; g.loadout.heavy.sp = 'reflector'; g.equip(bot, 'heavy'); bot.slots.sp = g.slotOf('reflector'); Object.assign(bot, { alive: true, isPlayer: false, onGround: true, stun: '' });
     bot.pos.copy(P(-60)); u.pos.copy(P(0)); u.vel.set(0, 0, 0); a.pos.set(10000, 0, 10000); a.alive = false;
@@ -91,19 +100,24 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     mate.alive = true; mate.pos.copy(u.pos); mate.pos.x += 2;
     yes(!g.reflectorPlan(bot, u), '味方が線の近くにいれば Bot は撃たない');
     mate.alive = false; mate.pos.set(10000, 0, 10000);
-    bot.weapon = 'main'; g.selectWeapon(bot, 'sp'); bot.switchT = 0; bot.reflectPlan = plan;
+    bot.weapon = 'main'; g.selectWeapon(bot, 'sp'); bot.switchT = 0; bot.reflectPlan = plan; bot.slots.sp.heat = 100; bot.slots.sp.overheat = false;
     g.weaponsTick(bot, .02, true, plan.a, 0, false);
-    yes(bot.reflect?.phase === 'aim', 'Bot もまず始点を決める（細いレーザーが先に見える）');
-    bot.reflect.since -= plan.wait; bot.reflectClickAt = -9; g.weaponsTick(bot, .02, true, plan.a, 0, false);
-    yes(bot.reflect?.phase === 'warn' && Math.abs(bot.reflect.len - plan.len) < .01, `Bot は${plan.wait.toFixed(1)}秒おいて終点を決める`);
-    // 線の近くの敵機への警告と、地面の照準マーカー
+    yes(bot.reflect?.phase === 'warn' && bot.reflect.a.distanceTo(plan.a) < .5, 'Bot も始点で押して溜めに入る');
+    // 溜めの間の警告と照準マーカー
     g.reflectorUpdate(); sync();
     const rv = bot.reflectVisual;
     yes(rv && rv.ret.visible && rv.downCore.visible && rv.downCore.scale.x < .2, '溜めの間は始点に照準マーカーと細いレーザー');
-    const hz = g.reflectDanger(u, 10), off = dist(plan.a, plan.b, u.pos.clone().addScaledVector(hz?.dir || new T.Vector3(), 5));
-    yes(hz && hz.by === bot && off > dist(plan.a, plan.b, u.pos), '線の上の敵機には、線から離れる向きを返す');
+    const keepU = u.pos.clone(); u.pos.copy(plan.a); u.pos.x += 1;
     g.reflectWarning(u, .02);
-    yes(!g.$('reflectAlert').hidden && /照射まで/.test(g.$('reflectAlertInfo').textContent), '線の近くのプレイヤーに「照射警告」が出る');
+    yes(!g.$('reflectAlert').hidden && /照射まで/.test(g.$('reflectAlertInfo').textContent), '始点の近くのプレイヤーに「照射警告」が出る');
+    u.pos.copy(keepU);
+    let n = 0; while (bot.reflect && n++ < 600) g.weaponsTick(bot, .02, true, plan.a, 0, false);
+    yes(!bot.reflect && bot.reflectFired === 1 && n * .02 > w.warn + plan.len / w.speed - .1, `Bot は光が終点に着くまで照射して離す（${(n * .02).toFixed(1)}秒）`);
+    // 照射中、光とカーソルの間にいる敵機には、線から離れる向き
+    bot.weapon = 'main'; g.selectWeapon(bot, 'sp'); bot.switchT = 0; bot.slots.sp.heat = 100; bot.slots.sp.overheat = false;
+    g.weaponsTick(bot, .02, true, plan.a, 0, false); for (let i = 0; i < Math.ceil(w.warn / .02) + 2; i++) g.weaponsTick(bot, .02, true, plan.a, 0, false);
+    const hz = g.reflectDanger(u, 10), off = dist(bot.reflect.at, plan.b, u.pos.clone().addScaledVector(hz?.dir || new T.Vector3(), 5));
+    yes(bot.reflect?.phase === 'fire' && hz && hz.by === bot && off > dist(bot.reflect.at, plan.b, u.pos), '光の先にいる敵機には、線から離れる向きを返す');
     u.pos.copy(P(0)); u.pos.x += 60; g.reflectWarning(u, .02);
     yes(g.$('reflectAlert').hidden, '線から離れれば警告は消える');
     const warns = { reflector: .5, reflectorW: .3, reflectorG: 1, reflectorF: .7 };
@@ -119,9 +133,12 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
   await page.keyboard.press('4'); await step(20);
   ok(await ev(() => !!__g.range && __g.isArtilleryMode(__g.player)), '射撃場で反射衛星砲を構える');
   await ev(() => { __g.mapCur.x = __g.player.pos.x; __g.mapCur.z = __g.player.pos.z - 40; });
-  await page.mouse.down(); await step(2); await page.mouse.up(); await step(10);
-  ok(await ev(() => __g.player.reflect?.phase === 'aim'), '射撃場：1回目のクリックで始点');
-  await ev(() => { __g.mapCur.x = __g.player.pos.x + 30; });
-  await page.mouse.down(); await step(2); await page.mouse.up(); await step(2);
-  ok(await ev(() => __g.player.reflect?.phase === 'warn' && Math.abs(__g.player.reflect.len - 30) < .5), '射撃場：2回目のクリックで終点が決まり、照射の溜めに入る');
+  await page.mouse.down({ button: 'right' }); await step(2);
+  ok(await ev(() => __g.player.reflect?.phase === 'warn'), '射撃場：右クリックを押すと溜めに入る');
+  await step(20);
+  const at1 = await ev(() => __g.player.reflect?.phase === 'fire' && __g.player.reflect.at.x);
+  await ev(() => { __g.mapCur.x = __g.player.pos.x + 30; }); await step(20);
+  ok(await ev(x => __g.player.reflect?.phase === 'fire' && __g.player.reflect.at.x > x + 3, at1), '射撃場：押したままカーソルを動かすと光が追う');
+  await page.mouse.up({ button: 'right' }); await step(2);
+  ok(await ev(() => !__g.player.reflect && !__g.isArtilleryMode(__g.player)), '射撃場：離すと照射が終わる');
 });
