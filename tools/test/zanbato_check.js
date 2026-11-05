@@ -65,6 +65,20 @@ check('斬馬刀の連続技と居合', async ({ ev, ok, sortie }) => {
   await put(9);
   const near = await iai(4);
   ok(near.dmg > 2900 * mult && near.dmg < 3600 * mult && near.stun === 'stagger', `短い居合でも近ければ当たり、威力約3000でよろけ（${near.dmg}） ` + JSON.stringify(near));
+  // ロックした敵を通り過ぎない（オーナー 2026-11-06「ロックオンした敵通り過ぎちゃったり」）。連続技・居合・ダッシュ技
+  const pass = (mode, d) => ev(([mode, d]) => { const g = __g, p = g.player, e = window.__e, sl = p.slots.aux, dt = 1 / 60, f = g.fwdOf(p).setY(0).normalize(); g.lock.target = e;
+    const hp = e.hp; let minD = 1e9, ahead = 1e9;
+    const meas = () => { const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z; minD = Math.min(minD, Math.hypot(dx, dz)); ahead = Math.min(ahead, dx * f.x + dz * f.z); };
+    if (mode === 'iai') { sl.sheathed = true; for (let i = 0; i < 70; i++) g.swordTick(p, sl, dt, true, g.targetPoint(e)); }
+    if (mode === 'dash') { p.dashT = .2; p.dashDir = f.clone(); p.vel.set(f.x * 40, 0, f.z * 40); }
+    for (let i = 0; i < 150; i++) { const trig = mode === 'combo' ? [0, 12, 24, 36].includes(i) : mode === 'dash' ? i === 0 : false;
+      g.swordTick(p, sl, dt, trig, g.targetPoint(e)); g.physics(p, new g.T.Vector3(), false, false, dt); meas();
+      if (e.stunT > 0) e.stunT -= dt; if (e.stunT <= 0 && e.stun === 'stagger') e.stun = ''; }
+    g.lock.target = null; return { minD: +minD.toFixed(2), ahead: +ahead.toFixed(2), dmg: Math.round(hp - e.hp) }; }, [mode, d]);
+  for (const [mode, d] of [['combo', 7], ['iai', 14], ['dash', 12]]) {
+    await put(d); const r = await pass(mode, d);
+    ok(r.ahead > 2 && r.minD > 2.4 && r.dmg > 0, `${mode}：ロックした敵（${d}m先）の手前で止まって当てる（一番近づいて ${r.minD}m、通り過ぎない） ` + JSON.stringify(r));
+  }
   // R で納刀・抜刀（プレイヤーの入力）
   const toggle = await ev(() => { const g = __g, p = g.player, sl = p.slots.aux; Object.assign(p, { swing: null }); sl.sheathed = false;
     g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; const a = sl.sheathed; g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; return [a, sl.sheathed]; });

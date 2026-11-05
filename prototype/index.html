@@ -108,7 +108,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver166</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver167</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -7497,6 +7497,17 @@ function iaiSwing(w, q) {
   return { dmg, reach: 4.6, height: 2.4, from: -70, to: 60, windup, sweep, recover, time: windup + sweep + recover, step: 0, homing: 3, lunge, dashMotion: 'sabre', iai: true, iaiQ: q, dashName: '居合・抜刀一閃',
     strikes: [{ dmg, at: .16, sweep: .22, hand: 1, from: -70, to: 60, pitchFrom: 55, pitchTo: -20, gripFrom: [.6, 3.3, -.1], gripTo: [-.45, 2.1, -.75], motion: 'iai' }] };
 }
+// 斬馬刀の止まる所：ロックした敵の中心からこの距離（機体2つ分と少し）。刃（4.6m）は十分届く
+const SABRE_STOP = 2 * R + .4;
+function sabreStop(u, sw) {
+  const t = sw.stopTgt;
+  if (!t.alive) { sw.stopTgt = null; return; }
+  const dx = t.pos.x - u.pos.x, dz = t.pos.z - u.pos.z, d = Math.hypot(dx, dz);
+  if (d > SABRE_STOP || u.vel.x * dx + u.vel.z * dz <= 0) return; // 離れている・もう敵へ向かっていない
+  u.lungeT = 0; u.slideT = 0; u.dashT = 0; u.longDash = false;
+  const along = (u.vel.x * dx + u.vel.z * dz) / (d || 1); // 敵へ向かう分だけ消す（横の動きは残す）
+  u.vel.x -= dx / (d || 1) * along; u.vel.z -= dz / (d || 1) * along;
+}
 // 怯み（連続技の段に当たった機体）：短い硬直で動けず撃てない。押し出さないので次の段が届く。射出直後・ポッド・ダウン中は崩さない
 function comboFlinch(e, time) {
   if (!e.alive || e.kind !== 'unit' || e.repairing || launchStaggerProtected(e) || e.stun === 'down') return;
@@ -7515,6 +7526,8 @@ function swordTick(u, sl, dt, trigger, aim) {
     // 斬馬刀：当てた瞬間は見た目だけ一瞬止める（ヒットストップ）。判定と時間は止めない
     if (sw.a.dashMotion === 'sabre') { if (sw.stopT > 0) sw.stopT -= dt; else sw.vt = Math.min(sw.t, (sw.vt || 0) + dt * 1.8); }
     if (sw.tgt && u.lungeT > 0) meleeHome(u, sw, dt);
+    // 斬馬刀：ロックした敵へ向かう踏み込み・突進・滑りは、敵の手前（刃の届く所）で止める。通り過ぎない（オーナー 2026-11-06）
+    if (sw.stopTgt) sabreStop(u, sw);
     const a = sw.a, phi = swingPhi(u, sw);
     if(a.hop && !sw.hopDone && sw.t>=a.hop.at){
       sw.hopDone=true;
@@ -7555,7 +7568,7 @@ function swordTick(u, sl, dt, trigger, aim) {
     else {
     if (a.recover && !sw.stopped && sw.t >= a.windup + a.sweep) {
       // 回し終わったら硬直（隙）。踏み込みの勢いで少し滑ってから止まる（v0.13.1）
-      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.meleeRecovery = sw; u.slideT = sw.pike?0:SLIDE_TIME;
+      sw.stopped = true; u.lungeT = 0; u.recoverT = a.recover; u.meleeRecovery = sw; u.slideT = sw.pike || sw.stopTgt ? 0 : SLIDE_TIME;
     }
     if (sw.t >= a.time) u.swing = null;
     return false;
@@ -7615,7 +7628,11 @@ function swordTick(u, sl, dt, trigger, aim) {
   // 横なぎの踏み込みは、敵が刃の6割の所に来るまで（step m まで）
   // 通常クイックブースト1回＝当該機体のdashV×SHORT_TIME。最大充填はその80%。
   const pileStep=sl.w.acMelee==='pike' ? u.dashV*SHORT_TIME*.8*(.25+.75*chargeRatio) : 0;
+  // 斬馬刀はロック中の敵（30m以内）を止まる目印にする。踏み込みの届かない距離でも、ダッシュの勢いで通り過ぎないように
+  const lk = u.isPlayer ? lock.target : u.target;
+  if (sl.w.combo && lk?.alive && lk.kind === 'unit' && Math.hypot(lk.pos.x - u.pos.x, lk.pos.z - u.pos.z) < 30) u.swing.stopTgt = lk;
   const go = sl.w.acMelee==='pike' ? (tgt&&!dashAttack?Math.min(pileStep,Math.max(0,td-R-a.reach*.6)):pileStep)
+    : sl.w.combo && tgt && a.lunge ? Math.min(a.lunge, Math.max(0, td - SABRE_STOP)) // 居合・ダッシュの斬馬刀は敵の手前まで
     : a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
   if (go > 0.3) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
