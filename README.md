@@ -1,6 +1,6 @@
 # コアブレイカー・GitHub Pages配信物
 
-マージ済みmain `9c3582d755a7c246ecaa1ba96c1acb3b4c51bdcb` から生成。ゲームの実行ファイルと出典だけを収録する。
+マージ済みmain `d8846bc354bcfecdb6fab171ac65c070bc51b58a` から生成。ゲームの実行ファイルと出典だけを収録する。
 
 GitHub Pagesの公開元は、このgh-pagesブランチのルート。`.nojekyll`により静的ファイルとして配信する。Three.jsは同梱し、ゲームのメニューから素材の出典・ライセンスを開ける。
 
