@@ -60,11 +60,12 @@ function check(d) {
     }else inMap(x,z,'ベースの施設');
   }
   for (const b of d.barricades) { inMap(b[0], b[1], '障害物'); if (b.length !== 5 || !b.every(num)) E(`バリケード [${b}] は [x, z, 幅, 奥行き, 高さ]`); }
-  // 建物：6番目の要素（任意）は種類
+  // 建物：6番目の要素（任意）は種類、7番目（任意）は壊せる印（true か耐久の数。種類の無い箱は6番目を null に）
   for (const b of d.layout) {
     inMap(b[0], b[1], '障害物');
-    if (!(b.length === 5 || b.length === 6) || !b.slice(0, 5).every(num)) E(`障害物 [${b}] は [x, z, 幅, 奥行き, 高さ] か、6番目に種類`);
-    else if (b.length === 6 && !KINDS.includes(b[5])) E(`障害物 [${b}] の種類 ${b[5]} はエンジンに無い（使えるのは ${KINDS.join('・')}）`);
+    if (!(b.length >= 5 && b.length <= 7) || !b.slice(0, 5).every(num)) E(`障害物 [${b}] は [x, z, 幅, 奥行き, 高さ] か、6番目に種類、7番目に壊せる印`);
+    else if (b.length >= 6 && !(b.length === 7 && b[5] === null) && !KINDS.includes(b[5])) E(`障害物 [${b}] の種類 ${b[5]} はエンジンに無い（使えるのは ${KINDS.join('・')}。7番目があるときは null も可）`);
+    else if (b.length === 7 && !(b[6] === true || b[6] === false || (num(b[6]) && b[6] > 0))) E(`障害物 [${b}] の7番目（壊せる印）は true か正の耐久`);
   }
   const types = ['mesa', 'block', 'ramp', 'hill', 'trench'];
   for (const f of d.terrain) if (!types.includes(f.type)) E(`地形の種類 ${f.type} はエンジンに無い（使えるのは ${types.join('・')}）`);

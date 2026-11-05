@@ -1378,6 +1378,7 @@ function drawCityBaseZones(ctx,W,H,def,own=chosenTeam){
 // 自軍ベースは +z 側、敵軍ベースは -z 側。地形・障害物・施設は自軍側の半分だけ書き、敵軍側は中央をはさんで点対称に足す（プラントとプラントのポッドは全部書く）。
 // 地形の種類（terrain の type）は featureH にある mesa・block・ramp・hill・trench。種類を足すのはエンジン側の仕事
 // 任意の項目（v0.10.3、マップ製作スレッドの依頼）：subtitle（副題）、variants（配置違い）、nav（Botの通り道）、bridges（橋）、water（水面）、layout の6番目の要素（建物の種類）
+// layout の7番目の要素（2026-11-05）：壊せる印。true か耐久の数（「壊せる建物」の節）
 const MAP_KEYS = ['name', 'size', 'team', 'time', 'baseZ', 'baseLine', 'desc', 'terrain', 'layout', 'plants', 'turrets', 'radar', 'catapults', 'basePods', 'plantPods', 'barricades'];
 // 項目が足りないマップは選べないようにして、ほかのマップで遊べるようにする。並びは order の小さい順
 const MAPS = Object.fromEntries(Object.entries(window.MAP_DATA || {}).filter(([id, d]) => {
@@ -1542,8 +1543,9 @@ function addBox(x, z, w, d, h, mat = concrete) {
   m.castShadow = m.receiveShadow = true;
   mapRoot.add(m);
   hittables.push(m);
-  obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, top });
-  return { m, top, bottom };
+  const ob = { minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, top };
+  obstacles.push(ob);
+  return { m, top, bottom, ob };
 }
 // 建物の見た目（layout の6番目の要素、任意。v0.10.3）：'house' 切妻屋根の家（窓つき。壁と屋根の色は位置で決まる）、'wall' 石壁、'tower' 石の塔（細い窓、上に胸壁）。
 // 当たり判定はどれも今までの箱のまま（屋根と胸壁は見た目だけ）。種類の無い箱は今までのコンクリートの箱
@@ -1624,12 +1626,25 @@ function addParapet(x, z, w, d, top, mat) {
     mapRoot.add(m);
   }
 }
+function addRoofMeshes(acc) {
+  for (const [key, pos] of Object.entries(acc)) {
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    const m = new T.Mesh(geo, new T.MeshLambertMaterial({ color: key[0] === 'r' ? +key.slice(1) : key.slice(1), side: T.DoubleSide }));
+    m.castShadow = m.receiveShadow = true;
+    mapRoot.add(m);
+  }
+}
 // 障害物（中央をはさんで点対称に置く）と外周の壁
 const wallMat = new T.MeshLambertMaterial({ color: 0x6c6a63 });
+// layout の7番目（任意）は「壊せる印」：true なら大きさから決めた耐久、正の数ならその耐久で壊せる建物にする（2026-11-05、オーナー選択「印を付けた物だけ」）。
+// 種類の無い箱に印を付けるときは6番目を null にする。壊せる建物の屋根や飾りは、壊れたときに一緒に消すため建物ごとのメッシュにする
 function buildBoxes(layout) {
   const roofs = {};
-  for (const [x, z, w, d, h, kind] of layout) for (const s of placementSigns(x, z)) {
-    if (!KINDS.includes(kind)) { addBox(x * s, z * s, w, d, h); continue; }
+  for (const [x, z, w, d, h, kind, breakable] of layout) for (const s of placementSigns(x, z)) {
+    const first = mapRoot.children.length, acc = breakable ? {} : roofs;
+    if (!KINDS.includes(kind)) { const bx = addBox(x * s, z * s, w, d, h); if (breakable) addBuilding(bx, x * s, z * s, w, d, h, breakable, first); continue; }
     // 色は自軍側の座標で決める（敵軍側の点対称の建物も同じ色）
     const color = kind === 'house' ? WALL_COLORS[Math.floor(hash01(x * 1.7 + 3, z * 2.3) * WALL_COLORS.length)] : BASE_COLORS[kind] || STONE[kind];
     const bx = addBox(x * s, z * s, w, d, h, kindMat(kind, color));
@@ -1638,7 +1653,7 @@ function buildBoxes(layout) {
       bx.m.material=[side,side,roof,roof,side,side]; // 窓は側面。屋根へ繰り返さない。
     }
     tileUV(bx.m.geometry, w, bx.top - bx.bottom, d);
-    if (kind === 'house') addRoof(roofs, x * s, z * s, w, d, bx.top, ROOF_COLORS[Math.floor(hash01(x * 0.7 - 5, z * 1.3) * ROOF_COLORS.length)], color);
+    if (kind === 'house') addRoof(acc, x * s, z * s, w, d, bx.top, ROOF_COLORS[Math.floor(hash01(x * 0.7 - 5, z * 1.3) * ROOF_COLORS.length)], color);
     if (kind === 'tower') addParapet(x * s, z * s, w, d, bx.top, kindMat(kind, color));
     if (kind === 'trailer') {
       const tire = new T.MeshLambertMaterial({color:0x242a2e});
@@ -1647,15 +1662,9 @@ function buildBoxes(layout) {
         wheel.position.set(x*s+side*(w/2-.2),bx.bottom+.8,z*s+end*d*.3);mapRoot.add(wheel);
       }
     }
+    if (breakable) { addRoofMeshes(acc); addBuilding(bx, x * s, z * s, w, d, h, breakable, first); }
   }
-  for (const [key, pos] of Object.entries(roofs)) {
-    const geo = new T.BufferGeometry();
-    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
-    geo.computeVertexNormals();
-    const m = new T.Mesh(geo, new T.MeshLambertMaterial({ color: key[0] === 'r' ? +key.slice(1) : key.slice(1), side: T.DoubleSide }));
-    m.castShadow = m.receiveShadow = true;
-    mapRoot.add(m);
-  }
+  addRoofMeshes(roofs);
   if(cityMap)return; // 都市の外周はカプセルの範囲制限で保護する。
   addBox(0, MAP_Z + 2, MAP_X * 2 + 8, 4, 10, wallMat);
   addBox(0, -MAP_Z - 2, MAP_X * 2 + 8, 4, 10, wallMat);
@@ -2785,6 +2794,13 @@ function blast(sh, at, ref) {
     if (d > S.blast || (S.occluded && !blastVisible(at,new T.Vector3((o.minX+o.maxX)/2,o.top,(o.minZ+o.maxZ)/2),br))) continue;
     damageBarricade(br, fall(d), sh.owner); hitAny = true;
   }
+  for (const b of buildings) {
+    if (b === sh.skip || !b.alive) continue;
+    const o = b.ob, near = new T.Vector3(Math.max(o.minX, Math.min(at.x, o.maxX)), Math.max(b.base, Math.min(at.y, o.top)), Math.max(o.minZ, Math.min(at.z, o.maxZ)));
+    const d = near.distanceTo(at);
+    if (d > S.blast || (S.occluded && !blastVisible(at, near, b))) continue;
+    damageBuilding(b, fall(d), sh.owner, true); hitAny = true;
+  }
   if (hitAny && sh.owner.isPlayer) hitMark(false);
 }
 
@@ -3267,6 +3283,115 @@ function damageBarricade(br, dmg, by) {
   boom(br.pos.clone().setY(br.base));
 }
 
+// ---- 壊せる建物 ----
+// layout の7番目に印を付けた建物だけ壊せる（2026-11-05、オーナー選択「印を付けた物だけ」。都市モデルのマップは対象外）。
+// 爆風（グレネード・ミサイル・砲など）は威力そのまま、それ以外の弾と近接は BUILDING_SHOT_RATE 倍だけ効く。耐久は印が数ならその値、true なら体積×BUILDING_HP_PER_M3。
+// 耐久が無くなると当たり判定と足場が消え、BUILDING_FALL 秒かけて地面へ沈むように崩れ、低い瓦礫（見た目だけ。上を歩ける）が残る。
+// 瓦礫は試合が終わるまで残り、次の試合で元に戻る。Bot の通り道（nav）は変えない（崩れた所は clearPath が通す）
+const BUILDING_HP_PER_M3 = 40, BUILDING_HP_MIN = 8000, BUILDING_HP_MAX = 80000, BUILDING_SHOT_RATE = 0.25, BUILDING_FALL = 1.4;
+const buildings = [];
+const rubbleMats = [new T.MeshLambertMaterial({ color: 0x7d776c }), new T.MeshLambertMaterial({ color: 0x5f5a52 })];
+let buildingSeed = 12345; // 崩れる見た目だけの乱数（戦闘の Math.random を減らさない）
+const buildingRnd = () => (buildingSeed = Math.imul(buildingSeed, 1664525) + 1013904223 >>> 0) / 4294967296;
+function buildingHp(w, d, h, mark) {
+  if (typeof mark === 'number' && mark > 0) return mark;
+  return Math.round(Math.min(BUILDING_HP_MAX, Math.max(BUILDING_HP_MIN, w * d * h * BUILDING_HP_PER_M3)) / 100) * 100;
+}
+// bx は addBox の戻り値。first から後ろの mapRoot の子（箱・屋根・胸壁・車輪）を、この建物の部品として一緒に崩す
+function addBuilding(bx, x, z, w, d, h, mark, first) {
+  const parts = mapRoot.children.slice(first), hp = buildingHp(w, d, h, mark);
+  const b = { kind: 'building', name: '建物', box: bx.m, parts, home: parts.map(m => m.position.clone()), ob: bx.ob, base: bx.bottom, top: bx.top, ground: bx.top - h,
+    pos: new T.Vector3(x, (bx.top + bx.bottom) / 2, z), w, d, h: bx.top - bx.bottom, hp, maxHp: hp, alive: true, fallT: -1, rubble: null, mats: null, orig: null };
+  bx.m.userData.ref = b;
+  buildings.push(b);
+}
+// 削れるほど暗くする。材質は同じ種類の建物で共有しているので、初めて傷ついたときにこの建物の分を複製する
+function buildingTint(b) {
+  if (!b.mats) {
+    b.orig = b.box.material;
+    const copies = new Map();
+    b.box.material = Array.isArray(b.orig) ? b.orig.map(m => copies.get(m) || copies.set(m, m.clone()).get(m)) : b.orig.clone();
+    b.mats = Array.isArray(b.orig) ? [...copies.values()] : [b.box.material];
+    b.colors = b.mats.map(m => m.color.clone());
+  }
+  const k = 0.5 + 0.5 * Math.max(0, b.hp / b.maxHp);
+  b.mats.forEach((m, i) => m.color.copy(b.colors[i]).multiplyScalar(k));
+}
+function damageBuilding(b, dmg, by, explosive = false) {
+  if (!b.alive) return;
+  b.hp -= explosive ? dmg : dmg * BUILDING_SHOT_RATE;
+  buildingTint(b);
+  if (b.hp > 0) return;
+  b.alive = false; b.fallT = 0;
+  b.box.userData.ref = null;
+  const i = hittables.indexOf(b.box); if (i >= 0) hittables.splice(i, 1);
+  const j = obstacles.indexOf(b.ob); if (j >= 0) obstacles.splice(j, 1);
+  miniBg = bigBg = null; // ミニマップの障害物を描き直す
+  addRubble(b);
+  const at = b.pos.clone().setY(b.ground);
+  boom(at, 1, Math.max(b.w, b.d) * 0.6);
+  buildingDust(b, 5);
+  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が建物を破壊`);
+  if (by && by.isPlayer) popup(at.clone().setY(b.top + 2), '破壊', '建物');
+}
+function buildingDust(b, n) {
+  for (let k = 0; k < n; k++) {
+    const at = new T.Vector3(b.pos.x + (buildingRnd() - .5) * b.w, b.ground + 1 + buildingRnd() * b.h * .4, b.pos.z + (buildingRnd() - .5) * b.d);
+    cloud(at, Math.max(6, Math.max(b.w, b.d) * .6), 0x9a9184, 2.2 + buildingRnd());
+  }
+}
+// 瓦礫：建物の足元に低い塊を散らす（位置から決まる形。見た目だけで、当たり判定は無い）
+function addRubble(b) {
+  const g = new T.Group(), n = Math.max(8, Math.min(24, Math.round(b.w * b.d / 5)));
+  for (let k = 0; k < n; k++) {
+    const r1 = hash01(b.pos.x + k * 3.1, b.pos.z - k * 1.7), r2 = hash01(b.pos.z + k * 2.3, b.pos.x + k), r3 = hash01(k * 5.7 + b.pos.x, k - b.pos.z);
+    const sx = 1.2 + r1 * Math.min(4, b.w * .4), sz = 1.2 + r2 * Math.min(4, b.d * .4), sy = .4 + r3 * 1.1;
+    const px = b.pos.x + (r2 - .5) * Math.max(0, b.w - sx * .5), pz = b.pos.z + (r1 - .5) * Math.max(0, b.d - sz * .5);
+    const m = new T.Mesh(new T.BoxGeometry(sx, sy, sz), rubbleMats[k % 2]);
+    m.position.set(px, terrainH(px, pz) + sy * .3, pz);
+    m.rotation.set((r3 - .5) * .6, r1 * 3, (r2 - .5) * .6);
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+  }
+  b.rubble = g; mapRoot.add(g);
+}
+// 崩れる動き：揺れながら地面の下へ沈む。沈み切ったら部品を外す
+function buildingUpdate(dt) {
+  for (const b of buildings) {
+    if (b.fallT < 0 || b.fallT >= BUILDING_FALL) continue;
+    const before = b.fallT;
+    b.fallT = Math.min(BUILDING_FALL, b.fallT + dt);
+    const t = b.fallT / BUILDING_FALL, drop = (b.h + 4) * t * t, shake = .25 * (1 - t);
+    const jx = (buildingRnd() - .5) * shake, jz = (buildingRnd() - .5) * shake;
+    b.parts.forEach((m, i) => m.position.set(b.home[i].x + jx, b.home[i].y - drop, b.home[i].z + jz));
+    if (Math.floor(before / .35) !== Math.floor(b.fallT / .35)) buildingDust(b, 2);
+    if (b.fallT >= BUILDING_FALL) for (const m of b.parts) mapRoot.remove(m);
+  }
+}
+function resetBuildings() {
+  let changed = false;
+  for (const b of buildings) {
+    if (b.alive && b.hp === b.maxHp) continue;
+    changed = true;
+    b.hp = b.maxHp; b.alive = true; b.fallT = -1;
+    b.parts.forEach((m, i) => { m.position.copy(b.home[i]); if (!m.parent) mapRoot.add(m); });
+    if (b.mats) { for (const m of b.mats) m.dispose(); b.box.material = b.orig; b.mats = null; }
+    if (b.rubble) { mapRoot.remove(b.rubble); b.rubble.traverse(c => c.geometry && c.geometry.dispose()); b.rubble = null; }
+    b.box.userData.ref = b;
+    if (!hittables.includes(b.box)) hittables.push(b.box);
+    if (!obstacles.includes(b.ob)) obstacles.push(b.ob);
+  }
+  if (changed) miniBg = bigBg = null;
+}
+// マップを作り直す前に、外してあった部品と複製した材質を捨てる
+function clearBuildings() {
+  for (const b of buildings) {
+    for (const m of b.parts) if (!m.parent) m.geometry.dispose();
+    if (b.mats) for (const m of b.mats) m.dispose();
+  }
+  buildings.length = 0;
+}
+
 // コアの傘：コアの上にかぶさる半透明の屋根。弾を止める障害物で、ダメージの判定には関わらない。
 // 横から屋根の下をくぐる弾はコアに届き、高所から撃ち下ろす弾は屋根で止まる
 const UMBRELLA_R = 26, UMBRELLA_EDGE = 13, UMBRELLA_TOP = 24;
@@ -3305,6 +3430,7 @@ function buildMap(id) {
   const facilityMaterials=new Set();
   for (const o of mapRoot.children.slice()) { mapRoot.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); if(c.userData.facilityVisual&&c.material)facilityMaterials.add(c.material); }); }
   for(const material of facilityMaterials)material.dispose();
+  clearBuildings();
   obstacles.length = 0; hittables.length = 0;
   for (const a of [plants, turrets, radars, catapults, jumpPads, lifts, ziplines, pods, barricades]) a.length = 0;
   [MAP_X, MAP_Z] = def.size;
@@ -3333,6 +3459,7 @@ function buildMap(id) {
   renderTeamView();
   resetPlants();
   resetBarricades();
+  resetBuildings();
   // 影はマップ全体に落とす
   const S = Math.max(MAP_X, MAP_Z) + 30;
   Object.assign(sun.shadow.camera, { left: -S, right: S, top: S, bottom: -S, far: S * 2.4 });
@@ -5419,7 +5546,7 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
     if (hit.barrier) { barrierAbsorb(r,w.dmg,hit.point); impact(hit.point,'shield',travel); return false; }
     const head = r && r.kind === 'unit' && hit.slot === 'head';
     let res = false;
-    const direct = r && r.team !== u.team && r.kind !== 'umbrella';
+    const direct = r && r.team !== u.team && r.kind !== 'umbrella' && r.kind !== 'building'; // 建物は爆風だけで削る（直撃の分を弾の倍率で減らさない）
     if (direct) {
       const hp = r.hp;
       res = damage(r,u,w.dmg*(head ? w.head || HEADSHOT_MULT : 1),head,false,hit.slot,from,false,false,weaponName);
@@ -5449,6 +5576,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (r.gadget) { damageGadget(r, dmg, by); return true; }
   if (r.kind === 'core') { scoreCore(by, dmg); r.hp = Math.max(0, r.hp - dmg * CORE_RATE); annCore(r.team); return true; }
   if (r.kind === 'barricade') { damageBarricade(r, dmg, by); return true; }
+  if (r.kind === 'building') { damageBuilding(r, dmg, by); return true; }
   if (r.kind === 'turret') { r.hp -= dmg; if (r.hp <= 0) destroyTurret(r, by); return true; }
   if (r.kind === 'radar') { r.hp -= dmg; if (r.hp <= 0) destroyRadar(r, by); return true; }
   if (r.invulT > 0) return false; // 出撃直後の無敵
@@ -7467,6 +7595,7 @@ function slashSweep(u,sw,strike,hit,k0,k1){
     for(const t of turrets)if(t.alive&&t.team!==u.team)tryHit(t,t.pos,1.5,t.pos.y,t.pos.y+3.7);
     for(const r of radars)if(r.alive&&r.team!==u.team)tryHit(r,r.pos,1.5,r.pos.y,r.pos.y+11);
     for(const br of barricades)if(br.alive){const o=br.ob;tryHit(br,new T.Vector3(Math.max(o.minX,Math.min(u.pos.x,o.maxX)),0,Math.max(o.minZ,Math.min(u.pos.z,o.maxZ))),0,br.base,o.top);}
+    for(const b of buildings)if(b.alive){const o=b.ob;tryHit(b,new T.Vector3(Math.max(o.minX,Math.min(u.pos.x,o.maxX)),0,Math.max(o.minZ,Math.min(u.pos.z,o.maxZ))),0,b.base,o.top);}
     slashGrip0.copy(slashGrip1);slashTip0.copy(slashTip1);
   }
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(vertices,3));
@@ -7510,6 +7639,11 @@ function bladeSweep(u, sw, phi0, phi1) {
     if (!br.alive) continue;
     const o = br.ob;
     tryHit(br, new T.Vector3(Math.max(o.minX, Math.min(u.pos.x, o.maxX)), 0, Math.max(o.minZ, Math.min(u.pos.z, o.maxZ))), 0, br.base, o.top);
+  }
+  for (const b of buildings) {
+    if (!b.alive) continue;
+    const o = b.ob;
+    tryHit(b, new T.Vector3(Math.max(o.minX, Math.min(u.pos.x, o.maxX)), 0, Math.max(o.minZ, Math.min(u.pos.z, o.maxZ))), 0, b.base, o.top);
   }
   // ソードはコアには当たらない（wiki）
   if (res && u.isPlayer) hitMark(false);
@@ -11620,6 +11754,7 @@ function setup() {
   resetTurrets();
   resetRadars();
   resetBarricades();
+  resetBuildings();
   for (const sh of shells) scene.remove(sh.mesh);
   shells.length = 0;
   clearGadgets();
@@ -11755,6 +11890,7 @@ function loop(now) {
     for (const rd of radars) radarUpdate(rd, dt);
     shellUpdate(dt);
     secondaryUpdate(dt);
+    buildingUpdate(dt);
     artilleryUpdate(dt);
     reflectorUpdate();
     gadgetUpdate(dt);
