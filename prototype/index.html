@@ -4295,7 +4295,7 @@ function mechPose(u, dt) {
   r.root.updateMatrixWorld(true);
   poseChest.multiplyMatrices(B.chest.node.matrixWorld, B.chest.bind);
   // 射撃の銃口も同じ武器メッシュの位置・回転を使う。構えによる揺れで照準を補正しない。
-  const cur = u.slots[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' || cur.type === 'beamCannon' ? u.slots.main.w : cur;
+  const cur = u.slots[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? u.slots.main.w : cur;
   const pitch = (u.isPlayer ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
   const dual = !!hw.dual;
   poseChestQ.setFromRotationMatrix(B.chest.node.matrixWorld); poseAimQ.setFromEuler(poseEuler.set(pitch, u.recoilYaw || 0, 0, 'YXZ'));
@@ -4416,7 +4416,7 @@ function resetLifeState(u) {
     actionHeld: false, crouching: false, actionBlockBoost: false, kneeSlideT: 0,
     stun: '', stunT: 0, tilt: 0, electricT: 0, jamT: 0, recoverT: 0,
     dashT: 0, longDash: false, dashState: '', slideT: 0, lungeT: 0, charging: false,
-    swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null,
+    swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null, reflect: null,
     cloak: false, chargerOn: false, fieldOn: false, barrierOn: false, escortOn: false, mirageLock: null,
     flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, jumpPad: null, mobilityRoute: null, lift: null, zip: null, transfer: null,
     waypoint: null, order: null, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, raidRoute: null,
@@ -5358,7 +5358,7 @@ const CANNON_TIP = { cannon: [-0.325, 0.18, -1.7], cannonH: [-0.31, 0, -1.7], ca
 function muzzle(u, left = false, clamp = true) {
   const w = u.slots && u.slots[u.weapon].w;
   let p;
-  if (!left && w && w.type === 'artillery') p = new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
+  if (!left && w && MAP_SP.includes(w.type)) p = new T.Vector3(0,1.08,0).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP,u.yaw).add(u.pos);
   else if (!left && w && w.type === 'cannon') p = new T.Vector3(...(CANNON_TIP[w.key] || CANNON_TIP.cannon)).applyEuler(u.pack.rotation).add(u.pack.position).applyAxisAngle(UP, u.yaw).add(u.pos);
   else {
     const g = left ? u.gun2 : u.gun;
@@ -5492,7 +5492,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   scoreKill(v, by, head);
   if (by.isPlayer && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
   v.flying=false;v.catMomentum=v.catLaunch=null;v.ctrlLockT=0;
-  v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null;
+  v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null; v.reflect = null;
   if (v.slots.aux.w.chargeWave) v.slots.aux.chargeT = 0;
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
   if (v.isPlayer) aimMark.visible = false;
@@ -6234,6 +6234,23 @@ function hurtAlly(u, range) {
   }
   return best;
 }
+// Botの反射衛星砲の線：狙う敵機（無ければ取られかけの敵プラント）を通り、近くのもう1機の敵へ向かう線（いなければ敵の動く向き、止まっていれば横向き）。
+// 長さは最長と30mの短い方。味方と自分が光の円の近くに入る線は使わない
+function reflectorPlan(u, target) {
+  const w = u.slots.sp.w, len = Math.min(w.sweep, 30);
+  const pl = !target ? plants.find(p => p.owner && p.owner !== u.team && p.contested && artilleryInRange(u, p.pos)) : null;
+  const c = target ? target.pos : pl?.pos;
+  if (!c || !artilleryInRange(u, c)) return null;
+  const other = target && units.find(e => e !== target && e.alive && e.team !== u.team && e.pos.distanceTo(c) < len && e.pos.distanceTo(c) > 5);
+  const dir = other ? new T.Vector3(other.pos.x - c.x, 0, other.pos.z - c.z) : target && Math.hypot(target.vel.x, target.vel.z) > 2 ? new T.Vector3(target.vel.x, 0, target.vel.z) : new T.Vector3(-(c.z - u.pos.z), 0, c.x - u.pos.x);
+  if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
+  dir.normalize();
+  const a = c.clone().addScaledVector(dir, other ? -len * .25 : -len / 2), b = a.clone().addScaledVector(dir, len);
+  if (!artilleryInRange(u, a) || !artilleryInRange(u, b)) return null;
+  const near = (e, m) => { const ax = e.pos.x - a.x, az = e.pos.z - a.z, k = Math.max(0, Math.min(len, ax * dir.x + az * dir.z)); return Math.hypot(ax - dir.x * k, az - dir.z * k) < m; };
+  if (near(u, w.radius + 12) || units.some(e => e.alive && e.team === u.team && e !== u && near(e, w.radius + 5))) return null;
+  return { a, b, len };
+}
 // Botの装備の使い方。返すのは行動 { slot（使う枠）, aim（狙う点。無ければ今の目標）, t（最長の秒）, done（終わったら true） }
 // Botがコアを撃つ点：結晶の中心から撃つ側へ水平に6m（近ければその距離）、1m下。結晶の張り出した下面なので、近くからでも支柱に隠れない
 function coreAim(c, from) {
@@ -6268,6 +6285,10 @@ function botAct(u, tracking, enemyCore) {
       const pl = plants.find(p => p.owner && p.owner!==u.team && p.contested && safe(p.pos));
       const p = tracking && safe(u.target.pos) ? targetPoint(u.target) : pl ? pl.pos.clone() : null;
       if (p) { const n = u.artilleryFired; return { slot:'sp', aim:p, t:Math.max(4,w.shots*(w.interval||0)+3), done:()=>u.artilleryFired>n && !isArtilleryMode(u) }; }
+    }
+    if (sp.w.type === 'reflector' && sp.heat >= 100 - .01 && !sp.overheat) {
+      const plan = reflectorPlan(u, tracking ? u.target : null);
+      if (plan) { u.reflectPlan = plan; const n = u.reflectFired || 0; return { slot: 'sp', aim: plan.a, t: sp.w.warn + plan.len / sp.w.speed + 3, done: () => (u.reflectFired || 0) > n && !isArtilleryMode(u) }; }
     }
     if (sp.w.type === 'cannon' && tracking && !u.target.gadget && td > 30 && sp.heat >= 100 && Math.random() < 0.5) return { slot: 'sp', t: 12, done: () => sp.heat < cost - 0.01 || !u.target || !u.target.alive };
   } else if (u.cls === 'raid') {
@@ -6888,7 +6909,7 @@ function equip(u, cls) {
     stats: st, partArmor: st.armor, armorAvg: st.avg, walkV: st.walk, dashV: st.dash, cruiseV: st.cruise, maxBoost: P.body.boost, boost: P.body.boost,
     lockRange: P.head.lock, aimMul: 1 / P.head.aim, reloadMul: P.arms.reload, swapMul: 1 / P.arms.swap, recoilAbsorb: P.arms.recoil, recoil: 0, recoilYaw: 0, recoilWait: 0, recoilRecovery: .04, cameraRecoil: 0, cameraRecoilYaw: 0,
     cls, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(keys[k], k === 'main' || k === 'sub' ? P.arms.ammo : 1)])), weapon: meleeOnly() ? 'aux' : 'main', prevWeapon: meleeOnly() ? 'aux' : 'main', switchT: 0, maxHp: c.hp || 10000,
-    swing: null, meleeRecovery: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, mirageOn: false, mirageWait: 0, mirageLock: null, mirageLost: 0, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, artilleryFired: 0, cannonDeploy: 0,
+    swing: null, meleeRecovery: null, lungeT: 0, slideT: 0, recoverT: 0, scoped: false, scopeStep: 0, healTarget: null, rkGo: false, planted: false, charging: false, chargerOn: false, mirageOn: false, mirageWait: 0, mirageLock: null, mirageLost: 0, act: null, actCd: 2, weakT: 0, cloak: false, vis: 1, shimmer: 0, fieldOn: false, barrierOn: false, escortOn: false, escortT: 0, escortCd: 0, escortAim: null, bombard: null, reflect: null, artilleryFired: 0, cannonDeploy: 0,
   });
   Object.assign(u.slots.sp, { supply: P.body.sp / 100 * P.body.supply }); // SPは共通100%。胴の性能は回復速度だけに使う。
   resetMechPose(u); weaponLook(u, 0);
@@ -6917,13 +6938,13 @@ function selectWeapon(u, w) {
   if (meleeOnly() && w !== 'aux') return;
   if (u.swing) return;
   if (w !== 'sp' && beamCannonMode(u)) stopBeamCannon(u);
-  if (u.zip && (u.slots[w].w.plant || u.slots[w].w.type === 'artillery')) return; // ジップラインで昇る間は構えられない
+  if (u.zip && (u.slots[w].w.plant || MAP_SP.includes(u.slots[w].w.type))) return; // ジップラインで昇る間は構えられない
   if (w !== u.weapon) {
-    u.bombard = null;
+    u.bombard = null; u.reflect = null;
     const sl = u.slots[u.weapon];
     if (sl.w.missile) { clearMissileLocks(sl); sl.missileQueue = []; sl.bn = 0; }
   }
-  if (w === 'sp' && u.slots.sp.w.type === 'artillery' && (u.repairing || u.transfer || u.stun)) return;
+  if (w === 'sp' && MAP_SP.includes(u.slots.sp.w.type) && (u.repairing || u.transfer || u.stun)) return;
   if (w === 'sp' && TOGGLE_SP.includes(u.slots.sp.w.type)) { toggleSp(u); return; }
   if (w === 'sp' && u.slots.sp.w.type === 'repairPost' && u.post && !u.postRecall && !u.repairing && !u.transfer) {
     u.postRecall = true;
@@ -6979,6 +7000,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
     else if (type === 'charger') chargerTick(u, sl, dt);
     else if (type === 'mirage') mirageTick(u, sl, dt);
     else if (type === 'artillery') artilleryTick(u, sl, dt, t, aim, on, alt);
+    else if (type === 'reflector') r = reflectorTick(u, sl, dt, t, aim, on, alt);
     else if (type === 'beamCannon') r = beamCannonTick(u,sl,dt,t,aim,on,alt);
     else if (type === 'cannon') cannonTick(u, sl, dt, t, aim, on, on && alt);
     else if (type === 'camo') camoTick(u, sl, dt);
@@ -7511,7 +7533,7 @@ function beamCannonModel(u, t) {
   }
 }
 function weaponLook(u, dt) {
-  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || cur.type === 'artillery' || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
+  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
   setWeaponGeo(u.gun, hw.key); u.gun.rotation.set(pitch, u.recoilYaw || 0, 0, 'YXZ');
   u.gun2.visible = !!hw.dual;
   if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.copy(u.gun.rotation); }
@@ -7541,7 +7563,7 @@ function weaponLook(u, dt) {
     u.pack.userData.beamRig.root.visible=false;
     for(const m of u.pack.userData.beamRig.meshes)m.visible=false; // 非再帰の射撃判定からも外す。
   }
-  u.pack.visible = cannon || sp.type === 'beamCannon' || sp.type === 'artillery' || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
+  u.pack.visible = cannon || sp.type === 'beamCannon' || MAP_SP.includes(sp.type) || TOGGLE_SP.includes(sp.type); u.mount.visible = cannon;
   u.mount.position.set(0, 2.75, 1.25); u.mount.rotation.set(0, 0, 0);
   u.flame.position.set(0,0,0); u.flame.rotation.set(0,0,0);
   u.pack.rotation.set(0, sp.type === 'escort' && u.escortOn && u.escortAim ? Math.atan2(-(u.escortAim.x-u.pos.x),-(u.escortAim.z-u.pos.z))-u.yaw : 0, 0);
@@ -8206,17 +8228,20 @@ const barrages = [];
 const artilleryShellGeo = new T.ConeGeometry(.28,1.2,8);
 const artilleryWarnGeo = new T.CylinderGeometry(.18,.5,4,8,1,true);
 const artilleryWarnMat = new T.MeshBasicMaterial({color:0xffa33f,transparent:true,opacity:.6,depthWrite:false,side:T.DoubleSide});
-function isArtilleryMode(u) { return !!u && u.alive && u.weapon==='sp' && !!u.slots && u.slots.sp.w.type==='artillery'; }
+// マップで地点を決める特別装備（榴弾砲と反射衛星砲）。構えている間は動けず、マウスはマップの照準になる
+const MAP_SP = ['artillery', 'reflector'];
+function isArtilleryMode(u) { return !!u && u.alive && u.weapon==='sp' && !!u.slots && MAP_SP.includes(u.slots.sp.w.type); }
 function artilleryCost(sl) { return 100 / sl.w.shots; }
 function artilleryInRange(u,p) { return !!p && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.hypot(p.x-u.pos.x,p.z-u.pos.z)<=u.slots.sp.w.range+.001; }
 function stopArtillery(u) {
   if (!isArtilleryMode(u)) return;
-  u.bombard=null; const back=u.prevWeapon==='sp'?'main':u.prevWeapon;
+  u.bombard=null; u.reflect=null; const back=u.prevWeapon==='sp'?'main':u.prevWeapon;
   selectWeapon(u,back);
   if (u.isPlayer) { mapOpen=false; mouseDown=rightDown=false; }
 }
 function artilleryConfirm(u,p) {
   const sl=u.slots.sp;
+  if (sl.w.type==='reflector') return reflectorConfirm(u,p);
   if (!isArtilleryMode(u) || u.switchT>0 || u.repairing || u.transfer || u.stun || sl.overheat || !artilleryInRange(u,p)) return false;
   u.bombard=new T.Vector3(p.x,terrainH(p.x,p.z),p.z);
   return true;
@@ -8264,7 +8289,7 @@ function removeArtillery(b) {
   scene.remove(b.mesh);if(b.warn)scene.remove(b.warn);
   const i=barrages.indexOf(b);if(i>=0)barrages.splice(i,1);
 }
-function clearArtillery() { for (const b of barrages.slice()) removeArtillery(b); }
+function clearArtillery() { for (const b of barrages.slice()) removeArtillery(b); clearReflectors(); }
 function artilleryUpdate(dt) {
   for (const b of barrages.slice()) {
     b.age+=dt;const remain=b.flight-b.age;
@@ -8282,6 +8307,127 @@ function artilleryUpdate(dt) {
     }
     if (remain<=.000001) { const hit=artillerySurface(b.target);blast(b,hit.point,hit.ref);removeArtillery(b); }
   }
+}
+
+// ---- 反射衛星砲（オーナーのオリジナル、2026-11-05） ----
+// 真上の衛星へレーザーを撃ち、跳ね返した光でマップの始点から終点へ地上をなぞる。始点・終点はマップで左クリック2回（終点は最長 sweep m まで）。
+// 予告（warn 秒、地面に印）の後に照射。照射の間は構えたまま動けず、真上への光の柱が見え、敵のマップにも映る。
+// 地上の光の円（半径 radius）の中の敵機・デコイ・自機に毎秒 dps。屋根の下は当たらない。コアと砲台・レーダーは光が当たった所だけ。味方には当たらない。
+// SPは満タンで使え、予告が始まった時に全部使う（右クリックで中断しても戻らない）。
+const REFLECT_SKY = 320; // 衛星の高さ（見た目）
+const reflectOwners = new Set();
+const reflectCoreMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: .92, depthWrite: false, fog: false }));
+const reflectGlowMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: .32, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
+const reflectRingMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xbfeaff, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+function reflectorClamp(u, a, p) {
+  const w = u.slots.sp.w, d = new T.Vector3(p.x - a.x, 0, p.z - a.z), len = d.length();
+  if (len > w.sweep) d.multiplyScalar(w.sweep / len);
+  return new T.Vector3(a.x + d.x, 0, a.z + d.z).setY(terrainH(a.x + d.x, a.z + d.z));
+}
+function reflectorConfirm(u, p, end = null) {
+  const sl = u.slots.sp, w = sl.w, now = clock();
+  if (!isArtilleryMode(u) || u.switchT > 0 || u.repairing || u.transfer || u.stun || !p || !artilleryInRange(u, p)) return false;
+  if (u.reflect && u.reflect.phase !== 'aim') return false; // 照射の準備・照射の間は地点を変えない
+  if (now - (u.reflectClickAt ?? -9) < .2) return false; // 押した時とフレームの両方から来る同じクリックを2回と数えない
+  if (sl.overheat || sl.heat < 100 - .01) return false;
+  u.reflectClickAt = now;
+  const a = new T.Vector3(p.x, terrainH(p.x, p.z), p.z);
+  if (!u.reflect && !end) { u.reflect = { phase: 'aim', a }; return true; }
+  const from = u.reflect ? u.reflect.a : a, b = reflectorClamp(u, from, end || p);
+  if (!artilleryInRange(u, b)) return false;
+  const dir = new T.Vector3(b.x - from.x, 0, b.z - from.z), len = dir.length();
+  if (len > .01) dir.multiplyScalar(1 / len); else dir.set(0, 0, -1);
+  u.reflect = { phase: 'warn', a: from, b, dir, len, t: w.warn, along: 0, at: from.clone() };
+  spUse(sl, sl.heat); cancelSpawnInvul(u); sfx(w.sfx, u.pos, u, w.sfxRate);
+  return true;
+}
+function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
+  const w = sl.w;
+  if (!isArtilleryMode(u)) { sl.held = false; u.reflect = null; spRegen(sl, dt); return false; }
+  const f = u.reflect;
+  if (cancel || u.repairing || u.transfer || u.stun || u.electricT > 0) { stopArtillery(u); sl.held = false; return false; }
+  if (!f && (sl.overheat || sl.heat < 100 - .01)) { stopArtillery(u); sl.held = false; return false; } // 満タンでなければ構えない
+  if (on && trigger && !sl.held && aim) {
+    // Bot は決めておいた2点を一度に決める。プレイヤーはクリックごとに1点
+    if (!u.isPlayer && u.reflectPlan && !f) reflectorConfirm(u, u.reflectPlan.a, u.reflectPlan.b);
+    else if (u.isPlayer) reflectorConfirm(u, aim);
+  }
+  sl.held = on && trigger;
+  if (!f || f.phase === 'aim') return false;
+  spot(u.team === 'B' ? 'R' : 'B', u, .6, null, w.name); // 真上への光で位置が知られる
+  if (f.phase === 'warn') {
+    f.t -= dt;
+    if (f.t > 0) return false;
+    f.phase = 'fire'; u.reflectFired = (u.reflectFired || 0) + 1; sfx('sniper', f.a, u, .5);
+  }
+  f.along = Math.min(f.len, f.along + w.speed * dt);
+  f.at.copy(f.a).addScaledVector(f.dir, f.along);
+  const surface = artillerySurface(f.at), roof = surface.point.y, amount = w.dps * dt;
+  f.at.y = roof;
+  let hit = false;
+  for (const e of [...units, ...mirages]) {
+    if (!e.alive || e.invulT > 0 || (e.team === u.team && e !== u)) continue;
+    if (Math.hypot(e.pos.x - f.at.x, e.pos.z - f.at.z) > w.radius + R) continue;
+    if (e.pos.y + UNIT_H < roof - .5) continue; // 屋根や橋の下にいれば光が届かない
+    const ok = damage(e, u, amount, false, false, null, f.at, false, true, w.name);
+    if (ok && e !== u) hit = true;
+  }
+  const ref = surface.ref;
+  if (ref && ref.team && ref.team !== u.team && ['core', 'turret', 'radar', 'barricade'].includes(ref.kind) && (ref.kind === 'core' ? ref.hp > 0 : ref.alive !== false)) { damage(ref, u, amount, false, false, null, f.at, false, true, w.name); hit = true; }
+  sfx('beam', f.at, u);
+  if ((f.sparkT = (f.sparkT || 0) - dt) <= 0) { f.sparkT = .06; flash(f.at.clone().add(new T.Vector3((Math.random() - .5) * w.radius, .4, (Math.random() - .5) * w.radius)), 0xbfeaff, 1.2, .2); }
+  if (f.along >= f.len - 1e-6) stopArtillery(u);
+  return hit;
+}
+function reflectorVisual(u) {
+  if (u.reflectVisual) return u.reflectVisual;
+  return visualAlloc(() => {
+    const root = new T.Group(); root.name = 'reflector-beam'; root.userData.visualOnly = true;
+    const part = mat => { const m = new T.Mesh(beamCannonGeo, mat); root.add(m); return m; };
+    const v = { root, upCore: part(reflectCoreMat), upGlow: part(reflectGlowMat), downCore: part(reflectCoreMat), downGlow: part(reflectGlowMat), ring: new T.Mesh(beamCannonRingGeo, reflectRingMat), mark: new T.Mesh(artilleryWarnGeo, artilleryWarnMat) };
+    root.add(v.ring, v.mark); scene.add(root); reflectOwners.add(u);
+    return u.reflectVisual = v;
+  });
+}
+function reflectorUpdate() {
+  for (const u of units) {
+    const f = u.alive ? u.reflect : null;
+    if (!f || f.phase === 'aim') { if (u.reflectVisual) u.reflectVisual.root.visible = false; continue; }
+    const v = reflectorVisual(u), w = u.slots.sp.w, fire = f.phase === 'fire', t = clock();
+    v.root.visible = true;
+    // 自機から真上へ伸びる光の柱（予告の間から出る）
+    const top = muzzle(u), sky = u.pos.y + REFLECT_SKY;
+    for (const [m, r] of [[v.upCore, .35], [v.upGlow, 1.4 + .25 * Math.sin(t * 30)]]) { m.position.copy(top); m.quaternion.identity(); m.scale.set(r, Math.max(1, sky - top.y), r); }
+    // 予告の印と、空から地上へ降りる光
+    v.mark.visible = !fire; v.mark.position.copy(f.a).y += 2; v.mark.scale.set(1 + .2 * Math.sin(t * 25), 1, 1 + .2 * Math.sin(t * 25));
+    v.downCore.visible = v.downGlow.visible = fire;
+    const at = fire ? f.at : f.a;
+    for (const [m, r] of [[v.downCore, w.radius * .35], [v.downGlow, w.radius * (1 + .06 * Math.sin(t * 40))]]) { m.position.copy(at); m.quaternion.identity(); m.scale.set(r, Math.max(1, sky - at.y), r); }
+    v.ring.position.copy(at).y += .25; v.ring.scale.setScalar(fire ? w.radius : w.radius * (.5 + .5 * Math.max(0, 1 - f.t / w.warn)));
+  }
+}
+function clearReflectors() {
+  for (const u of reflectOwners) { if (u.reflectVisual) scene.remove(u.reflectVisual.root); u.reflectVisual = null; u.reflect = null; }
+  reflectOwners.clear();
+}
+// マップの表示：射程の円、照準の円、始点からの線（最長 sweep）、照射中は今の位置
+function drawReflectorMap(g, W, H) {
+  const u = player, w = u.slots.sp.w, f = u.reflect, sx = x => (x + MAP_X) / (MAP_X * 2) * W, sz = z => (z + MAP_Z) / (MAP_Z * 2) * H, px = m => m / (MAP_X * 2) * W;
+  const cur = mapPoint(), inRange = artilleryInRange(u, cur);
+  g.save(); g.lineWidth = 1.5; g.strokeStyle = '#69d7b2'; g.setLineDash([5, 4]);
+  g.beginPath(); g.arc(sx(u.pos.x), sz(u.pos.z), px(w.range), 0, Math.PI * 2); g.stroke();
+  const a = f?.a, b = f && f.phase !== 'aim' ? f.b : a ? reflectorClamp(u, a, cur) : null;
+  g.strokeStyle = inRange ? '#ffd36f' : '#ff6c58';
+  g.beginPath(); g.arc(sx(cur.x), sz(cur.z), Math.max(3, px(w.radius)), 0, Math.PI * 2); g.stroke();
+  if (a && b) {
+    g.setLineDash([]); g.strokeStyle = f.phase === 'aim' ? '#9fe3ff' : '#e4f7ff'; g.lineWidth = Math.max(2, px(w.radius * 2));
+    g.globalAlpha = .55; g.beginPath(); g.moveTo(sx(a.x), sz(a.z)); g.lineTo(sx(b.x), sz(b.z)); g.stroke(); g.globalAlpha = 1;
+    g.lineWidth = 1.5; g.beginPath(); g.arc(sx(a.x), sz(a.z), 4, 0, Math.PI * 2); g.stroke();
+    if (f.phase === 'fire') { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(sx(f.at.x), sz(f.at.z), Math.max(4, px(w.radius)), 0, Math.PI * 2); g.fill(); }
+  }
+  g.setLineDash([]); g.fillStyle = '#fff'; g.font = '12px sans-serif';
+  g.fillText(!inRange && (!f || f.phase === 'aim') ? '射程外：範囲内を指定してください' : f?.phase === 'fire' ? '照射中：右クリックで中断' : f?.phase === 'warn' ? '照射準備中：右クリックで中断' : f ? `左クリックで終点を決定（最長${w.sweep}m）` : '左クリックで始点を決定', 8, H - 10);
+  g.restore();
 }
 
 // 重砲：構えている間に左クリックで山なりの弾を撃つ（1発ごとにSPを1/6）。撃ち切るか右クリックで元の武器に戻る
@@ -10042,6 +10188,7 @@ function wStats(w) {
   else if (w.type === 'beamCannon') st.push(`毎秒 ${w.dps}×2・接触 ${w.contact}×2`,`照射 ${w.use}秒・射程${w.range}m`,`準備 ${w.warmup}秒`,`旋回 毎秒${Math.round(w.turnRate/DEG)}度`);
   else if (w.type === 'cannon') st.push(`威力 ${w.proj.dmg}×${w.shots}発`, `爆発半径 ${w.proj.blast}m`, `弾速 ${w.proj.speed}m/s`);
   else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
+  else if (w.type === 'reflector') st.push(`毎秒 ${w.dps}`, `射程 ${w.range}m`, `なぞる 毎秒${w.speed}m・最長${w.sweep}m`, `光の半径 ${w.radius}m`, `予告 ${w.warn}秒`);
   else if (w.type === 'barrier') st.push(`防御 ${w.arc}度・LV${w.level}`, `耐久 ${w.shieldHp}`, `連続 ${w.use}秒`);
   else if (w.type === 'escort') st.push(`威力 ${w.dmg}`, `射程 ${w.range}m・射角${w.arc}度`, `弾倉 ${w.mag}発×無制限`, `連射 ${w.rpm}発/分`, `再装填 ${w.reload}秒`, `連続 ${w.use}秒`);
   else if (w.type === 'repairPost') st.push(`回復 毎秒${w.heal}`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒`);
@@ -10106,6 +10253,7 @@ function itemNums(sl, key) {
   if (x.strong) r.push([x.strong.spin ? '回転斬り' : '突進突き', x.strong.dmg, n0, true], ['間合い', x.normal.reach, u('m'), true], ['ダッシュ中の踏み込み', x.strong.lunge, u('m'), true]);
   if (x.type === 'artillery' && x.interval!=null) r.push(['発射間隔',x.interval,u('秒'),false]);
   if (x.type === 'artillery') r.push(['発数',x.shots,n0,true],['着弾時間',x.flight,u('秒'),false],['着弾誤差',x.scatter,u('m'),false]);
+  if (x.type === 'reflector') r.push(['毎秒の威力',x.dps,n0,true],['なぞる速さ',x.speed,u('m/s'),true],['なぞる最長',x.sweep,u('m'),true],['光の半径',x.radius,u('m'),true]);
   if (x.type === 'beamCannon') r.push(['毎秒の威力（両肩）',x.dps*2,n0,true],['接触威力（両肩）',x.contact*2,n0,true],['準備',x.warmup,u('秒'),false]);
   if (x.type === 'cannon') r.push(['発数', x.shots, n0, true]);
   if (x.type === 'gun' && !x.drone && x.rpm > 60) r.push(['連射', x.rpm, u('発/分'), true]);
@@ -10473,7 +10621,7 @@ function drawBigMap() {
   box.classList.toggle('artillery',mode);
   box.hidden = (!mapOpen && !mode) || !running;
   const title = box.querySelectorAll('.bmh span');
-  title[0].textContent = mode ? '榴弾砲 射撃モード' : '全体マップ';
+  title[0].textContent = mode ? player.slots.sp.w.name + ' 射撃モード' : '全体マップ';
   title[1].textContent = touchPlay ? (mode ? '地図をタップ：砲撃地点　「ロック」：中断' : '地図をタップ：ここへ向かえ　「マップ」：最大 → 大 → 小') : padActive() ? (mode ? '右スティック：照準　R2：砲撃開始／地点変更　L2：中断' : '右スティックで指して R2 ここへ向かえ／L2 ここを守れ　クリエイト：最大 → 大 → 小')
     : mode ? 'マウス：照準　左：砲撃開始／地点変更　右：中断' : 'クリック：左 ここへ向かえ／右 ここを守れ　M：最大 → 大 → 小';
   if (box.hidden) return;
@@ -10487,7 +10635,8 @@ function drawBigMap() {
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawMapOn(g, W, H, bigBg, W / MINI_W * 0.55, true);
-  if (mode) {
+  if (mode && player.slots.sp.w.type === 'reflector') drawReflectorMap(g, W, H);
+  else if (mode) {
     const u = player, w = u.slots.sp.w, sx = x => (x+MAP_X)/(MAP_X*2)*W, sz = z => (z+MAP_Z)/(MAP_Z*2)*H;
     g.save(); g.lineWidth = 1.5; g.strokeStyle = '#69d7b2'; g.setLineDash([5,4]);
     g.beginPath(); g.arc(sx(u.pos.x),sz(u.pos.z),w.range/(MAP_X*2)*W,0,Math.PI*2); g.stroke();
@@ -10877,6 +11026,7 @@ function hud(timeLeft, dt) {
   }
   else if(cw.type==='radarTool'){big=Math.round(cur.scanRadius||0)+'m';small=cw.name+' · 展開中（動けない） · 他の武器を選ぶと解除';}
   else if (cw.type === 'artillery') { big = Math.floor(cur.heat/artilleryCost(cur)+.01); small = cw.name + (p.bombard ? ' · 連続砲撃中' : ' · マップで地点を指定') + ' · 右クリックで中断'; }
+  else if (cw.type === 'reflector') { const f = p.reflect; big = cur.overheat ? '回復中' : Math.floor(cur.heat) + '%'; small = cw.name + (f?.phase === 'fire' ? ' · 照射中（動けない）' : f?.phase === 'warn' ? ' · 照射準備' : f ? ' · マップで終点を指定' : ' · マップで始点を指定') + ' · 右クリックで中断'; }
   else if (cw.type === 'beamCannon') {
     big = cur.overheat ? '回復中' : (cw.use*cur.heat/100).toFixed(1)+'s';
     small = cw.name + (cur.overheat ? ' · SP回復中' : p.beamFire?.warm>0 ? ` · 準備 ${p.beamFire.warm.toFixed(1)}秒` : p.beamFire ? ' · 照射中（低速旋回）' : ' · 左長押しで照射') + ' · 右クリックで戻る';
@@ -11006,6 +11156,7 @@ function hud(timeLeft, dt) {
   else if (p.crouching) centerEl.textContent = 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
+  else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。右クリックで中断` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射準備中。右クリックで中断` : `${p.slots.sp.w.name}：左クリックで始点、もう一度で終点（最長${p.slots.sp.w.sweep}m）。右クリックで中断`;
   else if (isArtilleryMode(p)) centerEl.textContent = '榴弾砲：マウスで地点を選び、左クリックで砲撃。右クリックで中断';
   else if (beamCannonMode(p)) centerEl.textContent = p.beamFire ? p.beamFire.warm>0 ? '照射準備中' : '双肩照射中：低速旋回／右クリックで中断' : '双肩照射砲：左長押しで照射／右クリックで中断';
   else if (p.planted) centerEl.textContent = `${p.slots[p.weapon].w.name}を構えています（動けません）`;
@@ -11489,6 +11640,7 @@ function loop(now) {
     shellUpdate(dt);
     secondaryUpdate(dt);
     artilleryUpdate(dt);
+    reflectorUpdate();
     gadgetUpdate(dt);
     for (const u of units) { if (!u.repairing) u.podT = u.podN = 0; u.repairing = false; }
     for (const pd of pods) podUpdate(pd, dt);

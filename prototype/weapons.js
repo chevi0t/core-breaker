@@ -15,7 +15,7 @@ const MODEL_OF = {
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
-  artillery: ['artillery', 0], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
+  artillery: ['artillery', 0], reflector: ['artillery', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
   ar: ['ar', 0], burst: ['burst', 0], marks: ['marksman', 0], grenade: ['grenade', 0], timed: ['grenade', 1], gl: ['explosive', 0],
   sword: ['sword', 0], blade: ['sword', 2], spear: ['spear', 0], charger: ['charger', 0], chargerD: ['charger', 1], chargerS: ['charger', 2],
   gatling: ['gatling', 0], mg: ['lmg', 0], acannon: ['autocannon', 0], rocket: ['rocket', 0], scrum: ['rocket', 1], plasma: ['chargeCannon', 0],
@@ -442,7 +442,7 @@ function weaponTables() {
 const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, waveSword: 230, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
-  beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
+  beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900, reflector: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
 
 // ---- 兵装と武器 ----
 // 既存武器はPS4版の初期武器を基準にした値を保持。新しい系統はアーケード版wikiの現行表に合わせる。
@@ -553,6 +553,9 @@ const WEAPONS = {
   // 遠隔ボムランチャー（2026-11-04 オーナー指摘「爆発しない弾がある」「銃身発射してない？」）：弾の寿命が既定の3秒で、高く撃つと着地前に消えていた → 15秒。弾と設置した爆弾はランチャーの形ではなく遠隔爆弾の形
   detonator: {"name":"遠隔ボムランチャー","type":"gun","rpm":120,"mag":2,"mags":4,"reload":3.2,"spread":0,"semi":true,"desc":"吸着爆弾を遠方へ射出。着弾後0.5秒で準備ができ、右クリックで設置済みを一括起爆","proj":{"dmg":5800,"blast":17,"core":true,"kind":"remote","attachUnit":true,"speed":70,"grav":12,"life":15,"model":"remote","hp":1000,"max":5,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true}},
   // AC タイタン榴弾砲：900kg、10000×6、300m、5.5秒、誤差15m、爆風25m、54(44)秒。発射間隔1秒（364.html本文）。
+  // 反射衛星砲（オーナーのオリジナル、2026-11-05）：真上の衛星へ撃ったレーザーを跳ね返し、マップで決めた始点から終点へ地上をなぞる。
+  // speed：なぞる速さ（m/秒）、sweep：始点から終点までの最長（m）、radius：地上の光の円の半径（m）、dps：毎秒の威力、warn：照射までの予告（秒）
+  reflector: { name: '反射衛星砲', type: 'reflector', noLock: true, plant: true, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, warn: 1.5, charge: 55, chargeKeep: 45, desc: 'マップで始点と終点を決めると、衛星で跳ね返したレーザーが地上をなぞる。照射中は移動不可で、真上への光で位置が知られる。右クリックで中断' },
   artillery: { name: '榴弾砲', type: 'artillery', noLock: true, plant: true, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44, desc: 'マップで爆撃中心を指定して自動連射。移動・旋回不可。右クリックで即中断。着弾2秒前に火柱と落下音' },
   // AC現行表：バリアユニット（413）。前方LV2、12500、50秒、50(45)秒、710kg。
   barrier: { name: '防護バリア', type: 'barrier', shieldHp: 12500, arc: 180, level: 2, use: 50, charge: 50, chargeKeep: 45, desc: '選ぶと照準の前半分を防御。再選択で停止。射撃と移動を続けられる。近接攻撃は防げない' },
@@ -790,7 +793,7 @@ const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
   assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
-  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'beamCannon'] },
+  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
 };
@@ -802,7 +805,7 @@ const SFX_TUNE = {
   waveSword: ['swing', 1.15],
   sabre:['swing',1.25],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
   flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
-  beamCannon: ['beam', 1], artillery: ['heavy', .85],
+  beamCannon: ['beam', 1], artillery: ['heavy', .85], reflector: ['beam', .7],
   escort: ['pistol', 1.15], barrier: ['switch', .9], repairPost: ['switch', 1.1],
   rail: ['sniper', 1.1], pulse: ['pistol', 1.5], coil: ['magnum', 0.9],
   burst: ['ar', 0.9], mg: ['ar', 0.82], marks: ['magnum', 1.15], acannon: ['magnum', 0.8], battle: ['sniper', 1.2], lzsniper: ['sniper', 0.75],
@@ -843,6 +846,7 @@ const SERIES = {
   vk: { maker: 'volca', types: [['delayMine', 'VK-3']] },
   vn: { maker: 'volca', types: [['detonator', 'VN-6']] },
   vh: { maker: 'volca', types: [['artillery', 'VH-6']] },
+  rf: { maker: 'lumina', types: [['reflector', 'RF-1']] },
   gb: { maker: 'gard', types: [['barrier', 'GB-6']] },
   it: { maker: 'iris', types: [['escort', 'IT-3']] },
   ip: { maker: 'iris', types: [['repairPost', 'IP-4']] },
@@ -983,6 +987,12 @@ const WEAPON_TYPES = {
     ['連射型', { kg: 940, dmg: 7200, shots: 12, range: 250, flight: 4.5, scatter: 25, blast: 24, interval: .5, charge: 59, chargeKeep: 48 }, '広い誤差範囲へ高速で12発。射程と一発の威力は低い'], // AC コロッサス榴弾砲
     ['長射程型', { kg: 1010, dmg: 12000, shots: 5, range: 500, flight: 8, scatter: 20, blast: 25, interval: .9, charge: 55, chargeKeep: 44 }, '遠方500mまで届くが、着弾に8秒かかり重い'], // AC アトラント榴弾砲
     ['強装型', { kg: 1050, dmg: 24000, shots: 1, range: 350, flight: 10, scatter: 0, blast: 40, interval: null, charge: 62, chargeKeep: null }, '誤差なしの大威力1発。着弾まで10秒、使い切りの再充填が必要'], // AC ギガノト榴弾砲
+  ] },
+  // 反射衛星砲の型（オーナーのオリジナル。数字は Claude の仮置き、2026-11-05）
+  reflector: { w0: { kg: 900, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, charge: 55, chargeKeep: 45 }, types: [
+    ['広域型', { kg: 880, dps: 10000, speed: 25, sweep: 120, radius: 3, range: 250, charge: 58, chargeKeep: 47 }, '細い光で速く長くなぞる。最長120m'],
+    ['高出力型', { kg: 960, dps: 15000, speed: 6, sweep: 40, radius: 7, range: 250, charge: 62, chargeKeep: 50 }, '太い光でゆっくり狭くなぞる。最長40m'],
+    ['長射程型', { kg: 940, dps: 9000, speed: 10, sweep: 60, radius: 4, range: 500, charge: 56, chargeKeep: 45 }, '遠方500mまで届く。最長60m'],
   ] },
   barrier: { w0: { kg: 710, shieldHp: 12500, use: 50, charge: 50, chargeKeep: 45 }, types: [
     ['軽量型', { kg: 680, shieldHp: 7500, use: 60, charge: 40, chargeKeep: 35, arc: 360, level: 1 }, '全周を守り長く使えるが、防御面と耐久が小さい'], // AC バリアユニットβ
@@ -1257,6 +1267,11 @@ const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
 function makeType(base, w0, t) {
   const w = structuredClone(base), P = w.proj, G = P && P.gun, D = w.drone, gun = G || w;
   // 照射砲の型はACの実値。準備・射程・判定半径・旋回制限は標準を継承する。
+  // 反射衛星砲の型は値をそのまま入れる（2026-11-05）
+  if (w.type === 'reflector') {
+    for (const k of ['dps', 'speed', 'sweep', 'radius', 'range', 'charge', 'chargeKeep']) if (t[k] != null) w[k] = t[k];
+    return w;
+  }
   if (w.type === 'beamCannon') {
     for (const k of ['dps', 'contact', 'use', 'charge', 'chargeKeep']) if (t[k] != null) w[k] = t[k];
     if (t.chargeKeep === null) delete w.chargeKeep; // 原典不明時は既存SP規則でOH回復と同じ秒数
