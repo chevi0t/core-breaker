@@ -20,6 +20,7 @@ const dir = path.resolve(process.argv[2] || '../core-breaker-pages');
       page.on('console', m => { if (m.type() === 'error' && !/fonts|ERR_FAILED/.test(m.text())) errors.push(m.text()); });
       await page.route('**fonts.g*/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
       await page.route('**cdnjs.cloudflare.com/**', r => r.abort()); // 同梱の three.js だけで動くこと
+      await page.route('**gc.zgo.at/**', r => r.fulfill({ body: '', contentType: 'text/javascript' })); // アクセス数の記録は試験で数えない
       await page.goto('file://' + path.join(dir, 'index.html'));
       await page.waitForTimeout(800);
       ok(await page.evaluate(() => document.compatMode === 'CSS1Compat'), `${name}：標準モードで表示（doctype あり）`);
