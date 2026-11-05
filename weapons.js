@@ -74,8 +74,12 @@ function buildWeaponGeo(id, part) {
       for(const side of [-1,1])box(.12,.42,.25,shell,side*.38,-.08,.08);
     }
   } else if (f === 'sabre') {
-    cyl(.12,.5,dark,0,0,.22);box(.7,.12,.15,accent,0,0,-.08);
-    box(.22,.07,2.3,steel,0,0,-1.28);box(.08,.1,2,accent,.1,0,-1.16);box(.12,.09,.45,steel,.05,0,-2.45);
+    // 斬馬刀ほどの大きな刀（2026-11-06 オーナー「斬馬刀ぐらいでっかく」）。柄は両手で持てる長さ、刃先は柄（z .2）から当たりの間合い（4.6−0.65m）の所。
+    // 見た目は伸び縮みさせない。形は本作のオリジナル
+    cyl(.13,1.05,dark,0,0,.42,'z',.13,8); for (let i=0;i<5;i++) box(.29,.29,.05,i%2?accent:black,0,0,.08+i*.17);
+    cyl(.16,.08,steel,0,0,.98,'z',.16,8); box(1.05,.2,.24,accent,0,0,-.12); box(.8,.26,.12,dark,0,0,-.2);
+    box(.64,.1,3.2,steel,.02,0,-1.86); box(.16,.16,3.2,dark,-.3,0,-1.86); box(.07,.11,3.05,0xe8f6ff,.35,0,-1.86);
+    box(.08,.12,2.6,accent,-.08,0,-1.7); box(.5,.1,.4,steel,.08,0,-3.6,.0); box(.28,.1,.18,0xe8f6ff,.2,0,-3.75);
   } else if (f === 'dagger') {
     // 両刃と面取り。保存キーrodは残し、電棍の棒・電極を刃へ置き換える。長さは電棍と同じ（先端 -1.84。ユーザー指定 2026-10-20「長さ変えずに見た目と名前だけ」）
     const outline = new T.Shape();
@@ -515,7 +519,7 @@ function auxiliaryMelee(hits, profile, strong=false, rank=0) {
     }
     if(strikes)return {dmg:strikes.reduce((n,s)=>n+s.dmg,0),reach:profile==='claw'?5.6+rank*.9:profile==='rod'?4:4.6,height:2.4,from:strikes[0].from,to:strikes[0].to,
       windup,sweep,recover,time:windup+sweep+recover,step:2.5,homing:5,lunge:5,dashMotion:profile,
-      ...(profile==='sabre'?{hop:{at:windup+.9,speed:9}}:{}),
+      ...(profile==='sabre'?{hop:{at:windup+.9,speed:9},flinch:.5}:{}),
       dashName:profile==='sabre'?'袈裟→逆袈裟→横薙ぎ→跳躍面打ち':profile==='claw'?'レーザー刃の右袈裟→左袈裟':'右薙ぎ→両手左薙ぎ→回転',strikes};
   }
   const pair = profile==='rod' && !strong || profile==='claw';
@@ -523,6 +527,25 @@ function auxiliaryMelee(hits, profile, strong=false, rank=0) {
   const windup=strong?.09:.07, sweep=Math.max(...strikes.map(x=>x.at+x.sweep));
   return {dmg:hits.reduce((n,x)=>n+x,0),reach:profile==='claw'?3.5:profile==='rod'?4:4.6,height:2.4,from:65,to:-65,windup,sweep,time:windup+sweep+.23,step:2.5,homing:5,...(strong?{lunge:5,recover:.23}:{}),strikes};
 }
+// 斬馬刀（日本刀）の連続技（2026-11-06 オーナー「コンボ的に格闘叩き込めたら」「連続してザシュザシュザシュ！」）：
+// 押すたびに次の段へ（袈裟→逆袈裟→横薙ぎ→締めの面打ち）。各段の威力は今の表から作る：通常の各段、足りない段は通常の平均、締めはダッシュの最後の段。
+// 当てた機体は flinch 秒怯み、締めはダウン（down）。時間は Claude の仮置き
+const SABRE_CUTS = [
+  { from: -55, to: 55, pitchFrom: 48, pitchTo: -32, gripFrom: [.4, 2.9, -.55], gripTo: [-.3, 2.25, -.65], motion: 'kesa' },
+  { from: 55, to: -55, pitchFrom: -32, pitchTo: 48, gripFrom: [-.3, 2.25, -.65], gripTo: [.4, 2.9, -.55], motion: 'reverse' },
+  { from: -75, to: 75, pitchFrom: 0, pitchTo: 0, gripFrom: [.35, 2.4, -.65], gripTo: [-.35, 2.4, -.65], motion: 'horizontal' },
+  { from: 0, to: 0, pitchFrom: 78, pitchTo: -62, gripFrom: [.35, 3.45, -.15], gripTo: [.25, 2.2, -.7], motion: 'men', single: true },
+];
+function sabreCombo(normalHits, strongHits) {
+  const mean = Math.round(normalHits.reduce((n, x) => n + x, 0) / normalHits.length / 100) * 100;
+  const dmgs = [0, 1, 2].map(i => normalHits[i] ?? mean).concat(strongHits[strongHits.length - 1]);
+  return dmgs.map((dmg, i) => {
+    const last = i === 3, windup = i === 0 ? .12 : last ? .14 : .06, sweep = last ? .26 : .2, recover = last ? .5 : .34;
+    return { dmg, reach: 4.6, height: 2.4, from: SABRE_CUTS[i].from, to: SABRE_CUTS[i].to, windup, sweep, recover, time: windup + sweep + recover, step: 3, homing: 5,
+      dashMotion: 'sabre', combo: i, flinch: last ? 0 : .5, strikes: [{ ...SABRE_CUTS[i], dmg, at: 0, sweep, hand: 1, down: last }] };
+  });
+}
+const SABRE_DESC = '斬馬刀ほどの大きな刀。押すたびに袈裟→逆袈裟→横薙ぎ→面打ちとつながる連続技（当てると怯み、締めはダウン）。R で納刀し、長押しで溜めて離すと突進して抜刀一閃（居合）。ダッシュ中は4段の連続斬り';
 const WEAPONS = {
   // AC NeLIS-T1（pages/694）：700kg・接触2700×2・毎秒7200×2・175m・回復40/35秒。
   // 本作調整：照射5秒はオーナー指定。準備.5秒・旋回毎秒5度・半径.6mは初期調整値。
@@ -543,7 +566,7 @@ const WEAPONS = {
     strong: { dmg: 6000, reach: 4.8, height: 2, from: 90, to: -630, spin: true, lunge: 16, windup: 0, sweep: .6, recover: 1, time: 1.6, homing: 1.8 },
     desc: '左長押しで充填し、離すと斬る。満充填なら振りに合わせて光波を1発放つ。短押しは斬撃のみ。直接威力は通常3000・ダッシュ6000' },
   // AC リヒトメッサー系統 pages/346：{"kg": 180, "normalHits": [2000, 3500], "strongHits": [4500]}。原典と再現値の区別は auxiliary.json。
-  sabre: {"name":"日本刀","type":"sword","acMelee":"sabre","normal":auxiliaryMelee([2000, 3500],"sabre"),"strong":auxiliaryMelee([4500],"sabre",true),"desc":"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"},
+  sabre: {"name":"日本刀","type":"sword","acMelee":"sabre","combo":sabreCombo([2000, 3500],[4500]),"strong":auxiliaryMelee([4500],"sabre",true),"iai":{"charge":1,"dmg":[3000,6500],"lunge":[8,20]},"desc":SABRE_DESC},
   // AC スパークロッド系統 pages/411：{"kg": 190, "normalHits": [2500, 2500], "strongHits": [4500, 3500]}。原典と再現値の区別は auxiliary.json。
   rod: {"name":"双短刀","type":"sword","acMelee":"rod","normal":auxiliaryMelee([2500, 2500],"rod"),"strong":auxiliaryMelee([4500, 3500],"rod",true),"desc":"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃","meleeDual":true},
   // AC ダブルクロー系統 pages/568：{"kg": 200, "normalHits": [2500, 2500], "strongHits": [3000, 3000]}。原典と再現値の区別は auxiliary.json。
@@ -806,6 +829,7 @@ const WEAPONS = {
   cls: { sfx: 'shotgun', name: '収束散弾銃', type: 'gun', dmg: 450, pellets: 10, rpm: 90, mag: 3, mags: 14, reload: 1.8, spread: 0.11, recoil: 0.009, chargeTime: 1.2, chargeFocus: 0.16, chargeHold: 6.15, ohTime: 2, falloff: [18, 55, 0.45], energy: true, desc: '溜めるほど散弾がまとまる光学散弾銃。近くは軽く押し、遠くは溜めて撃つ' },
   aurora: { sfx: 'shotgun', name: 'エナジー散弾銃', type: 'gun', dmg: 920, pellets: 5, rpm: 42, semi: true, mag: 5, mags: 9, reload: 2.8, spread: 0.04, falloff: [18, 55, 0.45], recoil: 0.012, energy: true, desc: '少ない光弾を狭くまとめて撃つ。連射は遅いが遠くまで届く' },
 };
+WEAPONS.sabre.normal = WEAPONS.sabre.combo[0]; // 1段目が通常攻撃（Bot の間合いなどは normal を見る）
 // 初期装備の説明（機体カスタマイズの画面に出す）
 Object.entries({
   ar: 'くせの無い連射銃。リロードが速い',
@@ -849,7 +873,7 @@ const ARMORY = {
 const SFX_TUNE = {
   missile: ['rocket', 1.2], mlrs: ['rocket', .85], seeker: ['rocket', 1.05],
   waveSword: ['swing', 1.15],
-  sabre:['swing',1.25],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
+  sabre:['swing',.75],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
   flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
   beamCannon: ['beam', 1], artillery: ['heavy', .85], reflector: ['beam', .7],
   escort: ['pistol', 1.15], barrier: ['switch', .9], repairPost: ['switch', 1.1],
@@ -942,8 +966,8 @@ const WEAPON_TYPES = {
     ['連射型', { dmg: 4800, rpm: 210, mag: 5, mags: 4, reload: 4, kg: 490, blast: 13, speed: 60, maxSpeed: 160, accel: 90, turn: 2.2, recoilV: 1.2 }, '5発を続けて撃てる。1発は軽いが出足が速い'],
   ] },
   sabre: { w0: {"kg":180,"normalHits":[2000,3500],"strongHits":[4500]}, types: [
-    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
-    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
+    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},SABRE_DESC],
+    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},SABRE_DESC],
   ] },
   rod: { w0: {"kg":190,"normalHits":[2500,2500],"strongHits":[4500,3500]}, types: [
     ["強装型",{"kg":310,"normalHits":[2500,2500,3000],"strongHits":[4500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃"],
@@ -1373,6 +1397,7 @@ function makeType(base, w0, t) {
       by('chargeTime',w,'chargeTime',.01);
     } else {
       w.normal=auxiliaryMelee(t.normalHits,w.acMelee);
+      if (w.combo) { w.combo = sabreCombo(t.normalHits, t.strongHits); w.normal = w.combo[0]; } // 斬馬刀の連続技
       w.strong=auxiliaryMelee(t.strongHits,w.acMelee,true,w.acMelee==='claw'?Math.max(0,Math.round((t.kg-200)/100)):w.acMelee==='sabre'?(t.kg>=390?2:1):0);
     }
     return w;
