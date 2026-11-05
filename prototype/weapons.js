@@ -13,6 +13,7 @@ const MODEL_OF = {
   missile: ['missileRack', 0], mlrs: ['missileRack', 1],
   waveSword: ['waveSword', 0],
   stunner: ['stunner', 0],
+  seeker: ['seeker', 0],
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
@@ -350,6 +351,20 @@ function buildWeaponGeo(id, part) {
     box(.24,.08,.3,dark,0,.04,-.55);
     for (let i=0;i<4;i++) add(new T.TorusGeometry(.2,.035,5,14),i%2?accent:steel,0,.04,-.12-i*.13);
     cyl(.13,.55,dark,0,.34,.15,'z'); cyl(.09,.5,0x7cfbd1,0,.34,.15,'z',.09,8);
+  } else if (f === 'seeker') {
+    // レーザー誘導ロケット（2026-11-06、形は本作のオリジナル）：発射筒（三点射型3本・連射型5本・強装型は太い1本）、上に紫のレンズの誘導器とアンテナ、横に握り
+    const k = id.slice(-1), n = k === 'K' ? 3 : k === 'R' ? 5 : 1, r = k === 'H' ? .38 : n > 1 ? .17 : .28, len = k === 'H' ? 2.2 : 1.95;
+    const at = n === 1 ? [[0, 0]] : n === 3 ? [[-.2, -.12], [.2, -.12], [0, .2]] : [[-.36, -.12], [0, -.12], [.36, -.12], [-.18, .19], [.18, .19]];
+    box(.62, .5, .8, shell, 0, -.05, .45);
+    for (const [x, y] of at) {
+      cyl(r, len, dark, x, y, -.4); cyl(r * 1.15, .18, steel, x, y, -.4 - len / 2 + .09);
+      cyl(r * .8, .03, black, x, y, -.4 - len / 2 - .01); cyl(r * 1.12, .14, accent, x, y, -.4 + len / 2 - .1);
+    }
+    const top = n === 1 ? r + .12 : .42;
+    box(.32, .24, .55, dark, .1, top + .08, -.2); cyl(.1, .06, 0xc58cff, .1, top + .08, -.5); box(.36, .05, .3, accent, .1, top + .22, -.15);
+    box(.04, .36, .04, steel, -.12, top + .3, 0);
+    box(.2, .62, .3, dark, -.45, -.3, .3, -.12);
+    if (k === 'H') for (const sx of [-1, 1]) box(.05, .38, .55, steel, sx * (r + .04), 0, .25);
   } else if (f === 'waveSword') {
     // 二枚の導光レールと刃の発振器。既存ソードと同じ握り位置を持つオリジナル形。
     box(.16,.42,3.25,steel,0,0,-.12); box(.2,.12,2.85,accent,0,0,-.25);
@@ -457,7 +472,7 @@ return { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat };
 // 武器の表：重量・武器・兵装・機体カスタマイズの一覧・シリーズ・型・主武器の反動。本体の「兵装と武器」の位置で呼ぶ
 function weaponTables() {
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, seeker: 470, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900, reflector: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -695,6 +710,11 @@ const WEAPONS = {
   acannon: { sfx: 'sniper', name: '機関砲', type: 'gun', dmg: 1520, rpm: 220, mag: 30, mags: 10, reload: 3.6, spread: 0.014, heat: 18, ohTime: 3.1, cool: 3, desc: '1発が重い大口径の連射砲。連射は遅く、18発でオーバーヒート' },
   // 重火力・副武器
   // スクラムバスターM34T1相当：2900、480発/分の連射ロケット、6×4、リロード4秒、爆発半径13m（11m）。ばらけて飛ぶ
+  // レーザー誘導ロケット（2026-11-06、オーナー希望。アーケード版 シーカー系統 pages/449 の表と解説から）：右クリックの精密誘導モード（主観視点・紫のレティクル）で撃った弾だけ、
+  // 照準の中心へ曲がる。遅く出て加速し、撃った機体から離れるほど曲がらなくなる（guideRange で0）。威力・重量・弾数・爆風・連射・リロード・初速は表の値、
+  // 最高速・加速・旋回率は表に無いので Claude の仮置き。記録は research/weapons/types/seeker.json
+  seeker: { sfx: 'rocket', name: 'レーザー誘導ロケット', type: 'gun', proj: { dmg: 8000, blast: 14, core: true, rocket: true, seek: true, grav: 0, life: 12, range: 250, speed: 40, maxSpeed: 150, accel: 75, turn: 2.2, guideRange: 150 }, rpm: 60, mag: 1, mags: 6, reload: 2.2, spread: 0, recoil: 2 * Math.PI / 180,
+    desc: '右クリックの精密誘導モードで撃つと、照準の中心へ曲がる。遅く出て加速し、150m離れるとほとんど曲がらない' },
   scrum: { sfx: 'rocket', name: '連射ロケット', type: 'gun', proj: { dmg: 2900, blast: 11, core: true, rocket: true, speed: 100 }, rpm: 480, mag: 6, mags: 4, reload: 4, spread: 0.035, desc: '小さなロケットを6発ばらまく。爆風で広く削る' },
   // プラズマカノンPC201相当：5900、80発/分、4×3、リロード3.5秒、爆発半径13m（11m）。弾が速い
   plasma: { sfx: 'heavy', name: 'プラズマ砲', type: 'gun', proj: { dmg: 5900, blast: 11, core: true, kind: 'shell', speed: 220 }, rpm: 80, mag: 4, mags: 3, reload: 3.5, spread: 0, desc: '弾がとても速く、まっすぐ飛ぶ砲。ロケットより当てやすい' },
@@ -819,7 +839,7 @@ const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
   assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
-  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
+  heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs', 'seeker'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox', 'stunner'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
 };
@@ -827,7 +847,7 @@ const ARMORY = {
 // 射撃音（v0.11.3、ユーザー指定「射撃音のバリエーションを増やす」）：同じ音を使う武器は、音の種類と高さ（sfxRate）を変えて聞き分けられるようにする。
 // 音の素材は同じ13個（sounds/CREDITS.md）。マグナムは Codex 版の音の設定
 const SFX_TUNE = {
-  missile: ['rocket', 1.2], mlrs: ['rocket', .85],
+  missile: ['rocket', 1.2], mlrs: ['rocket', .85], seeker: ['rocket', 1.05],
   waveSword: ['swing', 1.15],
   sabre:['swing',1.25],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
   flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
@@ -885,7 +905,7 @@ const SERIES = {
   lc: { maker: 'lumina', types: [['charger', 'LC-3'], ['chargerD', 'LC-3D'], ['chargerS', 'LC-3S']] },
   // 重火力
   gg: { maker: 'gard', types: [['gatling', 'GG-9']] }, gm: { maker: 'gard', types: [['mg', 'GM-7']] }, ga: { maker: 'gard', types: [['acannon', 'GA-1']] },
-  vr: { maker: 'volca', types: [['rocket', 'VR-8']] }, vs: { maker: 'volca', types: [['scrum', 'VS-4']] }, lp: { maker: 'lumina', types: [['plasma', 'LP-2']] },
+  vr: { maker: 'volca', types: [['rocket', 'VR-8']] }, vs: { maker: 'volca', types: [['scrum', 'VS-4']] }, vq: { maker: 'volca', types: [['seeker', 'VQ-5']] }, lp: { maker: 'lumina', types: [['plasma', 'LP-2']] },
   vw: { maker: 'volca', types: [['weaken', 'VW-1']] }, vi: { maker: 'volca', types: [['impactb', 'VI-6']] }, gh: { maker: 'gard', types: [['hsg', 'GH-9']] },
   lv: { maker: 'lumina', types: [['vulcan', 'LV-1']] }, le: { maker: 'lumina', types: [['lec', 'LE-5']] }, ve: { maker: 'volca', types: [['explo', 'VE-16']] },
   gk: { maker: 'gard', types: [['cannon', 'GK-56'], ['cannonH', 'GK-56H'], ['cannonM', 'GK-56M']] },
@@ -915,6 +935,12 @@ const SERIES = {
 const WEAPON_TYPES = {
   missile: {"w0":{"dmg":2600,"rpm":360,"mag":4,"mags":4,"reload":2.4,"kg":350,"blast":11,"speed":30,"rank":"D","turn":0.88,"maxSpeed":30,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"types":[["強装型",{"dmg":3100,"rpm":240,"mag":3,"mags":4,"reload":2.6,"kg":360,"blast":13,"speed":30,"rank":"C-","turn":1.6,"maxSpeed":30,"accel":0,"shots":3,"locks":1,"recoilV":0.5,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["高速型",{"dmg":2700,"rpm":480,"mag":4,"mags":4,"reload":2.6,"kg":380,"blast":10,"speed":50,"rank":"E","turn":0.6,"maxSpeed":50,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2200,"rpm":540,"mag":6,"mags":3,"reload":3.4,"kg":420,"blast":11,"speed":30,"rank":"D+","turn":1.2,"maxSpeed":30,"accel":0,"shots":6,"locks":1,"recoilV":0.3,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
   mlrs: {"w0":{"dmg":2600,"rpm":480,"mag":6,"mags":3,"reload":3,"kg":500,"blast":12,"speed":30,"rank":"C+","turn":2,"maxSpeed":90,"accel":40,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"types":[["高速型",{"dmg":2000,"rpm":600,"mag":6,"mags":4,"reload":3,"kg":520,"blast":11,"speed":30,"rank":"D+","turn":1.2,"maxSpeed":110,"accel":80,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["強装型",{"dmg":4200,"rpm":320,"mag":4,"mags":3,"reload":4,"kg":570,"blast":14,"speed":30,"rank":"A+","turn":4.5,"maxSpeed":50,"accel":10,"shots":1,"locks":4,"recoilV":0.2,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2300,"rpm":480,"mag":8,"mags":3,"reload":4,"kg":590,"blast":9,"speed":30,"rank":"B+","turn":3.2,"maxSpeed":85,"accel":35,"shots":2,"locks":4,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
+  // レーザー誘導ロケット（2026-11-06）：アーケード版 シーカー系統の4行（シーカーロケット・トライシーカー・パワードシーカー・マルチシーカー）。maxSpeed・accel・turn は仮置き
+  seeker: { w0: { dmg: 8000, rpm: 60, mag: 1, mags: 6, reload: 2.2, kg: 470, blast: 14, speed: 40, maxSpeed: 150, accel: 75, turn: 2.2, recoilV: 2 }, types: [
+    ['三点射型', { dmg: 5200, rpm: 360, burst: 3, mag: 3, mags: 6, reload: 3.5, kg: 510, blast: 11, speed: 30, maxSpeed: 140, accel: 65, turn: 2, recoilV: .8 }, '1回で3発続けて撃つ。1発は軽く、少し曲がりにくい'],
+    ['強装型', { dmg: 11500, rpm: 60, mag: 1, mags: 4, reload: 4, kg: 520, blast: 18, speed: 20, maxSpeed: 120, accel: 50, turn: 2.4, recoilV: 2 }, '威力と爆風が大きく、よく曲がる。出足がとても遅い'],
+    ['連射型', { dmg: 4800, rpm: 210, mag: 5, mags: 4, reload: 4, kg: 490, blast: 13, speed: 60, maxSpeed: 160, accel: 90, turn: 2.2, recoilV: 1.2 }, '5発を続けて撃てる。1発は軽いが出足が速い'],
+  ] },
   sabre: { w0: {"kg":180,"normalHits":[2000,3500],"strongHits":[4500]}, types: [
     ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
     ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
@@ -1324,6 +1350,14 @@ function makeType(base, w0, t) {
   const by = (k, o, field, step) => { if (o && o[field] != null && has(k)) o[field] = snap(o[field] * f(k), step); };
   const n = (k, o, field) => { if (o && o[field] != null && has(k)) o[field] = Math.max(1, Math.round(o[field] * f(k))); };
   const steps = k => { const a = RANKS.indexOf(w0[k]), b = RANKS.indexOf(t[k]); return a < 0 || b < 0 ? 0 : b - a; };
+  if (P && P.seek) { // レーザー誘導ロケットの型（2026-11-06）：表の値をそのまま入れる
+    for (const k of ['rpm','mag','mags','reload','burst']) if (t[k] != null) w[k] = t[k];
+    if (w.burst) w.gap = w.gap || 0;
+    for (const k of ['dmg','blast','speed','maxSpeed','accel','turn']) if (t[k] != null) P[k] = t[k];
+    if (t.recoilV != null) w.recoil = t.recoilV * Math.PI / 180;
+    if (w.sfx) w.sfxRate = snap((base.sfxRate || 1) * (t.dmg / w0.dmg) ** -0.12, 0.01);
+    return w;
+  }
   if (w.missile) {
     for (const k of ['rpm','mag','mags','reload']) if (t[k] != null) w[k] = t[k];
     for (const k of ['dmg','blast','speed','maxSpeed','accel','turn']) if (t[k] != null) P[k] = t[k];

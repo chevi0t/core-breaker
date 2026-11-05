@@ -1,0 +1,82 @@
+{
+  "base": "seeker",
+  "series": "シーカー系統",
+  "source": "https://w.atwiki.jp/borderbreak/pages/449.html",
+  "tableSource": "research/arcade/weapons/heavy.md",
+  "retrieved": "2026-10-19",
+  "note": "2026-11-06 オーナー「ボダブレWiki見てシーカー系統を実装してください。最初遅くてどんどん加速していく感じとか含めていい感じに」。威力・重量・弾数・爆発半径・初速・連射・リロード・縦反動は表の値。最高速（表は ?）・加速・旋回率（誘導性能 D-/D/D+ を本作の rad/s に）は Claude の仮置き。誘導の距離 150m と精密誘導モード（主観視点・少しズーム・紫のレティクル、モードを切ると直進、施設を使えない）はオーナーが貼った wiki の解説から。",
+  "rows": [
+    {
+      "name": "シーカーロケット",
+      "kg": 470,
+      "dmg": 8000,
+      "ammo": "1x6",
+      "blast": 14,
+      "guide": "D",
+      "speed": 40,
+      "rpm": "単発",
+      "reload": 2.2,
+      "recoilV": 2,
+      "adoptedAs": "seeker（レーザー誘導ロケット、VQ-5）",
+      "provisional": {
+        "maxSpeed": 150,
+        "accel": 75,
+        "turn": 2.2
+      }
+    },
+    {
+      "name": "トライシーカー",
+      "kg": 510,
+      "dmg": 5200,
+      "ammo": "3x6",
+      "blast": 11,
+      "guide": "D-",
+      "speed": 30,
+      "rpm": "360/min 3点射",
+      "reload": 3.5,
+      "recoilV": 0.8,
+      "adoptedAs": "seekerK（三点射型）",
+      "provisional": {
+        "maxSpeed": 140,
+        "accel": 65,
+        "turn": 2.0
+      }
+    },
+    {
+      "name": "パワードシーカー",
+      "kg": 520,
+      "dmg": 11500,
+      "ammo": "1x4",
+      "blast": 18,
+      "guide": "D+",
+      "speed": 20,
+      "rpm": "単発",
+      "reload": 4,
+      "recoilV": 2,
+      "adoptedAs": "seekerH（強装型）",
+      "provisional": {
+        "maxSpeed": 120,
+        "accel": 50,
+        "turn": 2.4
+      }
+    },
+    {
+      "name": "マルチシーカー",
+      "kg": 490,
+      "dmg": 4800,
+      "ammo": "5x4",
+      "blast": 13,
+      "guide": "D",
+      "speed": 60,
+      "rpm": "210/min",
+      "reload": 4,
+      "recoilV": 1.2,
+      "adoptedAs": "seekerR（連射型）",
+      "provisional": {
+        "maxSpeed": 160,
+        "accel": 90,
+        "turn": 2.2
+      }
+    }
+  ]
+}
