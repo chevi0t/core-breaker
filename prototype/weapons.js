@@ -546,7 +546,7 @@ const WEAPONS = {
   // 左長押しで溜め、離すと前方に電撃の範囲を張る。範囲の長さ・残る秒・威力は溜めた割合で len・time・dmg の間を進む。
   // 範囲に入った敵機は1回だけ dmg を受け、範囲の中にいる間と出てから shock 秒、ブースト・ダッシュ・ジャンプができず歩きも遅い（射撃はできる）。
   stunner: { name: 'スタナー', type: 'gun', sfx: 'beam', rpm: 60, mag: 3, mags: 3, reload: 3, spread: 0, chargeTime: 1, chargeHold: 3, ohTime: 2,
-    stunField: { len: [8, 18], width: 7, height: 5, time: [.6, 1.4], dmg: [300, 1200], shock: .8, slow: .35 },
+    stunField: { len: [6, 12], width: 7, height: 5, time: [.6, 1.4], dmg: [300, 1200], shock: .8, slow: .35 },
     desc: '左長押しで溜め、離すと前方に電撃の範囲を張る。ダメージは小さいが、範囲の敵機はブースト・ダッシュ・ジャンプができず歩きも遅くなる' },
   stunGrenade: {"name":"電撃グレネード","type":"gun","rpm":60,"mag":1,"mags":3,"reload":1,"spread":0,"noResupply":true,"desc":"時間で炸裂し、範囲内の敵だけを立ったまま硬直させる。ダメージはない","proj":{"kind":"grenade","speed":32,"grav":24,"fuse":3,"blast":15,"stunSeconds":2.5}},
   // AC ND索敵センサー系統 pages/692：{"kg": 340, "count": 2, "scan": 160, "keep": 10}。原典と再現値の区別は auxiliary.json。

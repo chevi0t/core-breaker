@@ -16,9 +16,9 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
     for (let t = 0; t < hold - 1e-9; t += .05) g.weaponsTick(p, .05, true, aim, 0); g.weaponsTick(p, .05, false, aim, 0);
     const f = g.stunFields[g.stunFields.length - 1]; return f && { len: f.len, life: f.life, dmg: f.dmg }; }, hold);
   // 満タンで撃つ
-  await put(12);
+  await put(9);
   const full = await fire(1.1);
-  ok(full && Math.abs(full.len - 18) < .01 && Math.abs(full.life - 1.4) < .06 && full.dmg === 1200, '満タンで離すと前方18mの範囲、1.4秒、威力1200');
+  ok(full && Math.abs(full.len - 12) < .01 && Math.abs(full.life - 1.4) < .06 && full.dmg === 1200, '満タンで離すと前方12mの範囲、1.4秒、威力1200');
   const hp0 = await ev(() => window.__e.hp);
   await ev(() => __g.stunFieldUpdate(1 / 60));
   const r1 = await ev(() => { const g = __g, e = window.__e; return { lost: e.maxHp - e.hp, mult: g.armorMult(e), shock: e.shockT }; });
@@ -32,7 +32,7 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
   ok(walk.sp <= walk.walk * .36 && walk.up <= 0, `妨害の間はブーストを押しても歩きの35%まで（${walk.sp.toFixed(1)} m/s）、ジャンプもできない`);
   ok(await ev(() => { const fx = window.__e.shockFx; return fx && fx.root.visible && fx.lines.userData.parts[0].count === 4 * 5; }) || (await ev(() => { __g.shockLook(window.__e, .05); const fx = window.__e.shockFx; return fx && fx.root.visible && fx.lines.userData.parts[0].count === 20; })), '妨害中の敵機には放電（4本）をまとわせる');
   // 軽く押しただけ
-  await put(6);
+  await put(4);
   const tap = await fire(.05);
   ok(tap && tap.len < 9 && tap.dmg < 400, `軽く押すと短い範囲（${tap && tap.len.toFixed(1)}m、威力${tap && tap.dmg}）`);
   // 範囲の外は効かない
@@ -43,7 +43,7 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
   await ev(() => { for (let i = 0; i < 100; i++) __g.stunFieldUpdate(1 / 60); });
   ok(await ev(() => __g.stunFields.length === 0), '範囲は時間が来ると消える');
   // 見た目の写真
-  await put(11); await fire(1.1); await ev(() => __g.stunFieldUpdate(1 / 60)); await step(2);
+  await put(9); await fire(1.1); await ev(() => __g.stunFieldUpdate(1 / 60)); await step(2);
   await page.screenshot({ path: out + '/stunner_field.png' });
   // 電撃グレネードの硬直：痺れの見た目と、自機なら画面の縁と文字
   await ev(() => { const g = __g, e = window.__e; e.shockT = 0; for (const s of g.stunFields.splice(0)) g.scene.remove(s.mesh);
@@ -61,7 +61,7 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
   // Bot もスタナーを使う
   const botUsed = await ev(() => { const g = __g, p = g.player, e = window.__e, render = g.renderer.render;
     e.slots.aux = g.slotOf('stunner'); e.cls = 'support'; Object.assign(e, { alive: true, hp: e.maxHp, electricT: 0, stun: '', shockT: 0, actCd: 99, act: null });
-    p.alive = true; p.invulT = 0; e.pos.copy(p.pos).addScaledVector(g.fwdOf(p), 10); e.target = p;
+    p.alive = true; p.invulT = 0; e.pos.copy(p.pos).addScaledVector(g.fwdOf(p), 7); e.target = p;
     const at = e.pos.clone(), log = [];
     g.renderer.render = () => {};
     try {
