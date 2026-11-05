@@ -5397,13 +5397,15 @@ const CORE_RATE = 0.1; // コアへのダメージは機体への威力の1割
 const KILL_CORE = CORE_MAX / 160; // 機体が撃破されると、その陣営のコアが最大値の1/160減る（元のゲームの仕様。ユーザー指定）
 const KILL_CORE_LARGE = CORE_MAX / 800; // 50対50のときだけ1/800（ユーザー指定 2026-10-20「速攻で160人死んでゲームセットになっちゃう」）
 let killCore = KILL_CORE; // 今の試合の1大破あたりのコアの減り。setup で人数から決める
+// 主武器でなくても主武器と同じ太さの筋にするシリーズ（2026-11-05 オーナー指定）：炸裂散弾ライフル（vd）と衝撃散弾銃（gh）
+const BIG_TRACE_SERIES = new Set(['vd', 'gh']);
 function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
   const dir = aimPoint.clone().sub(from).normalize();
   dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread;
   dir.normalize();
   const hit = castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
-  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w));
+  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w) || BIG_TRACE_SERIES.has(w.series));
   if (w.scope && !laser) smokeTrail(from, end);
   flash(from, laser ? ENERGY_COLOR : w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
   if (!hit) return false;
