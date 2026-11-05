@@ -1,0 +1,48 @@
+{
+  "base": "stunner",
+  "series": "スタナー系統",
+  "source": "https://w.atwiki.jp/borderbreak/pages/401.html",
+  "tableSource": "research/arcade/weapons/support.md",
+  "retrieved": "2026-10-19",
+  "note": "本作のスタンガン（オーナーのオリジナル）の型に、スタナーJ を基準とした比を使う（2026-11-06 オーナー「ボーダーブレイクwikiのスタナーの項目を参照しバリエーションを追加」）。攻撃範囲 Lv は長さと幅の倍率（Lv1 ×0.8・Lv2 ×1・Lv3 ×1.25、Claude の値）。重さは本作の基本 260kg×型÷320。",
+  "baseRow": {
+    "name": "スタナーJ",
+    "kg": 320,
+    "dmg": [
+      1800,
+      2700,
+      3600
+    ],
+    "stunMax": 1,
+    "area": "Lv2",
+    "charge": 2
+  },
+  "types": [
+    {
+      "name": "スタナーJ2",
+      "kg": 350,
+      "dmg": [
+        1200,
+        3000,
+        4800
+      ],
+      "stunMax": 2,
+      "area": "Lv1",
+      "charge": 4,
+      "adoptedAs": "stunnerD（スタンガン・持続型）"
+    },
+    {
+      "name": "スタナーK",
+      "kg": 370,
+      "dmg": [
+        2000,
+        3000,
+        4000
+      ],
+      "stunMax": 1,
+      "area": "Lv3",
+      "charge": 3,
+      "adoptedAs": "stunnerW（スタンガン・広域型）"
+    }
+  ]
+}
