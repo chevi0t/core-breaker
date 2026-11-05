@@ -253,6 +253,13 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #scope::before, #scope::after { content: ""; position: absolute; background: rgba(0, 0, 0, .75); }
 #scope::before { left: 50%; top: calc(50% - 34vmin); width: 1px; height: 68vmin; }
 #scope::after { top: 50%; left: calc(50% - 34vmin); height: 1px; width: 68vmin; }
+/* レーザー誘導ロケットの精密誘導モード（2026-11-06）：半透明の紫のレティクル。外の円と四方の刻み、中心の点、画面の縁を薄く紫に */
+#seekRet { inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 0 46vmin, rgba(90, 30, 140, .22) 70vmin); }
+#seekRet i { position: absolute; left: 50%; top: 50%; width: 18vmin; height: 18vmin; transform: translate(-50%, -50%); border: 2px solid rgba(197, 140, 255, .6); border-radius: 50%; box-shadow: 0 0 8px rgba(197, 140, 255, .35); }
+#seekRet i::before, #seekRet i::after { content: ""; position: absolute; background: rgba(197, 140, 255, .65); }
+#seekRet i::before { left: 50%; top: -2.2vmin; width: 2px; height: calc(100% + 4.4vmin); transform: translateX(-50%); mask: linear-gradient(#000 0 3.4vmin, transparent 3.4vmin calc(100% - 3.4vmin), #000 calc(100% - 3.4vmin)); }
+#seekRet i::after { top: 50%; left: -2.2vmin; height: 2px; width: calc(100% + 4.4vmin); transform: translateY(-50%); mask: linear-gradient(90deg, #000 0 3.4vmin, transparent 3.4vmin calc(100% - 3.4vmin), #000 calc(100% - 3.4vmin)); }
+#seekRet b { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(214, 170, 255, .85); box-shadow: 0 0 6px rgba(197, 140, 255, .8); }
 #wsel { left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 0; }
 #wsel[hidden] { display: none; }
 #wsel .opt { min-width: 200px; padding: 6px 14px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .22); text-align: center; font-size: 16px; color: var(--dim); }

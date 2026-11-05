@@ -64,6 +64,7 @@
 <div class="hud" id="headTxt">HEADSHOT</div>
 <div class="hud" id="scorePop"></div>
 <div class="hud" id="scope" hidden></div>
+<div class="hud" id="seekRet" hidden><i></i><b></b></div>
 <div class="hud" id="qchat" hidden></div>
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
@@ -113,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver164</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver165</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -455,6 +456,7 @@ const SFX = {
   reload: { file: 'reload', vol: 0.5, range: 25, gap: 0.3 },
   switch: { file: 'reload', vol: 0.35, rate: 1.4, range: 20, gap: 0.2 },
   lock: { file: 'beep', vol: 0.35, ui: true, gap: 0.1 },
+  seekGuide: { file: 'beep', vol: 0.18, rate: 1.9, ui: true, gap: 0.16 }, // レーザー誘導ロケットを誘導している間の短い電子音（2026-11-06）
   capture: { file: 'beep', vol: 0.5, rate: 0.75, ui: true, gap: 0.5 },
   heal: { file: 'heal', vol: 0.35, range: 40, gap: 0.6 },
   pod: { file: 'heal', vol: 0.5, rate: 0.9, range: 40, gap: 1 },
@@ -2564,7 +2566,7 @@ function shellUpdate(dt) {
     if (S.burnDistance !== undefined) { if (!burnoutRocketTick(sh, dt)) { scene.remove(sh.mesh); shells.splice(i, 1); } continue; }
     sh.life -= dt;
     sh.age=(sh.age||0)+dt;
-    const step = S.guided ? missileFlight(sh, dt) : dt;
+    const step = S.guided ? missileFlight(sh, dt) : S.seek ? seekerFlight(sh, dt) : dt;
     let at = null, hit = null;
     if (!sh.stuck) {
       if (S.grav) sh.vel.y -= S.grav * dt;
@@ -2606,7 +2608,8 @@ function shellUpdate(dt) {
     } else {
       sh.mesh.position.copy(sh.pos);
       if (sh.energyFrom) energyShotLook(sh);
-      if (S.guided) {
+      if (S.seek) seekerLook(sh, dt);
+      else if (S.guided) {
         sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().normalize());
         if ((sh.smokeT = (sh.smokeT || 0) - dt) <= 0) {
           sh.smokeT = .06;
@@ -3058,7 +3061,7 @@ function catapultUpdate(dt) {
     // 光の膜はゆっくり明滅し、射出した瞬間に強く光って0.5秒で戻る
     cp.flash = Math.max(0, cp.flash - dt * 2);
     cp.film.material.opacity = 0.16 + 0.06 * Math.sin(catClock * 3 + cp.phase) + cp.flash * 0.6;
-    for (const u of units) if (u.alive && u.onGround && !u.flying && u.catCd <= 0 && u.pos.y - cp.pos.y < 0.5 && Math.hypot(u.pos.x - cp.pos.x, u.pos.z - cp.pos.z) < CAT_R) launch(u, cp);
+    for (const u of units) if (u.alive && u.onGround && !u.flying && !u.seekMode && u.catCd <= 0 && u.pos.y - cp.pos.y < 0.5 && Math.hypot(u.pos.x - cp.pos.x, u.pos.z - cp.pos.z) < CAT_R) launch(u, cp);
   }
 }
 
@@ -3162,7 +3165,7 @@ function liftUpdate(dt) {
 function jumpPadUpdate(dt) {
   for (const p of jumpPads) {
     p.flash = Math.max(0, p.flash - dt * 2); p.ring.scale.setScalar(1 + p.flash * 0.12);
-    for (const u of units) if (u.alive && u.onGround && !u.flying && !u.transfer && !u.repairing && !u.stun && u.catCd <= 0 && Math.abs(u.pos.y - p.pos.y) < 0.5 && Math.hypot(u.pos.x - p.pos.x, u.pos.z - p.pos.z) < p.radius) {
+    for (const u of units) if (u.alive && u.onGround && !u.flying && !u.seekMode && !u.transfer && !u.repairing && !u.stun && u.catCd <= 0 && Math.abs(u.pos.y - p.pos.y) < 0.5 && Math.hypot(u.pos.x - p.pos.x, u.pos.z - p.pos.z) < p.radius) {
       // 水平の初速は加えない。射出後の空中操作は通常の physics を使う。
       u.vel.set(0, Math.sqrt(2 * GRAV * p.rise), 0);
       Object.assign(u, { flying: true, onGround: false, catMomentum:null, catLaunch:null, ctrlLockT: 0, flightSpeed: u.cruiseV, dashT: 0, longDash: false, catCd: 3, jumpPad: p });
@@ -3175,7 +3178,7 @@ function jumpPadUpdate(dt) {
 // よろけ・ダウン・電撃を受けると落ちる。手を離したあと ZIP_CD 秒は掴めない。Bot も同じ決まりで、高所へ行くときに使う
 const ZIP_HAND = 4.4, ZIP_REACH = 3, ZIP_SPEED = 16, ZIP_CATCH = 0.2, ZIP_CD = 0.6;
 function zipCan(u) {
-  return u.alive && !u.zip && !(u.zipCd > 0) && !u.stun && !u.repairing && !u.transfer && !u.planted && !u.swing && !(u.ctrlLockT > 0) && !(u.electricT > 0) && !(u.downT > 0) && !isArtilleryMode(u);
+  return u.alive && !u.zip && !u.seekMode && !(u.zipCd > 0) && !u.stun && !u.repairing && !u.transfer && !u.planted && !u.swing && !(u.ctrlLockT > 0) && !(u.electricT > 0) && !(u.downT > 0) && !isArtilleryMode(u);
 }
 // 掴めるジップラインと掴む所（t：下の乗り場0〜上の降り場1）。上の端の近くでは掴まない
 function zipNear(u) {
@@ -4540,7 +4543,7 @@ function resetLifeState(u) {
     actionHeld: false, crouching: false, actionBlockBoost: false, kneeSlideT: 0,
     stun: '', stunT: 0, tilt: 0, electricT: 0, shockT: 0, jamT: 0, recoverT: 0,
     dashT: 0, longDash: false, dashState: '', slideT: 0, lungeT: 0, charging: false,
-    swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null, reflect: null,
+    swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null, reflect: null, seekMode: false,
     cloak: false, chargerOn: false, fieldOn: false, barrierOn: false, escortOn: false, mirageLock: null,
     flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, jumpPad: null, mobilityRoute: null, lift: null, zip: null, transfer: null,
     waypoint: null, order: null, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, raidRoute: null,
@@ -6292,7 +6295,8 @@ function botUpdate(u, dt) {
   let slot = meleeOnly() ? 'aux' : 'main', trig = meleeOnly() ? false : ready, alt = false;
   u.botRkT -= dt;
   if (!tracking || sub.ammo + sub.reserve <= 0) u.rkGo = false;
-  if (u.cls === 'heavy' && !sub.w.missile && tracking && !u.rkGo && u.botRkT <= 0 && td < 70 && td > 16) { // 近すぎる相手には撃たない（自分も爆風を受ける。v0.11.3）
+  const seekHold = u.weapon === 'sub' && u.seekMode && u.seekHoldT > playT; // 誘導中の弾がある間は持ち替えない
+  if (u.cls === 'heavy' && !sub.w.missile && tracking && !u.rkGo && !seekHold && u.botRkT <= 0 && td < (sub.w.proj?.seek ? 140 : 70) && td > 16) { // 近すぎる相手には撃たない（自分も爆風を受ける。v0.11.3）
     // ロケットは砲台と設置物にはよく、敵機にはときどき撃つ
     if (u.target.kind !== 'unit' || Math.random() < 0.3) u.rkGo = true; else u.botRkT = 2;
   }
@@ -6310,10 +6314,11 @@ function botUpdate(u, dt) {
       : ready && (close || u.dashT > 0);
   } else if (!waterEscape && u.slots.aux.w.stunField && tracking && u.target.kind === 'unit' && !(u.target.electricT > 0) && td < u.slots.aux.w.stunField.len[1] - 2 && u.slots.aux.ammo + u.slots.aux.reserve > 0) {
     slot = 'aux'; trig = ready; // スタンガン：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）。弾が無限なので、もう痺れている敵（electricT）には使わない
-  } else if (u.cls === 'heavy' && u.rkGo) slot = 'sub';
+  } else if (u.cls === 'heavy' && (u.rkGo || seekHold)) { slot = 'sub'; if (!u.rkGo) trig = false; }
   else if (u.cls === 'raid' && sub.w.scope && tracking && td > 35) slot = 'sub'; // 遠い敵は狙撃銃で
   else if (ally || selfHeal) { slot = 'sp'; alt = selfHeal; }
   if (!u.swing && !u.stun) selectWeapon(u, slot);
+  if (u.weapon === 'sub' && slot === 'sub' && seekerHeld(u)) { if (!u.seekMode) setSeekMode(u, true); if (!u.seekMode) trig = false; } // Bot もモードに入ってから撃つ（同じ決まり）
   // 狙撃銃はスコープを覗き（覗かないと大きくばらつく）、止まって照準が6割まで収束してから撃つ
   const snl = u.slots[u.weapon];
   if (snl.w.missile) trig = trig && (snl.missileLocks || []).length >= Math.min(snl.w.missile.locks, Math.floor(snl.ammo / snl.w.missile.shots));
@@ -7073,7 +7078,7 @@ function selectWeapon(u, w) {
   if (w !== 'sp' && beamCannonMode(u)) stopBeamCannon(u);
   if (u.zip && (u.slots[w].w.plant || MAP_SP.includes(u.slots[w].w.type))) return; // ジップラインで昇る間は構えられない
   if (w !== u.weapon) {
-    u.bombard = null; u.reflect = null;
+    u.bombard = null; u.reflect = null; u.seekMode = false;
     const sl = u.slots[u.weapon];
     if (sl.w.missile) { clearMissileLocks(sl); sl.missileQueue = []; sl.bn = 0; }
   }
@@ -7106,6 +7111,8 @@ function reload(sl, u) {
 // alt：右クリック（リペアユニットの自己修復、重砲の構えをやめる、遠隔爆弾の起爆）
 function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
   u.switchT -= dt;
+  if (u.seekMode && !seekModeOk(u)) setSeekMode(u, false);
+  if (u.seekMode && aim) (u.seekAim || (u.seekAim = new T.Vector3())).copy(aim); // 照準の先。メニューを開いている間は最後の点のまま
   recoilRecover(u, dt);
   let res = false;
   for (const k of SLOTS) {
@@ -7256,6 +7263,59 @@ function missileFlight(sh, dt) {
   if (sh.distance >= S.range - 1e-6) sh.life = 0;
   return step;
 }
+// レーザー誘導ロケット（2026-11-06、オーナー希望。アーケード版 シーカー系統の解説から）。
+// 精密誘導モード（右クリック、主観視点）で撃った弾だけを誘導する。モードの間は撃った機体の照準の先（seekAim）へ曲がり、モードを切る・持ち替える・倒れると
+// その時の向きのまま直進する（もう誘導しない）。曲がる速さ（rad/s）は撃った機体から離れるほど落ち、guideRange で0。弾は遅く出て maxSpeed まで加速するので、
+// 近いうちは大きく曲がるが、速くなるほど曲がりきれない。射程（range）を飛ぶと消える。
+function seekerGuiding(sh) {
+  const o = sh.owner;
+  return sh.seeking && o.alive && o.seekMode && o.weapon === sh.seekSlot && o.slots[sh.seekSlot].w.proj === sh.spec && !!o.seekAim;
+}
+function seekerFlight(sh, dt) {
+  const S = sh.spec, o = sh.owner, dir = sh.vel.clone().normalize();
+  sh.distance = sh.distance || 0;
+  if (sh.seeking && !seekerGuiding(sh)) sh.seeking = false;
+  if (sh.seeking) {
+    o.seekHoldT = playT + .2; // Bot は誘導中の弾がある間、持ち替えずに狙い続ける
+    if (o.isPlayer) sfx('seekGuide', null, o);
+    const to = o.seekAim.clone().sub(sh.pos), k = Math.max(0, 1 - sh.pos.distanceTo(o.pos) / S.guideRange);
+    if (to.lengthSq() > 1 && k > 0) {
+      to.normalize();
+      const angle = dir.angleTo(to), limit = S.turn * k * dt;
+      if (angle > 1e-6) {
+        const axis = new T.Vector3().crossVectors(dir, to);
+        if (axis.lengthSq() < 1e-10) axis.set(0, 1, 0).cross(dir); // 真後ろを指したとき
+        if (axis.lengthSq() > 1e-10) dir.applyAxisAngle(axis.normalize(), Math.min(angle, limit));
+      }
+    }
+  }
+  const speed = Math.min(S.maxSpeed, sh.vel.length() + S.accel * dt);
+  sh.vel.copy(dir).multiplyScalar(speed);
+  const step = Math.min(dt, Math.max(0, S.range - sh.distance) / speed);
+  sh.distance += speed * step;
+  if (sh.distance >= S.range - 1e-6) sh.life = 0;
+  return step;
+}
+// 噴射炎は速くなるほど大きく、誘導中の弾は紫の光を足す
+function seekerLook(sh, dt) {
+  const S = sh.spec, q = Math.max(0, Math.min(1, (sh.vel.length() - S.speed) / Math.max(1, S.maxSpeed - S.speed)));
+  sh.mesh.quaternion.setFromUnitVectors(UP, sh.vel.clone().normalize());
+  if ((sh.smokeT = (sh.smokeT || 0) - dt) <= 0) {
+    sh.smokeT = .05;
+    flash(sh.pos, 0xffb070, .7 + q * .9, .12);
+    if (sh.seeking) flash(sh.pos, 0xc58cff, .6, .1);
+    puff(sh.pos.x, sh.pos.y, sh.pos.z, 0, .4, 0, .3 + q * .25, 1 + q * .5, .6, 0x80909b, .4);
+  }
+}
+const seekerHeld = u => !!u.slots[u.weapon]?.w.proj?.seek;
+// 精密誘導モードに入れるか（施設・リペア・エリア移動・ジップライン・怯みの間は入れない。入っている間に起きたら切る）
+function seekModeOk(u) { return u.alive && seekerHeld(u) && u.switchT <= 0 && !u.repairing && !u.transfer && !u.zip && !u.stun && !(u.electricT > 0); }
+function setSeekMode(u, on) {
+  on = !!on && seekModeOk(u);
+  if (u.seekMode === on) return;
+  u.seekMode = on;
+  if (u.isPlayer) { sfx(on ? 'lock' : 'switch', u.pos, u); if (on) releaseLock(); }
+}
 function gunTick(u, sl, dt, trigger, aim, spread) {
   const w = sl.w;
   if (w.missile && !trigger) sl.held = false;
@@ -7335,6 +7395,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
       }
       const sh = shoot(u, from, v, P, w.energy || plasma, plasma ? 'plasma' : charge ? 'charge' : '', w.name, primaryShot(u, w));
       if (P.guided && missileTarget && missileTargetValid(u, missileTarget)) sh.missileTarget = missileTarget;
+      if (P.seek && u.seekMode) { sh.seeking = true; sh.seekSlot = u.weapon; u.seekHoldT = playT + .5; } // 精密誘導モードで撃った弾だけ誘導する
       if (plasma) plasmaMuzzleRing(from, v);
       mainMuzzleFlash(u, !!hand, w);
       if (!P.grav) flash(from, plasma ? PLASMA_COLOR : P.energy ? 0xa0ffe8 : 0xffc080, 1.8, 0.08);
@@ -8758,7 +8819,8 @@ function aimPress(button, pad) {
   if (button === 0) mouseDown = true;
   if (button === 2) {
     if (running && player && player.alive && player.slots[player.weapon].w.scopeHigh && !player.repairing && !player.transfer && player.switchT<=0) player.scopeStep=((player.scopeStep||0)+1)%3;
-    if (running && !mapOpen && !wsel.open) toggleLock(player);
+    if (running && !mapOpen && !wsel.open && player?.alive && seekerHeld(player)) setSeekMode(player, !player.seekMode); // レーザー誘導ロケット：精密誘導モードの入り切り
+    else if (running && !mapOpen && !wsel.open) toggleLock(player);
     rightDown = true;
     if (tutorial) tutorialRightClick();
   }
@@ -8982,7 +9044,7 @@ function playerUpdate(u, dt) {
   const camDir = new T.Vector3();
   camera.getWorldDirection(camDir);
   // レイは機体の手前から飛ばす（カメラと機体の間にある傘や壁を照準点にしないため）
-  const rayFrom = camera.position.clone().addScaledVector(camDir, CAM.back - 1);
+  const rayFrom = camera.position.clone().addScaledVector(camDir, u.seekMode ? .5 : CAM.back - 1); // 精密誘導モードは主観視点なので目の前から
   const hit = castFrom(rayFrom, camDir, u);
   const aim = artillery ? mapPoint() : hit ? hit.point : rayFrom.addScaledVector(camDir, 300);
   const spread = movementSpread(u);
@@ -9610,6 +9672,7 @@ const aimMark = new T.Mesh(new T.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2)
 aimMark.visible = false;
 scene.add(aimMark);
 const CAM = { back: 8, up: 4.6, side: 2.2 };
+const SEEK_ZOOM = 1.1, SEEK_EYE = 3.4; // 精密誘導モードの倍率（原典「ほとんど x1.0」）と目の高さ（m）
 // 爆風の被弾で視界を短く揺らす（ユーザー指定）。描画時だけ回し、照準・反動・ロックの計算へ残さない。
 const BLAST_SHAKE_TIME = .45;
 const blastShake = { power: 0, age: 0, phase: 0 };
@@ -9627,7 +9690,7 @@ function updateBlastShake(dt) {
   if (blastShake.age >= BLAST_SHAKE_TIME || !player?.alive) resetBlastShake();
 }
 function renderView() {
-  const hideOwn=cityMap?.cameraTooClose(player,camera),ownVisible=player?.group.visible;
+  const hideOwn=!!player?.seekMode||cityMap?.cameraTooClose(player,camera),ownVisible=player?.group.visible;
   if(hideOwn)player.group.visible=false;
   const shaken = running && player?.alive && blastShake.power > 0;
   if (shaken) {
@@ -9654,9 +9717,16 @@ function updateCamera(u, dt) {
   const pivot = cameraPivot(u);
   // ダッシュ中は画角を広げてスピード感を出す。ロックオン中は LOCK_ZOOM 倍にズーム
   const base = gameOptions.fov + (u.dashState === 'short' || u.dashState === 'lunge' || u.dashState === 'charge' ? 12 : u.dashState === 'long' ? 7 : 0);
-  const fov = u.scoped ? gameOptions.fov / scopePower(u) : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
-  camera.fov += (fov - camera.fov) * Math.min(1, dt * (u.scoped ? 16 : LOCK_ZOOM_RATE));
+  const fov = u.scoped ? gameOptions.fov / scopePower(u) : u.seekMode ? gameOptions.fov / SEEK_ZOOM : base / (lock.target && lock.visible && u.alive ? LOCK_ZOOM : 1);
+  camera.fov += (fov - camera.fov) * Math.min(1, dt * (u.scoped || u.seekMode ? 16 : LOCK_ZOOM_RATE));
   camera.updateProjectionMatrix();
+  if (u.seekMode && u.alive) { // 精密誘導モード：主観視点（頭の高さ、機体は描かない）。少しだけズーム
+    camera.position.copy(u.pos).add(new T.Vector3(0, SEEK_EYE - actionLower(u), 0)).addScaledVector(dir, .6);
+    camera.lookAt(camera.position.clone().addScaledVector(dir, 50));
+    camera.updateMatrixWorld();
+    cameraFade(null, dt);
+    return;
+  }
   if(cityMap){const pose=cityMap.cameraPose(u,camera,dir,dt);camera.position.copy(pose.position);camera.lookAt(pose.target);camera.updateMatrixWorld();return;}
   camera.position.copy(pivot).addScaledVector(dir, -CAM.back);
   camera.position.y = Math.max(terrainH(camera.position.x, camera.position.z) + 0.8, camera.position.y);
@@ -10373,6 +10443,7 @@ function wStats(w) {
       if (w.chargeStages) st.push(`威力 ${w.chargeStages.join('／')}・蓄圧 ${w.chargeTime}秒`);
       if (P.max) st.push(`同時に${P.max}個`);
       if (P.burnDistance !== undefined) st.push(`推進 ${P.burnDistance}m・以遠は落下`);
+      if (P.seek) st.push(`誘導 右クリックの精密誘導モードで・${P.guideRange}mまで`, `弾速 ${P.speed}→${P.maxSpeed}m/s（加速）`);
       if (w.missile) st.push(`捕捉 ${w.missile.time}秒・最大${w.missile.locks}回`, `1捕捉${w.missile.shots}発・誘導${w.missile.rank}`, `弾速 ${P.speed}〜${P.maxSpeed}m/s`);
       st.push(ammo(), `リロード ${w.reload}秒`);
     }
@@ -10445,6 +10516,7 @@ function itemNums(sl, key) {
     return r;
   }
   const P = x.proj || {}, dmg = x.dmg ?? P.dmg ?? (x.normal && x.normal.dmg) ?? (P.gun && P.gun.dmg);
+  if (P.seek) r.push(['旋回率（暫定）',P.turn,u('rad/s'),true],['初速',P.speed,u('m/s'),true]);
   if (x.missile) r.push(['捕捉時間',x.missile.time,u('秒'),false],['最大捕捉',x.missile.locks,n0,true],['旋回率（暫定）',P.turn,u('rad/s'),true],['弾速',P.maxSpeed,u('m/s'),true]);
   if (dmg) r.push(['威力', dmg * (x.pellets || (P.gun && P.gun.pellets) || 1) * (x.dual ? 2 : 1), n0, true]);
   if(P.jamSeconds||P.stunSeconds)r.push(['効果時間',P.jamSeconds||P.stunSeconds,u('秒'),true],['起爆時間',P.fuse,u('秒'),false]);
@@ -11323,7 +11395,7 @@ function hud(timeLeft, dt) {
   else if (cur.ammo + cur.reserve <= 0) { big = 0; small = cw.name + (cw.noResupply ? ' · 使い切り（再出撃で補充）' : ' · 弾切れ（リペアポッドで補給）'); }
   else {
     big = cur.ammo;
-    small = `${cw.name} · ${cw.noResupply ? '補給なし' : '予備 ' + cur.reserve}` + (cw.plant ? ' · 構え中（動けない）' : '') + (cw.spin && cur.spin < 1 && mouseDown ? ' · 空転中' : '') + (cw.heat ? ` · 熱 ${Math.round(cur.temp)}%` : '') + (cw.chargeTime ? ` · 溜め ${Math.round(cur.chargeT / cw.chargeTime * 100)}%（離すと撃つ）` : '') + (cw.settle && p.scoped ? ` · 収束 ${Math.round(cur.conv * 100)}%` : '') + (cw.scope && !p.scoped ? ' · 覗かないと大きくばらつく' : '')
+    small = `${cw.name} · ${cw.noResupply ? '補給なし' : '予備 ' + cur.reserve}` + (cw.plant ? ' · 構え中（動けない）' : '') + (cw.spin && cur.spin < 1 && mouseDown ? ' · 空転中' : '') + (cw.heat ? ` · 熱 ${Math.round(cur.temp)}%` : '') + (cw.chargeTime ? ` · 溜め ${Math.round(cur.chargeT / cw.chargeTime * 100)}%（離すと撃つ）` : '') + (cw.settle && p.scoped ? ` · 収束 ${Math.round(cur.conv * 100)}%` : '') + (cw.scope && !p.scoped ? ' · 覗かないと大きくばらつく' : '') + (cw.proj?.seek ? (p.seekMode ? ' · 精密誘導中（右クリックで解除）' : ' · 右クリックで精密誘導') : '')
       + (cw.proj && cw.proj.kind === 'remote' ? ` · 設置 ${gadgets.filter(g => g.owner === p && g.kind === 'remote').length} · 右クリックで起爆` : '');
   }
   if (p.chargerOn) small += ' · 加速装置 作動中';
@@ -11364,7 +11436,8 @@ function hud(timeLeft, dt) {
   $('jamView').hidden = !(p.alive && p.jamT>0);
   $('scope').hidden = !p.scoped;
   $('scope').textContent = p.scoped && cw.scopeHigh ? `×${scopePower(p).toFixed(1)}` : '';
-  crossEl.style.visibility = p.scoped ? 'hidden' : '';
+  crossEl.style.visibility = p.scoped || p.seekMode ? 'hidden' : '';
+  $('seekRet').hidden = !(p.alive && p.seekMode);
   $('lockRing').style.visibility = cw.noLock ? 'hidden' : '';
   // 照準円の弧：左半分が残弾（リロード中は進み具合、弾倉のない装備はSP）、右半分が耐久。
   // その外側（v0.10.8、ユーザー指定）：左はオーバーヒートする武器（heat のある武器＝ガトリング）だけ熱（オーバーヒート中は撃てるまでの残り時間）、右はブースト残量。
