@@ -1,6 +1,7 @@
 // 機体カスタマイズの一覧（2026-11-06）：全兵装の全枠（パーツ4つと武器4つ）の一覧を実際に開き、シリーズを全部開いて、
-// 全部の型にマウスを乗せても（差の表）エラーが出ないこと。表のつながり（武器↔シリーズ、パーツ↔シリーズ↔メーカー）も確かめる。
-// きっかけ：スタナーのシリーズ名 ie が索敵センサーの ie と重なり（同じオブジェクトの中の重複キーは後の方が勝つ）、
+// 全部の型にマウスを乗せても（差の表）エラーが出ないこと。表のつながり（武器↔シリーズ、パーツ↔シリーズ↔メーカー）と、
+// 型番・型番の頭・画面に出す名前が重ならないことも確かめる。
+// きっかけ：スタンガンのシリーズ名 ie が索敵センサーの ie と重なり（同じオブジェクトの中の重複キーは後の方が勝つ）、
 // 支援の補助装備の一覧が開けなかった（オーナー「機体カスタマイズ支援補助装備のリスト読み込み不可」）。
 // node tools/test/custom_lists_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
@@ -17,9 +18,15 @@ check('カスタマイズの一覧', async ({ page, ev, ok, errors }) => {
       const se = g.PART_SERIES[p.series];
       if (!se) bad.push(`パーツ ${slot}.${k} にシリーズが無い`); else if (!g.MAKERS[se.maker]) bad.push(`パーツのシリーズ ${p.series} のメーカーが無い`);
     }
+    // 名前の重なり：シリーズの型番の頭（IE-2 と IE-3 なら同じ「IE系」に見える）、型番、画面に出す武器の名前、パーツの型番
+    const dup = (label, pairs) => { const m = new Map(); for (const [name, who] of pairs) { if (m.has(name) && m.get(name) !== who) bad.push(`${label}「${name}」が ${m.get(name)} と ${who} で重なっている`); else m.set(name, who); } };
+    dup('型番の頭', Object.entries(g.SERIES).map(([id, se]) => [se.types[0][1].split('-')[0], id]));
+    dup('型番', Object.entries(g.SERIES).flatMap(([id, se]) => se.types.map(([k, m]) => [m, k])));
+    dup('武器の名前', Object.entries(g.WEAPONS).map(([k, w]) => [`${w.model} ${w.name}`, k]));
+    for (const [slot, ps] of Object.entries(g.PARTS)) dup(`${slot} の型番`, Object.entries(ps).map(([k, p]) => [p.model, k]));
     return { bad, weapons: Object.keys(g.WEAPONS).length, series: Object.keys(g.SERIES).length };
   });
-  ok(!table.bad.length, `武器${table.weapons}種・シリーズ${table.series}：表のつながりに抜けが無い` + (table.bad.length ? '：' + table.bad.slice(0, 5).join('、') : ''));
+  ok(!table.bad.length, `武器${table.weapons}種・シリーズ${table.series}：表のつながりに抜けが無く、型番と名前が重ならない` + (table.bad.length ? '：' + table.bad.slice(0, 5).join('、') : ''));
   await page.click('#pgMenu [data-page="pgCustom"]');
   for (const c of await ev(() => __g.CLASS_KEYS)) {
     await page.click(`[data-cu="${c}"]`);

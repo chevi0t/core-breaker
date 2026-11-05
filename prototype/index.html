@@ -107,7 +107,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver161</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver162</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -2672,7 +2672,7 @@ function heatDamage(h,e,dt) {
   if (e.team===h.team && e!==h.owner) {friendlyFire(h.owner,dmg*armorMult(e));return;}
   damage(e,h.owner,dmg,false,false,null,h.pos,false,true,h.weaponName);
 }
-// ---- スタナーの電撃範囲（2026-11-05、オーナーのオリジナル「前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」）----
+// ---- スタンガンの電撃範囲（2026-11-05、オーナーのオリジナル「前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」）----
 // 撃った時の足元から前へ len m・幅 width m・高さ height m の箱。time 秒残り、入った敵機は1回だけ dmg、中にいる間と出てから shock 秒は shockT（機動の妨害）。
 // 壁越しには効かない（撃った位置から敵の体が見える時だけ）。見た目の乱数は戦闘用の Math.random を使わない。
 const stunFields = [];
@@ -2720,7 +2720,7 @@ function stunFieldUpdate(dt) {
   }
 }
 // ---- 電撃の痺れの見た目（2026-11-05、オーナー「スタンエフェクトがないので、痺れエフェクトを作成し、適用してください」）----
-// 電撃グレネードの硬直（electricT）とスタナーの妨害（shockT）の間、機体のまわりにぎざぎざの放電と青い光をまとわせる。表示だけ。
+// 電撃グレネードの硬直（electricT）とスタンガンの妨害（shockT）の間、機体のまわりにぎざぎざの放電と青い光をまとわせる。表示だけ。
 let shockSeed = 12345;
 const shockRnd = () => (shockSeed = shockSeed * 16807 % 2147483647) / 2147483647;
 const SHOCK_SEG = 5;
@@ -4821,7 +4821,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.zipCd > 0) u.zipCd -= dt;
   if (u.zip && zipRide(u, dt, jumpPressed)) return; // ジップラインで昇っている（v0.21）
   if (u.electricT>0) {wish=STOP;boostHeld=jumpPressed=jumpHeld=false;u.vel.x=u.vel.z=0;u.dashT=u.lungeT=0;u.longDash=false;}
-  else if (u.shockT>0) {boostHeld=jumpPressed=jumpHeld=false;u.dashT=u.lungeT=0;u.longDash=false;} // スタナー：ブースト・ダッシュ・ジャンプ不可、歩きは下で遅くする
+  else if (u.shockT>0) {boostHeld=jumpPressed=jumpHeld=false;u.dashT=u.lungeT=0;u.longDash=false;} // スタンガン：ブースト・ダッシュ・ジャンプ不可、歩きは下で遅くする
   // wish: 正規化された水平入力（ワールド座標）
   u.jumpBuf = Math.max(0, u.jumpBuf - dt);
   if (jumpPressed && !u.onGround) u.jumpBuf = 0.3; // 着地硬直を消す入力
@@ -6303,7 +6303,7 @@ function botUpdate(u, dt) {
       : sw.meleeCharge ? sword.cd <= 0 && !sword.overheat && (sword.chargeT < sw.chargeTime * .5 || !close || !ready)
       : ready && (close || u.dashT > 0);
   } else if (!waterEscape && u.slots.aux.w.stunField && tracking && u.target.kind === 'unit' && td < u.slots.aux.w.stunField.len[1] - 2 && u.slots.aux.ammo + u.slots.aux.reserve > 0) {
-    slot = 'aux'; trig = ready; // スタナー：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）
+    slot = 'aux'; trig = ready; // スタンガン：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）
   } else if (u.cls === 'heavy' && u.rkGo) slot = 'sub';
   else if (u.cls === 'raid' && sub.w.scope && tracking && td > 35) slot = 'sub'; // 遠い敵は狙撃銃で
   else if (ally || selfHeal) { slot = 'sp'; alt = selfHeal; }
@@ -6452,7 +6452,7 @@ function botAct(u, tracking, enemyCore) {
     // 自軍のプラントにいるとき、近くに無ければセンサーを置き（滞空センサーは前方60mへ撃ち出す）、足元の近くに地雷や遠隔爆弾を置く
     const pl = plants.find(q => q.owner === u.team && inPlant(u, q));
     const near = (kind, r) => gadgets.some(g => g.owner === u && g.kind === kind && g.pos.distanceTo(u.pos) < r);
-    const AP = s.aux.w.proj || {}, far = AP.hover ? 60 : 5; // スタナーは投げる物が無い（proj なし）
+    const AP = s.aux.w.proj || {}, far = AP.hover ? 60 : 5; // スタンガンは投げる物が無い（proj なし）
     if(AP.kind==='ammo' && s.aux.ammo>0 && !near('ammo',6)){const ally=units.find(e=>e.alive&&e.team===u.team&&needsAmmo(e)&&e.pos.distanceTo(u.pos)<12);if(ally)return {slot:'aux',aim:ally.pos.clone(),t:2.5,done:used(s.aux)};}
     if (s.aux.w.proj && AP.kind!=='ammo' && pl && s.aux.ammo > 0 && !near('sensor', far + 45)) return { slot: 'aux', aim: ahead(far), t: 2.5, done: used(s.aux) };
     if (pl && s.sub.ammo > 0 && !near(s.sub.w.proj.kind, 6) && Math.random() < 0.5) return { slot: 'sub', aim: ahead(7), t: 2.5, done: used(s.sub) };

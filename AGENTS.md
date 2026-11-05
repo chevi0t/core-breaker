@@ -97,7 +97,8 @@ Python 3、Node.js、Playwright（Chromium）を使う。ヘッドレスでは W
 環境の準備（Codex の環境の setup script など）：`npm install && npx playwright install --with-deps chromium`。Python のライブラリは要らない。`npm test` で dbg の作成・全武器の確認・4マップの Bot 戦をまとめて回せる（Bot 戦は時間がかかる）。
 
 ```sh
-node tools/test/quick_check.js origin/main             # 簡易テスト。main から増えた・変わった武器とパーツだけを試し、Bot 戦を2マップ60秒
+node tools/test/quick_check.js origin/main             # 簡易テスト。main から増えた・変わった武器とパーツだけを試し、名前の重なりとカスタマイズの全部の一覧を確かめ、Bot 戦を2マップ60秒
+node tools/test/names_check.js                         # 同じ表（オブジェクト）の重複キー（後の方だけが残り、気付きにくい。#192）。ブラウザ不要
 python3 tools/test/make_dbg.py dbg                     # 動作確認用の dbg/dbg.html を作る（__g で中の状態を読める）
 node tools/test/run_checks.js --since origin/main      # main から増えた・変わった *_check.js を1つずつ回してまとめを出す（名前を並べてもよい）
 node tools/test/weapons_check.js dbg                   # 全武器を撃ってエラーが無いか

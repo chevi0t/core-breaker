@@ -5,6 +5,7 @@
 //   2. 増えた・変わった武器だけ weapons_check.js で撃つ（ONLY=）
 //   3. 増えた・変わったパーツは1つずつ、ほかの部位は初期のまま付けて、4部位のメッシュ・頭の高さ・重さと装甲・部位ごとの被弾、
 //      立ち・歩き・屈みの姿勢（頂点が有限、脚が地面に埋まらない）を確かめる
+//   名前の重なり（names_check.js）と、カスタマイズの全部の一覧（custom_lists_check.js）
 //   4. Bot戦を短く回す（city と、増えた・変わったマップ。マップの変更が無ければ city と dock）
 // 作業フォルダは dbg/quick-new と dbg/quick-base。Playwright と Chromium が要る。
 const path = require('path'), fs = require('fs'), vm = require('vm'), { spawnSync, execFileSync } = require('child_process');
@@ -121,6 +122,10 @@ async function catalog(browser, dir) {
     console.log(`武器 ${wl.length}種を撃つ: ${wl.join(',')}`);
     if (run('node', ['tools/test/weapons_check.js', NEW], { ONLY: wl.join(',') })) failures.push('weapons_check が失敗');
   } else console.log('武器：試す物なし');
+
+  // 名前の重なりとカスタマイズの一覧（2026-11-06。シリーズ名の重複で支援の補助装備の一覧が開けなかった #192 から）
+  if (run('node', ['tools/test/names_check.js'])) failures.push('names_check（同じオブジェクトの重複キー）が失敗');
+  if (run('node', ['tools/test/custom_lists_check.js', NEW])) failures.push('custom_lists_check（カスタマイズの一覧・名前の重なり）が失敗');
 
   // 4. Bot戦
   const fresh = [...maps.added, ...maps.changed].filter(id => !mapData(fs.readFileSync(path.join(ROOT, 'prototype/maps.js'), 'utf8'))[id].testOnly);

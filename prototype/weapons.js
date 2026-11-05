@@ -344,7 +344,7 @@ function buildWeaponGeo(id, part) {
     box(.5,.28,.5,accent,0,-.15,-.65); box(.4,.35,.6,dark,0,-.04,.82);
     for(let i=0;i<3;i++) box(.055,.32,.08,steel,.31,-.04,.25-i*.18);
   } else if (f === 'stunner') {
-    // スタナー（2026-11-05、オーナーのオリジナル。形は本作のオリジナル）：短い本体の先に二股の放電端子、中ほどに巻いたコイルと蓄電筒
+    // スタンガン（2026-11-05、オーナーのオリジナル。形は本作のオリジナル）：短い本体の先に二股の放電端子、中ほどに巻いたコイルと蓄電筒
     receiver(.5,.46,.9);
     for (const x of [-.17,.17]) { box(.1,.12,.75,steel,x,.04,-.75); box(.14,.16,.12,accent,x,.04,-1.12); box(.05,.05,.12,0x9fe8ff,x,.04,-1.22); }
     box(.24,.08,.3,dark,0,.04,-.55);
@@ -542,10 +542,10 @@ const WEAPONS = {
   // AC FAS系統 pages/948：{"kg": 490, "count": 5, "dmg": 230, "mag": 6, "rpm": 120, "reload": 1.5, "dur": 8.4, "roamSpeed": 10}。原典と再現値の区別は auxiliary.json。
   flyTurret: {"name":"巡航自動銃","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1,"spread":0,"noResupply":true,"desc":"投げた方向へ巡航しながら、下方の見える敵を自動射撃。一定時間で消える。攻撃で破壊できる","proj":{"kind":"sentry","model":"flyTurret","speed":22,"grav":12,"airDeploy":0.45,"riseHeight":3,"hp":1500,"max":5,"drawLift":0,"eyeY":0.35,"tip":[0,0,-0.95],"gun":{"dmg":230,"mag":6,"rpm":120,"reload":1.5,"range":60,"spread":0.018,"sfx":"pistol","energy":true},"dur":8.4,"roamSpeed":10,"downOnly":true}},
   // AC スタングレネード系統 pages/957：{"kg": 210, "count": 3, "stunSeconds": 2.5, "blast": 15, "fuse": 3, "reload": 1}。原典と再現値の区別は auxiliary.json。
-  // スタナー（2026-11-05、オーナーのオリジナル：「チャージ武器、前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」。数値は本作の仮の値）。
+  // スタンガン（2026-11-05、オーナーのオリジナル：「チャージ武器、前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」。数値は本作の仮の値）。
   // 左長押しで溜め、離すと前方に電撃の範囲を張る。範囲の長さ・残る秒・威力は溜めた割合で len・time・dmg の間を進む。
   // 範囲に入った敵機は1回だけ dmg を受け、範囲の中にいる間と出てから shock 秒、ブースト・ダッシュ・ジャンプができず歩きも遅い（射撃はできる）。
-  stunner: { name: 'スタナー', type: 'gun', sfx: 'beam', rpm: 60, mag: 3, mags: 3, reload: 3, spread: 0, chargeTime: 1, chargeHold: 3, ohTime: 2,
+  stunner: { name: 'スタンガン', type: 'gun', sfx: 'beam', rpm: 60, mag: 3, mags: 3, reload: 3, spread: 0, chargeTime: 1, chargeHold: 3, ohTime: 2,
     stunField: { len: [6, 12], width: 7, height: 5, time: [.6, 1.4], dmg: [300, 1200], shock: .8, slow: .35 },
     desc: '左長押しで溜め、離すと前方に電撃の範囲を張る。ダメージは小さいが、範囲の敵機はブースト・ダッシュ・ジャンプができず歩きも遅くなる' },
   stunGrenade: {"name":"電撃グレネード","type":"gun","rpm":60,"mag":1,"mags":3,"reload":1,"spread":0,"noResupply":true,"desc":"時間で炸裂し、範囲内の敵だけを立ったまま硬直させる。ダメージはない","proj":{"kind":"grenade","speed":32,"grav":24,"fuse":3,"blast":15,"stunSeconds":2.5}},
