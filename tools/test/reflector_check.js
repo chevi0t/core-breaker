@@ -1,4 +1,4 @@
-// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、マップで2点、予告、照射、動けない、敵のマップに映る、味方に当たらない、中断、Bot の線
+// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、マップで2点、始点の細いレーザー、溜め、照射、行先の変更、動けない、敵のマップに映る、味方に当たらない、中断、警告、Bot の線
 // node tools/test/reflector_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
 check('反射衛星砲', async ({ ev, ok, sortie }) => {
@@ -35,18 +35,22 @@ check('反射衛星砲', async ({ ev, ok, sortie }) => {
     let sl = reset(), w = sl.w;
     yes(g.isArtilleryMode(u) && u.planted, '選ぶとマップの射撃モード（動けない）');
     yes(g.reflectorConfirm(u, P(0)) && u.reflect.phase === 'aim' && sl.heat === 100, '1回目のクリックで始点。SPはまだ使わない');
+    step(.1);
+    yes(u.reflectVisual?.root.visible && u.reflectVisual.downCore.visible && u.reflectVisual.downCore.scale.x < .2 && u.reflectVisual.ret.visible, '始点に細いターゲットレーザーと照準マーカーが出る');
+    yes(g.spotted[e.team].has(u), '始点を決めた時から敵のマップに映る');
+    yes(g.reflectDanger(e, 10) === null && (e.pos.copy(P(2)), sync(), g.reflectDanger(e, 10)?.by === u), '始点の近くの敵機に警告が出る（遠ければ出ない）');
+    e.pos.copy(P(20)); sync();
     u.reflectClickAt = -9;
     yes(g.reflectorConfirm(u, P(200)) && u.reflect.phase === 'warn', '2回目のクリックで終点、予告が始まる');
     yes(Math.abs(u.reflect.len - w.sweep) < .01, `終点は最長${w.sweep}mに収まる`);
     yes(sl.heat === 0 && sl.overheat, '予告が始まるとSPを全部使う');
-    const spotted = g.spotted[e.team].has(u) || (step(.1), g.spotted[e.team].has(u));
-    yes(spotted, '予告の間から敵のマップに映る');
     yes(u.reflectVisual?.root.visible && u.reflectVisual.upCore.scale.y > 200, '真上へ光の柱が伸びる');
     step(w.warn);
-    yes(u.reflect?.phase === 'fire' && u.reflectFired === 1, `予告${w.warn}秒の後に照射`);
+    yes(u.reflect?.phase === 'fire' && u.reflectFired === 1, `終点を決めて${w.warn}秒で照射`);
+    yes(u.reflectVisual.downCore.scale.x > 1 && !u.reflectVisual.ret.visible, '照射が始まるとターゲットレーザーと照準マーカーは消え、太い光になる');
     const hp0 = e.hp, ahp0 = a.hp, pos0 = u.pos.clone();
     step(4);
-    const got = hp0 - e.hp, expect = w.dps * (2 * (w.radius + g.R)) / w.speed;
+    const got = hp0 - e.hp, expect = w.dps * g.armorMult(e) * (2 * (w.radius + g.R)) / w.speed; // 装甲の倍率込み
     yes(got > expect * .8 && got < expect * 1.2, `光が通った敵機に約${Math.round(expect)}のダメージ（${Math.round(got)}）`);
     yes(a.hp === ahp0, '光が通った味方には当たらない');
     yes(u.pos.distanceTo(pos0) < .01 && u.planted && g.isArtilleryMode(u), '照射中は構えたまま動けない');
@@ -58,6 +62,16 @@ check('反射衛星砲', async ({ ev, ok, sortie }) => {
     g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(40)); step(w.warn + .5);
     step(.02, P(0), true);
     yes(!g.isArtilleryMode(u) && !u.reflect && !u.reflectVisual.root.visible, '右クリックで中断できる');
+    // 照射中の左クリックで行先の変更（今の光の位置から、なぞれる残りまで）
+    sl = reset(); g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(60)); step(w.warn + 2);
+    const at0 = u.reflect.at.clone(), gone = u.reflect.along; u.reflectClickAt = -9;
+    const side = P(0); side.x += 200;
+    yes(g.reflectorConfirm(u, side) && u.reflect.redirects === 1 && u.reflect.phase === 'fire', '照射中の左クリックで行先を変えられる');
+    yes(Math.hypot(u.reflect.a.x - at0.x, u.reflect.a.z - at0.z) < .01 && u.reflect.dir.x > .99, '新しい線は今の光の位置から、クリックした向きへ');
+    yes(Math.abs(u.reflect.len - (w.sweep - gone)) < .01, `なぞれる長さは最長${w.sweep}mから通った分（${gone.toFixed(1)}m）を引いた残り`);
+    step(.5); yes(u.reflect.at.x > at0.x + 1, '光が新しい向きへ進む');
+    step(.04, P(0), true);
+    yes(!u.reflect, '照射中も右クリックで中断できる');
     // 満タンでなければ構えない
     sl = reset(); sl.heat = 60; sl.overheat = false; step(.04);
     yes(!g.isArtilleryMode(u), 'SPが満タンでなければ構えを解く');
@@ -79,19 +93,21 @@ check('反射衛星砲', async ({ ev, ok, sortie }) => {
     mate.alive = false; mate.pos.set(10000, 0, 10000);
     bot.weapon = 'main'; g.selectWeapon(bot, 'sp'); bot.switchT = 0; bot.reflectPlan = plan;
     g.weaponsTick(bot, .02, true, plan.a, 0, false);
-    yes(bot.reflect?.phase === 'warn' && Math.abs(bot.reflect.len - plan.len) < .01, 'Bot は決めた2点で照射を始める');
+    yes(bot.reflect?.phase === 'aim', 'Bot もまず始点を決める（細いレーザーが先に見える）');
+    bot.reflect.since -= plan.wait; bot.reflectClickAt = -9; g.weaponsTick(bot, .02, true, plan.a, 0, false);
+    yes(bot.reflect?.phase === 'warn' && Math.abs(bot.reflect.len - plan.len) < .01, `Bot は${plan.wait.toFixed(1)}秒おいて終点を決める`);
     // 線の近くの敵機への警告と、地面の照準マーカー
     g.reflectorUpdate(); sync();
     const rv = bot.reflectVisual;
-    yes(rv && rv.retA.visible && rv.retB.visible && rv.band.some(m => m.visible), '溜めの間、地面に始点・終点の照準マーカーと赤い帯が出る');
+    yes(rv && rv.ret.visible && rv.downCore.visible && rv.downCore.scale.x < .2, '溜めの間は始点に照準マーカーと細いレーザー');
     const hz = g.reflectDanger(u, 10), off = dist(plan.a, plan.b, u.pos.clone().addScaledVector(hz?.dir || new T.Vector3(), 5));
     yes(hz && hz.by === bot && off > dist(plan.a, plan.b, u.pos), '線の上の敵機には、線から離れる向きを返す');
     g.reflectWarning(u, .02);
     yes(!g.$('reflectAlert').hidden && /照射まで/.test(g.$('reflectAlertInfo').textContent), '線の近くのプレイヤーに「照射警告」が出る');
     u.pos.copy(P(0)); u.pos.x += 60; g.reflectWarning(u, .02);
     yes(g.$('reflectAlert').hidden, '線から離れれば警告は消える');
-    const warns = { reflector: 3, reflectorW: 2.5, reflectorG: 5, reflectorF: 4 };
-    yes(Object.entries(warns).every(([k, t]) => g.WEAPONS[k].warn === t), '溜め時間：標準3秒・広域2.5秒・高出力5秒・長射程4秒');
+    const warns = { reflector: .5, reflectorW: .3, reflectorG: 1, reflectorF: .7 };
+    yes(Object.entries(warns).every(([k, t]) => g.WEAPONS[k].warn === t), '溜め時間：標準0.5秒・広域0.3秒・高出力1秒・長射程0.7秒（1秒以内）');
     g.clearArtillery();
     return out;
   });

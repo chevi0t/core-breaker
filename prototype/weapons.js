@@ -555,7 +555,7 @@ const WEAPONS = {
   // AC タイタン榴弾砲：900kg、10000×6、300m、5.5秒、誤差15m、爆風25m、54(44)秒。発射間隔1秒（364.html本文）。
   // 反射衛星砲（オーナーのオリジナル、2026-11-05）：真上の衛星へ撃ったレーザーを跳ね返し、マップで決めた始点から終点へ地上をなぞる。
   // speed：なぞる速さ（m/秒）、sweep：始点から終点までの最長（m）、radius：地上の光の円の半径（m）、dps：毎秒の威力、warn：照射までの溜め（秒。この間は線と警告が出る。オーナー「一撃死は理不尽だから射撃警告とかチャージ時間」）
-  reflector: { name: '反射衛星砲', type: 'reflector', noLock: true, plant: true, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, warn: 3, charge: 55, chargeKeep: 45, desc: 'マップで始点と終点を決めると、衛星で跳ね返したレーザーが地上をなぞる。照射中は移動不可で、真上への光で位置が知られる。右クリックで中断' },
+  reflector: { name: '反射衛星砲', type: 'reflector', noLock: true, plant: true, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, warn: .5, charge: 55, chargeKeep: 45, desc: 'マップで始点と終点を決めると、衛星で跳ね返したレーザーが地上をなぞる。照射中は移動不可で、真上への光で位置が知られる。右クリックで中断' },
   artillery: { name: '榴弾砲', type: 'artillery', noLock: true, plant: true, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44, desc: 'マップで爆撃中心を指定して自動連射。移動・旋回不可。右クリックで即中断。着弾2秒前に火柱と落下音' },
   // AC現行表：バリアユニット（413）。前方LV2、12500、50秒、50(45)秒、710kg。
   barrier: { name: '防護バリア', type: 'barrier', shieldHp: 12500, arc: 180, level: 2, use: 50, charge: 50, chargeKeep: 45, desc: '選ぶと照準の前半分を防御。再選択で停止。射撃と移動を続けられる。近接攻撃は防げない' },
@@ -989,10 +989,10 @@ const WEAPON_TYPES = {
     ['強装型', { kg: 1050, dmg: 24000, shots: 1, range: 350, flight: 10, scatter: 0, blast: 40, interval: null, charge: 62, chargeKeep: null }, '誤差なしの大威力1発。着弾まで10秒、使い切りの再充填が必要'], // AC ギガノト榴弾砲
   ] },
   // 反射衛星砲の型（オーナーのオリジナル。数字は Claude の仮置き、2026-11-05）
-  reflector: { w0: { kg: 900, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, warn: 3, charge: 55, chargeKeep: 45 }, types: [
-    ['広域型', { kg: 880, dps: 10000, speed: 25, sweep: 120, radius: 3, range: 250, warn: 2.5, charge: 58, chargeKeep: 47 }, '細い光で速く長くなぞる。最長120m'],
-    ['高出力型', { kg: 960, dps: 15000, speed: 6, sweep: 40, radius: 7, range: 250, warn: 5, charge: 62, chargeKeep: 50 }, '太い光でゆっくり狭くなぞる。最長40m'],
-    ['長射程型', { kg: 940, dps: 9000, speed: 10, sweep: 60, radius: 4, range: 500, warn: 4, charge: 56, chargeKeep: 45 }, '遠方500mまで届く。最長60m'],
+  reflector: { w0: { kg: 900, dps: 12000, speed: 12, sweep: 80, radius: 4, range: 300, warn: .5, charge: 55, chargeKeep: 45 }, types: [
+    ['広域型', { kg: 880, dps: 10000, speed: 25, sweep: 120, radius: 3, range: 250, warn: .3, charge: 58, chargeKeep: 47 }, '細い光で速く長くなぞる。最長120m'],
+    ['高出力型', { kg: 960, dps: 15000, speed: 6, sweep: 40, radius: 7, range: 250, warn: 1, charge: 62, chargeKeep: 50 }, '太い光でゆっくり狭くなぞる。最長40m'],
+    ['長射程型', { kg: 940, dps: 9000, speed: 10, sweep: 60, radius: 4, range: 500, warn: .7, charge: 56, chargeKeep: 45 }, '遠方500mまで届く。最長60m'],
   ] },
   barrier: { w0: { kg: 710, shieldHp: 12500, use: 50, charge: 50, chargeKeep: 45 }, types: [
     ['軽量型', { kg: 680, shieldHp: 7500, use: 60, charge: 40, chargeKeep: 35, arc: 360, level: 1 }, '全周を守り長く使えるが、防御面と耐久が小さい'], // AC バリアユニットβ
