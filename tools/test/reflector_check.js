@@ -1,4 +1,4 @@
-// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、右クリックを押している間の照射とカーソルの追従、離して終了、照射した時間のSP、始点の細いレーザー、溜め、動けない、敵のマップに映る、味方に当たらない、警告、Bot の線
+// 反射衛星砲（2026-11-05、オーナーのオリジナル）：型の数値、左クリックを押している間の照射（2026-11-06 オーナー：左で照射・右で構えを解く）とカーソルの追従、離して終了、照射した時間のSP、始点の細いレーザー、溜め、動けない、敵のマップに映る、味方に当たらない、警告、Bot の線
 // node tools/test/reflector_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
 check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
@@ -31,11 +31,11 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
       g.selectWeapon(u, 'sub'); u.switchT = 0; g.selectWeapon(u, 'sp'); u.switchT = 0; u.reflectClickAt = -9; sync();
       return u.slots.sp;
     };
-    const step = (t, aim = P(0), alt = false) => { for (let n = 0; n < Math.round(t / .02); n++) { g.weaponsTick(u, .02, false, aim, 0, alt); g.reflectorUpdate(); sync(); } };
+    const step = (t, aim = P(0), hold = false) => { for (let n = 0; n < Math.round(t / .02); n++) { g.weaponsTick(u, .02, hold, aim, 0, false); g.reflectorUpdate(); sync(); } };
     let sl = reset(), w = sl.w;
     const T0 = w.fireTime, rate = 100 / T0; // 照射できる秒と、毎秒のSP
     yes(g.isArtilleryMode(u) && u.planted, '選ぶとマップの射撃モード（動けない）');
-    yes(g.reflectorConfirm(u, P(0)) && u.reflect.phase === 'warn' && sl.heat === 100, '右クリックを押した所が始点で、溜めに入る。SPはまだ減らない');
+    yes(g.reflectorConfirm(u, P(0)) && u.reflect.phase === 'warn' && sl.heat === 100, '左クリックを押した所が始点で、溜めに入る。SPはまだ減らない');
     step(.1, P(0), true);
     yes(u.reflectVisual?.root.visible && u.reflectVisual.downCore.visible && u.reflectVisual.downCore.scale.x < .2 && u.reflectVisual.ret.visible, '溜めの間は始点に細いターゲットレーザーと照準マーカー');
     yes(u.reflectVisual.upCore.scale.y > 200, '真上へ光の柱が伸びる');
@@ -62,7 +62,7 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     yes(u.pos.distanceTo(pos0) < .01 && u.planted && g.isArtilleryMode(u), '照射中は構えたまま動けない');
     const hMid = sl.heat;
     step(.02, P(70), false);
-    yes(!g.isArtilleryMode(u) && u.weapon === 'sub' && !u.reflect, '右クリックを離すと照射が終わり、前の武器に戻る');
+    yes(!g.isArtilleryMode(u) && u.weapon === 'sub' && !u.reflect, '左クリックを離すと照射が終わり、前の武器に戻る');
     yes(Math.abs(sl.heat - hMid) < .5 && !sl.overheat, `離した所でSPは止まり、残り${sl.heat.toFixed(0)}`);
     g.reflectorUpdate(); yes(!u.reflectVisual.root.visible, '終わると光が消える');
     // 押し続ければ、SPが尽きた所で終わる
@@ -80,9 +80,11 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     const far = u.pos.clone(); far.x -= w.range + 200;
     const gl = g.reflectGoal(u, far);
     yes(Math.hypot(gl.x - u.pos.x, gl.z - u.pos.z) <= w.range, '射程の外のカーソルは、射程の円の端に収める');
-    // 照射していない時の左クリックで構えを解く
+    // 照射していない時に左を押し続けても構えは解けない（構えを解くのは右クリック）
     g.weaponsTick(u, .02, true, P(0), 0, false);
-    yes(!g.isArtilleryMode(u) && !u.reflect, '照射していない時の左クリックで構えを解く');
+    yes(g.isArtilleryMode(u) && !u.reflect, '照射していない時に左を押していても、構えは解けない');
+    g.aimPress(2, false);
+    yes(!g.isArtilleryMode(u) && !u.reflect, '右クリックで構えを解く');
     // 満タンでなければ構えない
     sl = reset(); sl.heat = 60; sl.overheat = false; step(.04);
     yes(!g.isArtilleryMode(u), 'SPが満タンでなければ構えを解く');
@@ -133,12 +135,18 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
   await page.keyboard.press('4'); await step(20);
   ok(await ev(() => !!__g.range && __g.isArtilleryMode(__g.player)), '射撃場で反射衛星砲を構える');
   await ev(() => { __g.mapCur.x = __g.player.pos.x; __g.mapCur.z = __g.player.pos.z - 40; });
-  await page.mouse.down({ button: 'right' }); await step(2);
-  ok(await ev(() => __g.player.reflect?.phase === 'warn'), '射撃場：右クリックを押すと溜めに入る');
+  await page.mouse.down({ button: 'left' }); await step(2);
+  ok(await ev(() => __g.player.reflect?.phase === 'warn'), '射撃場：左クリックを押すと溜めに入る');
   await step(20);
   const at1 = await ev(() => __g.player.reflect?.phase === 'fire' && __g.player.reflect.at.x);
   await ev(() => { __g.mapCur.x = __g.player.pos.x + 30; }); await step(20);
   ok(await ev(x => __g.player.reflect?.phase === 'fire' && __g.player.reflect.at.x > x + 3, at1), '射撃場：押したままカーソルを動かすと光が追う');
-  await page.mouse.up({ button: 'right' }); await step(2);
+  await page.mouse.up({ button: 'left' }); await step(2);
   ok(await ev(() => !__g.player.reflect && !__g.isArtilleryMode(__g.player)), '射撃場：離すと照射が終わる');
+  // 構えて、右クリックで解く
+  await ev(() => { const u = __g.player; u.slots.sp.heat = 100; u.slots.sp.overheat = false; });
+  await page.keyboard.press('4'); await step(20);
+  ok(await ev(() => __g.isArtilleryMode(__g.player) && !__g.player.reflect), '射撃場：もう一度構える');
+  await page.mouse.down({ button: 'right' }); await step(2); await page.mouse.up({ button: 'right' }); await step(2);
+  ok(await ev(() => !__g.player.reflect && !__g.isArtilleryMode(__g.player) && __g.player.slots.sp.heat > 99), '射撃場：右クリックで構えを解く（SPは減らない）');
 });
