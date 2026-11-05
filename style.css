@@ -1085,11 +1085,21 @@ body[data-console="retro"] .preLockMark.selected { filter:drop-shadow(0 0 4px #e
 #lockMark .lock-arm { fill:none; stroke:var(--ta-lock); stroke-width:2.6; stroke-linejoin:miter; stroke-linecap:butt; }
 body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-text); }
 @media(prefers-reduced-motion:reduce) { #taSp.act #taSpFill { animation:none; filter:brightness(1.3); } }
-/* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。 */
-body:is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
-body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="mechanical"] #mechBoost { display:none; }
+/* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。
+   旧い照準（aimClassic）では前のとおり出す（2026-11-05 オーナー「旧HUD復活させたけど下部に置いてたゲージとか復旧できてない」） */
+body:not(.aimClassic):is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
+body:not(.aimClassic)[data-console="flight"] #status :is(#boostRow,#spRow), body:not(.aimClassic)[data-console="mechanical"] #mechBoost { display:none; }
 /* 反射衛星砲の照射警告（線の近くにいる時） */
 #reflectAlert { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); padding: 6px 18px; background: rgba(160,20,20,.82); color: #fff; font-size: 20px; font-weight: 700; border: 2px solid #ff8a7a; border-radius: 4px; text-align: center; pointer-events: none; z-index: 30; animation: reflectBlink .5s steps(2) infinite; }
 #reflectAlert small { display: block; font-size: 12px; font-weight: 400; }
 #reflectAlert[hidden] { display: none; }
 @keyframes reflectBlink { 50% { opacity: .55; } }
+/* X字の照準（2026-11-05 オーナーのスケッチ）：照準のまわりの円と斜めの4本。スコアは右下の残弾の棒の下 */
+#taRing { display:none; fill:none; stroke:var(--ta-cursor); stroke-width:1.5; opacity:.7; }
+body.aimX #taRing { display:inline; }
+body.aimX #triangleAim path { stroke-width:6; }
+body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(--xs-y, 46px)); }
+/* 照準の形のプルダウン（オプションの HUD） */
+.aimStyle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 12px; }
+.aimStyle span { display: grid; gap: 2px; } .aimStyle small { opacity: .7; font-size: 11px; }
+.aimStyle select { flex: none; padding: 6px 8px; background: #101c27; color: var(--hud); font: inherit; border: 1px solid var(--dim); }
