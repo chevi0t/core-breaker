@@ -12,6 +12,7 @@ const MODEL_OF = {
   mirage: ['mirage', 0], mirageH: ['mirage', 1], mirageL: ['mirage', 2], mirageD: ['mirage', 2],
   missile: ['missileRack', 0], mlrs: ['missileRack', 1],
   waveSword: ['waveSword', 0],
+  stunner: ['stunner', 0],
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
@@ -342,6 +343,13 @@ function buildWeaponGeo(id, part) {
     for(let i=0;i<count;i++) barrel(v===1?.13:.17,v===2?1.4:.9,v===2?-1:-.78,(i-(count-1)/2)*.27);
     box(.5,.28,.5,accent,0,-.15,-.65); box(.4,.35,.6,dark,0,-.04,.82);
     for(let i=0;i<3;i++) box(.055,.32,.08,steel,.31,-.04,.25-i*.18);
+  } else if (f === 'stunner') {
+    // スタナー（2026-11-05、オーナーのオリジナル。形は本作のオリジナル）：短い本体の先に二股の放電端子、中ほどに巻いたコイルと蓄電筒
+    receiver(.5,.46,.9);
+    for (const x of [-.17,.17]) { box(.1,.12,.75,steel,x,.04,-.75); box(.14,.16,.12,accent,x,.04,-1.12); box(.05,.05,.12,0x9fe8ff,x,.04,-1.22); }
+    box(.24,.08,.3,dark,0,.04,-.55);
+    for (let i=0;i<4;i++) add(new T.TorusGeometry(.2,.035,5,14),i%2?accent:steel,0,.04,-.12-i*.13);
+    cyl(.13,.55,dark,0,.34,.15,'z'); cyl(.09,.5,0x7cfbd1,0,.34,.15,'z',.09,8);
   } else if (f === 'waveSword') {
     // 二枚の導光レールと刃の発振器。既存ソードと同じ握り位置を持つオリジナル形。
     box(.16,.42,3.25,steel,0,0,-.12); box(.2,.12,2.85,accent,0,0,-.25);
@@ -449,7 +457,7 @@ return { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat };
 // 武器の表：重量・武器・兵装・機体カスタマイズの一覧・シリーズ・型・主武器の反動。本体の「兵装と武器」の位置で呼ぶ
 function weaponTables() {
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, waveSword: 230, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900, reflector: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -534,6 +542,12 @@ const WEAPONS = {
   // AC FAS系統 pages/948：{"kg": 490, "count": 5, "dmg": 230, "mag": 6, "rpm": 120, "reload": 1.5, "dur": 8.4, "roamSpeed": 10}。原典と再現値の区別は auxiliary.json。
   flyTurret: {"name":"巡航自動銃","type":"gun","rpm":60,"mag":1,"mags":5,"reload":1,"spread":0,"noResupply":true,"desc":"投げた方向へ巡航しながら、下方の見える敵を自動射撃。一定時間で消える。攻撃で破壊できる","proj":{"kind":"sentry","model":"flyTurret","speed":22,"grav":12,"airDeploy":0.45,"riseHeight":3,"hp":1500,"max":5,"drawLift":0,"eyeY":0.35,"tip":[0,0,-0.95],"gun":{"dmg":230,"mag":6,"rpm":120,"reload":1.5,"range":60,"spread":0.018,"sfx":"pistol","energy":true},"dur":8.4,"roamSpeed":10,"downOnly":true}},
   // AC スタングレネード系統 pages/957：{"kg": 210, "count": 3, "stunSeconds": 2.5, "blast": 15, "fuse": 3, "reload": 1}。原典と再現値の区別は auxiliary.json。
+  // スタナー（2026-11-05、オーナーのオリジナル：「チャージ武器、前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」。数値は本作の仮の値）。
+  // 左長押しで溜め、離すと前方に電撃の範囲を張る。範囲の長さ・残る秒・威力は溜めた割合で len・time・dmg の間を進む。
+  // 範囲に入った敵機は1回だけ dmg を受け、範囲の中にいる間と出てから shock 秒、ブースト・ダッシュ・ジャンプができず歩きも遅い（射撃はできる）。
+  stunner: { name: 'スタナー', type: 'gun', sfx: 'beam', rpm: 60, mag: 3, mags: 3, reload: 3, spread: 0, chargeTime: 1, chargeHold: 3, ohTime: 2,
+    stunField: { len: [8, 18], width: 7, height: 5, time: [.6, 1.4], dmg: [300, 1200], shock: .8, slow: .35 },
+    desc: '左長押しで溜め、離すと前方に電撃の範囲を張る。ダメージは小さいが、範囲の敵機はブースト・ダッシュ・ジャンプができず歩きも遅くなる' },
   stunGrenade: {"name":"電撃グレネード","type":"gun","rpm":60,"mag":1,"mags":3,"reload":1,"spread":0,"noResupply":true,"desc":"時間で炸裂し、範囲内の敵だけを立ったまま硬直させる。ダメージはない","proj":{"kind":"grenade","speed":32,"grav":24,"fuse":3,"blast":15,"stunSeconds":2.5}},
   // AC ND索敵センサー系統 pages/692：{"kg": 340, "count": 2, "scan": 160, "keep": 10}。原典と再現値の区別は auxiliary.json。
   planeSensor: {"name":"索敵カーテン","type":"gun","rpm":60,"mag":1,"mags":2,"reload":1,"spread":0,"noResupply":true,"desc":"設置した向きの真横へ、上下左右の円盤状の索敵面を展開。面を横切る敵を10秒表示する","proj":{"kind":"sensor","model":"planeSensor","speed":24,"grav":24,"life":5,"hp":3000,"max":2,"scan":160,"keep":10,"planar":true}},
@@ -805,7 +819,7 @@ const ARMORY = {
   assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
   heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
-  support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
+  support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox', 'stunner'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
 };
 // 武器のキー（形を選ぶのに使う）と、投げる物の形（v0.11.1）
 // 射撃音（v0.11.3、ユーザー指定「射撃音のバリエーションを増やす」）：同じ音を使う武器は、音の種類と高さ（sfxRate）を変えて聞き分けられるようにする。
@@ -834,6 +848,7 @@ const SERIES = {
   vp: { maker: 'volca', types: [['missile', 'VP-4']] },
   gq: { maker: 'gard', types: [['mlrs', 'GQ-6']] },
   lj: { maker: 'lumina', types: [['waveSword', 'LJ-6']] },
+  ie: { maker: 'iris', types: [['stunner', 'IE-3']] },
   sy: { maker: 'sylph', types: [['sabre', 'SY-2']] },
   lk: { maker: 'lumina', types: [['rod', 'LK-4']] },
   sc: { maker: 'sylph', types: [['claw', 'SC-9']] },
