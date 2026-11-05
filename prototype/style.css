@@ -1088,3 +1088,8 @@ body[data-console="mechanical"] #lockMark .info { display:block; color:var(--ta-
 /* ユーザー指定（2026-11-04）：下部の重複計器を整理。状態更新に使うDOMは保持する。 */
 body:is([data-console="standard"],[data-console="mechanical"]) #status { display:none; }
 body[data-console="flight"] #status :is(#boostRow,#spRow), body[data-console="mechanical"] #mechBoost { display:none; }
+/* 反射衛星砲の照射警告（線の近くにいる時） */
+#reflectAlert { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); padding: 6px 18px; background: rgba(160,20,20,.82); color: #fff; font-size: 20px; font-weight: 700; border: 2px solid #ff8a7a; border-radius: 4px; text-align: center; pointer-events: none; z-index: 30; animation: reflectBlink .5s steps(2) infinite; }
+#reflectAlert small { display: block; font-size: 12px; font-weight: 400; }
+#reflectAlert[hidden] { display: none; }
+@keyframes reflectBlink { 50% { opacity: .55; } }
