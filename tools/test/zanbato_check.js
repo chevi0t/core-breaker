@@ -79,6 +79,16 @@ check('斬馬刀の連続技と居合', async ({ ev, ok, sortie }) => {
     await put(d); const r = await pass(mode, d);
     ok(r.ahead > 2 && r.minD > 2.4 && r.dmg > 0, `${mode}：ロックした敵（${d}m先）の手前で止まって当てる（一番近づいて ${r.minD}m、通り過ぎない） ` + JSON.stringify(r));
   }
+  // ロックした敵へ吸いつく（オーナー 2026-11-06「ロックオンしてもあんまり敵の方に吸いつかんね」）：12m先・斜め50度でも1段目が届く
+  const pull = side => ev(side => { const g = __g, p = g.player, e = window.__e, sl = p.slots.aux, dt = 1 / 60, f = g.fwdOf(p).setY(0).normalize(), rt = new g.T.Vector3(-f.z, 0, f.x);
+    e.pos.copy(p.pos).addScaledVector(f, 12 * Math.cos(side)).addScaledVector(rt, 12 * Math.sin(side)); e.pos.y = g.groundAt(e.pos.x, e.pos.z, e.pos.y + 20); e.group.position.copy(e.pos);
+    g.lock.target = e; const hp = e.hp; let minD = 1e9;
+    for (let i = 0; i < 60; i++) { g.swordTick(p, sl, dt, i === 0, g.targetPoint(e)); g.physics(p, new g.T.Vector3(), false, false, dt); minD = Math.min(minD, Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z)); }
+    g.lock.target = null; return { dmg: Math.round(hp - e.hp), minD: +minD.toFixed(2) }; }, side);
+  for (const side of [0, 50 * Math.PI / 180]) {
+    await put(12); const r = await pull(side);
+    ok(r.dmg > 1500 && r.minD > 2.4, `ロックした敵へ吸いつく：12m先・${Math.round(side * 180 / Math.PI)}度の敵へ1段目で詰めて当てる ` + JSON.stringify(r));
+  }
   // R で納刀・抜刀（プレイヤーの入力）
   const toggle = await ev(() => { const g = __g, p = g.player, sl = p.slots.aux; Object.assign(p, { swing: null }); sl.sheathed = false;
     g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; const a = sl.sheathed; g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; return [a, sl.sheathed]; });
