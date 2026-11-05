@@ -58,10 +58,12 @@ check('斬馬刀の連続技と居合', async ({ ev, ok, sortie }) => {
     return { charge: +charge.toFixed(2), moved: +Math.hypot(p.pos.x - from.x, p.pos.z - from.z).toFixed(1), dmg: Math.round(hp - e.hp), stun: e.stun, sheathed: sl.sheathed, peak: +peak.toFixed(1) }; }, hold);
   await put(22);
   const full = await iai(70);
-  ok(full.charge === 1 && full.moved > 16 && full.dmg > 6000 * mult && full.stun === 'down' && !full.sheathed, `満タンの居合：突進して斬り抜け（${full.moved}m）、威力6500でダウン、撃つと抜刀に戻る ` + JSON.stringify(full));
+  const boost = await ev(() => +(__g.player.dashV * __g.SHORT_TIME).toFixed(2));
+  ok(full.charge === 1 && Math.abs(full.peak - 2 * (await ev(() => __g.player.dashV))) < 1 && full.moved > 2 * boost - 1 && full.moved < 2 * boost + 6 && full.dmg > 4000 && full.stun === 'stagger' && !full.sheathed,
+    `満タンの居合：前ブースト（${boost}m）の2倍の距離を2倍の速さで踏み込み（${full.moved}m）、威力5000でよろけ、撃つと抜刀に戻る ` + JSON.stringify(full));
   await put(22);
   const tap = await iai(4);
-  ok(tap.moved > 5 && tap.moved < full.moved - 5 && tap.dmg === 0, `短い居合は突進が短い（${tap.moved}m、22m先の相手には届かない）`);
+  ok(tap.moved > boost - 1 && tap.moved < full.moved - 5 && tap.dmg === 0, `短い居合は前ブーストくらいの距離（${tap.moved}m、22m先の相手には届かない）`);
   await put(9);
   const near = await iai(4);
   ok(near.dmg > 2900 * mult && near.dmg < 3600 * mult && near.stun === 'stagger', `短い居合でも近ければ当たり、威力約3000でよろけ（${near.dmg}） ` + JSON.stringify(near));
@@ -75,7 +77,7 @@ check('斬馬刀の連続技と居合', async ({ ev, ok, sortie }) => {
       g.swordTick(p, sl, dt, trig, g.targetPoint(e)); g.physics(p, new g.T.Vector3(), false, false, dt); meas();
       if (e.stunT > 0) e.stunT -= dt; if (e.stunT <= 0 && e.stun === 'stagger') e.stun = ''; }
     g.lock.target = null; return { minD: +minD.toFixed(2), ahead: +ahead.toFixed(2), dmg: Math.round(hp - e.hp) }; }, [mode, d]);
-  for (const [mode, d] of [['combo', 7], ['iai', 14], ['dash', 12]]) {
+  for (const [mode, d] of [['combo', 7], ['dash', 12]]) {
     await put(d); const r = await pass(mode, d);
     ok(r.ahead > 2 && r.minD > 2.4 && r.dmg > 0, `${mode}：ロックした敵（${d}m先）の手前で止まって当てる（一番近づいて ${r.minD}m、通り過ぎない） ` + JSON.stringify(r));
   }
@@ -89,6 +91,35 @@ check('斬馬刀の連続技と居合', async ({ ev, ok, sortie }) => {
     await put(12); const r = await pull(side);
     ok(r.dmg > 1500 && r.minD > 2.4, `ロックした敵へ吸いつく：12m先・${Math.round(side * 180 / Math.PI)}度の敵へ1段目で詰めて当てる ` + JSON.stringify(r));
   }
+  // 居合は通り道の前にいる刃の届く敵を全員斬る（オーナー 2026-11-06）。正面・左右にずれた3機、届かない横の1機
+  const multi = await ev(() => { const g = __g, p = g.player, sl = p.slots.aux, dt = 1 / 60, f = g.fwdOf(p).setY(0).normalize(), rt = new g.T.Vector3(-f.z, 0, f.x);
+    const foes = g.units.filter(q => q.team !== p.team).slice(0, 4), spots = [[6, 0], [12, 2.5], [18, -3], [12, 9]];
+    foes.forEach((e, i) => { Object.assign(e, { alive: true, hp: 1e6, maxHp: 1e6, invulT: 0, stun: '', stunT: 0, downT: 0, frozen: true }); e.group.visible = true;
+      e.pos.copy(p.pos).addScaledVector(f, spots[i][0]).addScaledVector(rt, spots[i][1]); e.pos.y = g.groundAt(e.pos.x, e.pos.z, e.pos.y + 20); e.group.position.copy(e.pos); });
+    g.lock.target = null; sl.sheathed = true; sl.chargeT = 0;
+    for (let i = 0; i < 70; i++) g.swordTick(p, sl, dt, true, null);
+    for (let i = 0; i < 70; i++) { g.swordTick(p, sl, dt, false, null); g.physics(p, new g.T.Vector3(), false, false, dt); }
+    const r = foes.map(e => [Math.round(1e6 - e.hp), e.stun]);
+    foes.forEach((e, i) => { if (e !== window.__e) { e.alive = false; e.group.visible = false; e.pos.set(9999, 0, 9999); } });
+    return r; });
+  ok(multi.length === 4 && multi.slice(0, 3).every(([d, s]) => d > 3000 && s === 'stagger') && multi[3][0] === 0, '居合は通り道の前で刃の届く3機を全員斬ってよろけさせ、9m横の1機には届かない ' + JSON.stringify(multi));
+  // 型ごとの居合（オーナー 2026-11-06 カードで「連閃・重閃」）：強装型は満タンで抜けた直後にもう一度押すと二の太刀、重装型は溜め1.5秒で当てた敵をダウン
+  const variant = (key, hold, presses) => ev(([key, hold, presses]) => { const g = __g, p = g.player, e = window.__e, dt = 1 / 60; p.slots.aux = g.slotOf(key); g.selectWeapon(p, 'aux'); p.switchT = 0;
+    const sl = p.slots.aux, from = p.pos.clone(), hp = e.hp, names = []; sl.sheathed = true; sl.chargeT = 0; sl.cd = 0;
+    for (let i = 0; i < hold; i++) g.swordTick(p, sl, dt, true, null);
+    const charge = +(sl.chargeT / sl.w.iai.charge).toFixed(2);
+    for (let i = 0; i < 120; i++) { g.swordTick(p, sl, dt, presses.includes(i), null); g.physics(p, new g.T.Vector3(), false, false, dt); const n = p.swing?.a.dashName; if (n && !names.includes(n)) names.push(n); }
+    const r = { charge, names, moved: +Math.hypot(p.pos.x - from.x, p.pos.z - from.z).toFixed(1), dmg: Math.round(hp - e.hp), stun: e.stun };
+    p.slots.aux = g.slotOf('sabre'); g.selectWeapon(p, 'aux'); return r; }, [key, hold, presses]);
+  await put(30);
+  const ren = await variant('sabreH', 70, [8]);
+  ok(ren.names.length === 2 && ren.moved > 40 && ren.dmg > 0, `強装型の連閃：満タンで抜けた直後にもう一度押すと二の太刀（${ren.moved}m、30m先の敵に届く） ` + JSON.stringify(ren));
+  await put(30);
+  const single = await variant('sabreH', 70, []);
+  ok(single.names.length === 1 && single.moved < 25, '強装型も押さなければ1回だけ ' + JSON.stringify(single));
+  await put(15);
+  const heavyShort = await variant('sabreM', 70, []);
+  ok(heavyShort.charge < 1 && heavyShort.stun === 'down', `重装型の重閃：溜めは1.5秒（1.17秒で${Math.round(heavyShort.charge * 100)}%）、当てた敵はダウン ` + JSON.stringify(heavyShort));
   // R で納刀・抜刀（プレイヤーの入力）
   const toggle = await ev(() => { const g = __g, p = g.player, sl = p.slots.aux; Object.assign(p, { swing: null }); sl.sheathed = false;
     g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; const a = sl.sheathed; g.pressed.KeyR = true; g.playerUpdate(p, 1 / 60); g.pressed.KeyR = false; return [a, sl.sheathed]; });

@@ -545,7 +545,7 @@ function sabreCombo(normalHits, strongHits) {
       dashMotion: 'sabre', combo: i, flinch: last ? 0 : .5, strikes: [{ ...SABRE_CUTS[i], dmg, at: 0, sweep, hand: 1, down: last }] };
   });
 }
-const SABRE_DESC = '斬馬刀ほどの大きな刀。押すたびに袈裟→逆袈裟→横薙ぎ→面打ちとつながる連続技（当てると怯み、締めはダウン）。R で納刀し、長押しで溜めて離すと突進して抜刀一閃（居合）。ダッシュ中は4段の連続斬り';
+const SABRE_DESC = '斬馬刀ほどの大きな刀。押すたびに袈裟→逆袈裟→横薙ぎ→面打ちとつながる連続技（当てると怯み、締めはダウン）。R で納刀し、長押しで溜めて離すと、前ブーストの最大2倍の距離を2倍の速さで踏み込み、通り道の敵を全員斬り抜ける（居合・抜刀一閃、よろけ）。ダッシュ中は4段の連続斬り';
 const WEAPONS = {
   // AC NeLIS-T1（pages/694）：700kg・接触2700×2・毎秒7200×2・175m・回復40/35秒。
   // 本作調整：照射5秒はオーナー指定。準備.5秒・旋回毎秒5度・半径.6mは初期調整値。
@@ -566,7 +566,7 @@ const WEAPONS = {
     strong: { dmg: 6000, reach: 4.8, height: 2, from: 90, to: -630, spin: true, lunge: 16, windup: 0, sweep: .6, recover: 1, time: 1.6, homing: 1.8 },
     desc: '左長押しで充填し、離すと斬る。満充填なら振りに合わせて光波を1発放つ。短押しは斬撃のみ。直接威力は通常3000・ダッシュ6000' },
   // AC リヒトメッサー系統 pages/346：{"kg": 180, "normalHits": [2000, 3500], "strongHits": [4500]}。原典と再現値の区別は auxiliary.json。
-  sabre: {"name":"日本刀","type":"sword","acMelee":"sabre","combo":sabreCombo([2000, 3500],[4500]),"strong":auxiliaryMelee([4500],"sabre",true),"iai":{"charge":1,"dmg":[3000,6500],"lunge":[8,20]},"desc":SABRE_DESC},
+  sabre: {"name":"日本刀","type":"sword","acMelee":"sabre","combo":sabreCombo([2000, 3500],[4500]),"strong":auxiliaryMelee([4500],"sabre",true),"iai":{"charge":1,"dmg":[3000,5000],"mult":2},"desc":SABRE_DESC},
   // AC スパークロッド系統 pages/411：{"kg": 190, "normalHits": [2500, 2500], "strongHits": [4500, 3500]}。原典と再現値の区別は auxiliary.json。
   rod: {"name":"双短刀","type":"sword","acMelee":"rod","normal":auxiliaryMelee([2500, 2500],"rod"),"strong":auxiliaryMelee([4500, 3500],"rod",true),"desc":"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃","meleeDual":true},
   // AC ダブルクロー系統 pages/568：{"kg": 200, "normalHits": [2500, 2500], "strongHits": [3000, 3000]}。原典と再現値の区別は auxiliary.json。
@@ -966,8 +966,8 @@ const WEAPON_TYPES = {
     ['連射型', { dmg: 4800, rpm: 210, mag: 5, mags: 4, reload: 4, kg: 490, blast: 13, speed: 60, maxSpeed: 160, accel: 90, turn: 2.2, recoilV: 1.2 }, '5発を続けて撃てる。1発は軽いが出足が速い'],
   ] },
   sabre: { w0: {"kg":180,"normalHits":[2000,3500],"strongHits":[4500]}, types: [
-    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},SABRE_DESC],
-    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},SABRE_DESC],
+    ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000],"iai":{"chain":true}},SABRE_DESC+'。居合は「連閃」：満タンで抜けた直後にもう一度押すと、続けてもう一度抜ける'],
+    ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000],"iai":{"charge":1.5,"dmg":[3500,7000],"down":true}},SABRE_DESC+'。居合は「重閃」：溜めは1.5秒と長いが、当たった全員をダウンさせる'],
   ] },
   rod: { w0: {"kg":190,"normalHits":[2500,2500],"strongHits":[4500,3500]}, types: [
     ["強装型",{"kg":310,"normalHits":[2500,2500,3000],"strongHits":[4500,4500]},"左右の短刀で連撃。同時に当たった分は合算して姿勢異常を判定。ダッシュ中は右薙ぎ→両手で左薙ぎ→回転の三段連撃"],
@@ -1397,7 +1397,7 @@ function makeType(base, w0, t) {
       by('chargeTime',w,'chargeTime',.01);
     } else {
       w.normal=auxiliaryMelee(t.normalHits,w.acMelee);
-      if (w.combo) { w.combo = sabreCombo(t.normalHits, t.strongHits); w.normal = w.combo[0]; } // 斬馬刀の連続技
+      if (w.combo) { w.combo = sabreCombo(t.normalHits, t.strongHits); w.normal = w.combo[0]; if (t.iai) Object.assign(w.iai, t.iai); } // 斬馬刀の連続技と型ごとの居合
       w.strong=auxiliaryMelee(t.strongHits,w.acMelee,true,w.acMelee==='claw'?Math.max(0,Math.round((t.kg-200)/100)):w.acMelee==='sabre'?(t.kg>=390?2:1):0);
     }
     return w;
