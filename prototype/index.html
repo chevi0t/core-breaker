@@ -8452,7 +8452,7 @@ function artilleryUpdate(dt) {
 // 真上の衛星へレーザーを撃ち、跳ね返した光でマップの始点から終点へ地上をなぞる。始点・終点はマップで左クリック2回（終点は最長 sweep m まで）。
 // 始点で細いターゲットレーザーと照準マーカー、終点で溜め（warn 秒、1秒以内）の後に照射。照射中の左クリックで行先の変更。線の近くの敵に警告。照射の間は構えたまま動けず、真上への光の柱が見え、敵のマップにも映る。
 // 地上の光の円（半径 radius）の中の敵機・デコイ・自機に毎秒 dps。屋根の下は当たらない。コアと砲台・レーダーは光が当たった所だけ。味方には当たらない。
-// SPは満タンで使え、予告が始まった時に全部使う（右クリックで中断しても戻らない）。
+// SPは満タンで使え、照射でなぞった長さに応じて減る（最長 sweep m をなぞると全部。2026-11-05、オーナー「照射時間に応じてSP消費してほしい」。前は終点を決めた時に全部使った）。
 const REFLECT_SKY = 320; // 衛星の高さ（見た目）
 const reflectOwners = new Set();
 const reflectCoreMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: .92, depthWrite: false, fog: false }));
@@ -8503,7 +8503,7 @@ function reflectorConfirm(u, p, end = null) {
   const from = f0 ? f0.a : a, b = reflectorClamp(u, from, end || p);
   if (!artilleryInRange(u, b)) return false;
   u.reflect = { phase: 'warn', ...reflectPath(from, b), t: w.warn, along: 0, used: 0, at: from.clone() };
-  spUse(sl, sl.heat); cancelSpawnInvul(u); sfx(w.sfx, u.pos, u, w.sfxRate);
+  cancelSpawnInvul(u); sfx(w.sfx, u.pos, u, w.sfxRate);
   return true;
 }
 function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
@@ -8528,7 +8528,9 @@ function reflectorTick(u, sl, dt, trigger, aim, on, cancel) {
     if (f.t > 0) return false;
     f.phase = 'fire'; u.reflectFired = (u.reflectFired || 0) + 1; sfx('sniper', f.a, u, .5);
   }
+  const along0 = f.along;
   f.along = Math.min(f.len, f.along + w.speed * dt);
+  spUse(sl, Math.min(sl.heat, (f.along - along0) * 100 / w.sweep)); // なぞった長さの分だけ（speed m/秒なので、照射した時間に比例）
   f.at.copy(f.a).addScaledVector(f.dir, f.along);
   const surface = artillerySurface(f.at), roof = surface.point.y, amount = w.dps * dt;
   f.at.y = roof;
@@ -10394,7 +10396,7 @@ function wStats(w) {
   else if (w.type === 'beamCannon') st.push(`毎秒 ${w.dps}×2・接触 ${w.contact}×2`,`照射 ${w.use}秒・射程${w.range}m`,`準備 ${w.warmup}秒`,`旋回 毎秒${Math.round(w.turnRate/DEG)}度`);
   else if (w.type === 'cannon') st.push(`威力 ${w.proj.dmg}×${w.shots}発`, `爆発半径 ${w.proj.blast}m`, `弾速 ${w.proj.speed}m/s`);
   else if (w.type === 'artillery') st.push(`威力 ${w.dmg}×${w.shots}発`, `射程 ${w.range}m`, `着弾 ${w.flight}秒`, `誤差 半径${w.scatter}m`, `爆風 半径${w.blast}m`, w.interval ? `間隔 ${w.interval}秒` : '単発');
-  else if (w.type === 'reflector') st.push(`毎秒 ${w.dps}`, `射程 ${w.range}m`, `なぞる 毎秒${w.speed}m・最長${w.sweep}m`, `光の半径 ${w.radius}m`, `溜め ${w.warn}秒`);
+  else if (w.type === 'reflector') st.push(`毎秒 ${w.dps}`, `射程 ${w.range}m`, `なぞる 毎秒${w.speed}m・最長${w.sweep}m`, `光の半径 ${w.radius}m`, `溜め ${w.warn}秒`, `SP 照射1秒で${+(w.speed * 100 / w.sweep).toFixed(1)}（最長で全部）`);
   else if (w.type === 'barrier') st.push(`防御 ${w.arc}度・LV${w.level}`, `耐久 ${w.shieldHp}`, `連続 ${w.use}秒`);
   else if (w.type === 'escort') st.push(`威力 ${w.dmg}`, `射程 ${w.range}m・射角${w.arc}度`, `弾倉 ${w.mag}発×無制限`, `連射 ${w.rpm}発/分`, `再装填 ${w.reload}秒`, `連続 ${w.use}秒`);
   else if (w.type === 'repairPost') st.push(`回復 毎秒${w.heal}`, `範囲 半径${w.radius}m`, `連続 ${w.use}秒`);

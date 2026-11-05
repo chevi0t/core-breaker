@@ -43,7 +43,7 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     u.reflectClickAt = -9;
     yes(g.reflectorConfirm(u, P(200)) && u.reflect.phase === 'warn', '2回目のクリックで終点、予告が始まる');
     yes(Math.abs(u.reflect.len - w.sweep) < .01, `終点は最長${w.sweep}mに収まる`);
-    yes(sl.heat === 0 && sl.overheat, '予告が始まるとSPを全部使う');
+    yes(sl.heat === 100, '予告の間はSPはまだ減らない（照射した時間の分だけ減る）');
     yes(u.reflectVisual?.root.visible && u.reflectVisual.upCore.scale.y > 200, '真上へ光の柱が伸びる');
     step(w.warn);
     yes(u.reflect?.phase === 'fire' && u.reflectFired === 1, `終点を決めて${w.warn}秒で照射`);
@@ -56,14 +56,22 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     yes(u.pos.distanceTo(pos0) < .01 && u.planted && g.isArtilleryMode(u), '照射中は構えたまま動けない');
     step(w.sweep / w.speed);
     yes(!g.isArtilleryMode(u) && u.weapon === 'sub' && !u.reflect, '最後までなぞると前の武器に戻る');
+    yes(sl.heat < 100 * 4.1 / w.charge && sl.overheat, `最長${w.sweep}mをなぞり切るとSPを全部使う（残り${sl.heat.toFixed(2)}は終わってから約4秒の回復）`);
     yes(!u.reflectVisual.root.visible, '終わると光が消える');
     // 中断
     sl = reset(); sl.heat = 100; sl.overheat = false;
     g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(40)); step(w.warn + .5);
+    const went = u.reflect.along, heatMid = sl.heat;
+    yes(Math.abs(heatMid - (100 - went * 100 / w.sweep)) < .5 && !sl.overheat, `短く照射するとSPは少しだけ減る（${went.toFixed(1)}m なぞって残り${heatMid.toFixed(1)}）`);
     step(.02, P(0), true);
     yes(!g.isArtilleryMode(u) && !u.reflect && !u.reflectVisual.root.visible, '右クリックで中断できる');
+    yes(Math.abs(sl.heat - heatMid) < .5, '中断するとそれ以上は減らない');
+    // 終点が近い（短い線）なら、そこまでの分だけ
+    sl = reset(); sl.heat = 100; sl.overheat = false;
+    g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(20)); step(w.warn + 20 / w.speed + .3);
+    yes(!u.reflect && Math.abs(sl.heat - (100 - 20 * 100 / w.sweep)) < 1, `20mの線をなぞり切るとSPは${(20 * 100 / w.sweep).toFixed(0)}だけ減る（残り${sl.heat.toFixed(1)}）`);
     // 照射中の左クリックで行先の変更（今の光の位置から、なぞれる残りまで）
-    sl = reset(); g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(60)); step(w.warn + 2);
+    sl = reset(); sl.heat = 100; sl.overheat = false; g.reflectorConfirm(u, P(0)); u.reflectClickAt = -9; g.reflectorConfirm(u, P(60)); step(w.warn + 2);
     const at0 = u.reflect.at.clone(), gone = u.reflect.along; u.reflectClickAt = -9;
     const side = P(0); side.x += 200;
     yes(g.reflectorConfirm(u, side) && u.reflect.redirects === 1 && u.reflect.phase === 'fire', '照射中の左クリックで行先を変えられる');
