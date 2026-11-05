@@ -12,7 +12,7 @@ check('スタンガンと電撃の痺れ', async ({ page, ev, step, ok, sortie, 
     window.__e = g.units.find(q => q.team !== p.team);
     for (const q of g.units) if (q !== p && q !== window.__e) { q.alive = false; q.group.visible = false; q.pos.set(9999, 0, 9999); } });
   const put = d => ev(d => { const g = __g, p = g.player, e = window.__e, f = g.fwdOf(p).setY(0).normalize();
-    Object.assign(e, { alive: true, hp: e.maxHp, invulT: 0, shockT: 0, electricT: 0, stun: '', downT: 0, dashT: 0, act: null }); e.pos.copy(p.pos).addScaledVector(f, d); e.vel.set(0, 0, 0); e.group.position.copy(e.pos);
+    Object.assign(e, { alive: true, hp: e.maxHp, invulT: 0, shockT: 0, electricT: 0, stunT: 0, stun: '', downT: 0, dashT: 0, act: null }); e.pos.copy(p.pos).addScaledVector(f, d); e.vel.set(0, 0, 0); e.group.position.copy(e.pos);
     for (const s of g.stunFields.splice(0)) g.scene.remove(s.mesh); }, d);
   const fire = hold => ev(hold => { const g = __g, p = g.player, sl = p.slots.aux, aim = g.targetPoint(window.__e); sl.cd = 0; sl.ammo = sl.w.mag;
     for (let t = 0; t < hold - 1e-9; t += .05) g.weaponsTick(p, .05, true, aim, 0); g.weaponsTick(p, .05, false, aim, 0);
@@ -25,16 +25,17 @@ check('スタンガンと電撃の痺れ', async ({ page, ev, step, ok, sortie, 
   ok(full && full.ammo === 1, '撃っても弾は減らない（無限）');
   const hp0 = await ev(() => window.__e.hp);
   await ev(() => __g.stunFieldUpdate(1 / 60));
-  const r1 = await ev(() => { const g = __g, e = window.__e; return { lost: e.maxHp - e.hp, mult: g.armorMult(e), shock: e.shockT }; });
-  ok(Math.abs(r1.lost - 1200 * r1.mult) < 2 && r1.shock > .95, '範囲の敵機は1回だけ小さなダメージを受け、機動の妨害がかかる');
+  const r1 = await ev(() => { const g = __g, e = window.__e; return { lost: e.maxHp - e.hp, mult: g.armorMult(e), shock: e.electricT, stun: e.stun }; });
+  ok(Math.abs(r1.lost - 1200 * r1.mult) < 2 && Math.abs(r1.shock - 1) < .02 && r1.stun === 'electric', '範囲の敵機は1回だけ小さなダメージを受け、1秒行動不能（電撃グレネードと同じ硬直）');
   await ev(() => { for (let i = 0; i < 20; i++) __g.stunFieldUpdate(1 / 60); });
-  ok(await ev(e => window.__e.maxHp - window.__e.hp) === r1.lost, '範囲の中に居続けても、ダメージは1回だけ');
-  ok(await ev(() => { const g = __g, e = window.__e, b = e.boost; return !g.shortDash(e, g.fwdOf(e)) && e.boost === b; }), '妨害の間はショートダッシュできない');
-  const walk = await ev(() => { const g = __g, e = window.__e, T = g.T; e.onGround = true; e.vel.set(0, 0, 0);
-    for (let i = 0; i < 30; i++) { e.shockT = Math.max(e.shockT, .5); g.physics(e, new T.Vector3(1, 0, 0), true, true, 1 / 60); }
-    return { sp: Math.hypot(e.vel.x, e.vel.z), walk: e.walkV, up: e.vel.y }; });
-  ok(walk.sp <= walk.walk * .36 && walk.up <= 0, `妨害の間はブーストを押しても歩きの35%まで（${walk.sp.toFixed(1)} m/s）、ジャンプもできない`);
-  ok(await ev(() => { const fx = window.__e.shockFx; return fx && fx.root.visible && fx.lines.userData.parts[0].count === 4 * 5; }) || (await ev(() => { __g.shockLook(window.__e, .05); const fx = window.__e.shockFx; return fx && fx.root.visible && fx.lines.userData.parts[0].count === 20; })), '妨害中の敵機には放電（4本）をまとわせる');
+  ok(await ev(e => window.__e.maxHp - window.__e.hp) === r1.lost && await ev(() => window.__e.electricT <= 1.001), '範囲の中に居続けても、ダメージと痺れは1回だけ（延びない）');
+  ok(await ev(() => { const g = __g, e = window.__e, b = e.boost; return !g.shortDash(e, g.fwdOf(e)) && e.boost === b; }), '痺れている間はショートダッシュできない');
+  const stuck = await ev(() => { const g = __g, e = window.__e, at = e.pos.clone(), t = window.__t || 0; e.onGround = true; e.vel.set(0, 0, 0);
+    const sl = e.slots[e.weapon], ammo = sl.ammo; let fired = false;
+    for (let i = 0; i < 12; i++) { e.electricT = Math.max(e.electricT, .5); e.stun = 'electric'; e.stunT = e.electricT; g.weaponsTick(e, 1 / 60, true, g.player.pos.clone(), 0); if (sl.ammo !== ammo) fired = true; }
+    return { moved: e.pos.distanceTo(at), fired }; });
+  ok(!stuck.fired, '痺れている間は撃てない');
+  ok(await ev(() => { __g.shockLook(window.__e, .05); const fx = window.__e.shockFx; return fx && fx.root.visible && fx.lines.userData.parts[0].count === 8 * 5; }), '痺れた敵機には強い放電（8本）をまとわせる');
   // 軽く押しただけ
   await put(4);
   const tap = await fire(.05);
@@ -60,7 +61,7 @@ check('スタンガンと電撃の痺れ', async ({ page, ev, step, ok, sortie, 
   // 範囲の外は効かない
   await put(30);
   await fire(1.1); await ev(() => __g.stunFieldUpdate(1 / 60));
-  ok(await ev(() => window.__e.hp === window.__e.maxHp && !(window.__e.shockT > 0)), '範囲より遠い敵機には効かない');
+  ok(await ev(() => window.__e.hp === window.__e.maxHp && !(window.__e.electricT > 0)), '範囲より遠い敵機には効かない');
   // 範囲が時間で消える
   await ev(() => { for (let i = 0; i < 100; i++) __g.stunFieldUpdate(1 / 60); });
   ok(await ev(() => __g.stunFields.length === 0), '範囲は時間が来ると消える');
@@ -91,7 +92,7 @@ check('スタンガンと電撃の痺れ', async ({ page, ev, step, ok, sortie, 
         for (const q of g.units) if (q !== p && q !== e) { q.alive = false; q.respawnT = 99; q.pos.set(9999, 0, 9999); } // ほかの機体と砲台に邪魔させない
         for (const t of g.turrets) t.alive = false;
         Object.assign(e, { stun: '', downT: 0, electricT: 0 });
-        e.pos.copy(at); e.vel.set(0, 0, 0); e.target = p; e.actCd = 99; e.act = null; p.hp = p.maxHp; p.alive = true; p.shockT = 0; e.alive = true; e.hp = e.maxHp;
+        e.pos.copy(at); e.vel.set(0, 0, 0); e.target = p; e.actCd = 99; e.act = null; p.hp = p.maxHp; p.alive = true; p.shockT = p.electricT = 0; p.stun = ''; e.alive = true; e.hp = e.maxHp;
         g.loop(window.__t = (window.__t || 0) + 50);
         if (i % 20 === 0) log.push([e.weapon, +e.switchT.toFixed(2), +e.slots.aux.chargeT.toFixed(2), e.target === p, e.stun]);
       }
