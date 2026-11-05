@@ -7102,13 +7102,25 @@ function missileGunTick(u, sl, trigger, aim, spread) {
   return false;
 }
 // 発射後は機体のロック状態から独立して追尾。旋回率・加速度は原典に数値がなく本作の暫定値。
+// 誘導の強化（2026-11-05、オーナー「ミサイルの誘導性があまりにも弱い」）：今の位置ではなく、敵の今の速さのまま進んだ先（会う所）へ曲がる。
+// 一定の向きへ歩く・走る敵にも当たるが、届く直前のステップは旋回が追いつかず今までどおり避けられる。先読みは最大 leadMax 秒、敵の速さは velMax m/s まで。
+const MISSILE_GUIDE = { lead: true, leadMax: 2.5, velMax: 60 };
+function missileAim(sh, target) {
+  const p = targetPoint(target);
+  if (!MISSILE_GUIDE.lead || !target.vel) return p;
+  const v = target.vel.clone(); if (v.length() > MISSILE_GUIDE.velMax) v.setLength(MISSILE_GUIDE.velMax);
+  const speed = Math.max(1, sh.vel.length());
+  let t = p.distanceTo(sh.pos) / speed;
+  for (let i = 0; i < 2; i++) t = p.clone().addScaledVector(v, t).distanceTo(sh.pos) / speed; // 会う所までの時間を2回詰める
+  return p.addScaledVector(v, Math.min(MISSILE_GUIDE.leadMax, t));
+}
 function missileFlight(sh, dt) {
   const S = sh.spec, entry = sh.missileTarget, dir = sh.vel.clone().normalize();
   sh.distance = sh.distance || 0;
   if (entry) {
     if (!missileTargetValid(sh.owner, entry)) sh.missileTarget = null;
     else {
-      const to = targetPoint(entry.target).sub(sh.pos), along = dir.dot(to);
+      const along = dir.dot(targetPoint(entry.target).sub(sh.pos)), to = missileAim(sh, entry.target).sub(sh.pos);
       // 一度追い越した弾は反転せず、そのまま直進する。
       if (along <= 0) sh.missileTarget = null;
       else if (sh.distance >= S.delay) {
