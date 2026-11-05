@@ -108,7 +108,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver167</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver168</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -7485,7 +7485,7 @@ function meleeHome(u, sw, dt) {
   if (Math.hypot(dx, dz) < 2 * R + 0.6) { sw.tgt = null; return; }
   const cur = Math.atan2(-u.lungeDir.x, -u.lungeDir.z), want = Math.atan2(-dx, -dz), diff = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
   if (Math.abs(diff) > 1.75) { sw.tgt = null; return; }
-  const turn = sw.a.homing * dt, y = cur + Math.max(-turn, Math.min(turn, diff));
+  const turn = (sw.a.dashMotion === 'sabre' ? SABRE_HOMING : sw.a.homing) * dt, y = cur + Math.max(-turn, Math.min(turn, diff));
   u.lungeDir.set(-Math.sin(y), 0, -Math.cos(y));
   if (!sw.a.spin) sw.yaw0 = y;
 }
@@ -7498,7 +7498,7 @@ function iaiSwing(w, q) {
     strikes: [{ dmg, at: .16, sweep: .22, hand: 1, from: -70, to: 60, pitchFrom: 55, pitchTo: -20, gripFrom: [.6, 3.3, -.1], gripTo: [-.45, 2.1, -.75], motion: 'iai' }] };
 }
 // 斬馬刀の止まる所：ロックした敵の中心からこの距離（機体2つ分と少し）。刃（4.6m）は十分届く
-const SABRE_STOP = 2 * R + .4;
+const SABRE_STOP = 2 * R + .4, SABRE_PULL = 10, SABRE_HOMING = 10; // 止まる距離、ロックした敵へ詰める距離（m）、踏み込み中に向きを変える速さ（rad/秒）
 function sabreStop(u, sw) {
   const t = sw.stopTgt;
   if (!t.alive) { sw.stopTgt = null; return; }
@@ -7612,7 +7612,9 @@ function swordTick(u, sl, dt, trigger, aim) {
   // ロック中の敵（Botは狙っている敵）が踏み込みの届く所にいれば、その敵へ向かって振る（横なぎも。v0.13）
   let tgt = u.isPlayer ? lock.target : u.target;
   const td = tgt && tgt.alive && tgt.kind === 'unit' ? Math.hypot(tgt.pos.x - u.pos.x, tgt.pos.z - u.pos.z) : Infinity;
-  if (td < (a.lunge || a.step || 0) + a.reach + R) dir.set(tgt.pos.x - u.pos.x, 0, tgt.pos.z - u.pos.z).normalize();
+  // 斬馬刀はロック中の敵へ吸いつく：SABRE_PULL m（居合はその突進距離）まで詰めて、敵の方を向いて斬る（オーナー 2026-11-06）
+  const pull = sl.w.combo ? Math.max(a.lunge || 0, SABRE_PULL) : (a.lunge || a.step || 0);
+  if (td < pull + a.reach + R) dir.set(tgt.pos.x - u.pos.x, 0, tgt.pos.z - u.pos.z).normalize();
   else tgt = null;
   const yaw0 = Math.atan2(-dir.x, -dir.z), aimed = !!tgt, tilt = swingTilt(u, a, aim);
   u.swing = { a, pike:sl.w.acMelee==='pike', chargeStage, chargeRatio, weaponName: sl.w.name, dashAttack, t: 0, yaw0, aimed, tgt, tilt, slope: Math.tan(tilt), phi: (a.spin || aimed ? yaw0 : u.yaw) + a.from * DEG, hit: new Set(), hitSets:a.strikes?a.strikes.map(()=>new Set()):null, stopped: false, queued: carry };
@@ -7632,13 +7634,14 @@ function swordTick(u, sl, dt, trigger, aim) {
   const lk = u.isPlayer ? lock.target : u.target;
   if (sl.w.combo && lk?.alive && lk.kind === 'unit' && Math.hypot(lk.pos.x - u.pos.x, lk.pos.z - u.pos.z) < 30) u.swing.stopTgt = lk;
   const go = sl.w.acMelee==='pike' ? (tgt&&!dashAttack?Math.min(pileStep,Math.max(0,td-R-a.reach*.6)):pileStep)
-    : sl.w.combo && tgt && a.lunge ? Math.min(a.lunge, Math.max(0, td - SABRE_STOP)) // 居合・ダッシュの斬馬刀は敵の手前まで
+    : sl.w.combo && tgt ? Math.min(pull, Math.max(0, td - SABRE_STOP)) // 斬馬刀はロックした敵の手前まで詰める
     : a.lunge || (tgt && a.step ? Math.min(a.step, Math.max(0, td - R - a.reach * 0.6)) : 0);
   if (go > 0.3) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
     // ダッシュの勢いを短い静止踏み込み速度で上書きしない。逆・横の運動は前方加速へ変換しない。
     if(u.swing.pike)u.lungeSpeed=Math.max(u.lungeSpeed,u.vel.x*dir.x+u.vel.z*dir.z);
     if (!dashAttack || u.swing.pike) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
+    else if (sl.w.combo && tgt) { const sp = Math.max(Math.hypot(u.vel.x, u.vel.z), u.lungeSpeed); u.vel.x = dir.x * sp; u.vel.z = dir.z * sp; } // ダッシュの勢いをロックした敵の方へ向け直す
   }
   return false;
 }
