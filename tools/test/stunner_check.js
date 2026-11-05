@@ -1,11 +1,11 @@
-// スタナーと電撃の痺れの見た目（2026-11-05、オーナー「遊撃にスタングレネードあるけどスタンエフェクトがないので、痺れエフェクトを作成し、適用してください。
+// スタンガンと電撃の痺れの見た目（2026-11-05、オーナー「遊撃にスタングレネードあるけどスタンエフェクトがないので、痺れエフェクトを作成し、適用してください。
 // また、支援の補助装備にスタナーを追加してください。チャージ武器、前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害。」）
 // node tools/test/stunner_check.js [dbg] [出力フォルダ]
 const { check } = require('./lib');
-check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out }) => {
+check('スタンガンと電撃の痺れ', async ({ page, ev, step, ok, sortie, out }) => {
   await sortie('wide', { render: true });
-  ok(await ev(() => __g.ARMORY.support.aux.includes('stunner') && __g.WEAPONS.stunner.chargeTime > 0 && __g.MODEL_OF.stunner[0] === 'stunner'), '支援の補助装備にスタナーがあり、溜め武器で、専用の形');
-  // 準備：プレイヤーを支援にしてスタナーを持たせ、敵機を1機だけ前に置く
+  ok(await ev(() => __g.ARMORY.support.aux.includes('stunner') && __g.WEAPONS.stunner.chargeTime > 0 && __g.MODEL_OF.stunner[0] === 'stunner'), '支援の補助装備にスタンガンがあり、溜め武器で、専用の形');
+  // 準備：プレイヤーを支援にしてスタンガンを持たせ、敵機を1機だけ前に置く
   await ev(() => { const g = __g, p = g.player; p.slots.aux = g.slotOf('stunner'); g.selectWeapon(p, 'aux'); p.switchT = 0; p.invulT = 0;
     window.__e = g.units.find(q => q.team !== p.team);
     for (const q of g.units) if (q !== p && q !== window.__e) { q.alive = false; q.group.visible = false; q.pos.set(9999, 0, 9999); } });
@@ -58,7 +58,7 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
   await ev(() => { const p = __g.player; p.electricT = 0; p.stun = ''; p.stunT = 0; });
   await step(1);
   ok(await ev(() => document.getElementById('shockScreen').hidden && !__g.player.shockFx?.root.visible), '痺れが解けると見た目も消える');
-  // Bot もスタナーを使う
+  // Bot もスタンガンを使う
   const botUsed = await ev(() => { const g = __g, p = g.player, e = window.__e, render = g.renderer.render;
     e.slots.aux = g.slotOf('stunner'); e.cls = 'support'; Object.assign(e, { alive: true, hp: e.maxHp, electricT: 0, stun: '', shockT: 0, actCd: 99, act: null });
     p.alive = true; p.invulT = 0; e.pos.copy(p.pos).addScaledVector(g.fwdOf(p), 7); e.target = p;
@@ -75,5 +75,5 @@ check('スタナーと電撃の痺れ', async ({ page, ev, step, ok, sortie, out
       }
     } finally { g.renderer.render = render; }
     return g.stunFields.some(f => f.owner === e) || JSON.stringify(log); });
-  ok(botUsed === true, 'Bot も近い敵機にスタナーを溜めて撃つ' + (botUsed === true ? '' : ' ' + botUsed));
+  ok(botUsed === true, 'Bot も近い敵機にスタンガンを溜めて撃つ' + (botUsed === true ? '' : ' ' + botUsed));
 });
