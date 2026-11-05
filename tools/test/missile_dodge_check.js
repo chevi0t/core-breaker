@@ -82,9 +82,10 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'missile-dodge-che
       if (r.mode === 'still') assert.ok(r.damage > 0, r.key + 'の静止対照に命中する');
       if (r.stepAt != null) assert.ok(Math.abs(r.boostCost - 9.6) < 1e-6 && r.peak > 40, '実際のブースト消費・踏み込み速度');
     }
-    for (const key of ['missile', 'missileF', 'mlrsF']) {
-      const r = result.results.find(r => r.key === key && r.distance === 90 && r.mode === 'step20');
-      assert.equal(r.damage, 0, key + '：90mからの一斉射を20m手前からの横ステップで回避'); assert.equal(r.boundary, false);
+    // 2026-11-05 の誘導強化の後も、強襲のミサイルは直前のステップか横ダッシュで避けられる（高速型は20m手前のステップでも）。
+    for (const [key, mode, what] of [['missile', 'step5', '5m手前からの横ステップ'], ['missile', 'long35', '横ダッシュの継続'], ['missileX', 'step5', '5m手前からの横ステップ'], ['missileF', 'step20', '20m手前からの横ステップ']]) {
+      const r = result.results.find(r => r.key === key && r.distance === 90 && r.mode === mode);
+      assert.equal(r.damage, 0, key + '：90mからの一斉射を' + what + 'で回避');
     }
     const report = { date: '2026-10-21', scenarios: result.results.length, errors,
       setup: '広域マップ上空の平床。標準パーツの強襲機、装甲倍率1・計測用耐久100万。60Hz・固定乱数42。最大捕捉の一斉射。shortDash/physics/射出/誘導/爆風は本体。捕捉は完了状態を与え、射手の捕捉距離は200mに固定して発射後だけを比較する。',
