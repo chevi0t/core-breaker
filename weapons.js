@@ -15,7 +15,7 @@ const MODEL_OF = {
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
   flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
-  artillery: ['artillery', 0], reflector: ['artillery', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
+  artillery: ['artillery', 0], reflector: ['reflector', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
   ar: ['ar', 0], burst: ['burst', 0], marks: ['marksman', 0], grenade: ['grenade', 0], timed: ['grenade', 1], gl: ['explosive', 0],
   sword: ['sword', 0], blade: ['sword', 2], spear: ['spear', 0], charger: ['charger', 0], chargerD: ['charger', 1], chargerS: ['charger', 2],
   gatling: ['gatling', 0], mg: ['lmg', 0], acannon: ['autocannon', 0], rocket: ['rocket', 0], scrum: ['rocket', 1], plasma: ['chargeCannon', 0],
@@ -161,6 +161,16 @@ function buildWeaponGeo(id, part) {
     box(1.5,.45,.85,dark,0,-.35,0); box(1.2,.65,.65,shell,0,0,0);
     for (const x of [-.45,0,.45]) { cyl(.2,1.3,steel,x,.35,0,'y'); cyl(.23,.12,black,x,1,0,'y'); box(.12,.7,.08,accent,x,.25,-.22); }
     box(.9,.18,.2,accent,0,-.5,-.5);
+  } else if (f === 'reflector') {
+    // 反射衛星砲（2026-11-05、オーナーのオリジナル。形は本作のオリジナル）：背中に載せる、真上を向いた照射塔。
+    // 台座と左右の蓄電器、縦の照射筒に3つの収束リング、頂の発光レンズ（照射の光の柱はここから出る。muzzle は台の上 1.08m）、横に衛星との交信アンテナ
+    box(1.3,.4,.85,dark,0,-.38,0); box(.95,.22,.7,shell,0,-.12,0);
+    for (const x of [-.56,.56]) { box(.32,.62,.56,shell,x,.08,.05); box(.34,.08,.58,accent,x,.3,.05); box(.06,.4,.04,0x7cfbd1,x+(x>0?.17:-.17),.08,-.18); }
+    cyl(.17,1.05,steel,0,.42,0,'y',.21,12); cyl(.24,.14,dark,0,-.02,0,'y',.24,12);
+    for (const [y,r] of [[.2,.3],[.48,.27],[.76,.24]]) add(new T.TorusGeometry(r,.045,6,18),accent,0,y,0,Math.PI/2);
+    cyl(.2,.1,black,0,.95,0,'y',.17,12); ball(.16,0x9fe8ff,0,1.02,0);
+    add(new T.CylinderGeometry(.34,.08,.12,14),steel,-.62,.62,.28,-.55,0,-.35); cyl(.025,.32,black,-.62,.52,.32,'y'); ball(.05,accent,-.66,.72,.22);
+    box(.62,.3,.36,dark,0,-.3,-.58); box(.5,.12,.18,accent,0,-.48,-.78); // 背中への取り付け金具
   } else if (f === 'barrier') {
     box(1.1,1.25,.5,dark); box(.7,.9,.22,shell,0,0,-.35);
     for (const x of [-.7,.7]) { box(.22,1.55,.45,steel,x,0,-.2); ball(.22,accent,x,.65,-.4); }
@@ -500,9 +510,9 @@ const WEAPONS = {
   mirageL: { name: 'ミラージュデバイス・省エネ型', type: 'mirage', decoyHp: 1300, decoyLife: 9, decoyCost: 15, decoyOpacity: 0.35, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
   mirageD: { name: 'ミラージュデバイス・長時間型', type: 'mirage', decoyHp: 800, decoyLife: 20, decoyCost: 20, decoyOpacity: 0.7, hologram: true, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
   // AC ミサイルスロアー pages/341：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
-  missile: {"name":"誘導ミサイル","type":"gun","rpm":360,"mag":4,"mags":4,"reload":2.4,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":4,"locks":1,"time":0.39,"rangeMul":1.25,"freeGap":0,"rank":"D"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":30,"accel":0,"turn":0.55,"delay":18,"ramp":70,"dmg":2600,"blast":11,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.006981317007977318,"recoilH":0.003490658503988659},
+  missile: {"name":"誘導ミサイル","type":"gun","rpm":360,"mag":4,"mags":4,"reload":2.4,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":4,"locks":1,"time":0.39,"rangeMul":1.25,"freeGap":0,"rank":"D"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":30,"accel":0,"turn":0.88,"delay":6,"ramp":25,"dmg":2600,"blast":11,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.006981317007977318,"recoilH":0.003490658503988659},
   // AC 試験型MLRS pages/359：現行の威力・重量・弾数・連射・爆風。誘導の再現値は guided-missiles.json。
-  mlrs: {"name":"多目標ミサイル","type":"gun","rpm":480,"mag":6,"mags":3,"reload":3,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":2,"locks":3,"time":0.26,"rangeMul":1.5,"freeGap":0.8,"rank":"C+"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":90,"accel":40,"turn":1.25,"delay":8,"ramp":70,"dmg":2600,"blast":12,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.0017453292519943296,"recoilH":0.003490658503988659},
+  mlrs: {"name":"多目標ミサイル","type":"gun","rpm":480,"mag":6,"mags":3,"reload":3,"spread":0.006,"noLock":true,"sfx":"rocket","desc":"照準内で捕捉し左クリックで連射。右クリックで捕捉解除。未捕捉で撃つと直進する","missile":{"shots":2,"locks":3,"time":0.26,"rangeMul":1.5,"freeGap":0.8,"rank":"C+"},"proj":{"kind":"shell","rocket":true,"guided":true,"grav":0,"life":12,"range":250,"speed":30,"maxSpeed":90,"accel":40,"turn":2,"delay":6,"ramp":25,"dmg":2600,"blast":12,"linear":true,"bodyLinear":true,"occluded":true,"core":true},"recoil":0.0017453292519943296,"recoilH":0.003490658503988659},
   // ユーザー指定のオリジナル：直接威力は通常3000・ダッシュ6000、満充填の光波は2000。
   waveSword: { name: '光波剣', type: 'sword', chargeTime: 1.2,
     chargeWave: { bladeWave: true, dmg: 2000, speed: 70, range: 60, width: 1.8 },
@@ -886,8 +896,8 @@ const SERIES = {
 // 近接の威力は wiki では連撃の合計なので比の平方根を掛け、横なぎは9600まで（どの型でも2回は要る）、ダッシュ斬りは20000まで。
 // 近接は重いほど振りが遅く（重さの比の0.35乗）、踏み込みが短く（0.3乗で割る）、間合いが少し長い（0.12乗）。値の決め方は仮（Claude の判断）
 const WEAPON_TYPES = {
-  missile: {"w0":{"dmg":2600,"rpm":360,"mag":4,"mags":4,"reload":2.4,"kg":350,"blast":11,"speed":30,"rank":"D","turn":0.55,"maxSpeed":30,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"types":[["強装型",{"dmg":3100,"rpm":240,"mag":3,"mags":4,"reload":2.6,"kg":360,"blast":13,"speed":30,"rank":"C-","turn":1,"maxSpeed":30,"accel":0,"shots":3,"locks":1,"recoilV":0.5,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["高速型",{"dmg":2700,"rpm":480,"mag":4,"mags":4,"reload":2.6,"kg":380,"blast":10,"speed":50,"rank":"E","turn":0.25,"maxSpeed":50,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2200,"rpm":540,"mag":6,"mags":3,"reload":3.4,"kg":420,"blast":11,"speed":30,"rank":"D+","turn":0.75,"maxSpeed":30,"accel":0,"shots":6,"locks":1,"recoilV":0.3,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
-  mlrs: {"w0":{"dmg":2600,"rpm":480,"mag":6,"mags":3,"reload":3,"kg":500,"blast":12,"speed":30,"rank":"C+","turn":1.25,"maxSpeed":90,"accel":40,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"types":[["高速型",{"dmg":2000,"rpm":600,"mag":6,"mags":4,"reload":3,"kg":520,"blast":11,"speed":30,"rank":"D+","turn":0.75,"maxSpeed":110,"accel":80,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["強装型",{"dmg":4200,"rpm":320,"mag":4,"mags":3,"reload":4,"kg":570,"blast":14,"speed":30,"rank":"A+","turn":2.8,"maxSpeed":50,"accel":10,"shots":1,"locks":4,"recoilV":0.2,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2300,"rpm":480,"mag":8,"mags":3,"reload":4,"kg":590,"blast":9,"speed":30,"rank":"B+","turn":2,"maxSpeed":85,"accel":35,"shots":2,"locks":4,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
+  missile: {"w0":{"dmg":2600,"rpm":360,"mag":4,"mags":4,"reload":2.4,"kg":350,"blast":11,"speed":30,"rank":"D","turn":0.88,"maxSpeed":30,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"types":[["強装型",{"dmg":3100,"rpm":240,"mag":3,"mags":4,"reload":2.6,"kg":360,"blast":13,"speed":30,"rank":"C-","turn":1.6,"maxSpeed":30,"accel":0,"shots":3,"locks":1,"recoilV":0.5,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["高速型",{"dmg":2700,"rpm":480,"mag":4,"mags":4,"reload":2.6,"kg":380,"blast":10,"speed":50,"rank":"E","turn":0.6,"maxSpeed":50,"accel":0,"shots":4,"locks":1,"recoilV":0.4,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2200,"rpm":540,"mag":6,"mags":3,"reload":3.4,"kg":420,"blast":11,"speed":30,"rank":"D+","turn":1.2,"maxSpeed":30,"accel":0,"shots":6,"locks":1,"recoilV":0.3,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
+  mlrs: {"w0":{"dmg":2600,"rpm":480,"mag":6,"mags":3,"reload":3,"kg":500,"blast":12,"speed":30,"rank":"C+","turn":2,"maxSpeed":90,"accel":40,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"types":[["高速型",{"dmg":2000,"rpm":600,"mag":6,"mags":4,"reload":3,"kg":520,"blast":11,"speed":30,"rank":"D+","turn":1.2,"maxSpeed":110,"accel":80,"shots":2,"locks":3,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["強装型",{"dmg":4200,"rpm":320,"mag":4,"mags":3,"reload":4,"kg":570,"blast":14,"speed":30,"rank":"A+","turn":4.5,"maxSpeed":50,"accel":10,"shots":1,"locks":4,"recoilV":0.2,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"],["大容量型",{"dmg":2300,"rpm":480,"mag":8,"mags":3,"reload":4,"kg":590,"blast":9,"speed":30,"rank":"B+","turn":3.2,"maxSpeed":85,"accel":35,"shots":2,"locks":4,"recoilV":0.1,"recoilH":0.2},"誘導性能・弾速・一捕捉の発数が異なる"]]},
   sabre: { w0: {"kg":180,"normalHits":[2000,3500],"strongHits":[4500]}, types: [
     ["強装型",{"kg":300,"normalHits":[2000,4000],"strongHits":[8000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
     ["重装型",{"kg":390,"normalHits":[2000,4000,4500],"strongHits":[9000]},"一度の入力で素早い連続斬撃。ダッシュ中は袈裟斬り→逆袈裟→横薙ぎ→ブースト消費なしの小跳躍から片手の面打ち"],
