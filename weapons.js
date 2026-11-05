@@ -579,7 +579,7 @@ const WEAPONS = {
   // AC タイタン榴弾砲：900kg、10000×6、300m、5.5秒、誤差15m、爆風25m、54(44)秒。発射間隔1秒（364.html本文）。
   // 反射衛星砲（オーナーのオリジナル、2026-11-05）：真上の衛星へ撃ったレーザーを跳ね返し、マップで決めた始点から終点へ地上をなぞる。
   // speed：光がカーソルを追う最大の速さ（m/秒。2026-11-05 オーナー「速度全部1/3に」で前の1/3）、fireTime：SP満タンから照射できる秒、radius：地上の光の円の半径（m）、dps：毎秒の威力、warn：照射までの溜め（秒。この間は線と警告が出る。オーナー「一撃死は理不尽だから射撃警告とかチャージ時間」）
-  reflector: { name: '反射衛星砲', type: 'reflector', noLock: true, plant: true, dps: 12000, speed: 4, fireTime: 6.7, radius: 4, range: 300, warn: .5, charge: 55, chargeKeep: 45, desc: 'マップで右クリックを押している間、衛星で跳ね返したレーザーが地上を焼き、光はカーソルを追う。離すと終了。照射中は移動不可で、真上への光で位置が知られる' },
+  reflector: { name: '反射衛星砲', type: 'reflector', noLock: true, plant: true, dps: 12000, speed: 4, fireTime: 6.7, radius: 4, range: 300, warn: .5, charge: 55, chargeKeep: 45, desc: 'マップで左クリックを押している間、衛星で跳ね返したレーザーが地上を焼き、光はカーソルを追う。離すと終了。照射中は移動不可で、真上への光で位置が知られる' },
   artillery: { name: '榴弾砲', type: 'artillery', noLock: true, plant: true, dmg: 10000, shots: 6, range: 300, flight: 5.5, scatter: 15, blast: 25, interval: 1, charge: 54, chargeKeep: 44, desc: 'マップで爆撃中心を指定して自動連射。移動・旋回不可。右クリックで即中断。着弾2秒前に火柱と落下音' },
   // AC現行表：バリアユニット（413）。前方LV2、12500、50秒、50(45)秒、710kg。
   barrier: { name: '防護バリア', type: 'barrier', shieldHp: 12500, arc: 180, level: 2, use: 50, charge: 50, chargeKeep: 45, desc: '選ぶと照準の前半分を防御。再選択で停止。射撃と移動を続けられる。近接攻撃は防げない' },
