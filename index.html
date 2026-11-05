@@ -5922,7 +5922,8 @@ function nearestEnemy(u, range) {
   return best;
 }
 // 光学迷彩中の敵機には、近いか、動いたり撃ったりして見えやすくなっていないと気づけない（Botと防衛砲台。プレイヤーは画面で見る）
-function noticed(e, d) { return !e.cloak || d < 8 + e.vis * 80; }
+// 距離は画面の濃さ（見えやすさの2乗。cloakLook）に合わせる（2026-11-05、オーナー「光学迷彩時にえらい普通に撃たれる」）
+function noticed(e, d) { return !e.cloak || d < 8 + e.vis * e.vis * 80; }
 function canSee(u, target, tp) {
   const eye = u.pos.clone(); eye.y += 3;
   const dir = tp.clone().sub(eye);
