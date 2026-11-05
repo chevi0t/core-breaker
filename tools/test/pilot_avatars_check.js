@@ -5,7 +5,8 @@ let chromium;
 try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
 const dir = path.resolve(process.argv[2] || 'dbg/cat-pilots');
 (async () => {
-  const html = fs.readFileSync(path.join(dir, 'dbg.html'), 'utf8');
+  // 猫の絵の CSS は style.css にある（2026-11-05 に index.html から分けた）。古い dbg なら dbg.html の中
+  const css = path.join(dir, 'style.css'), html = fs.readFileSync(fs.existsSync(css) ? css : path.join(dir, 'dbg.html'), 'utf8');
   const embedded = html.match(/background-image: url\("data:image\/png;base64,([^"]+)"\)/);
   if (!embedded || !Buffer.from(embedded[1], 'base64').equals(fs.readFileSync(path.resolve(__dirname, '../../prototype/avatars/cats.png')))) throw Error('埋め込んだ猫の画像が元のPNGと異なる');
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });

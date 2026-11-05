@@ -41,7 +41,7 @@ async function catalog(browser, dir) {
   fs.writeFileSync(baseHtml, git(['show', ref + ':prototype/index.html']));
   if (run('python3', ['tools/test/make_dbg.py', NEW]) || run('python3', ['tools/test/make_dbg.py', BASE, '--src', baseHtml])) throw new Error('dbg.html を作れない');
   // 武器とパーツの表は 2026-11-04 から別のファイル。比べる版にあればそれを使う（無い版は index.html の中に表がある）
-  for (const f of ['parts.js', 'weapons.js']) { try { fs.writeFileSync(path.join(BASE, f), git(['show', ref + ':prototype/' + f])); } catch (_) {} }
+  for (const f of ['style.css', 'parts.js', 'weapons.js', 'pilots.js']) { try { fs.writeFileSync(path.join(BASE, f), git(['show', ref + ':prototype/' + f])); } catch (_) {} }
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--disable-frame-rate-limit', '--disable-gpu-vsync'] });
   let weapons, parts, maps;
   try {

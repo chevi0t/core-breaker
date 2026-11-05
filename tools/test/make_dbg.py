@@ -4,7 +4,7 @@
 使い方: python3 tools/test/make_dbg.py 出力フォルダ [--src 元にするindex.html]
 - prototype/index.html を元に、loop の時間刻みを0.05秒に固定し（window.__dt を入れればその値）、botUpdate の頭に frozen の Bot を止める行を足し、
   末尾で window.__g に中身を公開した dbg.html を作る。three.js は vendor/ の物を読むように書き換える。
-- sounds.js・music.js・maps.js・parts.js・weapons.js・three.min.js も出力フォルダへコピーする（--src のときも今の prototype/ の物）。マップを変えたら先に tools/build_maps.py を実行する。
+- style.css・sounds.js・music.js・maps.js・parts.js・weapons.js・pilots.js・three.min.js も出力フォルダへコピーする（--src のときも今の prototype/ の物）。マップを変えたら先に tools/build_maps.py を実行する。
 - --src を付けると prototype/index.html の代わりにそのファイルを元にする（エンジン側が置き換える前の版を試すとき）。
 - --trace を付けると対戦の観測用イベントを出す。ゲームの計算や乱数は変更しない。
 - __g には本体の行頭で宣言した関数・変数を全部自動で出す（下の EXTRA・SETTERS を参照）。
@@ -156,7 +156,7 @@ def main():
         s = rep(s, EXPOSE, EXPOSE + "\nwindow.__battleTraceVersion = 1;")
     s = rep(s, CDN_TAG, '<script src="three.min.js"></script>')
     (out / "dbg.html").write_text(s, encoding="utf-8")
-    for f in ("sounds.js", "music.js", "maps.js", "parts.js", "weapons.js"):
+    for f in ("style.css", "sounds.js", "music.js", "maps.js", "parts.js", "weapons.js", "pilots.js"):
         if (P / f).exists():
             shutil.copy(P / f, out / f)
     shutil.copy(ROOT / "vendor" / "three-r128" / "three.min.js", out / "three.min.js")

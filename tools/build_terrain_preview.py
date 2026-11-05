@@ -55,7 +55,7 @@ def main():
     html = html.replace(end, (ROOT / 'tools/terrain_preview_check_mode.js').read_text().replace('__PREVIEW_SOURCE_VERSION__', subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()) + '\n' + end)
     (game / 'index.html').write_text(html)
     (game / 'credits/index.html').write_text(credits_page())
-    for dst, src in {'sounds.js':'prototype/sounds.js', 'parts.js':'prototype/parts.js', 'weapons.js':'prototype/weapons.js', 'music.js':'prototype/music.js', 'three.min.js':'vendor/three-r128/three.min.js', 'credits/LICENSE-THREE.txt':'vendor/three-r128/LICENSE'}.items():
+    for dst, src in {'style.css':'prototype/style.css', 'sounds.js':'prototype/sounds.js', 'parts.js':'prototype/parts.js', 'weapons.js':'prototype/weapons.js', 'pilots.js':'prototype/pilots.js', 'music.js':'prototype/music.js', 'three.min.js':'vendor/three-r128/three.min.js', 'credits/LICENSE-THREE.txt':'vendor/three-r128/LICENSE'}.items():
         shutil.copyfile(ROOT / src, game / dst)
     # 試遊ディレクトリ内だけ、選んだレシピの出力で同IDを上書きする。
     (game / 'maps.js').write_bytes((ROOT / 'prototype/maps.js').read_bytes() + b'\n' + generated.read_bytes())

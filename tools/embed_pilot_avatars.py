@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""猫8匹のPNGをindex.htmlへ埋め込む。画像の画素は変更しない。"""
+"""猫8匹のPNGをstyle.css（2026-11-05 まではindex.html）へ埋め込む。画像の画素は変更しない。"""
 import base64
 import pathlib
 import re
@@ -12,7 +12,7 @@ if image[:8] != b'\x89PNG\r\n\x1a\n':
 width, height = struct.unpack('>II', image[16:24])
 if width != height * 2:
     raise SystemExit('4列×2行の画像は、横幅を高さの2倍にしてください')
-page = ROOT / 'prototype/index.html'
+page = ROOT / 'prototype/style.css'
 source = page.read_text()
 pattern = r'/\* PILOT_ATLAS_BEGIN \*/.*?/\* PILOT_ATLAS_END \*/'
 if len(re.findall(pattern, source, re.S)) != 1:
