@@ -80,6 +80,18 @@ check('反射衛星砲', async ({ ev, ok, sortie }) => {
     bot.weapon = 'main'; g.selectWeapon(bot, 'sp'); bot.switchT = 0; bot.reflectPlan = plan;
     g.weaponsTick(bot, .02, true, plan.a, 0, false);
     yes(bot.reflect?.phase === 'warn' && Math.abs(bot.reflect.len - plan.len) < .01, 'Bot は決めた2点で照射を始める');
+    // 線の近くの敵機への警告と、地面の照準マーカー
+    g.reflectorUpdate(); sync();
+    const rv = bot.reflectVisual;
+    yes(rv && rv.retA.visible && rv.retB.visible && rv.band.some(m => m.visible), '溜めの間、地面に始点・終点の照準マーカーと赤い帯が出る');
+    const hz = g.reflectDanger(u, 10), off = dist(plan.a, plan.b, u.pos.clone().addScaledVector(hz?.dir || new T.Vector3(), 5));
+    yes(hz && hz.by === bot && off > dist(plan.a, plan.b, u.pos), '線の上の敵機には、線から離れる向きを返す');
+    g.reflectWarning(u, .02);
+    yes(!g.$('reflectAlert').hidden && /照射まで/.test(g.$('reflectAlertInfo').textContent), '線の近くのプレイヤーに「照射警告」が出る');
+    u.pos.copy(P(0)); u.pos.x += 60; g.reflectWarning(u, .02);
+    yes(g.$('reflectAlert').hidden, '線から離れれば警告は消える');
+    const warns = { reflector: 3, reflectorW: 2.5, reflectorG: 5, reflectorF: 4 };
+    yes(Object.entries(warns).every(([k, t]) => g.WEAPONS[k].warn === t), '溜め時間：標準3秒・広域2.5秒・高出力5秒・長射程4秒');
     g.clearArtillery();
     return out;
   });
