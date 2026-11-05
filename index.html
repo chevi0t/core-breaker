@@ -52,6 +52,7 @@
 </div>
 <div class="hud" id="consoleTelemetry" hidden><div class="instrument flightOnly" id="consoleSpeed">速度<b id="consoleSpeedT">0</b>m/s</div><div class="instrument flightOnly" id="consoleAltitude">対地高度<b id="consoleAltitudeT">0</b>m</div><div id="consoleHeading">方位 <b id="consoleHeadingT">000°</b><span id="mechCompass" aria-hidden="true"></span></div></div>
 <div class="hud" id="tags"></div>
+<div id="shockScreen" hidden aria-hidden="true"></div>
 <canvas class="hud" id="missileHud" hidden aria-label="ミサイル捕捉表示" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
 <div class="hud" id="spottedMarkers" hidden aria-hidden="true"></div>
 <div class="hud" id="preLock" hidden aria-hidden="true"></div>
@@ -2677,7 +2678,109 @@ function heatDamage(h,e,dt) {
   if (e.team===h.team && e!==h.owner) {friendlyFire(h.owner,dmg*armorMult(e));return;}
   damage(e,h.owner,dmg,false,false,null,h.pos,false,true,h.weaponName);
 }
+// ---- スタナーの電撃範囲（2026-11-05、オーナーのオリジナル「前方にスタン範囲を形成する武器。低ダメージだが敵の機動を妨害」）----
+// 撃った時の足元から前へ len m・幅 width m・高さ height m の箱。time 秒残り、入った敵機は1回だけ dmg、中にいる間と出てから shock 秒は shockT（機動の妨害）。
+// 壁越しには効かない（撃った位置から敵の体が見える時だけ）。見た目の乱数は戦闘用の Math.random を使わない。
+const stunFields = [];
+const stunFieldGeo = new T.BoxGeometry(1, 1, 1);
+const stunFieldEdge = new T.EdgesGeometry(stunFieldGeo);
+const stunFieldMat = new T.MeshBasicMaterial({ color: 0x2f86e0, transparent: true, opacity: .08, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+function stunFieldFire(u, w, aim) {
+  const F = w.stunField, q = Math.max(0, Math.min(1, w.q ?? 1)), mix = ([a, b]) => a + (b - a) * q;
+  const dir = (aim ? aim.clone().sub(u.pos) : fwdOf(u)).setY(0);
+  if (dir.lengthSq() < 1e-6) dir.copy(fwdOf(u)).setY(0);
+  dir.normalize();
+  const f = { owner: u, team: u.team, from: u.pos.clone().addScaledVector(dir, 1), dir, len: mix(F.len), width: F.width, height: F.height,
+    life: mix(F.time), dmg: Math.round(mix(F.dmg)), shock: F.shock, slow: F.slow, touched: new Set(), name: w.name, q };
+  f.max = f.life;
+  const box = new T.Mesh(stunFieldGeo, stunFieldMat.clone()), bolts = shockLines(16);
+  const edge = new T.LineSegments(stunFieldEdge, new T.LineBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false }));
+  box.add(edge); // 範囲の箱の縁（box の大きさに合わせて伸びる）
+  const root = new T.Group(); root.add(box, bolts);
+  root.position.copy(f.from).addScaledVector(dir, f.len / 2); root.position.y += f.height / 2;
+  root.rotation.y = Math.atan2(dir.x, dir.z); box.scale.set(f.width, f.height, f.len);
+  scene.add(root); f.mesh = root; f.box = box; f.bolts = bolts; f.boltT = 0;
+  flash(f.from.clone().setY(f.from.y + 2.5), 0x8fe0ff, 2.5 + 2 * q, .18);
+  stunFields.push(f);
+  return f;
+}
+function inStunField(f, e) {
+  const dx = e.pos.x - f.from.x, dz = e.pos.z - f.from.z, along = dx * f.dir.x + dz * f.dir.z, side = Math.abs(dx * f.dir.z - dz * f.dir.x);
+  return along >= -R && along <= f.len + R && side <= f.width / 2 + R && e.pos.y + UNIT_H >= f.from.y - 1 && e.pos.y <= f.from.y + f.height
+    && blastVisible(f.from.clone().setY(f.from.y + 2), targetPoint(e), e);
+}
+function stunFieldUpdate(dt) {
+  for (let i = stunFields.length - 1; i >= 0; i--) {
+    const f = stunFields[i];
+    for (const e of units) {
+      if (!e.alive || e.team === f.team || e.invulT > 0 || !inStunField(f, e)) continue;
+      if (!f.touched.has(e)) { f.touched.add(e); damage(e, f.owner, f.dmg, false, false, null, f.from, false, true, f.name); if (f.owner.isPlayer) hitMark(false); }
+      e.shockT = Math.max(e.shockT || 0, f.shock); e.shockSlow = f.slow; e.dashT = e.lungeT = 0; e.longDash = false;
+    }
+    f.life -= dt;
+    const fade = Math.min(1, f.life / .25, (f.max - f.life) / .08 + .3);
+    f.box.material.opacity = (.05 + .06 * shockRnd()) * Math.max(0, fade); f.box.children[0].material.opacity = (.5 + .4 * shockRnd()) * Math.max(0, fade);
+    if ((f.boltT -= dt) <= 0) { f.boltT = .05; shockBolts(f.bolts, 16, (x, y, z) => [x * f.width / 2, (y - .5) * f.height, z * f.len / 2], .12, .08); }
+    shockOpacity(f.bolts, Math.max(0, fade));
+    if (f.life <= 0) { scene.remove(f.mesh); f.box.material.dispose(); f.box.children[0].material.dispose(); shockDispose(f.bolts); stunFields.splice(i, 1); }
+  }
+}
+// ---- 電撃の痺れの見た目（2026-11-05、オーナー「スタンエフェクトがないので、痺れエフェクトを作成し、適用してください」）----
+// 電撃グレネードの硬直（electricT）とスタナーの妨害（shockT）の間、機体のまわりにぎざぎざの放電と青い光をまとわせる。表示だけ。
+let shockSeed = 12345;
+const shockRnd = () => (shockSeed = shockSeed * 16807 % 2147483647) / 2147483647;
+const SHOCK_SEG = 5;
+// 稲妻は1本ごとに細い箱を並べる（WebGL の線は1画素で細すぎるため）。白い芯と青いにじみの2層
+const shockBoltGeo = new T.BoxGeometry(1, 1, 1), shockM4 = new T.Matrix4(), shockQ = new T.Quaternion(), shockZ = new T.Vector3(0, 0, 1);
+const shockA = new T.Vector3(), shockB = new T.Vector3(), shockS = new T.Vector3(), shockSc = new T.Vector3();
+function shockLines(n) {
+  const mk = (color, op) => { const m = new T.InstancedMesh(shockBoltGeo, new T.MeshBasicMaterial({ color, transparent: true, opacity: op, blending: T.AdditiveBlending, depthWrite: false }), n * SHOCK_SEG); m.frustumCulled = false; m.count = 0; return m; };
+  const glow = mk(0x3aa8ff, .5), core = mk(0xeefcff, .95), g = new T.Group(); g.add(glow, core);
+  g.userData.parts = [core, glow]; return g;
+}
+function shockOpacity(lines, k) { lines.userData.parts[0].material.opacity = .95 * k; lines.userData.parts[1].material.opacity = .5 * k; }
+function shockDispose(lines) { for (const m of lines.userData.parts) { m.material.dispose(); m.dispose?.(); } }
+// 稲妻を n 本引き直す。place は -1〜1（y は 0〜1）の点を形の中の座標へ写す。thick は芯の太さ m
+function shockBolts(lines, n, place, jag = .18, thick = .06) {
+  const [core, glow] = lines.userData.parts;
+  let i = 0;
+  for (let b = 0; b < n; b++) {
+    const s = [shockRnd() * 2 - 1, shockRnd(), shockRnd() * 2 - 1], e = [s[0] + (shockRnd() - .5) * .9, Math.max(0, Math.min(1, s[1] + (shockRnd() - .5) * .6)), s[2] + (shockRnd() - .5) * .9];
+    shockA.set(...place(...s));
+    for (let k = 1; k <= SHOCK_SEG; k++) {
+      const t = k / SHOCK_SEG, j = k < SHOCK_SEG ? jag : 0;
+      shockB.set(...place(s[0] + (e[0] - s[0]) * t + (shockRnd() - .5) * j * 2, s[1] + (e[1] - s[1]) * t + (shockRnd() - .5) * j, s[2] + (e[2] - s[2]) * t + (shockRnd() - .5) * j * 2));
+      const len = shockA.distanceTo(shockB) || 1e-3;
+      shockQ.setFromUnitVectors(shockZ, shockS.copy(shockB).sub(shockA).divideScalar(len));
+      shockS.copy(shockA).add(shockB).multiplyScalar(.5);
+      core.setMatrixAt(i, shockM4.compose(shockS, shockQ, shockSc.set(thick, thick, len)));
+      glow.setMatrixAt(i, shockM4.compose(shockS, shockQ, shockSc.set(thick * 3.5, thick * 3.5, len)));
+      i++; shockA.copy(shockB);
+    }
+  }
+  core.count = glow.count = i; core.instanceMatrix.needsUpdate = glow.instanceMatrix.needsUpdate = true;
+}
+const shockGlowGeo = new T.SphereGeometry(1, 16, 12);
+function shockLook(u, dt) {
+  const strong = u.alive && u.electricT > 0, on = strong || u.alive && u.shockT > 0;
+  let fx = u.shockFx;
+  if (!on) { if (fx) fx.root.visible = false; return; }
+  if (!fx) {
+    const lines = shockLines(8), glow = new T.Mesh(shockGlowGeo, new T.MeshBasicMaterial({ color: 0x59c3ff, transparent: true, opacity: .2, blending: T.AdditiveBlending, depthWrite: false }));
+    glow.scale.set(1.8, 2.4, 1.8); glow.position.y = 2.2;
+    const root = new T.Group(); root.add(lines, glow); scene.add(root);
+    fx = u.shockFx = { root, lines, glow, t: 0 };
+  }
+  fx.root.visible = true; fx.root.position.copy(u.pos);
+  if ((fx.t -= dt) <= 0) {
+    fx.t = .045;
+    // 体のまわり（半径1.1〜1.5m、高さ0.3〜4m）に、強い硬直は8本、機動の妨害は4本
+    shockBolts(fx.lines, strong ? 8 : 4, (x, y, z) => { const a = Math.atan2(z, x), r = 1.1 + .4 * Math.hypot(x, z) / 1.42; return [Math.cos(a) * r, .3 + y * 3.7, Math.sin(a) * r]; }, .22);
+    fx.glow.material.opacity = strong ? .08 + .14 * shockRnd() : .04 + .08 * shockRnd();
+  }
+}
 function secondaryUpdate(dt) {
+  stunFieldUpdate(dt);
   for (let i=heatFields.length-1;i>=0;i--) {
     const h=heatFields[i],S=h.spec,step=Math.min(dt,h.life);
     // 距離減衰と姿勢異常なし。接触損傷は1領域につき1回。配列は結合せず走査する。
@@ -2709,6 +2812,8 @@ function secondaryUpdate(dt) {
 function clearSecondaryEffects() {
   for(const h of heatFields)removeHeatVisual(h);
   heatFields.length=chains.length=0;
+  for(const f of stunFields)scene.remove(f.mesh);
+  stunFields.length=0;
 }
 
 // 爆心から機体（足元0.5mから頭3.9mまでの縦の線）までの距離。衝撃グレネードの巻き込みに使う（v0.11.2）
@@ -4433,7 +4538,7 @@ function resetLifeState(u) {
   Object.assign(u, {
     downT: 0, downBy: null, reviveAcc: 0, deathWeapon: null,
     actionHeld: false, crouching: false, actionBlockBoost: false, kneeSlideT: 0,
-    stun: '', stunT: 0, tilt: 0, electricT: 0, jamT: 0, recoverT: 0,
+    stun: '', stunT: 0, tilt: 0, electricT: 0, shockT: 0, jamT: 0, recoverT: 0,
     dashT: 0, longDash: false, dashState: '', slideT: 0, lungeT: 0, charging: false,
     swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null, reflect: null,
     cloak: false, chargerOn: false, fieldOn: false, barrierOn: false, escortOn: false, mirageLock: null,
@@ -4677,7 +4782,7 @@ const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が�
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
 function shortDash(u, wish) {
   if (u.actionBlockBoost || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
-  if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun) return false;
+  if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun || u.shockT > 0 || u.electricT > 0) return false; // 電撃の間も踏めない
   if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
   if (u.recoverT > 0) {
     const sw = u.meleeRecovery;
@@ -4722,6 +4827,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if (u.zipCd > 0) u.zipCd -= dt;
   if (u.zip && zipRide(u, dt, jumpPressed)) return; // ジップラインで昇っている（v0.21）
   if (u.electricT>0) {wish=STOP;boostHeld=jumpPressed=jumpHeld=false;u.vel.x=u.vel.z=0;u.dashT=u.lungeT=0;u.longDash=false;}
+  else if (u.shockT>0) {boostHeld=jumpPressed=jumpHeld=false;u.dashT=u.lungeT=0;u.longDash=false;} // スタナー：ブースト・ダッシュ・ジャンプ不可、歩きは下で遅くする
   // wish: 正規化された水平入力（ワールド座標）
   u.jumpBuf = Math.max(0, u.jumpBuf - dt);
   if (jumpPressed && !u.onGround) u.jumpBuf = 0.3; // 着地硬直を消す入力
@@ -4803,6 +4909,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     if (u.overheat && u.boost >= u.maxBoost) u.overheat = false;
     if (u.overheat && !charging) speed = u.walkV * 0.55;
   }
+  if (u.shockT > 0) speed = Math.min(speed, u.walkV * (u.shockSlow || .35));
   u.catCd -= dt;
   if (u.flying) {
     // カタパルト飛行中は勢いを保つ。入力があればわずかに曲げられる
@@ -5532,7 +5639,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
 function wreck(v) {
   clearAttached(v);
   if (v.post) removeGadget(v.post);
-  v.jamT=v.electricT=0;
+  v.jamT=v.electricT=v.shockT=0;
   v.downT = 0; v.respawnT = 5; v.group.visible = false;
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
   const by = v.downBy;
@@ -6201,6 +6308,8 @@ function botUpdate(u, dt) {
     trig = sw.chargeWave ? sword.cd <= 0 && (sword.chargeT < sw.chargeTime || !ready)
       : sw.meleeCharge ? sword.cd <= 0 && !sword.overheat && (sword.chargeT < sw.chargeTime * .5 || !close || !ready)
       : ready && (close || u.dashT > 0);
+  } else if (!waterEscape && u.slots.aux.w.stunField && tracking && u.target.kind === 'unit' && td < u.slots.aux.w.stunField.len[1] - 2 && u.slots.aux.ammo + u.slots.aux.reserve > 0) {
+    slot = 'aux'; trig = ready; // スタナー：近い敵機に向けて溜め、満タンで離す（下のチャージ撃ちの決まり）
   } else if (u.cls === 'heavy' && u.rkGo) slot = 'sub';
   else if (u.cls === 'raid' && sub.w.scope && tracking && td > 35) slot = 'sub'; // 遠い敵は狙撃銃で
   else if (ally || selfHeal) { slot = 'sp'; alt = selfHeal; }
@@ -6349,9 +6458,9 @@ function botAct(u, tracking, enemyCore) {
     // 自軍のプラントにいるとき、近くに無ければセンサーを置き（滞空センサーは前方60mへ撃ち出す）、足元の近くに地雷や遠隔爆弾を置く
     const pl = plants.find(q => q.owner === u.team && inPlant(u, q));
     const near = (kind, r) => gadgets.some(g => g.owner === u && g.kind === kind && g.pos.distanceTo(u.pos) < r);
-    const far = s.aux.w.proj.hover ? 60 : 5;
-    if(s.aux.w.proj.kind==='ammo' && s.aux.ammo>0 && !near('ammo',6)){const ally=units.find(e=>e.alive&&e.team===u.team&&needsAmmo(e)&&e.pos.distanceTo(u.pos)<12);if(ally)return {slot:'aux',aim:ally.pos.clone(),t:2.5,done:used(s.aux)};}
-    if (s.aux.w.proj.kind!=='ammo' && pl && s.aux.ammo > 0 && !near('sensor', far + 45)) return { slot: 'aux', aim: ahead(far), t: 2.5, done: used(s.aux) };
+    const AP = s.aux.w.proj || {}, far = AP.hover ? 60 : 5; // スタナーは投げる物が無い（proj なし）
+    if(AP.kind==='ammo' && s.aux.ammo>0 && !near('ammo',6)){const ally=units.find(e=>e.alive&&e.team===u.team&&needsAmmo(e)&&e.pos.distanceTo(u.pos)<12);if(ally)return {slot:'aux',aim:ally.pos.clone(),t:2.5,done:used(s.aux)};}
+    if (s.aux.w.proj && AP.kind!=='ammo' && pl && s.aux.ammo > 0 && !near('sensor', far + 45)) return { slot: 'aux', aim: ahead(far), t: 2.5, done: used(s.aux) };
     if (pl && s.sub.ammo > 0 && !near(s.sub.w.proj.kind, 6) && Math.random() < 0.5) return { slot: 'sub', aim: ahead(7), t: 2.5, done: used(s.sub) };
   }
   return null;
@@ -6720,7 +6829,7 @@ function clearGadgets() {
 
 // 追加補助装備。時計は選択中の武器と独立し、Botも同じ判定を使う。
 function auxiliaryStatusTick(u,dt){
-  u.jamT=Math.max(0,(u.jamT||0)-dt);u.electricT=Math.max(0,(u.electricT||0)-dt);
+  u.jamT=Math.max(0,(u.jamT||0)-dt);u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
 }
 function radarToolTick(u,sl,dt,on){
   if(!on){sl.scanRadius=0;sl.scanT=0;return;}
@@ -6919,7 +7028,7 @@ function equip(u, cls) {
   stopBeamCannon(u);
   if (u.post) removeGadget(u.post);
   if (u.postFlight) scene.remove(u.postFlight.mesh);
-  u.postFlight = null; u.postRecall = false; u.repairBlock = 0; u.jamT=u.electricT=0; u.radarHeading=null;
+  u.postFlight = null; u.postRecall = false; u.repairBlock = 0; u.jamT=u.electricT=u.shockT=0; u.radarHeading=null;
   const c = CLASSES[cls], A = ARMORY[cls];
   // プレイヤーは機体カスタマイズで選んだ武器、Botは出撃ごとに枠ごとにランダム（v0.11）
   const pick = k => u.isPlayer ? (tutorial ? c[k] : loadout[cls][k]) : A[k][Math.floor(Math.random() * A[k].length)];
@@ -7179,7 +7288,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
     }
     if (sl.chargeT <= 0 || sl.cd > 0 || sl.overheat) { sl.chargeT = sl.holdT = 0; return false; }
     const q = Math.min(1, sl.chargeT / w.chargeTime), full = q >= 1 - 1e-6;
-    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: full ? w.chargeBlast || 0 : 0, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full } };
+    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: full ? w.chargeBlast || 0 : 0, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
     if (w.chargeStages) {
       const stage=full?2:q>=.5?1:0;
       csl.w.proj={...w.proj,dmg:w.chargeStages[stage]};
@@ -7210,6 +7319,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   const w = sl.w;
   sfx(w.sfx, u.pos, u, w.sfxRate);
   if (w.drone) { launchDrone(u, w.drone); return false; }
+  if (w.stunField) { stunFieldFire(u, w, aim); return false; }
   incomingFire(u, w);
   // プレイヤーのaimには前の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
   const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
@@ -10134,7 +10244,7 @@ function showPage(id) {
 let optionsPaused = false;
 function openOptions() {
   if ((tutorial || range) && !running) (tutorial || range).optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
-  $('missileHud').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true;
   optionsPaused = running;
   if (optionsPaused) {
     running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = false;
@@ -10274,6 +10384,9 @@ function wStats(w) {
       if (w.missile) st.push(`捕捉 ${w.missile.time}秒・最大${w.missile.locks}回`, `1捕捉${w.missile.shots}発・誘導${w.missile.rank}`, `弾速 ${P.speed}〜${P.maxSpeed}m/s`);
       st.push(ammo(), `リロード ${w.reload}秒`);
     }
+  } else if (w.stunField) {
+    const F = w.stunField;
+    st.push(`威力 ${F.dmg[0]}〜${F.dmg[1]}（1回）`, `範囲 前方${F.len[0]}〜${F.len[1]}m・幅${F.width}m`, `範囲が残る ${F.time[0]}〜${F.time[1]}秒`, `妨害 範囲の中と出て${F.shock}秒：ブースト・ジャンプ不可、歩き×${F.slow}`, `溜め ${w.chargeTime}秒`, `弾数 ${w.mag}×${w.mags}`);
   } else if (w.type === 'gun') {
     st.push(`威力 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.dual ? '×2丁' : ''}`, `連射 ${w.rpm}発/分${w.burst ? `（${w.burst}発ずつ）` : w.semi ? '（単発）' : ''}`, ammo(), `リロード ${w.reload}秒`);
     if (w.spin) st.push(`空転 ${w.spin}秒`);
@@ -10885,34 +10998,82 @@ function lockWarning(p, dt) {
   }
 }
 $('lockDirections').innerHTML = LOCK_DIRS.map((_, k) => `<div class="lockSector" id="lockDir${k}" hidden><i aria-hidden="true"></i></div>`).join('');
+// ミサイルの捕捉表示（2026-11-05、オーナー「ミサイルロックのロックオンカーソルが地味だからもうちょい派手にしたい」。形と色は Claude の案）。
+// 捕捉中：四隅の鉤が外から敵へ寄っていき、太い進み具合の輪と目盛りが回る。捕捉した瞬間：赤い菱形が大きい所から敵へ締まり、広がる輪が光る。
+// 捕捉済み：二重の赤い菱形が回って脈打ち、4方向の矢じりが敵を指す。表示だけで、捕捉の仕組みと時間は変えない。
+const missileHudFx = new Map(); // 敵 → { n: 捕捉数, t: 最後に捕捉した playT }
 function missileHud(p) {
   const canvas = $('missileHud'), sl = p.slots[p.weapon], M = sl.w.missile;
   canvas.hidden = !M || !p.alive || !running || ended || !!p.transfer;
-  if (canvas.hidden) return;
+  if (canvas.hidden) { missileHudFx.clear(); return; }
   if (canvas.width !== innerWidth || canvas.height !== innerHeight) { canvas.width = innerWidth; canvas.height = innerHeight; }
-  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1;
-  ctx.clearRect(0, 0, w, h); ctx.lineWidth = 1.5; ctx.strokeStyle = '#7bdfd9';
-  ctx.strokeRect(w / 2 - r, h / 2 - r, r * 2, r * 2);
-  ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
-  ctx.fillStyle = '#b9f3ef';
+  const ctx = canvas.getContext('2d'), h = innerHeight, w = innerWidth, r = h * .1, now = playT, TAU = Math.PI * 2;
+  ctx.clearRect(0, 0, w, h); ctx.lineCap = 'round';
   const locks = sl.missileLocks || [], capacity = Math.min(M.locks, Math.floor(sl.ammo / M.shots));
-  ctx.fillText(`捕捉 ${locks.length}/${capacity}　左：発射　右：解除`, w / 2, h / 2 + r + 20);
+  // 捕捉の範囲：四隅の鉤（捕捉があると赤く光る）
+  const armed = locks.length > 0, cx = w / 2, cy = h / 2, k = r * .32;
+  ctx.shadowColor = armed ? '#ff3b2f' : '#2fd6cf'; ctx.shadowBlur = armed ? 10 : 6;
+  ctx.strokeStyle = armed ? '#ff7a5c' : '#7bdfd9'; ctx.lineWidth = 2.5;
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    ctx.beginPath(); ctx.moveTo(cx + sx * r, cy + sy * (r - k)); ctx.lineTo(cx + sx * r, cy + sy * r); ctx.lineTo(cx + sx * (r - k), cy + sy * r); ctx.stroke();
+  }
+  ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
+  ctx.fillStyle = armed ? '#ffc2a8' : '#b9f3ef';
+  const info = `捕捉 ${locks.length}/${capacity}　左：発射　右：解除`;
+  ctx.fillText(info, cx, cy + r + 22);
   const list = new Set([...(sl.missileCandidates || []), ...locks.map(entry => entry.target)]);
-  const labels = [];
+  for (const e of [...missileHudFx.keys()]) if (!list.has(e)) missileHudFx.delete(e);
+  const labels = [{ x: cx, y: cy + r + 22, width: ctx.measureText(info).width }]; // 下の操作の文字とも重ねない
   for (const e of list) {
+    const n = locks.filter(entry => entry.target === e).length, fx = missileHudFx.get(e) || { n: 0, t: -9 };
+    if (n > fx.n) fx.t = now; fx.n = n; missileHudFx.set(e, fx);
     const s = screenOf(e);
     if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
-    const n = locks.filter(entry => entry.target === e).length, progress = (sl.missileProgress?.get(e) || 0) / M.time;
+    const progress = Math.min(1, (sl.missileProgress?.get(e) || 0) / M.time);
     const x = (s.x + 1) * w / 2, y = (1 - s.y) * h / 2;
-    ctx.strokeStyle = ctx.fillStyle = n ? '#ffba64' : '#b0d7dc';
-    ctx.strokeRect(x - 19, y - 19, 38, 38);
-    if (progress > 0) { ctx.beginPath(); ctx.arc(x, y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke(); }
-    const label = n ? `LOCK ×${n} / ${n * M.shots}発` : `${Math.round(e.pos.distanceTo(p.pos))}m`, width = ctx.measureText(label).width;
+    ctx.save(); ctx.translate(x, y);
+    if (n) {
+      const age = now - fx.t, snap = Math.max(0, 1 - age / .22), pulse = .5 + .5 * Math.sin(now * 12);
+      const size = 34 * (1 + 1.4 * snap * snap);
+      ctx.shadowColor = '#ff2a1f'; ctx.shadowBlur = 10 + 8 * pulse;
+      ctx.strokeStyle = '#ff5a3c'; ctx.lineWidth = 3;
+      ctx.save(); ctx.rotate(Math.PI / 4 + now * 1.6); ctx.strokeRect(-size / 2, -size / 2, size, size); ctx.restore();
+      ctx.strokeStyle = `rgba(255,214,120,${.55 + .45 * pulse})`; ctx.lineWidth = 1.5;
+      ctx.save(); ctx.rotate(Math.PI / 4 - now * 2.4); const s2 = size * 1.45; ctx.strokeRect(-s2 / 2, -s2 / 2, s2, s2); ctx.restore();
+      ctx.fillStyle = '#ff6a48';
+      const d = size * .95 + 4 * pulse; // 4方向の矢じりが敵を指す
+      for (let i = 0; i < 4; i++) { ctx.save(); ctx.rotate(i * Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, -d); ctx.lineTo(-6, -d - 10); ctx.lineTo(6, -d - 10); ctx.closePath(); ctx.fill(); ctx.restore(); }
+      if (age < .45) { // 捕捉した瞬間の広がる輪
+        const t = age / .45; ctx.strokeStyle = `rgba(255,120,80,${1 - t})`; ctx.lineWidth = 4 * (1 - t) + 1;
+        ctx.beginPath(); ctx.arc(0, 0, 20 + 60 * t, 0, TAU); ctx.stroke();
+      }
+    } else {
+      // 捕捉中・候補：四隅の鉤が外から寄ってくる。進み具合の輪と目盛りが回る
+      const gap = 34 - 16 * progress, len = 9;
+      ctx.shadowColor = '#2fd6cf'; ctx.shadowBlur = progress ? 8 : 3;
+      ctx.strokeStyle = progress ? '#9ff6ee' : 'rgba(176,215,220,.8)'; ctx.lineWidth = progress ? 2.5 : 1.5;
+      ctx.save(); ctx.rotate(progress * Math.PI / 2);
+      for (let i = 0; i < 4; i++) { ctx.save(); ctx.rotate(i * Math.PI / 2); ctx.beginPath(); ctx.moveTo(-gap, -gap + len); ctx.lineTo(-gap, -gap); ctx.lineTo(-gap + len, -gap); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
+      if (progress > 0) {
+        ctx.strokeStyle = 'rgba(159,246,238,.25)'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, 40, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = '#ffd36a'; ctx.shadowColor = '#ffb020'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(0, 0, 40, -Math.PI / 2, -Math.PI / 2 + TAU * progress); ctx.stroke();
+        ctx.strokeStyle = '#9ff6ee'; ctx.lineWidth = 2; ctx.shadowBlur = 4;
+        for (let i = 0; i < 12; i++) { const a = i * TAU / 12 + now * 3; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 46, Math.sin(a) * 46); ctx.lineTo(Math.cos(a) * 51, Math.sin(a) * 51); ctx.stroke(); }
+      }
+    }
+    ctx.restore();
+    ctx.shadowColor = '#07131c'; ctx.shadowBlur = 5;
+    ctx.font = n ? 'bold 16px sans-serif' : progress ? 'bold 13px sans-serif' : '13px sans-serif';
+    ctx.fillStyle = n ? '#ffb08a' : progress ? '#ffe39a' : '#b0d7dc';
+    const label = n ? `LOCK ×${n}  ${n * M.shots}発` : progress ? `LOCKING ${Math.round(progress * 100)}%` : `${Math.round(e.pos.distanceTo(p.pos))}m`, width = ctx.measureText(label).width;
     const lx = Math.max(width / 2 + 4, Math.min(w - width / 2 - 4, x));
-    let ly = y + 36;
-    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 6 && Math.abs(a.y - ly) < 16)) ly += 18;
+    let ly = y + (n ? 58 : progress ? 68 : 46);
+    while (labels.some(a => Math.abs(a.x - lx) < (a.width + width) / 2 + 6 && Math.abs(a.y - ly) < 18)) ly += 20;
     labels.push({ x: lx, y: ly, width }); ctx.fillText(label, lx, ly);
   }
+  ctx.shadowBlur = 0;
 }
 // ---- 三角コンソールの表示 ----
 // 捕捉範囲の円は描かず、その接線に計器を置く。照準・弾道・判定へ書き戻さない。
@@ -11244,6 +11405,7 @@ function hud(timeLeft, dt) {
   }
   respawnPanel(p);
   missileHud(p);
+  { const el = $('shockScreen'), strong = p.electricT > 0; el.hidden = !(p.alive && (strong || p.shockT > 0)); el.classList.toggle('weak', !strong); } // 電撃の痺れ：画面の縁が青くちらつく
   lockHud(p, dt);
   triangleHud(p);
   const kcOn = killcamOn(), kc = $('killcam');
@@ -11268,6 +11430,8 @@ function hud(timeLeft, dt) {
   else if (p.stun === 'roll') centerEl.textContent = '受け身';
   else if (p.stun === 'stagger') centerEl.textContent = 'よろけ';
   else if (p.stun === 'land') centerEl.textContent = '着地硬直';
+  else if (p.electricT > 0) centerEl.textContent = `電撃：しびれて動けない　${p.electricT.toFixed(1)}秒`;
+  else if (p.shockT > 0) centerEl.textContent = '電撃：ブースト・ジャンプ不可';
   else if (p.overheat) centerEl.textContent = 'オーバーヒート';
   else if (document.pointerLockElement !== canvas && !mouseDown && !padActive() && !touchPlay) centerEl.textContent = '画面をクリックで操作に戻る'; // Esc などでマウスの固定が外れたとき
   else if (p.invulT > 0) centerEl.textContent = '出撃直後：無敵';
@@ -11653,7 +11817,7 @@ function setup() {
   $('scorePop').innerHTML = $('ovBoard').innerHTML = '';
 }
 function finish() {
-  $('missileHud').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true;
   ended = true; running = false; mapOpen = false;
   stopMovementSounds();
   document.exitPointerLock?.();
@@ -11784,6 +11948,7 @@ function loop(now) {
     cloakLook(u, now / 1000);
     movementAudioTick(u, dt);
     if (running && u.group.visible) weaponLook(u, dt);
+    shockLook(u, dt);
     mainMuzzleUpdate(u, dt);
     boosterFlameUpdate(u, running ? dt : 0);
     u.barrierMesh.visible = barrierReady(u);
