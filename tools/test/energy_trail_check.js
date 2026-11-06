@@ -15,7 +15,7 @@ const dir=path.resolve(process.argv[2]||'dbg/lime-energy');
   const aim=new T.Vector3(0,202.5,-100);
   const energy=Object.entries(g.ARMORY).flatMap(([cls,s])=>Object.entries(s).flatMap(([slot,keys])=>keys.filter(k=>g.WEAPONS[k].energy).map(key=>({cls,slot,key}))));
   for(const team of['B','R'])for(const {cls,slot,key}of energy){
-   const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const laser=sl.w.series==='ln',traces=g.fx.filter(f=>f.kind===(laser?'laser':'tracer'));
+   const sl=reset(cls,key,slot,team);if(sl.w.type==='gun')g.shot(u,sl,aim,0);else g.fire(u,aim,0,sl.w);const laser=sl.w.laserFade>0,traces=g.fx.filter(f=>f.kind===(laser?'laser':'tracer'));
    yes(traces.length>0&&traces.every(f=>(laser||f.energy)&&f.obj.material.color.getHex()===0xb8ff32),team+'/'+key+' ライム色');
    g.fxUpdate(.04);yes(traces.every(f=>laser?near(f.obj.scale.y,f.len):(slot==='main'?f.obj.scale.x>=.06:f.obj.scale.x<=.055)&&f.obj.scale.y<=18.00001&&f.obj.scale.y>0),team+'/'+key+(laser?' 即時のレーザー':' 遠方でも見えるレーザー状'));
   }

@@ -57,7 +57,7 @@ const after = path.resolve(process.argv[2]), before = path.resolve(process.argv[
         }
         // 光弾狙撃ライフル以外は元の表示を維持する。スコープ武器の煙を前後比較する。
         const sniper = [];
-        for (const [key, w] of Object.entries(g.WEAPONS).filter(([, w]) => w.scope && w.series !== 'ln')) {
+        for (const [key, w] of Object.entries(g.WEAPONS).filter(([, w]) => w.scope && !(w.laserFade > 0))) {
           reset(); const from = new T.Vector3(0, 202.5, 0); g.fire(u, new T.Vector3(0, 202.5, -180), 0, w, from); g.fxUpdate(.12);
           sniper.push({ key, smoke: g.fx.filter(f => f.kind === 'smoke').map(f => ({ life: f.life, scale: f.obj.scale.toArray(), opacity: f.obj.material.opacity, color: f.obj.material.color.getHex(), side: f.obj.material.side })) });
         }

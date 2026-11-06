@@ -211,5 +211,80 @@
         "trait": "3発ずつ素早く撃つ。一発と爆風は小さいが弾数が多い"
       }
     ]
+  },
+  {
+    "base": "optSniper",
+    "series": "LZ-狙撃銃系統",
+    "source": "https://w.atwiki.jp/borderbreak/pages/954.html",
+    "tableSource": "research/arcade/weapons/raid.md",
+    "retrieved": "2026-11-07",
+    "note": "オーナー指定（2026-11-07）の新系統「光学狙撃銃」。攻撃属性ニュード100%、射程800m。単発は rpm 60 として扱う。収束 settle は表に無く Claude の仮置き",
+    "baseRow": {
+      "name": "LZ-デイライト",
+      "kg": 280,
+      "dmg": 4750,
+      "mag": 1,
+      "mags": 10,
+      "rpm": 60,
+      "scope": 5,
+      "reload": 4.5,
+      "recoilV": 0.5,
+      "recoilH": 0.05
+    },
+    "types": [
+      {
+        "name": "LZ-デイライトS",
+        "kg": 290,
+        "dmg": 5400,
+        "mag": 1,
+        "mags": 8,
+        "rpm": 60,
+        "scope": 7,
+        "reload": 5,
+        "recoilV": 0.5,
+        "recoilH": 0.05,
+        "label": "精密型"
+      },
+      {
+        "name": "LZ-トライアド",
+        "kg": 310,
+        "dmg": 2800,
+        "mag": 3,
+        "mags": 9,
+        "rpm": 600,
+        "scope": 5,
+        "reload": 4.3,
+        "recoilV": 0.2,
+        "recoilH": 0.05,
+        "burst": 3,
+        "label": "三点射型"
+      },
+      {
+        "name": "LZ-ヴェスパイン",
+        "kg": 330,
+        "dmg": 7900,
+        "mag": 1,
+        "mags": 5,
+        "rpm": 60,
+        "scope": 5,
+        "reload": 5.5,
+        "recoilV": 0.5,
+        "recoilH": 0.05,
+        "label": "強装型"
+      },
+      {
+        "name": "LZ-アキュレイト",
+        "kg": 320,
+        "dmg": 6600,
+        "mag": 1,
+        "mags": 6,
+        "rpm": 60,
+        "scope": 5,
+        "reload": 5,
+        "recoilV": null,
+        "label": "改良型",
+        "recoilNote": "反動は表で不明。標準と同じ0.5度を仮置き"
+      }
+    ]
   }
 ]
