@@ -93,7 +93,7 @@ check('レーザー誘導ロケット', async ({ page, ev, step, ok, sortie, out
     e.pos.copy(p.pos).addScaledVector(window.__f, 70); e.pos.y = g.groundAt(e.pos.x, e.pos.z, e.pos.y + 30); e.vel.set(0, 0, 0); p.invulT = 99; return !!e; });
   let seen = null;
   for (let i = 0; i < 300 && !seen; i++) {
-    await ev(() => { const e = window.__b; e.rkGo = true; e.botRkT = 0; e.target = __g.player; });
+    await ev(() => { const g = __g, e = window.__b; e.rkGo = true; e.botRkT = 0; e.target = g.player; window.__bp = window.__bp || e.pos.clone(); e.pos.copy(window.__bp); e.vel.set(0, 0, 0); }); // 70mの所に留める（2026-11-07。前の爆風の結果しだいで Bot が450mも離れていき、撃たなかった）
     await step(1);
     seen = await ev(() => { const e = window.__b, s = __g.shells.find(s => s.owner === e && s.spec.seek); return s ? { seeking: !!s.seeking, mode: e.seekMode, weapon: e.weapon } : null; });
   }
