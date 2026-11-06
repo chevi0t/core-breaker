@@ -20,8 +20,11 @@ const dir=path.resolve(process.argv[2]||'dbg/explosions'),out=path.resolve(proce
    yes(consumed===0,'発生・資源作成・更新が戦闘用Math.randomを消費しない');
    yes(state()===before,'爆発演出だけでは耐久・武器・照準・反動・ロック・視界揺れを変えない');
    const batches=g.boomVisuals,all=()=>Object.values(batches),ids=all().map(b=>[b.mesh.uuid,b.geometry.uuid,b.mesh.material.uuid]);
-   yes(all().length===5&&all().every(b=>b.mesh.material.depthTest&&!b.mesh.material.depthWrite),'共有5バッチで通常の遮蔽を維持する');
+   yes(all().length===7&&all().every(b=>b.mesh.material.depthTest&&!b.mesh.material.depthWrite),'共有7バッチ（エネルギー系の光の球2つを含む。使う時だけ描く）で通常の遮蔽を維持する');
    yes(g.booms[0].at.equals(at.clone().add(new T.Vector3(0,2,0))),'従来の爆心の表示高さを維持する');
+   {g.clearBooms();g.boom(at,1,14,true);g.boomUpdate(.2);const n=k=>batches[k].count;yes(n('fire')===0&&n('smoke')===0&&n('glow')>0&&n('orb')>0&&n('rings')>g.BOOM_SEGMENTS*6,'エネルギー系の爆発は火と煙を出さず、光の球と段の輪');
+    g.clearBooms();g.boom(at,1,14);g.boomUpdate(.2);yes(n('fire')>0&&n('glow')===0&&n('orb')===0&&!batches.glow.mesh.visible,'火薬系の爆発は今までどおりで、光の球は描かない');
+    g.clearBooms();g.boom(at,1,40);const big=g.booms[0].life;g.clearBooms();g.boom(at,1,10);yes(big>g.booms[0].life*1.9,'半径40mの爆発は10mの約2倍長く残る');g.clearBooms();}
    function atTime(time,scale=1){g.clearBooms();g.boom(at,scale);g.boomUpdate(time);}
    atTime(.08);const big=Math.max(...batches.fire.attributes.size.array.slice(0,batches.fire.count));
    yes(batches.fire.count>0&&batches.sparks.count>0&&batches.rings.count>0,'起爆直後に火球・火花・衝撃波が出る');
