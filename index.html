@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver171</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver172</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -6385,7 +6385,9 @@ function reflectorPlan(u, target) {
   const c = target ? target.pos : pl?.pos;
   if (!c || !artilleryInRange(u, c)) return null;
   const other = target && units.find(e => e !== target && e.alive && e.team !== u.team && e.pos.distanceTo(c) < len && e.pos.distanceTo(c) > 5);
-  const dir = other ? new T.Vector3(other.pos.x - c.x, 0, other.pos.z - c.z) : target && Math.hypot(target.vel.x, target.vel.z) > 2 ? new T.Vector3(target.vel.x, 0, target.vel.z) : new T.Vector3(-(c.z - u.pos.z), 0, c.x - u.pos.x);
+  // 目標は機体とは限らない（砲台・設置物・レーダー・コアには vel が無い。2026-11-06：ここで止まって試合ごと固まっていた）
+  const tv = target && target.vel;
+  const dir = other ? new T.Vector3(other.pos.x - c.x, 0, other.pos.z - c.z) : tv && Math.hypot(tv.x, tv.z) > 2 ? new T.Vector3(tv.x, 0, tv.z) : new T.Vector3(-(c.z - u.pos.z), 0, c.x - u.pos.x);
   if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
   dir.normalize();
   const a = c.clone().addScaledVector(dir, other ? -len * .25 : -len / 2), b = a.clone().addScaledVector(dir, len);
@@ -12113,7 +12115,19 @@ resize();
 
 let last = performance.now();
 let playT = 0; // 出撃中に進む秒。clock() は試合の残り時間から数えるので、時間の進まない射撃場・チュートリアルでは止まる
+// 1コマ。中の処理で例外が出ても次のコマを必ず頼む（2026-11-06：例外1つで requestAnimationFrame が止まり、試合が固まって戻れなかった）。
+// 例外はコンソールへ出す（試験は console.error を拾う）。毎コマ同じ例外が出ても、出すのは最初の数回だけ
+let loopErrors = 0;
 function loop(now) {
+  try { gameFrame(now); }
+  catch (e) {
+    loopErrors++;
+    if (loopErrors <= 5 || loopErrors % 600 === 0) console.error('コマの処理で例外（' + loopErrors + '回目）：', e);
+    for (const k in pressed) delete pressed[k]; // 押した瞬間のキーを次のコマへ持ち越さない
+  }
+  requestAnimationFrame(loop);
+}
+function gameFrame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
   touchTick(); // タッチ操作のボタンを出す・しまう
@@ -12209,7 +12223,6 @@ function loop(now) {
   for (const k in pressed) delete pressed[k];
   renderView();
   mechPreview(dt);
-  requestAnimationFrame(loop);
 }
 if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('ovText').textContent = 'マップのデータ（maps.js）が読めないため遊べません。index.html と同じフォルダに maps.js があるか確かめてください。';
