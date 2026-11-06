@@ -34,10 +34,16 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
     reset(key,'charger',bot);ok(g.toggleSp(u)&&u.chargerOn,'加速装置を起動する');
     if(moving){for(let i=0;i<24;i++)g.physics(u,forward,true,false,dt);ok(u.charging&&!u.dashT&&!u.longDash,'通常ダッシュを使わずSPで加速する');}
     attack(true);ok(u.chargerOn,'近接開始で加速装置のON状態を維持');
-    const sp=u.slots.sp.heat,bound=Math.max(Math.hypot(u.vel.x,u.vel.z),u.lungeSpeed*1.35);
+    // パイルバンカーだけは加速の勢いに溜めの踏み込みを1回だけ足す（オーナー 2026-11-06）。ほかは足さない
+    const pike=!!u.swing.pike,carry=Math.hypot(u.vel.x,u.vel.z),sp=u.slots.sp.heat,bound=pike?carry+u.lungeSpeed:Math.max(carry,u.lungeSpeed*1.35);
     g.physics(u,forward,true,false,dt);
     ok(u.dashState==='lunge'&&!u.charging&&u.slots.sp.heat===sp,'加速から近接の踏み込みへ切り替える',key);
     ok(Math.hypot(u.vel.x,u.vel.z)<=bound+1e-6,'近接の勢いを加算し直さない',key);
+    if(pike&&moving){
+     ok(Math.hypot(u.vel.x,u.vel.z)>carry+1,'パイルバンカー：加速の勢いに溜めの踏み込みが足される',{key,carry,v:Math.hypot(u.vel.x,u.vel.z)});
+     for(let i=0;i<120&&u.lungeT>0;i++)g.physics(u,forward,true,false,dt);g.physics(u,forward,true,false,dt);
+     ok(Math.abs(Math.hypot(u.vel.x,u.vel.z)-carry)<carry*.25+1,'パイルバンカー：踏み込みの後も加速の勢いが残る（止まらない）',{key,carry,v:Math.hypot(u.vel.x,u.vel.z)});
+    }
    }
    for(const charger of chargers)for(const bot of [false,true]){
     reset('clawM',charger,bot);ok(g.toggleSp(u),'各型の加速装置を起動');
