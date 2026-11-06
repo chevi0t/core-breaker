@@ -698,7 +698,7 @@ const WEAPONS = {
   // 名前はオリジナル。desc は機体カスタマイズの画面に出す説明 ----
   // 強襲・主武器
   // ヴォルペ突撃銃V16相当：440、810発/分の3点射（1回引くと3発。続けて引くと gap 秒あけて次の3発）、57×10、リロード2.2秒。ばらつきが小さい
-  burst: { sfx: 'ar', name: 'バーストライフル', type: 'gun', dmg: 440, rpm: 810, burst: 3, gap: 0.15, mag: 57, mags: 10, reload: 2.2, spread: 0.006, desc: '3発ずつ撃つ突撃銃。ばらつきが小さく、中距離でも当てやすい' },
+  burst: { sfx: 'ar', name: 'バーストライフル', type: 'gun', dmg: 440, rpm: 810, burst: 3, gap: 0.08, mag: 57, mags: 10, reload: 2.2, spread: 0.006, desc: '3発ずつ撃つ突撃銃。ばらつきが小さく、中距離でも当てやすい' },
   // STAR-10相当：1140、単発（1発ごとに左クリック。Botは連射の間隔で撃つ）、300発/分、18×10、リロード1.9秒。精度が高い
   marks: { sfx: 'sniper', name: 'マークスマンライフル', type: 'gun', dmg: 1140, rpm: 300, semi: true, mag: 18, mags: 10, reload: 1.9, spread: 0.003, desc: '1発ずつ撃つ大口径の突撃銃。クリックの速さが火力になる' },
   // 強襲・副武器
@@ -1186,10 +1186,10 @@ const WEAPON_TYPES = {
     ['広域型', { count: 4, reload: 1.9, kg: 170, blast: 22, fuse: 2.5 }, '範囲が広いが起爆が遅く重い'], // インパクトボムV
     ['軽量型', { count: 3, reload: 2, kg: 110, blast: 20, fuse: 1 }, '軽く範囲も広いが所持数が少ない'], // インパクトボムX
   ] },
-  hsg: { w0: { dmg: 380, pellets: 8, rpm: 90, mag: 3, mags: 4, reload: 2.5, kg: 200 }, types: [ // ハウルHSG9（ハウルHSG系統）
-    ['大容量型', { dmg: 250, pellets: 10, rpm: 90, mag: 4, mags: 4, reload: 2.8, kg: 190 }, '装弾数が多く集弾も良いが威力低め'], // ハウルHSG9R
-    ['広域型', { dmg: 320, pellets: 12, rpm: 90, mag: 2, mags: 4, reload: 3, kg: 240 }, '散弾が多く広がるが装弾数が少ない'], // ハウルHSG17
-    ['強装型', { dmg: 700, pellets: 8, mag: 1, mags: 6, reload: 3.5, kg: 250 }, '集弾が良く高威力だが単発'], // ハウル・アデッソ
+  hsg: { w0: { dmg: 380, pellets: 8, rpm: 90, mag: 3, mags: 4, reload: 2.5, kg: 200, diffuse: '中' }, types: [ // ハウルHSG9（ハウルHSG系統）
+    ['大容量型', { dmg: 250, pellets: 10, rpm: 90, mag: 4, mags: 4, reload: 2.8, kg: 190, diffuse: '小' }, '装弾数が多く集弾も良いが威力低め'], // ハウルHSG9R
+    ['広域型', { dmg: 320, pellets: 12, rpm: 90, mag: 2, mags: 4, reload: 3, kg: 240, diffuse: '大' }, '散弾が多く広がるが装弾数が少ない'], // ハウルHSG17
+    ['強装型', { dmg: 700, pellets: 8, mag: 1, mags: 6, reload: 3.5, kg: 250, diffuse: '極小' }, '集弾が良く高威力だが単発'], // ハウル・アデッソ
   ] },
   cannon: { w0: { dmg: 7600, rpm: 60, shots: 6, charge: 35, kg: 800, blast: 21, speed: 60 }, types: [ // タウル重装砲（重装砲系統）
     ['大容量型', { dmg: 6800, rpm: 75, shots: 10, charge: 45, kg: 890, blast: 19, speed: 80 }, '弾数が多いが一発が軽くチャージ長い'], // ヴァーゴ重装砲
@@ -1217,8 +1217,8 @@ const WEAPON_TYPES = {
   battle: { w0: { dmg: 1950, rpm: 300, mag: 10, mags: 5, reload: 2.9, kg: 230 }, types: [ // バトルライフル（バトルライフル系統）
     ['強装型', { dmg: 2700, rpm: 240, mag: 7, mags: 5, reload: 3, kg: 290 }, '一発が重いが連射が遅く重い'], // バトルライフルS
   ] },
-  lzsniper: { w0: { dmg: 6100, mag: 1, mags: 10, reload: 4.5, kg: 290 }, types: [ // LZ－デイライト（LZ－デイライト系統）
-    ['精密型', { dmg: 7700, mag: 1, mags: 7, reload: 5, kg: 330 }, '弾道安定が速く高威力だが重い'], // LZ－アキュレイト
+  lzsniper: { w0: { dmg: 6100, mag: 1, mags: 10, reload: 4.5, kg: 290, settle: 1.8 }, types: [ // LZ－デイライト（LZ－デイライト系統）
+    ['精密型', { dmg: 7700, mag: 1, mags: 7, reload: 5, kg: 330, settle: 1 }, '弾道安定が速く高威力だが重い'], // LZ－アキュレイト
     ['強装型', { dmg: 9500, mag: 1, mags: 6, reload: 5.5, kg: 340 }, '一発が非常に重いが弾数が少ない'], // LZ－ヴェスパイン
     ['重装型', { dmg: 8400, mag: 1, mags: 7, reload: 4.8, kg: 360 }, '威力が高いが最重量で弾数が少ない'], // LZ－クリパスキュール
   ] },
@@ -1239,13 +1239,13 @@ const WEAPON_TYPES = {
   camo: { w0: { kg: 240, use: 15, charge: 40, chargeKeep: 35, hp: 12000 }, types: [ // 光学迷彩・試作型（光学迷彩系統）
     ['即応型', { kg: 270, use: 13, charge: 35, chargeKeep: 30, hp: 12000 }, '隠密性が高く回復が速いが持続が短い'], // 光学迷彩・実用型
   ] },
-  shotgun: { w0: { dmg: 460, pellets: 8, rpm: 50, mag: 8, mags: 8, reload: 2.6, kg: 220 }, types: [ // スマックショット（スマックショット系統）
-    ['広域型', { dmg: 450, pellets: 12, rpm: 50, mag: 5, mags: 9, reload: 3, kg: 280 }, '散弾が多く広がるが重く装填が遅い'], // ワイドスマック
-    ['強装型', { dmg: 600, pellets: 12, rpm: 50, mag: 2, mags: 14, reload: 2.5, kg: 320 }, '威力絶大だが装弾2発で重い'], // レイジスマック
+  shotgun: { w0: { dmg: 460, pellets: 8, rpm: 50, mag: 8, mags: 8, reload: 2.6, kg: 220, diffuse: '中' }, types: [ // スマックショット（スマックショット系統）
+    ['広域型', { dmg: 450, pellets: 12, rpm: 50, mag: 5, mags: 9, reload: 3, kg: 280, diffuse: '大' }, '散弾が多く広がるが重く装填が遅い'], // ワイドスマック
+    ['強装型', { dmg: 600, pellets: 12, rpm: 50, mag: 2, mags: 14, reload: 2.5, kg: 320, diffuse: '特大' }, '威力絶大だが散弾が大きく広がり、装弾2発で重い'], // レイジスマック
     ['速装型', { dmg: 530, pellets: 10, rpm: 50, mag: 6, mags: 8, reload: 2.4, kg: 240 }, '装填が速く威力も上だが弾数減'], // スマックショットSP
   ] },
-  autosg: { w0: { dmg: 430, pellets: 8, rpm: 100, mag: 9, mags: 9, reload: 2.3, kg: 190 }, types: [ // ASG－スィーパー（ASG系統）
-    ['連射型', { dmg: 250, pellets: 10, rpm: 150, mag: 11, mags: 10, reload: 1.8, kg: 270 }, '連射が速く散弾が絞られるが重い'], // ASG－アヴァランチ
+  autosg: { w0: { dmg: 430, pellets: 8, rpm: 100, mag: 9, mags: 9, reload: 2.3, kg: 190, diffuse: '中' }, types: [ // ASG－スィーパー（ASG系統）
+    ['連射型', { dmg: 250, pellets: 10, rpm: 150, mag: 11, mags: 10, reload: 1.8, kg: 270, diffuse: '極小' }, '連射が速く散弾が絞られるが重い'], // ASG－アヴァランチ
   ] },
   nail: { w0: { dmg: 690, rpm: 480, mag: 20, mags: 16, reload: 1.1, kg: 140, acc: 'D', recoil: 'C', range: 175 }, types: [ // ネイルガン（ネイルガン系統）
     ['連射型', { dmg: 570, rpm: 600, mag: 28, mags: 14, reload: 1.6, kg: 210, acc: 'C-', recoil: 'D', range: 175 }, '連射が速いが重く反動が大きい'], // ラピッドネイル
@@ -1269,9 +1269,9 @@ const WEAPON_TYPES = {
     ['広域型', { count: 2, kg: 430, scan: 90, dur: 65, range: 250, keep: 5, hp: 20000 }, '範囲が広いが重く射程が短い'], // 広域滞空索敵弾
     ['高出力型', { count: 1, kg: 400, scan: 125, dur: 85, range: 300, keep: 5, hp: 20000 }, '範囲と稼働時間が大きいが1個'], // 高機能滞空索敵弾
   ] },
-  fansensor: { w0: { count: 2, kg: 380, scan: 150, keep: 8, hp: 8000 }, types: [ // BRトラッカー（BRトラッカー系統）
-    ['大容量型', { count: 3, kg: 360, scan: 130, keep: 8, hp: 8000 }, '数が多く角度が広いが半径が短い'], // 集中型BRトラッカー
-    ['広域型', { count: 1, kg: 410, scan: 180, keep: 8, hp: 8000 }, '半径と角度が大きいが1個で重い'], // 広域型BRトラッカー
+  fansensor: { w0: { count: 2, kg: 380, scan: 150, keep: 8, hp: 8000, cone: 90 }, types: [ // BRトラッカー（BRトラッカー系統）
+    ['大容量型', { count: 3, kg: 360, scan: 130, keep: 8, hp: 8000, cone: 120 }, '数が多く角度が広いが半径が短い'], // 集中型BRトラッカー
+    ['広域型', { count: 1, kg: 410, scan: 180, keep: 8, hp: 8000, cone: 150 }, '半径と角度が大きいが1個で重い'], // 広域型BRトラッカー
   ] },
   repair: { w0: { kg: 580, use: 10, heal: 1100, range: 60, charge: 35, chargeKeep: 30 }, types: [ // リペアユニット（リペアユニット系統）
     ['広域型', { kg: 620, use: 8, heal: 1100, range: 80, charge: 30, chargeKeep: 25 }, '射程が長いが使用時間が短く重い'], // リペアユニットβ
@@ -1286,8 +1286,8 @@ const WEAPON_TYPES = {
     ['大容量型', { dmg: 330, rpm: 900, mag: 100, mags: 9, reload: 3, kg: 340, acc: 'E+', recoil: 'C-' }, '装弾数と連射が多いが精度が低い'], // UK57速射機銃
     ['強装型', { dmg: 470, rpm: 700, mag: 54, mags: 14, reload: 2.4, kg: 350, acc: 'C-', recoil: 'C-' }, '一発が重いが連射が遅い'], // UK60速射機銃
   ] },
-  gale: { w0: { dmg: 280, pellets: 7, rpm: 240, mag: 6, mags: 19, reload: 1.4, kg: 160 }, types: [ // SSG7－ゲイル（SSG系統）
-    ['瞬発型', { dmg: 310, pellets: 10, rpm: 240, mag: 2, mags: 25, reload: 1.1, kg: 220 }, '一撃が重いが装弾数が2発しかない'], // SSG7－ガスト
+  gale: { w0: { dmg: 280, pellets: 7, rpm: 240, mag: 6, mags: 19, reload: 1.4, kg: 160, diffuse: '小' }, types: [ // SSG7－ゲイル（SSG系統）
+    ['瞬発型', { dmg: 310, pellets: 10, rpm: 240, mag: 2, mags: 25, reload: 1.1, kg: 220, diffuse: '中' }, '一撃が重いが装弾数が2発しかない'], // SSG7－ガスト
     ['強装型', { dmg: 390, pellets: 8, rpm: 150, mag: 4, mags: 17, reload: 1.4, kg: 230 }, '一発が重いが連射が遅く重い'], // SSG7C－タイフーン
   ] },
   vulcan: { w0: { dmg: 640, rpm: 480, mag: 45, mags: 19, reload: 2.2, kg: 280, acc: 'D', recoil: 'A-' }, types: [ // ヴルカンLG1（ヴルカン系統）
@@ -1348,6 +1348,8 @@ const WEAPON_TYPES = {
 const RANKS = ['E-', 'E', 'E+', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S'];
 // 型番の末尾の文字（例：SR-7 の強装型は SR-7H）。キーは元のキー＋この文字（arH）
 const TYPE_LETTER = { 三点射型:'K', 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高速型: 'F', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
+// 散弾の拡散率（wiki の 極小・小・中・大・特大）。型の拡散は系統の基準（w0.diffuse）との比で決める（2026-11-07。前は拡散率を写しておらず、「広がる」「絞られる」型も基準と同じ広がりだった）。倍率は Claude の判断
+const DIFFUSE = { 極小: .5, 小: .75, 中: 1, 大: 1.25, 特大: 1.5 };
 const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
 function makeType(base, w0, t) {
   const w = structuredClone(base), P = w.proj, G = P && P.gun, D = w.drone, gun = G || w;
@@ -1457,6 +1459,8 @@ function makeType(base, w0, t) {
     else if (w.chargeKeep != null) w.chargeKeep = snap(w.chargeKeep * w.charge / c0, 1);
   }
   if (t.chargeKeep === null) delete w.chargeKeep; // AC表が不明の型は通常充填と同じ扱い（本作の暫定規則）
+  if (t.diffuse && w0.diffuse) gun.spread = +(gun.spread * DIFFUSE[t.diffuse] / DIFFUSE[w0.diffuse]).toPrecision(2);
+  if (P && P.cone != null && t.cone != null) P.cone = t.cone; // 扇形センサーの角度（2026-11-07）
   if (steps('acc')) { const k = 0.88 ** steps('acc'); gun.spread = +(gun.spread * k).toPrecision(2); if (w.sway) w.sway = +(w.sway * k).toPrecision(2); }
   if (steps('recoil')) w.recoil = +(baseKick(base) * 0.88 ** steps('recoil')).toPrecision(2);
   // AC表で実数の縦反動（度）が分かる新系統。既存のランク換算は変えない。0度も扱う。
@@ -1507,6 +1511,15 @@ Object.assign(WEAPONS.plasmaK, { burst: 3, gap: .3 });
 // オーナー指定（2026-10-25）：VR-8Hだけ40mで推進剤が尽きる。発射角の自動補正はせず、自分で上を狙う。
 Object.assign(WEAPONS.rocketH.proj, { burnDistance: 40, coastGrav: 24 });
 WEAPONS.rocketH.desc = '重い弾頭を撃つ。40mで噴射が止まり、その先は重力で落ちる';
+// 武器バランスの見直し（2026-11-07、オーナー「根深いトコは修正していきたい」）。説明と性能が食い違っていた型を、説明に合わせる。値は Claude の判断
+// 光学迷彩・即応型：説明「隠密性が高い」。原典の隠密は標準・耐久型 Lv1、即応型 Lv2、高出力型 Lv3 なので、見えにくさを標準と高出力型の間にする
+Object.assign(WEAPONS.camoQ, { still: .03, move: [.2, .47], shot: .75 });
+// 波動ライフル・広域型：「広域」の性能が無く、同じ溜めの威力も弾数も標準型より下だった。満タンの弾が当たった所で小さく爆ぜる（半径6m）
+WEAPONS.waveW.chargeBlast = 6;
+WEAPONS.waveW.desc = '充填が速く、満タンの弾は当たった所で爆ぜて周りも巻き込む。威力が低く弾も少ない';
+// 蓄積エナジー砲（標準型）：短押しの連射に比べて溜める意味が薄かったので、満タンの倍率を 2→2.5（2740→3425）
+WEAPONS.lec.chargeMul = 2.5;
+WEAPONS.lec.desc = '溜めて撃つ光学砲。満タンで撃つと威力2.5倍で、当たった所が爆発する';
 // cat：シリーズの武器の名前（型の名前の「・」より前）、label：型の名前（「・」より後。型が1つなら無し、先頭は標準型）
 for (const [id, se] of Object.entries(SERIES)) {
   se.cat = WEAPONS[se.types[0][0]].name.split('・')[0];

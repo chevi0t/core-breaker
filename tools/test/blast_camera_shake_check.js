@@ -38,14 +38,14 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       for (const distance of [0, 5, 9]) {
         reset(); const hp = u.hp; explode(distance);
         const loss = hp - u.hp, angle = frame().angle;
-        yes(close(loss, 5000 * (1 - .5 * distance / 10)), distance + 'm：従来の爆風減衰を維持');
+        yes(close(loss, 5000 * (1 - (1 - g.BLAST_EDGE) * distance / 10)), distance + 'm：爆風の減衰（端で25%。2026-11-07 に統一）');
         yes(angle > 0, distance + 'm：よろけ未満の被弾も描画時に揺れる');
         samples.push({ distance, damage: loss, angle });
       }
       yes(samples[0].angle > samples[1].angle && samples[1].angle > samples[2].angle, '爆心に近いほど強く揺れる');
       reset(); u.armorAvg = .5; const hp = u.hp; explode();
       yes(close(hp - u.hp, 2500) && frame().angle < samples[0].angle, '装甲を適用した実ダメージに応じて揺れる');
-      reset(); explode(10, { linear: true }); yes(g.blastShake.power === 0, '端で威力0になる爆風は無損傷なら揺れない');
+      reset(); explode(10.5); yes(g.blastShake.power === 0, '爆風の半径の外（損傷なし）なら揺れない');
       reset(); explode(11); yes(g.blastShake.power === 0 && u.hp === 1e6, '範囲外では揺れない');
       reset(); u.invulT = 2; explode(); yes(g.blastShake.power === 0 && u.hp === 1e6, '出撃直後の無敵中は揺れない');
       reset(); explode(0, {}, ally); yes(g.blastShake.power === 0 && u.hp === 1e6, '味方の無損傷の爆風では揺れない');
