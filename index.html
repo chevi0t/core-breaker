@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver170</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver171</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -4884,7 +4884,8 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     if(u.swing?.pike){
       // 静止時の指定距離と発動前の前方速度の大きい方を維持。加算はしない。
       speed=u.lungeSpeed*Math.min(1,remaining/dt);accel=0;
-      u.vel.x=dir.x*speed;u.vel.z=dir.z*speed;u.slideT=0;
+      const c=u.swing.carry; // 加速装置の勢い（ダッシュ攻撃のとき）に踏み込みを足す
+      u.vel.x=(c?c.x:0)+dir.x*speed;u.vel.z=(c?c.z:0)+dir.z*speed;u.slideT=0;
     }
     if (u.lungeT <= 0 && u.swing && !u.swing.pike && u.swing.a.lunge && !u.swing.a.iai) u.slideT = SLIDE_TIME; // 滑るのはダッシュ中の技だけ。横なぎの踏み込みは普段どおり止まる
   } else if (u.dashT > 0) {
@@ -4987,7 +4988,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   }
   if (!stepTo(u, u.pos.x + dx, u.pos.z)) u.vel.x = 0;
   if (!stepTo(u, u.pos.x, u.pos.z + dz)) u.vel.z = 0;
-  if(u.swing?.pike&&u.dashState==='lunge'&&u.lungeT<=0){u.vel.x=u.vel.z=0;u.slideT=0;}
+  if(u.swing?.pike&&u.dashState==='lunge'&&u.lungeT<=0){const c=u.swing.carry;u.vel.x=c?c.x:0;u.vel.z=c?c.z:0;u.slideT=0;} // 踏み込みが終われば加速の勢いだけに戻る
   const moved = Math.hypot(u.pos.x - x0, u.pos.z - z0);
   if (u.vel.y > 0) { const c = ceilingAt(u.pos.x, u.pos.z, u.pos.y); if (u.pos.y + u.vel.y * dt + UNIT_H > c) { u.pos.y = c - UNIT_H; u.vel.y = 0; } } // 橋の下では頭をぶつける
   u.pos.y += u.vel.y * dt;
@@ -7690,8 +7691,10 @@ function swordTick(u, sl, dt, trigger, aim) {
     u.lungeDir.copy(dir); u.lungeT = u.lungeT0 = a.windup + a.sweep; u.lungeSpeed = go / u.lungeT;
     if (a.iaiSpeed) { u.lungeT = u.lungeT0 = go / a.iaiSpeed; u.lungeSpeed = a.iaiSpeed; } // 居合：ブーストの1〜2倍の速さで一気に
     // ダッシュの勢いを短い静止踏み込み速度で上書きしない。逆・横の運動は前方加速へ変換しない。
-    if(u.swing.pike)u.lungeSpeed=Math.max(u.lungeSpeed,u.vel.x*dir.x+u.vel.z*dir.z);
-    if (!dashAttack || u.swing.pike) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
+    // パイルバンカーの加速装置中のダッシュ攻撃：加速装置の勢いはそのまま残し、溜めの踏み込みをその上に足す（オーナー 2026-11-06：バリアを張ったまま一瞬の追加加速で押し付ける武器）
+    if (u.swing.pike && dashAttack && u.chargerOn && !u.slots.sp.overheat) u.swing.carry = new T.Vector3(u.vel.x, 0, u.vel.z); // 加速装置の時だけ。普通のダッシュからは今までどおり（大きい方を保つ）
+    else if (u.swing.pike) u.lungeSpeed = Math.max(u.lungeSpeed, u.vel.x * dir.x + u.vel.z * dir.z);
+    if (!dashAttack || u.swing.pike && !u.swing.carry) { u.vel.x = dir.x * u.lungeSpeed; u.vel.z = dir.z * u.lungeSpeed; }
     else if (sl.w.combo && tgt) { const sp = Math.max(Math.hypot(u.vel.x, u.vel.z), u.lungeSpeed); u.vel.x = dir.x * sp; u.vel.z = dir.z * sp; } // ダッシュの勢いをロックした敵の方へ向け直す
   }
   return false;
