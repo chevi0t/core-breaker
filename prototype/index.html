@@ -108,7 +108,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver171</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver172</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -10201,7 +10201,7 @@ function pickClass(k) {
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
   const c = CLASSES[k];
-  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}"${withKey ? '' : ' title="この兵装を選び、カスタマイズを開きます"'}>${withKey ? 'ZXCV'[i] + '　' : `<em class="toCu" aria-hidden="true">カスタマイズ ›</em>`}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
+  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}"${withKey ? '' : ' title="この兵装で出撃します。右上の「カスタマイズ ›」でカスタマイズを開きます"'}>${withKey ? 'ZXCV'[i] + '　' : `<em class="toCu" title="${c.name}のカスタマイズを開きます">カスタマイズ ›</em>`}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
 }).join('');
 // 重量超過の注記（パーツと選んだ武器で。v0.12）
 function overNote(k) { const st = mechStats(mechCfg, meleeOnly() ? { aux: arenaMeleeKey } : loadout[k]); return st.excess > 0 ? `<small class="over">重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）</small>` : ''; }
@@ -10216,11 +10216,13 @@ function renderBuildTabs() {
 renderBuildTabs();
 bindBuildPersistenceUI();
 $('rcls').addEventListener('click', e => { const b = e.target.closest('button'); if (b) pickClass(b.dataset.cls); });
-// メニューの兵装は、選んでからその兵装のカスタマイズを開く（2026-10-27、ユーザー要望「兵装をクリックしたらカスタマイズに飛べるように」）。部位を選んでいたら主武器の枠を出す
+// メニューの兵装は押すと出撃する兵装を選ぶだけ。右上の「カスタマイズ ›」を押したときだけ、選んでその兵装のカスタマイズを開く
+// （2026-11-06、オーナー指定。それまでは枠のどこを押してもカスタマイズを開いていた：2026-10-27）。部位を選んでいたら主武器の枠を出す
 $('ovCls').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
   pickClass(b.dataset.cls);
+  if (!e.target.closest('.toCu')) return;
   cuCls = b.dataset.cls; cuHover = null;
   if (isPart(cuSlot)) cuSlot = 'main';
   renderCustom(); showPage('pgCustom');
@@ -11973,7 +11975,7 @@ $('rangeClasses').addEventListener('click', e => {
   const cls = e.target.closest('[data-cls]')?.dataset.cls;
   if (!range || running || $('pgRangePause').hidden || !CLASS_KEYS.includes(cls)) return;
   pickClass(cls); rangePlace(cls); renderRangeClasses();
-  $('rangeClasses').querySelector(`[data-cls="${cls}"]`).focus();
+  rangeResume(); // 兵装を選んだら、その兵装ですぐ射撃に戻る（2026-11-06、オーナー指定）
 });
 $('rangeRefill').addEventListener('click', () => { rangePlace(); rangeResume(); });
 $('rangeToCustom').addEventListener('click', () => exitRange('pgCustom'));

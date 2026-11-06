@@ -161,8 +161,9 @@ body[data-console="mechanical"] #lockDirections { width: var(--mech-lock-warning
 #rlist button.sel, .cls button.sel { border-color: var(--blue); background: rgba(62, 166, 255, .22); }
 .cls button { text-align: left; }
 #ovCls button { position: relative; }
-#ovCls .toCu { position: absolute; top: 6px; right: 10px; font: 11px var(--body); color: var(--dim); }
+#ovCls .toCu { position: absolute; top: 0; right: 0; padding: 6px 10px 8px 14px; font: 11px var(--body); font-style: normal; color: var(--dim); }
 #ovCls button:hover .toCu, #ovCls button:focus-visible .toCu { color: var(--hud); }
+#ovCls .toCu:hover { color: var(--blue); text-decoration: underline; }
 .cls button small { display: block; font-family: var(--body); font-size: 11px; color: var(--dim); margin-top: 2px; }
 #rlist button:focus-visible, .cls button:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 #popups { inset: 0; overflow: hidden; }

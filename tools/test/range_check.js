@@ -83,13 +83,14 @@ const dir = path.resolve(process.argv[2] || 'dbg'), out = path.resolve(process.a
     ok(await ev(() => document.querySelectorAll('#rangeClasses button').length === 4 && document.querySelector('#rangeClasses [aria-pressed="true"]').dataset.cls === 'support'), 'ポーズに4兵装を並べ現在の支援を強調');
     await ev(() => { window.rangeClassRef = __g.range; window.rangeClassTargets = __g.range.targets.slice(); window.rangeClassSaved = JSON.stringify(__g.loadout); });
     for (const cls of ['assault', 'heavy', 'raid', 'support']) {
-      await page.locator('#rangeClasses [data-cls="' + cls + '"]').click(); await step(1);
+      if (cls !== 'assault') { await key('Escape'); await step(1); }
+      await page.locator('#rangeClasses [data-cls="' + cls + '"]').click();
       ok(await ev(cls => {
         const g = __g, p = g.player;
-        return !g.running && g.range === rangeClassRef && p.cls === cls && g.chosenCls === cls && p.weapon === 'main'
+        return g.running && document.getElementById('overlay').hidden && g.range === rangeClassRef && p.cls === cls && g.chosenCls === cls && p.weapon === 'main'
           && g.SLOTS.every(k => p.slots[k].w.key === g.loadout[cls][k])
           && document.querySelector('#rangeClasses [aria-pressed="true"]').dataset.cls === cls;
-      }, cls), cls + 'の保存済み4枠を装備し、一時停止のまま選択');
+      }, cls), cls + 'の保存済み4枠を装備し、すぐ射撃に戻る');
       ok(await ev(() => {
         const g = __g, p = g.player;
         return p.hp === p.maxHp && p.boost === p.maxBoost && p.slots.main.ammo === p.slots.main.w.mag && p.pos.x === 0 && Math.abs(p.pos.z - 170) < .01
