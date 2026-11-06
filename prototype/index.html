@@ -108,7 +108,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver173</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver174</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -9160,7 +9160,8 @@ function playerUpdate(u, dt) {
   }
   const cur = u.slots[u.weapon];
   if (keys.KeyR) reload(cur, u);
-  if (pressed.KeyR && cur.w.iai && !u.swing && u.switchT <= 0) { cur.sheathed = !cur.sheathed; cur.chargeT = 0; sfx('switch', u.pos, u, cur.sheathed ? .7 : .9); } // 斬馬刀の納刀・抜刀 !!cur.w.scope && (cur.w.scopeHigh ? (u.scopeStep||0)>0 : rightDown) && !busy && u.switchT <= 0;
+  if (pressed.KeyR && cur.w.iai && !u.swing && u.switchT <= 0) { cur.sheathed = !cur.sheathed; cur.chargeT = 0; sfx('switch', u.pos, u, cur.sheathed ? .7 : .9); } // 斬馬刀の納刀・抜刀
+  u.scoped = !!cur.w.scope && (cur.w.scopeHigh ? (u.scopeStep||0)>0 : rightDown) && !busy && u.switchT <= 0;
   if(cur.w.type==='radarTool' && u.radarHeading!=null){const d=Math.atan2(Math.sin(u.yaw-u.radarHeading),Math.cos(u.yaw-u.radarHeading));u.yaw=u.radarHeading+Math.max(-Math.PI/6,Math.min(Math.PI/6,d));}
   lockUpdate(u, dt);
   if (lock.target && lock.visible) {
