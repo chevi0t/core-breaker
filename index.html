@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver175</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver176</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -5084,7 +5084,7 @@ function tracer(from, end, team, energy = false, weapon = null, enlarged = true)
   addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team, enlarged });
   return len / TRACER_SPEED;
 }
-// 光弾狙撃ライフルは射線全体を瞬時に光らせ、0.4秒かけてぼやけた緑の軌跡を消す。
+// レーザーの武器（laserFade を持つ物：レーザーバトルライフル0.4秒、光学狙撃銃1秒）は射線全体を瞬時に光らせ、laserFade 秒かけてぼやけた緑の軌跡を消す（2026-11-07 から武器ごと）
 const laserGeo = new T.PlaneGeometry(1, 1); laserGeo.translate(0, .5, 0);
 const laserTex = [false, true].map(soft => {
   const c = document.createElement('canvas'); c.width = 64; c.height = 8;
@@ -5100,18 +5100,18 @@ function laserLook(f) {
   else laserSide.normalize();
   laserNormal.crossVectors(laserSide, f.dir).normalize();
   f.obj.quaternion.setFromRotationMatrix(laserBasis.makeBasis(laserSide, f.dir, laserNormal));
-  const k = Math.min(1, f.age / .4), bright = f.age < .08, width = Math.max(.12, f.mid.distanceTo(camera.position) * .006);
+  const k = Math.min(1, f.age / f.fade), bright = f.age < .08, width = Math.max(.12, f.mid.distanceTo(camera.position) * .006);
   f.obj.scale.set(width * (bright ? 1 : 1 + k * 3), f.len, 1);
   f.obj.material.map = laserTex[bright ? 0 : 1];
   f.obj.material.opacity = bright ? .98 : .4 * (1 - k) ** .8;
 }
-function laserTrail(from, end) {
+function laserTrail(from, end, fade = .4) {
   const len = from.distanceTo(end), n = Math.max(1, Math.ceil(len / 50)), dir = end.clone().sub(from).normalize();
   for (let i = 0; i < n; i++) {
     const m = new T.Mesh(laserGeo, new T.MeshBasicMaterial({ color: ENERGY_COLOR, map: laserTex[0], transparent: true, depthWrite: false, side: T.DoubleSide, fog: false }));
     m.position.copy(from).lerp(end, i / n);
-    const f = { kind: 'laser', from: m.position.clone(), mid: from.clone().lerp(end, (i + .5) / n), dir, len: len / n };
-    laserLook({ ...f, obj: m, age: 0 }); addFx(m, .4, f);
+    const f = { kind: 'laser', fade, from: m.position.clone(), mid: from.clone().lerp(end, (i + .5) / n), dir, len: len / n };
+    laserLook({ ...f, obj: m, age: 0 }); addFx(m, fade, f);
   }
   return 0; // 実際の命中と着弾演出も発射時に揃える。
 }
@@ -5535,7 +5535,7 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
   dir.normalize();
   const hit = castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
-  const laser = w.series === 'ln', travel = laser ? laserTrail(from, end) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w) || BIG_TRACE_SERIES.has(w.series));
+  const laser = w.laserFade > 0, travel = laser ? laserTrail(from, end, w.laserFade) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w) || BIG_TRACE_SERIES.has(w.series));
   if (w.scope && !laser) smokeTrail(from, end);
   flash(from, laser ? ENERGY_COLOR : w.energy ? 0xa0ffe8 : 0xffd9a0, 0.9, 0.05); // 銃口の光
   if (!hit) return false;

@@ -15,7 +15,7 @@ const MODEL_OF = {
   stunner: ['stunner', 0],
   seeker: ['seeker', 0],
   sabre: ['sabre', 0], rod: ['dagger', 0], claw: ['claw', 0], pike: ['pike', 0], jammer: ['jammer', 0], airTurret: ['airTurret', 0], flyTurret: ['flyTurret', 0], stunGrenade: ['stunGrenade', 0], planeSensor: ['planeSensor', 0], ammoBox: ['ammoBox', 0], radarTool: ['radarTool', 0],
-  flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
+  flare: ['flare', 0], chain: ['chain', 0], dart: ['dart', 0], charge: ['charge', 0], zoom: ['zoom', 0], blastSniper: ['blastSniper', 0], lightSniper: ['lightSniper', 0], optSniper: ['optSniper', 0], jumpMine: ['jumpMine', 0], delayMine: ['delayMine', 0], detonator: ['detonator', 0],
   beamCannon: ['beamCannon', 0],
   artillery: ['artillery', 0], reflector: ['reflector', 1], barrier: ['barrier', 0], escort: ['escort', 0], repairPost: ['repairPost', 0],
   ar: ['ar', 0], burst: ['burst', 0], marks: ['marksman', 0], grenade: ['grenade', 0], timed: ['grenade', 1], gl: ['explosive', 0],
@@ -140,7 +140,7 @@ function buildWeaponGeo(id, part) {
       for (const x of [-.32,.32]) for (const z of [-.25,.25]) box(.15,.13,.18,accent,x,.23,z);
       box(.45,.16,.12,steel,0,.32,0);
     }
-  } else if (['dart','charge','zoom','blastSniper','lightSniper','detonator'].includes(f)) {
+  } else if (['dart','charge','zoom','blastSniper','lightSniper','optSniper','detonator'].includes(f)) {
     receiver(f==='charge'?.74:.5,.45,f==='dart'?.8:1.15);
     box(.26,.55,v===1?.48:.3,dark,0,-.47,.05);
     if(f==='dart') {
@@ -155,11 +155,12 @@ function buildWeaponGeo(id, part) {
       barrel(.26,1.1,-.9);cyl(.4,.5,shell,0,-.32,-.1,'x');
       box(.18,.32,.6,accent,.35,.1,-.65);box(.35,.15,.6,dark,0,.3,0);
     } else {
-      const energy=f==='lightSniper';barrel(energy?.12:.15,1.6,-1.18);
+      const energy=f==='lightSniper'||f==='optSniper',opt=f==='optSniper';barrel(opt?.14:energy?.12:.15,opt?2.1:1.6,opt?-1.43:-1.18);
       box(.35,.3,.55,shell,0,0,.8);
       if(f==='zoom') {cyl(.12,.6,black,-.12,.48,-.08);cyl(.17,.35,accent,.17,.48,-.18);}
       else {cyl(.13,.7,black,0,.45,-.15);box(.18,.1,.2,accent,0,.6,-.35);}
-      if(energy)for(const x of [-.23,.23])box(.09,.15,1.35,accent,x,0,-1.05);
+      if(energy)for(const x of [-.23,.23])box(.09,.15,opt?1.8:1.35,accent,x,0,opt?-1.3:-1.05);
+      if(opt){cyl(.2,.22,accent,0,0,-2.4);cyl(.17,.55,black,0,.45,.15);box(.3,.38,.12,dark,0,-.1,-.25);} // 光学狙撃銃（2026-11-07、形は本作のオリジナル）：長い銃身の先に発光リング、後ろに大きいスコープ
       if(f==='blastSniper'){box(.72,.32,.18,steel,0,0,-1.75);for(const x of [-.28,.28])box(.08,.62,.1,dark,x,-.35,-.9,x*.8);}
     }
     if(v===2)box(.16,.15,.6,accent,.34,.2,-.4);
@@ -476,7 +477,7 @@ return { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat };
 // 武器の表：重量・武器・兵装・機体カスタマイズの一覧・シリーズ・型・主武器の反動。本体の「兵装と武器」の位置で呼ぶ
 function weaponTables() {
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, seeker: 470, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, seeker: 470, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, optSniper: 280, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900, reflector: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -608,7 +609,10 @@ const WEAPONS = {
   // AC 炸薬狙撃銃系統 pages/960：{"kg": 350, "dmg": 4100, "mag": 2, "mags": 8, "rpm": 150, "scope": 4, "settle": 2.8, "blast": 11, "reload": 4.5, "recoilV": 40}。不明値・再現用の値は secondary.json に区別
   blastSniper: {"name":"炸裂狙撃銃","type":"gun","rpm":150,"mag":2,"mags":8,"reload":4.5,"spread":0.001,"semi":true,"desc":"即着弾の炸裂弾。直撃は部位・頭部判定、周囲へ爆風。直撃と爆風は重複しない","dmg":4100,"range":800,"scope":4,"settle":2.8,"hip":0.5,"hipMove":1.6,"sway":0.025,"head":2.5,"noLock":true,"directBlast":11,"recoil":0.6981317007977318},
   // AC LBR系統 pages/955：{"kg": 260, "dmg": 1930, "mag": 9, "mags": 3, "rpm": 240, "scope": 2.5, "settle": 0.55, "reload": 4, "recoilV": 0.4}。不明値・再現用の値は secondary.json に区別
-  lightSniper: {"name":"光弾狙撃ライフル","type":"gun","rpm":240,"mag":9,"mags":3,"reload":4,"spread":0.001,"semi":true,"desc":"低反動の光学ライフル。右長押しで照準、左クリックで1発。中距離の連射向け","dmg":1930,"range":600,"scope":2.5,"settle":0.55,"hip":0.035,"hipMove":1.6,"sway":0.015,"head":2,"noLock":true,"energy":true,"recoil":0.006981317007977318},
+  lightSniper: {"name":"レーザーバトルライフル","type":"gun","rpm":240,"mag":9,"mags":3,"reload":4,"spread":0.001,"semi":true,"desc":"低反動の光学ライフル。右長押しで照準、左クリックで1発。中距離の連射向け","dmg":1930,"range":600,"scope":2.5,"settle":0.55,"hip":0.035,"hipMove":1.6,"sway":0.015,"head":2,"noLock":true,"energy":true,"laserFade":0.4,"recoil":0.006981317007977318},
+  // 光学狙撃銃（2026-11-07 オーナー指定の新しい系統。アーケード版 LZ-狙撃銃系統 https://w.atwiki.jp/borderbreak/pages/954.html 、LZ-デイライト：280、4750、1x10、単発、5.0倍、4.5秒、反動0.5/0.05、射程800m）
+  // 即着弾（緑レーザー）で距離による威力の減衰なし、残光は1秒（laserFade）。収束1.8秒・腰撃ちのばらつきは大型狙撃銃と同じ Claude の仮置き
+  optSniper: { sfx: 'sniper', name: '光学狙撃銃', type: 'gun', dmg: 4750, rpm: 60, semi: true, mag: 1, mags: 10, reload: 4.5, spread: 0.0005, hip: 0.5, hipMove: 1.6, sway: 0.03, settle: 1.8, scope: 5, head: 2.5, range: 800, noLock: true, energy: true, laserFade: 1, recoil: 0.0087, desc: '即着弾の光学狙撃銃。距離で威力が落ちない。1発ごとにリロードする' },
   // AC ジャンプマイン系統 pages/966：{"kg": 150, "dmg": 9000, "mag": 1, "mags": 4, "blast": 23, "reload": 1, "jumpDelay": 0.7}。不明値・再現用の値は secondary.json に区別
   jumpMine: {"name":"跳躍地雷","type":"gun","rpm":60,"mag":1,"mags":4,"reload":1,"spread":0,"semi":false,"desc":"敵の接近を感知すると垂直に跳ね上がり爆発。上昇中に障害物へ当たると即起爆","proj":{"dmg":9000,"blast":23,"core":true,"kind":"mine","speed":32,"grav":24,"model":"jumpMine","hp":2000,"max":4,"trigger":5,"linear":true,"bodyLinear":true,"occluded":true,"jumpDelay":0.7,"jumpHeight":6,"triggerSphere":true}},
   // AC インパクトマイン系統 pages/976：{"kg": 170, "dmg": 7300, "mag": 1, "mags": 4, "blast": 19, "reload": 1, "knockMult": 3}。不明値・再現用の値は secondary.json に区別
@@ -864,7 +868,7 @@ const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 const ARMORY = {
   assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
   heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs', 'seeker'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
-  raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
+  raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'optSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox', 'stunner'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
 };
 // 武器のキー（形を選ぶのに使う）と、投げる物の形（v0.11.1）
@@ -874,7 +878,7 @@ const SFX_TUNE = {
   missile: ['rocket', 1.2], mlrs: ['rocket', .85], seeker: ['rocket', 1.05],
   waveSword: ['swing', 1.15],
   sabre:['swing',.75],rod:['swing',1.05],claw:['swing',.9],pike:['swing',.7],jammer:['throw',.85],airTurret:['throw',1.15],flyTurret:['throw',1.25],stunGrenade:['throw',1.05],planeSensor:['throw',.95],ammoBox:['throw',.75],radarTool:['sensor',.8],
-  flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
+  flare: ['throw', .8], chain: ['throw', 1.2], dart: ['shotgun', 1.25], charge: ['heavy', .9], zoom: ['sniper', 1.1], blastSniper: ['magnum', .75], lightSniper: ['sniper', 1.4], optSniper: ['sniper', 1.15], jumpMine: ['throw', .95], delayMine: ['throw', 1.15], detonator: ['rocket', 1.1],
   beamCannon: ['beam', 1], artillery: ['heavy', .85], reflector: ['beam', .7],
   escort: ['pistol', 1.15], barrier: ['switch', .9], repairPost: ['switch', 1.1],
   rail: ['sniper', 1.1], pulse: ['pistol', 1.5], coil: ['magnum', 0.9],
@@ -913,6 +917,7 @@ const SERIES = {
   sz: { maker: 'sylph', types: [['zoom', 'SZ-4']] },
   vx: { maker: 'volca', types: [['blastSniper', 'VX-4']] },
   ln: { maker: 'lumina', types: [['lightSniper', 'LN-2']] },
+  lt: { maker: 'lumina', types: [['optSniper', 'LT-7']] },
   vj: { maker: 'volca', types: [['jumpMine', 'VJ-5']] },
   vk: { maker: 'volca', types: [['delayMine', 'VK-3']] },
   vn: { maker: 'volca', types: [['detonator', 'VN-6']] },
@@ -1047,6 +1052,12 @@ const WEAPON_TYPES = {
   ] },
   lightSniper: { w0: {"kg":260,"dmg":1930,"mag":9,"mags":3,"rpm":240,"scope":2.5,"settle":0.55,"reload":4,"recoilV":0.4}, types: [
     ["強装型",{"kg":340,"dmg":2480,"mag":6,"mags":4,"rpm":200,"scope":3,"settle":0.55,"reload":4.8,"recoilV":0.4},"低反動の光学ライフル。右長押しで照準、左クリックで1発。中距離の連射向け"],
+  ] },
+  optSniper: { w0: { kg: 280, dmg: 4750, mag: 1, mags: 10, rpm: 60, scope: 5, settle: 1.8, reload: 4.5, recoilV: 0.5 }, types: [ // LZ-デイライト（アーケード版 LZ-狙撃銃系統）
+    ['精密型', { kg: 290, dmg: 5400, mag: 1, mags: 8, rpm: 60, scope: 7, settle: 1.8, reload: 5, recoilV: 0.5 }, '倍率が高く一発が重い。弾は少ない'], // LZ-デイライトS
+    ['三点射型', { kg: 310, dmg: 2800, mag: 3, mags: 9, rpm: 600, scope: 5, settle: 1, reload: 4.3, recoilV: 0.2 }, '1回押すと3発続けて撃つ。3発で1回のリロード'], // LZ-トライアド
+    ['強装型', { kg: 330, dmg: 7900, mag: 1, mags: 5, rpm: 60, scope: 5, settle: 1.8, reload: 5.5, recoilV: 0.5 }, '一発がとても重い。弾が少なくリロードが遅い'], // LZ-ヴェスパイン
+    ['改良型', { kg: 320, dmg: 6600, mag: 1, mags: 6, rpm: 60, scope: 5, settle: 1.8, reload: 5, recoilV: 0.5 }, '重い一発と弾数の釣り合いを取った型'], // LZ-アキュレイト（反動は表に無いので標準と同じ）
   ] },
   jumpMine: { w0: {"kg":150,"dmg":9000,"mag":1,"mags":4,"blast":23,"reload":1,"jumpDelay":0.7}, types: [
     ["拡大型",{"kg":160,"dmg":7400,"mag":1,"mags":5,"blast":26,"reload":1,"jumpDelay":0.7},"敵の接近を感知すると垂直に跳ね上がり爆発。上昇中に障害物へ当たると即起爆"],
@@ -1508,6 +1519,8 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
 // オーナー希望（2026-11-02）：プラズマ砲・三点射型（アーケード版 プラズマカノンMk-2、750/min の三点射）。
 // 1回押すと0.08秒間隔で3発。次の組までの間（gap 0.3秒）は wiki に無いので Claude の仮置き。
 Object.assign(WEAPONS.plasmaK, { burst: 3, gap: .3 });
+// 光学狙撃銃・三点射型（LZ-トライアド、600/min の三点射）：1回押すと0.1秒間隔で3発。弾倉3発なので次はリロードの後
+Object.assign(WEAPONS.optSniperK, { burst: 3, gap: .3 });
 // オーナー指定（2026-10-25）：VR-8Hだけ40mで推進剤が尽きる。発射角の自動補正はせず、自分で上を狙う。
 Object.assign(WEAPONS.rocketH.proj, { burnDistance: 40, coastGrav: 24 });
 WEAPONS.rocketH.desc = '重い弾頭を撃つ。40mで噴射が止まり、その先は重力で落ちる';
