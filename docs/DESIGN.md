@@ -71,7 +71,9 @@
 2. プラント → 戦況アナウンス（`annTick`：残り時間・コアの残り・ベース侵入。v0.15）→ 指示出しの印と返事（`qchatTick`。v0.17）→ スコア（`scoreTick`）→ 防衛砲台 → レーダー → 砲弾・ロケット・投げる物 → 設置物と偵察機（`gadgetUpdate`）→ リペアポッド（`repairing` を毎フレーム作り直す）→ カタパルト → ジャンプパッド。
 3. 勝敗判定、見た目の同期（機体の位置、ブースター炎、銃身の形、リペアの光線、損傷の見た目 `damageLook`）、演出（`fxUpdate`、煙と火の `puffUpdate`）、カメラ、HUD（頭上の名前と耐久 `tagsHud` を含む）。
 
-固定の時間刻みにしたい試験では、`loop` 冒頭の `const dt = Math.min(0.05, ...)` を `const dt = 0.05` に置き換える（第8章）。
+固定の時間刻みにしたい試験では、`gameFrame` 冒頭の `const dt = Math.min(0.05, ...)` を `const dt = 0.05` に置き換える（第8章）。
+
+`loop` は1コマの処理 `gameFrame` を try で包み、例外が出ても必ず次の `requestAnimationFrame(loop)` を頼む（2026-11-06。前は例外1つでコマの頼み直しが止まり、試合が固まって戻れなかった。反射衛星砲の Bot が機体でない目標を狙ったときの例外で起きていた）。例外は `console.error` に出す（最初の5回と、その後は600回ごと）ので、試験はそれで見つける（`tools/test/loop_freeze_check.js`）。
 
 ## 3. データの約束事
 
@@ -925,7 +927,7 @@ Botはプレイヤーと同じ装備を同じルールで使う。数秒ごと�
 
 ヘッドレスブラウザ（Playwright）で動かすと便利です。
 
-1. `index.html` をコピーし、`loop` の `const dt = Math.min(0.05, (now - last) / 1000); last = now;` を `const dt = 0.05; last = now;` に置き換える（毎フレーム0.05秒進む）。
+1. `index.html` をコピーし、`gameFrame` の `const dt = Math.min(0.05, (now - last) / 1000); last = now;` を `const dt = 0.05; last = now;` に置き換える（毎フレーム0.05秒進む）。
 2. 末尾の `requestAnimationFrame(loop);` の後に `window.__g = { get player() { return player; }, units, turrets, cores, WEAPONS, SLOTS, equip, selectWeapon, gadgets, drones, spotted, shells, aimMark, nearestEnemy, noticed, physics, damage, ... };` を足し、外から状態を読めるようにする。
 3. `#start` をクリックして試合を始め、`__g.player` の位置や向きを書き換えて試す。Botを止めたいときは `botUpdate` の冒頭に `if (u.frozen) return;` を足す。
 
