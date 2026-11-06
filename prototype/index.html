@@ -7346,6 +7346,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
   if (sl.ammo <= 0) { if (sl.reserve > 0) sl.reloadT = w.reload * u.reloadMul; return false; } // 予備もなければ補給待ち
   if (w.missile) return missileGunTick(u, sl, trigger, aim, spread);
   // チャージ撃ち（v0.15、Codex 版から）：引いている間は溜めるだけで、離したときに溜めた割合（q）で1発撃つ。
+  // 満タンの爆発（chargeBlast）は、当てた相手には直撃（部位・頭の判定あり）、周りへは爆風（2026-11-07。前は当てた相手にも爆風だけで、頭の倍率が無く、爆心からの距離で威力が減っていた）
   // 満タンのまま chargeHold 秒持っているとオーバーヒート（溜めは消える）
   let csl = sl;
   if (w.chargeTime) {
@@ -7358,7 +7359,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
     }
     if (sl.chargeT <= 0 || sl.cd > 0 || sl.overheat) { sl.chargeT = sl.holdT = 0; return false; }
     const q = Math.min(1, sl.chargeT / w.chargeTime), full = q >= 1 - 1e-6;
-    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: full ? w.chargeBlast || 0 : 0, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
+    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: 0, directBlast: full && w.chargeBlast ? w.chargeBlast : w.directBlast, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
     if (w.chargeStages) {
       const stage=full?2:q>=.5?1:0;
       csl.w.proj={...w.proj,dmg:w.chargeStages[stage]};
@@ -10573,6 +10574,8 @@ function wStats(w) {
     else if (P.scan) st.push(`索敵 半径${P.scan}m・${P.keep}秒`, `炸裂 ${P.fuse}秒`, ammo());
     else {
       st.push(P.dmg ? `威力 ${P.dmg}` : P.knock ? '威力 0（ダウンさせる）' : P.weak ? `被ダメージ×${P.weak.mult}（${P.weak.time}秒）` : '', `爆発半径 ${P.blast}m`);
+      // 爆風の決まりは2通りある（blast の fall と occluded）。同じ威力・半径でも端の威力が違うので、比べられるようカードに出す（2026-11-07）
+      if (P.dmg && !P.heatDps) st.push(`爆風の端 威力${P.linear ? 0 : 50}%・${P.occluded ? '壁で遮られる' : '壁を越える'}`);
       if (w.burst) st.push(`連射 ${w.rpm}発/分（${w.burst}発ずつ）`); else if (w.rpm > 60) st.push(`連射 ${w.rpm}発/分`);
       if (P.kind === 'mine') st.push(`反応 ${P.trigger}m`);
       if (P.fuse && !P.impact && P.kind === 'grenade') st.push(`起爆 ${P.fuse}秒`);
