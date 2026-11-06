@@ -1,4 +1,5 @@
 // 波動ライフルの作り直し（2026-11-07、オーナー「あまりにも現状弱い」、カードで「両方強化・溜めでよろけ」）。
+// 2026-11-07 追加：溜めた分だけ弾が太くなり、先頭に光の玉（chargeSize 5、オーナー「チャージ弾の弾体を蓄積に応じて大きく」）
 // 短押しの威力 ×1.28・射程300m、満タンの倍率 標準3.2・広域型2.4（爆ぜる）・強装型3.8、満タンの弾は一番固い装甲でもよろける（chargeKnock 1.6）
 // node tools/test/wave_rifle_check.js [dbg]
 const { check } = require('./lib');
@@ -19,11 +20,17 @@ check('波動ライフル', async ({ ev, ok, sortie }) => {
     const aim = e.pos.clone(); aim.y += 2.2; const sl = p.slots.main;
     for (let t = 0; t < hold; t += 1 / 60) g.gunTick(p, sl, 1 / 60, true, aim, 0);
     g.gunTick(p, sl, 1 / 60, false, aim, 0);
-    return { lost: 1e7 - e.hp, stun: e.stun, tough };
+    const tr = g.fx.filter(f => f.kind === 'tracer'), orb = g.fx.filter(f => f.kind === 'traceOrb');
+    const look = { size: tr.length ? Math.max(...tr.map(f => f.size || 1)) : 0, orb: orb.length ? orb[0].size : 0 }; g.fxUpdate(10);
+    return { lost: 1e7 - e.hp, stun: e.stun, tough, ...look };
   }, [key, hold]);
   const tap = await shoot('wave', .02), full = await shoot('wave', 1.3), fullH = await shoot('waveH', 1.6), fullW = await shoot('waveW', 1.1);
   ok(tap.lost > 0 && tap.stun !== 'stagger', '短押しは当たってもよろけない ' + Math.round(tap.lost));
   ok(full.lost > tap.lost * 2.5 && full.stun === 'stagger', '標準の満タンは一番固い装甲（' + full.tough + '）でもよろける ' + Math.round(full.lost));
   ok(fullH.stun === 'stagger' || fullH.stun === 'down', '強装型の満タンもよろける ' + Math.round(fullH.lost) + ' ' + fullH.stun);
+  ok(tap.size > 0 && tap.size < 1.2 && !tap.orb, '短押しの弾は細いまま、光の玉なし ' + tap.size);
+  ok(full.size === 5 && full.orb > 3, '満タンの弾は5倍の太さで、先頭に光の玉 ' + full.size + ' ' + full.orb);
+  const half = await shoot('wave', .6);
+  ok(half.size > 2 && half.size < 4 && half.orb > 0 && half.orb < full.orb, '半分溜めると太さも玉も半ば ' + half.size.toFixed(2) + ' ' + half.orb.toFixed(2));
   ok(fullW.lost > 0, '広域型の満タンは当たる（よろけは爆ぜる弾の役） ' + Math.round(fullW.lost));
 });
