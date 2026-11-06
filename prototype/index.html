@@ -7407,7 +7407,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
     }
     if (sl.chargeT <= 0 || sl.cd > 0 || sl.overheat) { sl.chargeT = sl.holdT = 0; return false; }
     const q = Math.min(1, sl.chargeT / w.chargeTime), full = q >= 1 - 1e-6;
-    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: 0, directBlast: full && w.chargeBlast ? w.chargeBlast : w.directBlast, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
+    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: 0, directBlast: full && w.chargeBlast ? w.chargeBlast : w.directBlast, knockMult: full && w.chargeKnock ? w.chargeKnock : w.knockMult, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
     if (w.chargeStages) {
       const stage=full?2:q>=.5?1:0;
       csl.w.proj={...w.proj,dmg:w.chargeStages[stage]};
