@@ -7152,6 +7152,7 @@ function toggleSp(u) {
   return true;
 }
 function selectWeapon(u, w) {
+  if (!isSimulationAuthority()) { if (isLocalView(u)) window.CBOnlineGame?.requestWeapon(w); return; }
   if (meleeOnly() && w !== 'aux') return;
   if (u.swing) return;
   if (w !== 'sp' && beamCannonMode(u)) stopBeamCannon(u);
@@ -10304,6 +10305,8 @@ $('rlist').addEventListener('click', e => {
 });
 // 兵装の選択：出撃前の画面と、撃破後の再出撃画面
 function pickClass(k) {
+  if (window.CBOnlineGame?.active() && !['assault','heavy'].includes(k)) return;
+  if (window.CBOnlineGame?.active() && isSimulationAuthority() && player && (!player.alive || player.transfer?.base)) player.controlLoadout = Object.fromEntries(SLOTS.map(slot => [slot, CLASSES[k][slot]]));
   chosenCls = k;
   if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
@@ -12232,6 +12235,7 @@ function loop(now) {
 function gameFrame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
+  window.CBOnlineGame?.beforeFrame(dt, now);
   touchTick(); // タッチ操作のボタンを出す・しまう
   bgmTick();
   if (running && isSimulationAuthority()) {
@@ -12327,6 +12331,7 @@ function gameFrame(now) {
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
   renderView();
+  window.CBOnlineGame?.afterFrame(dt, now);
   mechPreview(dt);
 }
 if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
@@ -12337,3 +12342,9 @@ if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
 { let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; buildMap(saved); renderPlantBar(); renderMapList(); }
 requestAnimationFrame(loop);
 </script>
+
+<!-- #212: 試作ブランチ専用。PeerJSは版を固定。映像・音声接続は使用しない。 -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script src="online/transport.js"></script>
+<script src="online/game.js"></script>
+<script src="online/ui.js"></script>

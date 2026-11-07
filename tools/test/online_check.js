@@ -1,0 +1,101 @@
+// node tools/test/online_check.js [dbg] [出力先]
+// ローカル PeerServer + 実 WebRTC。機能試験はコマ送りであり性能値には使わない。
+const fs=require('node:fs'),path=require('node:path');
+const {check}=require('./lib');
+const {TRANSPORT_MODE,harness,pageFor,frames,room,identity,input,neutral,summary,sleep}=require('./online_test_helpers');
+check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
+  const h=await harness(dir);let active;
+  const results={mode:TRANSPORT_MODE+'・固定コマ送り・描画省略。性能測定ではない',matches:[]};
+  try{
+    console.log('段階: 版不一致拒否');
+    // 実際の版表示を変えた別ブラウザをつなぎ、ハンドシェイクで拒否されること。
+    { const host=await pageFor(browser,h,errors),bad=await pageFor(browser,h,errors,{version:'Ver不一致試験'});
+    const rid=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions});
+    const reject=await bad.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return {accepted:true};}catch(e){return {accepted:false,reason:e.message};}},[rid,{peerOptions:h.peerOptions}]);
+    ok(!reject.accepted&&/版が違います/.test(reject.reason),'版違いを理由付きで拒否');
+    await bad.close();await host.evaluate(()=>CBOnlineGame.leave());await host.close(); }
+    for(const guests of [1,3]){
+      console.log(`段階: ${guests+1}人の試合`);
+      active=await room(browser,h,errors,{guests});const {host,guests:gs,pages}=active;
+      await frames(pages,5);
+      const init=await summary(host);
+      ok(init.units.length===10&&init.units.filter(u=>u.team==='B').length===5,'人間'+(guests+1)+'人でも10機・5対5');
+      ok(init.units.filter(u=>u.controller==='remoteHuman').length===guests,'遠隔人間の操作権を割り当て');
+      for(const g of gs)ok(await g.evaluate(()=>!__g.isSimulationAuthority()),'ゲストに試合計算の権威がない');
+      console.log('段階: 遠隔移動');
+      const g=gs[0],before=await identity(g);
+      await input(g,{...neutral,keys:{KeyW:true},yaw:0,pitch:0});
+      await frames(pages,60);await input(g,neutral);await frames(pages,5);
+      const after=await identity(g);
+      ok(Math.hypot(after.pos[0]-before.pos[0],after.pos[2]-before.pos[2])>.1,'ゲスト入力でホスト確定の自機が移動');
+      console.log('段階: 遠隔主武器');
+      // 次の射撃確認は標的配置を試験用に変更する。性能・自然対戦の評価には混ぜない。
+      const fixture=await host.evaluate(id=>{
+        const g=__g,u=g.units.find(u=>(u.entityId||u.netId)===id)||g.units.find(u=>u.controller==='remoteHuman');
+        for(const x of g.units)x.frozen=true;
+        const target=g.units.find(x=>x.team!==u.team);u.pos.set(0,g.terrainH(0,170),170);target.pos.set(0,g.terrainH(0,185),185);
+        u.vel.set(0,0,0);target.vel.set(0,0,0);u.invulT=target.invulT=0;u.repairing=target.repairing=false;u.yaw=Math.PI;u.pitch=0;u.switchT=0;
+        for(const x of [u,target]){x.group.position.copy(x.pos);x.group.rotation.y=x.yaw;g.weaponLook(x,0);}
+        g.scene.updateMatrixWorld(true);
+        return {aim:g.targetPoint(target).toArray(),hp:target.hp,targetId:target.entityId||target.netId,weapon:u.slots.main.w.key};
+      },before.id);
+      await frames(pages,5);
+      const ammo0=await g.evaluate(()=>__g.player.slots.main.ammo);
+      await input(g,{...neutral,weapon:'main',yaw:Math.PI,pitch:0,aimPoint:fixture.aim,trigger:true});
+      await frames(pages,40);await input(g,neutral);await frames(pages,5);
+      const ammo1=await g.evaluate(()=>__g.player.slots.main.ammo);
+      ok(ammo1<ammo0,'遠隔射撃の残弾をホストで消費し表示');
+      const hp=await host.evaluate(id=>(__g.units.find(u=>(u.entityId||u.netId)===id)||__g.units.find(u=>u.team!==__g.units.find(x=>x.controller==='remoteHuman').team)).hp,fixture.targetId);
+      if(!(hp<fixture.hp))console.log('射線診断',await host.evaluate(id=>{const g=__g,u=g.units.find(u=>u.controller==='remoteHuman'),t=g.units.find(u=>u.entityId===id),from=g.muzzle(u),aim=g.targetPoint(t),hit=g.castFrom(from,aim.clone().sub(from).normalize(),u,100);return {pos:u.pos.toArray(),target:t.pos.toArray(),from:from.toArray(),aim:aim.toArray(),hit:hit&&{kind:hit.ref?.kind,team:hit.ref?.team,dist:hit.dist},hp:t.hp,alive:t.alive,weapon:u.weapon,aimPos:u.aimPos?.toArray(),input:u.controlInput};},fixture.targetId));
+      ok(hp<fixture.hp,'遠隔主武器がホストの標的に命中');
+      // 施設状態はゲストが独自に進めない。ホストを止めてゲストだけコマ送り。
+      await sleep(150);await frames([g],2);const frozen=await summary(g);await frames([g],40);const still=await summary(g);
+      ok(still.time===frozen.time&&JSON.stringify(still.cores)===JSON.stringify(frozen.cores),'ホスト更新なしでゲストの時間・コアを進めない');
+      await host.evaluate(()=>{for(const u of __g.units)u.frozen=false;});
+      console.log('段階: 300秒完走');
+      // 人間の入力は中立のまま、Bot が対戦。試合時間そのものは短縮しない。
+      for(let n=0;n<6400;n+=10){await frames(pages,10);if(n%400===0)console.log(`${guests+1}人: ${Math.round(300-(await summary(host)).time)}秒`);if((await summary(host)).phase==='ended')break;}
+      await frames(pages,8);
+      const end=await summary(host);ok(end.phase==='ended','人間'+(guests+1)+'人の試合が勝敗まで完走');
+      for(const guest of gs){const e=await summary(guest);ok(e.phase==='ended'&&JSON.stringify(e.cores)===JSON.stringify(end.cores),'ゲストの最終コア・終了状態が一致');}
+      results.matches.push({humans:guests+1,host:end,guests:await Promise.all(gs.map(summary))});
+      await active.close();active=null;
+    }
+    console.log('段階: 遠隔ロケット');
+    // ロケットは重火力の正規の副武器として接続し直して確認。
+    active=await room(browser,h,errors,{guests:1,guestClasses:['heavy']});
+    {
+      const {host,guests:[guest],pages}=active;
+      const target=await host.evaluate(()=>{
+        const g=__g,u=g.units.find(u=>u.controller==='remoteHuman');
+        for(const x of g.units)x.frozen=true;
+        u.pos.set(0,g.terrainH(0,170),170);u.vel.set(0,0,0);u.invulT=0;u.repairing=false;u.switchT=0;u.yaw=0;
+        g.selectWeapon(u,'sub');u.switchT=0;g.weaponLook(u,0);g.scene.updateMatrixWorld(true);
+        return {key:u.slots.sub.w.key,ammo:u.slots.sub.ammo,aim:[0,g.terrainH(0,130)+1,130]};
+      });
+      ok(target.key==='rocket','重火力の初期ロケットを装備');
+      await input(guest,{...neutral,weapon:'sub',yaw:0,pitch:0,aimPoint:target.aim,trigger:true});
+      let seen=false;
+      for(let n=0;n<70;n++){await frames(pages,1);if(await host.evaluate(()=>__g.shells.length>0))seen=true;}
+      await input(guest,neutral);await frames(pages,5);
+      ok(seen,'ゲストのロケット入力でホストに飛翔弾を生成');
+      ok(await guest.evaluate(a=>__g.player.slots.sub.ammo<a,target.ammo),'ロケットの残弾をゲストへ同期');
+    }
+    await active.close();active=null;
+    active=await room(browser,h,errors,{guests:1});
+    console.log('段階: 途中参加・切断');
+    const {host,guests:[guest],pages,roomId}=active;
+    const late=await pageFor(browser,h,errors);
+    const lateResult=await late.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return false;}catch{return true;}},[roomId,{peerOptions:h.peerOptions}]);
+    ok(lateResult,'試合開始後の新規参加を拒否');await late.close();
+    const before=await host.evaluate(()=>{const u=__g.units.find(u=>u.controller==='remoteHuman');u.hp=4321;u.frozen=true;return {id:u.entityId||u.netId,hp:u.hp,lifeId:u.lifeId};});
+    await guest.evaluate(()=>CBOnlineGame.leave('切断試験'));await sleep(100);await frames([host],2);
+    const takeover=await host.evaluate(id=>{const u=__g.units.find(u=>(u.entityId||u.netId)===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,count:__g.units.length};},before.id);
+    ok(takeover.controller==='bot'&&takeover.hp===4321&&takeover.lifeId===before.lifeId&&takeover.count===10,'切断機を回復・再出撃させずBotへ引継ぎ');
+    await active.close();active=null;
+    active=await room(browser,h,errors,{guests:1});
+    await active.host.evaluate(()=>CBOnlineGame.leave('ホスト終了試験'));await sleep(150);await frames(active.guests,5);
+    ok(await active.guests[0].evaluate(()=>CBOnlineGame.state.phase==='ended'&&!__g.running),'ホスト切断でゲストも中断');
+    fs.writeFileSync(path.join(out,'online-check.json'),JSON.stringify(results,null,2));
+  }finally{if(active)await active.close();await h.close();}
+},{page:false});

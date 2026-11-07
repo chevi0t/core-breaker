@@ -155,6 +155,13 @@ def main():
             "u.pos.y = terrainH(u.pos.x, u.pos.z);\n  window.__battleEvent?.({type:'deploy', unit:u.team+(u.idx+1), team:u.team, at:pl ? pl.id : 'base', reason:u.alive ? 'transfer' : 'respawn', pos:u.pos.toArray()});\n}\nfunction spawn(u, at = 'base')")
         s = rep(s, EXPOSE, EXPOSE + "\nwindow.__battleTraceVersion = 1;")
     s = rep(s, CDN_TAG, '<script src="three.min.js"></script>')
+    # オンライン試作の依存も検証用出力へ。通常回帰試験で読込漏れを隠さない。
+    if (P / "online").exists():
+        shutil.copytree(P / "online", out / "online", dirs_exist_ok=True)
+    peerjs = ROOT / "node_modules" / "peerjs" / "dist" / "peerjs.min.js"
+    if peerjs.exists():
+        shutil.copy(peerjs, out / "peerjs.min.js")
+        s = s.replace('https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js', 'peerjs.min.js')
     (out / "dbg.html").write_text(s, encoding="utf-8")
     for f in ("style.css", "sounds.js", "music.js", "maps.js", "parts.js", "weapons.js", "pilots.js"):
         if (P / f).exists():
