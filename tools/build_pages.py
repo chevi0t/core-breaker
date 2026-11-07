@@ -11,6 +11,8 @@
 書き出す物：index.html（prototype/index.html に骨組みを付け、three.js を同梱の物に替え、マップ選択の画面に出典のリンクを足す）、
 style.css・maps.js・parts.js・weapons.js・pilots.js・sounds.js・music.js（prototype/ のまま）、three.min.js、credits/（各 CREDITS.md と three.js のライセンス）、
 build-info.json（元の main のコミットと各ファイルのハッシュ）、README.md。.nojekyll はそのまま残す。
+アクセス数の記録（GoatCounter、Cookie を使わない）は、下の GOATCOUNTER_CODE が空でないときだけ index.html に入れる。
+GitHub Pages 用の index.html にだけ入れ、claude.ai の公開ページと配布 zip には入れない。
 gh-pages は配信専用のブランチで、main へマージしない。push を強制（--force）しない。
 """
 import datetime
@@ -33,6 +35,19 @@ CREDITS_LINK = '<p class="note"><a href="credits/" target="_blank" rel="noopener
 # 出典のページに載せる CREDITS（効果音・パイロットの絵が先、マップの都市モデルが後）
 CREDITS = ["sounds/CREDITS.md", "prototype/avatars/CREDITS.md"]
 CREDITS_STYLE = "body{max-width:960px;margin:40px auto;padding:0 20px;background:#101c28;color:#e5edf4;font:16px/1.8 system-ui,sans-serif}a{color:#9bdfff}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}section{border-top:1px solid #526677;padding:16px 0}h1{font-size:26px}h2{font-size:19px}"
+# アクセス数の記録（GoatCounter）。https://<コード>.goatcounter.com で作ったサイトのコード（例 "corebreaker"）。空なら入れない
+GOATCOUNTER_CODE = ""
+ANALYTICS_NOTE = "<p>アクセス数を数えるため、このページは GoatCounter（https://www.goatcounter.com/ ）を使っています。Cookie は使わず、個人を特定する情報は記録しません（記録するのは開いたページ・参照元・ブラウザの種類・画面の大きさ・国など）。</p>"
+
+
+def analytics_tag():
+    if not GOATCOUNTER_CODE:
+        return ""
+    if not re.fullmatch(r"[a-z0-9-]+", GOATCOUNTER_CODE):
+        sys.exit("GOATCOUNTER_CODE は英小文字・数字・ハイフンだけで書いてください: " + GOATCOUNTER_CODE)
+    return f'<script data-goatcounter="https://{GOATCOUNTER_CODE}.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>\n'
+
+
 README = """# コアブレイカー・GitHub Pages配信物
 
 マージ済みmain `{commit}` から生成。ゲームの実行ファイルと出典だけを収録する。
@@ -61,7 +76,7 @@ def md_links(text):
 
 def credits_page():
     parts = [f'<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>コアブレイカー — 素材の出典・ライセンス</title><style>{CREDITS_STYLE}</style>',
-             f'<h1>素材の出典・ライセンス</h1><p><a href="../">ゲームへ戻る</a> · <a href="{REPO}">開発リポジトリ</a></p><p>公開データと素材・ソフトウェアを制作し、整備・公開してくださった皆さまに感謝します。</p>']
+             f'<h1>素材の出典・ライセンス</h1><p><a href="../">ゲームへ戻る</a> · <a href="{REPO}">開発リポジトリ</a></p><p>公開データと素材・ソフトウェアを制作し、整備・公開してくださった皆さまに感謝します。</p>' + (ANALYTICS_NOTE if GOATCOUNTER_CODE else "")]
     for rel in credit_files():
         parts.append(f"<section><h2>{html.escape(rel)}</h2><pre>{md_links((ROOT / rel).read_text(encoding='utf-8'))}</pre></section>")
     lic = (ROOT / "vendor" / "three-r128" / "LICENSE").read_text(encoding="utf-8")
@@ -75,7 +90,7 @@ def game_page():
         if src.count(tag) != 1:
             sys.exit("prototype/index.html に次の行が1つだけあるはずです: " + tag.strip())
     src = src.replace(CDN_TAG, '<script src="three.min.js"></script>').replace(ATTRIBUTION, ATTRIBUTION + CREDITS_LINK)
-    return HEAD + src + "\n</html>\n"
+    return HEAD + analytics_tag() + src + "\n</html>\n"
 
 
 def main():
