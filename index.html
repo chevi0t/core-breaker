@@ -114,7 +114,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver177</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver178</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -5061,6 +5061,7 @@ function visualAlloc(make) {
 }
 const bulletTraceGeo = visualAlloc(() => new T.CylinderGeometry(1, 1, 1, 6)); bulletTraceGeo.translate(0, .5, 0);
 // 連射中に次の筋とつながり過ぎない長さ。バースト銃も発射中のrpmを使う。
+const CHARGE_ORB = 3.5; // 満タンの溜め撃ちの光の玉の直径（m）
 function tracerProfile(w) {
   const interval = 60 / Math.max(60, w?.rpm || 600);
   return { segment: Math.max(4, Math.min(24, TRACER_SPEED * interval * .3)), fade: Math.max(.014, Math.min(.06, interval * .3)) };
@@ -5081,7 +5082,13 @@ function tracer(from, end, team, energy = false, weapon = null, enlarged = true)
   const len = from.distanceTo(end), profile = tracerProfile(weapon);
   const m = new T.Mesh(bulletTraceGeo, new T.MeshBasicMaterial({ color: energy ? ENERGY_COLOR : TRACER_COLOR[team], transparent: true, depthWrite: false, fog: false }));
   m.quaternion.setFromUnitVectors(UP, end.clone().sub(from).normalize());
-  addFx(m, energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade), { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team, enlarged });
+  // chargeSize：溜め撃ちの弾は溜めた分だけ太く、先頭に光の玉を付ける（波動ライフル、2026-11-07 オーナー「チャージ弾の弾体を蓄積に応じて大きく」）
+  const size = weapon?.chargeSize && weapon.q > 0 ? 1 + (weapon.chargeSize - 1) * weapon.q : 1, life = energy ? Math.max(.08, len / TRACER_SPEED + ENERGY_TRACE_FADE) : Math.max(.03, len / TRACER_SPEED + profile.fade);
+  addFx(m, life, { kind: 'tracer', from: from.clone(), end: end.clone(), len, energy, ...profile, team, enlarged, size });
+  if (size > 1 && weapon.q >= .15) { // 光の玉は15%以上溜めたときだけ（短押しの連打は筋だけ）
+    const orb = new T.Sprite(new T.SpriteMaterial(Object.assign({ map: flashTex }, glow(energy ? ENERGY_COLOR : TRACER_COLOR[team]))));
+    orb.position.copy(from); addFx(orb, life, { kind: 'traceOrb', from: from.clone(), end: end.clone(), len, size: CHARGE_ORB * (size - 1) / Math.max(1e-6, weapon.chargeSize - 1) });
+  }
   return len / TRACER_SPEED;
 }
 // レーザーの武器（laserFade を持つ物：レーザーバトルライフル0.4秒、光学狙撃銃1秒）は射線全体を瞬時に光らせ、laserFade 秒かけてぼやけた緑の軌跡を消す（2026-11-07 から武器ごと）
@@ -5405,8 +5412,12 @@ function fxUpdate(dt) {
       f.obj.position.copy(f.from).lerp(f.end, f.len ? tail / f.len : 0);
       const scale = f.enlarged ? 2 : 1, pixels = (player && f.team !== player.team ? 3.4 : 2.6) * scale;
       const w = f.energy ? energyTraceWidth(f.obj.position, f.enlarged) : Math.max(.045 * scale, f.obj.position.distanceTo(camera.position) * Math.tan(camera.fov * Math.PI / 360) / innerHeight * pixels);
-      f.obj.scale.set(w, Math.max(0.01, head - tail), w);
+      f.obj.scale.set(w * (f.size || 1), Math.max(0.01, head - tail), w * (f.size || 1));
       f.obj.material.opacity = .95 * Math.max(0, 1 - Math.max(0, f.age - f.len / TRACER_SPEED) / (f.energy ? ENERGY_TRACE_FADE : f.fade));
+    } else if (f.kind === 'traceOrb') { // 溜め撃ちの弾の先頭の光の玉。着いたら膨らみながら消える
+      const t = f.len ? Math.min(1, f.age * TRACER_SPEED / f.len) : 1, after = Math.max(0, f.age - f.len / TRACER_SPEED) / Math.max(.01, f.life - f.len / TRACER_SPEED);
+      f.obj.position.copy(f.from).lerp(f.end, t); f.obj.scale.setScalar(f.size * (1 + after * .6));
+      f.obj.material.opacity = Math.max(0, 1 - after);
     } else if (f.kind === 'laser') {
       laserLook(f);
     } else if (f.kind === 'smoke') {

@@ -1535,6 +1535,7 @@ WEAPONS.waveW.desc = '充填が速く、満タンの弾は当たった所で爆�
 for (const [k, mul, knock] of [['wave', 3.2, 1.6], ['waveW', 2.4, 0], ['waveH', 3.8, 1.6]]) {
   const w = WEAPONS[k]; w.dmg = Math.round(w.dmg * 1.28 / 10) * 10; w.chargeMul = mul; w.range = 300; if (knock) w.chargeKnock = knock;
 }
+for (const k of ['wave', 'waveW', 'waveH']) WEAPONS[k].chargeSize = 5; // 溜めた分だけ弾が太くなる（満タンで5倍、先頭に光の玉。オーナー 2026-11-07）
 WEAPONS.wave.desc = '短押しで撃てる光学銃。長押しで溜めて離すと、満タンで威力3.2倍の弾が当たった敵をよろけさせる';
 WEAPONS.waveH.desc = '溜めが遅いが、満タンの弾は威力3.8倍で当たった敵をよろけさせる。重く弾が少ない';
 // 蓄積エナジー砲（標準型）：短押しの連射に比べて溜める意味が薄かったので、満タンの倍率を 2→2.5（2740→3425）
