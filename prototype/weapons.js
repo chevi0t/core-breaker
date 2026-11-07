@@ -1260,8 +1260,8 @@ const WEAPON_TYPES = {
     // 特性の型（2026-11-07 オーナー「特性4種ぐらい作って、特性別に性能調整して実装」）。行は参考にしたアーケード版の型。本作の値は下の「オートショットガンの特性」で決める
     ['速射型', { dmg: 150, pellets: 10, rpm: 240, mag: 11, mags: 12, reload: 1.7, kg: 330, diffuse: '中' }, ''], // ASG-スタンピード（240/min 連射）
     ['三点射型', { dmg: 110, pellets: 7, rpm: 480, mag: 18, mags: 14, reload: 1.3, kg: 290, diffuse: '小' }, ''], // ASG-デリュージ（480/min 3点射）
-    ['炸裂型', { dmg: 430, pellets: 8, rpm: 100, mag: 9, mags: 9, reload: 2.3, kg: 300 }, ''], // 原典に無い（本作の特性）
-    ['集束型', { dmg: 430, pellets: 8, rpm: 100, mag: 9, mags: 9, reload: 2.3, kg: 280 }, ''], // 原典に無い（本作の特性）
+    ['精密型', { dmg: 600, pellets: 8, rpm: 90, mag: 6, mags: 10, reload: 2.4, kg: 260, diffuse: '小' }, ''], // 原典に無い（本作の特性。拡散・1発の威力・装弾数だけで差を付ける）
+    ['大容量型', { dmg: 300, pellets: 12, rpm: 110, mag: 18, mags: 6, reload: 2.8, kg: 280, diffuse: '大' }, ''], // 原典に無い（本作の特性）
   ] },
   nail: { w0: { dmg: 690, rpm: 480, mag: 20, mags: 16, reload: 1.1, kg: 140, acc: 'D', recoil: 'C', range: 175 }, types: [ // ネイルガン（ネイルガン系統）
     ['連射型', { dmg: 570, rpm: 600, mag: 28, mags: 14, reload: 1.6, kg: 210, acc: 'C-', recoil: 'D', range: 175 }, '連射が速いが重く反動が大きい'], // ラピッドネイル
@@ -1363,7 +1363,7 @@ const WEAPON_TYPES = {
 };
 const RANKS = ['E-', 'E', 'E+', 'D-', 'D', 'D+', 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S'];
 // 型番の末尾の文字（例：SR-7 の強装型は SR-7H）。キーは元のキー＋この文字（arH）
-const TYPE_LETTER = { 炸裂型:'Z', 集束型:'N', 三点射型:'K', 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高速型: 'F', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
+const TYPE_LETTER = { 三点射型:'K', 連撃型:'B', 軽量弾型:'T', 光学型:'O', 速射型:'V', 全周型:'A', 軽量型: 'L', 連射型: 'R', 強装型: 'H', 大容量型: 'X', 精密型: 'P', 速装型: 'Q', 広域型: 'W', 持続型: 'D', 瞬発型: 'S', 拡散型: 'E', 拡大型: 'U', 改良型: 'I', 高速型: 'F', 高出力型: 'G', 長射程型: 'F', 重装型: 'M', 巡航型: 'C', 即応型: 'Q' };
 // 散弾の拡散率（wiki の 極小・小・中・大・特大）。型の拡散は系統の基準（w0.diffuse）との比で決める（2026-11-07。前は拡散率を写しておらず、「広がる」「絞られる」型も基準と同じ広がりだった）。倍率は Claude の判断
 const DIFFUSE = { 極小: .5, 小: .75, 中: 1, 大: 1.25, 特大: 1.5 };
 const snap = (v, step) => +(Math.round(v / step) * step).toFixed(2);
@@ -1525,17 +1525,17 @@ for (const [bk, { w0, types }] of Object.entries(WEAPON_TYPES)) {
 // 標準（380×12・100発/分）と連射型に、撃ち方の違う4つを足す。参考はアーケード版 ASG系統（スタンピード・デリュージ）。値は Claude の判断
 //   速射型：引きっぱなしでばらまく。秒間の威力は一番高いが1発が軽く、よろけは取りにくい。広がりが大きく近距離専用
 //   三点射型：1回押すと0.1秒間隔で3発。散弾が絞られ、少し離れても組で大きく削る
-//   炸裂型：粒が当たった所で小さく爆ぜる（半径3.5m）。距離で威力が落ちず、壁ぎわや物陰の敵にも爆風が届く。連射は遅い
-//   集束型：引いて溜め、離して撃つ。溜めるほど散弾がまとまり、威力と届く距離が伸びる（満タン0.8秒で威力1.6倍・広がり0.35倍・減衰距離2倍）
+//   精密型：散弾を絞り（広がり0.05）、1発を重く（600×8）、装弾は6発。少し離れても粒がまとまって当たる
+//   大容量型：1発は軽い（300×12）が広がりやや大きく（0.1）、18発撃ち続けられる。リロードは長い
+// （炸裂・溜めの仕組みは別の系統になるので入れない。2026-11-07 オーナー「拡散率や1発当たりのダメージや装弾数で変化つけて」）
 Object.assign(WEAPONS.autosgV, { dmg: 150, pellets: 14, rpm: 240, mag: 16, mags: 8, reload: 2, spread: .11, falloff: [10, 26, .3],
   desc: '引きっぱなしで散弾をばらまく全自動型。秒間の威力は高いが、1発が軽く広がるので近距離専用' });
 Object.assign(WEAPONS.autosgK, { dmg: 260, pellets: 7, burst: 3, rpm: 600, gap: .4, mag: 15, mags: 8, reload: 2.2, spread: .06, falloff: [16, 36, .3],
   desc: '絞られた散弾を3点射で撃つ。少し離れた相手にも1組でまとめて当てられる' });
-Object.assign(WEAPONS.autosgZ, { dmg: 700, pellets: 5, rpm: 70, mag: 6, mags: 7, reload: 2.6, spread: .085, directBlast: 3.5, range: 150,
-  desc: '当たった所で小さく爆ぜる散弾。距離で威力が落ちず、壁ぎわや物陰の敵にも爆風が届く。連射は遅い' });
-delete WEAPONS.autosgZ.falloff;
-Object.assign(WEAPONS.autosgN, { dmg: 400, pellets: 10, rpm: 100, mag: 8, mags: 8, reload: 2.4, spread: .09, falloff: [14, 34, .3], chargeTime: .8, chargeMul: 1.6, chargeFocus: .35, chargeReach: 2,
-  desc: '引いて溜め、離して撃つ。溜めるほど散弾がまとまって遠くまで威力が届く。すぐ離せば普通の散弾' });
+Object.assign(WEAPONS.autosgP, { dmg: 600, pellets: 8, rpm: 90, mag: 6, mags: 10, reload: 2.4, spread: .05, falloff: [12, 30, .3],
+  desc: '散弾を絞った重い1発。少し離れても粒がまとまって当たるが、装弾は6発で外すと痛い' });
+Object.assign(WEAPONS.autosgX, { dmg: 300, pellets: 12, rpm: 110, mag: 18, mags: 6, reload: 2.8, spread: .1, falloff: [12, 30, .3],
+  desc: '1発は軽いが18発撃ち続けられる。散弾はやや広がり、リロードは長い' });
 // オーナー希望（2026-11-02）：プラズマ砲・三点射型（アーケード版 プラズマカノンMk-2、750/min の三点射）。
 // 1回押すと0.08秒間隔で3発。次の組までの間（gap 0.3秒）は wiki に無いので Claude の仮置き。
 Object.assign(WEAPONS.plasmaK, { burst: 3, gap: .3 });

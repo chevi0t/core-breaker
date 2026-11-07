@@ -7418,7 +7418,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
     }
     if (sl.chargeT <= 0 || sl.cd > 0 || sl.overheat) { sl.chargeT = sl.holdT = 0; return false; }
     const q = Math.min(1, sl.chargeT / w.chargeTime), full = q >= 1 - 1e-6;
-    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), falloff: w.falloff && w.chargeReach ? [w.falloff[0] * (1 + (w.chargeReach - 1) * q), w.falloff[1] * (1 + (w.chargeReach - 1) * q), w.falloff[2]] : w.falloff, blast: 0, directBlast: full && w.chargeBlast ? w.chargeBlast : w.directBlast, knockMult: full && w.chargeKnock ? w.chargeKnock : w.knockMult, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
+    csl = { ...sl, w: { ...w, dmg: w.dmg * (1 + ((w.chargeMul || 1) - 1) * q), spread: w.spread * (1 + ((w.chargeFocus || 1) - 1) * q), blast: 0, directBlast: full && w.chargeBlast ? w.chargeBlast : w.directBlast, knockMult: full && w.chargeKnock ? w.chargeKnock : w.knockMult, proj: full && w.chargeOrb ? w.chargeOrb : w.proj, full, q } };
     if (w.chargeStages) {
       const stage=full?2:q>=.5?1:0;
       csl.w.proj={...w.proj,dmg:w.chargeStages[stage]};
@@ -10658,7 +10658,7 @@ function wStats(w) {
     if (w.scope) st.push(`スコープ ${w.scope}倍${w.scopeHigh ? '／'+w.scopeHigh+'倍（右クリックで循環）' : ''}`);
     if (w.falloff) st.push(`${w.falloff[0]}mから威力が下がる`);
     if (w.knockMult) st.push(`よろけ・ダウン×${w.knockMult}`);
-    if (w.chargeTime) st.push(`溜め ${w.chargeTime}秒${w.chargeMul > 1 ? `で威力×${w.chargeMul}` : ''}${w.chargeBlast ? `・爆発${w.chargeBlast}m` : w.chargeOrb ? `・光弾${w.chargeOrb.dmg}（爆発${w.chargeOrb.blast}m）` : w.chargeFocus ? '・散弾がまとまる' : ''}${w.chargeReach ? `・届く距離×${w.chargeReach}` : ''}`);
+    if (w.chargeTime) st.push(`溜め ${w.chargeTime}秒${w.chargeMul > 1 ? `で威力×${w.chargeMul}` : ''}${w.chargeBlast ? `・爆発${w.chargeBlast}m` : w.chargeOrb ? `・光弾${w.chargeOrb.dmg}（爆発${w.chargeOrb.blast}m）` : w.chargeFocus ? '・散弾がまとまる' : ''}`);
     if (w.fan) st.push('横一列に広がる');
     if (w.blast || w.directBlast) st.push(`当たると爆発 半径${w.blast || w.directBlast}m${w.directBlast ? '・直撃は部位判定' : ''}`);
   } else if (w.type === 'sword') st.push(`横なぎ ${w.normal.dmg}`, `${w.strong.dashName || (w.strong.spin ? '回転斬り' : '突進突き')} ${w.strong.dmg}`, `間合い ${w.normal.reach}m`, `踏み込み ${w.normal.step}m／ダッシュ中${w.strong.lunge}m`);
