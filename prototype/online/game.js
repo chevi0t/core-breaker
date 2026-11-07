@@ -168,7 +168,7 @@
     const preparing=state.phase==='preparing';
     if(preparing)abortPreparation('準備中にゲストが退出したため、開始を中止しました');
     const u = unit(p.unitId);
-    if (u) { u.controller = 'bot'; u.ownerPeerId = null; u.controlInput = {}; u.onlineInputSeq = 0; }
+    if (u) { u.controller = 'bot'; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
     state.peers.delete(id); rosterChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status('ゲストが退出しました。Botが引き継ぎます');
   }
   function endGuest(reason) {
@@ -266,7 +266,7 @@
   function beforeFrame(dt,t) {
     frameStart=now();
     if(state.role==='host'&&state.phase==='playing'){
-      for(const p of [...state.peers.values()]){if(now()-p.last>3000){peerLeft(p.id,'入力が3秒途絶えました');continue;}const u=unit(p.unitId);if(u)u.controlInput=remoteInput(u);}
+      for(const p of [...state.peers.values()]){if(now()-p.last>3000){const reason='入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます';peerLeft(p.id,reason);state.transport.disconnectPeer(p.id,reason);continue;}const u=unit(p.unitId);if(u)u.controlInput=remoteInput(u);}
     }
     if(state.role!=='guest'||state.phase!=='playing')return;
     if(now()-state.lastHost>5000){endGuest('ホストから5秒間応答がありません');return;}

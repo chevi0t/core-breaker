@@ -1,6 +1,7 @@
 // node tools/test/online_check.js [dbg] [出力先]
 // ローカル PeerServer + 実 WebRTC。機能試験はコマ送りであり性能値には使わない。
 const fs=require('node:fs'),path=require('node:path');
+const connectionsOnly=process.argv.includes('--connections-only');
 const {check}=require('./lib');
 const {TRANSPORT_MODE,harness,pageFor,frames,room,identity,input,neutral,summary,sleep}=require('./online_test_helpers');
 check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
@@ -14,6 +15,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
     const reject=await bad.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return {accepted:true};}catch(e){return {accepted:false,reason:e.message};}},[rid,{peerOptions:h.peerOptions}]);
     ok(!reject.accepted&&/版が違います/.test(reject.reason),'版違いを理由付きで拒否');
     await bad.close();await host.evaluate(()=>CBOnlineGame.leave());await host.close(); }
+    if(!connectionsOnly){
     for(const guests of [1,3]){
       console.log(`段階: ${guests+1}人の試合`);
       active=await room(browser,h,errors,{guests});const {host,guests:gs,pages}=active;
@@ -32,7 +34,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       // 次の射撃確認は標的配置を試験用に変更する。性能・自然対戦の評価には混ぜない。
       const fixture=await host.evaluate(id=>{
         const g=__g,u=g.units.find(u=>(u.entityId||u.netId)===id)||g.units.find(u=>u.controller==='remoteHuman');
-        for(const x of g.units)x.frozen=true;
+        window.__testBotUpdate=window.botUpdate;window.botUpdate=()=>{};
         const target=g.units.find(x=>x.team!==u.team);u.pos.set(0,g.terrainH(0,170),170);target.pos.set(0,g.terrainH(0,185),185);
         u.vel.set(0,0,0);target.vel.set(0,0,0);u.invulT=target.invulT=0;u.repairing=target.repairing=false;u.yaw=Math.PI;u.pitch=0;u.switchT=0;
         for(const x of [u,target]){x.group.position.copy(x.pos);x.group.rotation.y=x.yaw;g.weaponLook(x,0);}
@@ -51,7 +53,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       // 施設状態はゲストが独自に進めない。ホストを止めてゲストだけコマ送り。
       await sleep(150);await frames([g],2);const frozen=await summary(g);await frames([g],40);const still=await summary(g);
       ok(still.time===frozen.time&&JSON.stringify(still.cores)===JSON.stringify(frozen.cores),'ホスト更新なしでゲストの時間・コアを進めない');
-      await host.evaluate(()=>{for(const u of __g.units)u.frozen=false;});
+      await host.evaluate(()=>{window.botUpdate=window.__testBotUpdate;delete window.__testBotUpdate;});
       console.log('段階: 300秒完走');
       // 人間の入力は中立のまま、Bot が対戦。試合時間そのものは短縮しない。
       for(let n=0;n<6400;n+=10){await frames(pages,10);if(n%400===0)console.log(`${guests+1}人: ${Math.round(300-(await summary(host)).time)}秒`);if((await summary(host)).phase==='ended')break;}
@@ -68,7 +70,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       const {host,guests:[guest],pages}=active;
       const target=await host.evaluate(()=>{
         const g=__g,u=g.units.find(u=>u.controller==='remoteHuman');
-        for(const x of g.units)x.frozen=true;
+        window.__testBotUpdate=window.botUpdate;window.botUpdate=()=>{};
         u.pos.set(0,g.terrainH(0,170),170);u.vel.set(0,0,0);u.invulT=0;u.repairing=false;u.switchT=0;u.yaw=0;
         g.selectWeapon(u,'sub');u.switchT=0;g.weaponLook(u,0);g.scene.updateMatrixWorld(true);
         return {key:u.slots.sub.w.key,ammo:u.slots.sub.ammo,aim:[0,g.terrainH(0,130)+1,130]};
@@ -80,18 +82,50 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       await input(guest,neutral);await frames(pages,5);
       ok(seen,'ゲストのロケット入力でホストに飛翔弾を生成');
       ok(await guest.evaluate(a=>__g.player.slots.sub.ammo<a,target.ammo),'ロケットの残弾をゲストへ同期');
+      await host.evaluate(()=>{window.botUpdate=window.__testBotUpdate;delete window.__testBotUpdate;});
     }
     await active.close();active=null;
+    }
     active=await room(browser,h,errors,{guests:1});
     console.log('段階: 途中参加・切断');
     const {host,guests:[guest],pages,roomId}=active;
     const late=await pageFor(browser,h,errors);
     const lateResult=await late.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return false;}catch{return true;}},[roomId,{peerOptions:h.peerOptions}]);
     ok(lateResult,'試合開始後の新規参加を拒否');await late.close();
-    const before=await host.evaluate(()=>{const u=__g.units.find(u=>u.controller==='remoteHuman');u.hp=4321;u.frozen=true;return {id:u.entityId||u.netId,hp:u.hp,lifeId:u.lifeId};});
-    await guest.evaluate(()=>CBOnlineGame.leave('切断試験'));await sleep(100);await frames([host],2);
-    const takeover=await host.evaluate(id=>{const u=__g.units.find(u=>(u.entityId||u.netId)===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,count:__g.units.length};},before.id);
-    ok(takeover.controller==='bot'&&takeover.hp===4321&&takeover.lifeId===before.lifeId&&takeover.count===10,'切断機を回復・再出撃させずBotへ引継ぎ');
+    const before=await host.evaluate(()=>{const u=__g.units.find(u=>u.controller==='remoteHuman');u.hp=4321;u.actionHeld=true;u.actionBlockBoost=true;u.controlTarget=__g.units.find(x=>x.team!==u.team);return {id:u.entityId||u.netId,hp:u.hp,lifeId:u.lifeId};});
+    await guest.evaluate(()=>CBOnlineGame.leave('切断試験'));await sleep(100);
+    await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});
+    const takeover=await host.evaluate(id=>{const u=__g.units.find(u=>(u.entityId||u.netId)===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,count:__g.units.length,actionHeld:u.actionHeld,actionBlockBoost:u.actionBlockBoost,target:!!u.controlTarget};},before.id);
+    ok(takeover.controller==='bot'&&takeover.hp===4321&&takeover.lifeId===before.lifeId&&takeover.count===10&&!takeover.actionHeld&&!takeover.actionBlockBoost&&!takeover.target,'切断機を回復・再出撃させずBotへ引継ぎ');
+    await active.close();active=null;
+    console.log('段階: 通信を保ったまま入力だけ途絶');
+    active=await room(browser,h,errors,{guests:2});
+    {
+      const {host,guests:[silent,other],pages}=active;
+      await frames(pages,5);await sleep(100);
+      const id=(await identity(silent)).id;
+      const before=await host.evaluate(id=>{
+        const u=__g.units.find(x=>x.entityId===id);u.hp=4321;u.actionHeld=true;u.actionBlockBoost=true;u.controlTarget=__g.units.find(x=>x.team!==u.team);
+        return {hp:u.hp,lifeId:u.lifeId,pos:u.pos.toArray()};
+      },id);
+      // DataConnection・ping・snapshot は維持し、ゲーム入力だけ送らない。
+      await silent.evaluate(()=>{const t=CBOnlineGame.state.transport,send=t.send.bind(t);t.send=(type,...args)=>type==='input'?true:send(type,...args);});
+      const until=Date.now()+3800;
+      // ホストの物理・Bot思考は進めず、通信の前後処理だけ回す。
+      // u.frozen は本体に存在しないため、位置保持をそのフラグに頼らない。
+      while(Date.now()<until){
+        await frames([silent,other],1);
+        await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});
+        await sleep(40);
+      }
+      await host.waitForFunction(()=>CBOnlineGame.state.transport.metrics().connectedPeers===1,{}, {polling:50,timeout:2000});
+      const lost=await silent.evaluate(()=>({phase:CBOnlineGame.state.phase,running:__g.running,reason:document.getElementById('ovText').textContent,peers:CBOnlineGame.state.transport.metrics().connectedPeers}));
+      ok(lost.phase==='ended'&&!lost.running&&/入力が3秒途絶え/.test(lost.reason)&&lost.peers===0,'通信が生きた入力途絶でも理由付き終了し接続を閉じる');
+      const after=await host.evaluate(id=>{const u=__g.units.find(x=>x.entityId===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,pos:u.pos.toArray(),count:__g.units.length,actionHeld:u.actionHeld,actionBlockBoost:u.actionBlockBoost,target:!!u.controlTarget};},id);
+      ok(after.controller==='bot'&&after.hp===before.hp&&after.lifeId===before.lifeId&&JSON.stringify(after.pos)===JSON.stringify(before.pos)&&after.count===10&&!after.actionHeld&&!after.actionBlockBoost&&!after.target,'入力途絶機も状態を保ってBotへ引継ぐ');
+      ok(await other.evaluate(()=>CBOnlineGame.state.phase==='playing'&&CBOnlineGame.state.transport.metrics().connectedPeers===1),'入力途絶したゲスト以外の対戦接続は継続');
+      results.inputTimeout={guest:lost,before,after};
+    }
     await active.close();active=null;
     active=await room(browser,h,errors,{guests:1});
     await active.host.evaluate(()=>CBOnlineGame.leave('ホスト終了試験'));await sleep(150);await frames(active.guests,5);

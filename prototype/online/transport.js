@@ -75,7 +75,7 @@
       return { protocolVersion: PROTOCOL, appVersion: this.appVersion, roomId: this.roomId, matchId: this.matchId, sender: this.peer?.id, type, payload };
     }
     _enqueue(link, type, payload, internal = false) {
-      if (this.closed || (!internal && !link.ready)) return false;
+      if (this.closed || link.closing || (!internal && !link.ready)) return false;
       let text;
       try { text = JSON.stringify(this._envelope(type, payload)); } catch (_) { this._status('送信データを JSON に変換できません', { error: true }); return false; }
       const bytes = encoder.encode(text).byteLength;
@@ -112,7 +112,7 @@
       return this.matchId;
     }
     _receive(link, raw) {
-      if (this.closed || !this.links.has(link.conn.peer)) return;
+      if (this.closed || link.closing || !this.links.has(link.conn.peer)) return;
       if (typeof raw !== 'string' || raw.length > MAX_BYTES) { this._drop(link, '不正な通信形式です'); return; }
       const bytes = encoder.encode(raw).byteLength;
       if (bytes > MAX_BYTES) { this._drop(link, '受信データが大きすぎます'); return; }
@@ -161,6 +161,7 @@
       if (this.closed) return;
       const t = now();
       for (const link of [...this.links.values()]) {
+        if (link.closing) continue;
         if (!link.ready && t - link.opened > 15000) { this._drop(link, '直接接続が時間切れです。STUN のみでは接続できない回線があります'); continue; }
         if (link.ready && t - link.lastReceive > 10000) { this._drop(link, '対戦通信の応答がありません'); continue; }
         if (!link.conn.open) continue;
@@ -205,6 +206,16 @@
       return { ...this.totals, byType: { ...this.totals.byType }, elapsedSeconds: seconds, sentKBps: this.totals.sentBytes / seconds / 1000, p95KBps: rates[Math.floor((rates.length - 1) * .95)] || 0, maxKBps: rates[rates.length - 1] || 0,
         connectedPeers: [...this.links.values()].filter(l=>l.ready).length,
         peers: [...this.links].map(([id,l])=>({ id, sentBytes:l.sentBytes, receivedBytes:l.receivedBytes, rttMs:l.rttMs, bufferedBytes:l.conn.dataChannel?.bufferedAmount||0, queue:l.queue.length + l.snapshots.length })), closedPeers: [...this.history].map(([id,s])=>({id,...s})), latencyMs: this.latencyMs };
+    }
+    disconnectPeer(peerId, reason = '対戦から退出しました') {
+      const link = this.links.get(peerId);
+      if (!link || link.closing) return false;
+      // 所有権を失った相手には状態も入力も送受信せず、終了理由だけを通知する。
+      link.closing = true; link.queue.length = 0; link.snapshots.length = 0;
+      if (link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason }))); } catch (_) {} }
+      // 通知は最善努力。相手の応答がなくてもこの接続だけを必ず閉じる。
+      this._later(() => this._drop(link, reason), 500);
+      return true;
     }
     close(reason = '部屋を閉じました') {
       if (this.closed) return;
