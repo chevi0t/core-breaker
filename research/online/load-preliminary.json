@@ -1,0 +1,139 @@
+{
+  "kind": "通信代替・描画付き30秒予備計測（実WebRTC性能ではない）",
+  "createdAt": "2026-11-07T18:37:40.060Z",
+  "commit": "30159d7fc5006169847d99379cf6660fd7515e48",
+  "sourceHashes": {
+    "prototype/index.html": "2e635f6fd4d4f7dd05d76b06afdb1e774c98b2dc08687cad66254e871882f891",
+    "prototype/online/game.js": "022dabf44a610475c49cb7bd074e9bf3a09f292ba70d22d11634449c12ad2bb3",
+    "prototype/online/transport.js": "cbfb7ad288a1f9a07bb6af7d6b3e28cdc4793b2b88688e86d0246eaa5bba3d90"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "os": "linux 6.18.57 x64",
+    "browser": "141.0.7390.37",
+    "sameComputer": true,
+    "viewport": [
+      960,
+      540
+    ],
+    "webgl": {
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "vendor": "Google Inc. (Google)",
+      "pixelRatio": 1
+    }
+  },
+  "method": {
+    "scope": "通信機能・遅延注入の代替試験のみ。負荷・帯域はWebRTC本番通信の性能値ではない",
+    "durationSeconds": 30,
+    "warmupSeconds": 5,
+    "rendering": true,
+    "variableDt": true,
+    "softwareGpuPossible": true,
+    "byteUnit": "KB = 1000 bytes。JSON UTF-8量。WebRTC再送・ヘッダーを含まない",
+    "latency": "同一ゲスト時計で入力投入からRAF上の状態変化まで。ディスプレイ発光時刻ではない",
+    "subjective": "人間による操作感の試遊は未実施。測定値からの推定を人間の所感と混同しない",
+    "externalNetwork": "別PC・別回線・NAT接続失敗例は未実施"
+  },
+  "load": [
+    {
+      "units": 10,
+      "humans": 2,
+      "guests": 1,
+      "wallSeconds": 30.269899999999907,
+      "gameSeconds": 4.450000000001012,
+      "sentBytes": 1131438,
+      "sentKBps": 37.37831971694665,
+      "frameCpuMs": {
+        "count": 89,
+        "mean": 19.758426966297367,
+        "p50": 9.300000000046566,
+        "p95": 20.9000000001397,
+        "max": 498.80000000004657
+      },
+      "frameIntervalMs": {
+        "count": 89,
+        "mean": 340.06067415730337,
+        "p50": 333.3000000000029,
+        "p95": 383.3000000000029,
+        "max": 699.9000000000015
+      },
+      "phase": "playing"
+    },
+    {
+      "units": 10,
+      "humans": 4,
+      "guests": 3,
+      "wallSeconds": 30.186800000000048,
+      "gameSeconds": 2.050000000000466,
+      "sentBytes": 1602321,
+      "sentKBps": 53.080187366663495,
+      "frameCpuMs": {
+        "count": 41,
+        "mean": 80.94634146340441,
+        "p50": 8.399999999906868,
+        "p95": 12.900000000139698,
+        "max": 2958.5999999998603
+      },
+      "frameIntervalMs": {
+        "count": 41,
+        "mean": 743.0585365853657,
+        "p50": 683.3000000000029,
+        "p95": 750,
+        "max": 3299.899999999994
+      },
+      "phase": "playing"
+    },
+    {
+      "units": 20,
+      "humans": 2,
+      "guests": 1,
+      "wallSeconds": 30.144600000000093,
+      "gameSeconds": 4.150000000000944,
+      "sentBytes": 2390105,
+      "sentKBps": 79.28799851382976,
+      "frameCpuMs": {
+        "count": 83,
+        "mean": 22.46746987952144,
+        "p50": 11.5,
+        "p95": 17.399999999906868,
+        "max": 551.5
+      },
+      "frameIntervalMs": {
+        "count": 83,
+        "mean": 362.63614457831324,
+        "p50": 350,
+        "p95": 416.70000000000437,
+        "max": 583.2999999999993
+      },
+      "phase": "playing"
+    },
+    {
+      "units": 20,
+      "humans": 4,
+      "guests": 3,
+      "wallSeconds": 31.157600000000095,
+      "gameSeconds": 1.900000000000432,
+      "sentBytes": 2712635,
+      "sentKBps": 87.06174416514725,
+      "frameCpuMs": {
+        "count": 38,
+        "mean": 202.5315789473672,
+        "p50": 10.699999999953434,
+        "p95": 27.399999999906868,
+        "max": 4243.59999999986
+      },
+      "frameIntervalMs": {
+        "count": 38,
+        "mean": 746.9,
+        "p50": 666.6999999999971,
+        "p95": 749.8999999999942,
+        "max": 4566.399999999994
+      },
+      "phase": "playing"
+    }
+  ],
+  "excludedLatency": "初回の移動計測は3D距離を使い落下まで検出し得たため、遅延結果は採用せず、前方水平変位で再測定する。",
+  "limits": "同一クラウド・SwiftShader・複数ページで約1〜3FPS。観測送信量は目標20Hzを達成した場合の帯域ではない。ユーザーPCや実WebRTC性能の値ではない。"
+}

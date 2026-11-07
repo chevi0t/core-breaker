@@ -1,0 +1,120 @@
+{
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "usesRealWebRTC": false,
+  "productionNetworkPerformanceVerified": false,
+  "createdAt": "2026-11-07T18:51:23.124Z",
+  "commit": "372945e26ba79a3554c1db0fd528e92b1d998e81",
+  "workingTreeModified": true,
+  "sourceHashes": {
+    "prototype/index.html": "2e635f6fd4d4f7dd05d76b06afdb1e774c98b2dc08687cad66254e871882f891",
+    "prototype/online/game.js": "871b5d4606f2fe542ec4a20d4d3c3b4c1d7b3a9040fd37dd5bde6225d15bdf65",
+    "prototype/online/transport.js": "00ed213f4e09b702a889c8a701082915e51c1578ea2cbb351a29cae30b29bf39"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "os": "linux 6.18.57 x64",
+    "browser": "141.0.7390.37",
+    "sameComputer": true,
+    "viewport": [
+      960,
+      540
+    ]
+  },
+  "method": {
+    "selectedCases": {
+      "load": false,
+      "latency": true,
+      "teamSizes": [
+        5,
+        10
+      ],
+      "guestCounts": [
+        1,
+        3
+      ],
+      "latencies": [
+        0,
+        50,
+        100
+      ]
+    },
+    "scope": "通信機能・遅延注入の代替試験のみ。負荷・帯域はWebRTC本番通信の性能値ではない",
+    "durationSeconds": 300,
+    "warmupSeconds": 30,
+    "rendering": true,
+    "variableDt": true,
+    "softwareGpuPossible": true,
+    "byteUnit": "KB = 1000 bytes。JSON UTF-8量。WebRTC再送・ヘッダーを含まない",
+    "latency": "同一ゲスト時計で入力投入からRAF上の状態変化まで。ディスプレイ発光時刻ではない",
+    "subjective": "人間による操作感の試遊は未実施。測定値からの推定を人間の所感と混同しない",
+    "externalNetwork": "別PC・別回線・NAT接続失敗例は未実施"
+  },
+  "load": [],
+  "latency": [
+    {
+      "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+      "oneWayInjectedMs": 0,
+      "movementMs": {
+        "count": 5,
+        "mean": 1121.5400000000373,
+        "p50": 1128.7000000001863,
+        "p95": 1197.6000000000931,
+        "max": 1539.6000000000931
+      },
+      "shotToTargetDamageDisplayMs": {
+        "count": 5,
+        "mean": 1835.6399999999442,
+        "p50": 1711.5999999996275,
+        "p95": 2089.899999999907,
+        "max": 2149.5
+      },
+      "movementTimeouts": 0,
+      "hitTimeouts": 0,
+      "fixture": "Botを止め、約15m前方の静止標的へ主武器。自然対戦の命中率の測定ではない"
+    },
+    {
+      "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+      "oneWayInjectedMs": 50,
+      "movementMs": {
+        "count": 5,
+        "mean": 1214.4,
+        "p50": 1158.6000000000931,
+        "p95": 1458.1000000000931,
+        "max": 1518.8000000002794
+      },
+      "shotToTargetDamageDisplayMs": {
+        "count": 5,
+        "mean": 1791.2,
+        "p50": 1829.5,
+        "p95": 1889.7999999998137,
+        "max": 2111.7000000001863
+      },
+      "movementTimeouts": 0,
+      "hitTimeouts": 0,
+      "fixture": "Botを止め、約15m前方の静止標的へ主武器。自然対戦の命中率の測定ではない"
+    },
+    {
+      "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+      "oneWayInjectedMs": 100,
+      "movementMs": {
+        "count": 5,
+        "mean": 1107.9400000000373,
+        "p50": 836.8000000002794,
+        "p95": 1465.2999999998137,
+        "max": 1607
+      },
+      "shotToTargetDamageDisplayMs": {
+        "count": 5,
+        "mean": 1408.039999999944,
+        "p50": 1225.2999999998137,
+        "p95": 1607.2999999998137,
+        "max": 2079.899999999907
+      },
+      "movementTimeouts": 0,
+      "hitTimeouts": 0,
+      "fixture": "Botを止め、約15m前方の静止標的へ主武器。自然対戦の命中率の測定ではない"
+    }
+  ]
+}
