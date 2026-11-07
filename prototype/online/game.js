@@ -100,6 +100,8 @@
   function begin() {
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     state.phase = 'playing'; running = true; ended = false; state.lastHost = now();
+    // 早く準備できたゲストも、全員の開始時点から入力待機の猶予を持つ。
+    if (state.role === 'host') for (const p of state.peers.values()) p.last = state.lastHost;
     $('overlay').hidden = true; annReset(); announce('作戦開始', 'info'); callbacks.onStarted?.();
   }
   function onMessage(type, data, peerId) {

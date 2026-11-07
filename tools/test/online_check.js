@@ -16,6 +16,54 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
     console.log('版不一致接続結果',JSON.stringify(reject));
     ok(!reject.accepted&&/版が違います/.test(reject.reason),'版違いを理由付きで拒否');
     await bad.close();await host.evaluate(()=>CBOnlineGame.leave());await host.close(); }
+    console.log('段階: 準備完了が3.5秒ずれたゲストの開始');
+    {
+      const host=await pageFor(browser,h,errors),early=await pageFor(browser,h,errors),slow=await pageFor(browser,h,errors),pages=[host,early,slow];
+      active={pages,close:async()=>{for(const p of pages)if(!p.isClosed()){await p.evaluate(()=>CBOnlineGame.leave('準備差の試験終了')).catch(()=>{});await p.close();}}};
+      const roomId=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions});
+      for(const g of [early,slow])await g.evaluate(([id,o])=>CBOnlineGame.join(id,o),[roomId,{peerOptions:h.peerOptions}]);
+      const earlyPeer=await early.evaluate(()=>CBOnlineGame.state.transport.peer.id);
+      await slow.evaluate(()=>{
+        const t=CBOnlineGame.state.transport,send=t.send.bind(t);
+        window.__readyGate={pending:null,sentAt:null};
+        t.send=(type,payload,peerId)=>{
+          if(type==='ready'){__readyGate.pending=()=>{__readyGate.sentAt=performance.now();return send(type,payload,peerId);};return true;}
+          return send(type,payload,peerId);
+        };
+      });
+      await host.evaluate(()=>CBOnlineGame.start({teamSize:5}));
+      const waitingAt=Date.now();let earlyReady=false,slowWaiting=false;
+      while(Date.now()-waitingAt<10000){
+        await frames(pages,1);
+        earlyReady=await host.evaluate(id=>!!CBOnlineGame.state.peers.get(id)?.ready,earlyPeer);
+        slowWaiting=await slow.evaluate(()=>!!window.__readyGate?.pending);
+        if(earlyReady&&slowWaiting)break;
+        await sleep(20);
+      }
+      ok(earlyReady&&slowWaiting,'先行ゲストのready受信と後続ゲストの準備完了を確認');
+      ok(await host.evaluate(()=>CBOnlineGame.state.phase==='preparing'&&!__g.running),'全員のreadyまではホストが試合を進めない');
+      // 先行ゲストのreadyを確認した後に3.5秒待つため、元の3秒入力期限を確実に超える。
+      const delayedAt=Date.now();
+      await slow.evaluate(()=>{setTimeout(()=>__readyGate.pending(),3500);});
+      while(Date.now()-delayedAt<7000){
+        await frames(pages,1);await sleep(20);
+        if(await host.evaluate(()=>CBOnlineGame.state.phase==='playing'))break;
+      }
+      const waitedMs=Date.now()-delayedAt;
+      ok(waitedMs>=3500,'後続ゲストのready送信を3.5秒遅延');
+      await input(early,{...neutral,keys:{KeyW:true},yaw:0,pitch:0});
+      await input(slow,{...neutral,keys:{KeyW:true},yaw:0,pitch:0});
+      await frames(pages,20);
+      const first=await host.evaluate(()=>[...CBOnlineGame.state.peers.values()].map(p=>({id:p.id,receivedSeq:p.receivedSeq,appliedSeq:p.appliedSeq})));
+      await frames(pages,40);
+      const after=await host.evaluate(()=>({phase:CBOnlineGame.state.phase,connected:CBOnlineGame.state.transport.metrics().connectedPeers,
+        peers:[...CBOnlineGame.state.peers.values()].map(p=>({id:p.id,receivedSeq:p.receivedSeq,appliedSeq:p.appliedSeq,controller:__g.units.find(u=>u.entityId===p.unitId)?.controller})),disconnected:CBOnlineGame.metrics().disconnected}));
+      ok(after.phase==='playing'&&after.connected===2&&after.peers.length===2&&after.peers.every(p=>p.controller==='remoteHuman'),'準備が遅れても開始直後に先行ゲストをBotへ替えず両接続を維持');
+      for(const g of [early,slow])ok(await g.evaluate(()=>CBOnlineGame.state.phase==='playing'&&__g.running),'準備差のあるゲストもplayingに到達');
+      ok(after.peers.every(p=>{const old=first.find(x=>x.id===p.id);return old&&p.receivedSeq>old.receivedSeq&&p.appliedSeq>old.appliedSeq;}),'開始後に両ゲストの入力受信番号・適用番号が進む');
+      results.preparationSkew={readyDelayMs:3500,observedWaitMs:waitedMs,before:first,after};
+      await active.close();active=null;
+    }
     if(!connectionsOnly){
     for(const guests of [1,3]){
       console.log(`段階: ${guests+1}人の試合`);
@@ -91,8 +139,8 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
     console.log('段階: 途中参加・切断');
     const {host,guests:[guest],pages,roomId}=active;
     const late=await pageFor(browser,h,errors);
-    const lateResult=await late.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return false;}catch{return true;}},[roomId,{peerOptions:h.peerOptions}]);
-    ok(lateResult,'試合開始後の新規参加を拒否');await late.close();
+    const lateResult=await late.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return '';}catch(e){return e.message;}},[roomId,{peerOptions:h.peerOptions}]);
+    ok(/試合開始後の途中参加/.test(lateResult),'試合開始後の新規参加を理由付きで拒否');await late.close();
     const before=await host.evaluate(()=>{const u=__g.units.find(u=>u.controller==='remoteHuman');u.hp=4321;u.actionHeld=true;u.actionBlockBoost=true;u.controlTarget=__g.units.find(x=>x.team!==u.team);return {id:u.entityId||u.netId,hp:u.hp,lifeId:u.lifeId};});
     await guest.evaluate(()=>CBOnlineGame.leave('切断試験'));await sleep(100);
     await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});

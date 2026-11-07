@@ -10,6 +10,19 @@
 
 入力途絶時に対象の通信を残してしまう点と、Botへ人間のしゃがみ/ブースト抑止/ロック保持が残る点は独立レビューで見つけ、修正してからこの試験を実行した。
 
+## 最終回帰と準備差の追加確認
+
+- `quick_check.js origin/main`：成功（基準 main は `fb371d4`）。
+- `weapons_check.js dbg`：全武器を実行し終了コード0、ブラウザエラー配列は空。
+- `bot_battle.js dbg city,wide,mesa,dock 150`：4マップすべてエラーなし。実際の出力はcity 151秒、wide 150秒、mesa 160秒。dockは62秒で赤コア0の決着。
+- `online_check.js --mock-transport --connections-only`：準備に3.5秒差を付けたケースを追加して15項目成功。先にreadyを送ったゲストの3秒入力期限を、全員の試合開始時に更新する修正を検証。両人の操作権と受信/適用入力番号の進行を確認。`connection-regression.json` に記録。
+- `online_transport.test.js`、名前重複検査、変更JavaScriptの構文検査、`git diff --check`：成功。
+- GitHubのPRトリガーworkflow/commit statusは `b70512a` 時点で登録なし。ローカル試験結果とCI成功を混同しない。
+
+機体形状試験は**全体として未完了**。6,561組合せ・32,805発の数値検査は成功したが、続く画像用 `page.evaluate`（`mech_shapes_check.js:116`）が返らない。最初はブラウザ終了、単独再試行では240秒で打切り。
+
+比較用の**未変更 origin/main** のHTMLでも同じ数値検査まで成功し、同じ116行でブラウザがSIGKILLされ終了コード1になった。今回の変更だけで起きる現象ではないことは確認したが、SIGKILLの原因をOOM等と断定はしていない。画像確認を通過済みとは扱わず、別の安定した実行環境での再試験を残す。
+
 ## 描画付き予備計測
 
 `load-preliminary.json` は `30159d7` の10/20機×2/4人、各30秒＋準備5秒。可変dt・描画あり・同一クラウド内の複数Chromiumページ・SwiftShader・BroadcastChannel代替通信。ユーザーPCの性能ではない。
