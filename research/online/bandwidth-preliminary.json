@@ -1,0 +1,112 @@
+{
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "usesRealWebRTC": false,
+  "productionNetworkPerformanceVerified": false,
+  "createdAt": "2026-11-07T18:50:06.114Z",
+  "commit": "372945e26ba79a3554c1db0fd528e92b1d998e81",
+  "workingTreeModified": true,
+  "sourceHashes": {
+    "prototype/index.html": "2e635f6fd4d4f7dd05d76b06afdb1e774c98b2dc08687cad66254e871882f891",
+    "prototype/online/game.js": "871b5d4606f2fe542ec4a20d4d3c3b4c1d7b3a9040fd37dd5bde6225d15bdf65",
+    "prototype/online/transport.js": "00ed213f4e09b702a889c8a701082915e51c1578ea2cbb351a29cae30b29bf39"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "os": "linux 6.18.57 x64",
+    "browser": "141.0.7390.37",
+    "sameComputer": true,
+    "viewport": [
+      960,
+      540
+    ],
+    "webgl": {
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "vendor": "Google Inc. (Google)",
+      "pixelRatio": 1
+    }
+  },
+  "method": {
+    "selectedCases": {
+      "load": true,
+      "latency": false,
+      "teamSizes": [
+        10
+      ],
+      "guestCounts": [
+        1
+      ],
+      "latencies": [
+        0,
+        50,
+        100
+      ]
+    },
+    "scope": "通信機能・遅延注入の代替試験のみ。負荷・帯域はWebRTC本番通信の性能値ではない",
+    "durationSeconds": 30,
+    "warmupSeconds": 5,
+    "rendering": true,
+    "variableDt": true,
+    "softwareGpuPossible": true,
+    "byteUnit": "KB = 1000 bytes。JSON UTF-8量。WebRTC再送・ヘッダーを含まない",
+    "latency": "同一ゲスト時計で入力投入からRAF上の状態変化まで。ディスプレイ発光時刻ではない",
+    "subjective": "人間による操作感の試遊は未実施。測定値からの推定を人間の所感と混同しない",
+    "externalNetwork": "別PC・別回線・NAT接続失敗例は未実施"
+  },
+  "load": [
+    {
+      "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+      "networkPerformanceOnlyForSelectedTransport": true,
+      "sentBytes": 2004861,
+      "sentKBps": 66.3402148844014,
+      "sentBytesByType": {
+        "welcome": 0,
+        "lobby": 0,
+        "ping": 3245,
+        "preferenceAck": 0,
+        "pong": 0,
+        "match": 0,
+        "prepare": 0,
+        "begin": 0,
+        "events": 37186,
+        "snapshot": 1964430
+      },
+      "snapshotSize": {
+        "payloadBytes": 46708,
+        "messageBytes": 46903,
+        "unitCount": 20,
+        "projectileCount": 0,
+        "sampleFrame": 101,
+        "projected20HumanPayloadBytes": 47033,
+        "projected20HumanMessageBytes": 47228
+      },
+      "projected20HumanObservedRateKBps": 1260.4640828036268,
+      "projected20HumanSnapshotOnly20HzKBps": 17946.64,
+      "projected20HumanEventsObservedRateKBps": 23.378986065934576,
+      "projected20HumanOtherObservedRateKBps": 2.0401444033764777,
+      "bandwidthCaveat": "観測量の19人換算は低FPS時の送信頻度低下を含む。20Hz設計値とは別。snapshot-onlyは終了時の1枚からの見積りで、イベント・再送・通信ヘッダーを含まない。イベントの実頻度は未推定。",
+      "units": 20,
+      "humans": 2,
+      "guests": 1,
+      "wallSeconds": 30.220899999999908,
+      "gameSeconds": 4.050000000000921,
+      "frameCpuMs": {
+        "count": 81,
+        "mean": 26.418518518494373,
+        "p50": 11.199999999720603,
+        "p95": 45.39999999990687,
+        "max": 623.6000000000931
+      },
+      "frameIntervalMs": {
+        "count": 81,
+        "mean": 372.8246913580247,
+        "p50": 366.59999999999854,
+        "p95": 433.40000000000146,
+        "max": 700
+      },
+      "phase": "playing"
+    }
+  ],
+  "latency": []
+}

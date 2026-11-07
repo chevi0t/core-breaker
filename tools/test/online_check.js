@@ -13,6 +13,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
     { const host=await pageFor(browser,h,errors),bad=await pageFor(browser,h,errors,{version:'Ver不一致試験'});
     const rid=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions});
     const reject=await bad.evaluate(async([id,o])=>{try{await CBOnlineGame.join(id,o);return {accepted:true};}catch(e){return {accepted:false,reason:e.message};}},[rid,{peerOptions:h.peerOptions}]);
+    console.log('版不一致接続結果',JSON.stringify(reject));
     ok(!reject.accepted&&/版が違います/.test(reject.reason),'版違いを理由付きで拒否');
     await bad.close();await host.evaluate(()=>CBOnlineGame.leave());await host.close(); }
     if(!connectionsOnly){

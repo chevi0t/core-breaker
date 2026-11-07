@@ -75,10 +75,10 @@ check('オンラインの描画付き計測',async({browser,dir,out,ok,errors})=
           for(const x of [u,target]){x.group.position.copy(x.pos);g.weaponLook(x,0);}g.scene.updateMatrixWorld(true);
           return {targetId:target.entityId||target.netId,aim:g.targetPoint(target).toArray()};
         });
-        await input(guest,neutral);await sleep(400+latencyMs*2);
+        await input(guest,neutral);await sleep(2000+latencyMs*2);
         const movement=await guest.evaluate(async base=>{
           const p=__g.player.pos.clone(),at=performance.now();CBOnlineGame.testInput({...base,keys:{KeyW:true},yaw:0,pitch:0});
-          return await new Promise(resolve=>{const f=()=>{if(__g.player.pos.distanceTo(p)>.02){CBOnlineGame.testInput(base);resolve(performance.now()-at);}else if(performance.now()-at>4000){CBOnlineGame.testInput(base);resolve(null);}else requestAnimationFrame(f);};requestAnimationFrame(f);});
+          return await new Promise(resolve=>{const f=()=>{if(p.z-__g.player.pos.z>.02){CBOnlineGame.testInput(base);resolve(performance.now()-at);}else if(performance.now()-at>4000){CBOnlineGame.testInput(base);resolve(null);}else requestAnimationFrame(f);};requestAnimationFrame(f);});
         },neutral);
         move.push(movement);await sleep(400+latencyMs*2);
         const shot=await guest.evaluate(async({base,fixture})=>{
