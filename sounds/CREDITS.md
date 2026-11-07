@@ -27,14 +27,22 @@
 | swing | ソードを振る音 | Fast Sword Swing Sound | [qubodup](https://freesound.org/people/qubodup) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/qubodup/sounds/60004 |
 | slash | ソードが当たった金属音 | Sword Clash | [loudernoises](https://freesound.org/people/loudernoises) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/loudernoises/sounds/334169 |
 | hit | 命中・被弾 | Bullet Hit Metal | [coolguy244e](https://freesound.org/people/coolguy244e) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/coolguy244e/sounds/267893 |
-| dash | ブースト噴射・ジャンプ・カタパルト | Boomy Whoosh 1_1 | [Joao_Janz](https://freesound.org/people/Joao_Janz) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/Joao_Janz/sounds/485242 |
+| dash | カタパルト・偵察機・榴弾の落下予告 | Boomy Whoosh 1_1 | [Joao_Janz](https://freesound.org/people/Joao_Janz) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/Joao_Janz/sounds/485242 |
 | reload | リロード・武器の持ち替え | Reload 1 | [pumodi](https://freesound.org/people/pumodi) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/pumodi/sounds/150220 |
 | beep | ロックオン・プラント占拠 | Beep Short | [florianreichelt](https://freesound.org/people/florianreichelt) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/florianreichelt/sounds/459992 |
 | heal | リペア | Heal Up | [Rickplayer](https://freesound.org/people/Rickplayer) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | https://freesound.org/people/Rickplayer/sounds/530488 |
 
 ## 移動音への再利用（2026-10-21）
 
-歩行・着地には coolguy244e さんの「Bullet Hit Metal」を短く低くし、フィルターとフェードを加えて使っています。巡航・滞空・加速装置の持続音には Jarusca さんの「Rocket Launch」の0.12〜0.42秒をクロスフェードで繋ぎ、小さく繰り返して使っています。噴射の開始は従来どおり Joao_Janz さんの「Boomy Whoosh 1_1」です。いずれも上の表に記載した既存CC0素材の再利用で、新しい外部素材は追加していません。機体の動きを支える音を公開してくださった皆さま、ありがとうございます。
+歩行・着地には coolguy244e さんの「Bullet Hit Metal」を短く低くし、フィルターとフェードを加えて使っています。噴射音の初版では Jarusca さんの「Rocket Launch」と Joao_Janz さんの「Boomy Whoosh 1_1」を再利用しました。機体の動きを支える音を公開してくださった皆さま、ありがとうございます。
+
+巡航・滞空の持続音は、2026-10-21の音質調整から本プロジェクトのコードで合成した専用音です。帯域ごとにフィルターを通したノイズで空気圧と乱流を表しています。上のCC0素材は、射撃・カタパルト・着弾予告などで引き続き使わせていただいています。
+
+## オーナー指定の提供素材（2026-10-21）
+
+`boostStart`（自機の短い噴射）は、オーナーの「サンプリングして」という指定で、提供動画 `20261021-1228-32.1867241.mp4` の最初の噴射を切り出しています。ユーザー指定の参考URLは https://www.youtube.com/watch?v=keCPHZ_zvCc です。提供された動画からは作者・ライセンスを確認できないため、上のCC0素材とは区別して記録します。
+
+使用範囲は約0.728〜0.968秒です。音程を変えず、35Hz以下を抑え、先頭4ms・末尾25msをフェードし、モノラルPCM WAVにしています。動画全体は同梱していません。参考となる噴射の録音を提供してくださった皆さまと、素材を届けてくださったオーナーに感謝します。
 
 ## 戦闘中BGM（v0.10）
 

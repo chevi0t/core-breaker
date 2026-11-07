@@ -23,7 +23,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
   }
   try {
     const p = await page(); await p.evaluate(() => __g.initAudio());
-    await p.waitForFunction(() => __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash && __g.sfxBuf.ar && __g.sfxBuf.beep);
+    await p.waitForFunction(() => __g.sfxBuf.boostStart && __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash && __g.sfxBuf.ar && __g.sfxBuf.beep);
     const result = await p.evaluate(() => {
       const g = __g, T = g.T, u = g.player, checks = [], starts = [];
       const yes = (ok, label) => { if (!ok) throw Error(label); checks.push(label); };
@@ -44,10 +44,28 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
         u.pos.set(0, 200, 0); u.vel.set(0, 0, -6); g.resetMechPose(u); g.weaponLook(u, 0); starts.length = 0;
       }
       reset();
-      const loop = g.sfxBuf.boostLoop, samples = loop.getChannelData(0);
-      yes(Math.abs(loop.duration - .26) < .001 && samples.some(x => Math.abs(x) > .01), '既存CC0音源から有音の共有ループを作る');
-      const original = g.sfxBuf.rocket.getChannelData(0), seam = Math.floor(.12 * loop.sampleRate) + samples.length;
-      yes(Math.abs(samples[0] - original[seam]) < 1e-6 && Math.abs(samples.at(-1) - original[seam - 1]) < 1e-6, '噴射ループの継ぎ目を元の隣接サンプルへクロスフェードで繋ぐ');
+      const loop = g.sfxBuf.boostLoop, samples = loop.getChannelData(0), burst = g.sfxBuf.boostStart, attack = burst.getChannelData(0);
+      for (const [label, buf] of [['短い噴射', burst], ['巡航', loop]]) {
+        const data = buf.getChannelData(0), mean = data.reduce((s, v) => s + v, 0) / data.length;
+        yes(data.every(Number.isFinite) && data.some(x => Math.abs(x) > .1) && data.every(x => Math.abs(x) <= .9) && Math.abs(mean) < (buf === burst ? .001 : 1e-5), label + 'の音声に非数・無音・クリップ・大きな直流成分がない');
+        if (buf === burst) {
+          yes(atob(window.SOUND_DATA.boostStart).startsWith('RIFF'), '短い噴射は動画から切り出したPCM音源を読み込む');
+          continue;
+        }
+        let low = 0, body = 0, full = 0; const k = 1 - Math.exp(-2 * Math.PI * 200 / buf.sampleRate);
+        for (const v of data) { low += k * (v - low); body += low * low; full += v * v; }
+        yes(body / full > .05 && body / full < .75, '巡航に低域の空気圧と広い帯域の噴流がある');
+        const periodicity = [50, 60, 80, 100, 120].map(hz => {
+          const lag = Math.round(buf.sampleRate / hz); let dot = 0, a = 0, b = 0;
+          for (let i = lag; i < data.length; i++) { dot += data[i] * data[i - lag]; a += data[i] ** 2; b += data[i - lag] ** 2; }
+          return Math.abs(dot / Math.sqrt(a * b));
+        });
+        yes(Math.max(...periodicity) < .25, label + 'に音程のある低音や倍音の強い周期振動が残らない');
+      }
+      const rms = (data, a, b) => Math.sqrt(data.slice(a, b).reduce((s, v) => s + v * v, 0) / (b - a));
+      yes(rms(attack, .02 * burst.sampleRate, .10 * burst.sampleRate) > 2 * rms(attack, .22 * burst.sampleRate, .24 * burst.sampleRate), '短い噴射は実音の立ち上がりを保ち、末尾へフェードする');
+      let delta = 0; for (let i = 1; i < samples.length; i++) delta += (samples[i] - samples[i - 1]) ** 2;
+      yes(loop.duration >= 1 && Math.abs(samples[0] - samples.at(-1)) < 4 * Math.sqrt(delta / (samples.length - 1)), '巡航は長い共有ループを使い、継ぎ目の跳びをノイズの通常変動内に収める');
       for (const dt of [1 / 30, 1 / 60, 1 / 120]) {
         reset();
         for (let i = 0; i < Math.round(1.25 / dt); i++) { u.pos.z -= 6 * dt; u.sfxT.step = -1e9; g.weaponLook(u, dt); }
@@ -74,6 +92,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       reset(); u.jumpBuf = .2; g.land(u, 36); yes(starts.length === 1 && !u.stun, '着地硬直を消す入力でも接地音は鳴る');
       reset(); const ok = g.shortDash(u, new T.Vector3(0, 0, -1));
       yes(ok && starts.length === 1 && starts[0].name === 'dash', '受理されたショートダッシュの踏み込みで発音');
+      yes(starts[0].node.buffer === burst, 'クイックブーストは切り出した実音のバッファを使う');
       g.shortDash(u, new T.Vector3(0, 0, -1)); yes(starts.length === 1, '失敗した連続ダッシュでは発音しない');
       reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02);
       const first = u.boostVoice;
@@ -107,16 +126,21 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
       Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange'));
       yes(!u.boostVoice, 'タブが隠れたら次の描画を待たずに継続音を止める'); delete document.hidden;
       reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); g.spawn(u); yes(!u.boostVoice, '再出撃で古い噴射音を止める');
-      reset(); const enemy = g.units.find(v => v.team !== u.team);
-      enemy.sfxT = {}; Object.assign(enemy, { alive: true, dashState: 'long', longDash: true, boost: 100, overheat: false, stun: '', downT: 0, repairing: false, transfer: null, planted: false, zip: null });
-      enemy.pos.copy(u.pos).add(new T.Vector3(8, 0, 0)); g.movementAudioTick(enemy, .02);
-      const near = enemy.boostVoice, gain = near.priority, pan = near.pn.pan.value;
-      enemy.pos.copy(u.pos).add(new T.Vector3(-28, 0, 0)); g.movementAudioTick(enemy, .02);
-      yes(enemy.boostVoice === near && near.priority < gain && pan > 0, 'Botの継続音も移動と距離に応じて更新する');
-      enemy.pos.x = u.pos.x + 100; g.movementAudioTick(enemy, .02); yes(!enemy.boostVoice && near.stopping, '可聴範囲を出た音を解放する');
-      clear(); for (let i = 0; i < 24; i++) g.sfx('boostLoop', u.pos, {});
+      for (const [label, other] of [['味方', g.units.find(v => v !== u && v.team === u.team)], ['敵', g.units.find(v => v.team !== u.team)]]) {
+        reset();
+        other.sfxT = {}; Object.assign(other, { alive: true, longDash: true, boost: 100, overheat: false, stun: '', downT: 0, repairing: false, transfer: null, planted: false, zip: null, stepQuiet: 0, chargerOn: true, charging: true });
+        other.pos.copy(u.pos); other.slots.sp.overheat = false;
+        g.movementStep(other, -1);
+        for (const name of ['step', 'dash', 'jump', 'boostLoop', 'charge', 'land']) g.sfx(name, other.pos, other);
+        for (const mode of ['long', 'hover', 'charge']) { other.dashState = mode; other.onGround = mode !== 'hover'; g.movementAudioTick(other, .02); }
+        yes(!starts.length && !other.boostVoice && !g.soundVoices.world.size, label + 'が至近距離でも足音・噴射・ジャンプ・着地音を鳴らさない');
+        g.sfx('ar', other.pos, other);
+        yes(starts.length === 1 && starts[0].name === 'ar' && g.soundVoices.world.size === 1, label + 'の射撃音は距離減衰付きで残す');
+      }
+      reset(); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); const localBoost = u.boostVoice;
+      for (let i = 0; i < 24; i++) g.sfx('ar', u.pos, {}, 1, .1);
       const quiet = [...g.soundVoices.world]; g.sfx('ar', u.pos, {}); g.sfx('ar', u.pos, u); g.sfx('lockWarn');
-      yes(g.soundVoices.world.size <= 24 && quiet.some(v => v.ended) && [...g.soundVoices.local].some(v => v.name === 'ar') && [...g.soundVoices.ui].some(v => v.name === 'lockWarn'), '音数上限を守り、噴射音より銃声と警告を優先する');
+      yes(g.soundVoices.world.size <= 24 && quiet.some(v => v.ended) && g.soundVoices.local.has(localBoost) && [...g.soundVoices.local].some(v => v.name === 'ar') && [...g.soundVoices.ui].some(v => v.name === 'lockWarn'), '周囲の音数が上限でも自機の継続噴射・銃声・警告を保つ');
       reset(); const random = Math.random; let calls = 0;
       try { Math.random = () => { calls++; return .5; }; g.movementStep(u, -1); g.land(u, 12); u.dashState = 'long'; u.longDash = true; g.movementAudioTick(u, .02); } finally { Math.random = random; }
       yes(calls === 0, '追加した移動音はゲーム用乱数を消費しない');
@@ -129,7 +153,7 @@ const out = path.resolve(process.argv[3] || path.join(dir, 'results'));
 
     // 実際のオーディオ時計を進めて、接地・噴射・通常ジャンプの着地を8秒の音声に記録する。
     const demo = await page(); await demo.evaluate(() => __g.initAudio());
-    await demo.waitForFunction(() => __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash);
+    await demo.waitForFunction(() => __g.sfxBuf.boostStart && __g.sfxBuf.boostLoop && __g.sfxBuf.hit && __g.sfxBuf.dash);
     const clip = await demo.evaluate(async () => {
       const g = __g, u = g.player, T = g.T, ctx = g.audio, events = [], create = ctx.createBufferSource.bind(ctx);
       ctx.createBufferSource = () => {
