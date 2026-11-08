@@ -2353,7 +2353,7 @@ function destroyRadar(rd, by) {
   const i = hittables.indexOf(rd.dish); if (i >= 0) hittables.splice(i, 1);
   feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
   addScore(by, 'support', SC.radar, 'レーダー破壊');
-  if (isLocalView(by)) popup(rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
+  notePopup(by, rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
   boom(rd.pos.clone().setY(rd.pos.y + 8));
 }
 function resetRadars() { for (const rd of radars) reviveRadar(rd, rd.maxHp); }
@@ -2382,7 +2382,7 @@ function destroyTurret(tu, by) {
   for (const m of tu.parts) { const i = hittables.indexOf(m); if (i >= 0) hittables.splice(i, 1); }
   feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
   addScore(by, 'support', SC.turret, '防衛砲台破壊');
-  if (isLocalView(by)) popup(tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
+  notePopup(by, tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
   boom(tu.pos);
 }
 function turretUpdate(tu, dt) {
@@ -2878,7 +2878,7 @@ function blast(sh, at, ref) {
     u.hp -= real;
     noteDmg(u, sh.owner, real);
     cloakHit(u, fall(d));
-    if (isLocalView(u)) { flashDamage(at, real); kickBlastShake(real); }
+    if (isLocalView(u)) { flashDamage(at, real); kickBlastShake(real); } else window.CBOnlineGame?.remoteFeedback?.(u, 'hurt', { at: at.toArray(), real, blast: true });
     if (u.hp <= 0) kill(u, sh.owner, false, real, sh.weaponName);
     else jolt(u, at, real * (S.knockMult || 1), false); // 爆風は1つずつ判定（wiki）
   }
@@ -3388,7 +3388,7 @@ function damageBarricade(br, dmg, by) {
   hittables.splice(hittables.indexOf(br.mesh), 1);
   obstacles.splice(obstacles.indexOf(br.ob), 1);
   feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
-  if (isLocalView(by)) popup(br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
+  notePopup(by, br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
   boom(br.pos.clone().setY(br.base));
 }
 
@@ -5615,7 +5615,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   noteDmg(r, by, real);
   cloakHit(r, dmg);
   r.hurtT = HURT_TIME; // 装甲が一瞬光る（v0.18）
-  if (isLocalView(r)) flashDamage(origin, real);
+  if (isLocalView(r)) flashDamage(origin, real); else window.CBOnlineGame?.remoteFeedback?.(r, 'hurt', { at: origin.toArray(), real, blast: false });
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0), weaponName); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
   else if (!noJolt) jolt(r, melee ? origin : by.pos, real, melee); // 近接は刃が来た向きの逆へ（v0.21）
@@ -5659,7 +5659,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   stopBeamCannon(v);
   v.deathWeapon = attackName(by, weaponName);
   scoreKill(v, by, head);
-  if (isLocalView(by) && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
+  if (by !== v) notePopup(by, v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
   v.flying=false;v.catMomentum=v.catLaunch=null;v.ctrlLockT=0;
   v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null; v.reflect = null;
   if (v.slots.aux.w.chargeWave) v.slots.aux.chargeT = 0;
@@ -5709,7 +5709,7 @@ function revive(v, by) {
   v.group.visible = true;
   scoreRevive(by, v);
   feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
-  if (isLocalView(by)) popup(v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
+  notePopup(by, v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
   if (isLocalView(v)) announce('蘇生されました', 'good');
   sfx('pod', v.pos, v);
 }
@@ -5745,13 +5745,20 @@ let firstStrike = null, holdNext = SC.holdFirst;
 function addScore(u, cat, pt, label) {
   if (!u || u.kind !== 'unit' || !pt) return;
   u.sc[cat] += pt; u.sc.total += pt;
-  if (isLocalView(u)) {
-    const box = $('scorePop'), d = document.createElement('div');
-    d.innerHTML = `<b${pt < 0 ? ' class="neg"' : ''}>${pt < 0 ? '−' + -pt : '+' + pt}</b>${label}`;
-    box.appendChild(d);
-    setTimeout(() => d.remove(), 3000);
-    while (box.children.length > 7) box.firstChild.remove();
-  }
+  if (isLocalView(u)) scorePopShow(pt, label);
+  else window.CBOnlineGame?.remoteFeedback?.(u, 'score', { pt, label });
+}
+function scorePopShow(pt, label) {
+  const box = $('scorePop'), d = document.createElement('div');
+  d.innerHTML = `<b${pt < 0 ? ' class="neg"' : ''}>${pt < 0 ? '−' + -pt : '+' + pt}</b>${label}`;
+  box.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+  while (box.children.length > 7) box.firstChild.remove();
+}
+// 撃破・破壊・蘇生の札。オンラインのホストでは、遠隔の人間が起こした物をその人へ送る（2026-11-08 オーナー「撃破のシンボルとか出なかったり」）
+function notePopup(by, at, label, sub, good = false) {
+  if (isLocalView(by)) popup(at, label, sub, good);
+  else window.CBOnlineGame?.remoteFeedback?.(by, 'popup', { at: at.toArray(), label, sub, good });
 }
 // 味方への誤射（v0.13.1、ユーザー指定）：爆風が味方に与えたはずのダメージを撃った機体ごとに数え、1万ごとに戦闘のスコア −10
 const FF_STEP = 10000, FF_PENALTY = -10;
@@ -9385,8 +9392,16 @@ function lockStick(u, t, step) {
   const n = Math.hypot(ey, ep), k = n > step ? step / n : 1;
   return { yaw: ey * k, pitch: ep * k };
 }
+// オンラインのゲストの自機は、描画位置を確定位置から少しずらす（補正のなめらか戻しと、固定命令の刻みの補間）。
+// カメラ・機体の模型・ロック追従の角度は同じずらしで計算する（ずらしが無い機体ではnull）。
+function onlineViewOffset(u) {
+  const a = u.onlineVisualOffset, b = u.onlineRenderOffset;
+  if (!a && !b) return null;
+  const o = new T.Vector3(); if (a) o.add(a); if (b) o.add(b); return o;
+}
 function anglesTo(u, p) {
-  const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
+  const o = u.onlineVisualOffset || u.onlineRenderOffset ? onlineViewOffset(u).add(u.pos) : u.pos;
+  const d = p.clone().sub(o).setY(p.y - o.y - CAM.up);
   return { yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)) };
 }
 
@@ -12353,7 +12368,7 @@ function gameFrame(now) {
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
     // 小さい巻き直し補正はモデルだけへ。pos/vel/当たり判定の確定値には混ぜない。
-    if (u.onlineVisualOffset) u.group.position.add(u.onlineVisualOffset);
+    if (u.onlineVisualOffset || u.onlineRenderOffset) u.group.position.add(onlineViewOffset(u));
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
     if (!(simulationRole === 'guest' && !isLocalView(u))) u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);

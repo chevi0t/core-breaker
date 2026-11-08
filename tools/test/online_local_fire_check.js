@@ -1,4 +1,4 @@
-// ゲストの発砲の見た目（発砲炎・発射音）を手元で先に出し、ホストから届く炎と音の重複が増えないこと（2026-11-08）。
+// ゲストの発砲の見た目（発砲炎・発射音・弾の筋）を手元で先に出し、ホストから届く炎と音の重複が増えないこと（2026-11-08）。
 // node tools/test/online_local_fire_check.js dbg <出力先> --mock-transport
 const {check}=require('./lib');
 const {harness,room,frames,input,neutral}=require('./online_test_helpers');
@@ -30,6 +30,10 @@ check('オンラインのゲスト発砲の先出し',async({browser,dir,ok,erro
     const hostShots=await r.host.evaluate(()=>__hostShots);
     console.log('ゲストの発砲炎',total.flash,'発射音',total.sound,'ホストの発射数',hostShots);
     ok(hostShots>0,'ホストが実際に撃つ（命中・弾数はホストが決める）');
+    const tr=await g.evaluate(()=>CBOnlineGame.metrics().localTracers);
+    console.log('弾の筋 手元',tr.drawn,'ホストから届いた自分の筋',tr.host,'うち手元と重なるので描かなかった',tr.covered);
+    ok(tr.drawn>=hostShots*.75-2&&tr.drawn<=hostShots*1.25+2,'弾の筋も手元で先に描く（ホスト発射数から大きく外れない）');
+    ok(tr.host>0&&tr.covered>=tr.host*.75-2,'ホストから届く自分の弾の筋は、手元で描いた分だけ二重に描かない');
     ok(total.flash>=hostShots*.75-2&&total.sound>=hostShots*.75-2&&total.flash<=hostShots*1.25+2&&total.sound<=hostShots*1.25+2,'炎・音の回数がホスト発射数から大きく外れない（この試験条件）');
   }finally{await r?.close().catch(()=>{});await h.close();}
 },{page:false});
