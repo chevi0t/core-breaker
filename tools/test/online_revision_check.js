@@ -120,36 +120,22 @@ async function uiRoom(browser,h,errors,ok){
   const id=await host.evaluate(()=>CBOnlineGame.state.roomId);
   await captureWire(host);
   await guest.locator('#menuOnline').click();await guest.locator('#onlineName').fill('<b>参加申請</b>');
-  const request=async()=>{
+  // オーナーの指定 2026-11-08：入室承認は省いた。申請はホストが自動で許可し、追い出しはキックで行う。
+  const join=async()=>{
     await guest.locator('#onlineRoom').fill(id);await guest.locator('#onlineJoin').click();
-    await host.waitForFunction(()=>CBOnlineGame.state.requests.size===1,{},{polling:20});
-    return host.evaluate(()=>[...CBOnlineGame.state.requests.keys()][0]);
+    await host.waitForFunction(()=>[...CBOnlineGame.state.peers.values()].length===1&&[...CBOnlineGame.state.peers.values()].every(p=>p.preferred),{},{polling:20});
   };
-  let peerId=await request();
-  ok((await host.locator('#onlineRequests').textContent()).includes('<b>参加申請</b>')&&await host.locator('#onlineRequests b').count()===0,'申告名をHTMLではなく未認証のテキストとして表示');
-  const blocked=await host.evaluate(id=>{
-    const t=CBOnlineGame.state.transport,link=t.links.get(id),types=['snapshot','snapshotBase','prepare','match','events','matchEnded'];
-    window.__wire=[];const sent=types.map(type=>t.send(type,{test:true},id));types.forEach(type=>t.broadcast(type,{test:true}));
-    return {sent,ready:link.ready,approved:link.approved,peers:CBOnlineGame.state.peers.size};
-  },peerId);
-  await sleep(180);
-  const leaked=await host.evaluate(()=>__wire.filter(x=>['snapshot','snapshotBase','prepare','match','events','matchEnded'].includes(x.type)));
-  ok(blocked.sent.every(v=>!v)&&!blocked.ready&&!blocked.approved&&blocked.peers===0&&leaked.length===0,'未承認者にはsnapshot・基準・準備・開始・終了・eventを送らない');
-  await host.locator('[data-action="rejectGuest"]').click();
-  await host.waitForFunction(()=>CBOnlineGame.state.requests.size===0,{},{polling:20});
-  await guest.waitForFunction(()=>!document.getElementById('onlineJoin').disabled,{},{polling:20});
-  ok((await guest.locator('#onlineStatus').textContent()).includes('拒否'),'拒否理由を申請者へ表示');
-  peerId=await request();await host.locator('[data-action="approveGuest"]').click();
-  await host.waitForFunction(()=>[...CBOnlineGame.state.peers.values()].some(p=>p.preferred),{},{polling:20});
-  ok(await host.locator('[data-action="kickGuest"]').count()===1,'許可後は参加者とロビー退出ボタンを表示');
+  await join();
+  ok(await host.evaluate(()=>CBOnlineGame.state.requests.size===0),'入室の申請は承認待ちを作らず自動で許可');
+  ok((await host.locator('#onlineRoster').textContent()).includes('<b>参加申請</b>')&&await host.locator('#onlineRoster b').count()===0,'申告名をHTMLではなく未認証のテキストとして表示');
+  ok(await host.locator('[data-action="kickGuest"]').count()===1,'入室後は参加者とロビー退出ボタンを表示');
   await host.locator('[data-action="kickGuest"]').click();
   await host.waitForFunction(()=>CBOnlineGame.state.peers.size===0,{},{polling:20});
   await guest.locator('#onlineReturn').waitFor({state:'visible'});
   ok(await guest.locator('#onlinePanel').evaluate(e=>e.hidden),'ロビー退出で中断理由をオンラインパネルに隠さない');
   await guest.locator('#onlineReturn').click();
-  ok(!await guest.locator('#onlinePanel').evaluate(e=>e.hidden)&&await guest.locator('#onlineJoin').isEnabled(),'ロビー退出後の戻るボタンから再申請できる');
-  await request();await host.locator('[data-action="approveGuest"]').click();
-  await host.waitForFunction(()=>[...CBOnlineGame.state.peers.values()].length===1&&[...CBOnlineGame.state.peers.values()].every(p=>p.preferred),{},{polling:20});
+  ok(!await guest.locator('#onlinePanel').evaluate(e=>e.hidden)&&await guest.locator('#onlineJoin').isEnabled(),'ロビー退出後の戻るボタンから入り直せる');
+  await join();
   return {host,guest,pages,close:async()=>{for(const p of pages)if(!p.isClosed()){await p.evaluate(()=>CBOnlineGame.leave('試験終了')).catch(()=>{});await p.close();}}};
 }
 check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,errors})=>{

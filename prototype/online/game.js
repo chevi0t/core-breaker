@@ -342,7 +342,8 @@
       onStatus: msg => status(typeof msg === 'string' ? msg : JSON.stringify(msg)),
       onPeerRequest: (id,name) => {
         if(state.role!=='host'||state.phase!=='lobby'){state.transport?.rejectPeer(id,'ロビー以外では入室できません');return;}
-        state.requests.set(id,{id,name,requestedAt:now()});requestsChanged();status('入室の申請があります。名前を確認して許可・拒否してください');
+        // オーナーの指定 2026-11-08：入室承認は省く。申請が来たら自動で許可する（満員などは approvePeer が断る）。追い出しはキックで。
+        if(approveGuest(id))status('「'+(name||'ゲスト')+'」が入室しました');
       },
       onRequestClosed: id => {state.requests.delete(id);requestsChanged();},
       onPeerJoin: (id,name) => {

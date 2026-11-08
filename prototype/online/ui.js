@@ -50,7 +50,7 @@
   }
   const status = t => { el('onlineStatus').textContent = typeof t === 'string' ? t : t?.message || t?.reason || t?.status || JSON.stringify(t);controls(); };
   const hideDuringPlay = () => { panel.hidden = true; returnButton.hidden = true;controls(); };
-  const showResult = () => { panel.hidden = true; returnButton.hidden = false;controls(); };
+  const showResult = () => { panel.hidden = true; returnButton.hidden = false;document.getElementById('start').textContent='オンラインのメニューへ戻る';controls(); };
   const peerLabel = entry => (entry.name || 'ゲスト') + '（未認証・' + entry.id.slice(0, 8) + '）';
   const peerAction = (label,id,action) => {
     const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.peerId=id;b.dataset.action=action;
@@ -94,7 +94,9 @@
   const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult});
   const act = async fn => {if(busy)return;busy=true;controls();const mine=++generation;try{await fn(mine);}catch(e){if(mine===generation)status(e.message);}finally{if(mine===generation){busy=false;controls();}}};
   const resetRoomControls = () => {generation++;busy=false;el('onlineRoom').value='';el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
-  returnButton.onclick = () => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();panel.hidden=false;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
+  const startLabel = () => document.getElementById('start');
+  const leaveResult = (openPanel=true) => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();startLabel().textContent='もう一度出撃する';panel.hidden=!openPanel;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
+  returnButton.onclick = () => leaveResult(true);
   button.onclick = () => {panel.hidden=false;controls();document.exitPointerLock?.();};
   el('onlineCreate').onclick=()=>act(async mine=>{let room;try{room=await CBOnlineGame.create(options());}catch(e){if(mine===generation)CBOnlineGame.leave('部屋を作成できませんでした');throw e;}if(mine!==generation)return;el('onlineRoom').value=room;status('部屋ID: '+room+'　ゲストの入室を待っています。');});
   el('onlineJoin').onclick=()=>act(async mine=>{const id=el('onlineRoom').value.trim();if(!id)throw Error('部屋IDを入力してください');try{await CBOnlineGame.join(id,options());}catch(e){if(mine===generation)CBOnlineGame.leave('接続できませんでした');throw e;}if(mine===generation)status('接続しました。ホストの開始を待っています。');});
@@ -107,7 +109,15 @@
     // 表彰/スコアを触っただけで窓を開かない。結果から戻る操作は専用ボタンだけ。
     if (!e.target.closest?.('button,a,input,select')) return;
     e.stopImmediatePropagation(); e.preventDefault();
-    if (CBOnlineGame.state.phase !== 'ended') { panel.hidden = false; status('オンラインを退出してから通常メニューを使ってください。'); }
+    if (CBOnlineGame.state.phase === 'ended') {
+      // 試合結果のボタンは部屋を出てから働かせる（前は「もう一度出撃する」などが何も起きず、固まって見えた）。
+      // 出撃ボタンはオンラインのメニューへ戻し、それ以外のボタンは退出した後でふつうに働かせる。
+      const toOnline = !!e.target.closest('#start');
+      leaveResult(toOnline);
+      if (!toOnline) e.target.closest('button,a,input,select').click();
+      return;
+    }
+    panel.hidden = false; status('オンラインを退出してから通常メニューを使ってください。');
   } }, true);
   addEventListener('keydown', e => { if (CBOnlineGame.active() && ['F3','Escape'].includes(e.code)) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = CBOnlineGame.state.phase === 'ended' ? true : !panel.hidden; document.exitPointerLock?.(); } }, true);
   // 試作中の通常再出撃ボタンから、独立したオフライン戦を重ねて開始させない。
