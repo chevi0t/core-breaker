@@ -45,7 +45,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       // 先行ゲストのreadyを確認した後に3.5秒待つため、元の3秒入力期限を確実に超える。
       const delayedAt=Date.now();
       await slow.evaluate(()=>{setTimeout(()=>__readyGate.pending(),3500);});
-      while(Date.now()-delayedAt<7000){
+      while(Date.now()-delayedAt<15000){
         await frames(pages,1);await sleep(20);
         if(await host.evaluate(()=>CBOnlineGame.state.phase==='playing'))break;
       }

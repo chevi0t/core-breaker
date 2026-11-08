@@ -388,7 +388,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <script src="sounds.js"></script>
 <script src="music.js"></script>
 <script src="maps.js"></script>
@@ -696,6 +696,17 @@ function stopMovementSound(u) {
   u.boostVoice = null; u.boostAudioRetry = 0;
 }
 function stopMovementSounds() { for (const u of units) stopMovementSound(u); }
+// オンライン終了時は、機体に参照が残らなかった複製音もプールから止める。
+function stopLoopingGameSounds() {
+  stopMovementSounds();
+  for (const pool of Object.values(soundVoices)) for (const voice of [...pool]) {
+    if (!SFX[voice.name]?.loop && !SFX[voice.name]?.motion) continue;
+    voice.stopping = true;
+    try { voice.node.stop(); } catch (_) {} // 既に終了した音も安全に掃除する。
+    voice.end();
+  }
+}
+
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopMovementSounds(); });
 function movementAudioTick(u, dt) {
   u.stepQuiet = Math.max(0, (u.stepQuiet || 0) - dt);
@@ -12344,7 +12355,8 @@ requestAnimationFrame(loop);
 </script>
 
 <!-- #212: 試作ブランチ専用。PeerJSは版を固定。映像・音声接続は使用しない。 -->
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js" integrity="sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu" crossorigin="anonymous"></script>
 <script src="online/transport.js"></script>
+<script src="online/codec.js"></script>
 <script src="online/game.js"></script>
 <script src="online/ui.js"></script>

@@ -71,3 +71,42 @@ KBは1000バイト。frame間隔は約1〜3FPS相当で、GPU/プロセス間待
 - `isHumanControlled`：`clearPath`, `walkClearPath`, `zipRide`, `mechPose`, `startTransfer`, `cancelTransfer`, `doTransfer`, `jolt`, `kill`, `wreck`, `downTick`, `baseDefenseTask`, `raidGoal`, `gadgetUpdate`, `equip`, `missileLockTick`, `missileGunTick`, `gunTick`, `shot`, `swordTick`, `weaponLook`, `reflectorTick`, `qchatSend`, `gameFrame`
 - `isLocalView`：`destroyRadar`, `destroyTurret`, `bladeWaveTick`, `stunFieldUpdate`, `blast`, `damageBarricade`, `boosterFlameUpdate`, `humanLockTarget`, `spawn`, `doTransfer`, `fire`, `damage`, `kill`, `wreck`, `downTick`, `revive`, `addScore`, `boardHtml`, `medalsHtml`, `equip`, `selectWeapon`, `missileLockTick`, `seekerFlight`, `setSeekMode`, `iaiPathCut`, `slashSweep`, `bladeSweep`, `stopArtillery`, `cloakHit`, `qchatSend`, `updateHumanUnit`, `updatePlayerName`, `drawMapOn`, `setup`, `finish`, `gameFrame`
 - `isSimulationAuthority`：`selectWeapon`, `updateHumanUnit`, `pickClass`, `gameFrame`
+
+## 2026-11-08 追加修正の途中記録（#214）
+
+オーナー報告：1台のPC・2窓、public PeerServer、file://で2人対戦が最後まで動いた。これはオーナーによる前版の確認であり、以下の改修後・別PC/別回線の確認とは区別する。
+
+- ホストが全員準備後の開始時刻を配り、時計差を補正して3→2→1を表示。基準mainの通常出撃には数秒のカウントダウン実装が無かったため、既存アナウンス欄の見た目を利用。カウントダウン中はシミュレーションを進めない。
+- 終了時はオンライン窓を開かず表彰・結果を表示。「オンラインへ戻る」を押して旧部屋から退出し、新しい部屋の作成/参加へ戻る。
+- 移動音のイベント複製で停止用参照を持たないboostLoopが残っていた。歩行/ブーストの重複イベントを除外し、音源プールまで含め終了・退出時に停止する。
+- 同期は共通基準から独立復元できる差分、cm単位の位置/速度と1/1000radの角度、varint/base64化。不変項目は初期基準と変更時のみ。10秒ごとの基準更新も変化値だけ。間引かれた直前snapshotに依存しない。基準再取得時は最後のdeltaを保持して、試合終了も再適用する。
+- 入室にはホストの明示許可が必要。申告名は未認証としてテキスト表示し、ゲーム本体のHTMLに流さない。拒否とロビー退出ボタンを追加。未許可者への初期/基準/差分/試合/event送受信を通信層で遮断。待機8件・180秒、許可済み3ゲストまで。通信規格v3で旧方式を拒否する。TURNは追加しない。
+
+短い通信代替試験では34項目成功。カウントダウン、許可/拒否/退出/再申請、結果UI、fake音ノードの停止、装備・再出撃・施設、間引き、基準欠落、最後のdeltaだけでの終了復旧を含む。実音を人間が聴いた確認ではない。Node codec/transport回帰も成功。
+
+短期のsnapshotサイズ（JSON envelope込み、基準メッセージとeventは別）：
+
+| 機数 | 従来の完全snapshot | compact平均 | compact最大 |
+|---|---:|---:|---:|
+| 10 | 23,731 bytes | 1,032.9 bytes | 1,111 bytes |
+| 20 | 46,655 bytes | 1,718.7 bytes | 1,903 bytes |
+
+これは短い試験での値であり、全試合の最大2KB以下をまだ保証しない。初期基準一本化、長時間回帰、追加の部屋設定/陣営UIは続行中。
+
+### 外部スクリプトのSRI
+
+実際のURLから取得した応答本体をSHA-384で計算し、integrityとcrossorigin="anonymous"を追加した。両CDNは Origin:null に対し Access-Control-Allow-Origin:* を返した。同梱three.jsとnpm PeerJSのバイトも同じハッシュだった。
+
+- three.js r128（603,445 bytes）：`sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu`
+- PeerJS 1.5.5（86,948 bytes）：`sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu`
+
+再計算方法（URLはindex.htmlと同一、結果の先頭にsha384-を付ける）：
+
+```sh
+curl -fsSL 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' | openssl dgst -sha384 -binary | openssl base64 -A
+curl -fsSL 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js' | openssl dgst -sha384 -binary | openssl base64 -A
+```
+
+`tools/test/sri_check.js` は実配信バイトとハッシュ/CORSを検査する。この環境のChromiumからCDNへの直接接続はERR_EMPTY_RESPONSEだったため、その部分は未検証。同じ実取得バイトと応答CORSを再現する `--cached-response` では、file://で正しいSRIの両スクリプト実行・誤ったSRIの実行拒否を確認し14項目成功。CDNへのブラウザ直結成功とは扱わない。
+
+ローカルdbg試験は同梱ファイルを使うため外部CDN用SRI/CORS属性を除外する。製品index.htmlの属性は残し、別のSRI試験で検証する。

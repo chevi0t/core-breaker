@@ -23,11 +23,14 @@ check('オンラインの描画付き計測',async({browser,dir,out,ok,errors})=
       report.environment.webgl=await host.evaluate(()=>{const gl=__g.renderer.getContext(),e=gl.getExtension('WEBGL_debug_renderer_info');return {renderer:e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),vendor:e?gl.getParameter(e.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR),pixelRatio:__g.renderer.getPixelRatio()};});
       await host.evaluate(()=>{
         window.__frameMeasure={cpu:[],interval:[],last:null};
+        window.__wireMeasure={snapshots:[],baselines:[]};
+        const transport=CBOnlineGame.state.transport,write=transport._write.bind(transport);
+        transport._write=(link,item)=>{const sent=write(link,item);if(sent&&item.type==='snapshot')__wireMeasure.snapshots.push(item.bytes);if(sent&&item.type==='snapshotBase')__wireMeasure.baselines.push(item.bytes);return sent;};
         const f=window.gameFrame;
         window.gameFrame=function(now){const s=performance.now();try{return f(now);}finally{const m=window.__frameMeasure;m.cpu.push(performance.now()-s);if(m.last!=null)m.interval.push(now-m.last);m.last=now;}};
       });
       await sleep(warmup*1000);
-      const start=await host.evaluate(()=>{__frameMeasure.cpu=[];__frameMeasure.interval=[];return {at:performance.now(),metrics:CBOnlineGame.metrics(),time:__g.timeLeft};});
+      const start=await host.evaluate(()=>{__frameMeasure.cpu=[];__frameMeasure.interval=[];__wireMeasure.snapshots=[];__wireMeasure.baselines=[];return {at:performance.now(),metrics:CBOnlineGame.metrics(),time:__g.timeLeft};});
       await sleep(duration*1000);
       const end=await host.evaluate(()=>{
         const game=CBOnlineGame,t=game.state.transport,snapshot=game.snapshot(),encode=v=>new TextEncoder().encode(JSON.stringify(v)).byteLength;
@@ -42,19 +45,21 @@ check('オンラインの描画付き計測',async({browser,dir,out,ok,errors})=
           sample.projected20HumanPayloadBytes=encode(projected);
           sample.projected20HumanMessageBytes=encode(envelope(projected));
         }
-        return {at:performance.now(),metrics:game.metrics(),frames:__frameMeasure,time:__g.timeLeft,phase:game.state.phase,snapshotSize:sample};
+        return {at:performance.now(),metrics:game.metrics(),frames:__frameMeasure,time:__g.timeLeft,phase:game.state.phase,snapshotSize:sample,wireSizes:__wireMeasure};
       });
       const seconds=(end.at-start.at)/1000;
       const bytes=end.metrics.transport.sentBytes-start.metrics.transport.sentBytes;
       const sentByType=Object.fromEntries(Object.keys(end.metrics.transport.byType).map(type=>[type,(end.metrics.transport.byType[type]||0)-(start.metrics.transport.byType[type]||0)]));
       const eventBytes=sentByType.events||0,otherBytes=bytes-(sentByType.snapshot||0)-eventBytes;
       const record={mode:TRANSPORT_MODE,networkPerformanceOnlyForSelectedTransport:true,sentBytes:bytes,sentKBps:bytes/seconds/1000,sentBytesByType:sentByType,
-        snapshotSize:end.snapshotSize,
+        snapshotSize:end.snapshotSize,compactSnapshotWireBytes:stats(end.wireSizes.snapshots),baselineWireBytes:stats(end.wireSizes.baselines),
+        projected20HumanCompactSnapshotOnly20HzKBps:teamSize===10&&end.wireSizes.snapshots.length?stats(end.wireSizes.snapshots).mean*20*19/1000:null,
+        compactProjectionCaveat:'compactは測定時のゲスト数のackを含む実送信メッセージ平均からの概算。19ゲストのack差・イベント頻度・基準更新・再送・ヘッダーは別。',
         projected20HumanObservedRateKBps:teamSize===10?bytes/seconds/1000/guests*19:null,
         projected20HumanSnapshotOnly20HzKBps:teamSize===10?end.snapshotSize.projected20HumanMessageBytes*20*19/1000:null,
         projected20HumanEventsObservedRateKBps:teamSize===10?eventBytes/seconds/1000/guests*19:null,
         projected20HumanOtherObservedRateKBps:teamSize===10?otherBytes/seconds/1000/guests*19:null,
-        bandwidthCaveat:'観測量の19人換算は低FPS時の送信頻度低下を含む。20Hz設計値とは別。snapshot-onlyは終了時の1枚からの見積りで、イベント・再送・通信ヘッダーを含まない。イベントの実頻度は未推定。',
+        bandwidthCaveat:'snapshotSize と projected20HumanSnapshotOnly20HzKBps は圧縮前の比較用完全状態。compactの20Hz見積りは別項目。観測量の19人換算は低FPS時の送信頻度低下を含む。20Hz設計値とは別。snapshot-onlyは終了時の1枚からの見積りで、イベント・再送・通信ヘッダーを含まない。イベントの実頻度は未推定。',
         units:teamSize*2,humans:guests+1,guests,wallSeconds:seconds,gameSeconds:start.time-end.time,frameCpuMs:stats(end.frames.cpu),frameIntervalMs:stats(end.frames.interval),startMetrics:start.metrics,endMetrics:end.metrics,phase:end.phase};
       report.load.push(record);ok(record.frameCpuMs.count>0,`${teamSize*2}機/${guests}ゲストの描画ありフレームを記録`);
       console.log(JSON.stringify(record));
@@ -96,11 +101,12 @@ check('オンラインの描画付き計測',async({browser,dir,out,ok,errors})=
   }finally{
     if(active)await active.close();await h.close();
     report.bandwidthProjection={
-      snapshotOnlyFormula:'20人: 20人用に操作権・入力確認を補った20機snapshotメッセージのUTF-8バイト数 × 20Hz × 19接続 / 1000 KB/秒',
+      compactSnapshotOnlyFormula:'実送信compact snapshotの1メッセージ平均サイズ × 20Hz × 19接続 / 1000 KB/秒（イベント・基準更新・19ゲスト分ack差は別）',
+      snapshotOnlyFormula:'圧縮前比較用の20人: 20人用に操作権・入力確認を補った20機snapshotメッセージのUTF-8バイト数 × 20Hz × 19接続 / 1000 KB/秒',
       observedRateFormula:'測定中の全送信バイト数 / 測定秒数 / 実ゲスト数 × 19 / 1000 KB/秒。低FPSによる送信頻度低下も含むため20Hz予算には使わない',
       exclusions:'snapshot-onlyにはイベント・その他通信・WebRTC/SCTP/DTLS/UDP/IPのヘッダー・再送を含まない。20人時の弾数とイベント頻度、19接続のCPU負荷・成立は未検証。末尾の1枚のサイズは平均/最大値ではない。',
       measured20UnitCases:report.load.filter(x=>x.units===20).map(x=>({guests:x.guests,seconds:x.wallSeconds,snapshotSize:x.snapshotSize,
-        observedRateKBps:x.projected20HumanObservedRateKBps,snapshotOnly20HzKBps:x.projected20HumanSnapshotOnly20HzKBps,
+        observedRateKBps:x.projected20HumanObservedRateKBps,legacyFullSnapshotOnly20HzKBps:x.projected20HumanSnapshotOnly20HzKBps,compactSnapshotOnly20HzKBps:x.projected20HumanCompactSnapshotOnly20HzKBps,compactSnapshotWireBytes:x.compactSnapshotWireBytes,baselineWireBytes:x.baselineWireBytes,
         eventsObservedRateKBps:x.projected20HumanEventsObservedRateKBps,otherObservedRateKBps:x.projected20HumanOtherObservedRateKBps,start:x.startMetrics,end:x.endMetrics}))};
     fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'online-bench.json'),JSON.stringify(report,null,2));
     console.log('計測ファイル: '+path.join(out,'online-bench.json'));

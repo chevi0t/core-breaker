@@ -51,6 +51,8 @@ async function harness(dir, { realTime = false } = {}) {
   // 負荷測定では make_dbg の固定 dt だけを戻す。テスト公開 getter は保持する。
   let html = fs.readFileSync(path.join(dir,'dbg.html'),'utf8');
   if (realTime) html = html.replace('const dt = window.__dt || 0.05; last = now;', 'const dt = Math.min(0.05, (now - last) / 1000); last = now;');
+  // 通信代替ソースは製品のSRIとは一致しない。明示mock時の生成HTMLだけ除外する。
+  if(MOCK_TRANSPORT)html=html.replace(/<script\b[^>]*>/gi,tag=>/peerjs(?:\.min)?\.js/.test(tag)?tag.replace(/\s+integrity=(?:"[^"]*"|'[^']*')/gi,''):tag);
   fs.writeFileSync(path.join(dir,'online-test.html'),html);
   const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.png':'image/png'};
   const web=http.createServer((req,res)=>{
@@ -94,7 +96,7 @@ async function harness(dir, { realTime = false } = {}) {
     pages,close,peer,
   };
 }
-async function pageFor(browser,h,errors,{frozen=true,render=false,version}={}){
+async function pageFor(browser,h,errors,{frozen=true,render=false,version,autoApprove=true}={}){
   console.log('試験ページを準備'+(version?'（版不一致）':''));
   if(!h.context)h.context=await browser.newContext({viewport:{width:960,height:540}});
   const p=await h.context.newPage();h.pages.add(p);p.once('close',()=>h.pages.delete(p));
@@ -106,6 +108,12 @@ async function pageFor(browser,h,errors,{frozen=true,render=false,version}={}){
   await p.addInitScript(({frozen})=>{if(frozen)window.requestAnimationFrame=()=>0;window.AudioContext=window.webkitAudioContext=undefined;}, {frozen});
   await p.goto(h.url);
   await p.waitForFunction(()=>window.__g&&window.CBOnlineGame&&window.CBOnlineTransport,{},{timeout:20000}).catch(e=>{throw new Error(e.message+'\nページ初期化エラー: '+errors.join('\n'));});
+  // 旧機能試験では明示的なホスト操作を試験コードが代行。製品には自動承認を追加しない。
+  if(autoApprove)await p.evaluate(()=>{
+    const create=CBOnlineGame.create;CBOnlineGame.create=(opts={})=>create({...opts,onRequests:requests=>{
+      opts.onRequests?.(requests);for(const r of requests)CBOnlineGame.approveGuest(r.id);
+    }});
+  });
   console.log('試験ページ準備完了');
   if(version)await p.evaluate(v=>document.getElementById('appVersion').textContent=v,version);
   if(!render)await p.evaluate(()=>{__g.renderer.render=()=>__g.scene.updateMatrixWorld(true);});
@@ -132,7 +140,8 @@ async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=tru
   await sleep(100+latencyMs*2); // 装備希望もホストへ届いてから開始する。
   // startはreadyを待つ可能性があるので、固定コマ試験でもイベントループを塞がない。
   await host.evaluate(n=>{window.__startPromise=CBOnlineGame.start({teamSize:n});},teamSize);
-  for(let i=0;i<400;i++){
+  const startDeadline=Date.now()+20000;
+  while(Date.now()<startDeadline){
     if(frozen)await frames(pages,1);else await sleep(25);
     if(await host.evaluate(()=>CBOnlineGame.state.phase==='playing'))break;
   }

@@ -3,12 +3,14 @@
   'use strict';
   const now = () => performance.now();
   const vector = a => new T.Vector3().fromArray(a);
-  const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), localUnitId: null,
+  const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), requests: new Map(), localUnitId: null,
     matchId: null, frame: 0, seq: 0, lastSnapshot: null, events: [], history: [], receivedEvents: new Set(),
     inputLatency: [], hitLatency: [], pendingInputs: new Map(), frameMs: [], sendMs: [],
-    shots: [], disconnected: [], lastHost: 0, lastSent: 0, lastInput: 0, onStatus: null };
+    shots: [], disconnected: [], lastHost: 0, lastSent: 0, lastInput: 0, onStatus: null,
+    startAtHost: null, startAtLocal: null, countdownNumber: null, actualStartAt: null };
   let saved = null, overrideInput = null, playingEffects = false, eventId = 0, projectileId = 0, frameStart = 0, previousMove = false, previousTrigger = false;
   let callbacks = {}, damageInputSeq = null, blastDepth = 0, requestedWeapon = null, preferenceResolve = null, preferenceTimer = null;
+  let snapshotEncoder = new CBOnlineCodec.Encoder(), snapshotDecoder = new CBOnlineCodec.Decoder(), lastResync = -Infinity, pendingSnapshotWire = null;
   const displayedLatencies = [];
   const remoteShells = new Map();
   const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd').split(' ');
@@ -18,18 +20,68 @@
   const lockId = e => e?.entityId || (e?.kind==='turret' ? 'turret:'+turrets.indexOf(e) : null);
   const lockEntity = id => typeof id==='string'&&id.startsWith('turret:') ? turrets[Number(id.slice(7))] : unit(id);
   function status(text) { state.status = text; state.onStatus?.(text, state); }
-  function rosterChanged() { callbacks.onRoster?.([...state.peers.values()].map(p=>({id:p.id,cls:p.cls||'assault',ready:!!p.preferred}))); }
+  function rosterChanged() { callbacks.onRoster?.([...state.peers.values()].map(p=>({id:p.id,name:p.name||'ゲスト',cls:p.cls||'assault',ready:!!p.preferred}))); }
+  function requestsChanged() { callbacks.onRequests?.([...state.requests.values()].map(p=>({...p}))); }
+  function approveGuest(id) {
+    if(state.role!=='host'||state.phase!=='lobby')return false;
+    return !!state.transport?.approvePeer(id);
+  }
+  function rejectGuest(id) {
+    if(state.role!=='host'||state.phase!=='lobby')return false;
+    const rejected=!!state.transport?.rejectPeer(id);
+    if(rejected){state.requests.delete(id);requestsChanged();}return rejected;
+  }
+  function kickGuest(id) {
+    if(state.role!=='host'||state.phase!=='lobby')return false;
+    const reason='ホストがロビーから退出させました';
+    const kicked=!!state.transport?.kickPeer(id,reason);
+    if(kicked)peerLeft(id,reason);return kicked;
+  }
   function localVersion() { return $('appVersion')?.textContent?.trim() || ''; }
   function preset(cls) { return Object.fromEntries(SLOTS.map(k => [k, CLASSES[cls][k]])); }
   function resetMeasurements() {
+    snapshotEncoder=new CBOnlineCodec.Encoder();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;pendingSnapshotWire=null;
     state.frame = state.seq = 0; state.inputLatency = []; state.hitLatency = []; state.frameMs = []; state.sendMs = [];
     state.shots = []; state.pendingInputs.clear(); state.history = []; state.receivedEvents.clear(); state.events = [];
     state.lastSnapshot = null; state.lastSent = state.lastInput = 0; eventId = projectileId = 0; previousMove=previousTrigger=false; displayedLatencies.length=0;
   }
+  function stopSessionAudio() { stopLoopingGameSounds(); bgmTick(); }
+  function clearStartReservation() {
+    state.startAtHost=state.startAtLocal=state.countdownNumber=null;
+    $('announce').querySelector('[data-online-countdown]')?.remove();
+  }
+  function countdown(startAtHost) {
+    const clock=state.role==='guest'?state.transport.clock():{offsetMs:0};
+    if(!clock||!Number.isFinite(startAtHost)) { endGuest('開始時刻を確認できませんでした'); return; }
+    clearTimeout(state.prepareTimer);state.prepareTimer=null;
+    state.startAtHost=startAtHost;state.startAtLocal=startAtHost-clock.offsetMs;
+    state.countdownNumber=null;state.actualStartAt=null;state.phase='countdown';running=false;ended=false;
+    tutorialClearInput();stopSessionAudio();annReset();$('overlay').hidden=true;
+    status('全員の準備が完了しました。開始を待っています');callbacks.onCountdown?.();
+    countdownTick();
+  }
+  function countdownTick() {
+    if(state.phase!=='countdown')return;
+    const left=state.startAtLocal-now();
+    if(left<=0){begin();return;}
+    const number=Math.ceil(left/1000);
+    if(number>3||number===state.countdownNumber)return;
+    state.countdownNumber=number;
+    // 通常出撃の「作戦開始」と同じアナウンス欄・infoの見た目。試合を進めず数字だけを置く。
+    const box=$('announce');box.querySelector('[data-online-countdown]')?.remove();
+    const d=document.createElement('div');d.className='info';d.dataset.onlineCountdown='';d.textContent=String(number);box.prepend(d);
+    sfx('annInfo');
+  }
+  function reserveStart() {
+    // 3秒の表示に加え1秒の配信猶予。ゲストはNTP式の時刻差で自分の時計へ変換する。
+    const startAtHost=now()+4000;
+    state.transport.broadcast('begin',{matchId:state.matchId,startAtHost});
+    countdown(startAtHost);
+  }
   function saveSettings() { if (!saved) saved = { mapId, chosenCls, chosenTeam, selectedTeamSize }; }
   // 初期装備・同じパーツを全機へ。保存用の構成には書き戻さない。
   function setupWorld(teamSize, localId, roster = null) {
-    saveSettings(); running = false; tutorialClearInput();
+    saveSettings(); running = false; tutorialClearInput(); stopSessionAudio();
     chosenTeam = 'B'; chosenCls = 'assault'; selectedTeamSize = teamSize;
     selectMap('mesa', false);
     const oldMech = { ...mechCfg }, oldBotMech = botMech;
@@ -54,25 +106,32 @@
   }
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;
-    return { appVersion: opts.appVersion || localVersion(), peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0,
+    return { appVersion: opts.appVersion || localVersion(), peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, displayName: opts.displayName,
       onStatus: msg => status(typeof msg === 'string' ? msg : JSON.stringify(msg)),
-      onPeerJoin: id => {
+      onPeerRequest: (id,name) => {
+        if(state.role!=='host'||state.phase!=='lobby'){state.transport?.rejectPeer(id,'ロビー以外では入室できません');return;}
+        state.requests.set(id,{id,name,requestedAt:now()});requestsChanged();status('入室の申請があります。名前を確認して許可・拒否してください');
+      },
+      onRequestClosed: id => {state.requests.delete(id);requestsChanged();},
+      onPeerJoin: (id,name) => {
         if (state.role !== 'host') return;
-        if (state.phase !== 'lobby') { state.transport.send('reject', {reason:'試合中は参加できません'}, id); return; }
-        state.peers.set(id, { id, ready:false, input:null, receivedSeq:0, appliedSeq:0, last:now(), pendingEdges:{}, unitId:null });
+        if (state.phase !== 'lobby') { state.transport.disconnectPeer(id,'試合中は参加できません'); return; }
+        state.requests.delete(id);requestsChanged();
+        state.peers.set(id, { id, name:name||'ゲスト', ready:false, input:null, receivedSeq:0, appliedSeq:0, last:now(), pendingEdges:{}, unitId:null });
         state.transport.send('lobby', {players:state.peers.size + 1}, id); status(`参加者 ${state.peers.size + 1} 人`); rosterChanged();
       },
       onPeerLeave: (id, reason) => peerLeft(id, reason), onMessage: onMessage };
   }
   async function create(opts = {}) {
-    leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby';
+    leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
     setSimulationRole('host'); state.transport = new CBOnlineTransport(transportOptions(opts));
     const id = await state.transport.createRoom(); state.roomId = id; status('部屋を作成しました：' + id); return id;
   }
   async function join(roomId, opts = {}) {
-    leave('接続を作り直す'); saveSettings(); resetMeasurements(); state.role = 'guest'; state.phase = 'lobby';
+    leave('接続を作り直す'); saveSettings(); resetMeasurements(); state.role = 'guest'; state.phase = 'lobby'; running=false; stopSessionAudio();
     setSimulationRole('guest'); state.transport = new CBOnlineTransport(transportOptions(opts));
     await state.transport.connect(roomId); state.roomId = roomId;
+    await state.transport.waitForClock();
     await new Promise((resolve,reject)=>{
       preferenceResolve=resolve;preferenceTimer=setTimeout(()=>{preferenceResolve=null;reject(Error('兵装の確認が時間切れになりました'));},10000);
       state.transport.send('preference', {cls:opts.cls === 'heavy' ? 'heavy' : 'assault'});
@@ -83,6 +142,7 @@
     if (state.peers.size < 1 || state.peers.size > 3) throw Error('人間2〜4人で開始してください');
     if(![...state.peers.values()].every(p=>p.preferred))throw Error('ゲストの兵装確認を待ってください');
     if (![5,10].includes(teamSize)) throw Error('人数は10機か測定用20機です');
+    clearStartReservation();state.actualStartAt=null;running=false;stopSessionAudio();
     state.phase = 'preparing';
     clearTimeout(state.prepareTimer);state.prepareTimer=setTimeout(()=>{if(state.role==='host'&&state.phase==='preparing')abortPreparation('ゲストの読み込みが15秒以内に完了しなかったため、開始を中止しました');},15000);
     state.matchId = 'match-' + Date.now().toString(36); state.teamSize = teamSize;
@@ -93,11 +153,13 @@
       const u = unit(p.unitId); u.controller = 'remoteHuman'; u.ownerPeerId = p.id;
       u.name = 'ゲスト' + i; u.controlLoadout = preset(p.cls || 'assault'); equip(u,p.cls || 'assault');
     }
-    const snap = snapshot();
-    for (const p of state.peers.values()) state.transport.send('prepare', {matchId:state.matchId, teamSize, localId:p.unitId, snapshot:snap},p.id);
+    const initial=snapshotEncoder.encode(snapshot());
+    for (const p of state.peers.values()) if(!state.transport.send('prepare', {matchId:state.matchId, teamSize, localId:p.unitId, baseline:initial.baseline, delta:initial.delta},p.id)){abortPreparation('初期状態が送信上限を超えたため開始できません');return;}
     status('ゲストの読み込みを待っています');
   }
   function begin() {
+    if(state.phase!=='countdown')return;
+    state.actualStartAt=now();state.countdownNumber=0;$('announce').querySelector('[data-online-countdown]')?.remove();tutorialClearInput();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     state.phase = 'playing'; running = true; ended = false; state.lastHost = now();
     // 早く準備できたゲストも、全員の開始時点から入力待機の猶予を持つ。
@@ -105,12 +167,13 @@
     $('overlay').hidden = true; annReset(); announce('作戦開始', 'info'); callbacks.onStarted?.();
   }
   function onMessage(type, data, peerId) {
+    if(handleSnapshotControl(type,data,peerId))return;
     if (state.role === 'host') {
       const p = state.peers.get(peerId); if (!p) return;
       if (type === 'preference' && state.phase === 'lobby') {p.cls = data?.cls === 'heavy' ? 'heavy' : 'assault';p.preferred=true;state.transport.send('preferenceAck',{cls:p.cls},peerId);rosterChanged();}
       if (type === 'ready' && state.phase === 'preparing' && data?.matchId === state.matchId) {
         p.ready = true; p.last = now();
-        if ([...state.peers.values()].every(x => x.ready)) { begin(); state.transport.broadcast('begin',{matchId:state.matchId,snapshot:snapshot()}); }
+        if ([...state.peers.values()].every(x => x.ready)) reserveStart();
       }
       if (type === 'input' && state.phase === 'playing') acceptInput(p,data);
       if (type === 'leave') peerLeft(peerId, data?.reason || '退出');
@@ -120,10 +183,13 @@
     if(type==='preferenceAck'){clearTimeout(preferenceTimer);preferenceTimer=null;preferenceResolve?.();preferenceResolve=null;return;}
     if (type === 'reject' || type === 'endHost') { endGuest(data?.reason || 'ホストが退出しました'); return; }
     if (type === 'prepare' && state.phase === 'lobby') {
+      if(!snapshotDecoder.seed(data.baseline)){endGuest('初期状態の基準を読み込めませんでした');return;}
+      const initial=snapshotDecoder.decode(data.delta);
+      if(!initial){endGuest('初期状態を復元できませんでした');return;}
       state.matchId = data.matchId; state.teamSize = data.teamSize;
-      setupWorld(data.teamSize,data.localId,data.snapshot.units); player.controller = 'localHuman';
-      applySnapshot(data.snapshot); state.phase = 'preparing'; state.transport.send('ready',{matchId:state.matchId});
-    } else if (type === 'begin' && data?.matchId === state.matchId) { applySnapshot(data.snapshot); begin(); }
+      setupWorld(data.teamSize,data.localId,initial.units); player.controller = 'localHuman';
+      applySnapshot(initial); state.phase = 'preparing'; state.transport.send('ready',{matchId:state.matchId});
+    } else if (type === 'begin' && state.phase==='preparing' && data?.matchId === state.matchId) { countdown(data.startAtHost); }
     else if (type === 'snapshot' && ['playing','ended'].includes(state.phase)) receiveSnapshot(data);
     else if (type === 'events' && state.phase === 'playing') playEvents(data);
   }
@@ -159,31 +225,35 @@
     return result;
   }
   function abortPreparation(reason) {
+    clearStartReservation();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     state.transport?.broadcast('endHost',{reason});
-    state.phase='ended';running=false;ended=true;tutorialClearInput();
+    state.phase='ended';running=false;ended=true;tutorialClearInput();stopSessionAudio();
+    $('ovTitle').textContent='オンライン対戦を中断';$('ovText').textContent=reason;showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();
     status(reason);callbacks.onEnded?.(reason);
   }
   function peerLeft(id, reason) {
     if (state.role === 'guest') { if (!['ended','leaving'].includes(state.phase)) endGuest(reason || 'ホストとの通信が切れました'); return; }
     const p = state.peers.get(id); if (!p) return;
-    const preparing=state.phase==='preparing';
+    const preparing=['preparing','countdown'].includes(state.phase);
     if(preparing)abortPreparation('準備中にゲストが退出したため、開始を中止しました');
     const u = unit(p.unitId);
     if (u) { u.controller = 'bot'; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
-    state.peers.delete(id); rosterChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status('ゲストが退出しました。Botが引き継ぎます');
+    state.peers.delete(id); rosterChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
   }
   function endGuest(reason) {
-    state.phase = 'ended'; running = false; ended = true; tutorialClearInput();
+    clearStartReservation();
+    state.phase = 'ended'; running = false; ended = true; tutorialClearInput();stopSessionAudio();
     status(reason); callbacks.onEnded?.(reason); $('ovTitle').textContent = 'オンライン対戦を中断'; $('ovText').textContent = reason;
     showPage('pgMenu'); $('overlay').hidden = false; document.exitPointerLock?.();
   }
   function leave(reason = '退出') {
+    clearStartReservation();running=false;stopSessionAudio();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     const t = state.transport;
     state.phase = 'leaving';
     if (t) { if (state.role === 'host') t.broadcast('endHost',{reason}); else t.send('leave',{reason}); t.close(reason); }
-    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear(); state.events=[]; state.history=[];
+    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear();state.requests.clear();requestsChanged();rosterChanged(); state.events=[]; state.history=[];
     for (const mesh of remoteShells.values()) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); } remoteShells.clear();
     setSimulationRole('offline');
     if (saved) {
@@ -210,14 +280,17 @@
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq]))};
   }
   function applyUnit(u,s) {
-    if (u.cls !== s.cls) {u.controlLoadout = preset(s.cls); equip(u,s.cls);}
+    if (u.cls !== s.cls || SLOTS.some(k=>s.slots[k]?.key!==u.slots[k]?.w.key)) {
+      u.controlLoadout=Object.fromEntries(SLOTS.map(k=>[k,WEAPONS[s.slots[k]?.key]?s.slots[k].key:CLASSES[s.cls][k]]));equip(u,s.cls);
+    }
     const localYaw = u.yaw, localPitch = u.pitch;
     u.localView=u===player;u.controller=u.localView?'localHuman':s.controller==='bot'?'bot':'remoteHuman';
+    for(const k of scalarKeys)if(!Object.hasOwn(s,k))delete u[k];
     Object.assign(u,safe(s,scalarKeys)); u.pos.fromArray(s.pos); u.vel.fromArray(s.vel); Object.assign(u.sc,s.sc);
     if (u === player) {u.yaw=localYaw; u.pitch=localPitch;} // 視点操作のみ即時。移動は確定位置。
     u.swing=s.swing?{...s.swing,hit:new Set()}:null;
     u.name=s.name; u.group.visible=u.alive || u.downT>0; u.transfer=s.transfer?{...s.transfer}:null;
-    for (const k of SLOTS) if (s.slots[k]) Object.assign(u.slots[k],safe(s.slots[k],slotKeys));
+    for (const k of SLOTS) if (s.slots[k]) {for(const field of slotKeys)if(!Object.hasOwn(s.slots[k],field))delete u.slots[k][field];Object.assign(u.slots[k],safe(s.slots[k],slotKeys));}
   }
   function member(list,item,on) { const i=list.indexOf(item);if(on&&i<0)list.push(item);else if(!on&&i>=0)list.splice(i,1); }
   // 壊れた施設は元の destroy 関数と同じ見た目・照準判定にする。得点やダメージは再実行しない。
@@ -250,14 +323,29 @@
     for(const [id,m] of remoteShells)if(!alive.has(id)){scene.remove(m);m.geometry.dispose();m.material.dispose();remoteShells.delete(id);}
     for(const sh of s.shells){let m=remoteShells.get(sh.id);if(!m){m=new T.Mesh(sh.rocket?new T.CylinderGeometry(.2,.2,1.4,8):new T.SphereGeometry(.4,8,6),new T.MeshBasicMaterial({color:sh.weak?0xa070ff:BALLISTIC_COLOR}));remoteShells.set(sh.id,m);scene.add(m);}m.position.fromArray(sh.pos);if(sh.rocket&&sh.vel.some(n=>n))m.quaternion.setFromUnitVectors(UP,vector(sh.vel).normalize());}
   }
+  function handleSnapshotControl(type,data,peerId) {
+    if(type==='snapshotResync'&&state.role==='host'){
+      if(state.peers.has(peerId)){const base=snapshotEncoder.currentBase();if(base)state.transport.send('snapshotBase',base,peerId);}return true;
+    }
+    if(type==='snapshotBase'&&state.role==='guest'){
+      if(snapshotDecoder.seed(data)){if(pendingSnapshotWire)receiveSnapshot(pendingSnapshotWire);}
+      else if(now()-lastResync>1000){lastResync=now();state.transport.send('snapshotResync',{});}return true;
+    }
+    return false;
+  }
   function receiveSnapshot(s) {
+    if(Array.isArray(s)){
+      const wire=s;s=snapshotDecoder.decode(wire);
+      if(!s){pendingSnapshotWire=wire;if(now()-lastResync>1000){lastResync=now();state.transport.send('snapshotResync',{});}return;}
+      pendingSnapshotWire=null;
+    }
     if (!s || s.frame <= (state.lastSnapshot?.frame ?? -1)) return;
     const t=now(); state.lastHost=t; state.lastSnapshot=s; state.history.push({received:t,snapshot:s});
     if(state.history.length>8)state.history.shift();
     applySnapshot(s);
     const ack=s.acks?.[state.localUnitId]||0;
     for(const [seq,p]of state.pendingInputs){if(seq<=ack){if(p.move && player.pos.distanceToSquared(vector(p.pos))>0.0001)displayedLatencies.push({kind:'input',time:p.time});state.pendingInputs.delete(seq);}}
-    if(s.ended && state.phase!=='ended'){state.phase='ended';finish();status('試合終了');callbacks.onEnded?.('試合終了');}
+    if(s.ended && state.phase!=='ended'){state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();finish();status('試合終了');callbacks.onEnded?.('試合終了');}
   }
   function interpolate(t) {
     const h=state.history;if(h.length<2)return;const target=t-100;
@@ -267,6 +355,8 @@
   }
   function beforeFrame(dt,t) {
     frameStart=now();
+    if(state.role!=='offline'&&state.phase!=='playing'){running=false;stopSessionAudio();}
+    countdownTick();
     if(state.role==='host'&&state.phase==='playing'){
       for(const p of [...state.peers.values()]){if(now()-p.last>3000){const reason='入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます';peerLeft(p.id,reason);state.transport.disconnectPeer(p.id,reason);continue;}const u=unit(p.unitId);if(u)u.controlInput=remoteInput(u);}
     }
@@ -301,9 +391,9 @@
     state.frame++;
     const begin=now();
     if(state.events.length){state.transport.broadcast('events',state.events.splice(0));}
-    if(now()-state.lastSent>=50 || ended){state.transport.broadcast('snapshot',snapshot());state.lastSent=now();}
+    if(now()-state.lastSent>=50 || ended){const wire=snapshotEncoder.encode(snapshot());if(wire.baseline)state.transport.broadcast('snapshotBase',wire.baseline);state.transport.broadcast('snapshot',wire.delta);state.lastSent=now();}
     state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();
-    if(ended&&state.phase==='playing'){state.phase='ended';status('試合終了');callbacks.onEnded?.('試合終了');}
+    if(ended&&state.phase==='playing'){state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
   }
   function emit(type,data) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data});}
   function playEvents(events) {
@@ -322,7 +412,14 @@
   const oldTracer=tracer;tracer=function(from,end,team,energy,w,enlarged=true){emit('tracer',{from:from.toArray(),end:end.toArray(),team,energy,weapon:w?.key,enlarged});return oldTracer(...arguments);};
   const oldBoom=boom;boom=function(at,k=1,radius=0,energy=false){emit('boom',{at:at.toArray(),k,radius,energy});return oldBoom(...arguments);};
   const oldImpact=impact;impact=function(at,kind,delay){emit('impact',{at:at.toArray(),kind,delay});return oldImpact(...arguments);};
-  const oldSfx=sfx;sfx=function(name,at,src,rate=1,level=1){emit('sfx',{name,at:at?.toArray(),unit:src?.entityId,rate,level});return oldSfx(...arguments);};
+  const oldSfx=sfx;sfx=function(name,at,src,rate=1,level=1){
+    if(state.role!=='offline'&&state.phase!=='playing'&&(SFX[name]?.motion||SFX[name]?.loop))return;
+    // 足音と持続ブーストは双方の描画から鳴る。通信で複製すると未管理のloop音が残る。
+    if(name!=='boostLoop'&&name!=='step')emit('sfx',{name,at:at?.toArray(),unit:src?.entityId,rate,level});
+    if(playingEffects&&(name==='boostLoop'||name==='step'))return;
+    return oldSfx(...arguments);
+  };
+  const oldFinish=finish;finish=function(){try{return oldFinish(...arguments);}finally{if(state.role!=='offline'){clearStartReservation();stopSessionAudio();}}};
   const oldShot=shot;shot=function(u){emit('shot',{unit:u.entityId,seq:u.onlineInputSeq||0});return oldShot(...arguments);};
   const oldShoot=shoot;shoot=function(owner){const sh=oldShoot(...arguments);if(sh)sh.onlineInputSeq=owner?.onlineInputSeq||0;return sh;};
   const oldBlast=blast;blast=function(sh){
@@ -341,7 +438,7 @@
   };
   const oldDamage=damage;damage=function(r,by,dmg,head){const result=oldDamage(...arguments);if(result&&!blastDepth&&by?.controller==='remoteHuman')emit('hit',{unit:by.entityId,seq:damageInputSeq??(by.onlineInputSeq||0),head:!!head});return result;};
   addEventListener('beforeunload',()=>{if(state.role==='host')state.transport?.broadcast('endHost',{reason:'ホストが退出しました'});});
-  window.CBOnlineGame={create,join,start,leave,state,beforeFrame,afterFrame,remoteInput,emit,snapshot,
+  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),disconnected:state.disconnected.slice()})};
 })();
