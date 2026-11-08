@@ -35,7 +35,7 @@ check('近接入りは直前の全描画offsetを継ぎ、補正を二重加算�
 check('近接終了は最後の表示位置から戻し、通常移動へ有限時間で戻る',()=>{
   const {h,u,deliver}=active();h.at(240);h.game.beforeFrame(.04,240);const before=u.pos.clone().add(h.test.viewOffsetOf(u));
   h.at(245);deliver(245,{pos:[.3,0,0],vel:[0,0,0],predictionBlocked:'',swing:null,lungeT:0});
-  const release=h.test.viewState().meleeRelease;assert(release);assert(Math.abs(release.pos.x-before.x)<1e-9);
+  const release=h.test.viewState().meleeRelease;assert(release);assert(Math.abs(u.pos.clone().add(h.test.viewOffsetOf(u)).x-before.x)<1e-9);
   for(let t=250;t<1500;t+=10){h.at(t);h.game.beforeFrame(.01,t);}
   assert.equal(h.test.viewState().meleeRelease,null);assert(Math.abs(u.pos.x-.3)<1e-9);
 });

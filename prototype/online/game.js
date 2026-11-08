@@ -225,12 +225,18 @@
     // 開始・終了は直前に描いた位置から引き継ぐが、生命/転送/被弾/装備の境界と3m以上の差は跨がない。
     const meleeView=(isMelee||wasMelee||meleeRelease)&&(!reason||reason==='melee')&&previousView.renderPos&&previousView.renderPos.distanceToSquared(player.pos)<9;
     if(meleeView){
-      delete player.onlineVisualOffset;m.visualFrames=0;
+      m.visualFrames=0;
       if(isMelee){
+        delete player.onlineVisualOffset;
+        // 写真でposの基準が変わった直後も、次のlock計算には最後に描いた位置を渡す。
+        (player.onlineRenderOffset||(player.onlineRenderOffset=vector([0,0,0]))).copy(previousView.renderPos).addScaledVector(player.pos,-1);
         if(!blockedView||!wasMelee)blockedView={pos:previousView.renderPos.clone(),lifeId:player.lifeId,reason:'melee',time:now()};
         meleeRelease=null;
       }else{
-        meleeRelease={pos:previousView.renderPos.clone(),raw:player.pos.clone(),until:meleeRelease?.until??now()+250};blockedView=null;
+        // 通常移動の固定tick補間とは別の残差として引き継ぐ。rawの移動差分は足さない。
+        player.onlineVisualOffset=(wasMelee?previousView.renderPos:previousView.visualPos).clone().addScaledVector(player.pos,-1);
+        if(wasMelee){delete player.onlineRenderOffset;localStepDelta=null;}
+        meleeRelease={until:meleeRelease?.until??now()+250};blockedView=null;
       }
       reason='';
     }else if(!reason&&distance>=.5)reason='distance';
@@ -247,7 +253,7 @@
     m.corrections.push({at:now(),distance,reason:reason||'smooth',predictionBlocked:v.predictionBlocked||'',seq,step:m.lastAckStep});if(m.corrections.length>1000)m.corrections.shift();
   }
   function decayPredictionVisual() {
-    if(!player?.onlineVisualOffset)return;
+    if(!player?.onlineVisualOffset||meleeRelease)return;
     if(prediction.visualFrames<=1){delete player.onlineVisualOffset;prediction.visualFrames=0;return;}
     const frames=prediction.visualFrames--;player.onlineVisualOffset.multiplyScalar((frames-1)/frames);
   }
@@ -735,15 +741,10 @@
   // 近接終了の引継ぎは初回から250msまで。小補正写真が続いても通常の巻戻しを無期限に置き換えない。
   function finishMeleeRender(dt){
     if(!meleeRelease)return;
-    if(now()>=meleeRelease.until){meleeRelease=null;return;}
-    const target=player.pos.clone(),offset=viewOffsetOf(player);if(offset)target.add(offset);
-    const moved=meleeRelease.pos.clone().add(player.pos).addScaledVector(meleeRelease.raw,-1);
-    const distance=moved.distanceToSquared(target);
-    if(distance>=9||distance<1e-6){meleeRelease=null;return;}
-    target.addScaledVector(moved.addScaledVector(target,-1),Math.pow(.7,Math.max(0,dt||0)*60));
-    meleeRelease={pos:target.clone(),raw:player.pos.clone(),until:meleeRelease.until};
-    delete player.onlineVisualOffset;
-    (player.onlineRenderOffset||(player.onlineRenderOffset=vector([0,0,0]))).copy(target).addScaledVector(player.pos,-1);
+    const offset=player.onlineVisualOffset;
+    if(!offset||now()>=meleeRelease.until){delete player.onlineVisualOffset;meleeRelease=null;return;}
+    offset.multiplyScalar(Math.pow(.7,Math.max(0,dt||0)*60));
+    if(offset.x**2+offset.y**2+offset.z**2<1e-6){delete player.onlineVisualOffset;meleeRelease=null;}
   }
   // 自機の剣だけ描画時計を進める。確定swingと攻撃処理は触らず、写真+100ms/振り終端で止める。
   // ホストの低FPSでは写真時計と攻撃時計の進みが違う。確定tの減少/振り変更で新しい攻撃に戻す。

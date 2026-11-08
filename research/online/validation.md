@@ -574,3 +574,34 @@ node --test tools/test/online_*.test.js
 `quick_check.js origin/main` はPlaywrightのChromium未配置で起動前停止。既存 `/usr/bin/chromium` も `socket() failed: Operation not permitted` で起動不能。最終版のWebGL、実キー/実マウス配送、実RTC、別PC/別回線、音、人の操作感、全武器/Bot戦は未確認。Node成功からブラウザ成功を推定しない。Fのブラウザ回帰は `online_downed_input_check.js` を追加済みで未実行。
 
 最初の近接開始はホスト写真待ちのまま。長い欠落では100ms先行後に停止し、復旧や3m以上の差では補正が残り得る。自機表示だけの修正で、相手機の剣の振り時計は従来どおり。試験Site更新後は両画面を再読込し、通常斬り・ロック踏み込み・ダッシュ斬り・硬直明け・行動不能中Fを実機で確認する。
+
+## 近接表示修正後の悪化を再現・修正（2026-11-08）
+
+オーナーが `10dda30` の試遊で「なんで前よりカクカクすんだろうな」と報告。旧 `ab43ed8`、悪化版 `10dda30`、今回の修正版へ同じ30Hz人工写真・片道35ms・入力・描画Hzを与えて比較した。旧35条件は振りの途中の直進と終了時の期限を主に見ており、終了後に歩き続ける高Hzのframe差と、実ロック追従式を接続した角度変化を見落としていた。実機報告の全原因を再現したとの主張はしない。
+
+### 根拠と変更
+
+1. 終了の250ms引継ぎが確定posの差分を足し直し、直前の通常移動の描画補間を壊していた。144Hzの1frame移動差は旧版0.0689〜0.0758m、悪化版0.0009〜0.1679m、修正版0.0697〜0.0795m。変動係数は0.027→1.025→0.040。120/240Hzも約0.891→約0.045、240Hzの逆行も解消。修正版は補正残差だけを減らし、通常の固定tick補間を上書きしない。250ms期限は延長しない。
+2. 近接写真でposが更新されても描画offsetは旧pos基準のまま残り、次の `updateLocalHumanAim` の後まで更新されなかった。26m/sの人工踏み込みでは写真受理直後の描画原点が最大0.87m飛び、ロック追従が交互に逆向きへ戻った。写真受理時に直前の描画位置を維持するoffsetへ置き直し、最大差を0にした。
+3. `anglesTo` は描画原点、`lockStick` は確定原点で計算していたため、上記を直しただけでも小さい逆行が残った。後者も描画原点へ揃える最小修正。機体の端へ戻す式・係数・速度上限・頭から肩への規則は維持し、照準中心への新たな補正は入れない。追従で変わったyaw/pitchは既存経路で送信入力にも入るため、入力角が不変の純粋な描画修正とは扱わない。ホスト/オフラインのoffsetなしでは従来計算と同じ。
+
+ロック付き26m/s人工踏み込み、350〜800ms区間のyaw最大1frame差は60Hzで0.00930→0.000408rad、144Hzで0.01054→0.000244rad。60/120/144/240Hzすべてで逆行0。旧ab43ed8の60Hzは0.000395radであり、全数値が旧版より小さいわけではない。ロックなしの入力角は不変。写真の権威状態hashは全版・全Hzで一致した。比較・製品/fixture hashは `melee-transition-summary.json`。
+
+### 検証と限界
+
+- `node tools/test/online_melee_transition.test.js`：新14条件成功。60/120/144/240Hzの硬直明けW保持、ロック有無、写真受理直後の原点、物理/offset非変更、機体内の照準を中心へ寄せないことを確認。`--revision=10dda30` は120Hz終了歩行で期待どおり失敗し、上記回帰を検出する。
+- `node tools/test/online_melee_view.test.js`：既存35条件成功。内部release.posの検査だけを合成描画位置の連続性へ置き換えた。生命・被弾・転送・大差・欠落・低FPS・同型連打などの条件を維持。
+- `node --test tools/test/online_*.test.js`：19/19成功。F入力回帰も維持。秘匿境界VM91項目、名前検査14ファイル、変更JS構文、diff検査成功。独立レビューでも新14条件と高Hz終了歩行の回帰解消を確認。
+- `quick_check.js origin/main`、`recoil_lock_check.js dbg`、`bot_battle.js dbg city,wide,mesa,dock 150` はPlaywrightのChromium実行ファイル未配置で起動前停止。既知のシステムChromium socket制限もある。最終版のブラウザ/WebGL/実WebRTC/実入力/全マップBot戦/操作感は未確認。
+- 終了歩行は線形の移動代役、ロックは本体のanglesTo/lockStick/updateLocalHumanAim/updateCameraを使うが、選択/遮蔽/地形/命中/輸送は代役。新VMは実回線や実機のFPS測定ではない。今回の製品変更は `game.js` と `index.html` の座標整合のみ。F修正・ホストの命中/移動/消費/硬直・バランスを変えず、draft維持、main/gh-pages/正式公開へ反映しない。
+
+比較を再生成する例（各commitのローカル履歴が必要）：
+
+```sh
+node tools/test/online_melee_transition_fixture.js --revision=ab43ed8
+node tools/test/online_melee_transition_fixture.js --revision=10dda30
+node tools/test/online_melee_transition_fixture.js
+node tools/test/online_melee_transition.test.js
+```
+
+試験Site更新後は両画面を再読込し、特にロック付き踏み込み中、攻撃を終えてWを押し続けた時、60Hzと高Hzの差を実機で確認する。配信の成功と操作感の解消は別々に判断する。
