@@ -95,7 +95,7 @@
   const movementPressed=mask=>Object.fromEntries(movementEdges.filter((_,i)=>mask&(1<<i)).map(key=>[key,true]));
   let inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};
   function predictionState(enabled=true) {
-    return {enabled,pending:[],actionEdges:[],authoritative:null,reconciliations:0,correctionCount:0,correctionTotal:0,correctionMax:0,corrections:[],
+    return {enabled,pending:[],actionEdges:[],authoritative:null,reconciliations:0,correctionCount:0,correctionTotal:0,correctionMax:0,corrections:[],preventedLook:[],
       predictedSteps:0,predictedSeconds:0,replayedSteps:0,replayedSeconds:0,hardSnaps:0,hardSnapReasons:{},partialAcks:0,droppedInputs:0,droppedThroughSeq:0,droppedThroughDt:0,droppedActionSeq:0,
       lastAckSeq:0,lastAckStep:0,lastAckActionSeq:0,confirmedHostSeconds:0,hostStepSamples:0,hostSteps:[],visualFrames:0,blockedFrames:0};
   }
@@ -147,7 +147,15 @@
       for(const edge of prediction.actionEdges)if(edge.seq===source.seq)Object.assign(applied.pressed,edge.pressed);
     }
     for(const edge of prediction.actionEdges)if(edge.needsReplay&&edge.lifeId===player.lifeId&&edge.seq<=source.seq){Object.assign(applied.pressed,edge.pressed);edge.needsReplay=false;}
-    const moved=predictHumanMovement(player,applied,dt);
+    // 反復時間を引いた先読みは古い命令の向きで移動するが、描画する視点は最新入力を保つ。
+    // 写真照合だけで戻すと、その次の通常stepでマウス/右スティック/lock追従が巻き戻る。
+    const yaw=player.yaw,pitch=player.pitch;let moved;
+    try{moved=predictHumanMovement(player,applied,dt);}
+    finally{
+      const angle=Math.max(Math.abs(wrapAngle(player.yaw-yaw)),Math.abs(player.pitch-pitch));
+      if(angle>1e-7)diagnosticSample(prediction.preventedLook,angle*180/Math.PI);
+      player.yaw=yaw;player.pitch=pitch;
+    }
     if(moved){prediction.predictedSteps++;prediction.predictedSeconds+=dt;}else prediction.blockedFrames++;
     return moved;
   }
@@ -1402,6 +1410,7 @@
     const samples=prediction.corrections.filter(c=>c.at>=at-diagnosticWindowMs),changed=samples.filter(c=>c.distance>.001),reasons={};
     let hardSnaps=0;for(const c of samples)if(c.reason!=='smooth'){hardSnaps++;reasons[c.reason]=(reasons[c.reason]||0)+1;}
     const local=diagnosticSummary(diagnosticTiming.frames,at),host=state.role==='host'?diagnosticHostTiming():state.lastSnapshot?.hostTiming;
+    const prevented=prediction.preventedLook.filter(c=>c.at>=at-diagnosticWindowMs);
     return {role:state.role,phase:state.phase,windowMs:diagnosticWindowMs,frame:local,fps:local.count&&local.meanMs>0?1000/local.meanMs:null,
       host:host?.windowMs===diagnosticWindowMs?host:null,arrivals:diagnosticSummary(diagnosticTiming.arrivals,at),
       snapshotAgeMs:state.role==='guest'&&diagnosticTiming.lastWire!==null?Math.max(0,at-diagnosticTiming.lastWire):null,
@@ -1409,6 +1418,7 @@
       corrections:{count:changed.length,samples:samples.length,meanM:changed.length?changed.reduce((n,c)=>n+c.distance,0)/changed.length:0,maxM:changed.length?Math.max(...changed.map(c=>c.distance)):0,hardSnaps,reasons},
       predictionBlocked:player?.onlinePredictionBlocked||(typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(player,inputSending.history.at(-1)):''),
       blockedCorrections:samples.filter(c=>c.distance>.001&&c.predictionBlocked).length,
+      repeatDebt:prediction.repeatDebt||0,preventedLook:{count:prevented.length,maxDeg:prevented.length?Math.max(...prevented.map(c=>c.value)):0},
       pendingInputs:prediction.pending.length,visibility:typeof document!=='undefined'?document.visibilityState:'unknown'};
   }
   window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,

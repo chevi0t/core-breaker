@@ -45,6 +45,7 @@
     if(d.role==='guest'){
       const c=d.corrections,h=d.host;
       rows.push('先読み停止: '+(diagnosticReasons[d.predictionBlocked]||d.predictionBlocked||'なし')+' / 停止状態の写真での補正 '+(d.blockedCorrections||0)+'回',
+        '予測の反復控除（現在） '+(d.repeatDebt||0)+'コマ / 防いだ視点上書き '+(d.preventedLook?.count||0)+'回 / 最大 '+number(d.preventedLook?.maxDeg||0,3)+'°（横・縦の大きい方）',
         '自機補正（1mm超） '+c.count+'回 / 平均 '+number(c.meanM,3)+'m / 最大 '+number(c.maxM,3)+'m / 照合 '+c.samples+'回',
         '瞬間合わせ（hardSnap） '+c.hardSnaps+'回 / '+(Object.entries(c.reasons).map(([key,n])=>(diagnosticReasons[key]||key)+':'+n).join('、')||'なし'),
         '新しい写真の到着 平均・p95・最大 '+diagnosticStats(d.arrivals)+' / 最終到着 '+number(d.snapshotAgeMs)+'ms前 / RTT '+number(d.rttMs)+'ms',

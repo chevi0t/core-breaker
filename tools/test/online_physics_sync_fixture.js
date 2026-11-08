@@ -150,7 +150,7 @@ function createPhysicsSuite(revision='working'){
         hardSnaps:hard.length,reasons:hard.reduce((result,row)=>(result[row.reason]=(result[row.reason]||0)+1,result),{}),
         blockedPhotoCorrections:changed.filter(row=>row.photoBlocked).length},rows};
   }
-  return {run,sourceHashes:Object.fromEntries(Object.entries(sourceFiles).map(([p,s])=>[p,crypto.createHash('sha256').update(s).digest('hex')]))};
+  return {run,load,sourceHashes:Object.fromEntries(Object.entries(sourceFiles).map(([p,s])=>[p,crypto.createHash('sha256').update(s).digest('hex')]))};
 }
 if(require.main===module){
   const revision=process.argv.find(arg=>arg.startsWith('--revision='))?.slice(11)||'working',suite=createPhysicsSuite(revision),reports=[];

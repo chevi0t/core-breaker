@@ -399,3 +399,21 @@ revision54項目、自機予測の機能63項目、50/100msラグ補償200項目
 inputAcksはcodecのj原子で、適用済みID0→128→0でも初期以外schema baseline増加0。ただし128ID（1〜128）のJSON deltaは本fixtureで604B増える。2KBは目安で上限ではなく、帯域を無条件に軽量化したとは主張しない。visibilityは呼出内だけpoint/LOSを再利用、10,000比較で出力同一、LOS15554→14193、point176084→87352。実FPS改善量は未測定。
 
 v9はv8を拒否するため両ブラウザを再読込する。高Hzで自機位置が60Hzの階段になる描画補間は未追加。今回環境はChromium socket EPERM、別cloud browserはWebGL作成不可のため新E2E/人の操作感/実FPSは未検証。過去のブラウザ成功を今回版へ転用しない。
+
+## ゲストのマウス回転・通常予測stepの視点保護（2026-11-08）
+
+公開v9後のユーザー画像はhost/guestとも60fps、guest補正平均.005m・最大.010m・hardSnap0、RTT4ms、写真到着平均62.8ms。位置の修正結果と、マウスを回した時のカクつきは分けて調べた。
+
+`predictLocalInput` は反復時間控除（repeatDebt）があると過去命令を選び、本体 `updateHumanMovement` がそのyaw/pitchをplayerへ代入する。写真受理後の `reconcilePrediction` は通常時に最新視点へ戻すが、その次の通常frameの予測は戻さず、末尾の `updateCamera` が古い方向を使っていた。今回は予測呼出し前に最新yaw/pitchを保存し、同じ過去命令で移動計算した後、例外時も含めて戻す。写真hardSnapの仕様は変更しない。
+
+新しい `online_camera_fixture.js` は実lookMove・入力採取・beforeFrame・本体physics・host命令queue・実codec・receiveSnapshot・updateCameraを平地VMで接続する。マウスの相対量を積算し、期待角を毎frameのplayerへ直接代入して巻き戻りを隠すことはしない。WebGL描画、OS/ブラウザのmousemove配送、実RTC、lockUpdate/castFrom/遮蔽処理は検証外。
+
+60/60・60/144・144/60Hz、回転30/360°毎秒、片道2/12ms、入力70ms・写真90ms、150ms入力欠落＋160ms写真欠落の24条件を比較。低遅延や一定の高遅延だけでは旧版も巻き戻りを再現しなかった。欠落を含む6条件で再現し、60/60の通常予測stepは低速時最大1.5°・高速時18°戻り、192描画frame中33frameで逆回転。修正後は同条件も通常stepの視点誤差0・逆回転0（カメラ方向の丸め誤差を除く）。写真受理直後の角度差は前後とも0で、故障箇所を通常予測stepへ切り分けた。
+
+これは入力途絶後に起きる確実な不具合の修正であり、RTT4msの実PC報告を完全再現したという意味ではない。F3に反復控除と過去向きの上書き防止を出し、実環境でも同じ条件だったかを確かめられるようにする。既存の物理比較JSONはe8b0140時点の記録として残す。今回の比較元/source hash/数値と回帰結果は以下へ記録する。
+
+比較は `node tools/test/online_camera_fixture.js --revision=e8b0140` と `node tools/test/online_camera_fixture.js --revision=working`。両出力を `camera-sync-summary.json` のbefore/afterへ保存した（各24条件、製品source SHA256付き）。新しい通常回帰は `node tools/test/online_camera.test.js` で36条件成功。歩行/長dashの60/144Hz、FOV・武器旋回倍率、0step/複数step、実lock追従式と採取済み発射照準点、例外時復元、再出撃/転送/蘇生を検査。過去命令のboost/jump/crouchを含む120step比較でも、視点以外の位置・速度・方向ベクトル・タイマーは全step一致した。
+
+F3の反復控除は現在のtick数。防いだ視点上書きは直近2秒・最大1200件、yaw差を±πへ折り返した絶対値とpitch差の大きい方を度で集計する。1e-7rad以下の差は除外する。画面に残った角度誤差ではなく、今回保存復元した角度差である。値が0でも別の描画/入力原因を否定するものではない。
+
+最終コードでオンラインNode12スイート、visibility154項目、名前14ファイル、変更JS構文、diff検査が成功。実ブラウザ試験は既知のsocket/WebGL制限で未実行。通信形式はv9のまま、main/gh-pagesは変更しない。
