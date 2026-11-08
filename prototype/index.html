@@ -4417,8 +4417,8 @@ function mechPose(u, dt) {
   r.landT = Math.max(0, r.landT - dt);
   const impact = r.landT > 0 ? Math.sin(Math.PI * (1 - r.landT / r.landTime)) * r.landPower : 0;
   const low = u.crouching ? ACTIONS.crouch.lower : u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
-  r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20));
-  if (dt === 0 && !r.lastPose) r.crouch = low;
+  if (simulationRole === 'guest' && !isLocalView(u) && Number.isFinite(u.onlineRenderCrouch)) r.crouch = u.onlineRenderCrouch;
+  else { r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20)); if (dt === 0 && !r.lastPose) r.crouch = low; }
   const melee = u.meleePose;
   const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
   // 深い屈みと着地が重なっても脛を床へ押し込まない。歩幅分の腰下げで接地脚の伸び切りも防ぐ。
@@ -5563,7 +5563,8 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
   const dir = aimPoint.clone().sub(from).normalize();
   dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread;
   dir.normalize();
-  const hit = castFrom(from, dir, u, w.range || 400);
+  // 手持ちhitscanの射線だけ過去のcolliderへ。返る前に必ず現在へ復元し、damageは下で一度だけ行う。
+  const hit = window.CBOnlineGame?.castHitscan ? window.CBOnlineGame.castHitscan(u, from, dir, w) : castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
   const laser = w.laserFade > 0, travel = laser ? laserTrail(from, end, w.laserFade) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w) || BIG_TRACE_SERIES.has(w.series));
   if (w.scope && !laser) smokeTrail(from, end);
@@ -12340,7 +12341,7 @@ function gameFrame(now) {
     if (u.onlineVisualOffset) u.group.position.add(u.onlineVisualOffset);
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
-    u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
+    if (!(simulationRole === 'guest' && !isLocalView(u))) u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
     u.group.rotation.x = u.tilt; // よろけでのけぞり、ダウンで後ろへ倒れる
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
@@ -12403,5 +12404,6 @@ requestAnimationFrame(loop);
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js" integrity="sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu" crossorigin="anonymous"></script>
 <script src="online/transport.js"></script>
 <script src="online/codec.js"></script>
+<script src="online/lag-compensation.js"></script>
 <script src="online/game.js"></script>
 <script src="online/ui.js"></script>

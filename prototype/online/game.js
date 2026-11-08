@@ -26,6 +26,31 @@
       recoveryLagMs:0,maxRecoveryLagMs:0,effectiveDelayMs:100,maxEffectiveDelayMs:100,totalEffectiveDelayMs:0,catchupFrames:0};
   }
   let interpolation = interpolationState();
+  const lagSupport=typeof CBOnlineLagComp!=='undefined'?CBOnlineLagComp:null;
+  const lagHistory=lagSupport?new lagSupport.ColliderHistory(T,{skinHit:typeof skinMechHit==='function'?skinMechHit:null,refOf:typeof refOf==='function'?refOf:null}):null;
+  const lagSnapshots=new Map();
+  let lagEnabled=true,lastRenderedView=null,hitscanContext=null;
+  const lagMetrics={shots:0,rewinds:0,clamped:0,rejected:0,reasons:{},maxRewindMs:0};
+  function resetLagCompensation(){lagHistory?.clear();lagSnapshots.clear();lastRenderedView=null;hitscanContext=null;Object.assign(lagMetrics,{shots:0,rewinds:0,clamped:0,rejected:0,reasons:{},maxRewindMs:0});}
+  function captureLagHistory(time=now()){if(state.role==='host'&&state.phase==='playing'&&lagEnabled&&lagHistory)lagHistory.capture(time,units,hittables);}
+  function rememberLagSnapshot(s){lagSnapshots.set(s.frame,s.time);for(const [frame,time]of lagSnapshots)if(time<s.time-2000)lagSnapshots.delete(frame);while(lagSnapshots.size>128)lagSnapshots.delete(lagSnapshots.keys().next().value);}
+  function castGuestHitscan(u,from,dir,w){
+    const cast=()=>castFrom(from,dir,u,w.range||400);
+    if(!lagEnabled||!lagHistory||state.role!=='host'||state.phase!=='playing'||u.controller!=='remoteHuman'||!u.alive)return cast();
+    lagMetrics.shots++;
+    const p=state.peers.get(u.ownerPeerId),input=hitscanContext?.input||u.controlInput;
+    const verified=p&&p.inputLifeId===u.lifeId&&input?.lifeId===u.lifeId&&Number.isSafeInteger(input.seq)&&input.seq<=p.receivedSeq
+      ?lagSupport.validateViewTime(input.view,{now:now(),sentAt:input.sentAt,receivedAt:input.receivedAt,rttMs:state.transport?.clock?.(p.id)?.rttMs,snapshots:lagSnapshots})
+      :{ok:false,reason:'input'};
+    if(!verified.ok){lagMetrics.rejected++;lagMetrics.reasons[verified.reason]=(lagMetrics.reasons[verified.reason]||0)+1;return cast();}
+    if(verified.clamped)lagMetrics.clamped++;
+    const result=lagHistory.withRewind(verified.time,units,u,cast);
+    if(lagHistory.lastRewound){lagMetrics.rewinds++;lagMetrics.maxRewindMs=Math.max(lagMetrics.maxRewindMs,verified.ageMs);}
+    return result;
+  }
+  function castHitscan(u,from,dir,w){
+    return hitscanContext?.unit===u&&hitscanContext.weapon===w?castGuestHitscan(u,from,dir,w):castFrom(from,dir,u,w.range||400);
+  }
   // 確定dtはhostの実行記録だけ。未実行のhost dtは未知なので、送信時の可変dtは仮値として別に保持する。
   const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:8,visualFrames:6};
   const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,futureMs:250,actions:64};
@@ -148,6 +173,8 @@
     const p=state.peers.get(u.ownerPeerId);if(!p)return;
     p.pendingEdges={};
     if(p.activeAction){p.appliedActionSeq=p.activeAction.actionSeq;p.actionState=p.activeAction;p.actions=p.actions.filter(a=>a.actionSeq>p.appliedActionSeq);p.activeAction=null;}
+    // 押下を適用したstepに発射しなかった場合、spin/装填待ち後に古い照準を復活させない。
+    p.pendingShot=null;
     if(p.appliedSeq!==input.seq)p.appliedSeqDt=0;
     p.appliedSeq=input.seq;p.appliedSeqDt=(p.appliedSeqDt||0)+dt;p.appliedTotalDt=(p.appliedTotalDt||0)+dt;p.appliedStep=(p.appliedStep||0)+1;
     (p.appliedSteps||=[]).push({step:p.appliedStep,seq:input.seq,dt,seqDt:p.appliedSeqDt,actionSeq:p.appliedActionSeq||0,pressed:Object.keys(input.pressed||{}).filter(k=>input.pressed[k])});
@@ -244,7 +271,7 @@
   function resetMeasurements() {
     snapshotEncoder=new CBOnlineCodec.Encoder();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;resyncBackoff=250;
     pendingPrepare=null;prepared=false;latestSnapshotWire=null;finalFrame=null;lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();interpolation=interpolationState();
-    resetPrediction();
+    resetPrediction();resetLagCompensation();
     state.frame = state.seq = 0; state.inputLatency = []; state.hitLatency = []; state.frameMs = []; state.sendMs = [];
     state.shots = []; state.pendingInputs.clear(); state.history = []; state.receivedEvents.clear(); state.events = [];
     state.lastSnapshot = null; state.lastSent = state.lastInput = 0; eventId = projectileId = 0; previousMove=previousTrigger=false; displayedLatencies.length=0;
@@ -331,6 +358,7 @@
   async function create(opts = {}) {
     const settings=checkedSettings({...defaultSettings,...opts.settings});
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
+    lagEnabled=opts.lagCompensationEnabled!==false;
     state.settings=settings;state.resolvedMapId=resolveMap(settings.mapId);state.hostTeam='B';
     setSimulationRole('host'); state.transport = new CBOnlineTransport(transportOptions(opts));
     const transport=state.transport,id=await transport.createRoom();
@@ -368,7 +396,7 @@
     clearStartReservation();state.actualStartAt=null;running=false;stopSessionAudio();
     state.phase = 'preparing';
     clearTimeout(state.prepareTimer);state.prepareTimer=setTimeout(()=>{if(state.role==='host'&&state.phase==='preparing')abortPreparation('ゲストの読み込みが15秒以内に完了しなかったため、開始を中止しました');},15000);
-    state.matchId = 'match-' + Date.now().toString(36); state.teamSize = teamSize;
+    state.matchId = 'match-' + Date.now().toString(36); state.teamSize = teamSize;resetLagCompensation();
     state.transport.startMatch(state.matchId); setupWorld(teamSize,host.unitId,state.resolvedMapId); player.controller = 'localHuman'; player.name = host.name; player.controlLoadout=preset(host.cls); equip(player,host.cls);
     for (const p of state.peers.values()) {
       p.unitId = assignments.find(r=>r.id===p.id).unitId; p.ready = false; p.last = now(); p.joinedAt = now();
@@ -393,6 +421,7 @@
     state.phase = 'playing'; running = true; ended = false; state.lastHost = now();
     // 読み込み＋4秒の開始待ちを回線jitterに数えない。初期状態は残し、対戦中の写真で描画時計を始める。
     if(state.role==='guest'){
+      lastRenderedView=null;
       state.history=[];Object.assign(interpolation,{delayMs:100,targetDelayMs:100,intervalMs:50,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null});
     }
     // 早く準備できたゲストも、全員の開始時点から入力待機の猶予を持つ。
@@ -449,7 +478,7 @@
     const u=unit(p.unitId),age=now()-v?.sentAt;
     if(!u||v.lifeId!==u.lifeId||!Number.isFinite(v.sentAt)||age>inputLimits.maxAgeMs||age< -inputLimits.futureMs)return null;
     if(p.inputLifeId!==u.lifeId){
-      p.inputLifeId=u.lifeId;p.input=null;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;
+      p.inputLifeId=u.lifeId;p.input=null;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
     }
     return u;
   }
@@ -459,7 +488,8 @@
     p.firstInputAt??=now();(p.inputTimes||=[]).push({seq:v.seq,at:now()});while(p.inputTimes.length>120){p.inputTimes.shift();p.inputHistoryTruncated=true;}
     // dt/射撃/武器/押下はこの線から受け付けない。入力番号を増やしてもhostのframe dtは増えない。
     p.input={...safe(v,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw']),keys:pickedKeys(v.keys,movementKeys),pressed:{},
-      fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint,lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null};
+      fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint,lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null,
+      receivedAt:now(),view:v.view?safe(v.view,['time','frame','delayMs']):null};
   }
   function acceptInputBatch(p,data) {
     if(!Array.isArray(data?.inputs)||!data.inputs.length||data.inputs.length>inputLimits.batch)return;
@@ -481,6 +511,7 @@
     p.receivedActionSeq=v.actionSeq;p.last=now();
     const action={...safe(v,['actionSeq','seq','lifeId','sentAt']),receivedAt:now(),trigger:!!v.trigger,alt:!!v.alt,keys:pickedKeys(v.keys,inputKeys.filter(k=>!movementKeys.includes(k))),
       pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined};
+    if(validInput(v))Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:v.view?safe(v.view,['time','frame','delayMs']):null});
     (p.actions||=[]).push(action);while(p.actions.length>inputLimits.actions)p.actions.shift();
     // 再出撃先の選択は移動の実行を待たず受理する。古い命の選択はcurrentInputLifeが落とす。
     if(!u.alive||u.transfer){
@@ -491,6 +522,8 @@
   function sendLocalInput(input) {
     const clock=state.transport.clock?.(),sentAt=now()+(Number.isFinite(clock?.offsetMs)?clock.offsetMs:0);
     input.lifeId=player.lifeId;input.sentAt=sentAt;
+    // 入力を取った時点で既に描き終わっている写真。今frameの未描画renderTimeとは区別する。
+    input.view=lastRenderedView?{...lastRenderedView}:null;
     if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.lifeId=input.lifeId;}
     const actionKeys=pickedKeys(input.keys,inputKeys.filter(k=>!movementKeys.includes(k))),edges=pickedKeys(input.pressed);
     const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
@@ -498,14 +531,15 @@
     const refresh=inputSending.actionSeq>prediction.lastAckActionSeq&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
     if(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||refresh){
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
-        wheel:Math.sign(input.wheel||0),weapon:input.weapon,spawnChoice:input.spawnChoice,nextCls:input.nextCls};
+        wheel:Math.sign(input.wheel||0),weapon:input.weapon,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
+        ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:input.view};
       input.actionSeq=action.actionSeq;
       if(!state.transport.send('inputActions',action)){endGuest('操作の送信ができないため対戦を中断しました');return false;}
       inputSending.signature=signature;inputSending.lastActionAt=now();
     }
     input.actionSeq=inputSending.actionSeq;
     const movement={...safe(input,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw','fwd','side']),keys:pickedKeys(input.keys,movementKeys),
-      aimPoint:input.aimPoint,lockTarget:input.lockTarget};
+      aimPoint:input.aimPoint,lockTarget:input.lockTarget,view:input.view};
     inputSending.history.push(movement);while(inputSending.history.length>inputLimits.batch)inputSending.history.shift();
     // 144/240Hzの描画でも予測dtは変えず、送信だけ最大60Hz。one-shotは別control線で保持する。
     if(now()-inputSending.lastBatch>=inputLimits.sendMs-.001){
@@ -515,7 +549,7 @@
   }
   function remoteInput(u) {
     const p=state.peers.get(u.ownerPeerId);
-    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;}
+    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;p.pendingShot=null;p.shotActionSeq=0;}
     if(!p||!p.input||now()-p.input.sentAt>250||now()-p.last>250){
       if(p){p.pendingEdges={};p.activeAction=null;p.actions=(p.actions||[]).filter(a=>actionIsRecent(p,a));}
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
@@ -525,6 +559,12 @@
     p.actions=(p.actions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
     // action先着は対応する移動番号まで待つ。後着も一度だけ実updateへ。dead中はqueueを消化しない。
     p.activeAction=p.actions.find(a=>a.seq<=p.input.seq)||null;
+    // reliableの射撃端だけは、その時に見た照準と写真を対で保持する。移動/yawは最新入力のまま。
+    // releaseで発射する充填銃にも同じ規則。実shotが無ければこのstepのack時に捨てる。
+    if(p.pendingShot&&(p.pendingShot.lifeId!==u.lifeId||!actionIsRecent(p,p.pendingShot)))p.pendingShot=null;
+    if(p.activeAction&&p.activeAction.actionSeq>(p.shotActionSeq||0)&&p.activeAction.trigger!==!!p.actionState?.trigger){
+      p.shotActionSeq=p.activeAction.actionSeq;p.pendingShot=p.activeAction.aimPoint?p.activeAction:null;
+    }
     // movementで新しいactionの存在が判ったら、遅いcontrolを待つ間は古いtriggerを保持しない。
     const action=p.activeAction||(p.input.actionSeq<=(p.actionState?.actionSeq||0)?p.actionState:null);
     const result={...p.input,keys:{...p.input.keys,...action?.keys},trigger:!!action?.trigger,alt:!!action?.alt,
@@ -555,7 +595,7 @@
     showPage('pgMenu'); $('overlay').hidden = false; document.exitPointerLock?.();
   }
   function leave(reason = '退出') {
-    clearStartReservation();clearPrediction();running=false;stopSessionAudio();
+    clearStartReservation();clearPrediction();resetLagCompensation();running=false;stopSessionAudio();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     clearTimeout(preferenceTimer);preferenceTimer=null;preferenceReject?.(Error(reason));preferenceResolve=preferenceReject=null;
     const t = state.transport;
@@ -570,7 +610,7 @@
     }
   }
   function packUnit(u) {
-    return {id:u.entityId,team:u.team,idx:u.idx,cls:u.cls,name:u.name,controller:u.controller,mech:u.mech,motionEpoch:u.onlineMotionEpoch||0,
+    return {id:u.entityId,team:u.team,idx:u.idx,cls:u.cls,name:u.name,controller:u.controller,mech:u.mech,motionEpoch:u.onlineMotionEpoch||0,lagEpoch:u.onlineLagEpoch||0,renderCrouch:u.rig?.crouch||0,
       ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),predictionBlocked:typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(u):'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,u[k]?.toArray()||null])),
       catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
@@ -578,8 +618,8 @@
       transfer:u.transfer ? safe(u.transfer,['t','base','at']) : null,
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:u.slots[k].w.key,...safe(u.slots[k],slotKeys)}]))};
   }
-  function snapshot() {
-    return {frame:state.frame,time:now(),timeLeft,running,ended,teamSize:state.teamSize,units:units.map(packUnit),
+  function snapshot(stateTime=now()) {
+    const s={frame:state.frame,time:stateTime,timeLeft,running,ended,teamSize:state.teamSize,units:units.map(packUnit),
       cores:{B:cores.B.hp,R:cores.R.hp},
       spotted:Object.fromEntries(['B','R'].map(k=>[k,[...spotted[k]].filter(([u])=>u.entityId).map(([u,left])=>[u.entityId,left])])),
       spotSrc:Object.fromEntries(['B','R'].map(k=>[k,[...spotSrc[k]].filter(([u])=>u.entityId).map(([u,m])=>[u.entityId,[...m]])])),
@@ -593,6 +633,7 @@
       inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
         // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元でき、最近8stepは検証用に残す。
         steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}]))};
+    if(state.role==='host')rememberLagSnapshot(s);return s;
   }
   function applyUnit(u,s) {
     const mechChanged=!!s.mech&&Object.keys(s.mech).some(k=>s.mech[k]!==u.mech?.[k]);
@@ -601,7 +642,8 @@
       u.controlLoadout=Object.fromEntries(SLOTS.map(k=>[k,WEAPONS[s.slots[k]?.key]?s.slots[k].key:CLASSES[s.cls][k]]));equip(u,s.cls);
     }
     const localYaw = u.yaw, localPitch = u.pitch;
-    u.onlineMotionEpoch=s.motionEpoch||0;u.onlinePredictionBlocked=s.predictionBlocked||'';
+    u.onlineMotionEpoch=s.motionEpoch||0;u.onlineLagEpoch=s.lagEpoch||0;u.onlinePredictionBlocked=s.predictionBlocked||'';
+    u.onlineRenderCrouch=Number.isFinite(s.renderCrouch)?s.renderCrouch:null;
     for(const k of ['dashDir','boostVisualDir','catMomentum','lungeDir'])u[k]=s.motionVectors?.[k]?vector(s.motionVectors[k]):null;
     u.catLaunch=s.catLaunch?{...s.catLaunch}:null;u.jumpPad=s.jumpPadIndex>=0?jumpPads[s.jumpPadIndex]||null:null;
     u.localView=u===player;u.controller=u.localView?'localHuman':s.controller==='bot'?'bot':'remoteHuman';
@@ -772,15 +814,25 @@
     if(extrapolation>0)m.extrapolatedFrames++;else m.interpolatedFrames++;
     if(gap>100)m.clampedFrames++;
     if(extrapolation>0){
-      for(const v of latest.units){const u=unit(v.id);if(!u||u===player||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||!v.alive||v.downT>0||v.transfer)continue;
+      for(const v of latest.units){const u=unit(v.id);if(!u||u===player||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||!v.alive||v.downT>0||v.transfer)continue;
         u.pos.copy(vector(v.pos)).addScaledVector(vector(v.vel),extrapolation/1000);u.yaw=v.yaw;
+        interpolateRemotePose(u,v,v,0);
       }return;
     }
     const f=clamp((target-a.time)/Math.max(1,b.time-a.time),0,1);
     for(const v of b.units){const u=unit(v.id),old=a.units.find(x=>x.id===v.id);
-      if(!u||u===player||!old||u.lifeId!==v.lifeId||u.alive!==v.alive||v.lifeId!==old.lifeId||v.alive!==old.alive||u.onlineMotionEpoch!==(v.motionEpoch||0)||(v.motionEpoch||0)!==(old.motionEpoch||0)||v.transfer||old.transfer)continue;
+      if(!u||u===player||!old||u.lifeId!==v.lifeId||u.alive!==v.alive||v.lifeId!==old.lifeId||v.alive!==old.alive||u.onlineMotionEpoch!==(v.motionEpoch||0)||(v.motionEpoch||0)!==(old.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||(v.lagEpoch||0)!==(old.lagEpoch||0)||v.transfer||old.transfer)continue;
       u.pos.copy(vector(old.pos)).lerp(vector(v.pos),f);u.yaw=old.yaw+wrapAngle(v.yaw-old.yaw)*f;
+      interpolateRemotePose(u,old,v,f);
     }
+  }
+  // 遠隔機の姿勢も位置と同じ写真区間を使う。骨アニメーションの位相までhostと同期するものではない。
+  function interpolateRemotePose(u,a,b,f){
+    const discrete=f<1?a:b;
+    for(const k of ['crouching','onGround','dashState','lungeT','kneeSlideT','planted','repairing','recoverT','stun','stunT','weapon','pitch','tilt'])if(Object.hasOwn(discrete,k))u[k]=discrete[k];
+    for(const k of ['pitch','tilt'])if(Number.isFinite(a[k])&&Number.isFinite(b[k]))u[k]=a[k]+(b[k]-a[k])*f;
+    if(Number.isFinite(a.renderCrouch)&&Number.isFinite(b.renderCrouch))u.onlineRenderCrouch=a.renderCrouch+(b.renderCrouch-a.renderCrouch)*f;
+    if(a.vel&&b.vel)u.vel.copy(vector(a.vel.map((v,i)=>v+(b.vel[i]-v)*f)));
   }
   function beforeFrame(dt,t) {
     frameStart=now();
@@ -817,15 +869,19 @@
     wheelDir=0;state.lastInput=now();
   }
   function afterFrame(dt,t) {
-    if(state.role==='guest'){for(const p of displayedLatencies.splice(0))state[p.kind==='input'?'inputLatency':'hitLatency'].push(now()-p.time);return;}
+    if(state.role==='guest'){
+      if(state.phase==='playing'&&Number.isFinite(interpolation.renderTime)&&state.lastSnapshot)lastRenderedView={time:interpolation.renderTime,frame:state.lastSnapshot.frame,delayMs:interpolation.delayMs};
+      for(const p of displayedLatencies.splice(0))state[p.kind==='input'?'inputLatency':'hitLatency'].push(now()-p.time);return;
+    }
     if(state.role!=='host'||state.phase!=='playing')return;
+    const stateTime=now();captureLagHistory(stateTime);
     state.frameMs.push(now()-frameStart);if(state.frameMs.length>60000)state.frameMs.shift();
     state.frame++;
     const begin=now();
     if(state.events.length){state.transport.broadcast('events',state.events.splice(0));}
-    if(now()-state.lastSent>=50 || ended){const wire=snapshotEncoder.encode(snapshot());latestSnapshotWire={frame:state.frame,delta:wire.delta};if(wire.baseline)state.transport.broadcast('snapshotBase',wire.baseline);state.transport.broadcast('snapshot',latestSnapshotWire);state.lastSent=now();}
+    if(now()-state.lastSent>=50 || ended){const wire=snapshotEncoder.encode(snapshot(stateTime));latestSnapshotWire={frame:state.frame,delta:wire.delta};if(wire.baseline)state.transport.broadcast('snapshotBase',wire.baseline);state.transport.broadcast('snapshot',latestSnapshotWire);state.lastSent=now();}
     state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();
-    if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
+    if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();lagHistory?.clear();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
   }
   function emit(type,data) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data});}
   function playEvents(events) {
@@ -842,6 +898,13 @@
   // エリア移動は同じlifeIdのまま瞬間移動する。待機中の写真が全欠落しても境界を補間しない印だけを加える。
   if(typeof doTransfer==='function'){
     const oldDoTransfer=doTransfer;doTransfer=function(u){const result=oldDoTransfer(...arguments);if(state.role==='host')u.onlineMotionEpoch=(u.onlineMotionEpoch||0)+1;return result;};
+  }
+  // 蘇生は同じlifeId。死亡→蘇生の間が写真欠落しても、以前の生存姿勢を再利用しない。
+  if(typeof kill==='function'){
+    const oldKill=kill;kill=function(u){const alive=u.alive;try{return oldKill(...arguments);}finally{if(state.role==='host'&&alive&&!u.alive)u.onlineLagEpoch=(u.onlineLagEpoch||0)+1;}};
+  }
+  if(typeof revive==='function'){
+    const oldRevive=revive;revive=function(u){const alive=u.alive;try{return oldRevive(...arguments);}finally{if(state.role==='host'&&!alive&&u.alive)u.onlineLagEpoch=(u.onlineLagEpoch||0)+1;}};
   }
   // 取得した入力ではなく、実際にphysicsを通った入力だけを確定する（行動不能中は進めない）。
   if(typeof updateHumanUnit==='function'){
@@ -868,7 +931,18 @@
     return oldSfx(...arguments);
   };
   const oldFinish=finish;finish=function(){try{return oldFinish(...arguments);}finally{if(state.role!=='offline'){clearStartReservation();stopSessionAudio();}}};
-  const oldShot=shot;shot=function(u){emit('shot',{unit:u.entityId,seq:u.onlineInputSeq||0});return oldShot(...arguments);};
+  const oldShot=shot;shot=function(u,sl,aim,spread,missileTarget){
+    const previous=hitscanContext,previousDamageSeq=damageInputSeq,p=state.role==='host'?state.peers.get(u.ownerPeerId):null,eligible=u.controller==='remoteHuman'&&sl?.w&&!sl.w.proj&&sl.w.type==='gun';
+    // release照準は充填銃だけ。解除後に残る通常burst弾は最新movementの照準を使う。
+    const pending=p?.pendingShot&&actionIsRecent(p,p.pendingShot)&&(p.pendingShot.trigger||sl?.w.chargeTime)?p.pendingShot:null;
+    if(p)p.pendingShot=null;
+    const input=eligible&&pending?pending:u.controlInput,cameraRecoil=u.cameraRecoil,cameraRecoilYaw=u.cameraRecoilYaw;
+    emit('shot',{unit:u.entityId,seq:eligible&&input?.seq||u.onlineInputSeq||0});
+    hitscanContext=eligible?{unit:u,weapon:sl.w,input}:null;
+    if(eligible)damageInputSeq=input?.seq??null;
+    if(eligible&&pending){aim=vector(pending.aimPoint);u.cameraRecoil=pending.cameraRecoil||0;u.cameraRecoilYaw=pending.cameraRecoilYaw||0;}
+    try{return oldShot(u,sl,aim,spread,missileTarget);}finally{hitscanContext=previous;damageInputSeq=previousDamageSeq;if(eligible&&pending){u.cameraRecoil=cameraRecoil;u.cameraRecoilYaw=cameraRecoilYaw;}}
+  };
   const oldShoot=shoot;shoot=function(owner){const sh=oldShoot(...arguments);if(sh)sh.onlineInputSeq=owner?.onlineInputSeq||0;return sh;};
   const oldBlast=blast;blast=function(sh){
     const prev=damageInputSeq;damageInputSeq=sh.onlineInputSeq??null;blastDepth++;
@@ -886,8 +960,8 @@
   };
   const oldDamage=damage;damage=function(r,by,dmg,head){const result=oldDamage(...arguments);if(result&&!blastDepth&&by?.controller==='remoteHuman')emit('hit',{unit:by.entityId,seq:damageInputSeq??(by.onlineInputSeq||0),head:!!head});return result;};
   addEventListener('beforeunload',()=>{if(state.role==='host')state.transport?.broadcast('endHost',{reason:'ホストが退出しました'});});
-  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,
+  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,
     roomOptions:{maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
-      inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice()})};
+      inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice()})};
 })();
