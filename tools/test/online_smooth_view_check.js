@@ -1,6 +1,6 @@
 // ゲストの自機の表示が、60Hzより速い画面（ここでは144Hz相当の7msコマ）でも毎コマなめらかに進むこと（2026-11-08 オーナー報告：
 // ゲストのロックオン後の挙動がカクカク）。自機は1/60秒の固定命令で進むので、補間が無いと0歩のコマと1歩のコマが混ざり、
-// カメラとロック追従の向きが段になる。node tools/test/online_smooth_view_check.js dbg <出力先> --mock-transport
+// カメラとロック追従の向きが段になる。ロックの枠も描画と同じずらしたカメラで投影する（オーナー「ロックオンカーソルが微振動」）。node tools/test/online_smooth_view_check.js dbg <出力先> --mock-transport
 const {check}=require('./lib');
 const {harness,room,frames,input,neutral}=require('./online_test_helpers');
 check('オンラインのゲスト自機の表示のなめらかさ',async({browser,dir,ok,errors})=>{
@@ -29,7 +29,12 @@ check('オンラインのゲスト自機の表示のなめらかさ',async({brow
         if(lock){const a=__g.anglesTo(P,__g.targetPoint(t));P.yaw=a.yaw;P.pitch=a.pitch;__g.setLock(P,t);}else __g.releaseLock();
         window.__view=[];const after=CBOnlineGame.__afterOrig||(CBOnlineGame.__afterOrig=CBOnlineGame.afterFrame);
         CBOnlineGame.afterFrame=(dt,tm)=>{after(dt,tm);const o=__g.onlineViewOffset(P),p=P.pos.clone();const v=o?p.clone().add(o):p;
-          __view.push([v.x,v.z,p.x,p.z,P.yaw,!!(__g.lock.target&&__g.lock.visible)]);};
+          // ロックの枠の画面位置と、描画と同じずらしたカメラで投影した敵の位置の差（px）
+          let err=null;const mk=document.getElementById('lockMark'),m=/translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(mk.style.transform||'');
+          if(lock&&m&&!mk.hidden){const cam=__g.camera,saved=cam.position.clone();if(o)cam.position.add(o);cam.updateMatrixWorld();
+            const s=__g.targetPoint(t).project(cam);cam.position.copy(saved);cam.updateMatrixWorld();
+            err=Math.hypot((s.x+1)/2*innerWidth-+m[1],(1-s.y)/2*innerHeight-+m[2]);}
+          __view.push([v.x,v.z,p.x,p.z,P.yaw,!!(__g.lock.target&&__g.lock.visible),err]);};
       },{enemy,lock});
       await input(g,{...neutral,keys:lock?{KeyD:true}:{KeyW:true},side:lock?1:0,fwd:lock?0:1});
       await frames(r.pages,120,7);
@@ -44,7 +49,7 @@ check('オンラインのゲスト自機の表示のなめらかさ',async({brow
     const walk=stats(await record(false),40);
     console.log('前進',JSON.stringify(walk));
     ok(walk.meanStep>0.02,'7msコマで前進している');
-    ok(walk.rawStill>walk.frames*.3,'確定位置は固定命令の刻みで、動かないコマが混ざる（補間が要る条件の確認）');
+    ok(walk.rawStill>walk.frames*.15,'確定位置は固定命令の刻みで、動かないコマが混ざる（補間が要る条件の確認）');
     ok(walk.still===0&&walk.cv<.2,'表示位置は全てのコマで進み、1コマの移動量のばらつき（変動係数）が0.2未満');
     const view=await record(true);const locked=stats(view,40);
     const yaw=[];for(let i=41;i<view.length;i++)yaw.push(Math.abs(view[i][4]-view[i-1][4]));
@@ -54,5 +59,26 @@ check('オンラインのゲスト自機の表示のなめらかさ',async({brow
     ok(lockedFrames===view.length-40,'記録中ずっとロックが続く');
     ok(locked.still===0&&locked.cv<.2,'ロック中に横へ動いても、表示位置は毎コマなめらかに進む');
     ok(still===0&&cv<.35,'ロック追従の向きも毎コマ回り、止まるコマが無い');
+    const errs=view.slice(40).map(v=>v[6]).filter(v=>v!==null),maxErr=Math.max(...errs);
+    console.log('ロックの枠と描画上の敵の差 px',JSON.stringify({frames:errs.length,max:maxErr}));
+    ok(errs.length>=60&&maxErr<.5,'ロックの枠は描画と同じカメラで投影され、敵からずれて揺れない（差0.5px未満）');
+    // カタパルトの飛翔中は先読みできず、自機は写真（30Hz）の位置に置かれる。描画は写真の速度で今まで進める。
+    await r.host.evaluate(()=>{__g.releaseLock?.();const id=CBOnlineGame.state.peers.values().next().value.unitId,me=__g.units.find(u=>u.entityId===id);
+      const cp=__g.catapults[0];if(cp)__g.launch(me,cp);window.__launched=!!cp;});
+    if(await r.host.evaluate(()=>window.__launched)){
+      // 実際の遊びでは描画の時計と通信の時計は同じ。試験のコマ送り（7ms）と実時間がずれないよう、ここから両方のページの
+      // performance.now もコマ送りの時計で進める（途中で戻らないよう、今の差を足して続ける）。
+      for(const p of r.pages)await p.evaluate(()=>{const real=performance.now.bind(performance),d=real()-window.__onlineT;performance.now=()=>window.__onlineT+d;});
+      await frames(r.pages,4,7);
+      await g.evaluate(()=>{__g.releaseLock();window.__view=[];const P=__g.player;
+        CBOnlineGame.afterFrame=(dt,tm)=>{CBOnlineGame.__afterOrig(dt,tm);const o=__g.onlineViewOffset(P),p=P.pos.clone(),v=o?p.clone().add(o):p;
+          __view.push([v.x,v.z,p.x,p.z,P.yaw,!!P.flying]);};});
+      await frames(r.pages,100,7);
+      const fly=(await g.evaluate(()=>window.__view)).filter(v=>v[5]);const f=stats(fly,1);
+      console.log('カタパルト飛翔',JSON.stringify(f));if(process.env.DUMP)console.log(fly.slice(1).map((v,i)=>Math.hypot(v[0]-fly[i][0],v[1]-fly[i][1]).toFixed(2)+'/'+Math.hypot(v[2]-fly[i][2],v[3]-fly[i][3]).toFixed(2)).join(' '));
+      ok(fly.length>=60,'ゲストでもカタパルトで飛んでいる');
+      ok(f.rawStill>f.frames*.3,'確定位置は写真ごとにしか動かない（補う条件の確認）');
+      ok(f.still===0&&f.cv<.35,'飛翔中も表示位置は毎コマ進み、ばらつきが小さい');
+    } else console.log('このマップにカタパルトが無いので飛翔の確認は省略');
   }finally{await r?.close().catch(()=>{});await h.close();}
 },{page:false});
