@@ -104,14 +104,14 @@
   let prediction=predictionState();
   function resetPrediction(enabled=prediction.enabled) {
     localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
-    prediction=predictionState(enabled);inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};for(const u of units)delete u.onlineVisualOffset;
+    prediction=predictionState(enabled);inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};for(const u of units){delete u.onlineVisualOffset;delete u.onlineRenderOffset;}localStepDelta=null;
   }
   function clearPrediction() {
     resetLocalFire();
     localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
     prediction.pending=[];prediction.actionEdges=[];inputSending.history=[];inputSending.signature=null;prediction.authoritative=null;prediction.visualFrames=0;prediction.hostSteps=[];
     state.pendingInputs.clear();displayedLatencies.length=0;
-    for(const u of units)delete u.onlineVisualOffset;
+    for(const u of units){delete u.onlineVisualOffset;delete u.onlineRenderOffset;}localStepDelta=null;
   }
   function predictionMetrics() {
     return {...safe(prediction,['enabled','reconciliations','correctionCount','correctionTotal','correctionMax','predictedSteps','predictedSeconds','replayedSteps','replayedSeconds','hardSnaps','partialAcks','droppedInputs','lastAckSeq','lastAckStep','lastAckActionSeq','confirmedHostSeconds','hostStepSamples','blockedFrames']),
@@ -221,7 +221,7 @@
     m.correctionCount++;m.correctionTotal+=distance;m.correctionMax=Math.max(m.correctionMax,distance);
     if(!reason&&distance>=.5)reason='distance';
     if(reason){
-      delete player.onlineVisualOffset;m.visualFrames=0;m.hardSnaps++;m.hardSnapReasons[reason]=(m.hardSnapReasons[reason]||0)+1;
+      delete player.onlineVisualOffset;delete player.onlineRenderOffset;localStepDelta=null;m.visualFrames=0;m.hardSnaps++;m.hardSnapReasons[reason]=(m.hardSnapReasons[reason]||0)+1;
     }else{
       const offset=previousView.visualPos.clone().addScaledVector(player.pos,-1);
       // 小補正が重なっても0.5m以上を見た目の遅れとして蓄積しない。
@@ -668,7 +668,22 @@
     }
   }
 
+  // 自機は1/60秒の固定命令で進むので、60Hzより速い画面では0歩・1歩のコマが混ざり段になる。
+  // 描画だけ直前の1歩の中を補間する（最大1歩=16.7msの見た目の遅れ）。pos・当たり判定・送信は確定値のまま。
+  let localStepDelta=null;
+  // 描画のずらし＝補正のなめらか戻し＋刻みの補間（本体のonlineViewOffsetと同じ）。無ければnull。
+  function viewOffsetOf(u){
+    const a=u?.onlineVisualOffset,b=u?.onlineRenderOffset;if(!a&&!b)return null;
+    const o=(a||b).clone();if(a&&b)o.add(b);return o;
+  }
+  function updateLocalRenderOffset(){
+    if(!player)return;
+    const alpha=clamp(localCommands.accumulator/commandLimits.dt,0,1);
+    if(!localStepDelta||localStepDelta.x**2+localStepDelta.y**2+localStepDelta.z**2>4||alpha>=1){delete player.onlineRenderOffset;return;}
+    (player.onlineRenderOffset||(player.onlineRenderOffset=vector([0,0,0]))).copy(localStepDelta).multiplyScalar(alpha-1);
+  }
   function stepLocalCommands(input,dt){
+    if(localCommands.lifeId!==player.lifeId){localStepDelta=null;delete player.onlineRenderOffset;}
     if(localCommands.lifeId!==player.lifeId)localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:player.lifeId};
     // 描画間の短い押下/射撃端もcontrolへ直ちに残す。移動命令自体はまだ作らない。
     const sampled={...input,seq:state.seq+1,spawnChoice:player.spawnChoice,nextCls:player.nextCls};
@@ -694,8 +709,10 @@
       if(!command.trigger&&previousTrigger&&state.shots.length)state.shots[state.shots.length-1].until=command.seq;
       previousMove=moving;previousTrigger=!!command.trigger;
       if(!sendLocalInput(command,true,false,true))return;
-      predictLocalInput(command,commandLimits.dt);
+      const before=player.pos.clone();
+      localStepDelta=predictLocalInput(command,commandLimits.dt)?player.pos.clone().addScaledVector(before,-1):null;
     }
+    updateLocalRenderOffset();
     flushLocalInputs();
   }
   function remoteInput(u) {
@@ -1177,6 +1194,7 @@
   // 発砲炎と発射音だけ。弾・命中・ダメージ・弾数は今どおりホストが決める。対象はふつうの即着弾銃
   // （飛ぶ弾・チャージ・ガトリングの回し・ミサイル・3点射は除く）。ホストから届く炎と音の重複を減らす。
   const localFireWindowMs=500;
+  let localTracer=null;const localTracerStats={drawn:0,covered:0,host:0};
   let localFire;
   function resetLocalFire(u=null){
     const sl=u?.slots?.[u.weapon];
@@ -1193,7 +1211,7 @@
     return sl;
   }
   function trimLocalFire(){
-    const t=now();localFire.pending=localFire.pending.filter(p=>t>=p.at&&t-p.at<=localFireWindowMs&&(p.shot||p.sfx));
+    const t=now();localFire.pending=localFire.pending.filter(p=>t>=p.at&&t-p.at<=localFireWindowMs&&(p.shot||p.sfx||p.tracer>0));
   }
   function predictLocalFire(input,dt){
     if(!player||state.role!=='guest'||state.phase!=='playing'||!Number.isFinite(dt)||dt<=0)return;
@@ -1220,17 +1238,38 @@
         if(w.dual)mainMuzzleFlash(player,true,w);
       }
       sfx(w.sfx,player.pos,player,w.sfxRate);
-      localFire.pending.push({at:now(),shot:player.weapon==='main',sfx:true});
+      const tracers=localTracers(sl,input.aimPoint);
+      localFire.pending.push({at:now(),shot:player.weapon==='main',sfx:true,tracer:tracers});
       if(localFire.pending.length>64)localFire.pending.shift();
       if(w.semi){localFire.held=true;break;}
     }
+  }
+  // 弾の筋も手元の銃口から、手元の照準点へ向けて先に描く。散らばりは本体のfire()と同じ式の乱数で、
+  // ホストの実際の弾とは別の筋になる（当たり・ダメージはホストの弾で決まる）。戻り値は描いた本数。
+  function localTracers(sl,aimPoint){
+    const w=sl.w;if(!Array.isArray(aimPoint)||typeof fire!=='function')return 0;
+    const offset=viewOffsetOf(player);
+    let sp=movementSpread(player)+(w.spread||0);
+    if(w.scope)sp+=player.scoped?(w.sway||0)*(1-(sl.conv||0)):(w.hip||0)*(Math.hypot(player.vel.x,player.vel.z)>3||!player.onGround?w.hipMove||1:1);
+    sp*=player.aimMul||1;
+    const aim=vector(aimPoint),froms=w.dual?[muzzle(player),muzzle(player,true)]:[muzzle(player)];let n=0;
+    for(const from of froms)for(let i=0;i<(w.pellets||1);i++){
+      const to=w.fan?aim.clone().sub(from).applyAxisAngle(UP,(i-((w.pellets||1)-1)/2)*w.fan).add(from):aim;
+      const dir=to.clone().sub(from).normalize();
+      dir.x+=(Math.random()-.5)*sp;dir.y+=(Math.random()-.5)*sp;dir.z+=(Math.random()-.5)*sp;dir.normalize();
+      const hit=castFrom(from,dir,player,w.range||400),end=hit?hit.point:from.clone().addScaledVector(dir,w.range||300);
+      const a=offset?from.clone().add(offset):from;
+      if(w.laserFade>0)laserTrail(a,end,w.laserFade);else localTracer(a,end,player.team,w.energy,w,primaryShot(player,w)||BIG_TRACE_SERIES.has(w.series));
+      n++;
+    }
+    localTracerStats.drawn+=n;return n;
   }
   // 同じlife/武器の未消費の炎・音だけを各1回抑える。時刻窓は厳密な射撃ID照合ではない。
   // host拒否や500ms超の遅着は一致を保証できない。弾数・命中・ダメージは予測しない。
   function localFireCovers(type,data){
     if(!localFireMatches()||!localFireWeapon(player)||data.lifeId!==localFire.lifeId||data.weapon!==localFire.weaponKey)return false;
     trimLocalFire();const pending=localFire.pending.find(p=>p[type]);
-    if(!pending)return false;pending[type]=false;return true;
+    if(!pending)return false;if(type==='tracer'){pending.tracer--;localTracerStats.covered++;}else pending[type]=false;return true;
   }
   function beforeFrame(dt,t) {
     frameStart=now();diagnosticFrameStart(frameStart);
@@ -1292,7 +1331,8 @@
   function playEvents(events) {
     if(!Array.isArray(events))return;playingEffects=true;
     try{for(const e of events){if(state.receivedEvents.has(e.id))continue;state.receivedEvents.add(e.id);if(state.receivedEvents.size>4096)state.receivedEvents.delete(state.receivedEvents.values().next().value);const d=e.data;
-      if(e.type==='tracer')tracer(vector(d.from),vector(d.end),d.team,d.energy,WEAPONS[d.weapon]||null,d.enlarged);
+      if(e.type==='tracer'&&d.unit===state.localUnitId&&d.unit)localTracerStats.host++;
+      if(e.type==='tracer'&&!(d.unit===state.localUnitId&&localFireCovers('tracer',d)))tracer(vector(d.from),vector(d.end),d.team,d.energy,WEAPONS[d.weapon]||null,d.enlarged);
       if(e.type==='boom')boom(vector(d.at),d.k,d.radius,d.energy);
       if(e.type==='impact')impact(vector(d.at),d.kind,d.delay);
       if(e.type==='sfx'&&!(d.unit===state.localUnitId&&d.name===localFireWeapon(player)?.w.sfx&&localFireCovers('sfx',d)))sfx(d.name,d.at?vector(d.at):null,d.unit?unit(d.unit):null,d.rate,d.level);
@@ -1387,14 +1427,14 @@
   // 描画中だけカメラをずらし、次frameの照準/送信aimPointにはoffsetを混ぜない。
   if(typeof renderView==='function'){
     const oldRenderView=renderView;renderView=function(){
-      const offset=state.role==='guest'?player?.onlineVisualOffset:null;if(!offset)return oldRenderView(...arguments);
+      const offset=state.role==='guest'?viewOffsetOf(player):null;if(!offset)return oldRenderView(...arguments);
       const position=camera.position.clone();camera.position.add(offset);camera.updateMatrixWorld();
       try{return oldRenderView(...arguments);}finally{camera.position.copy(position);camera.updateMatrixWorld();}
     };
   }
   // 表示関数だけを包む。ゲスト側で発射/ダメージ関数を呼び出さない。
   const oldWeaponLook=weaponLook;weaponLook=function(u,dt){const d=u.cannonDeploy;try{return oldWeaponLook(u,dt);}finally{if(state.role==='guest')u.cannonDeploy=d;}};
-  const oldTracer=tracer;tracer=function(from,end,team,energy,w,enlarged=true){emit('tracer',{from:from.toArray(),end:end.toArray(),team,energy,weapon:w?.key,enlarged});return oldTracer(...arguments);};
+  const oldTracer=tracer;localTracer=oldTracer;tracer=function(from,end,team,energy,w,enlarged=true){const src=effectSource?.entityId?effectSource:null;emit('tracer',{from:from.toArray(),end:end.toArray(),team,energy,weapon:w?.key,enlarged,unit:src?.entityId,lifeId:src?.lifeId});return oldTracer(...arguments);};
   const oldBoom=boom;boom=function(at,k=1,radius=0,energy=false){emit('boom',{at:at.toArray(),k,radius,energy});return oldBoom(...arguments);};
   const oldImpact=impact;impact=function(at,kind,delay){emit('impact',{at:at.toArray(),kind,delay});return oldImpact(...arguments);};
   const oldSfx=sfx;sfx=function(name,at,src,rate=1,level=1){
@@ -1492,5 +1532,5 @@
   window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,
     roomOptions:{maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
-      inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice()})};
+      inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice(),localTracers:{...localTracerStats}})};
 })();

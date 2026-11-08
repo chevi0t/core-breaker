@@ -9385,8 +9385,16 @@ function lockStick(u, t, step) {
   const n = Math.hypot(ey, ep), k = n > step ? step / n : 1;
   return { yaw: ey * k, pitch: ep * k };
 }
+// オンラインのゲストの自機は、描画位置を確定位置から少しずらす（補正のなめらか戻しと、固定命令の刻みの補間）。
+// カメラ・機体の模型・ロック追従の角度は同じずらしで計算する（ずらしが無い機体ではnull）。
+function onlineViewOffset(u) {
+  const a = u.onlineVisualOffset, b = u.onlineRenderOffset;
+  if (!a && !b) return null;
+  const o = new T.Vector3(); if (a) o.add(a); if (b) o.add(b); return o;
+}
 function anglesTo(u, p) {
-  const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
+  const o = u.onlineVisualOffset || u.onlineRenderOffset ? onlineViewOffset(u).add(u.pos) : u.pos;
+  const d = p.clone().sub(o).setY(p.y - o.y - CAM.up);
   return { yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)) };
 }
 
@@ -12353,7 +12361,7 @@ function gameFrame(now) {
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
     // 小さい巻き直し補正はモデルだけへ。pos/vel/当たり判定の確定値には混ぜない。
-    if (u.onlineVisualOffset) u.group.position.add(u.onlineVisualOffset);
+    if (u.onlineVisualOffset || u.onlineRenderOffset) u.group.position.add(onlineViewOffset(u));
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
     if (!(simulationRole === 'guest' && !isLocalView(u))) u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
