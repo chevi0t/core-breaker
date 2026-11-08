@@ -250,6 +250,15 @@
     canStartMatch() {
       return this.role==='host' && !this.closed && !this.started && [...this.links.values()].every(l=>l.closing || !l.approved || l.ready);
     }
+    // 試合が終わったら同じ接続のまま部屋の待機へ戻る（2026-11-08 オーナー「さっき繋いだ人らがまたロビーに戻る形に」）。
+    // 次の startMatch と、ロビー中の新しい入室を受け付けられるようにする。古い試合番号の写真や入力は捨てられる。
+    returnToLobby() {
+      if (this.closed) return false;
+      // 送信待ちの写真は前の試合番号で包んであり、受け手が試合番号の不一致で捨てる。ここでは消さない
+      // （最後の写真も相手へ届け、取りこぼしの観測と結果の照合に使えるようにする）。
+      this.started = false; this.matchId = '';
+      return true;
+    }
     startMatch(matchId) {
       if (!this.canStartMatch()) throw new Error('両方の通信チャネルの準備が完了していないため、試合を開始できません');
       this.matchId = matchId || ('match-' + Math.random().toString(36).slice(2));

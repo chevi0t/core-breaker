@@ -545,6 +545,10 @@
     } else if (type === 'begin' && state.phase==='preparing' && prepared && data?.matchId === state.matchId) { countdown(data.startAtHost); }
     else if (type === 'snapshot' && ['lobby','preparing','countdown','playing'].includes(state.phase)) receiveSnapshot(data);
     else if (type === 'matchEnded') receiveMatchEnded(data);
+    else if (type === 'lobbyReturn' && ['ended','playing','countdown','preparing'].includes(state.phase) && data?.matchId === state.matchId) {
+      if(state.phase!=='ended'){showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();}
+      backToLobby();
+    }
     else if (type === 'events' && state.phase === 'playing') playEvents(data);
   }
   function validInput(v) {
@@ -783,6 +787,19 @@
     const u = unit(p.unitId);
     if (u) { u.controller = 'bot';delete u.onlineFixedMovement; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
     state.peers.delete(id); lobbyChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
+  }
+  // 試合の後、同じ部屋の待機へ戻る。ホストは試合終了の通知の直後に全員へ知らせ、ゲストはそれを受けて戻る。
+  // 参加者・兵装の確認・部屋の設定はそのまま。結果画面はそのまま見られ、次の試合はホストがロビーから始める。
+  function backToLobby(){
+    clearStartReservation();clearTimeout(state.prepareTimer);state.prepareTimer=null;
+    if(state.phase!=='ended'){clearPrediction();running=false;ended=true;tutorialClearInput();stopSessionAudio();}
+    state.transport?.returnToLobby?.();
+    // 試合の番号（frame）は戻さない。終わった試合の最終frameを後から照合でき、次の試合も番号が増え続ける。
+    const lastFrame=state.frame;resetMeasurements();state.frame=lastFrame;
+    for(const p of state.peers.values())Object.assign(p,{ready:false,unitId:null,input:null});
+    state.phase='lobby';state.matchId=null;running=false;ended=true;
+    state.matchesFinished=(state.matchesFinished||0)+1;lobbyChanged();callbacks.onLobbyReturn?.();
+    status(state.role==='host'?'ロビーに戻りました。同じメンバーで次の試合を始められます':'ロビーに戻りました。ホストの開始を待っています');
   }
   function endGuest(reason) {
     clearStartReservation();
@@ -1369,7 +1386,9 @@
       state.lastSent=now();
     }
     state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();diagnosticFrameEnd();
-    if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();lagHistory?.clear();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
+    if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();lagHistory?.clear();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');
+      // 同じ部屋の待機へ戻る（afterFrameだけを取り出す試験では関数が無い）。
+      if(typeof backToLobby==='function'){state.transport.broadcast('lobbyReturn',{matchId:state.matchId});backToLobby();}}
   }
   function emit(type,data,source=effectSource,target=effectTarget) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data,source:source||unit(data.unit),target});}
   function playEvents(events) {

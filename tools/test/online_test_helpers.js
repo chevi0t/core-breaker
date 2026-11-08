@@ -155,7 +155,7 @@ async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=tru
 async function identity(p){return p.evaluate(()=>({id:CBOnlineGame.state.localUnitId,pos:__g.player.pos.toArray(),life:__g.player.lifeId,hp:__g.player.hp,team:__g.player.team}));}
 async function input(p,v){await p.evaluate(v=>CBOnlineGame.testInput(v),v);}
 const neutral={keys:{},pressed:{},fwd:0,side:0,trigger:false,alt:false,wheel:0};
-async function summary(p){return p.evaluate(()=>({phase:CBOnlineGame.state.phase,running:__g.running,time:__g.timeLeft,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId||u.netId||`${u.team}:${u.idx}`,team:u.team,controller:u.controller,hp:u.hp,lifeId:u.lifeId,sc:u.sc,weapon:u.weapon})),metrics:CBOnlineGame.metrics()}));}
+async function summary(p){return p.evaluate(()=>({phase:CBOnlineGame.state.phase,finished:CBOnlineGame.state.matchesFinished||0,running:__g.running,time:__g.timeLeft,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId||u.netId||`${u.team}:${u.idx}`,team:u.team,controller:u.controller,hp:u.hp,lifeId:u.lifeId,sc:u.sc,weapon:u.weapon})),metrics:CBOnlineGame.metrics()}));}
 // 成功したwire送信を観測する。製品のsend/codecを変更せず、分割を独立に組み立てる。
 // 呼出側はawait installWireObserver(page)後、page内で__observeOnlineWire(onDatagram,onMessage)。
 // datagram: {envelope,channel,messageBytes,peerId,at,type}。

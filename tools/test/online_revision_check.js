@@ -257,7 +257,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     await sleep(1100);
     await guest.evaluate(()=>{
       const proto=CBOnlineCodec.Decoder.prototype,decode=proto.decode;
-      window.__finalRecovery={cleared:false,snapshots:0,droppedFrames:[],bases:0,baseIds:[],resync:0,results:0};
+      window.__finalRecovery={cleared:false,snapshots:0,droppedFrames:[],bases:0,baseIds:[],resync:0,results:0,lobbyReturn:0};
       proto.decode=function(delta){proto.decode=decode;this.bases.clear();__finalRecovery.cleared=true;return decode.call(this,delta);};
       const t=CBOnlineGame.state.transport,receive=t.options.onMessage,send=t.send.bind(t);
       t.options.onMessage=(type,data,id)=>{
@@ -267,6 +267,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
           if(__finalRecovery.cleared){__finalRecovery.droppedFrames.push(data.frame);return;}
         }
         if(type==='matchEnded')__finalRecovery.results++;
+        if(type==='lobbyReturn')__finalRecovery.lobbyReturn++;
         return receive(type,data,id);
       };
       t.send=(type,...args)=>{if(type==='snapshotResync')__finalRecovery.resync++;return send(type,...args);};
@@ -292,11 +293,12 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
       __g.finish();CBOnlineGame.afterFrame(0,performance.now());
       return {frame:CBOnlineGame.state.frame,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))};
     });
-    await guest.waitForFunction(()=>CBOnlineGame.state.phase==='ended',{},{timeout:6000,polling:20}).catch(async error=>{await finalDiagnostic('control結果の到着');throw error;});
+    await guest.waitForFunction(()=>(CBOnlineGame.state.phase==='ended'||CBOnlineGame.state.phase==='lobby'&&CBOnlineGame.state.matchesFinished>0),{},{timeout:6000,polling:20}).catch(async error=>{await finalDiagnostic('control結果の到着');throw error;});
     await sleep(180); // controlが先着しても、落とした最後の写真を観測してから集計する。
     const finalRecovery=await guest.evaluate(()=>({...__finalRecovery,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))}));
     report.finalRecovery={expected:finalExpected,observed:finalRecovery};
-    ok(finalRecovery.cleared&&finalRecovery.resync>=1&&finalRecovery.bases>=1&&finalRecovery.droppedFrames.includes(finalExpected.frame)&&finalRecovery.results===1,'最終差分・全再送基準が欠落してもcontrol結果1通で終了へ復旧');
+    // 試合後は同じ部屋の待機へ戻る（#218）。その後に届く最後の写真は、通信層が前の試合番号として捨てるので、ここまで来ない。
+    ok(finalRecovery.cleared&&finalRecovery.resync>=1&&finalRecovery.bases>=1&&(finalRecovery.droppedFrames.includes(finalExpected.frame)||finalRecovery.lobbyReturn===1)&&finalRecovery.results===1,'最終差分・全再送基準が欠落してもcontrol結果1通で終了へ復旧');
     ok(await host.evaluate(()=>__wireMessages.filter(m=>m.type==='matchEnded').every(m=>m.channel==='control')&&__wireMessages.filter(m=>m.type==='matchEnded').length===1),'最終結果は写真専用線でなくcontrolで1通送信');
     // 各画面のunitsは自軍先になる。entityIdで揃え、scのキー挿入順に依存せず値を比較。
     const byId=units=>units.slice().sort((a,b)=>a.id.localeCompare(b.id));
@@ -313,16 +315,16 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     }
     ok(finalMatches,'写真欠落中の最終コア・全機体の表彰得点もcontrolで一致');
     await guest.evaluate(()=>{const s=__drop.stale;__originalReceive(s.type,s.data,s.id);});
-    ok(await guest.evaluate(()=>CBOnlineGame.state.phase==='ended'&&!__g.running),'結果復旧後の古いsnapshotで試合を再開しない');
+    ok(await guest.evaluate(()=>(CBOnlineGame.state.phase==='ended'||CBOnlineGame.state.phase==='lobby'&&CBOnlineGame.state.matchesFinished>0)&&!__g.running),'結果復旧後の古いsnapshotで試合を再開しない');
     for(const p of pages){
-      ok(await p.evaluate(()=>CBOnlineGame.state.phase==='ended'&&!document.getElementById('overlay').hidden&&!!document.getElementById('ovTitle').textContent),'試合終了の結果画面が見える');
+      ok(await p.evaluate(()=>(CBOnlineGame.state.phase==='ended'||CBOnlineGame.state.phase==='lobby'&&CBOnlineGame.state.matchesFinished>0)&&!document.getElementById('overlay').hidden&&!!document.getElementById('ovTitle').textContent),'試合終了の結果画面が見える');
       ok(await p.evaluate(()=>document.getElementById('onlinePanel').hidden&&!document.getElementById('onlineReturn').hidden),'戻るボタンを押すまではオンラインパネルを閉じる');
       const a=await audioResult(p);ok(a.active===0&&!a.bgm&&!a.boost&&a.stopped.length>=3,'試合終了で移動音・周囲ループ音・BGMを停止');
       await p.locator('#ovTitle').click();ok(await p.locator('#onlinePanel').evaluate(e=>e.hidden),'結果内のクリックではパネルを開かない');
       await p.keyboard.press('Escape');ok(await p.locator('#onlinePanel').evaluate(e=>e.hidden),'結果中のEscapeではパネルを開かない');
     }
     await host.locator('#onlineReturn').click();
-    ok(await host.evaluate(()=>!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.role==='offline'),'戻るボタンで旧部屋を退出してオンラインメニューへ戻る');
+    ok(await host.evaluate(()=>!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.role==='host'&&CBOnlineGame.state.phase==='lobby'),'戻るボタンで同じ部屋のロビーを開く（試合後も部屋に残る。#218）');
     await active.close();active=null;
 
     console.log('追加回帰: 20機のsnapshotサイズ');

@@ -3,6 +3,7 @@
 const path=require('node:path');
 const {check}=require('./lib');
 const {harness,pageFor}=require('./online_test_helpers');
+// 試験ページは requestAnimationFrame を止めている（pageFor）。waitForFunction の既定の rAF 待ちは二度と評価されないので、時間で待つ。
 check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir),pages=[];
   const make=async()=>{const p=await pageFor(browser,h,errors,{autoApprove:false});pages.push(p);await p.evaluate(peerOptions=>{const create=CBOnlineGame.create,join=CBOnlineGame.join;CBOnlineGame.create=o=>create({...o,peerOptions});CBOnlineGame.join=(id,o)=>join(id,{...o,peerOptions});},h.peerOptions);return p;};
@@ -19,7 +20,7 @@ check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
     ok(/部屋IDを入力/.test(await host.locator('#onlineStatus').textContent()),'空のIDは状態欄で案内する');
     for(const [name,width,height] of [['desktop',1440,900],['mobile',390,844],['small',320,568]]){
       await host.setViewportSize({width,height});
-      await host.waitForFunction(()=>getComputedStyle(document.getElementById('onlinePanel')).display==='flex');
+      await host.waitForFunction(()=>getComputedStyle(document.getElementById('onlinePanel')).display==='flex',{},{polling:20});
       const layout=await host.evaluate(()=>{const p=document.getElementById('onlinePanel'),b=p.querySelector('.online-body'),f=p.querySelector('.online-footer'),r=p.getBoundingClientRect();return {inside:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight,noOverflow:p.scrollWidth<=p.clientWidth&&b.scrollWidth<=b.clientWidth,footer:f.getBoundingClientRect().bottom<=r.bottom,columns:getComputedStyle(b).gridTemplateColumns.split(' ').length};});
       ok(layout.inside&&layout.noOverflow&&layout.footer, name+'で横はみ出しがなく退出が画面内');
       ok(layout.columns===(width>760?2:1),name+'でPC二列・スマホ一列へ切替');
@@ -28,7 +29,7 @@ check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
     await host.setViewportSize({width:1440,height:900});
     await host.locator('#onlineTeamMode').selectOption('choice');
     await host.locator('#onlineCreate').click();
-    await host.waitForFunction(()=>CBOnlineGame.state.roomId&&!document.getElementById('onlineCopy').disabled);
+    await host.waitForFunction(()=>CBOnlineGame.state.roomId&&!document.getElementById('onlineCopy').disabled,{},{polling:20});
     ok(await host.locator('#onlineRequests').isHidden(),'自動入室では承認欄を隠す');
     ok(await host.locator('#onlineStart').isDisabled(),'一人では開始できない');
     const id=await host.locator('#onlineRoom').inputValue();
@@ -36,11 +37,11 @@ check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
     await host.locator('#onlineCopy').click();
     ok(await host.evaluate(()=>window.__copiedRoom===CBOnlineGame.state.roomId),'クリックした部屋IDだけをコピー');
     const guest=await make();await guest.locator('#menuOnline').click();await guest.locator('#onlineRoom').fill(id);await guest.locator('#onlineJoin').click();
-    await host.waitForFunction(()=>CBOnlineGame.state.roster.length===2&&[...CBOnlineGame.state.peers.values()].every(p=>p.preferred));
+    await host.waitForFunction(()=>CBOnlineGame.state.roster.length===2&&[...CBOnlineGame.state.peers.values()].every(p=>p.preferred),{},{polling:20});
     ok(await host.locator('#onlineStart').isEnabled(),'自動入室後はホストが出撃できる');
     ok(await guest.locator('#onlineStart').isHidden()&&await guest.locator('#onlineMap').isDisabled(),'ゲストに開始・設定変更の操作を出さない');
     const team=host.locator('#onlineRoster [data-team="R"]');await team.focus();await host.keyboard.press('Enter');
-    await host.waitForFunction(()=>CBOnlineGame.state.roster.find(p=>p.host)?.team==='R');
+    await host.waitForFunction(()=>CBOnlineGame.state.roster.find(p=>p.host)?.team==='R',{},{polling:20});
     ok(await team.getAttribute('aria-pressed')==='true','キーボードで希望所属を選べる');
     await host.screenshot({path:path.join(out,'online-lobby-desktop.png')});
     await host.setViewportSize({width:390,height:844});await host.screenshot({path:path.join(out,'online-lobby-mobile.png')});

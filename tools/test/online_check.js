@@ -106,10 +106,10 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       await host.evaluate(()=>{window.botUpdate=window.__testBotUpdate;delete window.__testBotUpdate;});
       console.log('段階: 300秒完走');
       // 人間の入力は中立のまま、Bot が対戦。試合時間そのものは短縮しない。
-      for(let n=0;n<6400;n+=10){await frames(pages,10);if(n%400===0)console.log(`${guests+1}人: ${Math.round(300-(await summary(host)).time)}秒`);if((await summary(host)).phase==='ended')break;}
+      for(let n=0;n<6400;n+=10){await frames(pages,10);if(n%400===0)console.log(`${guests+1}人: ${Math.round(300-(await summary(host)).time)}秒`);if((await summary(host)).finished>0)break;}
       await frames(pages,8);
-      const end=await summary(host);ok(end.phase==='ended','人間'+(guests+1)+'人の試合が勝敗まで完走');
-      for(const guest of gs){const e=await summary(guest);ok(e.phase==='ended'&&JSON.stringify(e.cores)===JSON.stringify(end.cores),'ゲストの最終コア・終了状態が一致');}
+      const end=await summary(host);ok(end.phase==='lobby'&&end.finished>0,'人間'+(guests+1)+'人の試合が勝敗まで完走');
+      for(const guest of gs){const e=await summary(guest);ok(e.phase==='lobby'&&e.finished>0&&JSON.stringify(e.cores)===JSON.stringify(end.cores),'ゲストの最終コア・終了状態が一致');}
       results.matches.push({humans:guests+1,host:end,guests:await Promise.all(gs.map(summary))});
       await active.close();active=null;
     }
