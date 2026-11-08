@@ -37,6 +37,8 @@
   function flatten(value,path=[],out=[]){
     if(value===undefined)return out; // オブジェクトの未定義値はJSON同様に省略。配列では呼出元がnull化。
     const key=path[path.length-1],parent=path[path.length-2];
+    // hostが実適用した可変dt/累積dtは丸めずIEEE値をJSON roundtripで保つ。
+    if(key==='inputAcks'){out.push([path,'j',clone(value)]);return out;}
     if(atoms.has(key)||value===null||(typeof value==='object'&&Object.keys(value).filter(k=>value[k]!==undefined).length===0)){out.push([path,'j',rounded(value)]);return out;}
     if(typeof value==='object'){
       for(const k of Object.keys(value).sort((a,b)=>Array.isArray(value)?Number(a)-Number(b):a.localeCompare(b)))flatten(Array.isArray(value)&&value[k]===undefined?null:value[k],path.concat(Array.isArray(value)?Number(k):k),out);

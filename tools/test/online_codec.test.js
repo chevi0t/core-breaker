@@ -45,3 +45,15 @@ let mw=mobilityEncoder.encode(mobility);assert(mobilityDecoder.seed(mw.baseline)
 mobility=copy(mobility);mobility.time=50;mobility.frame=1;mobility.mobility.lifts[0]={pos:[0,3.456,2],direction:-1,waitT:0,blocked:true};mobility.mobility.jumpPads[0]=.9;mobility.mobility.catapults[0]={flash:1,opacity:.82};
 mw=mobilityEncoder.encode(mobility);const mr=mobilityDecoder.decode(mw.delta);assert.equal(mr.mobility.lifts[0].pos[1],3.46);assert.equal(mr.mobility.lifts[0].blocked,true);assert.equal(mr.mobility.jumpPads[0],.9);assert.equal(mr.mobility.catapults[0].opacity,.82);
 console.log('状態写真codec：リフト・射出施設の表示状態 成功');
+
+// 確定host dtは一般状態の1ms丸めと分離して保持する。
+{
+ const C=require('../../prototype/online/codec.js'),e=new C.Encoder(),d=new C.Decoder();
+ const value={time:0,frame:1,inputAcks:{'B:0':{seq:3,step:9,seqDt:1/60,totalDt:7/60,steps:[{step:9,seq:3,dt:1/60,seqDt:1/60,pressed:true}]}}};
+ const first=e.encode(value);if(!d.seed(first.baseline))throw Error('ack baseline seed failed');
+ require('node:assert/strict').deepEqual(d.decode(first.delta).inputAcks,value.inputAcks);
+ value.time=10;value.frame++;value.inputAcks['B:0'].steps[0].dt=1/144;value.inputAcks['B:0'].seqDt+=1/144;
+ const next=e.encode(value);if(next.baseline)d.seed(next.baseline);
+ require('node:assert/strict').deepEqual(d.decode(next.delta).inputAcks,value.inputAcks);
+ console.log('状態写真codec：実host可変dtは丸めず保持 成功');
+}

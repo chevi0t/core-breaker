@@ -37,9 +37,9 @@ check('実PeerJSの制御・状態チャネル設定',async({browser,dir,out,ok,
     },h.peerOptions);
     const r=report.result;
     ok(r.peerRegistered,'実PeerJSをローカルPeerServerへ登録できた');
-    ok(r.control.label==='core-breaker-control-v5'&&r.control.ordered===true&&r.control.maxRetransmits===null&&r.control.maxPacketLifeTime===null,'製品controlは実RTC上でも順序保証あり・再送上限なし');
-    ok(r.snapshot.label==='core-breaker-snapshot-v5'&&r.snapshot.ordered===false&&r.snapshot.maxRetransmits===0&&r.snapshot.maxPacketLifeTime===null,'製品snapshotは実RTC上でも順序保証なし・再送0回');
-    ok(r.created.some(x=>x.actual.label==='core-breaker-snapshot-v5'&&x.options.maxRetransmits===0),'PeerJSが作るcreateDataChannelの実引数にもmaxRetransmits:0が入る');
+    ok(r.control.label==='core-breaker-control-v6'&&r.control.ordered===true&&r.control.maxRetransmits===null&&r.control.maxPacketLifeTime===null,'製品controlは実RTC上でも順序保証あり・再送上限なし');
+    ok(r.snapshot.label==='core-breaker-snapshot-v6'&&r.snapshot.ordered===false&&r.snapshot.maxRetransmits===0&&r.snapshot.maxPacketLifeTime===null,'製品snapshotは実RTC上でも順序保証なし・再送0回');
+    ok(r.created.some(x=>x.actual.label==='core-breaker-snapshot-v6'&&x.options.maxRetransmits===0),'PeerJSが作るcreateDataChannelの実引数にもmaxRetransmits:0が入る');
     ok(r.restoredAfterSuccess&&r.restoredAfterFailure&&r.unrelated.ordered===true&&r.unrelated.maxRetransmits===null,'成功時・例外時とも一時patchを戻し、無関係なチャネルは変更しない');
     console.log('実RTC生成設定',JSON.stringify({control:r.control,snapshot:r.snapshot,unrelated:r.unrelated,connectionEstablished:false}));
   }finally{if(page&&!page.isClosed())await page.close();await h.close();fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'online-channel.json'),JSON.stringify(report,null,2));}

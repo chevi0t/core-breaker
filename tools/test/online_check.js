@@ -92,7 +92,8 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       },before.id);
       await frames(pages,5);
       const ammo0=await g.evaluate(()=>__g.player.slots.main.ammo);
-      await input(g,{...neutral,weapon:'main',yaw:Math.PI,pitch:0,aimPoint:fixture.aim,trigger:true});
+      await g.evaluate(()=>CBOnlineGame.requestWeapon('main'));
+      await input(g,{...neutral,yaw:Math.PI,pitch:0,aimPoint:fixture.aim,trigger:true});
       await frames(pages,40);await input(g,neutral);await frames(pages,5);
       const ammo1=await g.evaluate(()=>__g.player.slots.main.ammo);
       ok(ammo1<ammo0,'遠隔射撃の残弾をホストで消費し表示');
@@ -125,7 +126,8 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
         return {key:u.slots.sub.w.key,ammo:u.slots.sub.ammo,aim:[0,g.terrainH(0,130)+1,130]};
       });
       ok(target.key==='rocket','重火力の初期ロケットを装備');
-      await input(guest,{...neutral,weapon:'sub',yaw:0,pitch:0,aimPoint:target.aim,trigger:true});
+      await guest.evaluate(()=>CBOnlineGame.requestWeapon('sub'));
+      await input(guest,{...neutral,yaw:0,pitch:0,aimPoint:target.aim,trigger:true});
       let seen=false;
       for(let n=0;n<70;n++){await frames(pages,1);if(await host.evaluate(()=>__g.shells.length>0))seen=true;}
       await input(guest,neutral);await frames(pages,5);
@@ -157,8 +159,14 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
         const u=__g.units.find(x=>x.entityId===id);u.hp=4321;u.actionHeld=true;u.actionBlockBoost=true;u.controlTarget=__g.units.find(x=>x.team!==u.team);
         return {hp:u.hp,lifeId:u.lifeId,pos:u.pos.toArray()};
       },id);
-      // DataConnection・ping・snapshot は維持し、ゲーム入力だけ送らない。
-      await silent.evaluate(()=>{const t=CBOnlineGame.state.transport,send=t.send.bind(t);t.send=(type,...args)=>type==='input'?true:send(type,...args);});
+      // DataConnection・ping・snapshot は維持し、非再送の移動とcontrolの一度きり操作を両方止める。
+      await silent.evaluate(base=>{
+        const t=CBOnlineGame.state.transport,send=t.send.bind(t);window.__silencedInputs={inputBatch:0,inputActions:0};
+        t.send=(type,...args)=>{if(Object.hasOwn(__silencedInputs,type)){__silencedInputs[type]++;return true;}return send(type,...args);};
+        // ack済みの中立状態はcontrolを再送しない。遮断後に射撃開始を明示し、両線の遮断を実証する。
+        // この操作は上のwrapperが捨てるため、hostのHP/物理状態は変わらない。
+        CBOnlineGame.testInput({...base,trigger:true});
+      },neutral);
       const until=Date.now()+3800;
       // ホストの物理・Bot思考は進めず、通信の前後処理だけ回す。
       // u.frozen は本体に存在しないため、位置保持をそのフラグに頼らない。
@@ -173,7 +181,9 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       const after=await host.evaluate(id=>{const u=__g.units.find(x=>x.entityId===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,pos:u.pos.toArray(),count:__g.units.length,actionHeld:u.actionHeld,actionBlockBoost:u.actionBlockBoost,target:!!u.controlTarget};},id);
       ok(after.controller==='bot'&&after.hp===before.hp&&after.lifeId===before.lifeId&&JSON.stringify(after.pos)===JSON.stringify(before.pos)&&after.count===10&&!after.actionHeld&&!after.actionBlockBoost&&!after.target,'入力途絶機も状態を保ってBotへ引継ぐ');
       ok(await other.evaluate(()=>CBOnlineGame.state.phase==='playing'&&CBOnlineGame.state.transport.metrics().connectedPeers===1),'入力途絶したゲスト以外の対戦接続は継続');
-      results.inputTimeout={guest:lost,before,after};
+      const blockedInputs=await silent.evaluate(()=>__silencedInputs);
+      ok(blockedInputs.inputBatch>0&&blockedInputs.inputActions>0,'入力途絶fixtureが最新5コマbatchとcontrol操作の両方を実際に止めた: '+JSON.stringify(blockedInputs));
+      results.inputTimeout={guest:lost,before,after,blockedInputs};
     }
     await active.close();active=null;
     active=await room(browser,h,errors,{guests:1});

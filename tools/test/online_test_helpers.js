@@ -18,7 +18,7 @@ const MOCK_PEER_SOURCE=`(() => {
   class MockConnection extends Emitter {
     constructor(owner,remote,id,options={}){super();this.owner=owner;this.peer=remote;this.connectionId=id;this.options=options;this.label=options.label||id;this.metadata=options.metadata;this.serialization=options.serialization||'raw';this.reliable=!!options.reliable;this.open=false;this.bufferSize=0;
       // 代替試験で契約を模倣するだけ。実RTCの生成オプション検証はonline_loss_checkで別に行う。
-      const snapshot=this.label==='core-breaker-snapshot-v5';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
+      const snapshot=this.label==='core-breaker-snapshot-v6';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
     send(data){if(!this.open)throw Error('代替接続が開いていません');this.owner.post({type:'data',to:this.peer,id:this.connectionId,data});}
     close(remote=false){if(this.closed)return;this.closed=true;this.open=false;this.dataChannel.readyState='closed';if(!remote)this.owner.post({type:'close',to:this.peer,id:this.connectionId});this.owner.connections.delete(this.connectionId);this.emit('close');}
     ready(){if(this.closed||this.open)return;this.open=true;this.dataChannel.readyState='open';this.emit('open');}
@@ -128,15 +128,15 @@ async function frames(pages,n=1,ms=50){
     if(i%5===0)await sleep(5);
   }
 }
-async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[],beforeStart}={}){
+async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[],beforeStart,predictionEnabled=true}={}){
   const pages=[];
   const host=await pageFor(browser,h,errors,{frozen,render});pages.push(host);
   console.log('部屋作成開始');
-  const roomId=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions,latencyMs,settings:{teamMode:'choice'}});
+  const roomId=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions,latencyMs,predictionEnabled,settings:{teamMode:'choice'}});
   for(let i=0;i<guests;i++){
     const guest=await pageFor(browser,h,errors,{frozen,render});pages.push(guest);
     console.log(`ゲスト ${i+1} 接続開始`);
-    await guest.evaluate(([id,o])=>CBOnlineGame.join(id,o),[roomId,{peerOptions:h.peerOptions,latencyMs,cls:guestClasses[i]||'assault'}]);
+    await guest.evaluate(([id,o])=>CBOnlineGame.join(id,o),[roomId,{peerOptions:h.peerOptions,latencyMs,predictionEnabled,cls:guestClasses[i]||'assault'}]);
   }
   console.log('全ゲスト接続完了・試合開始');
   await sleep(100+latencyMs*2); // 装備希望もホストへ届いてから開始する。

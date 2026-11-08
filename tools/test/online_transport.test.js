@@ -46,6 +46,7 @@ class FakePeer extends EventEmitter {
     for(const type of ['prepare','snapshotBase','snapshot','events','begin','match'])assert.equal(host.send(type,{secret:true},guest.peer.id),false);
     assert.equal(host.broadcast('snapshot',{secret:true}),0);
     assert.equal(guest.send('input',{seq:0}),false);
+    assert.equal(guest.send('inputBatch',{inputs:[{seq:1}]}),false);
     await wait(80);assert.equal(joined,false);assert.equal(received.length,0);
     assert.equal(host.approvePeer(guest.peer.id),true);assert.equal(host.approvePeer(guest.peer.id),false);
     await joining;
@@ -57,14 +58,15 @@ class FakePeer extends EventEmitter {
     const shifted=await guest.waitForClock();assert(Math.abs(shifted.offsetMs-100000)<50);
     hostLink.conn.send=originalSend;
     assert.equal(host.metrics().connectedPeers, 1);
-    guest.send('input', {seq:1}); await wait(60);
-    assert.equal(messages[0][0], 'input'); assert.equal(messages[0][2], guest.peer.id);
+    assert.equal(guest.send('input', {seq:1}),false);
+    guest.send('inputActions', {seq:1}); await wait(60);
+    assert.equal(messages[0][0], 'inputActions'); assert.equal(messages[0][2], guest.peer.id);
     const wrong = make({appVersion:'Ver178',onStatus:s=>status.push(s)});
     await assert.rejects(wrong.connect(room), /版が違います/);
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
     oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:3});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 5 \/ 相手: 3）/);
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 6 \/ 相手: 3）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);
@@ -126,20 +128,25 @@ class FakePeer extends EventEmitter {
     assert.equal(smallGuests[0].g.setCapacity(4),false);
     await until(()=>small.canStartMatch());small.startMatch();assert.equal(small.setCapacity(4),false);
     // 第2接続は承認後だけ作り、両openと制御線のready確認前にはロビー参加にしない。
-    const pair=async options=>{
-      const seen=[],h=make(options),g=make({onMessage:(...m)=>seen.push(m)}),room=await h.createRoom();
+    const pair=async (options,guestOptions)=>{
+      const seen=[],h=make(options),g=make({onMessage:(...m)=>seen.push(m),...guestOptions}),room=await h.createRoom();
       const promise=g.connect(room);await until(()=>h.links.get(g.peer?.id)?.pending);
       h.approvePeer(g.peer.id);await promise;await until(()=>h.links.get(g.peer.id)?.ready);
       return {h,g,room,seen,hl:h.links.get(g.peer.id),gl:g.links.get(room)};
     };
+    const inputPair=async (options,guestOptions)=>{
+      const p=await pair(options,guestOptions);p.h.startMatch('input-match');await until(()=>p.g.started);return p;
+    };
+    const batch=seq=>({inputs:Array.from({length:Math.min(5,seq)},(_,i)=>({seq:Math.max(1,seq-4)+i,lifeId:1,keys:{KeyW:true},pressed:[]}))});
     const waitingHost=make(),waitingRoom=await waitingHost.createRoom(),waitingGuest=make();
     let pairJoined=false;const pairPromise=waitingGuest.connect(waitingRoom).then(()=>{pairJoined=true;});
     await until(()=>waitingHost.links.get(waitingGuest.peer?.id)?.pending);
     const unapprovedLink=waitingHost.links.get(waitingGuest.peer.id);
     assert.equal(unapprovedLink.snapshotConn,null);
-    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:5,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
+    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:6,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
     await wait(30);assert(orphan.closed);assert(waitingHost.links.has(waitingGuest.peer.id));assert(!unapprovedLink.approved);
     waitingHost._receive(unapprovedLink,JSON.stringify(waitingGuest._envelope('snapshot',{secret:true})),'snapshot');
+    waitingHost._receive(unapprovedLink,JSON.stringify({...waitingGuest._envelope('inputBatch',batch(1)),inputSequence:1}),'snapshot');
     assert.equal(unapprovedLink.assemblies.size,0);assert(!unapprovedLink.approved);
     waitingGuest.peer.pauseSnapshotOpen=true;
     assert(waitingHost.approvePeer(waitingGuest.peer.id));
@@ -152,7 +159,7 @@ class FakePeer extends EventEmitter {
     assert.equal(actual.control.ordered,true);assert.equal(actual.control.maxRetransmits,null);
     assert.equal(actual.snapshot.ordered,false);assert.equal(actual.snapshot.maxRetransmits,0);
     assert.equal(actual.snapshot.maxPacketLifeTime,null);
-    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:5,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
+    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:6,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
     await wait(30);assert(duplicate.closed);assert.equal(live.snapshotConn.closed,false);
     live.snapshotConn.close();await until(()=>!waitingHost.links.size&&!waitingGuest.links.size);
     // 接続tokenが異なる相手の第2線はcontrolと結び付けない。
@@ -177,7 +184,7 @@ class FakePeer extends EventEmitter {
     assert.deepEqual(order.seen.filter(m=>m[0]==='snapshotBase').map(m=>m[1].id),[2,1]);
     assert(order.g.metrics().snapshotDrops.stale>=3);
     order.hl.snapshotConn.send=write;
-    // 片方の送信詰まりは他方を待たせない。入力・結果は写真のdrop対象外。
+    // 片方の送信詰まりは他方を待たせない。結果は写真のdrop対象外。
     order.hl.snapshotConn.dataChannel.bufferedAmount=300000;
     order.h.send('snapshot',{seq:4},order.g.peer.id);order.h.send('matchEnded',{winner:'B'},order.g.peer.id);order.h._tick();
     await until(()=>order.seen.some(m=>m[0]==='matchEnded'));assert(order.h.metrics().snapshotDrops.congestion>0);
@@ -229,11 +236,129 @@ class FakePeer extends EventEmitter {
       assert.equal(m.byChannel.control.receivedBytes+m.byChannel.snapshot.receivedBytes,m.receivedBytes);
       m.snapshotDrops.artificial=-1;assert(loss.h.metrics().snapshotDrops.artificial>0);
     }
-    // 制御線へ写真を流す、写真線へ入力を流す、ゲストから写真を送る行為は拒否する。
-    for(const attack of ['control-snapshot','snapshot-control','guest-snapshot']) {
+    // 最新5コマを1batchで非再送線へ。4連続欠損・逆転・重複でもcontrolを待たず届く。
+    const inputMessages=[],inputWire=await inputPair({onMessage:(...m)=>inputMessages.push(m)}),inputPackets=[],controlTypes=[];
+    const inputWrite=inputWire.gl.snapshotConn.send.bind(inputWire.gl.snapshotConn),controlWrite=inputWire.gl.conn.send.bind(inputWire.gl.conn);
+    inputWire.gl.snapshotConn.send=text=>inputPackets.push(text);
+    inputWire.gl.conn.send=text=>{controlTypes.push(JSON.parse(text).type);controlWrite(text);};
+    assert.equal(inputWire.h.send('inputBatch',batch(1),inputWire.g.peer.id),false);
+    assert.equal(inputWire.h.send('inputActions',{seq:1},inputWire.g.peer.id),false);
+    for(let seq=1;seq<=8;seq++){assert(inputWire.g.send('inputBatch',batch(seq)));inputWire.g._tick();}
+    assert.equal(inputPackets.length,8);assert(inputPackets.every(raw=>Buffer.byteLength(raw)<=8192));
+    assert.equal(inputWire.gl.queue.filter(m=>m.type==='inputBatch').length,0);
+    assert.deepEqual(JSON.parse(inputPackets.at(-1)).payload.inputs.map(x=>x.seq),[4,5,6,7,8]);
+    inputWire.hl.snapshotConn.emit('data',inputPackets[4]); // 最初の4batchは欠け、5個目で1〜5を補う。
+    for(const raw of inputPackets.slice(5).reverse())inputWire.hl.snapshotConn.emit('data',raw);
+    inputWire.hl.snapshotConn.emit('data',inputPackets[7]);
+    assert.deepEqual(inputMessages.filter(m=>m[0]==='inputBatch').map(m=>m[1].inputs.at(-1).seq),[5,8,7,6]);
+    assert.deepEqual([...new Set(inputMessages.flatMap(m=>m[1].inputs.map(x=>x.seq)))].sort((a,b)=>a-b),[1,2,3,4,5,6,7,8]);
+    assert.equal(inputWire.h.metrics().inputDrops.duplicate,1);
+    assert.equal(inputWire.hl.receivedSequence.snapshot,0);assert.equal(inputWire.hl.receivedSequence.snapshotBase,0);
+    assert.equal(inputWire.hl.assemblies.size,0);
+    inputWire.g.send('inputActions',{seq:1,lifeId:1,trigger:true});inputWire.g._tick();
+    await until(()=>inputMessages.some(m=>m[0]==='inputActions'));
+    assert(controlTypes.includes('inputActions'));assert(!controlTypes.includes('inputBatch'));assert(!controlTypes.includes('input'));
+    inputWire.gl.snapshotConn.send=inputWrite;
+    // 古い試合/承認token/接続のbatchは現在の対戦へ適用しない。正しい接続は残す。
+    const oldCount=inputMessages.length,valid={...JSON.parse(inputPackets[7]),inputSequence:9,payload:batch(9)};
+    inputWire.hl.snapshotConn.emit('data',JSON.stringify({...valid,matchId:'previous-match'}));
+    inputWire.hl.snapshotConn.emit('data',JSON.stringify({...valid,connectionToken:'previous-control-token'}));
+    inputWire.h._receive({...inputWire.hl},JSON.stringify(valid),'snapshot');
+    assert.equal(inputMessages.length,oldCount);assert.equal(inputWire.h.metrics().connectedPeers,1);
+    inputWire.hl.snapshotConn.emit('data',JSON.stringify(valid));assert.equal(inputMessages.length,oldCount+1);
+    // 60/240Hz相当の採取で50/100msの最低遅延を全実送信batchについて検査する。
+    // dueだけを見ず、最新コマの生成時刻→snapshotConn.send時刻を測る。futureの早送りを許さない。
+    for(const latencyMs of [50,100])for(const [hz,interval,count] of [[60,17,72],[240,4,300]]) {
+      const generated=new Map(),sent=[],arrived=[];
+      const delayed=await inputPair({onMessage:(type,payload)=>{if(type==='inputBatch')arrived.push(payload.inputs.at(-1).seq);}},{latencyMs});
+      const write=delayed.gl.snapshotConn.send.bind(delayed.gl.snapshotConn);
+      delayed.gl.snapshotConn.send=raw=>{
+        const message=JSON.parse(raw),seq=message.payload.inputs.at(-1).seq,t=performance.now();
+        sent.push({seq,at:t,ageMs:t-generated.get(seq)});write(raw);
+      };
+      for(let seq=1;seq<=count;seq++) {
+        const payload=batch(seq);generated.set(seq,performance.now());
+        assert(delayed.g.send('inputBatch',payload));await wait(interval);
+      }
+      await until(()=>arrived.includes(count));
+      assert(sent.length>=20);assert.equal(delayed.h.metrics().connectedPeers,1);
+      assert.equal(delayed.g.metrics().inputDrops.rateLimited,0);
+      assert(sent.every(item=>Number.isFinite(item.ageMs)&&item.ageMs>=latencyMs),`${hz}Hz/${latencyMs}msで未来のbatchを早送りした`);
+      assert(Math.max(...sent.slice(1).map((item,i)=>item.at-sent[i].at))<250);
+      console.log(`入力人工遅延 ${hz}Hz/${latencyMs}ms: ${sent.length}batch、生成→実送信 最小${Math.min(...sent.map(item=>item.ageMs)).toFixed(3)}ms、最大${Math.max(...sent.map(item=>item.ageMs)).toFixed(3)}ms`);
+    }
+    // 入力線の詰まりは最新batchへ集約し、controlの一度きり操作は通す。反対向きの写真も独立。
+    const congestedInputs=[],congested=await inputPair({onMessage:(...m)=>congestedInputs.push(m)});
+    congested.gl.snapshotConn.dataChannel.bufferedAmount=300000;
+    for(let seq=1;seq<=10;seq++){congested.g.send('inputBatch',batch(seq));congested.g._tick();}
+    assert.equal(congested.gl.inputs.length,1);assert.equal(JSON.parse(congested.gl.inputs[0].text).payload.inputs.at(-1).seq,10);
+    congested.g.send('inputActions',{seq:1,lifeId:1,trigger:true});congested.g._tick();
+    congested.h.send('snapshot',{seq:1},congested.g.peer.id);congested.h._tick();
+    await until(()=>congestedInputs.some(m=>m[0]==='inputActions')&&congested.seen.some(m=>m[0]==='snapshot'));
+    assert.equal(congestedInputs.filter(m=>m[0]==='inputBatch').length,0);assert(congested.g.metrics().inputDrops.congestion>=9);
+    congested.gl.snapshotConn.dataChannel.bufferedAmount=0;congested.g._tick();
+    await until(()=>congestedInputs.some(m=>m[0]==='inputBatch'));
+    assert.deepEqual(congestedInputs.filter(m=>m[0]==='inputBatch').map(m=>m[1].inputs.at(-1).seq),[10]);
+    congested.gl.conn.dataChannel.bufferedAmount=300000;
+    congested.g.send('inputBatch',batch(11));congested.g._tick();
+    await until(()=>congestedInputs.some(m=>m[0]==='inputBatch'&&m[1].inputs.at(-1).seq===11));
+    congested.gl.conn.dataChannel.bufferedAmount=0;
+    congested.g.send('inputBatch',batch(12));congested.gl.inputs[0].due=performance.now()-251;congested.g._tick();
+    await wait(25);assert(!congestedInputs.some(m=>m[0]==='inputBatch'&&m[1].inputs.at(-1).seq===12));
+    assert.equal(congested.g.metrics().inputDrops.stale,1);
+    // 写真と入力の欠損設定/乱数/集計は独立。入力を5/20%落としてもcontrol操作は100件届く。
+    for(const rate of [.05,.2]) {
+      let n=0;const seen=[],loss=await inputPair({onMessage:(...m)=>seen.push(m)},{inputDropRate:rate,inputRandom:()=>n++/100,snapshotDropRate:.2,random:()=>0});
+      for(let seq=1;seq<=100;seq++){assert(loss.g.send('inputBatch',batch(seq)));loss.g.send('inputActions',{seq});loss.g._tick();}
+      await until(()=>seen.filter(m=>m[0]==='inputActions').length===100);
+      assert.equal(seen.filter(m=>m[0]==='inputBatch').length,100-rate*100);
+      const m=loss.g.metrics();assert.equal(m.inputDropRate,rate);assert.equal(m.inputDropUnit,'logical-batch');assert.equal(m.inputDrops.artificial,rate*100);
+      assert.equal(m.snapshotDrops.artificial,0);assert.equal(loss.h.metrics().snapshotDrops.artificial,0);
+      assert(m.byChannel.snapshot.sentBytes>0);assert.equal(m.byChannel.snapshot.sentBytes,m.byType.inputBatch);
+      m.inputDrops.artificial=-1;assert(loss.g.metrics().inputDrops.artificial>0);
+    }
+    // batch数/コマ数/サイズに上限。過剰な採取は集約、送信はtokenで制限し受信側の暴走はその接続だけ切る。
+    const bounded=await inputPair();
+    for(const payload of [{inputs:[]},{inputs:Array.from({length:6},(_,i)=>({seq:i+1}))},{inputs:[null]},{inputs:[{seq:0}]},{inputs:[{seq:1,extra:'x'.repeat(8192)}]}])assert.equal(bounded.g.send('inputBatch',payload),false);
+    clearInterval(bounded.g._tickTimer);
+    for(let seq=1;seq<=120;seq++)assert(bounded.g.send('inputBatch',batch(seq)));
+    assert.equal(bounded.g.metrics().connectedPeers,1);assert.equal(bounded.gl.inputs.length,16);
+    bounded.gl.inputSendWindow={at:performance.now(),tokens:0};bounded.g._tick();
+    assert.equal(bounded.gl.inputs.length,16);assert.equal(bounded.g.metrics().inputDrops.rateLimited,1);
+    bounded.gl.inputSendWindow.tokens=120;bounded.g._tick();assert.equal(bounded.gl.inputs.length,0);
+    const peerInputs=[],otherMessages=[],flood=await pair({onMessage:(...m)=>peerInputs.push(m)}),other=make({onMessage:(...m)=>otherMessages.push(m)}),otherJoin=other.connect(flood.room);
+    await until(()=>flood.h.links.get(other.peer?.id)?.pending);flood.h.approvePeer(other.peer.id);await otherJoin;await until(()=>flood.h.canStartMatch());
+    flood.h.startMatch('input-flood');await until(()=>flood.g.started&&other.started);
+    flood.hl.snapshotConn.dataChannel.bufferedAmount=300000;
+    flood.h.send('snapshot',{seq:1},flood.g.peer.id);flood.h.send('events',{seq:1},flood.g.peer.id);
+    flood.h.send('snapshot',{seq:1},other.peer.id);flood.h._tick();
+    assert(other.send('inputBatch',batch(1)));other._tick();
+    await until(()=>otherMessages.some(m=>m[0]==='snapshot')&&flood.seen.some(m=>m[0]==='events')&&peerInputs.some(m=>m[0]==='inputBatch'&&m[2]===other.peer.id));
+    assert(!flood.seen.some(m=>m[0]==='snapshot'));flood.hl.snapshotConn.dataChannel.bufferedAmount=0;
+    flood.hl.inputReceiveWindow={at:performance.now(),tokens:240};
+    const floodPacket=flood.g._envelope('inputBatch',batch(1));floodPacket.connectionToken=flood.gl.snapshotToken;
+    for(let seq=1;seq<=250;seq++)flood.hl.snapshotConn.emit('data',JSON.stringify({...floodPacket,inputSequence:seq}));
+    assert.equal(flood.h.links.has(flood.g.peer.id),false);assert.equal(flood.h.links.has(other.peer.id),true);assert.equal(flood.h.metrics().inputDrops.rateLimited,1);
+    assert(other.send('inputBatch',batch(2)));other._tick();await wait(25);assert.equal(flood.h.metrics().connectedPeers,1);
+    // 256番号以内ならbatch逆転を通し、受信履歴は上限付き。古すぎる番号は捨てる。
+    const replayMessages=[],replay=await inputPair({onMessage:(...m)=>replayMessages.push(m)});
+    const replayPacket={...replay.g._envelope('inputBatch',batch(1)),connectionToken:replay.gl.snapshotToken};
+    for(let seq=1;seq<=300;seq++){replay.hl.inputReceiveWindow.tokens=240;replay.hl.snapshotConn.emit('data',JSON.stringify({...replayPacket,inputSequence:seq}));}
+    assert.equal(replay.hl.receivedInputBatches.size,256);
+    replay.hl.snapshotConn.emit('data',JSON.stringify({...replayPacket,inputSequence:1}));
+    assert.equal(replayMessages.length,300);assert.equal(replay.h.metrics().inputDrops.stale,1);
+    // 制御/非再送線の型と方向を厳密に分ける。ゲストの写真断片は組み立てない。
+    for(const attack of ['control-snapshot','snapshot-control','guest-snapshot','control-input','control-inputBatch','host-inputBatch','oversize-input','malformed-input']) {
       const isolated=await pair();
       if(attack==='control-snapshot')isolated.hl.conn.send(JSON.stringify({...isolated.h._envelope('snapshot',{}),snapshotSequence:1}));
       else if(attack==='snapshot-control')isolated.hl.snapshotConn.send(JSON.stringify(isolated.h._envelope('input',{})));
+      else if(attack==='control-input'||attack==='control-inputBatch')isolated.gl.conn.send(JSON.stringify(isolated.g._envelope(attack==='control-input'?'input':'inputBatch',batch(1))));
+      else if(attack==='host-inputBatch')isolated.hl.snapshotConn.send(JSON.stringify(isolated.h._envelope('inputBatch',batch(1))));
+      else if(attack==='oversize-input')isolated.gl.snapshotConn.send(JSON.stringify(isolated.g._envelope('inputBatch',{inputs:[{seq:1,extra:'x'.repeat(8192)}]})));
+      else if(attack==='malformed-input') {
+        isolated.h.startMatch('malformed');await until(()=>isolated.g.started);
+        isolated.gl.snapshotConn.send(JSON.stringify({...isolated.g._envelope('inputBatch',{inputs:Array.from({length:6},(_,i)=>({seq:i+1}))}),inputSequence:1,connectionToken:isolated.gl.snapshotToken}));
+      }
       else isolated.gl.snapshotConn.send(JSON.stringify(isolated.g._envelope('snapshotChunk',{type:'snapshotBase',sequence:1,count:20,index:0,data:'eA=='})));
       await until(()=>!isolated.h.links.size&&!isolated.g.links.size);
       assert.equal(isolated.seen.length,0);assert.equal(isolated.hl.assemblies.size,0);
@@ -263,6 +388,6 @@ class FakePeer extends EventEmitter {
     assert.match((await settingJoin).message,/状態用チャネル/);assert.equal(settingHost.metrics().connectedPeers,0);
     const bad = make({peerOptions:{config:{iceServers:[{urls:'turn:bad.invalid'}]}}});
     await assert.rejects(bad.createRoom(),/STUN/);
-    console.log('オンライン通信：二経路・両ready・実設定検査（fake）・5/20%論理欠損・逆順・巨大基準の断片欠損復旧・容量/期限・経路混入拒否・片線切断・承認前の状態秘匿・許可・拒否・ロビー追放・待機者の開始拒否・表示名制限・版拒否・開始後参加拒否・入力・信号切断継続・100ms遅延・送信詰まり・切断・TURN拒否 成功');
+    console.log('オンライン通信：二経路・双方向の型制限・連続入力5コマ冗長・欠損/逆転/重複・独立input/snapshot番号と5/20%論理欠損・入力サイズ/頻度/期限上限・詰まり最新集約・他peer独立・旧試合/接続拒否・一度きり操作control・両ready・実設定検査（fake）・巨大基準の断片欠損復旧・承認/拒否・版拒否・100ms遅延・切断・TURN拒否 成功');
   } finally { for(const t of all)t.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

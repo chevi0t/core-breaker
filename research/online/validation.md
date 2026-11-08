@@ -205,3 +205,42 @@ curl -fsSL 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js' | open
 初期同期のv5実測：10機はcontrol metadata266B＋写真専用線89,612B（基準89,368B/8片＋初期差分244B）。20機は267B＋177,850B（基準177,606B/15片＋244B）。最大datagram12,268Bで16KiB未満。基準の分割前JSONは65,429/130,197Bだが、断片のbase64/外枠が増えるため初期総量は大きくなる。今回の主目的は制御と写真の待ちを分離し、古い写真のRTC再送を止めることであり、通常時や初期同期のbyte数が一律減ったとは主張しない。WebRTC/SCTP/DTLS等のヘッダー・再送はこれらのアプリ送信量に含めない。
 
 最終 `quick_check.js origin/main` 成功（カスタマイズ一覧34項目・city/dock各60秒Bot戦、ブラウザエラーなし）。構文/差分検査とtransport/interpolation/codec/rooms Node回帰成功。描画つきbenchとsnapshot専用最大内訳ツールはv5形式へ更新・構文確認済みだが、この段階では再計測していない。後続②/④で目的別に測定する。別PC/別回線の実通信・実機の操作感は未確認。①をpush後、②自機先読み→③hitscan巻戻し→④ゲスト別選別へ順に進む。
+
+## 次段階② 自機移動予測・非再送入力（2026-11-08）
+
+### 変更前・変更後・決めたこと
+
+①では自機もhostの写真を待って動いた。②はhost/offlineと共通の `updateHumanMovement` / `predictHumanMovement` とphysicsで移動・ブースト・ジャンプ・向きを先読みする。命中・HP・弾数・施設起動・近接/SP消費はhostだけが決める。TURN/途中参加/ホスト移譲は追加せず、可変dtを維持した。
+
+通信規格はv6。連続入力は写真と同じ非再送・順不同線へ最新5コマをまとめて最大60Hz送る。高FPSでは毎frameの予測と送信制限を分ける。ホストは番号/life/型/長さ/頻度を検査して重複と古い入力を除外する。押下（ジャンプ/ブースト開始を含む）・射撃開始/解除・武器等はcontrolの独立actionSeqで扱う。movement ack先着で一度きり操作を消さず、逆にaction ack前のreplayで繰り返し発火させない。500msを超えた一度きり操作は失効し、保持状態だけ押下なしの新番号で再同期する。250ms入力途絶の中立化と3秒でBotへの引継ぎは維持。
+
+ホストの実適用dt、入力seqごとの累積dt、適用stepとactionSeqを写真へ含める。dtはcodecで丸めずJSON roundtripし、1/60・1/144秒も保持する。ゲストは確定状態へ戻し、同seqの未適用時間と後続入力だけを再実行する。未来のhost dtはまだ存在せず、未確定部分は仮dtである。client指定dtでhostを余計に進めない。
+
+表示補正は累積差0.5m未満なら6描画frame以内、camera描画中/機体モデルだけへ適用する。照準・衝突・送信値は補正しない。大きな差、再出撃、行動不能、施設、装備/機体変更、履歴欠落は即snap。予測履歴は240件/1秒。通常の弾数変化は装備変更扱いにしない。施設・近接・実SP消費を伴う加速中は先読みを止めるが、加速装置ONだけなら歩行/ジャンプは予測する。
+
+### 機能・遅延測定
+
+`online_prediction_check.js --mock-transport --functional-only` は62項目成功。最新5入力の欠落/逆転/重複、独立action ack、life/期限、部分ack、history欠落、機体stats、13種類以上のsnap境界、表示とaim隔離、240Hz描画→最大60Hz送信を含む。`--latency-only` は23項目成功。JSON要約は `prediction-summary.json`。
+
+人工片道50/100msを両端へ加算し、予測OFF/ON各5回。同一guestのperformance.nowで入力投入から物理位置/描画groupが2cm超動く最初のframeまでを測る。実RAFの可変dt、描画省略、BroadcastChannelによる通信代替であり、実WebRTC/実回線/GPU描画/ディスプレイ発光の性能ではない。
+
+| 人工片道 | 予測OFF平均 | ON平均 | ON最大 | 補正距離平均 | 補正距離最大 |
+|---|---:|---:|---:|---:|---:|
+| 50ms | 172.54ms | 9.90ms | 12.80ms | 0.02687m | 0.36935m |
+| 100ms | 282.90ms | 10.72ms | 15.30ms | 0.02470m | 0.21842m |
+
+全条件timeoutなし。物理/描画groupの開始時刻はこのfixtureでは同じ。補正はsnapshot受信直前と復元+replay直後の物理位置差を独立採取し、初期reset期間は除外した（50ms:36回、100ms:45回）。測定中hard snapなし。これは数値上の即応改善であり、人の操作感を確認したという意味ではない。命中表示を早める変更はしていない。
+
+transport Nodeでは60/240Hz×50/100msの全実送信batchについて最新コマ生成からsendまでを測り、指定人工遅延以上を確認した。最古queue itemのpayload/dueをそのまま保ち中間itemだけを捨てるため、新payloadを古いdueで早送りしない。5%/20%の入力損失、4batch連続欠落から5コマ冗長で回復、写真との独立番号、別peer/control非閉塞も検査した。
+
+### 回帰・未確認
+
+共有移動の変更前後比較は6条件×600可変dt frame、独立レビューでも5条件×500frameで状態/副作用回数一致。Node movement（8項目）、prediction、codec（実dt精度追加）、interpolation、rooms、transport、構文、diff検査成功。実PeerJS→実RTCDataChannel v6設定は6項目成功（接続/NAT成立とは別）。既存対戦/オフラインの最終回帰は下欄へ追記する。
+
+別回線の知り合いとの試遊は未確認。人による操作感も未確認。古いリリースでのオーナーの1PC・2窓成功報告を今回ビルドの実回線成功へ転用しない。段階③のhitscan巻戻し、④のゲスト別秘匿/優先度と10/20機通信量再測定はこれから。実dt ack追加の通信増も④の前後比較に含める。
+
+最終オフライン回帰: `quick_check.js origin/main` 成功（一覧34項目＋city/dock各60秒）。`weapons_check.js dbg` は全武器を確認しブラウザエラー配列は空。`bot_battle.js dbg city,wide,mesa,dock 150` は4マップ各150秒ともエラーなし。`mech_shapes_check.js` の数値段階は6,561組・32,805射を通過したが、その後の画像段階 `page.evaluate`（116行）で停止し180秒で打ち切った。以前のmainでも同じ画像段階停止を確認しており、今回も画像回帰は未完了として残す。
+
+初期同期の追加診断では、再同期要求0の正常接続でもplaying/frame1にschema追補が1通発生した。10機中7機の `motionVectors.boostVisualDir` がnull（JSON atom）からVector3（xyz）へ変わり、7項目削除＋21項目追加となるため。初期基準1は論理71,440B/断片外枠込み97,384B、playingの基準2はschema64,752B＋patch1,957B、論理66,964B/外枠込み91,416B。これは初期基準の重複再送ではない。試験はpreparing/countdownの初期送信とplayingのschema追補を別集計し、初期基準が1回であるassertを維持する。追加圧縮はこの段階では追わず、実際の通信増を隠さず記録した。
+
+最終オンライン回帰: `online_revision_check.js --mock-transport` は52項目成功（初期/playing追補の別集計と合計一致を含む）。`online_check.js --mock-transport --connections-only` は16項目成功、入力途絶fixtureでは両入力型が実際に遮断されたことも確認。`online_room_check.js --mock-transport` は18項目成功。全てブラウザエラーなし。帯域/CPU用の旧online_benchは新input/action/ackへ追随・構文確認したが、この段階では再計測していない。新予測機能の測定値は専用predictionチェックのものを採用する。

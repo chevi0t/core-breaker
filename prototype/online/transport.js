@@ -1,10 +1,14 @@
 /* #212: PeerJS 1.5.5 用のブラウザホスト通信。ゲームの状態はここで計算しない。 */
 (function (root) {
   'use strict';
-  const PROTOCOL = 5, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
-  const CONTROL_LABEL = 'core-breaker-control-v5', SNAPSHOT_LABEL = 'core-breaker-snapshot-v5';
+  const PROTOCOL = 6, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
+  const CONTROL_LABEL = 'core-breaker-control-v6', SNAPSHOT_LABEL = 'core-breaker-snapshot-v6';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
+  const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
   const isSnapshot = type => type === 'snapshot' || type === 'snapshotBase';
+  const isInputBatch = payload => payload && !Array.isArray(payload) && Array.isArray(payload.inputs) &&
+    payload.inputs.length > 0 && payload.inputs.length <= INPUT_FRAMES && payload.inputs.every(input =>
+      input && typeof input === 'object' && !Array.isArray(input) && Number.isSafeInteger(input.seq) && input.seq > 0);
   const channelSettings = conn => conn?.dataChannel ? {
     ordered: conn.dataChannel.ordered, maxRetransmits: conn.dataChannel.maxRetransmits,
     maxPacketLifeTime: conn.dataChannel.maxPacketLifeTime, readyState: conn.dataChannel.readyState,
@@ -25,6 +29,9 @@
       // 人工欠損は論理メッセージ単位。SCTPのパケット損失率とは別の試験値。
       this.snapshotDropRate = [0, .05, .2].includes(options.snapshotDropRate) ? options.snapshotDropRate : 0;
       this.snapshotDrops = { artificial: 0, stale: 0, congestion: 0, superseded: 0, incomplete: 0 };
+      // 写真欠損の注入とは独立。連続入力は再送せず、次の5コマ入りbatchで補う。
+      this.inputDropRate = [0, .05, .2].includes(options.inputDropRate) ? options.inputDropRate : 0;
+      this.inputDrops = { artificial: 0, stale: 0, duplicate: 0, congestion: 0, superseded: 0, rateLimited: 0 };
       this.peer = null; this.role = ''; this.roomId = ''; this.matchId = '';
       this.links = new Map(); this.closed = false; this.started = false;
       this.createdAt = now(); this.samples = []; this.sequence = 0;
@@ -94,7 +101,8 @@
     }
     _attach(conn, resolve, reject) {
       const link = { conn, snapshotConn: null, snapshotToken: '', snapshotOpen: false, remoteChannelsReady: false,
-        ready: false, approved: false, pending: false, requested: false, displayName: '', queue: [], snapshots: [],
+        ready: false, approved: false, pending: false, requested: false, displayName: '', queue: [], snapshots: [], inputs: [],
+        inputSequence:0, receivedInputSequence:0, receivedInputBatches:new Set(), inputSendWindow:{at:now(),tokens:INPUT_RATE}, inputReceiveWindow:{at:now(),tokens:INPUT_RATE*2},
         lastBase:null,receivedBases:new Set(),snapshotSequence: {snapshot:0,snapshotBase:0}, receivedSequence: {snapshot:0,snapshotBase:0}, assemblies:new Map(),
         lastReceive: now(), opened: now(), stalledAt: 0, resolve, reject, sentBytes: 0, receivedBytes: 0,
         rttMs: null, pingAt: 0, pendingPing: null, clockSamples: [], clockOffsetMs: null };
@@ -156,6 +164,8 @@
       if (this.closed || link.closing || (!internal && (!link.ready || !link.approved))) return false;
       if (!link.approved && !['hello','pending','welcome','reject','bye'].includes(type)) return false;
       if(isSnapshot(type) && this.role!=='host')return false;
+      if(type==='input' || (type==='inputActions' && this.role!=='guest'))return false;
+      if(type==='inputBatch' && (this.role!=='guest' || !this.started || !this.matchId || !isInputBatch(payload)))return false;
       const envelope=this._envelope(type,payload);
       let text,baseCache;
       try {
@@ -167,14 +177,24 @@
             baseCache={matchId:this.matchId,body,sequence:envelope.snapshotSequence};
           }
         } else if(type==='snapshot')envelope.snapshotSequence=++link.snapshotSequence[type];
+        else if(type==='inputBatch') {
+          // 写真番号とは別系列。古いcontrol接続に属する入力も使い回せない。
+          envelope.inputSequence=++link.inputSequence;envelope.connectionToken=link.snapshotToken;
+        }
         text = JSON.stringify(envelope);
       } catch (_) { this._status('送信データを JSON に変換できません', { error: true }); return false; }
       const bytes = encoder.encode(text).byteLength;
       if (bytes > MAX_BYTES) { this._status('送信データが上限を超えました', { error: true, bytes }); return false; }
+      if(type==='inputBatch' && bytes>INPUT_BYTES)return false;
       if(baseCache)link.lastBase=baseCache;
       if(type==='snapshotBase' && link.snapshots.some(x=>x.type===type&&x.text===text))return true;
-      const item = { text, bytes, type, channel:isSnapshot(type)?'snapshot':'control', due: now() + this.latencyMs };
-      if (isSnapshot(type)) {
+      const item = { text, bytes, type, channel:isSnapshot(type)||type==='inputBatch'?'snapshot':'control', due: now() + this.latencyMs };
+      if(type==='inputBatch') {
+        // 人工片道遅延中の数コマは残す。毎回dueを延ばして永久に未送信にしない。
+        link.inputs.push(item);
+        // 上限時も最古dueを残す。高Hz採取と遅延注入が重なって全件が期限前に消えるのを防ぐ。
+        if(link.inputs.length>INPUT_QUEUE){link.inputs.splice(1,1);this.inputDrops.superseded++;}
+      } else if (isSnapshot(type)) {
         item.packets=this._snapshotPackets(envelope,text);item.packetIndex=0;
         if(item.packets.some(p=>p.bytes>PACKET_BYTES)){this._status('状態用の分割データが上限を超えました',{error:true});return false;}
         if(type==='snapshotBase') {
@@ -187,8 +207,15 @@
         if (link.queue.length >= MAX_QUEUE) { this._drop(link, '送信待ちが上限を超えました'); return false; }
         link.queue.push(item);
       }
-      this.totals.maxQueue = Math.max(this.totals.maxQueue, link.queue.length + link.snapshots.length);
+      this.totals.maxQueue = Math.max(this.totals.maxQueue, link.queue.length + link.snapshots.length + link.inputs.length);
       return true;
+    }
+    _takeInputBudget(link,key) {
+      const window=link[key],t=now(),capacity=key==='inputReceiveWindow'?INPUT_RATE*2:INPUT_RATE;
+      // 固定1秒窓ではなく120件/秒の補充。受信は短期jitterのまとまった到着を許す。
+      window.tokens=Math.min(capacity,window.tokens+Math.max(0,t-window.at)*INPUT_RATE/1000);window.at=t;
+      if(window.tokens<1)return false;
+      window.tokens--;return true;
     }
     _snapshotPackets(envelope, text) {
       const data=encoder.encode(text);
@@ -226,14 +253,19 @@
     _receive(link, raw, channel = 'control') {
       if (this.closed || link.closing || this.links.get(link.conn.peer)!==link) return;
       if(channel==='snapshot' && (!link.ready || !link.approved))return;
-      if(channel==='snapshot' && this.role!=='guest'){this._drop(link,'ゲストは状態用データを送信できません');return;}
       if (typeof raw !== 'string' || raw.length > MAX_BYTES) { this._drop(link, '不正な通信形式です'); return; }
       const bytes = encoder.encode(raw).byteLength;
-      if (bytes > (channel==='snapshot'?PACKET_BYTES:MAX_BYTES)) { this._drop(link, '受信データが大きすぎます'); return; }
+      if (bytes > (channel==='snapshot'?(this.role==='host'?INPUT_BYTES:PACKET_BYTES):MAX_BYTES)) { this._drop(link, '受信データが大きすぎます'); return; }
       let msg; try { msg = JSON.parse(raw); } catch (_) { this._drop(link, 'JSON が壊れています'); return; }
       if (!msg || typeof msg !== 'object') { this._drop(link, '不正な通信データです'); return; }
-      if(channel==='snapshot' && (!isSnapshot(msg.type) && msg.type!=='snapshotChunk')){this._drop(link,'状態用チャネルに制御データが届きました');return;}
-      if(channel==='control' && (isSnapshot(msg.type)||msg.type==='snapshotChunk')){this._drop(link,'制御用チャネルに状態データが届きました');return;}
+      // 非再送線は方向ごとに型を限定。ゲスト由来の断片は復元処理へ入れない。
+      if(channel==='snapshot' && (this.role==='host'?msg.type!=='inputBatch':!isSnapshot(msg.type)&&msg.type!=='snapshotChunk')) {
+        this._drop(link,'状態・入力用チャネルの送信方向またはデータ種別が正しくありません');return;
+      }
+      if(msg.type==='input' || (channel==='control' && (isSnapshot(msg.type)||msg.type==='snapshotChunk'||msg.type==='inputBatch'))) {
+        this._drop(link,'制御用チャネルに連続入力または状態データが届きました');return;
+      }
+      if(msg.type==='inputActions' && this.role!=='host'){this._drop(link,'入力操作の送信方向が正しくありません');return;}
       if (msg.type === 'reject' && !link.ready) { this._drop(link, typeof msg.reason === 'string' ? msg.reason.slice(0,200) : '参加を拒否されました'); return; }
       if (msg.protocolVersion !== PROTOCOL) { this._reject(link, 'オンライン通信規格が違います（自分: ' + PROTOCOL + ' / 相手: ' + String(msg.protocolVersion).slice(0,20) + '）。同じ試作版で入り直してください'); return; }
       if(channel==='control' && link.conn.label!==CONTROL_LABEL){this._reject(link,'制御用チャネルの名前が一致しません');return;}
@@ -266,7 +298,8 @@
       }
       if (msg.matchId !== this.matchId && !['ping','pong'].includes(msg.type)) { return; } // 開始前に送られた入力が残っていても新しい試合へ適用しない。
       if(channel==='snapshot'){
-        if(msg.type==='snapshotChunk')this._receiveChunk(link,msg);else this._deliverSnapshot(link,msg);
+        if(msg.type==='inputBatch')this._deliverInputBatch(link,msg);
+        else if(msg.type==='snapshotChunk')this._receiveChunk(link,msg);else this._deliverSnapshot(link,msg);
         return;
       }
       if (msg.type === 'ping') { this._enqueue(link, 'pong', { token: msg.payload?.token, receivedAt: now() }, true); return; }
@@ -286,6 +319,20 @@
       if (msg.type === 'bye') { this._drop(link, String(msg.payload?.reason || '相手が退出しました').slice(0,200)); return; }
       if (['hello','pending','welcome','reject','match','channelsReady'].includes(msg.type)) { this._drop(link, '通信順序が正しくありません'); return; }
       this.options.onMessage?.(msg.type, msg.payload, link.conn.peer);
+    }
+    _deliverInputBatch(link,msg) {
+      if(!this.started || !this.matchId || msg.connectionToken!==link.snapshotToken){this.inputDrops.stale++;return;}
+      if(!this._takeInputBudget(link,'inputReceiveWindow')){this.inputDrops.rateLimited++;this._drop(link,'連続入力の受信頻度が上限を超えました');return;}
+      if(!Number.isSafeInteger(msg.inputSequence)||msg.inputSequence<1||!isInputBatch(msg.payload)) {
+        this._drop(link,'連続入力の番号またはコマ数が正しくありません');return;
+      }
+      const seq=msg.inputSequence;
+      if(link.receivedInputBatches.has(seq)){this.inputDrops.duplicate++;return;}
+      if(seq<=link.receivedInputSequence-256){this.inputDrops.stale++;return;}
+      link.receivedInputBatches.add(seq);link.receivedInputSequence=Math.max(link.receivedInputSequence,seq);
+      for(const n of link.receivedInputBatches)if(n<=link.receivedInputSequence-256)link.receivedInputBatches.delete(n);
+      // batchの逆転だけでは捨てない。各コマ番号・lifeId・失効はゲーム側で検証する。
+      this.options.onMessage?.('inputBatch',msg.payload,link.conn.peer);
     }
     _snapshotIsStale(link,type,seq) {
       // 基準は遅れて届く親も必要。状態とは番号を分け、基準は直近32件の未受信分を許す。
@@ -335,7 +382,7 @@
       this._deliverSnapshot(link,full);
     }
     _reject(link, reason) {
-      if(link.closing)return;link.closing=true;link.queue.length=0;link.snapshots.length=0;
+      if(link.closing)return;link.closing=true;link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
       this._status(reason, { error: true });
       try { link.conn.send(JSON.stringify({ type: 'reject', reason })); } catch (_) {}
       this._later(() => this._drop(link, reason), 100);
@@ -344,7 +391,7 @@
       if (this.links.get(link.conn.peer) !== link) return;
       this.links.delete(link.conn.peer);
       this.history.set(link.conn.peer, { sentBytes: link.sentBytes, receivedBytes: link.receivedBytes, rttMs: link.rttMs, reason, channels:{control:channelSettings(link.conn),snapshot:channelSettings(link.snapshotConn)} });
-      link.assemblies.clear();link.queue.length=0;link.snapshots.length=0;
+      link.assemblies.clear();link.receivedInputBatches.clear();link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
       link.reject?.(new Error(reason)); link.reject = null;
       try { link.conn.close(); } catch (_) {}
       try { link.snapshotConn?.close(); } catch (_) {}
@@ -377,7 +424,9 @@
             link.queue.shift();if(!this._write(link,item))break;budget-=item.bytes;
           }
         }
-        if(!link.closing && this.links.get(link.conn.peer)===link)this._flushSnapshots(link,t);
+        if(!link.closing && this.links.get(link.conn.peer)===link) {
+          if(this.role==='host')this._flushSnapshots(link,t);else this._flushInputs(link,t);
+        }
       }
       if (!this.samples.length || t - this.samples[this.samples.length - 1].at >= 1000) {
         this.samples.push({ at: t, sentBytes: this.totals.sentBytes }); if (this.samples.length > 600) this.samples.shift();
@@ -411,6 +460,25 @@
         }
         if(item.packetIndex===item.packets.length)link.snapshots=link.snapshots.filter(x=>x!==item);
       }
+    }
+    _flushInputs(link,t) {
+      if(!link.ready || !link.snapshotConn?.open)return;
+      const buffered=link.snapshotConn.dataChannel?.bufferedAmount||0;
+      this.totals.maxBufferedBytes=Math.max(this.totals.maxBufferedBytes,buffered);
+      if(buffered>HIGH_WATER || (link.snapshotConn.bufferSize||0)>0) {
+        // SCTPへ渡せなかった古い入力は積まず、次に出せる最新batchを1件だけ保つ。
+        this.inputDrops.congestion+=Math.max(0,link.inputs.length-1);link.inputs=link.inputs.slice(-1);return;
+      }
+      const due=link.inputs.filter(x=>x.due<=t);
+      if(!due.length)return;
+      const item=due.at(-1);
+      if(item.bytes>HIGH_WATER-buffered)return;
+      // 採取回数ではなく実送信に上限をかける。超過中も最新の待ち入力を失わない。
+      if(!this._takeInputBudget(link,'inputSendWindow')){this.inputDrops.rateLimited++;return;}
+      this.inputDrops.superseded+=due.length-1;link.inputs=link.inputs.filter(x=>!due.includes(x));
+      if(t-item.due>INPUT_TTL){this.inputDrops.stale++;return;}
+      if((this.options.inputRandom||Math.random)()<this.inputDropRate){this.inputDrops.artificial++;return;}
+      this._write(link,item,link.snapshotConn);
     }
     _write(link, item, conn = link.conn) {
       // 実際に送信バッファへ渡す時刻を使う（送信待ち・遅延注入を時計差と誤認しない）。
@@ -451,10 +519,11 @@
       return { ...this.totals, byChannel:Object.fromEntries(Object.entries(this.byChannel).map(([k,v])=>[k,{...v}])), byType: { ...this.totals.byType }, messageSizes: Object.fromEntries(Object.entries(this.messageSizes).map(([type, size]) => [type, { ...size }])), elapsedSeconds: seconds, sentKBps: this.totals.sentBytes / seconds / 1000, p95KBps: rates[Math.floor((rates.length - 1) * .95)] || 0, maxKBps: rates[rates.length - 1] || 0,
         connectedPeers: [...this.links.values()].filter(l=>l.ready&&l.approved&&!l.closing).length, pendingPeers:[...this.links.values()].filter(l=>l.pending&&!l.closing).length,
         peers: [...this.links].map(([id,l])=>({ id, sentBytes:l.sentBytes, receivedBytes:l.receivedBytes, rttMs:l.rttMs,
-          bufferedBytes:(l.conn.dataChannel?.bufferedAmount||0)+(l.snapshotConn?.dataChannel?.bufferedAmount||0), queue:l.queue.length+l.snapshots.length,
+          bufferedBytes:(l.conn.dataChannel?.bufferedAmount||0)+(l.snapshotConn?.dataChannel?.bufferedAmount||0), queue:l.queue.length+l.snapshots.length+l.inputs.length,
           channels:{control:channelSettings(l.conn),snapshot:channelSettings(l.snapshotConn)},ready:l.ready })),
         closedPeers: [...this.history].map(([id,s])=>({id,...s})), latencyMs:this.latencyMs,
-        snapshotDropRate:this.snapshotDropRate,snapshotDropUnit:'logical-message',snapshotDrops:{...this.snapshotDrops}  };
+        snapshotDropRate:this.snapshotDropRate,snapshotDropUnit:'logical-message',snapshotDrops:{...this.snapshotDrops},
+        inputDropRate:this.inputDropRate,inputDropUnit:'logical-batch',inputDrops:{...this.inputDrops} };
     }
     setCapacity(next) {
       // 承認待ちは定員に含めない。既に許可した参加者を設定変更で追い出さない。
@@ -487,7 +556,7 @@
       const link = this.links.get(peerId);
       if (!link || link.closing) return false;
       // 所有権を失った相手には状態も入力も送受信せず、終了理由だけを通知する。
-      link.closing = true; link.queue.length = 0; link.snapshots.length = 0;
+      link.closing = true; link.queue.length = 0; link.snapshots.length = 0; link.inputs.length = 0;
       if (link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason }))); } catch (_) {} }
       // 通知は最善努力。相手の応答がなくてもこの接続だけを必ず閉じる。
       this._later(() => this._drop(link, reason), 500);

@@ -4803,7 +4803,8 @@ function fwdOf(u) { return new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
 const STOP = new T.Vector3();
 const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が始まってから横ダッシュで消せるまで（ユーザー指定）。
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
-function shortDash(u, wish) {
+function shortDash(u, wish, movementOnly = false) {
+  if (movementOnly && movementPredictionBlockReason(u)) return false;
   if (u.actionBlockBoost || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
   if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun || u.shockT > 0 || u.electricT > 0) return false; // 電撃の間も踏めない
   if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
@@ -4820,20 +4821,24 @@ function shortDash(u, wish) {
   if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   u.dashDir.copy(wish.lengthSq() > 0.01 ? wish : fwdOf(u)).setY(0).normalize();
   u.dashT = SHORT_TIME;
-  deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
-  sfx('dash', u.pos, u);
+  if (!movementOnly) {
+    deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
+    sfx('dash', u.pos, u);
+  }
   u.longDash = false;
   if(!(u.flying&&u.catLaunch?.free&&!u.jumpPad)){u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;}
   if (u.vel.y < 0 && !(u.flying&&u.catLaunch)) u.vel.y *= 0.3;
   return true;
 }
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
-function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
+function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movementOnly = false) {
+  // 先読みでも移動の式は共通。施設・武器由来の移動は権威側に残し、再実行する音や設置物を作らない。
+  if (movementOnly && (movementPredictionBlockReason(u) || u.chargerOn && boostHeld)) return;
   actionUpdate(u, u.actionHeld, boostHeld, jumpPressed || jumpHeld);
   if(u.actionBlockBoost)boostHeld=false;
   // 高速のカタパルトだけ細分化し、低FPSで建物角をすり抜けたり衝突先が変わるのを抑える。
   if(u.flying && u.catMomentum && !u.jumpPad && dt>1/120+1e-8){
-    const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
+    const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld,movementOnly);return;
   }
   const floating=hoverLegs(u), water=hoverOnWater(u);
   // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
@@ -4858,7 +4863,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     // よろけ・ダウン・着地硬直の間は操作できない。ダウンで吹き飛んでいる間は Space と Shift の同時押しで受け身
     if (u.stun === 'down' && !u.onGround && jumpHeld && boostHeld && !u.overheat && u.boost >= UKEMI_COST) {
       u.boost -= UKEMI_COST; u.boostIdle = 0; u.stun = floating ? '' : 'roll'; u.vel.y = Math.max(u.vel.y, 6);
-      sfx('dash', u.pos, u);
+      if (!movementOnly) sfx('dash', u.pos, u);
     } else if (u.stun === 'roll' ? u.onGround : (u.stun !== 'down' || u.onGround) && (u.stunT -= dt) <= 0) u.stun = '';
     wish = STOP; boostHeld = jumpPressed = jumpHeld = false; u.longDash = false;
   }
@@ -4872,10 +4877,10 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   }
   // 加速装置（強襲の特別装備）：作動中にブーストを押し続けると、ロングダッシュの代わりにSPを使って向いている方へ進む（どの武器を持っていてもよい）。
   // 押した瞬間のショートダッシュはいつもどおりで、それが終わってから加速する
-  if(catFlight&&u.catLaunch?.free&&boostHeld&&!u.dashT&&!u.longDash&&!u.lungeT)shortDash(u,wish);
+  if(catFlight&&u.catLaunch?.free&&boostHeld&&!u.dashT&&!u.longDash&&!u.lungeT)shortDash(u,wish,movementOnly);
   const ch = u.chargerOn ? u.slots.sp : null;
   const charging = !!ch && boostHeld && !ch.overheat && u.dashT <= 0 && u.ctrlLockT <= 0 && u.lungeT <= 0;
-  if (charging && !u.charging) sfx('charge', u.pos, u);
+  if (!movementOnly && charging && !u.charging) sfx('charge', u.pos, u);
   u.charging = charging;
   let speed = u.walkV, dir = wish, accel = floating ? wish.lengthSq()>.01 ? HOVER_ACCEL : HOVER_BRAKE : u.onGround ? 10 : 3, grav = GRAV;
   if (u.crouching) speed *= ACTIONS.crouch.walkScale;
@@ -4974,7 +4979,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.vel.z += (dir.z * speed - u.vel.z) * k;
   if (jumpPressed && u.onGround && !u.overheat && u.boost >= JUMP_COST) {
     u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
-    sfx('jump', u.pos, u);
+    if (!movementOnly) sfx('jump', u.pos, u);
   }
   if(catFlight)grav=GRAV;
   u.vel.y -= grav * dt;
@@ -5013,7 +5018,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // 下り坂では地面に沿って歩く（段差から落ちるときだけ浮く）
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
-    if (!wasGround) land(u, -u.vel.y);
+    if (!wasGround) land(u, -u.vel.y, movementOnly);
     // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
     u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null; u.catMomentum = null; u.catLaunch=null;
   } else u.onGround = false;
@@ -5022,9 +5027,9 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if(u.flying&&u.catLaunch)catapultControl(u);
 }
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
-function land(u, v) {
-  if (u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
-  if (v >= 3 || u.stun === 'down') {
+function land(u, v, movementOnly = false) {
+  if (!movementOnly && u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
+  if (!movementOnly && (v >= 3 || u.stun === 'down')) {
     const power = Math.min(1, Math.max(.15, v / 32));
     sfx('land', u.pos, u, 1.1 - power * .25, .3 + power * .7); u.stepQuiet = .12;
   }
@@ -6923,8 +6928,11 @@ function clearGadgets() {
 }
 
 // 追加補助装備。時計は選択中の武器と独立し、Botも同じ判定を使う。
+function movementStatusTick(u,dt){
+  u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
+}
 function auxiliaryStatusTick(u,dt){
-  u.jamT=Math.max(0,(u.jamT||0)-dt);u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
+  u.jamT=Math.max(0,(u.jamT||0)-dt);movementStatusTick(u,dt);
 }
 function radarToolTick(u,sl,dt,on){
   if(!on){sl.scanRadius=0;sl.scanT=0;return;}
@@ -9253,17 +9261,42 @@ function updateLocalAimMark(u, aim, busy) {
     aimMark.scale.setScalar(P.blast || 2);
   }
 }
-// ホストの人間機は、ローカル・遠隔ともこの経路で1コマ1回だけ進む。
-// aimPoint は [x,y,z] または Vector3。遠隔入力にカメラやグローバルキーは使わない。
-function updateHumanUnit(u, input = {}, dt) {
-  if (!isSimulationAuthority()) return false;
+// 移動以外の状態遷移は写真を待つ。しゃがみ・状態異常の局所的な移動状態は同じ式で進める。
+// inputなしなら写真に載せる停止理由。施設参照や近接の内部オブジェクトをゲストで再実行しない。
+function movementPredictionBlockReason(u, input = null) {
+  if (!u || !u.alive || u.downT > 0) return 'inactive';
+  if (u.transfer) return 'transfer';
+  if (u.zip) return 'zip';
+  if (u.repairing) return 'repair';
+  if (u.flying || u.jumpPad || u.catMomentum || u.catLaunch) return 'launch';
+  if (u.lift || lifts.some(l => u.onGround && Math.abs(u.pos.y-l.pos.y)<.35 && liftContains(l,u))) return 'lift';
+  if (u.swing || u.meleeRecovery || u.lungeT > 0 || u.recoverT > 0 || u.slideT > 0) return 'melee';
+  if (u.planted || isArtilleryMode(u) || beamCannonMode(u) || u.beamFire) return 'planted';
+  if (u.charging) return 'special';
+  if (input) {
+    const held=input.keys||{},edge=input.pressed||{},boost=held.ShiftLeft||held.ShiftRight||edge.ShiftLeft||edge.ShiftRight;
+    if (edge.KeyH) return 'transfer';
+    if (edge.KeyE) return 'zip';
+    // 加速装置のスイッチ自体は写真で確定。ON中でも通常の歩き・ジャンプは先読みできる。
+    if (u.chargerOn && boost) return 'special';
+  }
+  return '';
+}
+// 入力から移動だけを作る共通入口。global player/keysや照準・武器・ダメージは入れ替えない。
+function updateHumanMovement(u, input = {}, dt, { prediction = false } = {}) {
+  if (prediction) {
+    if (!(Number.isFinite(dt) && dt > 0) || u.onlinePredictionBlocked || movementPredictionBlockReason(u,input)) return null;
+    // ホストの同じコマではauxiliaryStatusTickが先に進める。巻き直しでも同じ順序にする。
+    movementStatusTick(u,dt);
+  } else if (!isSimulationAuthority()) return null;
   const held = input.keys || {}, edge = input.pressed || {};
-  let wheel = input.wheel || 0;
-  if (!isLocalView(u)) {
+  if (prediction || !isLocalView(u)) {
     if (Number.isFinite(input.yaw)) u.yaw = input.yaw;
     if (Number.isFinite(input.pitch)) u.pitch = Math.max(-.9, Math.min(.7, input.pitch));
-    u.cameraRecoil = Number.isFinite(input.cameraRecoil) ? input.cameraRecoil : 0;
-    u.cameraRecoilYaw = Number.isFinite(input.cameraRecoilYaw) ? input.cameraRecoilYaw : 0;
+    if (!prediction) {
+      u.cameraRecoil = Number.isFinite(input.cameraRecoil) ? input.cameraRecoil : 0;
+      u.cameraRecoilYaw = Number.isFinite(input.cameraRecoilYaw) ? input.cameraRecoilYaw : 0;
+    }
   }
   u.actionHeld = !!held.KeyC; // 左Ctrlは外した（2026-11-04、オーナー指定。ブラウザの Ctrl+W などと重なるため）
   const artillery = isArtilleryMode(u);
@@ -9271,7 +9304,7 @@ function updateHumanUnit(u, input = {}, dt) {
   if (!artillery && held.ArrowRight) u.yaw -= 2.2 * dt;
   if (!artillery && held.ArrowUp) u.pitch = Math.min(0.7, u.pitch + 1.5 * dt);
   if (!artillery && held.ArrowDown) u.pitch = Math.max(-0.9, u.pitch - 1.5 * dt);
-  beamCannonTurn(u,dt);
+  if (!prediction) beamCannonTurn(u,dt);
   const f = (held.KeyW ? 1 : 0) - (held.KeyS ? 1 : 0) + (input.fwd || 0); // pad：コントローラーの左スティック、touch：画面のスティック（向きだけ使う）
   const s = (held.KeyD ? 1 : 0) - (held.KeyA ? 1 : 0) + (input.side || 0);
   const fwd = new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
@@ -9279,14 +9312,24 @@ function updateHumanUnit(u, input = {}, dt) {
   const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
   if (wish.lengthSq() > 0) wish.normalize();
   // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）。エリア移動の待機中も（v0.17。動けもしない、H で取り消し）
-  if (edge.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
+  if (!prediction && edge.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
   if (u.transfer) wish.set(0, 0, 0);
-  if (edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
+  if (!prediction && edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
   const busy = u.repairing || !!u.transfer;
   u.moveInput = wish.lengthSq() > 0.01;
   const boostHeld = !busy && !artillery && (held.ShiftLeft || held.ShiftRight);
-  if (!busy && !artillery && (edge.ShiftLeft || edge.ShiftRight)) shortDash(u, wish);
-  physics(u, wish, boostHeld, !busy && !artillery && edge.Space, dt, !busy && !artillery && held.Space);
+  if (!busy && !artillery && (edge.ShiftLeft || edge.ShiftRight)) shortDash(u, wish, prediction);
+  physics(u, wish, boostHeld, !busy && !artillery && edge.Space, dt, !busy && !artillery && held.Space, prediction);
+  return { busy, artillery };
+}
+function predictHumanMovement(u, input, dt) { return !!updateHumanMovement(u,input,dt,{prediction:true}); }
+// ホストの人間機は、ローカル・遠隔ともこの経路で1コマ1回だけ進む。
+// aimPoint は [x,y,z] または Vector3。遠隔入力にカメラやグローバルキーは使わない。
+function updateHumanUnit(u, input = {}, dt) {
+  if (!isSimulationAuthority()) return false;
+  const held = input.keys || {}, edge = input.pressed || {};
+  let wheel = input.wheel || 0;
+  const { busy, artillery } = updateHumanMovement(u, input, dt);
   if (!u.transfer) SLOTS.forEach((k, i) => { if (edge['Digit' + (i + 1)]) selectWeapon(u, k); }); // エリア移動の待機中は、数字キーとホイールで移動先を選ぶ
   if (wheel && !u.transfer) {
     const next = SLOTS[(SLOTS.indexOf(u.wheelSp ? 'sp' : u.weapon) + (wheel > 0 ? 1 : 3)) % 4];
@@ -12293,6 +12336,8 @@ function gameFrame(now) {
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
+    // 小さい巻き直し補正はモデルだけへ。pos/vel/当たり判定の確定値には混ぜない。
+    if (u.onlineVisualOffset) u.group.position.add(u.onlineVisualOffset);
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
     u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);

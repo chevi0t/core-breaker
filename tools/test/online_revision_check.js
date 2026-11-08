@@ -1,24 +1,98 @@
 // #214 追加回帰。node tools/test/online_revision_check.js dbg /tmp/online-revision [--mock-transport]
+// [--bootstrap-only] [--team-size=5|10]：初期同期だけ。初期1回assertを維持し、playingのschema追補は別集計。
 // 通信代替は明示フラグ時だけ。人工状態変更は同期境界の試験であり自然対戦ではない。
 const fs=require('node:fs'),path=require('node:path');
 const {check}=require('./lib');
 const {isDeepStrictEqual}=require('node:util');
 const {TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats,installWireObserver}=require('./online_test_helpers');
 async function pumpNetwork(host,guests,n=1){for(let i=0;i<n;i++){await frames(guests,1);await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});await sleep(60);}}
+const bootstrapOnly=process.argv.includes('--bootstrap-only');
+const teamSizeArg=process.argv.find(x=>x.startsWith('--team-size='));
+const bootstrapTeamSizes=teamSizeArg?[Number(teamSizeArg.split('=')[1])]:[5,10];
+if(bootstrapTeamSizes.some(x=>![5,10].includes(x)))throw Error('--team-size は5または10');
+if(teamSizeArg&&!bootstrapOnly)throw Error('--team-size は --bootstrap-only と合わせて指定してください');
 async function captureWire(page){await installWireObserver(page);await page.evaluate(()=>{
-  const t=CBOnlineGame.state.transport;window.__wire=[];window.__wireMessages=[];
+  const t=CBOnlineGame.state.transport;window.__wire=[];window.__wireMessages=[];window.__wireControlEvents=[];window.__wireCaptureStartedAt=performance.now();
   if(t.__wireCaptureInstalled)return;t.__wireCaptureInstalled=true;
-  const bytes=x=>new TextEncoder().encode(JSON.stringify(x)).length;
-  window.__observeOnlineWire(w=>__wire.push({type:w.type,bytes:w.messageBytes,channel:w.channel,at:w.at}),w=>{
+  const bytes=x=>new TextEncoder().encode(JSON.stringify(x)).length,schemas=new Map(),seenBases=new Set();
+  const receive=t.options.onMessage;
+  t.options.onMessage=(type,data,id)=>{
+    if(['ready','snapshotResync','preference'].includes(type))__wireControlEvents.push({type,at:performance.now(),phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:id});
+    return receive(type,data,id);
+  };
+  window.__observeOnlineWire(w=>__wire.push({type:w.type,bytes:w.messageBytes,channel:w.channel,at:w.at,phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:w.peerId}),w=>{
     const {payload:data,type}=w.envelope;
-    const m={type,channel:w.channel,bytes:w.messageBytes,logicalBytes:w.logicalMessageBytes,fragmentCount:w.fragmentCount,maxDatagramBytes:w.maxDatagramBytes};
+    const m={type,channel:w.channel,bytes:w.messageBytes,logicalBytes:w.logicalMessageBytes,fragmentCount:w.fragmentCount,maxDatagramBytes:w.maxDatagramBytes,
+      at:w.at,phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:w.peerId};
     if(type==='prepare')Object.assign(m,{hasSnapshotState:['baseline','delta','units'].some(k=>Object.hasOwn(data,k)),metadataKeys:Object.keys(data).sort()});
-    if(type==='snapshotBase')Object.assign(m,{baseId:data.id,parent:data.parent||null,schemaBytes:data.s?bytes(data.s):0,valuesBytes:data.d?bytes(data.d):0});
-    if(type==='snapshot')m.frame=data.frame;
+    if(type==='snapshotBase'){
+      const parentSchema=schemas.get(data.parent),schema=data.s||parentSchema,seen=seenBases.has(data.id);
+      const before=new Map((parentSchema||[]).map(([p,type])=>[JSON.stringify(p),type])),after=new Map((schema||[]).map(([p,type])=>[JSON.stringify(p),type]));
+      const added=[...after].filter(([p])=>!before.has(p)),removed=[...before].filter(([p])=>!after.has(p));
+      const changed=[...after].filter(([p,type])=>before.has(p)&&before.get(p)!==type).map(([p,type])=>({path:JSON.parse(p),before:before.get(p),after:type}));
+      Object.assign(m,{baseId:data.id,parent:data.parent||null,schemaBytes:data.s?bytes(data.s):0,valuesBytes:data.d?bytes(data.d):0,patchBytes:data.p?bytes(data.p):0,
+        schemaFields:schema?.length||0,baselineValueCount:data.d?.length||0,patchChangedFields:(data.p?.length||0)/2,
+        observedReason:seen?'same-id-resend':data.parent?(data.s?'schema-change':'same-schema-refresh'):'initial-full',
+        schemaChange:data.parent?{parentKnown:!!parentSchema,addedCount:added.length,removedCount:removed.length,typeChangedCount:changed.length,
+          added:added.slice(0,250).map(([p,type])=>({path:JSON.parse(p),type})),removed:removed.slice(0,250).map(([p,type])=>({path:JSON.parse(p),type})),typeChanged:changed.slice(0,250),pathLimit:250}:null});
+      if(schema)schemas.set(data.id,schema);seenBases.add(data.id);
+    }
+    if(type==='snapshot'){m.frame=data.frame;m.baseId=data.delta?.[1];}
     __wireMessages.push(m);
   });
 });}
-async function bootstrap(page){return page.evaluate(()=>({units:__g.units.length,prepare:__wireMessages.filter(x=>x.type==='prepare'),bases:__wireMessages.filter(x=>x.type==='snapshotBase'),initialSnapshots:__wireMessages.filter(x=>x.type==='snapshot'&&x.frame===0),observerErrors:__wireObserverErrors}));}
+async function bootstrap(page,guests=[]){
+  const result=await page.evaluate(()=>{
+    const prepare=__wireMessages.filter(x=>x.type==='prepare'),bases=__wireMessages.filter(x=>x.type==='snapshotBase'),snapshots=__wireMessages.filter(x=>x.type==='snapshot');
+    return {units:__g.units.length,captureStartedAt:__wireCaptureStartedAt,capturedAt:performance.now(),phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,
+      prepare,bases,initialSnapshots:snapshots.filter(x=>x.frame===0),snapshots,controlEvents:__wireControlEvents,
+      observerErrors:__wireObserverErrors,transport:CBOnlineGame.state.transport.metrics(),
+      summary:{prepareCount:prepare.length,baseCount:bases.length,initialSnapshotCount:snapshots.filter(x=>x.frame===0).length,
+        baseReasons:bases.map(b=>({id:b.baseId,parent:b.parent,phase:b.phase,hostFrame:b.hostFrame,reason:b.observedReason,logicalBytes:b.logicalBytes,wireBytes:b.bytes,
+          schemaFields:b.schemaFields,schemaBytes:b.schemaBytes,patchBytes:b.patchBytes,added:b.schemaChange?.addedCount||0,removed:b.schemaChange?.removedCount||0,typeChanged:b.schemaChange?.typeChangedCount||0})),
+        snapshotFrames:snapshots.map(x=>x.frame),resyncRequests:__wireControlEvents.filter(x=>x.type==='snapshotResync').length,
+        baseWireBytes:bases.reduce((n,p)=>n+p.bytes,0),baseLogicalBytes:bases.reduce((n,p)=>n+p.logicalBytes,0)}};
+  });
+  result.guests=await Promise.all(guests.map(p=>p.evaluate(()=>({phase:CBOnlineGame.state.phase,lastFrame:CBOnlineGame.state.lastSnapshot?.frame,
+    localUnitId:CBOnlineGame.state.localUnitId,units:__g.units.length,interpolation:CBOnlineGame.metrics().interpolation}))));
+  return partitionBootstrap(result);
+}
+function partitionBootstrap(b){
+  // helperはplayingに入った最初のhost frameまで回す。開始後のschema更新を初期送信と混ぜない。
+  // phaseだけでなくhostFrameも照合し、分類不能な再送を黙って除外しない。
+  const initial=m=>['preparing','countdown'].includes(m.phase)&&m.hostFrame===0;
+  const playing=m=>m.phase==='playing'&&m.hostFrame>0;
+  const allBases=b.bases,allSnapshots=b.snapshots;
+  b.bootstrapScope='host phase preparing/countdown・hostFrame 0。playing/frame 1以後の基準と差分はplayingSupplementへ別集計。';
+  b.allBases=allBases;b.bases=allBases.filter(initial);
+  b.initialSnapshots=allSnapshots.filter(m=>initial(m)&&m.frame===0);
+  b.unclassifiedBases=allBases.filter(m=>!initial(m)&&!playing(m));
+  b.unclassifiedSnapshots=allSnapshots.filter(m=>!(initial(m)&&m.frame===0)&&!(playing(m)&&m.frame>0));
+  const bases=allBases.filter(playing),snapshots=allSnapshots.filter(m=>playing(m)&&m.frame>0);
+  b.playingSupplement={bases,snapshots,baseCount:bases.length,snapshotCount:snapshots.length,
+    baseWireBytes:bases.reduce((n,m)=>n+m.bytes,0),baseLogicalBytes:bases.reduce((n,m)=>n+m.logicalBytes,0),
+    schemaBytes:bases.reduce((n,m)=>n+m.schemaBytes,0),patchBytes:bases.reduce((n,m)=>n+m.patchBytes,0),
+    snapshotWireBytes:snapshots.reduce((n,m)=>n+m.bytes,0)};
+  b.controlMetadataBytes=b.prepare.reduce((n,m)=>n+m.bytes,0);
+  b.lossyBootstrapBytes=[...b.bases,...b.initialSnapshots].reduce((n,m)=>n+m.bytes,0);
+  b.playingSupplementWireBytes=b.playingSupplement.baseWireBytes+b.playingSupplement.snapshotWireBytes;
+  b.capturedSnapshotWireBytes=[...allBases,...allSnapshots].reduce((n,m)=>n+m.bytes,0);
+  Object.assign(b.summary,{baseCount:allBases.length,initialBaseCount:b.bases.length,playingBaseCount:bases.length,initialSnapshotCount:b.initialSnapshots.length,
+    initialBaseWireBytes:b.bases.reduce((n,m)=>n+m.bytes,0),playingBaseWireBytes:b.playingSupplement.baseWireBytes,
+    unclassifiedBaseCount:b.unclassifiedBases.length,unclassifiedSnapshotCount:b.unclassifiedSnapshots.length});
+  return b;
+}
+function assertBootstrap(b,ok){
+  // 成功・失敗を問わず、最初のassertより前に個数/サイズ/原因候補を標準出力へ残す。
+  // 完全な追加pathはfinallyのonline-revision.jsonにも保存される。
+  console.log('初期同期診断',JSON.stringify({units:b.units,...b.summary,schemaChanges:b.allBases.filter(x=>x.schemaChange).map(x=>({baseId:x.baseId,...x.schemaChange}))}));
+  ok(b.observerErrors.length===0,'初期wireの断片を独立観測器で復元できる（'+b.units+'機）');
+  ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.prepare[0].channel==='control'&&!b.prepare[0].hasSnapshotState&&JSON.stringify(b.prepare[0].metadataKeys)===JSON.stringify(['localId','mapId','matchId','teamSize']),'初期prepareはcontrol metadata1通だけで静的状態を重複収録しない（'+b.units+'機）');
+  ok(b.bases.length===1&&b.bases[0].channel==='snapshot'&&b.bases[0].schemaBytes>0&&b.bases[0].valuesBytes>0&&b.bases[0].logicalBytes<=262144&&b.initialSnapshots.length===1,'初期基準と差分を写真専用線で各1通送り、静的基準を二重送信しない（'+b.units+'機）');
+  ok(b.unclassifiedBases.length===0&&b.unclassifiedSnapshots.length===0,'初期/playing以外の基準・差分を集計から除外して隠さない（'+b.units+'機）');
+  ok(b.playingSupplement.bases.every(m=>m.channel==='snapshot'&&m.parent>0&&m.valuesBytes===0&&m.logicalBytes<=262144&&['schema-change','same-schema-refresh'].includes(m.observedReason)),'playingで追加した基準は初期全状態の重複でなく親付き追補として記録（'+b.units+'機）');
+  ok(b.lossyBootstrapBytes+b.playingSupplementWireBytes===b.capturedSnapshotWireBytes,'初期送信とplaying追補を分けても写真線の実送信byte合計を維持（'+b.units+'機）');
+}
 async function fakeLoops(page){return page.evaluate(()=>{
   // 実際の音声を鳴らさず、停止API呼出しと音プールの後始末だけを検証する。
   window.__loopProbe={stopped:[],ended:[]};
@@ -80,8 +154,18 @@ async function uiRoom(browser,h,errors,ok){
 }
 check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir);let active;
-  const report={mode:TRANSPORT_MODE,method:'固定コマ送り/描画省略の機能回帰。wireBytesはアプリから送ったJSONのUTF8量で、回線ヘッダー・再送を含まない。実音・人間の操作感は未確認。',sizes:[],bootstrap:[]};
+  const report={mode:TRANSPORT_MODE,selectedCases:{bootstrapOnly,bootstrapTeamSizes},method:'固定コマ送り/描画省略の機能回帰。wireBytesはアプリから送ったJSONのUTF8量で、回線ヘッダー・再送を含まない。実音・人間の操作感は未確認。',sizes:[],bootstrap:[]};
   try{
+    if(bootstrapOnly){
+      for(const teamSize of bootstrapTeamSizes){
+        console.log('初期同期だけを検査: '+teamSize*2+'機');
+        active=await room(browser,h,errors,{guests:1,teamSize,beforeStart:captureWire});
+        const sample=await bootstrap(active.host,active.guests);report.bootstrap.push(sample);
+        await active.close();active=null;
+      }
+      for(const sample of report.bootstrap)assertBootstrap(sample,ok);
+      return;
+    }
     console.log('追加回帰: UI操作から予約カウントダウン');
     active=await uiRoom(browser,h,errors,ok);
     const {host,guest,pages}=active;
@@ -108,7 +192,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     const timing=await Promise.all(pages.map(p=>p.evaluate(()=>({startAtHost:CBOnlineGame.state.startAtHost,startAtLocal:CBOnlineGame.state.startAtLocal,actualStartAt:CBOnlineGame.state.actualStartAt,clock:CBOnlineGame.state.transport.clock?.()}))));
     report.countdown={seen:seen.map(s=>[...s]),timing,hostEquivalentStartDifferenceMs:timing[1].actualStartAt+(timing[1].clock?.offsetMs||0)-timing[0].actualStartAt};
     ok(timing.every(t=>t.actualStartAt>=t.startAtLocal),'予約時刻以前には開始しない');
-    report.bootstrap.push(await bootstrap(host));
+    report.bootstrap.push(await bootstrap(host,[guest]));
     await captureWire(host);
     await frames(pages,100);await sleep(100);
     report.sizes.push(await host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,messages:__wireMessages,observerErrors:__wireObserverErrors,transport:CBOnlineGame.state.transport.metrics()})));
@@ -231,13 +315,8 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
 
     console.log('追加回帰: 20機のsnapshotサイズ');
     active=await room(browser,h,errors,{guests:1,teamSize:10,beforeStart:captureWire});
-    report.bootstrap.push(await bootstrap(active.host));
-    for(const b of report.bootstrap){
-      ok(b.observerErrors.length===0,'初期wireの断片を独立観測器で復元できる（'+b.units+'機）');
-      ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.prepare[0].channel==='control'&&!b.prepare[0].hasSnapshotState&&JSON.stringify(b.prepare[0].metadataKeys)===JSON.stringify(['localId','mapId','matchId','teamSize']),'初期prepareはcontrol metadata1通だけで静的状態を重複収録しない（'+b.units+'機）');
-      ok(b.bases.length===1&&b.bases[0].channel==='snapshot'&&b.bases[0].schemaBytes>0&&b.bases[0].valuesBytes>0&&b.bases[0].logicalBytes<=262144&&b.initialSnapshots.length===1,'初期基準と差分を写真専用線で各1通送り、静的基準を二重送信しない（'+b.units+'機）');
-      b.controlMetadataBytes=b.prepare.reduce((n,p)=>n+p.bytes,0);b.lossyBootstrapBytes=[...b.bases,...b.initialSnapshots].reduce((n,p)=>n+p.bytes,0);
-    }
+    report.bootstrap.push(await bootstrap(active.host,active.guests));
+    for(const b of report.bootstrap)assertBootstrap(b,ok);
     await captureWire(active.host);await frames(active.pages,100);await sleep(100);
     report.sizes.push(await active.host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,messages:__wireMessages,observerErrors:__wireObserverErrors,transport:CBOnlineGame.state.transport.metrics()})));
     for(const p of active.pages)await fakeLoops(p);
