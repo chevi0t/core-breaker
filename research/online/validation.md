@@ -417,3 +417,17 @@ v9はv8を拒否するため両ブラウザを再読込する。高Hzで自機�
 F3の反復控除は現在のtick数。防いだ視点上書きは直近2秒・最大1200件、yaw差を±πへ折り返した絶対値とpitch差の大きい方を度で集計する。1e-7rad以下の差は除外する。画面に残った角度誤差ではなく、今回保存復元した角度差である。値が0でも別の描画/入力原因を否定するものではない。
 
 最終コードでオンラインNode12スイート、visibility154項目、名前14ファイル、変更JS構文、diff検査が成功。実ブラウザ試験は既知のsocket/WebGL制限で未実行。通信形式はv9のまま、main/gh-pagesは変更しない。
+
+## #216の取り込みと固定命令後の予測試験更新（2026-11-08）
+
+#216（44614b1）はe8b0140から分岐し、通常予測後のyaw/pitch復元と `online_view_turn_check.js` を追加した。#214のb220afaと同じ場所・目的の修正なので、例外時のfinally復元とF3防止量を持つb220afaの製品実装を一度だけ残し、#216の履歴と旋回試験を取り込む。製品game.jsはb220afaとバイト単位で同一、main/gh-pagesには反映しない。
+
+#216記載の「向きが変わらない0/210コマ、補正平均.0066m、hardSnap0」はその担当側の通信代替試験の記録で、こちらの実行結果ではない。取込時にharnessのrealTime指定が省略されていたことを確認した。rAFは実時間だが、make_dbgの既定ではゲームdtが毎コマ50msに固定されるため、実時間dtを使う指定を足し、実際のdtの件数/平均/最大/種類数をログへ出す。不要な未使用ページも開かない。今回環境でこのブラウザ試験を実行できたとは扱わない。
+
+報告された `online_prediction_check.js` の例外は、同じhostSteps evaluate処理を実game.js/physicsのVMへ接続してe8b0140とb220afaの両方で再現した。fixedCommands=trueのpeerへ旧形式（command印なし）の入力を送るため製品が正しく拒否し、accepted=p.inputがnullになる。その後の `Object.hasOwn(accepted,'dt')` が `Cannot convert undefined or null to object` を投げる。#216の視点復元が原因ではない。旧形式を許可したりnullだけ飛ばしたりせず、固定命令queueと実適用ACKを検査する試験へ更新する。
+
+修正版はhost frame 11/29/7/23msに対して固定移動0/2/0/2step、実消化seqと反復込みreplaySeq、移動/control両線の押下一度、個別適用ID、旧life/期限、240Hz描画でも60命令を生成することを検査する。ゲスト側の旧可変dt部分ACK期待値も固定命令と反復時間控除へ置き換え、旧可変方式の対照は `online_prediction.test.js` に残した。生成元から独立codecで復号したpeer別公開snapshotを使い、未発見枠を追加公開しない検査も保っている。
+
+`node tools/test/online_prediction_contract.test.js` はbrowser版のfunctional関数と全3つのevaluate処理をそのまま平地VMへ接続し、67項目・生成元/復号状態の照合74回・秘匿枠1件で成功。通常実行は過去commitやネットワーク不要。`--before-v9-fixture=/path/to/old/check.js` を指定すると旧fixtureの同じnull例外を検証できる。再現例はファイル冒頭、最終結果とsource hashは `prediction-contract-summary.json`。VMの地形/施設/射撃、equipの機体再構築、camera/aimには代役があり、結果にも列挙した。
+
+統合後はオンラインNode13スイート、visibility154項目、名前14ファイル、変更JS構文、diff検査が成功。新旋回checkは実時間dt・入力方向への単調回転を確認する通常通信のsmokeとし、反復控除を強制した回帰は既存camera36条件が担当する。今回のbrowser版の実実行、WebRTC、latencyCaseの50/100ms実時間測定は環境制限により未実行であり、VM成功をその代わりの成功とはしない。
