@@ -223,7 +223,10 @@
     }
     m.pending=m.pending.filter(p=>p.input.seq>seq||!fixed&&p.provisionalDt>seqDt+1e-9);
     // 写真が来るまでに増えたマウス/右スティックの向きは見た目だけの遅延を付けない。
-    if(!reason||reason==='melee'||keepInactiveLook){player.yaw=previousView.yaw;player.pitch=previousView.pitch;}
+    // カタパルト・ジャンプ台・よろけ・近接など先読みを止める間も、向きはゲストの物（写真の向きは自分が少し前に送った値）。
+    // 戻すと、遅れて返る向きと今の向きの間を行き来して画面が震える（2026-11-08 揺れ計測 online_jitter_check で検知）。
+    // ホストの向きに合わせるのは、再出撃・移動（エリア移動など）・ダウンと蘇生・兵装変更だけ（向きが作り直される時。行動不能中の見回しは除く）。
+    if(keepInactiveLook||!['respawn','transfer','down','equipment'].includes(reason)){player.yaw=previousView.yaw;player.pitch=previousView.pitch;}
     const distance=Math.sqrt(previousView.pos.distanceToSquared(player.pos));
     m.correctionCount++;m.correctionTotal+=distance;m.correctionMax=Math.max(m.correctionMax,distance);
     // 近接中の写真位置は予測誤差ではない。外挿の上へ通常移動の巻戻しを重ねない。
@@ -731,13 +734,20 @@
     const reason=player&&Number.isFinite(ownSnapshotTime)&&Number.isFinite(interpolation.localOffset)?
       player.onlinePredictionBlocked||(typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(player):''):'';
     if(!reason||reason==='inactive'||reason==='transfer'||reason==='planted'){blockedView=null;return false;}
-    const lead=clamp(now()-interpolation.localOffset-ownSnapshotTime,0,100)/1000;
-    const target=player.pos.clone().addScaledVector(player.vel,lead);
+    // 写真の時刻から今までを先へ進める。片道の遅れ＋写真の間隔＋揺らぎで100msを超えることがあり、上限が100msだと
+    // そのたびに描画が一瞬止まりかけて次の写真で跳んだ（2026-11-08 揺れ計測 online_jitter_check）。250msまで先読みする（近接は踏み込みの急停止があるので従来どおり100ms）。
+    const lead=clamp(now()-interpolation.localOffset-ownSnapshotTime,0,reason==='melee'?100:250)/1000;
+    // 宙にいる間（カタパルト・ジャンプ台）は重力も足す。速度だけで先へ置くと、写真の間に上下のずれが二乗で増え、
+    // 写真が来るたびに戻って画面が上下に波打つ（2026-11-08 揺れ計測 online_jitter_check で検知）。
+    const fall=!player.onGround&&typeof GRAV==='number'?GRAV:0,step=Math.max(0,Math.min(.05,dt||0));
+    const target=player.pos.clone().addScaledVector(player.vel,lead);target.y-=.5*fall*lead*lead;
     if(blockedView&&blockedView.lifeId===player.lifeId){
       // 近接の急停止・欠落でも外挿を100ms以内に収める。描画Hzで追従率を変えない。
-      const seconds=reason==='melee'?clamp((Math.min(now(),interpolation.localOffset+ownSnapshotTime+100)-(blockedView.time??now()))/1000,0,.05):Math.max(0,Math.min(.05,dt||0));
-      const moved=blockedView.pos.clone().addScaledVector(player.vel,seconds);
-      if(moved.distanceToSquared(target)<9)target.addScaledVector(moved.addScaledVector(target,-1),reason==='melee'?Math.pow(.7,Math.max(0,dt||0)*60):.7);
+      const seconds=reason==='melee'?clamp((Math.min(now(),interpolation.localOffset+ownSnapshotTime+100)-(blockedView.time??now()))/1000,0,.05):step;
+      const moved=blockedView.pos.clone().addScaledVector(player.vel,seconds);moved.y-=fall*lead*seconds;
+      // 写真が来るたびの小さな食い違いは、1コマに1割ずつ寄せる（3割だと写真ごとに速さが2〜3割脈打ち、30Hzのガタつきに見えた。
+      // 2026-11-08 揺れ計測 online_jitter_check）。3m以上離れたら寄せずに合わせる。
+      if(moved.distanceToSquared(target)<9)target.addScaledVector(moved.addScaledVector(target,-1),reason==='melee'?Math.pow(.7,Math.max(0,dt||0)*60):.9);
     }
     blockedView={pos:target.clone(),lifeId:player.lifeId,reason,time:now()};
     (player.onlineRenderOffset||(player.onlineRenderOffset=vector([0,0,0]))).copy(target).addScaledVector(player.pos,-1);
@@ -1136,7 +1146,14 @@
       const previous=remoteUnitHistory.get(v.id),snap=!previous||previous.snap||u.onlineHidden||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||u.onlineVisibilityEpoch!==(v.visibilityEpoch||0)||u.alive!==v.alive;
       applyUnit(u,v);if(u===player)ownSnapshotTime=s.time;
       if(sparse&&u!==player){
-        const samples=snap?[]:previous.samples;samples.push({frame:s.frame,time:s.time,unit:v});while(samples.length>16)samples.shift();
+        const samples=snap?[]:previous.samples,before=samples.at(-1);
+        // 止まっていた機体は変化が無いので写真に載らず、前の記録が古いまま残る。そのまま新しい写真と補間すると、
+        // 動き出した最初のコマで古い時刻からの残りを一度に進めて跳ぶ（2026-11-08 揺れ計測 online_jitter_check で検知）。
+        // 前の記録で止まっていたなら、1つ前の写真の時刻にも同じ所にいたことにする（位置が動いたときだけ。しゃがみなど姿勢だけの変化は写真どおり補間する）。
+        const bp=before?.unit.pos,np=v.pos,moved=bp&&np&&Math.hypot(np[0]-bp[0],np[1]-bp[1],np[2]-bp[2])>.01;
+        if(moved&&s.time-before.time>SNAPSHOT_INTERVAL_MS*1.5&&Math.hypot(...(before.unit.vel||[0,0,0]))<.05)
+          samples.push({frame:before.frame,time:s.time-SNAPSHOT_INTERVAL_MS,unit:before.unit});
+        samples.push({frame:s.frame,time:s.time,unit:v});while(samples.length>16)samples.shift();
         remoteUnitHistory.set(v.id,{samples,stamp:[visibilitySupport.unitNumber(v.id),s.frame,s.frame,s.time,v.visibilityEpoch],snap});
       }
     }

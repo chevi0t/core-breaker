@@ -95,4 +95,11 @@ for(const [patch,reason]of [
   near(h.c.player.yaw,patch.yaw,'権威の向きを適用');near(h.c.player.pitch,patch.pitch,'権威pitch');
   if(reason)assert.equal(h.game.metrics().prediction.hardSnapReasons[reason],1);count++;
 }
+// カタパルト・ジャンプ台など先読みを止める間は、写真の（少し前に自分が送った）向きで今の向きを戻さない（2026-11-08 揺れ計測）。
+for(const patch of [{flying:true},{predictionBlocked:'jumpPad'}]){
+  const {h,snapshot,reconcile}=suite.create();
+  reconcile(h,snapshot(h));h.c.player.yaw=1.2;h.c.player.pitch=.4;
+  reconcile(h,snapshot(h,2,{...patch,yaw:-.7,pitch:0}));
+  near(h.c.player.yaw,1.2,'先読み停止中もゲストの向き');near(h.c.player.pitch,.4,'先読み停止中もゲストのpitch');count++;
+}
 console.log(`ゲスト視点：${count}条件成功。写真直後/予測後/実cameraで逆行なし、歴史移動・lock・境界を保持。実RTC/描画/人の操作感は未検証。`);
