@@ -56,6 +56,8 @@ async function approval(browser,h,errors,ok){
   const diagnostic=async stage=>{for(const [who,page]of [['host',host],['guest',guest]])console.error('承認試験診断',stage,who,await page.evaluate(()=>({phase:CBOnlineGame.state.phase,status:CBOnlineGame.state.status,requests:[...CBOnlineGame.state.requests.values()],joinError:window.__joinError,mock:window.__mockTransport,metrics:CBOnlineGame.state.transport?.metrics(),links:[...CBOnlineGame.state.transport?.links.values()||[]].map(l=>({ready:l.ready,approved:l.approved,pending:l.pending,control:{open:l.conn.open,label:l.conn.label,options:l.conn.options,dc:l.conn.dataChannel},snapshot:l.snapshotConn?{open:l.snapshotConn.open,label:l.snapshotConn.label,options:l.snapshotConn.options,dc:l.snapshotConn.dataChannel}:null}))})));};
   try{
     const id=await host.evaluate(peerOptions=>CBOnlineGame.create({peerOptions}),h.peerOptions);
+    // オーナーの指定 2026-11-08 で本体は申請を自動で許可する。ここでは通信層の「許可前は秘匿」を確かめるため、自動許可を止めて申請だけ記録する。
+    await host.evaluate(()=>{const o=CBOnlineGame.state.transport.options;o.onPeerRequest=(id,name)=>{CBOnlineGame.state.requests.set(id,{id,name});};});
     await guest.evaluate(({id,peerOptions})=>{window.__joining=CBOnlineGame.join(id,{peerOptions}).catch(e=>{window.__joinError=e.message;});},{id,peerOptions:h.peerOptions});
     await host.waitForFunction(()=>CBOnlineGame.state.requests.size===1,{},{timeout:15000,polling:20}).catch(async error=>{await diagnostic('request');throw error;});
     const pending=await host.evaluate(()=>{
@@ -120,17 +122,22 @@ async function recovery(active,ok){
   ok(reorder.after.frame===reorder.before.frame&&JSON.stringify(reorder.after.cores)===JSON.stringify(reorder.before.cores),'順序が逆転した古いsnapshotを適用せず確定状態を巻き戻さない');
 
   // 最後のsnapshotと新しい基準を1回ずつ失う。controlだけで結果を確定する。
+  // 試合が終わると全員が同じロビーへ戻る（phase は lobby、matchesFinished が増える）。
   await sleep(1100);
   const finalBefore=await probe(guest);
   await guest.evaluate(()=>{__loss.dropSnapshots=1;__loss.dropBases=1;});await forceBaseline(host);
   await host.evaluate(()=>{__g.timeLeft=0;__g.finish();CBOnlineGame.afterFrame(0,performance.now());});
   const finishAt=Date.now(),deadline=finishAt+9000;
-  while(Date.now()<deadline){await frames(guests,1);await sleep(40);if(await guest.evaluate(()=>CBOnlineGame.state.phase==='ended'))break;}
+  while(Date.now()<deadline){await frames(guests,1);await sleep(40);if(await guest.evaluate(()=>(CBOnlineGame.state.matchesFinished||0)>0))break;}
   await sleep(180);
   const final=await probe(guest),hostEnd=await summary(host),guestEnd=await summary(guest);
-  ok(final.phase==='ended'&&guestEnd.time===hostEnd.time&&JSON.stringify(guestEnd.cores)===JSON.stringify(hostEnd.cores),'最終snapshotと基準が欠落してもホストframe追加なしでcontrolの結果へ到達');
-  ok((final.loss.dropped.snapshot||0)>(finalBefore.loss.dropped.snapshot||0)&&(final.loss.dropped.snapshotBase||0)>(finalBefore.loss.dropped.snapshotBase||0),'最終snapshotと最終基準を実際に各1通以上落とした');
-  return {channelIsolation:{blocked,isolated,otherBefore,otherAfter,otherState,queued},missingBaseline:{before,after,hostFrame},reorder,final:{before:finalBefore,after:final,host:hostEnd,guest:guestEnd,recoveryWallMs:Date.now()-finishAt}};
+  ok(guestEnd.finished>0&&guestEnd.phase==='lobby'&&guestEnd.time===hostEnd.time&&JSON.stringify(guestEnd.cores)===JSON.stringify(hostEnd.cores),'最終snapshotと基準が欠落してもホストframe追加なしでcontrolの結果へ到達');
+  // 試合終了と同じ frame で lobbyReturn（control）も出る。それが先に着くとゲストは前の試合番号の写真を通信層で捨てるので、
+  // 落とす仕掛けまで届かない（未消化のまま残る）。どちらでも最終snapshot・基準はゲストに適用されていない。
+  const droppedBy=kind=>(final.loss.dropped[kind]||0)>(finalBefore.loss.dropped[kind]||0)?'loss':final.loss[kind==='snapshot'?'dropSnapshots':'dropBases']>0?'staleMatch':null;
+  const finalDrops={snapshot:droppedBy('snapshot'),snapshotBase:droppedBy('snapshotBase')};
+  ok(finalDrops.snapshot&&finalDrops.snapshotBase,'最終snapshotと最終基準を各1通以上ゲストへ適用させなかった（人工損失か前の試合番号で破棄）');
+  return {channelIsolation:{blocked,isolated,otherBefore,otherAfter,otherState,queued},missingBaseline:{before,after,hostFrame},reorder,final:{before:finalBefore,after:final,drops:finalDrops,host:hostEnd,guest:guestEnd,recoveryWallMs:Date.now()-finishAt}};
 }
 
 // 旧v4のinterpolate(t)をそのまま数式化した比較器。受信時刻、履歴8枚、固定100ms、外挿なし。
@@ -227,12 +234,12 @@ check('snapshot損失・基準復旧・適応補間',async({browser,dir,out,ok,e
       console.log('人工snapshot損失 '+rate*100+'%・300秒設定');
       active=await room(browser,h,errors,{guests:1,teamSize:5,beforeStart:async(host,guests)=>installLoss(guests[0],rate,214)});
       const started=Date.now();let advanced=0;
-      for(;advanced<6400;advanced+=10){await frames(active.pages,10);if(advanced%600===0)console.log('損失試合',rate,Math.round(300-(await summary(active.host)).time));if((await summary(active.host)).phase==='ended')break;}
+      for(;advanced<6400;advanced+=10){await frames(active.pages,10);if(advanced%600===0)console.log('損失試合',rate,Math.round(300-(await summary(active.host)).time));if((await summary(active.host)).finished>0)break;}
       const deadline=Date.now()+10000;
-      while(Date.now()<deadline){if((await summary(active.guests[0])).phase==='ended')break;await frames(active.guests,1);await sleep(40);}
+      while(Date.now()<deadline){if((await summary(active.guests[0])).finished>0)break;await frames(active.guests,1);await sleep(40);}
       const host=await summary(active.host),guest=await summary(active.guests[0]),p=await probe(active.guests[0]);
       const row={rate,wallSeconds:(Date.now()-started)/1000,simulationFrames:advanced+10,host,guest,loss:p.loss,interpolation:p.metrics.interpolation,acceptedSnapshotGapMs:stats(p.loss.gapMs),acceptedSnapshotGapScope:p.loss.gapScope,startupSnapshotGapMs:stats(p.loss.startupGapIntervals.map(x=>x.ms))};report.soak.push(row);
-      ok(host.phase==='ended'&&guest.phase==='ended'&&JSON.stringify(host.cores)===JSON.stringify(guest.cores),`${rate*100}%人工損失で300秒設定の自然Bot試合が同じ結果へ到達`);
+      ok(host.finished>0&&guest.finished>0&&JSON.stringify(host.cores)===JSON.stringify(guest.cores),`${rate*100}%人工損失で300秒設定の自然Bot試合が同じ結果へ到達`);
       ok((p.loss.dropped.snapshot||0)>0&&p.loss.accepted.length>10,`${rate*100}%条件で実際にsnapshot欠落と復旧後の継続適用を観測`);
       console.log('損失結果',JSON.stringify({rate,wallSeconds:row.wallSeconds,received:p.loss.received,dropped:p.loss.dropped,gap:row.acceptedSnapshotGapMs,interpolation:row.interpolation}));
       await active.close();active=null;

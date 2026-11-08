@@ -25,7 +25,7 @@ if(latencies.some(x=>![50,100].includes(x)))throw Error('--latency-ms は50ま�
 function instrument(dir){
   const file=path.join(dir,'online/game.js'),source=fs.readFileSync(file,'utf8'),marker='  window.CBOnlineGame=';
   if(!source.includes(marker))throw Error('巻き戻しfixtureの挿入位置がありません');
-  const hook=`  window.__lagTest={captureLagHistory,encodePeerSnapshot,rememberPeerSnapshot,replicationFor,castGuestHitscan,sendLocalInput,acceptInput,acceptInputBatch,acceptInputActions,interpolate,recordHostInputStep,
+  const hook=`  window.__lagTest={captureLagHistory,encodePeerSnapshot,rememberPeerSnapshot,replicationFor,castGuestHitscan,sendLocalInput,acceptInput,acceptInputBatch,acceptInputActions,interpolate,recordHostInputStep,advanceRemoteCommands,acknowledgeInputAction,
     enable:value=>{lagEnabled=!!value;},context:()=>hitscanContext,history:()=>lagHistory,view:()=>lastRenderedView,peer:id=>state.peers.get(id)};\n`;
   fs.writeFileSync(file,source.replace(marker,hook+marker));
 }
@@ -210,7 +210,9 @@ async function functional(host,oneWayMs){
         const outcomes=[];
         for(const order of ['control-first','movement-first','reverse-batch','lost-first-movement']){
           const f=reset();
-          Object.assign(peer,{input:null,inputLifeId:shooter.lifeId,inputTimes:[],inputHistoryTruncated:false,firstInputAt:null,
+          // 固定命令（参加時から fixedCommands）では移動はhostの固定stepで p.input に入る。ここは action と movement の
+          // 到着順の規則（remoteInput の合成）だけを見るので、旧来の「受けたら即 p.input」経路で並べる。
+          Object.assign(peer,{fixedCommands:false,commandQueue:[],input:null,inputLifeId:shooter.lifeId,inputTimes:[],inputHistoryTruncated:false,firstInputAt:null,
             receivedSeq:0,receivedActionSeq:0,appliedSeq:0,appliedStep:0,appliedSeqDt:0,appliedTotalDt:0,appliedSteps:[],appliedActionSeq:0,
             pendingEdges:{},actions:[],actionState:null,activeAction:null,pendingShot:null,shotActionSeq:0,last:clock});
           const latestView=sentView(clock-oneWayMs-30);
@@ -240,7 +242,7 @@ async function functional(host,oneWayMs){
             outcomes.push({order,casts:observed,damageCalls:firstDamage,firstEvents,continuedEvents});
           }finally{game.castHitscan=oldCast;}
         }
-        details.actionOrder=outcomes;
+        details.actionOrder=outcomes;peer.fixedCommands=true;
       }
       {
         const f=reset(),history=t.history(),original=history.withRewind;let chosenTime=null;
@@ -309,16 +311,17 @@ async function wire(active,oneWayMs,ok,report){
     const view=structuredClone(__lagTest.view());if(!view||!Number.isFinite(view.time))throw Error('描画済みsnapshotのstampがありません');
     const inputs=[];
     for(let n=0;n<6;n++){
-      const input={...base,seq:++CBOnlineGame.state.seq,keys:{},pressed:{},yaw:__g.player.yaw,pitch:__g.player.pitch,aimPoint:[0,202,0],trigger:n===5};
+      const input={...base,command:true,seq:++CBOnlineGame.state.seq,keys:{},pressed:{},yaw:__g.player.yaw,pitch:__g.player.pitch,aimPoint:[0,202,0],trigger:n===5};
       __lagTest.sendLocalInput(input);inputs.push({seq:input.seq,actionSeq:input.actionSeq});
     }
     return {view,inputs,seq:inputs.at(-1).seq};
   },neutral);
   // 最後のmovementは送信制限を越えてからflushする。snapshot/control実線は製品transportに委ねる。
   await sleep(25);
-  await guest.evaluate(base=>__lagTest.sendLocalInput({...base,seq:++CBOnlineGame.state.seq,keys:{},pressed:{},yaw:__g.player.yaw,pitch:__g.player.pitch,aimPoint:[0,202,0],trigger:true}),neutral);
+  await guest.evaluate(base=>__lagTest.sendLocalInput({...base,command:true,seq:++CBOnlineGame.state.seq,keys:{},pressed:{},yaw:__g.player.yaw,pitch:__g.player.pitch,aimPoint:[0,202,0],trigger:true}),neutral);
   await sleep(100+oneWayMs*3);
-  const result=await host.evaluate(()=>{const p=[...CBOnlineGame.state.peers.values()][0];return {input:structuredClone(p.input),actionSeq:p.receivedActionSeq,clock:CBOnlineGame.state.transport.clock(p.id)};});
+  // 参加時から固定命令。受けた移動はhostの固定stepまで commandQueue に並ぶので、その最後（無ければ適用済みの p.input）を見る。
+  const result=await host.evaluate(()=>{const p=[...CBOnlineGame.state.peers.values()][0];return {input:structuredClone(p.commandQueue?.at(-1)||p.input),actionSeq:p.receivedActionSeq,clock:CBOnlineGame.state.transport.clock(p.id)};});
   const observed=await guest.evaluate(()=>({wire:__lagWire,errors:__wireObserverErrors,metrics:CBOnlineGame.metrics().prediction}));
   Object.assign(output,{sent,received:result,wire:observed.wire,crouch});
   const batches=observed.wire.filter(x=>x.type==='inputBatch'),actions=observed.wire.filter(x=>x.type==='inputActions');
@@ -360,7 +363,10 @@ async function hitRate(active,oneWayMs,enabled,ok,report){
         const now=performance.now(),dt=Math.min(.05,Math.max(.001,(now-q.lastAt)/1000));q.lastAt=now;q.ticks++;
         place(shooter,0,60);place(target,-30+speed*(now-q.startAt)/1000,0);target.vel.x=speed;g.scene.updateMatrixWorld(true);
         game.beforeFrame(dt,now);
-        const input=shooter.controlInput,peer=game.state.peers.get(shooter.ownerPeerId),appliedAction=peer.activeAction||peer.actionState;
+        // 参加時から固定命令。移動・照準は本体の updateHumanUnit と同じく固定stepで消化し、その入力で撃つ。
+        const peer=game.state.peers.get(shooter.ownerPeerId);
+        if(peer?.fixedCommands){peer.frameAction=null;__lagTest.advanceRemoteCommands(shooter,peer,dt);shooter.controlInput=peer.frameAction||game.remoteInput(shooter);place(shooter,0,60);g.scene.updateMatrixWorld(true);}
+        const input=shooter.controlInput,appliedAction=peer.activeAction||peer.actionState;
         if(input?.trigger&&appliedAction?.actionSeq>q.lastAction){
           q.lastAction=appliedAction.actionSeq;const shotInput=peer.pendingShot||input,before=target.hp,calls=q.damageCalls,rewinds=game.metrics().lagCompensation.rewinds;
           const aim=new g.T.Vector3().fromArray(input.aimPoint),shotAim=new g.T.Vector3().fromArray(shotInput.aimPoint),from=g.muzzle(shooter),currentHit=g.castFrom(from,shotAim.clone().sub(from).normalize(),shooter,400);
@@ -371,7 +377,7 @@ async function hitRate(active,oneWayMs,enabled,ok,report){
             targetPosition:target.pos.toArray(),aim:shotInput.aimPoint,movementAim:input.aimPoint,currentRayWouldHit:currentHit?.ref===target,damageCalls:q.damageCalls-calls,hpBefore:before,hpAfter:target.hp,
             hit:target.hp<before,rewindDelta:after.rewinds-rewinds,clampedTotal:after.clamped,maxRewindMs:after.maxRewindMs,clock:game.state.transport.clock(shooter.ownerPeerId)});
         }
-        if(input?.seq)__lagTest.recordHostInputStep(shooter,input,dt);
+        if(peer?.fixedCommands)__lagTest.acknowledgeInputAction(peer);else if(input?.seq)__lagTest.recordHostInputStep(shooter,input,dt);
         game.afterFrame(dt,now);
       }catch(e){q.errors.push(e.stack||e.message);clearInterval(q.timer);}
     },16);
