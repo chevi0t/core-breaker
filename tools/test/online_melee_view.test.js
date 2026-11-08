@@ -51,6 +51,20 @@ check('歩行と小さい写真補正が続いても近接終了の引継ぎは2
   }
   assert(u.pos.x>1);assert(h.game.metrics().prediction.correctionCount>10);
 });
+check('新写真なしでリフト面へ入っても旧近接の残差を外挿へ重ねない',()=>{
+  const {h,u,deliver}=suite.create(),c=h.c,html=require('node:fs').readFileSync(require.resolve('../../prototype/index.html'),'utf8');
+  c.isArtilleryMode=()=>false;c.beamCannonMode=()=>false;c.R=1.2;
+  require('node:vm').runInContext(html.match(/function liftContains\([^\n]+/)[0]+'\n'+html.slice(html.indexOf('function movementPredictionBlockReason('),html.indexOf('// 入力から移動だけを作る共通入口')),c);
+  const predict=c.predictHumanMovement;c.predictHumanMovement=(u,input,dt)=>c.movementPredictionBlockReason(u,input)?false:predict(u,input,dt);
+  c.collectLocalInput=u=>({keys:{KeyW:true},pressed:{},yaw:u.yaw,pitch:u.pitch,aimPoint:[0,0,-100]});
+  h.at(0);deliver(0,{pos:[-.25,0,0],vel:[0,0,0],predictionBlocked:'melee',recoverT:1,onGround:true});h.game.beforeFrame(1/60,0);
+  h.at(100);deliver(100,{pos:[0,0,0],vel:[0,0,0],predictionBlocked:'',recoverT:0,onGround:true});
+  c.lifts.push({pos:{x:.7,y:0,z:0},w:1.8,depth:2});
+  assert.equal(c.movementPredictionBlockReason(u),'');assert(h.test.viewState().meleeRelease);
+  h.game.beforeFrame(1/60,100);assert.equal(c.movementPredictionBlockReason(u),'lift');
+  for(let t=150;t<=1000;t+=50){h.at(t);h.game.beforeFrame(.05,t);}
+  assert.equal(h.test.viewState().meleeRelease,null);assert.equal(u.onlineVisualOffset,undefined);
+});
 for(const [name,patch]of [
   ['死亡',{alive:false,downT:3}],['再出撃',{lifeId:2}],['転送',{motionEpoch:1}],['装備',{cls:'heavy'}],
   ['被弾',{stun:'stagger',stunT:.4}],['電撃',{electricT:1}],['大差',{pos:[20,0,0]}],

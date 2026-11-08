@@ -590,8 +590,8 @@ node --test tools/test/online_*.test.js
 ### 検証と限界
 
 - `node tools/test/online_melee_transition.test.js`：新14条件成功。60/120/144/240Hzの硬直明けW保持、ロック有無、写真受理直後の原点、物理/offset非変更、機体内の照準を中心へ寄せないことを確認。`--revision=10dda30` は120Hz終了歩行で期待どおり失敗し、上記回帰を検出する。
-- `node tools/test/online_melee_view.test.js`：既存35条件成功。内部release.posの検査だけを合成描画位置の連続性へ置き換えた。生命・被弾・転送・大差・欠落・低FPS・同型連打などの条件を維持。
-- `node --test tools/test/online_*.test.js`：19/19成功。F入力回帰も維持。秘匿境界VM91項目、名前検査14ファイル、変更JS構文、diff検査成功。独立レビューでも新14条件と高Hz終了歩行の回帰解消を確認。
+- `node tools/test/online_melee_view.test.js`：36条件成功。内部release.posの検査を合成描画位置の連続性へ置き換えた。生命・被弾・転送・大差・欠落・低FPS・同型連打などの条件を維持。写真なしで歩行からリフト面へ入ると残差が期限を超えて残る境界も追加検査し、新しい非予測表示に切り替わる際に旧近接残差を消す修正を加えた。
+- `node --test tools/test/online_*.test.js`：下節の行動不能視点も含め20/20成功。F入力回帰も維持。秘匿境界VM91項目、名前検査14ファイル、変更JS構文、diff検査成功。独立レビューでも新14条件と高Hz終了歩行の回帰解消を確認。
 - `quick_check.js origin/main`、`recoil_lock_check.js dbg`、`bot_battle.js dbg city,wide,mesa,dock 150` はPlaywrightのChromium実行ファイル未配置で起動前停止。既知のシステムChromium socket制限もある。最終版のブラウザ/WebGL/実WebRTC/実入力/全マップBot戦/操作感は未確認。
 - 終了歩行は線形の移動代役、ロックは本体のanglesTo/lockStick/updateLocalHumanAim/updateCameraを使うが、選択/遮蔽/地形/命中/輸送は代役。新VMは実回線や実機のFPS測定ではない。今回の製品変更は `game.js` と `index.html` の座標整合のみ。F修正・ホストの命中/移動/消費/硬直・バランスを変えず、draft維持、main/gh-pages/正式公開へ反映しない。
 
@@ -605,3 +605,14 @@ node tools/test/online_melee_transition.test.js
 ```
 
 試験Site更新後は両画面を再読込し、特にロック付き踏み込み中、攻撃を終えてWを押し続けた時、60Hzと高Hzの差を実機で確認する。配信の成功と操作感の解消は別々に判断する。
+
+## 行動不能後の見回しが写真ごとに戻る問題（2026-11-08）
+
+オーナーの「行動不能後にマウス動かして見回すとガガガガ！ってなるんだけど」を受けて追加調査。`discontinuityReason` が行動不能/大破待機の全写真をdown境界と扱い、30Hzの写真ごとに手元のyaw/pitchをホストの倒れた向きへ戻していた。移動hard-snapは維持し、同じ生命でalive=falseが続く場合の見回しだけ保持する。F大破の前後も同様。初回死亡・即時大破・蘇生・再出撃・装備変更・motion/lag epoch・転送の境界は既存の向きへ合わせる。通常移動と同じく位置の大差だけを理由に見回しを戻さない。
+
+- 本体の `downTick` と `wreck` を使い、オフラインでもF前後のyaw/pitchと倒れた模型のdownYawは別で、見回しを保つことを照合した。キルカメラ中の専用視点とendKillcamの向き変更は今回対象外。
+- 30Hz人工写真＋毎秒120度の相対マウスを2秒入力。60Hzで逆向き59frame→0、最大逆行2度→0、写真受理時の最大巻戻し4度→0。144Hzは60frame→0、3.333度→0、4.167度→0。行動不能継続・大破待機・F途中移行の3条件で確認。計6条件の前後値とsource hashは `downed-view-summary.json`。
+- `online_downed_view.test.js`：6描画条件・19境界成功。見回し中のF送信、移動しないこと、位置hard-snap、生命/装備/転送境界を確認。`--revision=10dda30` では60Hzの逆行59frameを検出して失敗する。Fのホスト実行は既存 `online_downed_input.test.js` で検証し、新fixtureの大破遷移写真は人工列として区別した。
+- 最終統合のオンラインNode20/20成功。近接36条件・境界14条件・行動不能F・通常camera36条件などを含む。実lookMove/beforeFrame/codec/updateCameraを接続した平地VMであり、ブラウザ/OSのマウス配送、WebGL、実WebRTC、実機の操作感は未確認。上節と同じChromium起動制限のため、最終版quick_checkのブラウザ部分も未検証。
+
+再現：`node tools/test/online_downed_view_fixture.js --revision=10dda30`、`node tools/test/online_downed_view_fixture.js`、`node tools/test/online_downed_view.test.js`。試験Siteでは行動不能中に見回す→Fで大破→待機中にも見回す→再出撃、味方による蘇生を別々に確認する。

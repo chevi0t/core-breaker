@@ -195,8 +195,13 @@
     const actionSeq=Number.isSafeInteger(ack?.actionSeq)?ack.actionSeq:0;m.lastAckActionSeq=Math.max(m.lastAckActionSeq,actionSeq);
     const movementAck=fixed?(ack.movementSeq||0):actionSeq,movementIds=new Set(fixed&&Array.isArray(ack.movementIds)?ack.movementIds:[]);
     m.actionEdges=m.actionEdges.filter(e=>(fixed?!movementIds.has(e.actionSeq):e.actionSeq>movementAck)&&e.lifeId===v.lifeId&&now()-e.time<=inputLimits.maxAgeMs);for(const e of m.actionEdges)e.needsReplay=true;
-    const wasMelee=m.authoritative?.predictionBlocked==='melee',isMelee=v.predictionBlocked==='melee';
-    let reason=discontinuityReason(m.authoritative,v);
+    const previous=m.authoritative,wasMelee=previous?.predictionBlocked==='melee',isMelee=v.predictionBlocked==='melee';
+    let reason=discontinuityReason(previous,v);
+    // 行動不能・大破待ちの見回しは手元のまま。Fで大破しても向きを巻き戻さない。
+    // 初回死亡・蘇生・生命/装備/転送の境界は従来どおり確定写真に合わせる。
+    const keepInactiveLook=reason==='down'&&previous?.alive===false&&v.alive===false&&
+      (previous.motionEpoch||0)===(v.motionEpoch||0)&&(previous.lagEpoch||0)===(v.lagEpoch||0)&&
+      !previous.transfer&&!v.transfer;
     if(!reason&&(seq<m.droppedThroughSeq||!fixed&&seq===m.droppedThroughSeq&&seqDt+1e-9<m.droppedThroughDt||(fixed?m.droppedActionSeq>0&&!movementIds.has(m.droppedActionSeq):movementAck<m.droppedActionSeq)))reason='history';
     m.authoritative=v;
     if(!m.enabled||state.phase!=='playing'||!previousView)return;
@@ -218,7 +223,7 @@
     }
     m.pending=m.pending.filter(p=>p.input.seq>seq||!fixed&&p.provisionalDt>seqDt+1e-9);
     // 写真が来るまでに増えたマウス/右スティックの向きは見た目だけの遅延を付けない。
-    if(!reason||reason==='melee'){player.yaw=previousView.yaw;player.pitch=previousView.pitch;}
+    if(!reason||reason==='melee'||keepInactiveLook){player.yaw=previousView.yaw;player.pitch=previousView.pitch;}
     const distance=Math.sqrt(previousView.pos.distanceToSquared(player.pos));
     m.correctionCount++;m.correctionTotal+=distance;m.correctionMax=Math.max(m.correctionMax,distance);
     // 近接中の写真位置は予測誤差ではない。外挿の上へ通常移動の巻戻しを重ねない。
@@ -791,6 +796,8 @@
       localStepDelta=predictLocalInput(command,commandLimits.dt)?player.pos.clone().addScaledVector(before,-1):null;
     }
     if(!blockedRenderOffset(dt)){updateLocalRenderOffset();finishMeleeRender(dt);}
+    // 写真なしでリフト面へ入る場合も、新しい非予測表示へ旧近接の残差を重ねない。
+    else if(meleeRelease){meleeRelease=null;delete player.onlineVisualOffset;}
     flushLocalInputs();
   }
   function remoteInput(u) {
