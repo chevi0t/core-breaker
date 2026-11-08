@@ -162,7 +162,7 @@ async function functional(active,ok,report){
     let clock=performance.now();Object.defineProperty(performance,'now',{configurable:true,value:()=>clock});
     const reset=()=>t.resetPeerInput(p,u);
     const move=(seq,patch={})=>({seq,command:true,actionSeq:1,moveActions:[],movePressed:{},lifeId:u.lifeId,sentAt:clock,yaw:0,pitch:0,aimPoint:[0,3,0],keys:{KeyW:true},...patch});
-    const action=(actionSeq,seq,patch={})=>({actionSeq,seq,lifeId:u.lifeId,sentAt:clock,trigger:false,alt:false,keys:{},pressed:{},...patch});
+    const action=(actionSeq,seq,patch={})=>({actionSeq,seq,lifeId:u.lifeId,sentAt:clock,yaw:0,pitch:0,aimPoint:[0,3,0],trigger:false,alt:false,keys:{},pressed:{},...patch});
     const ingest=(type,data)=>t.onMessage(type,data,p.id);
     const applied=(dt=DT)=>{
       clock+=dt*1000;const step=p.appliedStep;__g.updateHumanUnit(u,game.remoteInput(u),dt);

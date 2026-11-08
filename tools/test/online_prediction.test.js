@@ -36,7 +36,7 @@ function harness(enabled=true){
     renderView(){renderedCamera=c.camera.position.clone();},updateCamera(u){c.camera.position.copy(u.pos);},fwdOf:()=>new V3(0,0,-1),spawnPoints:()=>[],camera:{position:new V3(),updateMatrixWorld:empty}};
   vm.createContext(c);
   let source=fs.readFileSync(require.resolve('../../prototype/online/game'),'utf8');
-  source=source.replace('  window.CBOnlineGame={create',`  window.__predictionTest={resetPrediction,clearPrediction,capturePredictionView,predictLocalInput,reconcilePrediction,applySnapshot,applyUnit,recordHostInputStep,acceptInput,acceptInputBatch,acceptInputActions,sendLocalInput,decayPredictionVisual,receiveSnapshot,handleSnapshotControl,
+  source=source.replace('  window.CBOnlineGame={create',`  window.__predictionTest={resetPrediction,clearPrediction,capturePredictionView,predictLocalInput,reconcilePrediction,applySnapshot,applyUnit,recordHostInputStep,acceptInput,acceptInputBatch,acceptInputActions,sendLocalInput,decayPredictionVisual,receiveSnapshot,handleSnapshotControl,onMessage,
     getPrediction:()=>prediction,
     reset:enabled=>{resetMeasurements();resetPrediction(enabled);prepared=true;state.role='guest';state.phase='playing';state.matchId='test';state.localUnitId='B:0';},
     finish:s=>receiveMatchEnded(s)};

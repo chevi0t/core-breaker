@@ -25,7 +25,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from build_zip import CDN_TAG, HEAD  # 配布 zip と同じ骨組みと three.js の読み込みタグ
+from build_zip import HEAD, bundled_three, online_files  # 配布zipと同じ骨組み・同梱ファイル
 
 REPO = "https://github.com/chevi0t/core-breaker"
 ATTRIBUTION = '      <p class="note" id="mapAttribution"></p>\n'
@@ -71,10 +71,9 @@ def credits_page():
 
 def game_page():
     src = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
-    for tag in (CDN_TAG, ATTRIBUTION):
-        if src.count(tag) != 1:
-            sys.exit("prototype/index.html に次の行が1つだけあるはずです: " + tag.strip())
-    src = src.replace(CDN_TAG, '<script src="three.min.js"></script>').replace(ATTRIBUTION, ATTRIBUTION + CREDITS_LINK)
+    if src.count(ATTRIBUTION) != 1:
+        sys.exit("prototype/index.html に次の行が1つだけあるはずです: " + ATTRIBUTION.strip())
+    src = bundled_three(src).replace(ATTRIBUTION, ATTRIBUTION + CREDITS_LINK)
     return HEAD + src + "\n</html>\n"
 
 
@@ -95,11 +94,15 @@ def main():
               "three.min.js": "vendor/three-r128/three.min.js", "credits/LICENSE-THREE.txt": "vendor/three-r128/LICENSE"}
     for dst, src in copies.items():
         files[dst] = (ROOT / src).read_bytes()
+    online = online_files()
+    for dst, src in online.items():
+        files[dst] = src.read_bytes()
     (out / "credits").mkdir(exist_ok=True)
     for dst, data in files.items():
+        (out / dst).parent.mkdir(parents=True, exist_ok=True)
         (out / dst).write_bytes(data)
     (out / ".nojekyll").touch()
-    names = [".nojekyll", "index.html", "style.css", "maps.js", "parts.js", "weapons.js", "pilots.js", "sounds.js", "music.js", "three.min.js", "credits/index.html", "credits/LICENSE-THREE.txt"]
+    names = [".nojekyll", "index.html", "style.css", "maps.js", "parts.js", "weapons.js", "pilots.js", "sounds.js", "music.js", "three.min.js", "credits/index.html", "credits/LICENSE-THREE.txt", *online]
     info = {
         "sourceRepository": REPO,
         "sourceBranch": "main",

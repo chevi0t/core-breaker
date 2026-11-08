@@ -9,14 +9,43 @@ maps.js（マップ製作のスレッドが公開したもの。Artifact の rea
 --maps を付けなければ prototype/maps.js をそのまま入れる。
 """
 import pathlib
+import re
 import sys
 import zipfile
+from html.parser import HTMLParser
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "prototype" / "index.html"
 VENDOR = ROOT / "vendor" / "three-r128"
 DOCS = ROOT / "docs"  # 設計書とAIエージェント向けの説明。zipの直下に入れる
 CDN_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
+THREE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+ONLINE_FILES = ("transport.js", "codec.js", "lag-compensation.js", "visibility.js", "game.js", "ui.js", "ui.css")
+
+
+def bundled_three(src):
+    """SRIや属性の順番によらず、指定版のthree.jsだけを同梱版へ置き換える。"""
+    class ScriptSource(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            self.source = dict(attrs).get("src") if tag == "script" else None
+
+    matches = []
+    for match in re.finditer(r"<script\b[^>]*>\s*</script\s*>", src, re.IGNORECASE):
+        parser = ScriptSource()
+        parser.source = None
+        parser.feed(match.group())
+        if parser.source == THREE_CDN:
+            matches.append(match)
+    if len(matches) != 1:
+        sys.exit("three.js の読み込みタグは1つ必要です: " + THREE_CDN)
+    match = matches[0]
+    return src[:match.start()] + '<script src="three.min.js"></script>' + src[match.end():]
+
+
+def online_files():
+    """配布対象を明示し、未追跡の作業用JS/CSSを公開物へ混ぜない。"""
+    online = ROOT / "prototype" / "online"
+    return {"online/" + name: online / name for name in ONLINE_FILES}
 
 # 公開ページでは配信側が付けている骨組みとリセットを、単体のHTMLとして自前で付ける
 HEAD = """<!doctype html>
@@ -252,10 +281,7 @@ def main():
     version = args[0] if args else "dev"
     if "window.MAP_DATA" not in maps.read_text(encoding="utf-8"):
         sys.exit(f"{maps} はマップのデータではありません")
-    html = SRC.read_text(encoding="utf-8")
-    if CDN_TAG not in html:
-        sys.exit("three.js の読み込みタグが見つかりません: " + CDN_TAG)
-    html = HEAD + html.replace(CDN_TAG, '<script src="three.min.js"></script>') + "\n</html>\n"
+    html = HEAD + bundled_three(SRC.read_text(encoding="utf-8")) + "\n</html>\n"
 
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
@@ -270,6 +296,8 @@ def main():
         z.write(ROOT / "prototype" / "parts.js", "core-breaker/parts.js")
         z.write(ROOT / "prototype" / "weapons.js", "core-breaker/weapons.js")
         z.write(ROOT / "prototype" / "pilots.js", "core-breaker/pilots.js")
+        for name, src in online_files().items():
+            z.write(src, "core-breaker/" + name)
         z.write(ROOT / "prototype" / "maps" / "README.md", "core-breaker/MAPS.md")
         z.write(ROOT / "sounds" / "CREDITS.md", "core-breaker/SOUND-CREDITS.md")
         z.write(VENDOR / "LICENSE", "core-breaker/LICENSE-three.js.txt")
