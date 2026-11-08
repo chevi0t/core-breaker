@@ -646,6 +646,7 @@ function soundMix(s, at, level = 1) {
   return { vol, pan };
 }
 function sfx(name, at, src, rate = 1, level = 1) {
+  if(src?.onlineHidden)return;
   const s = SFX[name];
   if (!audio || muted || !s || !sfxBuf[s.file] || !gameOptions.master || !gameOptions.sfx) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
@@ -5501,13 +5502,13 @@ function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
   for (const h of hits) {
     if (h.object.userData.weaponModel && (!h.object.visible || h.object.userData.passThrough)) continue; // 持っていない武器の形（二丁目、ソード、背中の装置）。斬馬刀の大きな刃は弾を受けない（盾にしない）
     const r = refOf(h.object);
-    if (r === ignore) continue;
+    if (r === ignore || r?.onlineHidden) continue;
     if (r && r.kind === 'unit' && !r.alive) continue;
     best = { point: h.point, normal: needNormal && h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld), ref: r, dist: h.distance, wm: !!h.object.userData.weaponModel, slot: h.object.userData.armorSlot || 'body' }; break;
   }
   // 球面を機体とは別に判定する。前面型の裏側と、内側から撃つ弾は通す。
   for (const u of units) {
-    if (u === ignore || (ignore && u.team === ignore.team) || !barrierReady(u)) continue;
+    if (u.onlineHidden || u === ignore || (ignore && u.team === ignore.team) || !barrierReady(u)) continue;
     const center = barrierCastSphere.center.copy(u.pos).addScaledVector(UP, 2.4), radius = u.slots.sp.w.level === 1 ? 2 : 2.8;
     if (origin.distanceTo(center) < radius) continue;
     barrierCastSphere.radius = radius;
@@ -5547,7 +5548,7 @@ function muzzleClamp(u, p) {
   for (const h of muzzleRay.intersectObjects(hittables, false)) {
     if (h.object.userData.weaponModel && (!h.object.visible || h.object.userData.passThrough)) continue;
     const r = refOf(h.object);
-    if (r === u || (r && r.kind === 'unit' && !r.alive)) continue;
+    if (r === u || r?.onlineHidden || (r && r.kind === 'unit' && !r.alive)) continue;
     dist = h.distance; break;
   }
   return dist < len ? p.copy(muzzleFrom).addScaledVector(muzzleDir, Math.max(0, dist - 0.05)) : p;
@@ -6607,7 +6608,7 @@ visualAlloc(() => { for (const arc of [60, 90, 120, 360]) {
   scene.add(batch); reconPulseBatches.set(arc, batch);
 } });
 function reconPulseActive(source) {
-  if (!source) return false;
+  if (!source || source.onlineHidden) return false;
   if (source.kind === 'unit') {
     // 未発見の敵の迷彩を、レーダーの作動表示だけで露見させない。
     if (player && source.team !== player.team && source.cloak && !spotted[player.team].has(source)) return false;
@@ -6773,10 +6774,10 @@ function placeGadget(sh, at, ref, normal = null) {
   const dir = S.roamSpeed ? sh.vel.clone().setY(0).normalize() : fwdOf(sh.owner);
   if (S.cone || S.planar || S.kind === 'sentry') mesh.rotation.y = sh.owner.yaw;
   const G = S.gun;
-  addGadget({ kind: S.kind, name: S.float ? '浮遊機雷' : GADGET_NAME[S.kind], weaponName: sh.weaponName, team: sh.team, owner: sh.owner, pos, hp: S.hp, maxHp: S.hp, spec: S, mesh, riseLeft:S.riseHeight||0, planarPrev:S.planar?new Map():null, armT: S.kind === 'remote' ? 0.5 : 1, scanT: 0, dir, age: 0,
+  const placed=addGadget({ kind: S.kind, name: S.float ? '浮遊機雷' : GADGET_NAME[S.kind], weaponName: sh.weaponName, team: sh.team, owner: sh.owner, pos, hp: S.hp, maxHp: S.hp, spec: S, mesh, riseLeft:S.riseHeight||0, planarPrev:S.planar?new Map():null, armT: S.kind === 'remote' ? 0.5 : 1, scanT: 0, dir, age: 0,
     attached: S.attachUnit && onUnit ? ref : null, offset: S.attachUnit && onUnit ? pos.clone().sub(ref.pos).applyAxisAngle(UP,-ref.yaw) : null,
     onCore: ref && ref.kind === 'core' && ref.team !== sh.team ? ref : null, face: S.sticky && stick && normal && normal.y < .7 ? normal.clone().normalize() : null, ammo: G ? G.mag : 0, cd: 0, reloadT: 0, target: null });
-  if (S.kind === 'sensor') sfx('sensor', pos);
+  if (S.kind === 'sensor') sfx('sensor', pos, placed);
 }
 // 遠隔爆弾の起爆。敵のコアに貼りついていればコアにも当たる
 function detonate(g) {
@@ -6853,7 +6854,7 @@ function gadgetUpdate(dt) {
       if (S.jumpDelay || S.detDelay) {
         g.armT-=dt;
         if (g.triggerT == null && g.armT<=0 && units.some(e=>e.alive && e.team!==g.team && mineSenses(g,e))) {
-          g.triggerT=0;g.y0=g.pos.y;sfx('sensor',g.pos);flash(g.pos,0xffc46b,1,.15);
+          g.triggerT=0;g.y0=g.pos.y;sfx('sensor',g.pos,g);flash(g.pos,0xffc46b,1,.15);
           continue;
         }
         if (g.triggerT != null) {
@@ -9896,6 +9897,7 @@ const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, d
 const proj = new T.Vector3();
 function targetPoint(e) { return e.gadget && e.kind === 'sentry' ? e.mesh.position.clone() : new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? RADAR_HEAD_Y : e.gadget ? 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 自動銃は本体中心、施設攻略のレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
+  if(e.onlineHidden)return null;
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
   if (p.clone().sub(camera.position).dot(camFwd) <= 0) return null;
@@ -9928,7 +9930,7 @@ function lockAllowed(u) {
 function lockCandidates(u) {
   const list = [];
   for (const e of [...units, ...turrets, ...mirages]) {
-    if (!e.alive || e.team === u.team) continue;
+    if (e.onlineHidden || !e.alive || e.team === u.team) continue;
     if (e.cloak && (e !== lock.target || e.cloakT >= 1)) continue; // 光学迷彩はロックできない（ロック中に消えたら1秒後に外れる）
     const dist = e.pos.distanceTo(u.pos);
     if (dist > u.lockRange * spotMul(u.team, e) * (e === lock.target ? 1.15 : 1)) continue; // 頭部のロック距離。索敵を受けている敵は遠くからロックできる
@@ -10285,6 +10287,7 @@ function tagOf(u) {
 }
 // 画面に映っているか：カメラから胴の中心か頭まで、間に何も無い
 function tagSight(p, u) {
+  if(u.onlineHidden)return false;
   for (const h of [2.4, 3.6]) {
     tagV.set(u.pos.x, u.pos.y + h, u.pos.z).sub(camera.position);
     const d = tagV.length(), hit = castFrom(camera.position, tagV.normalize(), p, d + 2);
@@ -10297,7 +10300,7 @@ function tagsHud(p, dt) {
   for (const u of units) {
     if (u === p) continue;
     const el = tagOf(u), ally = u.team === p.team, down = u.downT > 0, d = u.pos.distanceTo(p.pos);
-    let show = on && (u.alive || (ally && down));
+    let show = !u.onlineHidden && on && (u.alive || (ally && down));
     if (show && ally) show = d <= TAG_ALLY;
     else if (show) {
       show = !(p.jamT>0) && !u.cloak && d <= p.lockRange * spotMul(p.team, u);
@@ -10338,7 +10341,7 @@ function spottedHud(p) {
   // 自軍が把握している敵機だけ、壁越しでも胴の中心に◆を出す。距離や迷彩は索敵側の判定に従う。
   // 位置の投影だけで追加の遮蔽レイは使わず、マーカーも最大表示数ぶんを再利用する。
   if (on) for (const [e, left] of spotted[p.team]) {
-    if (!(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
+    if (e.onlineHidden || !(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
     const s = screenOf(e);
     if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
     let el = spottedMarkPool[count];
@@ -11286,6 +11289,7 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
       if (u.downT > 0 && player && u.team === player.team) { mini.strokeStyle = TEAM[u.team].css; mini.lineWidth = 1.2 * k; mini.beginPath(); mini.arc(sx(u.pos.x), sz(u.pos.z), 3 * k, 0, 7); mini.stroke(); } // 行動不能の味方は輪
       continue;
     }
+    if(u.onlineHidden)continue;
     const enemy = player && u.team !== player.team;
     const near = !enemy || (u.pos.distanceTo(player.pos) <= 80 && !u.cloak); // 敵は近くだけ映る（光学迷彩中はセンサーなどで見つけたときだけ）
     if (!near && !spotted[player.team].has(u)) continue;
@@ -11322,7 +11326,7 @@ let boardAt = 0;
 // ロックしない武器（狙撃銃・重砲・偵察機）で狙っている敵と、光学迷彩中の自分は数えない
 const LOCK_DIRS = ['前', '右前', '右', '右後', '後', '左後', '左', '左前']; // 読み上げ用。画面には文字を出さない
 const incomingShots = new Map();
-const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => e.alive && e.team !== p.team && (w?.missile
+const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => !e.onlineHidden && e.alive && e.team !== p.team && (w?.missile
   ? !e.transfer && !e.repairing && !e.stun && !(e.jamT > 0) && !(e.electricT > 0) && (e.slots[e.weapon].missileLocks || []).some(entry => entry.target === p && missileTargetValid(e, entry))
   : e.target === p && e.locked && !w?.noLock);
 function incomingFire(e, w) {
@@ -12334,6 +12338,12 @@ function gameFrame(now) {
     if (!tutorial && !range && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
   }
   for (const u of units) {
+    // guestの省略機は描画・音・独立meshを作らない。alive値はスコア等へ流用せずそのまま保つ。
+    if(u.onlineHidden){
+      u.group.visible=false;stopMovementSound(u);
+      for(const mesh of [u.barrierMesh,u.fieldMesh,u.beam,u.shockFx?.root])if(mesh)mesh.visible=false;
+      continue;
+    }
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
@@ -12405,5 +12415,6 @@ requestAnimationFrame(loop);
 <script src="online/transport.js"></script>
 <script src="online/codec.js"></script>
 <script src="online/lag-compensation.js"></script>
+<script src="online/visibility.js"></script>
 <script src="online/game.js"></script>
 <script src="online/ui.js"></script>

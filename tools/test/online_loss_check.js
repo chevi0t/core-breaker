@@ -27,7 +27,7 @@ async function installLoss(guest,rate=0,seed=214){await guest.evaluate(({rate,se
     return deliver(link,envelope);
   };
   t.options.onMessage=(type,data,id)=>{
-    if(type!=='snapshot'&&type!=='snapshotBase'){p.received[type]=(p.received[type]||0)+1;p.controls.push({type,at:performance.now()});}
+    if(type!=='snapshot'&&type!=='snapshotBase'){p.received[type]=(p.received[type]||0)+1;p.controls.push({type,at:performance.now(),...(type==='events'?{events:data.map(e=>({id:e.id,type:e.type,unit:e.data?.unit,seq:e.data?.seq,head:e.data?.head}))}:{})});}
     const previous=CBOnlineGame.state.lastSnapshot?.frame,result=receive(type,data,id),current=CBOnlineGame.state.lastSnapshot?.frame;
     if(current!=null&&current!==previous){
       const at=performance.now(),phase=CBOnlineGame.state.phase;
@@ -47,8 +47,8 @@ async function pump(host,guests,n=1){
 }
 async function probe(guest){return guest.evaluate(()=>({loss:__loss,metrics:CBOnlineGame.metrics(),frame:CBOnlineGame.state.lastSnapshot?.frame,phase:CBOnlineGame.state.phase}));}
 async function forceBaseline(host){await host.evaluate(()=>{
-  const proto=CBOnlineCodec.Encoder.prototype,original=proto.encode;
-  proto.encode=function(s){proto.encode=original;this.created=-Infinity;return original.call(this,s);};
+  if(typeof window.__forceOnlineBaselinesForTest!=='function')throw Error('基準強制用のdbg hookがありません');
+  window.__forceOnlineBaselinesForTest();
 });}
 
 async function approval(browser,h,errors,ok){
@@ -81,20 +81,22 @@ async function recovery(active,ok){
   await installLoss(guest);
   await pump(host,guests,3);
   // 第2接続だけを詰まらせる。controlのキューや第2ゲストには変更を加えない。
-  const blocked=await host.evaluate(()=>{
-    const t=CBOnlineGame.state.transport,link=[...t.links.values()][0],conn=link.snapshotConn;
+  const guestUnitId=await guest.evaluate(()=>CBOnlineGame.state.localUnitId);
+  const blocked=await host.evaluate(unitId=>{
+    const game=CBOnlineGame,t=game.state.transport,peer=[...game.state.peers.values()].find(p=>p.unitId===unitId),link=peer&&t.links.get(peer.id),conn=link?.snapshotConn;
     if(!conn)throw Error('snapshot接続なし');
     window.__blockedSnapshot={conn,descriptor:Object.getOwnPropertyDescriptor(conn,'bufferSize')};
     Object.defineProperty(conn,'bufferSize',{configurable:true,value:100});
-    const eventId=900000001;t.send('events',[{id:eventId,type:'sfx',data:{name:'annInfo'}}],link.conn.peer);
-    return {peerId:link.conn.peer,eventId};
-  });
+    // 空間sourceを持たない自己hit通知は正式に許可されたcontrol経路。汎用sfxのprovenance検査を迂回しない。
+    const eventId=900000001,event={id:eventId,type:'hit',data:{unit:unitId,seq:0,head:false}},sent=t.send('events',[event],link.conn.peer);
+    return {peerId:link.conn.peer,unitId,eventId,sent,expectedEvent:{id:eventId,type:'hit',unit:unitId,seq:0,head:false}};
+  },guestUnitId);
   const otherBefore=await other.evaluate(()=>CBOnlineGame.state.lastSnapshot?.frame||0);
   await pump(host,guests,8);
-  const isolated=await guest.evaluate(id=>({event:CBOnlineGame.state.receivedEvents.has(id),phase:CBOnlineGame.state.phase}),blocked.eventId);
-  const otherAfter=await other.evaluate(()=>CBOnlineGame.state.lastSnapshot?.frame||0);
+  const isolated=await guest.evaluate(id=>({event:CBOnlineGame.state.receivedEvents.has(id),phase:CBOnlineGame.state.phase,controlEvents:__loss.controls.filter(c=>c.type==='events').flatMap(c=>c.events).filter(e=>e.id===id)}),blocked.eventId);
+  const otherState=await other.evaluate(id=>({frame:CBOnlineGame.state.lastSnapshot?.frame||0,selfHitReceived:CBOnlineGame.state.receivedEvents.has(id)}),blocked.eventId),otherAfter=otherState.frame;
   const queued=await host.evaluate(()=>{const t=CBOnlineGame.state.transport,l=t.links.get(__blockedSnapshot.conn.peer);return {metrics:t.metrics(),controlQueue:l?.queue?.length,snapshotQueue:l?.snapshots?.length};});
-  ok(isolated.event&&isolated.phase==='playing'&&otherAfter>otherBefore,'片側snapshot送信詰まり中も同じ相手のcontrol eventと他ゲストのsnapshotが届く');
+  ok(blocked.sent&&isolated.event&&isolated.phase==='playing'&&JSON.stringify(isolated.controlEvents)===JSON.stringify([blocked.expectedEvent])&&!otherState.selfHitReceived&&otherAfter>otherBefore,'片側snapshot送信詰まり中も同じ相手だけへ正確な自己hit control eventと他ゲストのsnapshotが届く');
   await host.evaluate(()=>{const p=__blockedSnapshot;if(p.descriptor)Object.defineProperty(p.conn,'bufferSize',p.descriptor);else delete p.conn.bufferSize;});
   await pump(host,guests,4);
 
@@ -128,14 +130,17 @@ async function recovery(active,ok){
   const final=await probe(guest),hostEnd=await summary(host),guestEnd=await summary(guest);
   ok(final.phase==='ended'&&guestEnd.time===hostEnd.time&&JSON.stringify(guestEnd.cores)===JSON.stringify(hostEnd.cores),'最終snapshotと基準が欠落してもホストframe追加なしでcontrolの結果へ到達');
   ok((final.loss.dropped.snapshot||0)>(finalBefore.loss.dropped.snapshot||0)&&(final.loss.dropped.snapshotBase||0)>(finalBefore.loss.dropped.snapshotBase||0),'最終snapshotと最終基準を実際に各1通以上落とした');
-  return {channelIsolation:{blocked,isolated,otherBefore,otherAfter,queued},missingBaseline:{before,after,hostFrame},reorder,final:{before:finalBefore,after:final,host:hostEnd,guest:guestEnd,recoveryWallMs:Date.now()-finishAt}};
+  return {channelIsolation:{blocked,isolated,otherBefore,otherAfter,otherState,queued},missingBaseline:{before,after,hostFrame},reorder,final:{before:finalBefore,after:final,host:hostEnd,guest:guestEnd,recoveryWallMs:Date.now()-finishAt}};
 }
 
 // 旧v4のinterpolate(t)をそのまま数式化した比較器。受信時刻、履歴8枚、固定100ms、外挿なし。
 // actual側は製品beforeFrameを通す。仮想時計中の20Hz状態は同じ到着列から両方へ渡す。
 async function trajectory(guest,rate){return guest.evaluate(rate=>{
   const game=CBOnlineGame,state=game.state,t=state.transport,receive=t.options.onMessage;
-  const target=__g.units.find(u=>u!==__g.player),template=structuredClone(game.snapshot());
+  // 実受信したこのpeerの公開状態だけで補間traceを作る。同陣営の可視機を選び、秘匿を無効化しない。
+  const template=structuredClone(state.lastSnapshot),target=__g.units.find(u=>u!==__g.player&&u.team===__g.player.team&&template?.units.some(v=>!v.hidden&&v.id===u.entityId));
+  if(!target||!template?.roster?.length)throw Error('同陣営の公開補間fixtureがありません');
+  template.unitUpdates=(1<<template.units.length)-1;
   const originalNow=Object.getOwnPropertyDescriptor(performance,'now'),send=t.send;
   const origin=performance.now()+2000,offset=t.clock()?.offsetMs||0;
   let clock=origin,seed=214;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
@@ -143,7 +148,7 @@ async function trajectory(guest,rate){return guest.evaluate(rate=>{
   let dropped=0,delivered=0,stale=0,latest=-1,fixedPos=null,packetIndex=0,sourceChecks=0;
   const originalId=target.lifeId,rows=[],acceptedGaps=[],acceptedAt=[];
   for(let at=0;at<=totalMs;at+=50){
-    const s=structuredClone(template),v=s.units.find(u=>u.id===target.entityId),teleported=at>=10000;
+    const s=structuredClone(template),v=s.units.find(u=>!u.hidden&&u.id===target.entityId),teleported=at>=10000;
     s.frame=1000000+at/50;s.time=origin+offset+at;s.running=true;s.ended=false;s.timeLeft=300-at/1000;
     v.pos=[at*.01+(teleported?60:0),5,20];v.vel=[10,0,0];v.yaw=0;v.alive=true;v.lifeId=originalId+(teleported?1:0);v.transfer=null;
     const wire=encoder.encode(s),delay=25+random()*30+(at%750===0?120:0);
@@ -163,7 +168,7 @@ async function trajectory(guest,rate){return guest.evaluate(rate=>{
         const p=packets[packetIndex++];clock=p.at;delivered++;
         receive('snapshotBase',p.base,t.roomId);receive('snapshot',p.wire,t.roomId);
         if(p.s.frame>latest){
-          const decoded=state.lastSnapshot?.units.find(u=>u.id===target.entityId),source=p.s.units.find(u=>u.id===target.entityId);
+          const decoded=state.lastSnapshot?.units.find(u=>!u.hidden&&u.id===target.entityId),source=p.s.units.find(u=>!u.hidden&&u.id===target.entityId);
           if(state.lastSnapshot?.frame!==p.s.frame||!decoded||decoded.lifeId!==source.lifeId||(decoded.motionEpoch||0)!==(source.motionEpoch||0)||Math.hypot(...decoded.pos.map((n,i)=>n-source.pos[i]))>.011)throw Error('補間fixtureの復号状態が生成源と不一致: '+JSON.stringify({frame:p.s.frame,decodedFrame:state.lastSnapshot?.frame,decoded,source}));
           sourceChecks++;latest=p.s.frame;fixedPos=source.pos.slice();
           oldHistory.push({received:p.at,snapshot:p.s});if(oldHistory.length>8)oldHistory.shift();
@@ -174,7 +179,7 @@ async function trajectory(guest,rate){return guest.evaluate(rate=>{
       if(oldHistory.length>=2){
         const h=oldHistory,draw=clock-100;let a=h[0],b=h[h.length-1];for(let i=1;i<h.length;i++)if(h[i].received>=draw){a=h[i-1];b=h[i];break;}
         const f=Math.max(0,Math.min(1,(draw-a.received)/Math.max(1,b.received-a.received)));
-        const v=b.snapshot.units.find(u=>u.id===target.entityId),old=a.snapshot.units.find(u=>u.id===target.entityId);
+        const v=b.snapshot.units.find(u=>!u.hidden&&u.id===target.entityId),old=a.snapshot.units.find(u=>!u.hidden&&u.id===target.entityId);
         if(v&&old&&v.lifeId===old.lifeId&&v.alive===old.alive)fixedPos=old.pos.map((n,i)=>n+(v.pos[i]-n)*f);
       }
       const metrics=game.metrics().interpolation;
@@ -201,7 +206,16 @@ check('snapshot損失・基準復旧・適応補間',async({browser,dir,out,ok,e
   // 生成した試験用コピーだけに初期化を追加。本番公開APIと製品ファイルは変えない。
   const gamePath=path.join(path.resolve(dir),'online/game.js'),source=fs.readFileSync(gamePath,'utf8'),marker='  window.CBOnlineGame=';
   if(!source.includes(marker)){await h.close();throw Error('補間fixtureの挿入位置が見つかりません');}
-  fs.writeFileSync(gamePath,source.replace(marker,'  window.__resetInterpolationForTest=()=>{interpolation=interpolationState();snapshotDecoder=new CBOnlineCodec.Decoder();lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();lastResync=-Infinity;resyncBackoff=250;finalFrame=null;state.history=[];state.lastSnapshot=null;};\n'+marker));
+  const hooks=`  window.__resetInterpolationForTest=()=>{interpolation=interpolationState();snapshotDecoder=new CBOnlineCodec.Decoder();lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();lastResync=-Infinity;resyncBackoff=250;finalFrame=null;remoteUnitHistory.clear();state.history=[];state.lastSnapshot=null;};
+  window.__forceOnlineBaselinesForTest=()=>{
+    const original=encodePeerSnapshot,pending=new Set(state.peers.keys());
+    encodePeerSnapshot=function(p,full,forceAll,forceBaseline){
+      if(!pending.delete(p.id))return original(p,full,forceAll,forceBaseline);
+      if(!pending.size)encodePeerSnapshot=original;
+      return original(p,full,true,true);
+    };
+  };\n`;
+  fs.writeFileSync(gamePath,source.replace(marker,hooks+marker));
   const report={mode:TRANSPORT_MODE,usesRealWebRTC:!MOCK_TRANSPORT,productionNetworkPerformanceVerified:false,createdAt:new Date().toISOString(),commit:execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim(),sourceHashes:Object.fromEntries(['prototype/online/game.js','prototype/online/transport.js'].map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT,p))).digest('hex')])),
     method:{loss:'再組立済みlogical snapshot/snapshotBaseを、transport重複排除前にseed固定LCGで捨てる。SCTP fragment/UDP/IPの損失、再送、別回線、NAT成功は測らない。',soak:'mesa・10機・人間2人中立・Bot通常。300秒設定の試合を固定50ms高速コマ送り、描画省略。実時間300秒/20Hz/フレーム性能ではない。',trajectory:'製品beforeFrameを仮想時計60Hzで呼ぶ。一定10m/sの同じ20Hz到着traceで旧v4固定100ms・履歴8枚・外挿なしを再計算。WebGL描画/GPU/実時間性能ではない。25〜55ms遅延、750msごと追加120ms遅延、6秒時点300ms連続欠落。',metrics:'step=隣接表示位置の距離m、stall=動くfixtureでstep<0.001mの連続区間、gap=playing中に連続して適用したsnapshot受信時刻間隔。初期基準から4秒countdownを跨ぐ間隔はstartupSnapshotGapMsへ分離。先頭2秒と10秒時点のrespawn/60m teleport±600msは別集計で除外。missingBaselinesは不明基準deltaを受けた回数で、未復旧基準の個数ではない。',fixed100msReference:'c74e55b:prototype/online/game.js の interpolate(t)、位置だけを同じ式で再計算。',comparison:'到着順と損失seedは固定。固定100msとの比較は補間だけの比較で、旧v4全体のnetwork benchmarkではない。'},soak:[],trajectory:[]};
   try{

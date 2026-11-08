@@ -1,6 +1,6 @@
 // 通信・WebGLを使わず製品game.jsを実行。試験用参照はVMのソースへだけ追加し、製品APIへ出さない。
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const codec=require('../../prototype/online/codec');
+const codec=require('../../prototype/online/codec'),visibility=require('../../prototype/online/visibility');
 const copy=x=>JSON.parse(JSON.stringify(x)),empty=()=>{};
 class V3 {
   constructor(x=0,y=0,z=0){Object.assign(this,{x,y,z});}
@@ -14,9 +14,11 @@ class V3 {
 }
 function harness(){
   let time=0,finishes=0;const sent=[],elements=new Map();
-  const makeUnit=id=>({entityId:id,cls:'assault',name:id,lifeId:1,alive:true,hp:100,downT:0,pos:new V3(),vel:new V3(10),yaw:0,pitch:0,slots:{},sc:{total:0,kills:0,coreDmg:0},group:{visible:true}});
+  const makeUnit=id=>({entityId:id,team:id[0],idx:Number(id.slice(2)),cls:'assault',name:id,lifeId:1,alive:true,hp:100,downT:0,pos:new V3(),vel:new V3(10),yaw:0,pitch:0,slots:{},sc:{total:0,kills:0,coreDmg:0},group:{visible:true}});
   const units=[makeUnit('B:0'),makeUnit('R:0')];
-  const c={MAPS:{mesa:{name:'台地',team:5,time:300}},T:{Vector3:V3},performance:{now:()=>time},Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineCodec:codec,
+  const c={MAPS:{mesa:{name:'台地',team:5,time:300}},T:{Vector3:V3},performance:{now:()=>time},Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineCodec:codec,CBOnlineVisibility:visibility,
+    // 近距離2機・壁なし。可視性判定自体は製品moduleを通す。
+    canSee:()=>true,noticed:()=>false,targetPoint:u=>u.pos.clone(),
     window:{},SLOTS:[],WEAPONS:{},CLASSES:{assault:{},heavy:{}},units,player:units[0],running:true,ended:false,timeLeft:300,cores:{B:{hp:1000},R:{hp:1000}},spotted:{B:new Map(),R:new Map()},spotSrc:{B:new Map(),R:new Map()},plants:[],turrets:[],radars:[],barricades:[],lifts:[],jumpPads:[],catapults:[],ziplines:[],shells:[],
     document:{exitPointerLock:empty},$:id=>{if(!elements.has(id))elements.set(id,{querySelector:()=>null});return elements.get(id);},wrapAngle:x=>Math.atan2(Math.sin(x),Math.cos(x)),
     showPage:empty,stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,addEventListener:empty,weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,shot:empty,shoot:empty,blast:empty,damage:empty,
@@ -59,7 +61,7 @@ function deliver(h,e,s,t=s.time){h.at(t);const w=encode(e,s);if(w.base)h.test.ha
   h.test.handleSnapshotControl('snapshotBase',first.base);assert.equal(h.game.state.lastSnapshot.frame,1);
   const count=h.sent.length;h.at(5000);h.test.requestSnapshotResync();assert.equal(h.sent.length,count);
   // ホスト側も250ms未満の要求を反復しても巨大基準を重ねない。
-  h.game.state.role='host';h.game.state.peers.set('g',{});
+  h.game.state.role='host';h.game.state.peers.set('g',{id:'g',unitId:'R:0',appliedSeq:0});
   // 実製品afterFrameが作るlatestSnapshotWireとencoderを用意する。
   h.c.ended=false;h.at(6000);h.game.afterFrame(.017,6000);h.sent.length=0;
   for(let t=6000;t<6500;t++){h.at(t);h.test.handleSnapshotControl('snapshotResync',{},'g');}

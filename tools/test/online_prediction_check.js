@@ -18,7 +18,7 @@ function instrument(dir){
   if(!source.includes(marker))throw Error('予測fixtureの挿入位置がありません');
   const hook=`  window.__predictionTest={resetPrediction,predictLocalInput,reconcilePrediction,capturePredictionView,recordHostInputStep,decayPredictionVisual,applyUnit,acceptInput,acceptInputBatch,acceptInputActions,sendLocalInput,onMessage,receiveSnapshot,handleSnapshotControl,
     prediction:()=>prediction,
-    reset:()=>{resetPrediction();snapshotDecoder=new CBOnlineCodec.Decoder();lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();lastResync=-Infinity;resyncBackoff=250;finalFrame=null;interpolation=interpolationState();state.history=[];state.lastSnapshot=null;state.seq=0;state.pendingInputs.clear();previousMove=previousTrigger=false;displayedLatencies.length=0;prepared=true;},
+    reset:()=>{resetPrediction();snapshotDecoder=new CBOnlineCodec.Decoder();lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();lastResync=-Infinity;resyncBackoff=250;finalFrame=null;interpolation=interpolationState();remoteUnitHistory.clear();state.history=[];state.lastSnapshot=null;state.seq=0;state.pendingInputs.clear();previousMove=previousTrigger=false;displayedLatencies.length=0;prepared=true;},
     applySnapshot,packUnit};\n`;
   fs.writeFileSync(file,source.replace(marker,hook+marker));
 }
@@ -72,7 +72,7 @@ async function settleFixture(host,guest,latencyMs){
     u.onlineMotionEpoch=(u.onlineMotionEpoch||0)+1;
     return {id:u.entityId,epoch:u.onlineMotionEpoch};
   });
-  await guest.waitForFunction(({id,epoch})=>CBOnlineGame.state.lastSnapshot?.units.some(u=>u.id===id&&u.motionEpoch===epoch),reset,{timeout:8000,polling:20});
+  await guest.waitForFunction(({id,epoch})=>CBOnlineGame.state.lastSnapshot?.units.some(u=>!u.hidden&&u.id===id&&u.motionEpoch===epoch),reset,{timeout:8000,polling:20});
   await sleep(450+latencyMs*2);
 }
 async function latencyCase(browser,h,errors,{latencyMs,enabled},ok){
@@ -209,8 +209,12 @@ async function functional(active,ok,report){
 
   const result=await guest.evaluate(()=>{
     const g=__g,game=CBOnlineGame,t=__predictionTest,copy=x=>structuredClone(x),p=g.player,id=game.state.localUnitId;
-    const template=copy(game.snapshot()),own=s=>s.units.find(u=>u.id===id),checks=[],details={boundaries:[]};
+    // 実際にこのpeerへ届いた公開状態を土台にする。非公開機体を全量snapshotから補わない。
+    const template=copy(game.state.lastSnapshot),own=s=>s.units.find(u=>!u.hidden&&u.id===id),checks=[],details={boundaries:[]};
+    if(!template?.roster?.length||!own(template))throw Error('peer別公開snapshotのfixtureがありません');
+    template.unitUpdates=(1<<template.units.length)-1;
     const test=(value,name)=>checks.push({value:!!value,name});
+    test(template.units.length===template.roster.length&&template.units.every((u,i)=>u.fixedUnit&&typeof u.hidden==='boolean'&&u.id===template.roster.map(v=>v.id).sort()[i]),'予測fixtureも全機固定slot・可視/秘匿の公開契約を維持');
     const near=(a,b,epsilon=.000001)=>a.length===b.length&&a.every((v,i)=>Math.abs(v-b[i])<=epsilon);
     const movement=u=>({pos:u.pos.toArray(),vel:u.vel.toArray(),boost:u.boost,jumpBuf:u.jumpBuf,dashT:u.dashT,onGround:u.onGround});
     let encoder,decoder,base,frame,sourceChecks=0;
@@ -225,6 +229,7 @@ async function functional(active,ok,report){
       const decoded=decoder.decode(w.delta);if(!decoded)throw Error('独立fixture差分を復元できません');
       // hostとguestではunits配列順が異なる。必ずidで照合し、古い基準の偶然再利用を検出する。
       for(const u of s.units){const d=decoded.units.find(x=>x.id===u.id);if(!d||!near(u.pos,d.pos,.011)||u.lifeId!==d.lifeId)throw Error('fixture生成元と復号状態が不一致: '+u.id);}
+      if(decoded.roster.length!==template.roster.length||Object.keys(decoded.inputAcks).some(key=>key!==id)||decoded.units.some(u=>!template.units.some(v=>v.id===u.id&&v.hidden===u.hidden)||u.hidden&&JSON.stringify(u)!==JSON.stringify(template.units.find(v=>v.id===u.id))))throw Error('fixtureが他peerのack/非公開機体を追加しました');
       sourceChecks++;return {baseline:w.baseline,wire:{frame:s.frame,delta:w.delta},decoded};
     };
     const deliver=s=>{const w=encode(s);if(w.baseline)t.handleSnapshotControl('snapshotBase',w.baseline);t.receiveSnapshot(w.wire);return w;};
@@ -232,8 +237,8 @@ async function functional(active,ok,report){
     const fresh=()=>{
       t.reset();encoder=new CBOnlineCodec.Encoder();decoder=new CBOnlineCodec.Decoder();frame=1;
       base=copy(template);normalize(own(base));base.frame=frame;base.time=performance.now();setAck(base);
-      // ローカル配列とは逆順でもidで復元されることを毎fixtureで検査。
-      base.units.reverse();deliver(base);t.resetPrediction(true);
+      // wireは固定id順。guestの自軍優先配列とは別の順でもidで復元する。
+      base.units.sort((a,b)=>a.id.localeCompare(b.id));deliver(base);t.resetPrediction(true);
       // 予測測定だけを初期化後、基準状態をもう一度渡す。decoderは同じfixture内だけ使う。
       const seed=next();deliver(seed);base=copy(seed);
     };
@@ -245,7 +250,7 @@ async function functional(active,ok,report){
     const moved=t.predictLocalInput(shotInput,.019),combatAfter={hp:g.units.map(u=>[u.entityId,u.hp]),slots:JSON.stringify(p.slots,(k,v)=>k==='w'?v.key:v),shells:g.shells.length,events:game.state.receivedEvents.size,hits:game.state.hitLatency.length};
     test(moved&&!near(p.pos.toArray(),start.pos),'host写真前に自機の移動だけが進む');
     test(JSON.stringify(combatBefore)===JSON.stringify(combatAfter),'射撃入力を含む予測でもHP・弾数・弾・命中表示はhost確定前に変えない');
-    const damage=next(),target=damage.units.find(u=>u.id!==id);target.hp-=100;deliver(damage);
+    const damage=next(),target=damage.units.find(u=>!u.hidden&&u.id!==id);if(!target)throw Error('公開された標的のfixtureがありません');target.hp-=100;deliver(damage);
     test(g.units.find(u=>u.entityId===target.id).hp===target.hp,'host snapshotが到着した時点で初めて標的HPを反映');
 
     fresh();

@@ -34,14 +34,31 @@
     if(x&&typeof x==='object')return Object.fromEntries(Object.entries(x).filter(([,v])=>v!==undefined).map(([k,v])=>[k,rounded(v)]));
     return x;
   }
-  function flatten(value,path=[],out=[]){
+  // 固定機体はnullableな各項目だけを原子化し、機体全体・装備全体は差分の単位にしない。
+  // これによりnull/値・可視/不可視の切替だけではschemaを作り直さない。
+  const fixedUnitScalars=new Set(['fixedUnit','id','hidden','visibilityEpoch','team','idx','cls','controller',
+    'motionEpoch','lagEpoch','renderCrouch','predictionBlocked','jumpPadIndex','zipLine']);
+  const fixedUnitContainers=new Set(['pos','vel','motionVectors','slots']);
+  const fixedUnitVisibility=new Set(['id','fixedUnit','hidden','visibilityEpoch']);
+  function fixedUnitAtom(path){
+    return path.length===3&&!fixedUnitScalars.has(path[2])&&!fixedUnitContainers.has(path[2])||
+      path.length===4&&path[2]==='motionVectors'||path.length===5&&path[2]==='slots'&&path[4]!=='key';
+  }
+  function flatten(value,path=[],out=[],fixedUnit=false){
     if(value===undefined)return out; // オブジェクトの未定義値はJSON同様に省略。配列では呼出元がnull化。
     const key=path[path.length-1],parent=path[path.length-2];
+    if(path.length===2&&path[0]==='units'&&value?.fixedUnit===true)fixedUnit=true;
+    if(fixedUnit&&fixedUnitAtom(path)){
+      const v=typeof value==='number'&&['yaw','pitch','downYaw'].includes(key)?Math.atan2(Math.sin(value),Math.cos(value)):value;
+      out.push([path,'j',rounded(v)]);return out;
+    }
+    // 設置物は固定スロットのtupleごとに置換し、空/秘匿/公開で長さが変わっても道筋を保つ。
+    if(path.length===2&&path[0]==='gadgets'){out.push([path,'j',rounded(value)]);return out;}
     // hostが実適用した可変dt/累積dtは丸めずIEEE値をJSON roundtripで保つ。
     if(key==='inputAcks'){out.push([path,'j',clone(value)]);return out;}
     if(atoms.has(key)||value===null||(typeof value==='object'&&Object.keys(value).filter(k=>value[k]!==undefined).length===0)){out.push([path,'j',rounded(value)]);return out;}
     if(typeof value==='object'){
-      for(const k of Object.keys(value).sort((a,b)=>Array.isArray(value)?Number(a)-Number(b):a.localeCompare(b)))flatten(Array.isArray(value)&&value[k]===undefined?null:value[k],path.concat(Array.isArray(value)?Number(k):k),out);
+      for(const k of Object.keys(value).sort((a,b)=>Array.isArray(value)?Number(a)-Number(b):a.localeCompare(b)))flatten(Array.isArray(value)&&value[k]===undefined?null:value[k],path.concat(Array.isArray(value)?Number(k):k),out,fixedUnit);
       return out;
     }
     let type='s',v=value;
@@ -82,16 +99,21 @@
   }
   class Encoder{
     constructor(){this.id=0;this.base=null;this.created=0;}
-    encode(snapshot){
+    willRebase(snapshot,{forceBaseline=false}={}){
+      return !this.base||forceBaseline||snapshot.time-this.created>=10000||
+        JSON.stringify(flatten(snapshot).map(([p,t])=>[p,t]))!==this.signature;
+    }
+    encode(snapshot,{forceBaseline=false,includePath}={}){
       const entries=flatten(snapshot),schema=entries.map(([p,t])=>[p,t]),values=entries.map(e=>e[2]);
       if(!validSchema(schema)||!values.every(v=>validValue(v)))throw Error('不正な状態写真');
       const signature=JSON.stringify(schema);let baseline=null;
       // 基準も写真専用線に載せる。欠落は再同期で復旧し、静的変更もここで反映する。
-      if(!this.base||signature!==this.signature||snapshot.time-this.created>=10000){
+      // 完全再同期はforceBaselineを使う。固定スロットの可視切替は通常の差分で扱う。
+      if(!this.base||forceBaseline||signature!==this.signature||snapshot.time-this.created>=10000){
         this.signature=signature;this.created=snapshot.time;
         const old=this.base;
         this.base={v:VERSION,id:++this.id,s:schema,d:clone(values)};
-        if(old){
+        if(old&&!forceBaseline){
           // 定期更新でも不変の名前・装備は繰り返さない。項目増減時も同じ道筋の値を再利用。
           const same=JSON.stringify(old.s)===signature,lookup=new Map(old.s.map((p,i)=>[JSON.stringify(p),old.d[i]]));
           const patch=[];for(let i=0;i<values.length;i++){const previous=same?old.d[i]:lookup.get(JSON.stringify(schema[i]));if(JSON.stringify(values[i])!==JSON.stringify(previous))patch.push(i,values[i]);}
@@ -99,7 +121,16 @@
         }else baseline=clone(this.base);
       }
       const changes=[];
-      for(let i=0;i<values.length;i++)if(JSON.stringify(values[i])!==JSON.stringify(this.base.d[i]))changes.push([i,values[i]]);
+      // 間引く機体は基準値との差を繰り返し送らない。復元後の古い基準値を現在値へ
+      // 適用しない責任はunitUpdatesを扱うゲーム側にある。基準作成時は全項目を更新する。
+      // 不可視機体は間引きの対象外。毎回すべての中立値を基準との差分に含め、
+      // hide写真の欠落後も、以前の可視位置・内部状態を独立復元で復活させない。
+      for(let i=0;i<values.length;i++){
+        const path=schema[i][0],fixed=path[0]==='units'&&snapshot.units?.[path[1]]?.fixedUnit===true;
+        // 可視に戻った後の間引きでも、不可視だった基準のフラグ・epochへ戻さない。
+        const required=fixed&&(snapshot.units[path[1]].hidden===true||path.length===3&&fixedUnitVisibility.has(path[2]));
+        if((required||!includePath||includePath(path))&&JSON.stringify(values[i])!==JSON.stringify(this.base.d[i]))changes.push([i,values[i]]);
+      }
       return {baseline,delta:[VERSION,this.base.id,packChanges(changes,schema)]};
     }
     currentBase(){return this.base?clone(this.base):null;}

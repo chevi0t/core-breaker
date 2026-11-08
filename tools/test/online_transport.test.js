@@ -66,7 +66,7 @@ class FakePeer extends EventEmitter {
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
     oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:3});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 7 \/ 相手: 3）/);
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 8 \/ 相手: 3）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);
@@ -138,12 +138,105 @@ class FakePeer extends EventEmitter {
       const p=await pair(options,guestOptions);p.h.startMatch('input-match');await until(()=>p.g.started);return p;
     };
     const batch=seq=>({inputs:Array.from({length:Math.min(5,seq)},(_,i)=>({seq:Math.max(1,seq-4)+i,lifeId:1,keys:{KeyW:true},pressed:[]}))});
+    // ラグ補償の写真記録はenqueue時でなく、論理写真の全断片をsendへ渡した後だけ。
+    {
+      const complete=[],sent=await pair({onSnapshotSent:(id,payload)=>complete.push({id,payload})});
+      clearInterval(sent.h._tickTimer);
+      const payload=frame=>({frame,time:frame*50,delta:[1,1,''],visibilityEpoch:1});
+      sent.h.latencyMs=100;
+      const mutable=payload(1);assert(sent.h.send('snapshot',mutable,sent.g.peer.id));
+      mutable.frame=999;mutable.delta[1]=999;
+      const delayed=sent.hl.snapshots[0];sent.h._flushSnapshots(sent.hl,delayed.due-1);assert.equal(complete.length,0);
+      sent.h._flushSnapshots(sent.hl,delayed.due);assert.deepEqual(complete,[{id:sent.g.peer.id,payload:payload(1)}]);
+      sent.h.latencyMs=0;
+      assert(sent.h.send('snapshotBase',{id:1},sent.g.peer.id));sent.h._tick();assert.equal(complete.length,1);
+      for(const frame of [2,3])assert(sent.h.send('snapshot',payload(frame),sent.g.peer.id));
+      sent.h._tick();assert.deepEqual(complete.map(x=>x.payload.frame),[1,3]);
+      sent.h.snapshotDropRate=.2;sent.h.options.random=()=>0;
+      sent.h.send('snapshot',payload(4),sent.g.peer.id);sent.h._tick();assert.equal(complete.length,2);
+      sent.h.snapshotDropRate=0;sent.hl.snapshotConn.dataChannel.bufferedAmount=300000;
+      sent.h.send('snapshot',payload(5),sent.g.peer.id);sent.h._tick();assert.equal(complete.length,2);
+      sent.hl.snapshotConn.dataChannel.bufferedAmount=0;
+      const partial=frame=>{
+        const before=complete.length;
+        assert(sent.h.send('snapshot',{...payload(frame),body:'x'.repeat(25000)},sent.g.peer.id));
+        const item=sent.hl.snapshots.at(-1);assert(item.packets.length>1);
+        sent.hl.snapshotConn.dataChannel.bufferedAmount=262144-item.packets[0].bytes;
+        sent.h._tick();assert.equal(item.packetIndex,1);assert.equal(complete.length,before);
+        return item;
+      };
+      const resumed=partial(6);sent.hl.snapshotConn.dataChannel.bufferedAmount=0;sent.h._tick();
+      assert.equal(resumed.packetIndex,resumed.packets.length);assert.deepEqual(complete.map(x=>x.payload.frame),[1,3,6]);
+      sent.h._tick();assert.equal(complete.length,3);
+      // 一部送信後に新しい写真で集約したもの、期限切れ、可視範囲切替の破棄は完了しない。
+      partial(7);sent.hl.snapshotConn.dataChannel.bufferedAmount=0;
+      sent.h.send('snapshot',payload(8),sent.g.peer.id);sent.h._tick();assert.equal(complete.at(-1).payload.frame,8);
+      const expired=partial(9);sent.hl.snapshotConn.dataChannel.bufferedAmount=0;
+      sent.h._flushSnapshots(sent.hl,expired.due+1001);assert.equal(complete.length,4);assert.equal(sent.hl.snapshots.length,0);
+      const abandoned=partial(10);
+      sent.h.send('snapshotBase',{id:2,secret:'previous-visible-base'},sent.g.peer.id);
+      sent.h.send('events',{event:'keep-control'},sent.g.peer.id);
+      const inputSentinel={input:'keep-input'},otherSnapshots=[{other:true}];sent.hl.inputs.push(inputSentinel);
+      sent.h.links.set('other-recipient',{snapshots:otherSnapshots});
+      assert.equal(sent.h.dropPendingSnapshots(sent.g.peer.id),2);assert.equal(abandoned.packetIndex,1);
+      assert.equal(sent.hl.snapshots.length,0);assert.equal(sent.hl.lastBase,null);
+      assert(sent.hl.queue.some(x=>JSON.parse(x.text).payload.event==='keep-control'));
+      assert.equal(sent.hl.inputs[0],inputSentinel);assert.equal(sent.h.links.get('other-recipient').snapshots,otherSnapshots);
+      sent.h.links.delete('other-recipient');sent.hl.inputs.length=0;
+      assert.equal(sent.g.dropPendingSnapshots(sent.room),0);assert.equal(sent.h.dropPendingSnapshots('missing-peer'),0);
+      sent.hl.snapshotConn.dataChannel.bufferedAmount=0;sent.h._tick();assert.equal(complete.length,4);
+      const fresh={...payload(11),visibilityEpoch:2};sent.h.send('snapshot',fresh,sent.g.peer.id);sent.h._tick();assert.deepEqual(complete.at(-1).payload,fresh);
+      // 最終断片のsendが例外なら接続を閉じ、全体送信成功の記録を残さない。
+      const failed=[],broken=await pair({onSnapshotSent:(...args)=>failed.push(args)});
+      clearInterval(broken.h._tickTimer);
+      broken.h.send('snapshot',{...payload(1),body:'x'.repeat(25000)},broken.g.peer.id);
+      const item=broken.hl.snapshots[0],write=broken.hl.snapshotConn.send.bind(broken.hl.snapshotConn);let count=0;
+      broken.hl.snapshotConn.send=raw=>{if(++count===item.packets.length)throw Error('test final fragment failure');write(raw);};
+      broken.h._tick();assert.equal(count,item.packets.length);assert.equal(failed.length,0);assert.equal(broken.h.links.size,0);
+      const callbackCalls=[],callbackFailure=await pair({onSnapshotSent:(id,data)=>{callbackCalls.push(data.frame);throw Error('test observer failure');}});
+      clearInterval(callbackFailure.h._tickTimer);
+      const before=callbackFailure.h.metrics();
+      callbackFailure.h.send('snapshot',payload(1),callbackFailure.g.peer.id);
+      const expectedBytes=callbackFailure.hl.snapshots[0].bytes;
+      assert.doesNotThrow(()=>callbackFailure.h._tick());assert.equal(callbackFailure.hl.snapshots.length,0);
+      const after=callbackFailure.h.metrics();assert.equal(after.byType.snapshot-(before.byType.snapshot||0),expectedBytes);
+      callbackFailure.h._tick();assert.deepEqual(callbackCalls,[1]);assert.equal(callbackFailure.h.metrics().byType.snapshot,after.byType.snapshot);
+      callbackFailure.h.send('snapshot',payload(2),callbackFailure.g.peer.id);assert.doesNotThrow(()=>callbackFailure.h._tick());assert.deepEqual(callbackCalls,[1,2]);
+      console.log('写真送信完了hook：遅延・集約・欠損・混雑・断片再開・途中破棄・期限・例外・受信者別切替 成功');
+    }
+    // controlの空間eventは実send時の公開範囲で再選別。例外/空配列でも他の制御を止めない。
+    {
+      let allowed=new Set([1,2]),throws=false,expand=false;const calls=[],wire=[];
+      const filtered=await pair({filterEvents:(id,events)=>{
+        calls.push({id,events});if(throws)throw Error('test visibility failure');
+        return expand?[...events,{secret:'unexpected-expansion'}]:events.filter(e=>allowed.has(e.id));
+      }});
+      clearInterval(filtered.h._tickTimer);filtered.h.latencyMs=100;
+      const send=filtered.hl.conn.send.bind(filtered.hl.conn);filtered.hl.conn.send=text=>{wire.push(text);send(text);};
+      filtered.h.send('events',[{id:1,data:{at:[1,2,3]}},{id:2,data:{at:[9,8,7]}}],filtered.g.peer.id);
+      assert.equal(calls.length,0);allowed=new Set([2]);
+      filtered.h._tick();assert.equal(calls.length,0);
+      for(const item of filtered.hl.queue)item.due=performance.now();filtered.h._tick();
+      assert.equal(calls.length,1);assert.equal(calls[0].id,filtered.g.peer.id);
+      const eventWire=wire.filter(raw=>JSON.parse(raw).type==='events');assert.equal(eventWire.length,1);
+      assert.deepEqual(JSON.parse(eventWire[0]).payload,[{id:2,data:{at:[9,8,7]}}]);
+      assert.equal(filtered.h.metrics().byType.events,Buffer.byteLength(eventWire[0]));
+      filtered.h.latencyMs=0;const count=filtered.h.metrics().sentMessages;
+      allowed.clear();filtered.h.send('events',[{id:1}],filtered.g.peer.id);filtered.h._tick();assert.equal(filtered.h.metrics().sentMessages,count);
+      throws=true;filtered.h.send('events',[{id:2}],filtered.g.peer.id);
+      filtered.h.send('matchEnded',{winner:'B'},filtered.g.peer.id);assert.doesNotThrow(()=>filtered.h._tick());
+      assert(wire.some(raw=>JSON.parse(raw).type==='matchEnded'));assert.equal(filtered.h.metrics().sentMessages,count+1);
+      throws=false;expand=true;filtered.h.send('events',[{id:2}],filtered.g.peer.id);filtered.h._tick();
+      assert.equal(filtered.h.metrics().sentMessages,count+1);assert.equal(filtered.hl.queue.length,0);
+      assert.equal(wire.filter(raw=>JSON.parse(raw).type==='events').length,1);
+      console.log('出来事の送信直前選別：遅延中の公開範囲変更・空/例外の安全破棄・制御継続・実bytes集計 成功');
+    }
     const waitingHost=make(),waitingRoom=await waitingHost.createRoom(),waitingGuest=make();
     let pairJoined=false;const pairPromise=waitingGuest.connect(waitingRoom).then(()=>{pairJoined=true;});
     await until(()=>waitingHost.links.get(waitingGuest.peer?.id)?.pending);
     const unapprovedLink=waitingHost.links.get(waitingGuest.peer.id);
     assert.equal(unapprovedLink.snapshotConn,null);
-    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:7,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
+    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:8,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
     await wait(30);assert(orphan.closed);assert(waitingHost.links.has(waitingGuest.peer.id));assert(!unapprovedLink.approved);
     waitingHost._receive(unapprovedLink,JSON.stringify(waitingGuest._envelope('snapshot',{secret:true})),'snapshot');
     waitingHost._receive(unapprovedLink,JSON.stringify({...waitingGuest._envelope('inputBatch',batch(1)),inputSequence:1}),'snapshot');
@@ -159,7 +252,7 @@ class FakePeer extends EventEmitter {
     assert.equal(actual.control.ordered,true);assert.equal(actual.control.maxRetransmits,null);
     assert.equal(actual.snapshot.ordered,false);assert.equal(actual.snapshot.maxRetransmits,0);
     assert.equal(actual.snapshot.maxPacketLifeTime,null);
-    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:7,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
+    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:8,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
     await wait(30);assert(duplicate.closed);assert.equal(live.snapshotConn.closed,false);
     live.snapshotConn.close();await until(()=>!waitingHost.links.size&&!waitingGuest.links.size);
     // 接続tokenが異なる相手の第2線はcontrolと結び付けない。

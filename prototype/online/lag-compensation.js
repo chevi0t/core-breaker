@@ -65,16 +65,23 @@
       return a.meshes.every((v,i)=>{const other=b.meshes[i],m=v.mesh;return other.mesh===m&&other.geometry===v.geometry&&other.hitGeometry===v.hitGeometry&&m.geometry===v.geometry&&m.userData?.hitGeometry===v.hitGeometry&&m.userData?.weaponId===v.weaponId&&other.weaponId===v.weaponId&&m.userData?.passThrough===v.passThrough&&other.passThrough===v.passThrough;})&&a.bones.every((v,i)=>v.bone===b.bones[i].bone);
     }
     // tryの内側で準備する。途中の例外でも、既に差し替えた全対象を元へ戻す。
-    withRewind(time,units,ignore,cast){
+    withRewind(time,units,ignore,cast,unitTimes=null){
       this.lastRewound=0;
       const frames=this.frames;
-      if(!Number.isFinite(time)||!frames.length||time<frames[0].time||time>frames.at(-1).time)return cast();
-      let a=frames[0],b=a;
-      for(let i=1;i<frames.length;i++){a=frames[i-1];b=frames[i];if(time<=b.time)break;}
-      const f=clamp((time-a.time)/Math.max(.000001,b.time-a.time),0,1),restore=[],current=this.meshes(units,this.hittables||[]);
+      const interval=t=>{
+        if(!Number.isFinite(t)||!frames.length||t<frames[0].time||t>frames.at(-1).time)return null;
+        let a=frames[0],b=a;
+        for(let i=1;i<frames.length;i++){a=frames[i-1];b=frames[i];if(t<=b.time)break;}
+        return {a,b,f:clamp((t-a.time)/Math.max(.000001,b.time-a.time),0,1)};
+      };
+      const common=interval(time);if(!common&&!unitTimes)return cast();
+      const restore=[],current=this.meshes(units,this.hittables||[]);
       try{
         for(const u of units){
           if(u===ignore)continue;
+          // guestへ実送信した可視機だけ。省略時は従来どおり共通時計を使う。
+          const selected=unitTimes?(unitTimes.has(u.entityId)?interval(unitTimes.get(u.entityId)):null):common;
+          if(!selected)continue;const {a,b,f}=selected;
           const old=a.entries.get(u.entityId),next=b.entries.get(u.entityId);if(!this.compatible(u,old,next,current.get(u)))continue;
           const saved={meshes:[],bones:[],hits:[]};restore.push(saved);
           for(let i=0;i<old.meshes.length;i++){

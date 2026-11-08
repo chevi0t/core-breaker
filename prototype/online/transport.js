@@ -1,8 +1,8 @@
 /* #212: PeerJS 1.5.5 用のブラウザホスト通信。ゲームの状態はここで計算しない。 */
 (function (root) {
   'use strict';
-  const PROTOCOL = 7, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
-  const CONTROL_LABEL = 'core-breaker-control-v7', SNAPSHOT_LABEL = 'core-breaker-snapshot-v7';
+  const PROTOCOL = 8, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
+  const CONTROL_LABEL = 'core-breaker-control-v8', SNAPSHOT_LABEL = 'core-breaker-snapshot-v8';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
   const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
   const isSnapshot = type => type === 'snapshot' || type === 'snapshotBase';
@@ -189,6 +189,8 @@
       if(baseCache)link.lastBase=baseCache;
       if(type==='snapshotBase' && link.snapshots.some(x=>x.type===type&&x.text===text))return true;
       const item = { text, bytes, type, channel:isSnapshot(type)||type==='inputBatch'?'snapshot':'control', due: now() + this.latencyMs };
+      // 呼出元のpayloadが後で変わっても、実際にwireへ載る内容だけを送信完了時に返す。
+      if(type==='snapshot')item.snapshotPayload=JSON.parse(text).payload;
       if(type==='inputBatch') {
         // 人工片道遅延中の数コマは残す。毎回dueを延ばして永久に未送信にしない。
         link.inputs.push(item);
@@ -236,6 +238,15 @@
       return !!link && this._enqueue(link, type, payload);
     }
     broadcast(type, payload) { let count = 0; for (const id of this.links.keys()) if (this.send(type, payload, id)) count++; return count; }
+    dropPendingSnapshots(peerId) {
+      const link=this.links.get(peerId);
+      if(this.role!=='host'||!link)return 0;
+      // 可視範囲の切替時は旧写真の残り断片も捨てる。既にsend済みの情報は撤回できない。
+      // controlや逆方向の入力は触らず、この相手の写真と再同期用基準番号だけを無効化する。
+      const count=link.snapshots.length;
+      this.snapshotDrops.superseded+=count;link.snapshots.length=0;link.lastBase=null;
+      return count;
+    }
     canStartMatch() {
       return this.role==='host' && !this.closed && !this.started && [...this.links.values()].every(l=>l.closing || !l.approved || l.ready);
     }
@@ -458,7 +469,15 @@
           if(!this._write(link,packet,link.snapshotConn))return;
           item.packetIndex++;budget-=packet.bytes;
         }
-        if(item.packetIndex===item.packets.length)link.snapshots=link.snapshots.filter(x=>x!==item);
+        if(item.packetIndex===item.packets.length){
+          link.snapshots=link.snapshots.filter(x=>x!==item);
+          // enqueue成功・一部断片の送信では記録しない。相手の到着保証とは別で、
+          // この論理写真の全断片をsendへ渡し終えた時だけラグ補償の検証候補にする。
+          if(item.type==='snapshot'){
+            try{this.options.onSnapshotSent?.(link.conn.peer,item.snapshotPayload);}
+            catch(_){/* 送信は完了済み。通知先の失敗で再送したり、他の相手の送信を止めない。 */}
+          }
+        }
       }
     }
     _flushInputs(link,t) {
@@ -481,6 +500,17 @@
       this._write(link,item,link.snapshotConn);
     }
     _write(link, item, conn = link.conn) {
+      if(this.role==='host'&&item.type==='events'&&this.options.filterEvents){
+        // 遅延待ちの間に観測範囲が変わり得るため、空間情報を渡す直前に再選別する。
+        // filterは縮小専用。例外や拡張はこの出来事だけ安全側へ捨て、他の制御を続ける。
+        try{
+          const envelope=JSON.parse(item.text),filtered=this.options.filterEvents(link.conn.peer,envelope.payload);
+          if(!Array.isArray(filtered)||!filtered.length){item.bytes=0;return true;}
+          envelope.payload=filtered;const text=JSON.stringify(envelope),bytes=encoder.encode(text).byteLength;
+          if(bytes>item.bytes){item.bytes=0;return true;}
+          item.text=text;item.bytes=bytes;
+        }catch(_){item.bytes=0;return true;}
+      }
       // 実際に送信バッファへ渡す時刻を使う（送信待ち・遅延注入を時計差と誤認しない）。
       if (item.type === 'ping' || item.type === 'pong') {
         const envelope = JSON.parse(item.text); envelope.payload.sentAt = now();

@@ -6,6 +6,16 @@ const {execFileSync}=require('node:child_process');
 const {check}=require('./lib');
 const {ROOT,MOCK_TRANSPORT,TRANSPORT_MODE,harness,room,frames,neutral,sleep,installWireObserver}=require('./online_test_helpers');
 const TEST_SOURCE_HASH=crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex');
+// 失敗時の診断が循環参照で元のassertを上書きしない。共有参照は省かず、祖先への循環だけを明示する。
+function diagnosticJson(value,space){
+  const ancestors=[];
+  return JSON.stringify(value,function(key,item){
+    if(!item||typeof item!=='object')return item;
+    while(ancestors.length&&ancestors.at(-1)!==this)ancestors.pop();
+    if(ancestors.includes(item))return '[循環参照]';
+    ancestors.push(item);return item;
+  },space);
+}
 const functionalOnly=process.argv.includes('--functional-only'),wireOnly=process.argv.includes('--wire-only'),rateOnly=process.argv.includes('--rate-only');
 if([functionalOnly,wireOnly,rateOnly].filter(Boolean).length>1)throw Error('*-only は同時指定できません');
 const latencyArg=process.argv.find(x=>x.startsWith('--latency-ms='));
@@ -15,7 +25,7 @@ if(latencies.some(x=>![50,100].includes(x)))throw Error('--latency-ms は50ま�
 function instrument(dir){
   const file=path.join(dir,'online/game.js'),source=fs.readFileSync(file,'utf8'),marker='  window.CBOnlineGame=';
   if(!source.includes(marker))throw Error('巻き戻しfixtureの挿入位置がありません');
-  const hook=`  window.__lagTest={captureLagHistory,rememberLagSnapshot,castGuestHitscan,sendLocalInput,acceptInput,acceptInputBatch,acceptInputActions,interpolate,recordHostInputStep,
+  const hook=`  window.__lagTest={captureLagHistory,encodePeerSnapshot,rememberPeerSnapshot,replicationFor,castGuestHitscan,sendLocalInput,acceptInput,acceptInputBatch,acceptInputActions,interpolate,recordHostInputStep,
     enable:value=>{lagEnabled=!!value;},context:()=>hitscanContext,history:()=>lagHistory,view:()=>lastRenderedView,peer:id=>state.peers.get(id)};\n`;
   fs.writeFileSync(file,source.replace(marker,hook+marker));
 }
@@ -23,7 +33,13 @@ function instrument(dir){
 async function functional(host,oneWayMs){
   return host.evaluate(oneWayMs=>{
     const g=__g,T=g.T,game=CBOnlineGame,t=__lagTest,checks=[],details={oneWayModelMs:oneWayMs};
-    const test=(value,name,data)=>{checks.push({value:!!value,name});if(!value)throw Error(name+'\n'+JSON.stringify(data));};
+    const test=(value,name,data)=>{
+      checks.push({value:!!value,name});if(value)return;
+      const seen=new WeakSet(),detail=JSON.stringify(data,(key,item)=>{if(item&&typeof item==='object'){if(seen.has(item))return '[循環参照]';seen.add(item);}return item;});
+      throw Error(name+'\n'+detail);
+    };
+    // host内部のsource/targetは描画ツリーを持つ。イベント検査に必要な公開dataと参照IDだけを記録する。
+    const eventData=({id,type,data,source,target})=>({id,type,data:structuredClone(data),sourceId:source?.entityId||source?.kind||null,targetId:target?.entityId||target?.kind||null});
     const near=(a,b,e=1e-6)=>a.length===b.length&&a.every((v,i)=>Math.abs(v-b[i])<=e);
     const shooter=g.units.find(u=>u.controller==='remoteHuman'),target=g.units.find(u=>u.controller==='bot'&&u.team!==shooter.team);
     if(!shooter||!target)throw Error('遠隔人間と敵Botのfixtureがありません');
@@ -59,22 +75,32 @@ async function functional(host,oneWayMs){
       }
       throw Error('独立した現在raycastで標的の'+slot+'を発見できません');
     };
-    const stamp=(viewTime,snapshotTime=viewTime)=>{
+    const sentView=(viewTime,snapshotTime=viewTime)=>{
       const view={time:viewTime,frame:++frame,delayMs:60};
-      t.rememberLagSnapshot({frame,time:snapshotTime});
+      // 機能fixtureだけ成功送信完了を模擬する。生成しただけの全体写真や他peerの台帳を使わない。
+      const full=game.snapshot(snapshotTime);full.frame=frame;
+      const encoded=t.encodePeerSnapshot(peer,full,true);t.rememberPeerSnapshot(peer.id,encoded.wire);
+      const sent=t.replicationFor(peer).sent.get(frame);
+      if(!sent?.updates.has(target.entityId)||!sent.visible.has(shooter.entityId))throw Error('射手peerの公開・実送信台帳がありません');
+      return view;
+    };
+    const stamp=(viewTime,snapshotTime=viewTime)=>{
+      const view=sentView(viewTime,snapshotTime);
       peer.input={seq:frame,lifeId:shooter.lifeId,actionSeq:frame,sentAt:clock-oneWayMs,receivedAt:clock,view,keys:{},pressed:{},aimPoint:[0,202,0],yaw:0,pitch:0};
       peer.inputLifeId=shooter.lifeId;peer.receivedSeq=frame;peer.last=clock;
       shooter.controlInput=peer.input;
       return view;
     };
     const reset=(slot='body',crouch=false)=>{
-      clock+=1000;t.history().clear();damageCalls.length=killCalls.length=0;
+      clock+=1000;t.history().clear();delete peer.replication;damageCalls.length=killCalls.length=0;
       shooter.controller='remoteHuman';target.controller='bot';target.lifeId++;target.onlineMotionEpoch=(target.onlineMotionEpoch||0)+1;
       for(const u of g.units)if(u!==shooter&&u!==target){u.pos.set(1000,200,1000);u.group.position.copy(u.pos);u.group.updateMatrixWorld(true);}
       setPose(shooter,0);setPose(target,0,crouch);g.scene.updateMatrixWorld(true);
       const expected=findAim(slot),viewTime=clock-(oneWayMs+60);
-      t.captureLagHistory(viewTime);setPose(target,12,false);g.scene.updateMatrixWorld(true);t.captureLagHistory(clock);
-      const view=stamp(viewTime),before=fingerprint(target),hp=target.hp;
+      // 送信写真は旧位置にいる時点で作る。現在位置を過去時刻の写真と偽って台帳へ入れない。
+      t.captureLagHistory(viewTime);const view=stamp(viewTime);
+      setPose(target,12,false);g.scene.updateMatrixWorld(true);t.captureLagHistory(clock);
+      const before=fingerprint(target),hp=target.hp;
       return {...expected,viewTime,view,before,hp,current:target.pos.toArray()};
     };
     const actualHit=f=>t.castGuestHitscan(shooter,f.from,f.aim.clone().sub(f.from).normalize(),weapon);
@@ -187,7 +213,7 @@ async function functional(host,oneWayMs){
           Object.assign(peer,{input:null,inputLifeId:shooter.lifeId,inputTimes:[],inputHistoryTruncated:false,firstInputAt:null,
             receivedSeq:0,receivedActionSeq:0,appliedSeq:0,appliedStep:0,appliedSeqDt:0,appliedTotalDt:0,appliedSteps:[],appliedActionSeq:0,
             pendingEdges:{},actions:[],actionState:null,activeAction:null,pendingShot:null,shotActionSeq:0,last:clock});
-          const latestView={time:clock-oneWayMs-30,frame:++frame,delayMs:60};t.rememberLagSnapshot({frame,time:latestView.time});
+          const latestView=sentView(clock-oneWayMs-30);
           const changedAim=f.aim.clone().add(new T.Vector3(30,0,0)).toArray();
           const move=seq=>({seq,lifeId:shooter.lifeId,actionSeq:1,sentAt:clock-oneWayMs,view:latestView,aimPoint:changedAim,yaw:.7,pitch:.1,keys:{},pressed:{}});
           const action={seq:10,actionSeq:1,lifeId:shooter.lifeId,sentAt:clock-oneWayMs,view:f.view,aimPoint:f.aim.toArray(),yaw:0,pitch:0,cameraRecoil:0,cameraRecoilYaw:0,trigger:true,alt:false,keys:{},pressed:{}};
@@ -201,14 +227,14 @@ async function functional(host,oneWayMs){
           game.castHitscan=function(u,from,dir,w){observed.push({view:structuredClone(t.context()?.input?.view),aim:structuredClone(t.context()?.input?.aimPoint),from:from.toArray(),dir:dir.toArray()});return oldCast(...arguments);};
           try{
             shooter.recoil=shooter.recoilYaw=0;g.shot(shooter,shooter.slots.main,new T.Vector3().fromArray(changedAim),0);
-            const firstDamage=damageCalls.length,firstEvents=game.state.events.slice(eventStart).filter(e=>['shot','hit'].includes(e.type));
+            const firstDamage=damageCalls.length,firstEvents=game.state.events.slice(eventStart).filter(e=>['shot','hit'].includes(e.type)).map(eventData);
             t.recordHostInputStep(shooter,shooter.controlInput,.016);
             test(observed.length===1&&JSON.stringify(observed[0].view)===JSON.stringify(f.view)&&near(observed[0].aim,f.aim.toArray())&&firstDamage===1,order+'の初発はaction時刻と照準の対で現在標的へ一度damage',{observed,damageCalls});
             test(firstEvents.some(e=>e.type==='shot')&&firstEvents.some(e=>e.type==='hit')&&firstEvents.every(e=>e.data.seq===action.seq),order+'初発のshot/hit通知もaction.seqへ関連付ける',firstEvents);
             t.acceptInputActions(peer,action);shooter.controlInput=game.remoteInput(shooter);
             test(peer.receivedActionSeq===1&&!peer.pendingShot,order+'の同actionSeq再到着は初発を再注入しない');
             const continuedEventStart=game.state.events.length;shooter.recoil=shooter.recoilYaw=0;g.shot(shooter,shooter.slots.main,new T.Vector3().fromArray(changedAim),0);
-            const continuedEvents=game.state.events.slice(continuedEventStart).filter(e=>['shot','hit'].includes(e.type));
+            const continuedEvents=game.state.events.slice(continuedEventStart).filter(e=>['shot','hit'].includes(e.type)).map(eventData);
             test(continuedEvents.some(e=>e.type==='shot')&&continuedEvents.every(e=>e.data.seq===11),order+'継続射撃の通知は最新movement.seqへ進む',continuedEvents);
             test(observed.length===2&&JSON.stringify(observed[1].view)===JSON.stringify(latestView)&&near(observed[1].aim,changedAim)&&damageCalls.length===firstDamage,order+'の継続射撃は最新movementの時刻と照準へ進む',{observed,damageCalls});
             outcomes.push({order,casts:observed,damageCalls:firstDamage,firstEvents,continuedEvents});
@@ -238,9 +264,9 @@ async function functional(host,oneWayMs){
 async function dynamicCrouch(active,oneWayMs,ok,output){
   const {host,guests:[guest],pages}=active;
   const setup=await host.evaluate(()=>{
-    const g=__g,u=g.units.find(u=>u.controller==='bot');
+    const g=__g,viewer=g.units.find(u=>u.controller==='remoteHuman'),u=g.units.find(u=>u.controller==='bot'&&u.team===viewer.team);
     Object.assign(u,{frozen:true,crouching:false,planted:false,repairing:false,transfer:null,stun:'',stunT:0,tilt:0,pitch:0,onGround:true,dashState:'',lungeT:0,recoverT:0,invulT:0});
-    u.pos.y=200;u.group.position.copy(u.pos);u.group.visible=true;u.vel.set(0,0,0);Object.assign(u.rig,{crouch:0,move:0,phase:0,landT:0});g.weaponLook(u,0);
+    u.pos.copy(viewer.pos).add(new g.T.Vector3(0,0,-20));u.pos.y=200;viewer.pos.y=200;u.group.position.copy(u.pos);u.group.visible=true;u.vel.set(0,0,0);Object.assign(u.rig,{crouch:0,move:0,phase:0,landT:0});g.weaponLook(u,0);
     return {id:u.entityId,lower:g.ACTIONS.crouch.lower};
   });
   for(let i=0;i<15;i++){await frames(pages,1);await sleep(30);}
@@ -254,7 +280,7 @@ async function dynamicCrouch(active,oneWayMs,ok,output){
         const g=__g,game=CBOnlineGame,h=game.state.history,time=game.metrics().interpolation.renderTime,latest=game.state.lastSnapshot;
         if(!h.length||!latest)return null;
         let a=h[0].snapshot,b=a;for(let n=1;n<h.length;n++){a=h[n-1].snapshot;b=h[n].snapshot;if(b.time>=time)break;}
-        const get=s=>s.units.find(u=>u.id===id),v=get(b),old=get(a),last=get(latest),u=g.units.find(u=>u.entityId===id);
+        const get=s=>s.units.find(u=>!u.hidden&&u.id===id),v=get(b),old=get(a),last=get(latest),u=g.units.find(u=>u.entityId===id);
         if(!u||![v?.renderCrouch,old?.renderCrouch,last?.renderCrouch].every(Number.isFinite))return null;
         const f=Math.max(0,Math.min(1,(time-a.time)/Math.max(1,b.time-a.time))),expected=time>latest.time?last.renderCrouch:old.renderCrouch+(v.renderCrouch-old.renderCrouch)*f;
         const head=u.rig.meshes.find(m=>m.mesh.userData.armorSlot==='head').mesh;
@@ -357,7 +383,7 @@ async function hitRate(active,oneWayMs,enabled,ok,report){
       q.timer=setInterval(()=>{
         try{
           const now=performance.now(),hostTime=now+(game.state.transport.clock()?.offsetMs||0),dt=Math.min(.05,Math.max(.001,(now-q.lastAt)/1000));q.lastAt=now;q.ticks++;
-          const target=g.units.find(u=>u.entityId===setup.targetId);if(!target)return;
+          const target=g.units.find(u=>u.entityId===setup.targetId);if(!target||target.onlineHidden)return;
           let trigger=q.releaseAt>hostTime;
           const due=setup.startAt+warmupMs+q.next*intervalMs;
           if(q.next<count&&hostTime>=due){
@@ -378,7 +404,7 @@ async function hitRate(active,oneWayMs,enabled,ok,report){
     await guest.waitForFunction(()=>__lagRateGuest.done,{},{timeout:20000,polling:50});await sleep(500+oneWayMs*2);
     const h=await host.evaluate(()=>({samples:__lagRateHost.samples,errors:__lagRateHost.errors,ticks:__lagRateHost.ticks,delayMs:CBOnlineGame.state.transport.latencyMs,metrics:CBOnlineGame.metrics().lagCompensation}));
     const g=await guest.evaluate(()=>({sent:__lagRateGuest.sent,errors:__lagRateGuest.errors,ticks:__lagRateGuest.ticks,delayMs:CBOnlineGame.state.transport.latencyMs}));
-    Object.assign(output,{guest:g,host:h});console.log('横移動shot観測',JSON.stringify(output));
+    Object.assign(output,{guest:g,host:h});console.log('横移動shot観測',diagnosticJson(output));
     ok(h.delayMs===oneWayMs&&g.delayMs===oneWayMs,`片道${oneWayMs}msの人工遅延をhost/guest両製品transportへ設定`);
     ok(!h.errors.length&&!g.errors.length,`片道${oneWayMs}ms補償${enabled?'ON':'OFF'}の横移動命中率fixtureに例外なし`);
     ok(g.sent.length===count&&h.samples.length===count,`片道${oneWayMs}ms補償${enabled?'ON':'OFF'}でguest ${count}入力とhost ${count}実shotを独立確認`);
@@ -422,7 +448,7 @@ check('ゲストhitscan巻戻し・現在復元・表示時刻',async({browser,d
       }
     }
     ok(!errors.length,'巻戻し試験のブラウザエラーなし');report.validationCompleted=true;
-  }catch(error){report.failure=error.stack||error.message;throw error;}finally{
-    if(active)await active.close();await h.close();fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'online-lag.json'),JSON.stringify(report,null,2));
+  }catch(error){report.failure=error.stack||error.message;console.error('巻戻し試験の元エラー',report.failure);throw error;}finally{
+    if(active)await active.close();await h.close();fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'online-lag.json'),diagnosticJson(report,2));
   }
 },{page:false});

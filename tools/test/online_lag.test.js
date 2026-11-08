@@ -42,6 +42,21 @@ check('可変時間刻みの位置と向きで当たり、現在のpos/HP/世界
   assert(hit);assert.equal(called,1);assert.equal(h.lastRewound,1);assert.deepEqual(mesh.matrixWorld.elements,before);assert.equal(u.pos.x,10);
   assert.throws(()=>h.withRewind(50,[u],null,()=>{throw Error('ray failure');}),/ray failure/);assert.deepEqual(mesh.matrixWorld.elements,before);
 });
+check('機体別の表示時刻で一度だけcastし、射手/非掲載機を現状維持、例外でも全復元',()=>{
+  const a=unit('a'),b=unit('b'),hidden=unit('hidden'),shooter=unit('shooter'),all=[a,b,hidden,shooter],units=all.map(v=>v.u),meshes=all.map(v=>v.mesh),h=history();
+  h.capture(0,units,meshes);all.forEach((v,i)=>move(v.u,(i+1)*10));h.capture(100,units,meshes);
+  const before=all.map(v=>v.mesh.matrixWorld.elements.slice()),times=new Map([['a',25],['b',75],['shooter',0]]);
+  let calls=0;
+  const inspect=()=>{
+    calls++;close(a.mesh.matrixWorld.elements[12],2.5);close(b.mesh.matrixWorld.elements[12],15);
+    close(hidden.mesh.matrixWorld.elements[12],30);close(shooter.mesh.matrixWorld.elements[12],40);
+    assert.deepEqual(units.map(u=>u.pos.x),[10,20,30,40]);assert.equal(h.lastRewound,2);return '一度の射線';
+  };
+  assert.equal(h.withRewind(50,units,shooter.u,inspect,times),'一度の射線');assert.equal(calls,1);
+  all.forEach((v,i)=>assert.deepEqual(v.mesh.matrixWorld.elements,before[i]));
+  assert.throws(()=>h.withRewind(50,units,shooter.u,()=>{inspect();throw Error('機体別cast失敗');},times),/機体別cast失敗/);assert.equal(calls,2);
+  all.forEach((v,i)=>assert.deepEqual(v.mesh.matrixWorld.elements,before[i]));
+});
 check('life/移動/死亡蘇生epoch/機体構成/新colliderを跨がない',()=>{
   for(const patch of [{lifeId:2},{onlineMotionEpoch:1},{onlineLagEpoch:2},{mech:{head:'b'}},{alive:false},{downT:1}]){
     const {u,mesh}=unit(),h=history();h.capture(0,[u],[mesh]);move(u,10);h.capture(100,[u],[mesh]);Object.assign(u,patch);
@@ -93,20 +108,20 @@ check('250ms履歴と件数上限、履歴外は現在判定',()=>{
 });
 check('製品shotのcontextは手持ちgunだけ、throwでも解除',()=>{
   const source=fs.readFileSync(require.resolve('../../prototype/online/game'),'utf8'),from=source.indexOf('  const oldShot=shot;'),to=source.indexOf('  const oldShoot=',from);
-  const c={hitscanContext:null,damageInputSeq:null,state:{role:'offline'},emit:()=>{},shot:(u,sl)=>{assert.equal(c.hitscanContext?.unit===u,!!sl.expected);if(sl.throws)throw Error('shot failure');}};vm.createContext(c);vm.runInContext(source.slice(from,to),c);
+  const c={hitscanContext:null,damageInputSeq:null,effectSource:null,effectTarget:null,state:{role:'offline'},emit:()=>{},shot:(u,sl)=>{assert.equal(c.hitscanContext?.unit===u,!!sl.expected);if(sl.throws)throw Error('shot failure');}};vm.createContext(c);vm.runInContext(source.slice(from,to),c);
   const u={controller:'remoteHuman',entityId:'remote'};
   for(const [w,expected]of [[{type:'gun'},true],[{type:'gun',proj:{}},false],[{type:'sword'},false],[{type:'escort'},false]]){c.shot(u,{w,expected});assert.equal(c.hitscanContext,null);}
   c.shot({controller:'bot'},{w:{type:'gun'},expected:false});assert.throws(()=>c.shot(u,{w:{type:'gun'},expected:true,throws:true}),/shot failure/);assert.equal(c.hitscanContext,null);
 });
 function gameHarness(){
   let time=1000;const empty=()=>{},shooter=unit('B:0'),target=unit('R:0'),sent=[];
-  Object.assign(shooter.u,{controller:'remoteHuman',ownerPeerId:'guest',yaw:0,pitch:0});
-  const c={T,CBOnlineLagComp:require('../../prototype/online/lag-compensation'),CBOnlineCodec:require('../../prototype/online/codec'),MAPS:{mesa:{name:'台地',team:5,time:300}},
+  Object.assign(shooter.u,{controller:'remoteHuman',ownerPeerId:'guest',team:'B',yaw:0,pitch:0});Object.assign(target.u,{team:'R',yaw:0,pitch:0});
+  const c={T,CBOnlineVisibility:require('../../prototype/online/visibility'),spotted:{B:new Map(),R:new Map()},noticed:()=>false,canSee:()=>true,targetPoint:u=>u.pos.clone().add(new T.Vector3(0,1,0)),CBOnlineLagComp:require('../../prototype/online/lag-compensation'),CBOnlineCodec:require('../../prototype/online/codec'),MAPS:{mesa:{name:'台地',team:5,time:300}},
     Map,Set,Date,Math,Number,console,setTimeout,clearTimeout,performance:{now:()=>time},window:{},SLOTS:['main'],WEAPONS:{},CLASSES:{assault:{main:'ar'},heavy:{main:'ar'}},
     units:[shooter.u,target.u],hittables:[shooter.mesh,target.mesh],player:shooter.u,addEventListener:empty,weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,finish:empty,shoot:empty,blast:empty,damage:empty,
     shot:(u,sl,aim)=>{c.lastShotAim=aim?.toArray();c.lastShotRecoil=u.cameraRecoil;return c.window.CBOnlineGame.castHitscan(u,new T.Vector3(),new T.Vector3(0,0,-1),sl.w);},castFrom:()=>target.mesh.matrixWorld.elements[12],refOf:m=>m.userData.ref};
   let source=fs.readFileSync(require.resolve('../../prototype/online/game'),'utf8');
-  source=source.replace('  window.CBOnlineGame={create',`  window.__lagTest={captureLagHistory,rememberLagSnapshot,acceptInput,acceptInputActions,recordHostInputStep,sendLocalInput,interpolateRemotePose,lagHistory,setRender:time=>{interpolation.renderTime=time;},rendered:()=>lastRenderedView};\n  window.CBOnlineGame={create`);
+  source=source.replace('  window.CBOnlineGame={create',`  window.__lagTest={captureLagHistory,rememberLagSnapshot,replicationFor,rememberPeerSnapshot,acceptInput,acceptInputActions,recordHostInputStep,sendLocalInput,interpolateRemotePose,lagHistory,setRender:time=>{interpolation.renderTime=time;},rendered:()=>lastRenderedView};\n  window.CBOnlineGame={create`);
   vm.createContext(c);vm.runInContext(source,c);const game=c.window.CBOnlineGame,test=c.window.__lagTest;
   Object.assign(game.state,{role:'host',phase:'playing',transport:{clock:()=>({rttMs:50,offsetMs:0}),send:(type,payload)=>{sent.push({type,payload});return true;},metrics:()=>({})}});
   const p={id:'guest',unitId:shooter.u.entityId,inputLifeId:1,receivedSeq:0};game.state.peers.set('guest',p);
@@ -121,6 +136,46 @@ check('製品input受信でclient受信時刻を捨て、shotのみ巻戻し、�
   // fireを直接使う設置銃にはshot contextがない。
   assert.equal(h.game.castHitscan(u,new T.Vector3(),new T.Vector3(),{type:'gun'}),10);assert.equal(h.game.metrics().lagCompensation.rewinds,1);
   u.controlInput={...u.controlInput,lifeId:0};assert.equal(h.c.shot(u,{w:{type:'gun'}}),10);assert.equal(h.game.metrics().lagCompensation.reasons.input,1);
+});
+check('当該peerの成功送信だけを巻戻し根拠にし、他peer/未送信/秘匿状態は使わない',()=>{
+  const h=gameHarness(),u=h.shooter.u,target=h.target.u,other={id:'other',unitId:'B:1'};
+  h.game.state.peers.set(other.id,other);
+  move(target,0);h.test.captureLagHistory(850);move(target,10);h.test.captureLagHistory(1000);
+  // global履歴は存在しても、replicationのあるpeerでは根拠にしない。
+  h.test.rememberLagSnapshot({frame:1,time:850});
+  const r=h.test.replicationFor(h.p),otherR=h.test.replicationFor(other),delta=[h.c.CBOnlineCodec.VERSION,1,''];
+  const record=()=>({time:850,baseId:1,delta:JSON.stringify(delta),visible:new Map([[u.entityId,1],[target.entityId,1]]),updates:new Map([[target.entityId,{time:850,epoch:1,lifeId:1,motionEpoch:0,lagEpoch:0}]])});
+  r.epochs.set(u.entityId,1);r.epochs.set(target.entityId,1);
+  otherR.queued.set(1,record());h.test.rememberPeerSnapshot(other.id,{frame:1,delta});
+  assert.equal(otherR.sent.size,1);assert.equal(r.sent.size,0);
+  h.test.acceptInput(h.p,{seq:1,lifeId:1,sentAt:975,view:view(),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
+  const cast=()=>h.c.shot(u,{w:{type:'gun'}});
+  assert.equal(cast(),10);assert.equal(h.game.metrics().lagCompensation.reasons.anchor,1);
+  r.queued.set(1,record());assert.equal(cast(),10);assert.equal(r.sent.size,0);
+  h.test.rememberPeerSnapshot(h.p.id,{frame:1,delta:[delta[0],2,'']});assert.equal(r.sent.size,0);assert.equal(r.queued.size,1);
+  h.test.rememberPeerSnapshot(h.p.id,{frame:1,delta:[delta[0],1,'別の差分']});assert.equal(r.sent.size,0);assert.equal(r.queued.size,1);
+  h.test.rememberPeerSnapshot(h.p.id,{frame:1,delta});assert.equal(r.queued.size,0);assert.equal(r.sent.size,1);
+  assert.equal(cast(),0);close(h.target.mesh.matrixWorld.elements[12],10);
+  r.sent.get(1).visible.delete(target.entityId);assert.equal(cast(),10);
+  r.sent.get(1).visible.set(target.entityId,1);r.epochs.set(target.entityId,2);assert.equal(cast(),10);
+  // 再公開epochの過去像へ以前の送信履歴を流用しない。
+  assert.equal(otherR.sent.size,1);assert.equal(h.game.metrics().lagCompensation.rewinds,1);
+});
+check('tuple省略でも最後の送信姿勢から100ms超を巻戻しに使わない',()=>{
+  const h=gameHarness(),u=h.shooter.u,target=h.target.u,r=h.test.replicationFor(h.p),delta=[h.c.CBOnlineCodec.VERSION,1,''];
+  move(target,0);h.test.captureLagHistory(800);move(target,10);h.test.captureLagHistory(1000);
+  r.epochs.set(target.entityId,1);
+  const sent=(frame,time,updateTime)=>{
+    const updates=new Map(updateTime===null?[]:[[target.entityId,{time:updateTime,epoch:1,lifeId:1,motionEpoch:0,lagEpoch:0}]]);
+    r.queued.set(frame,{time,baseId:1,delta:JSON.stringify(delta),visible:new Map([[target.entityId,1]]),updates});
+    h.test.rememberPeerSnapshot(h.p.id,{frame,delta});
+  };
+  sent(1,650,650);sent(2,950,null);
+  h.test.acceptInput(h.p,{seq:1,lifeId:1,sentAt:975,view:view({time:900,frame:2}),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
+  assert.equal(h.c.shot(u,{w:{type:'gun'}}),10);assert.equal(h.game.metrics().lagCompensation.rewinds,0);
+  // 同じanchorでも実更新が850msにあれば、900msの姿勢は許可範囲へ戻る。
+  sent(3,850,850);sent(4,950,null);h.p.input.view=view({time:900,frame:4});
+  close(h.c.shot(u,{w:{type:'gun'}}),5);close(h.target.mesh.matrixWorld.elements[12],10);assert.equal(h.game.metrics().lagCompensation.rewinds,1);
 });
 check('製品guest入力は未描画時計でなく、直前afterFrameの時刻を申告',()=>{
   const h=gameHarness();h.game.state.role='guest';h.game.state.lastSnapshot={frame:10};h.test.setRender(850);h.game.afterFrame(.016,1000);

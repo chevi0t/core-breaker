@@ -14,7 +14,7 @@ if(teamSizeArg&&!bootstrapOnly)throw Error('--team-size は --bootstrap-only と
 async function captureWire(page){await installWireObserver(page);await page.evaluate(()=>{
   const t=CBOnlineGame.state.transport;window.__wire=[];window.__wireMessages=[];window.__wireControlEvents=[];window.__wireCaptureStartedAt=performance.now();
   if(t.__wireCaptureInstalled)return;t.__wireCaptureInstalled=true;
-  const bytes=x=>new TextEncoder().encode(JSON.stringify(x)).length,schemas=new Map(),seenBases=new Set();
+  const bytes=x=>new TextEncoder().encode(JSON.stringify(x)).length,peerObservers=new Map();
   const receive=t.options.onMessage;
   t.options.onMessage=(type,data,id)=>{
     if(['ready','snapshotResync','preference'].includes(type))__wireControlEvents.push({type,at:performance.now(),phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:id});
@@ -22,9 +22,29 @@ async function captureWire(page){await installWireObserver(page);await page.eval
   };
   window.__observeOnlineWire(w=>__wire.push({type:w.type,bytes:w.messageBytes,channel:w.channel,at:w.at,phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:w.peerId}),w=>{
     const {payload:data,type}=w.envelope;
+    let observer=peerObservers.get(w.peerId);if(!observer){observer={schemas:new Map(),seenBases:new Set(),decoder:new CBOnlineCodec.Decoder(),localId:null,lastUnitIds:null};peerObservers.set(w.peerId,observer);}
+    const {schemas,seenBases,decoder}=observer;
+    const hiddenNeutral=u=>Object.entries(u).every(([key,value])=>{
+        if(['id','fixedUnit','hidden','visibilityEpoch'].includes(key))return true;
+        if(['team','cls','controller','predictionBlocked'].includes(key))return value==='';
+        if(['idx','motionEpoch','lagEpoch','renderCrouch'].includes(key))return value===0;
+        if(['jumpPadIndex','zipLine'].includes(key))return value===-1;
+        if(['pos','vel'].includes(key))return Array.isArray(value)&&value.length===3&&value.every(x=>x===0);
+        if(key==='motionVectors')return Object.values(value).every(x=>x===null);
+        if(key==='slots')return Object.values(value).every(slot=>Object.entries(slot).every(([field,x])=>field==='key'?x==='':x===null));
+        return value===null;
+      });
+      const publicState=s=>{
+      const fixedIds=s.units.map(u=>u.id),publicUnits=s.units.filter(u=>!u.hidden),ids=publicUnits.map(u=>u.id),expected=__g.units.map(u=>({id:u.entityId,team:u.team})),team=observer.localId?.split(':')[0],slotIds=(s.roster||[]).map(u=>u.id).sort();
+      if(!Array.isArray(s.roster)||s.roster.length!==expected.length||new Set(s.roster.map(u=>u.id)).size!==expected.length||expected.some(u=>!s.roster.some(v=>v.id===u.id&&v.team===u.team)))throw Error('peer公開名簿が全機と一致しません');
+      if(!ids.includes(observer.localId)||expected.filter(u=>u.team===team).some(u=>!ids.includes(u.id))||ids.some(id=>!s.roster.some(u=>u.id===id)))throw Error('自機/同陣営の公開機体が欠落');
+      if(s.units.length!==s.roster.length||s.units.some((u,i)=>u.fixedUnit!==true||typeof u.hidden!=='boolean'||u.id!==slotIds[i]||u.hidden&&(!hiddenNeutral(u)||!(s.unitUpdates&(1<<i)))))throw Error('固定slot順または秘匿中立値が不正');
+      if(!Number.isSafeInteger(s.unitUpdates)||s.unitUpdates<0||s.unitUpdates>=(1<<s.units.length)||s.units.some(u=>!Number.isSafeInteger(u.visibilityEpoch)||u.visibilityEpoch<1)||Object.keys(s.inputAcks||{}).some(id=>id!==observer.localId)||Object.keys(s.acks||{}).some(id=>id!==observer.localId)||!Object.hasOwn(s.inputAcks||{},observer.localId)||!Object.hasOwn(s.acks||{},observer.localId))throw Error('peer専用ack/公開epoch/maskが不正');
+      return {rosterCount:s.roster.length,unitIds:fixedIds,visibleUnitIds:ids,hiddenUnitCount:s.units.length-publicUnits.length,localId:observer.localId,alliedUnitCount:publicUnits.filter(u=>u.team===team).length};
+    };
     const m={type,channel:w.channel,bytes:w.messageBytes,logicalBytes:w.logicalMessageBytes,fragmentCount:w.fragmentCount,maxDatagramBytes:w.maxDatagramBytes,
       at:w.at,phase:CBOnlineGame.state.phase,hostFrame:CBOnlineGame.state.frame,peerId:w.peerId};
-    if(type==='prepare')Object.assign(m,{hasSnapshotState:['baseline','delta','units'].some(k=>Object.hasOwn(data,k)),metadataKeys:Object.keys(data).sort()});
+    if(type==='prepare'){observer.localId=data.localId;Object.assign(m,{hasSnapshotState:['baseline','delta','units'].some(k=>Object.hasOwn(data,k)),metadataKeys:Object.keys(data).sort()});}
     if(type==='snapshotBase'){
       const parentSchema=schemas.get(data.parent),schema=data.s||parentSchema,seen=seenBases.has(data.id);
       const before=new Map((parentSchema||[]).map(([p,type])=>[JSON.stringify(p),type])),after=new Map((schema||[]).map(([p,type])=>[JSON.stringify(p),type]));
@@ -32,12 +52,17 @@ async function captureWire(page){await installWireObserver(page);await page.eval
       const changed=[...after].filter(([p,type])=>before.has(p)&&before.get(p)!==type).map(([p,type])=>({path:JSON.parse(p),before:before.get(p),after:type}));
       Object.assign(m,{baseId:data.id,parent:data.parent||null,schemaBytes:data.s?bytes(data.s):0,valuesBytes:data.d?bytes(data.d):0,patchBytes:data.p?bytes(data.p):0,
         schemaFields:schema?.length||0,baselineValueCount:data.d?.length||0,patchChangedFields:(data.p?.length||0)/2,
-        observedReason:seen?'same-id-resend':data.parent?(data.s?'schema-change':'same-schema-refresh'):'initial-full',
+        observedReason:seen?'same-id-resend':data.parent?(data.s?'schema-change':'same-schema-refresh'):seenBases.size?'independent-refresh':'initial-full',
         schemaChange:data.parent?{parentKnown:!!parentSchema,addedCount:added.length,removedCount:removed.length,typeChangedCount:changed.length,
           added:added.slice(0,250).map(([p,type])=>({path:JSON.parse(p),type})),removed:removed.slice(0,250).map(([p,type])=>({path:JSON.parse(p),type})),typeChanged:changed.slice(0,250),pathLimit:250}:null});
+      if(!decoder.seed(data))throw Error('peer別基準の復号に失敗');
+      const decoded=decoder.decode([data.v,data.id,'']);if(!decoded)throw Error('peer別基準の状態を復号できません');
+      Object.assign(m,publicState(decoded));
+      m.previousUnitIds=observer.lastUnitIds;observer.lastUnitIds=m.unitIds;
+      if(data.parent&&m.previousUnitIds&&JSON.stringify(m.previousUnitIds)!==JSON.stringify(m.unitIds))throw Error('親基準の固定slot順が変わっています');
       if(schema)schemas.set(data.id,schema);seenBases.add(data.id);
     }
-    if(type==='snapshot'){m.frame=data.frame;m.baseId=data.delta?.[1];}
+    if(type==='snapshot'){m.frame=data.frame;m.baseId=data.delta?.[1];const decoded=decoder.decode(data.delta);if(!decoded||decoded.frame!==data.frame)throw Error('peer別snapshotを復号できません');Object.assign(m,publicState(decoded));}
     __wireMessages.push(m);
   });
 });}
@@ -90,7 +115,8 @@ function assertBootstrap(b,ok){
   ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.prepare[0].channel==='control'&&!b.prepare[0].hasSnapshotState&&JSON.stringify(b.prepare[0].metadataKeys)===JSON.stringify(['localId','mapId','matchId','teamSize']),'初期prepareはcontrol metadata1通だけで静的状態を重複収録しない（'+b.units+'機）');
   ok(b.bases.length===1&&b.bases[0].channel==='snapshot'&&b.bases[0].schemaBytes>0&&b.bases[0].valuesBytes>0&&b.bases[0].logicalBytes<=262144&&b.initialSnapshots.length===1,'初期基準と差分を写真専用線で各1通送り、静的基準を二重送信しない（'+b.units+'機）');
   ok(b.unclassifiedBases.length===0&&b.unclassifiedSnapshots.length===0,'初期/playing以外の基準・差分を集計から除外して隠さない（'+b.units+'機）');
-  ok(b.playingSupplement.bases.every(m=>m.channel==='snapshot'&&m.parent>0&&m.valuesBytes===0&&m.logicalBytes<=262144&&['schema-change','same-schema-refresh'].includes(m.observedReason)),'playingで追加した基準は初期全状態の重複でなく親付き追補として記録（'+b.units+'機）');
+  ok([...b.bases,...b.playingSupplement.bases,...b.initialSnapshots,...b.playingSupplement.snapshots].every(m=>m.rosterCount===b.units&&m.alliedUnitCount===b.units/2&&m.unitIds.length===b.units&&m.visibleUnitIds.includes(m.localId)&&m.visibleUnitIds.length+m.hiddenUnitCount===b.units),'全基準・写真で全機の固定slot/名簿と可視の自機/味方を保ち、秘匿枠は中立、ackは当該peerだけ（'+b.units+'機）');
+  ok(b.playingSupplement.bases.every(m=>m.channel==='snapshot'&&m.logicalBytes<=262144&&(m.parent>0&&m.valuesBytes===0&&['schema-change','same-schema-refresh'].includes(m.observedReason)||!m.parent&&m.schemaBytes>0&&m.valuesBytes>0&&m.observedReason==='independent-refresh'&&b.controlEvents.some(e=>e.type==='snapshotResync'&&e.peerId===m.peerId&&e.at<=m.at&&m.at-e.at<1000))),'playing基準は親付き追補か確認した再同期要求への独立基準として全件記録（'+b.units+'機）');
   ok(b.lossyBootstrapBytes+b.playingSupplementWireBytes===b.capturedSnapshotWireBytes,'初期送信とplaying追補を分けても写真線の実送信byte合計を維持（'+b.units+'機）');
 }
 async function fakeLoops(page){return page.evaluate(()=>{

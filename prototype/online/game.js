@@ -15,8 +15,8 @@
     startAtHost: null, startAtLocal: null, countdownNumber: null, actualStartAt: null };
   let saved = null, overrideInput = null, playingEffects = false, eventId = 0, projectileId = 0, frameStart = 0, previousMove = false, previousTrigger = false;
   let callbacks = {}, damageInputSeq = null, blastDepth = 0, requestedWeapon = null, preferenceResolve = null, preferenceReject = null, preferenceTimer = null;
-  let snapshotEncoder = new CBOnlineCodec.Encoder(), snapshotDecoder = new CBOnlineCodec.Decoder(), lastResync = -Infinity, resyncBackoff = 250;
-  let pendingPrepare = null, prepared = false, latestSnapshotWire = null, finalFrame = null, lastSnapshotBaseId = 0;
+  let snapshotDecoder = new CBOnlineCodec.Decoder(), lastResync = -Infinity, resyncBackoff = 250;
+  let pendingPrepare = null, prepared = false, finalFrame = null, lastSnapshotBaseId = 0;
   const pendingSnapshotWires = new Map(), pendingSnapshotBases = new Map();
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   function interpolationState() {
@@ -30,26 +30,59 @@
   const lagHistory=lagSupport?new lagSupport.ColliderHistory(T,{skinHit:typeof skinMechHit==='function'?skinMechHit:null,refOf:typeof refOf==='function'?refOf:null}):null;
   const lagSnapshots=new Map();
   let lagEnabled=true,lastRenderedView=null,hitscanContext=null;
+  const visibilitySupport=typeof CBOnlineVisibility!=='undefined'?CBOnlineVisibility:null;
+  const remoteUnitHistory=new Map();
+  let effectSource=null,effectTarget=null;
+  const copyView=v=>visibilitySupport?visibilitySupport.copyView(v):null;
+  function requireVisibilitySupport(){if(!visibilitySupport)throw Error('公開範囲を保護する機能を読み込めないため、ネット対戦を開始できません。ページを再読み込みしてください');}
   const lagMetrics={shots:0,rewinds:0,clamped:0,rejected:0,reasons:{},maxRewindMs:0};
   function resetLagCompensation(){lagHistory?.clear();lagSnapshots.clear();lastRenderedView=null;hitscanContext=null;Object.assign(lagMetrics,{shots:0,rewinds:0,clamped:0,rejected:0,reasons:{},maxRewindMs:0});}
   function captureLagHistory(time=now()){if(state.role==='host'&&state.phase==='playing'&&lagEnabled&&lagHistory)lagHistory.capture(time,units,hittables);}
   function rememberLagSnapshot(s){lagSnapshots.set(s.frame,s.time);for(const [frame,time]of lagSnapshots)if(time<s.time-2000)lagSnapshots.delete(frame);while(lagSnapshots.size>128)lagSnapshots.delete(lagSnapshots.keys().next().value);}
+  function verifiedPeerUnitTimes(p,input,verified,acceptedAt=now()){
+    const r=p.replication,view=copyView(input.view),anchor=r.sent.get(view?.frame);if(!view||!anchor)return null;
+    const result=new Map(),permitted=new Set(),time=acceptedAt,latest=createPeerView(p);
+    for(const [id,epoch]of anchor.visible){
+      const u=unit(id);if(!u||!latest.visible.has(id)||r.epochs.get(id)!==epoch)continue;
+      const evidence=[...r.sent].filter(([frame,v])=>frame<=view.frame&&v.updates.get(id)?.epoch===epoch).map(([,v])=>v.updates.get(id))
+        .filter(v=>v.lifeId===u.lifeId&&v.motionEpoch===(u.onlineMotionEpoch||0)&&v.lagEpoch===(u.onlineLagEpoch||0));
+      if(!evidence.length)continue;permitted.add(id);
+      const first=Math.min(...evidence.map(v=>v.time)),last=Math.max(...evidence.map(v=>v.time));
+      // tuple省略でも未送信の姿勢や100msを超えた外挿時刻を選べない。
+      if(view.time>=first-.01&&view.time<=last+100+.01&&verified.time<=last+100+.01)result.set(id,Math.min(time,Math.max(verified.time,first)));
+    }
+    for(const row of view.units||[]){
+      const [number,fa,fb,shown,epoch]=row,id=visibilitySupport.unitId(number),a=r.sent.get(fa),b=r.sent.get(fb),ua=a?.updates.get(id),ub=b?.updates.get(id),u=unit(id);
+      if(!permitted.has(id)||fa>view.frame||fb>view.frame||!ua||!ub||ua.epoch!==epoch||ub.epoch!==epoch||anchor.visible.get(id)!==epoch||
+        ua.lifeId!==u.lifeId||ub.lifeId!==u.lifeId||ua.motionEpoch!==(u.onlineMotionEpoch||0)||ub.motionEpoch!==(u.onlineMotionEpoch||0)||ua.lagEpoch!==(u.onlineLagEpoch||0)||ub.lagEpoch!==(u.onlineLagEpoch||0)||
+        shown<a.time-.01||shown>b.time+(fa===fb?100:0)+.01||shown>input.receivedAt||shown>input.sentAt+25||shown>time)return null;
+      // 低頻度写真の保持分は実送信sampleで裏付ける。元のRTT上限に加えても絶対200msまで。
+      const rtt=state.transport.clock(p.id)?.rttMs;if(!Number.isFinite(rtt))return null;
+      const extra=Math.max(0,view.time-shown),budget=Math.min(200,rtt+view.delayMs+50+(time-input.receivedAt)+extra);
+      const selected=Math.max(shown,time-budget);if(selected!==shown)lagMetrics.clamped++;
+      if(selected>b.time+100+.01)result.delete(id);else result.set(id,selected);
+    }
+    return result;
+  }
   function castGuestHitscan(u,from,dir,w){
     const cast=()=>castFrom(from,dir,u,w.range||400);
     if(!lagEnabled||!lagHistory||state.role!=='host'||state.phase!=='playing'||u.controller!=='remoteHuman'||!u.alive)return cast();
     lagMetrics.shots++;
+    const acceptedAt=now();
     const p=state.peers.get(u.ownerPeerId),input=hitscanContext?.input||u.controlInput;
     const verified=p&&p.inputLifeId===u.lifeId&&input?.lifeId===u.lifeId&&Number.isSafeInteger(input.seq)&&input.seq<=p.receivedSeq
-      ?lagSupport.validateViewTime(input.view,{now:now(),sentAt:input.sentAt,receivedAt:input.receivedAt,rttMs:state.transport?.clock?.(p.id)?.rttMs,snapshots:lagSnapshots})
+      ?lagSupport.validateViewTime(input.view,{now:acceptedAt,sentAt:input.sentAt,receivedAt:input.receivedAt,rttMs:state.transport?.clock?.(p.id)?.rttMs,snapshots:p.replication?new Map([...p.replication.sent].map(([frame,v])=>[frame,v.time])):lagSnapshots})
       :{ok:false,reason:'input'};
     if(!verified.ok){lagMetrics.rejected++;lagMetrics.reasons[verified.reason]=(lagMetrics.reasons[verified.reason]||0)+1;return cast();}
     if(verified.clamped)lagMetrics.clamped++;
-    const result=lagHistory.withRewind(verified.time,units,u,cast);
-    if(lagHistory.lastRewound){lagMetrics.rewinds++;lagMetrics.maxRewindMs=Math.max(lagMetrics.maxRewindMs,verified.ageMs);}
+    const times=p.replication?verifiedPeerUnitTimes(p,input,verified,acceptedAt):null;
+    if(p.replication&&!times){lagMetrics.rejected++;lagMetrics.reasons.visibility=(lagMetrics.reasons.visibility||0)+1;return cast();}
+    const result=lagHistory.withRewind(verified.time,units,u,cast,times);
+    if(lagHistory.lastRewound){lagMetrics.rewinds++;lagMetrics.maxRewindMs=Math.max(lagMetrics.maxRewindMs,verified.ageMs,...(times?[...times.values()].map(t=>acceptedAt-t):[]));}
     return result;
   }
   function castHitscan(u,from,dir,w){
-    return hitscanContext?.unit===u&&hitscanContext.weapon===w?castGuestHitscan(u,from,dir,w):castFrom(from,dir,u,w.range||400);
+    const hit=hitscanContext?.unit===u&&hitscanContext.weapon===w?castGuestHitscan(u,from,dir,w):castFrom(from,dir,u,w.range||400);effectTarget=hit?.ref||null;return hit;
   }
   // 確定dtはhostの実行記録だけ。未実行のhost dtは未知なので、送信時の可変dtは仮値として別に保持する。
   const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:8,visualFrames:6};
@@ -269,8 +302,8 @@
   function localVersion() { return $('appVersion')?.textContent?.trim() || ''; }
   function preset(cls) { return Object.fromEntries(SLOTS.map(k => [k, CLASSES[cls][k]])); }
   function resetMeasurements() {
-    snapshotEncoder=new CBOnlineCodec.Encoder();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;resyncBackoff=250;
-    pendingPrepare=null;prepared=false;latestSnapshotWire=null;finalFrame=null;lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();interpolation=interpolationState();
+    for(const p of state.peers.values())delete p.replication;remoteUnitHistory.clear();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;resyncBackoff=250;
+    pendingPrepare=null;prepared=false;finalFrame=null;lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();interpolation=interpolationState();
     resetPrediction();resetLagCompensation();
     state.frame = state.seq = 0; state.inputLatency = []; state.hitLatency = []; state.frameMs = []; state.sendMs = [];
     state.shots = []; state.pendingInputs.clear(); state.history = []; state.receivedEvents.clear(); state.events = [];
@@ -327,7 +360,8 @@
       u.isPlayer = u.localView; // 旧い外部試験から読む互換用。動作判定は3関数を使う。
       u.controlLoadout = preset(cls); u.cls = cls; u.nextCls = null;
       equip(u, cls); u.name = r?.name || `Bot ${u.team === 'B' ? 'A' : 'B'}${u.idx + 1}`;
-      u.group.visible = true;
+      // 初回写真を適用し終えるまで、生成済みの遠隔機を一瞬も描画しない。
+      u.onlineHidden=state.role==='guest'&&!u.localView;u.group.visible=!u.onlineHidden;
     }
     player = unit(localId); state.localUnitId = localId;
     if (!player) throw Error('自機の割り当てがありません');
@@ -339,6 +373,8 @@
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
     return { appVersion: opts.appVersion || localVersion(), peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
+      onSnapshotSent:(id,payload)=>rememberPeerSnapshot(id,payload),
+      filterEvents:(id,payload)=>filterQueuedEvents(id,payload),
       onStatus: msg => status(typeof msg === 'string' ? msg : JSON.stringify(msg)),
       onPeerRequest: (id,name) => {
         if(state.role!=='host'||state.phase!=='lobby'){state.transport?.rejectPeer(id,'ロビー以外では入室できません');return;}
@@ -357,6 +393,7 @@
       onPeerLeave: (id, reason) => peerLeft(id, reason), onMessage: onMessage };
   }
   async function create(opts = {}) {
+    requireVisibilitySupport();
     const settings=checkedSettings({...defaultSettings,...opts.settings});
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
     lagEnabled=opts.lagCompensationEnabled!==false;
@@ -367,6 +404,7 @@
     state.roomId = id; lobbyChanged();status('部屋を作成しました：' + id); return id;
   }
   async function join(roomId, opts = {}) {
+    requireVisibilitySupport();
     leave('接続を作り直す'); saveSettings(); resetMeasurements(); state.role = 'guest'; state.phase = 'lobby'; running=false; stopSessionAudio();
     setSimulationRole('guest'); state.transport = new CBOnlineTransport(transportOptions(opts));
     const transport=state.transport;
@@ -383,6 +421,7 @@
     if(state.phase==='lobby')status('ホストの開始を待っています');
   }
   function start(options = {}) {
+    requireVisibilitySupport();
     if (state.role !== 'host' || state.phase !== 'lobby') throw Error('待機中のホストだけが開始できます');
     if (state.peers.size < 1 || state.peers.size + 1 > state.settings.capacity) throw Error('定員内の人間2〜4人で開始してください');
     if(![...state.peers.values()].every(p=>p.preferred))throw Error('ゲストの兵装確認を待ってください');
@@ -404,12 +443,13 @@
       const u = unit(p.unitId); u.controller = 'remoteHuman'; u.ownerPeerId = p.id;
       u.name = p.name; u.controlLoadout = preset(p.cls || 'assault'); equip(u,p.cls || 'assault');
     }
-    const initial=snapshotEncoder.encode(snapshot());latestSnapshotWire={frame:state.frame,delta:initial.delta};
+    const initialState=snapshot();
     for (const p of state.peers.values()) {
+      const initial=encodePeerSnapshot(p,initialState,true);
       p.lastResync=-Infinity;
       // 開始条件だけを制御線へ。大きな初期基準も写真専用線に載せ、復元できてからreadyにする。
       if(!state.transport.send('prepare', {matchId:state.matchId, teamSize, mapId:state.resolvedMapId, localId:p.unitId},p.id)||
-         !state.transport.send('snapshotBase',initial.baseline,p.id)||!state.transport.send('snapshot',latestSnapshotWire,p.id)){
+         !state.transport.send('snapshotBase',initial.baseline,p.id)||!state.transport.send('snapshot',initial.wire,p.id)){
         abortPreparation('初期状態が送信上限を超えたため開始できません');return;
       }
     }
@@ -459,6 +499,7 @@
     if(type==='preferenceAck'){clearTimeout(preferenceTimer);preferenceTimer=null;preferenceResolve?.();preferenceResolve=preferenceReject=null;return;}
     if (type === 'reject' || type === 'endHost') { endGuest(data?.reason || 'ホストが退出しました'); return; }
     if (type === 'prepare' && state.phase === 'lobby') {
+      if(!visibilitySupport){endGuest('公開範囲を保護する機能を読み込めないため、ネット対戦を開始できません。ページを再読み込みしてください');return;}
       if(!data||typeof data!=='object'||Array.isArray(data)||!state.settings||typeof data.matchId!=='string'||!data.matchId||data.matchId.length>128||data.teamSize!==state.settings.teamSize||data.mapId!==state.resolvedMapId||!roomMaps.some(m=>m.id===data.mapId)||typeof data.localId!=='string'||!/^[BR]:(0|[1-9][0-9]*)$/.test(data.localId)||Number(data.localId.slice(2))>=data.teamSize){endGuest('開始するマップ・人数が部屋の設定と一致しません');return;}
       state.matchId = data.matchId; state.teamSize = data.teamSize;pendingPrepare=data;state.phase='preparing';
       // 制御線だけ先着しても正常な初回写真を重複要求しない。最初の250msは待つ。
@@ -490,7 +531,7 @@
     // dt/射撃/武器/押下はこの線から受け付けない。入力番号を増やしてもhostのframe dtは増えない。
     p.input={...safe(v,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw']),keys:pickedKeys(v.keys,movementKeys),pressed:{},
       fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint,lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null,
-      receivedAt:now(),view:v.view?safe(v.view,['time','frame','delayMs']):null};
+      receivedAt:now(),view:copyView(v.view)};
   }
   function acceptInputBatch(p,data) {
     if(!Array.isArray(data?.inputs)||!data.inputs.length||data.inputs.length>inputLimits.batch)return;
@@ -512,7 +553,7 @@
     p.receivedActionSeq=v.actionSeq;p.last=now();
     const action={...safe(v,['actionSeq','seq','lifeId','sentAt']),receivedAt:now(),trigger:!!v.trigger,alt:!!v.alt,keys:pickedKeys(v.keys,inputKeys.filter(k=>!movementKeys.includes(k))),
       pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined};
-    if(validInput(v))Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:v.view?safe(v.view,['time','frame','delayMs']):null});
+    if(validInput(v))Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:copyView(v.view)});
     (p.actions||=[]).push(action);while(p.actions.length>inputLimits.actions)p.actions.shift();
     // 再出撃先の選択は移動の実行を待たず受理する。古い命の選択はcurrentInputLifeが落とす。
     if(!u.alive||u.transfer){
@@ -524,7 +565,7 @@
     const clock=state.transport.clock?.(),sentAt=now()+(Number.isFinite(clock?.offsetMs)?clock.offsetMs:0);
     input.lifeId=player.lifeId;input.sentAt=sentAt;
     // 入力を取った時点で既に描き終わっている写真。今frameの未描画renderTimeとは区別する。
-    input.view=lastRenderedView?{...lastRenderedView}:null;
+    input.view=copyView(lastRenderedView);
     if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.lifeId=input.lifeId;}
     const actionKeys=pickedKeys(input.keys,inputKeys.filter(k=>!movementKeys.includes(k))),edges=pickedKeys(input.pressed);
     const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
@@ -533,18 +574,18 @@
     if(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||refresh){
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
         wheel:Math.sign(input.wheel||0),weapon:input.weapon,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
-        ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:input.view};
+        ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:copyView(input.view)};
       input.actionSeq=action.actionSeq;
       if(!state.transport.send('inputActions',action)){endGuest('操作の送信ができないため対戦を中断しました');return false;}
       inputSending.signature=signature;inputSending.lastActionAt=now();
     }
     input.actionSeq=inputSending.actionSeq;
     const movement={...safe(input,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw','fwd','side']),keys:pickedKeys(input.keys,movementKeys),
-      aimPoint:input.aimPoint,lockTarget:input.lockTarget,view:input.view};
+      aimPoint:input.aimPoint,lockTarget:input.lockTarget,view:copyView(input.view)};
     inputSending.history.push(movement);while(inputSending.history.length>inputLimits.batch)inputSending.history.shift();
     // 144/240Hzの描画でも予測dtは変えず、送信だけ最大60Hz。one-shotは別control線で保持する。
     if(now()-inputSending.lastBatch>=inputLimits.sendMs-.001){
-      state.transport.send('inputBatch',{inputs:inputSending.history.map(v=>({...v,keys:{...v.keys},aimPoint:v.aimPoint.slice()}))});inputSending.lastBatch=now();
+      state.transport.send('inputBatch',{inputs:inputSending.history.map(v=>({...v,keys:{...v.keys},aimPoint:v.aimPoint.slice(),view:copyView(v.view)}))});inputSending.lastBatch=now();
     }
     return true;
   }
@@ -556,7 +597,7 @@
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
     }
     const target=lockEntity(p.input.lockTarget);
-    u.controlTarget=target&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target))?target:null;
+    u.controlTarget=target&&(!p.replication||p.replication.visible.has(target.entityId))&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target))?target:null;
     p.actions=(p.actions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
     // action先着は対応する移動番号まで待つ。後着も一度だけ実updateへ。dead中はqueueを消化しない。
     p.activeAction=p.actions.find(a=>a.seq<=p.input.seq)||null;
@@ -602,7 +643,7 @@
     const t = state.transport;
     state.phase = 'leaving';
     if (t) { if (state.role === 'host') t.broadcast('endHost',{reason}); else t.send('leave',{reason}); t.close(reason); }
-    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear();state.requests.clear();state.settings=null;state.roster=[];state.resolvedMapId=null;state.roomId=null;requestsChanged();lobbyChanged(); state.events=[]; state.history=[];
+    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear();state.requests.clear();state.settings=null;state.roster=[];state.resolvedMapId=null;state.roomId=null;requestsChanged();lobbyChanged(); state.events=[]; state.history=[];remoteUnitHistory.clear();
     for (const mesh of remoteShells.values()) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); } remoteShells.clear();
     setSimulationRole('offline');
     if (saved) {
@@ -636,25 +677,198 @@
         steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}]))};
     if(state.role==='host')rememberLagSnapshot(s);return s;
   }
+  function replicationFor(p){
+    return p.replication||=( {encoder:new CBOnlineCodec.Encoder(),latestWire:null,visible:new Set(),epochs:new Map(),signature:null,tick:0,sent:new Map(),queued:new Map(),eventCache:new Map()} );
+  }
+  function createPeerView(p){
+    const viewer=p?.unitId?unit(p.unitId):null;
+    // 未割当・機能欠落時はオフラインや前試合の世界を公開しない。
+    if(!viewer||!visibilitySupport)return {viewer:null,visible:new Set(),cadence:new Map(),sourceVisible:()=>false,pointVisible:()=>false,gadgetVisible:()=>false};
+    const lineOfSight=(observer,at,ref)=>{
+      const eye=observer.pos.clone();eye.y+=3;const dir=at.clone().sub(eye),distance=dir.length();if(distance<.001)return true;
+      const hit=castFrom(eye,dir.multiplyScalar(1/distance),observer,distance+.5);
+      return !hit||hit.ref===ref||hit.dist>=distance-.6;
+    };
+    return visibilitySupport.createView({viewer,units,spotted,noticed,canSee,targetPoint,lineOfSight,locksPlayer:typeof locksPlayer==='function'?locksPlayer:null});
+  }
+  // 実機のoptional値から枠の形を作らない。秘匿中に装備・行動が変わっても同じ値になる。
+  function fixedUnitForPeer(v,hidden,epoch){
+    const value={fixedUnit:true,id:v.id,hidden:!!hidden,visibilityEpoch:epoch,
+      team:hidden?'':v.team,idx:hidden?0:v.idx,cls:hidden?'':v.cls,controller:hidden?'':v.controller,
+      mech:hidden?null:v.mech||null,motionEpoch:hidden?0:v.motionEpoch||0,lagEpoch:hidden?0:v.lagEpoch||0,renderCrouch:hidden?0:v.renderCrouch||0,
+      pos:hidden?[0,0,0]:v.pos,vel:hidden?[0,0,0]:v.vel,predictionBlocked:hidden?'':v.predictionBlocked||'',
+      motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
+      catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
+      swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,
+      slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries(slotKeys.map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
+    for(const k of scalarKeys)value[k]=hidden?null:v[k]??null;
+    return value;
+  }
+  // 設置上限は許可兵装の既存ルールからだけ作る。初期の強襲/重火力は設置物0枠。
+  function gadgetPolicyForLoadouts(loadouts){
+    const specs=new Set(),special=new Set();let perUnit=0;
+    for(const key of new Set(loadouts.flatMap(loadout=>Object.values(loadout)))){
+      const w=WEAPONS[key];if(!w)continue;
+      if(w.proj&&Number.isSafeInteger(w.proj.max)&&w.proj.max>0&&!specs.has(w.proj)){specs.add(w.proj);perUnit+=w.proj.max;}
+      if(w.type==='mirage')special.add('decoy');
+      if(w.type==='repairPost')special.add('repairPost');
+    }
+    if(special.has('decoy'))perUnit+=4;if(special.has('repairPost'))perUnit++;
+    return {specs,special,perUnit};
+  }
+  function gadgetCapacityForLoadouts(loadouts,unitCount=units.length){return gadgetPolicyForLoadouts(loadouts).perUnit*unitCount;}
+  function permittedGadgets(p,view){
+    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts([preset('assault'),preset('heavy')]));
+    return (typeof gadgets!=='undefined'?gadgets:[]).filter(g=>g.alive!==false&&(policy.specs.has(g.spec)||policy.special.has(g.kind))&&(!g.attached||view.visible.has(g.attached.entityId))&&view.gadgetVisible(g));
+  }
+  function gadgetSlotsForPeer(p,view=createPeerView(p)){
+    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts([preset('assault'),preset('heavy')]));
+    if(r.gadgetCapacityPolicy!==policy){r.gadgetCapacityPolicy=policy;r.gadgetCapacity=policy.perUnit*units.length;r.gadgetSlots=Array(r.gadgetCapacity).fill(null);}
+    const capacity=r.gadgetCapacity,live=typeof gadgets!=='undefined'?gadgets:[],eligible=permittedGadgets(p,view),set=new Set(eligible);
+    for(let i=0;i<capacity;i++)if(r.gadgetSlots[i]&&!set.has(r.gadgetSlots[i].g))r.gadgetSlots[i]=null;
+    let omitted=live.filter(g=>g.alive!==false&&!policy.specs.has(g.spec)&&!policy.special.has(g.kind)).length;
+    for(const g of eligible)if(!r.gadgetSlots.some(slot=>slot?.g===g)){
+      const index=r.gadgetSlots.indexOf(null);if(index<0){omitted++;continue;}
+      r.gadgetSlots[index]={g,id:r.nextGadgetId=(r.nextGadgetId||0)+1};
+    }
+    r.gadgetOmitted=Math.min(65535,omitted); // ローカル診断だけ。隠れた個数をwireへ載せない。
+    return r.gadgetSlots.map(slot=>{
+      if(!slot)return [1];const {g,id}=slot,mesh=g.mesh;
+      return [0,id,g.kind,g.team,g.spec?.model||'',g.pos.toArray(),[mesh?.rotation.x||0,mesh?.rotation.y||0,mesh?.rotation.z||0],
+        [mesh?.scale.x??1,mesh?.scale.y??1,mesh?.scale.z??1],g.hp||0,g.maxHp||0];
+    });
+  }
+  function snapshotForPeer(p,full=null,forceAll=false){
+    requireVisibilitySupport();
+    if(!p?.unitId||!unit(p.unitId))throw Error('対戦機体が割り当てられていない参加者へ写真を送れません');
+    full||=snapshot();
+    const r=replicationFor(p),view=createPeerView(p),viewer=view.viewer;
+    const ordered=full.units.slice().sort((a,b)=>a.id.localeCompare(b.id));let mask=0;
+    const spatial=ordered.map((v,i)=>{
+      const hidden=!view.visible.has(v.id);
+      if(hidden&&!r.epochs.has(v.id))r.epochs.set(v.id,1);
+      if(!hidden&&!r.visible.has(v.id))r.epochs.set(v.id,(r.epochs.get(v.id)||0)+1);
+      // 隠れた枠は毎回中立値を基準から上書きし、古い可視位置を復元させない。
+      if(hidden||forceAll||!r.visible.has(v.id)||(r.tick+i)%view.cadence.get(v.id)===0)mask|=1<<i;
+      return fixedUnitForPeer(v,hidden,r.epochs.get(v.id)||1);
+    });
+    const own=viewer.team,foe=own==='B'?'R':'B';
+    return {...full,units:spatial,unitUpdates:mask,
+      roster:full.units.map(v=>({id:v.id,team:v.team,idx:v.idx,name:v.name,cls:v.cls,sc:{...v.sc}})),
+      gadgets:gadgetSlotsForPeer(p,view),
+      spotted:Object.fromEntries(['B','R'].map(team=>[team,team===own?(full.spotted?.[team]||[]).filter(([id])=>view.visible.has(id)):[]])),
+      spotSrc:Object.fromEntries(['B','R'].map(team=>[team,team===foe?(full.spotSrc?.[team]||[]).filter(([id])=>id===p.unitId):[]])),
+      radars:full.radars.map((v,i)=>({...v,intruders:radars[i]?.team===own?v.intruders.filter(id=>view.visible.has(id)):[]})),
+      acks:{[p.unitId]:full.acks?.[p.unitId]||0},
+      inputAcks:full.inputAcks?.[p.unitId]?{[p.unitId]:full.inputAcks[p.unitId]}:{},
+      shells:full.shells.filter(value=>{
+        const sh=shells.find(sh=>sh.onlineId===value.id);if(!sh)return false;
+        if(sh.team===own)return true;
+        if(['mine','remote','sensor','sentry'].includes(sh.spec.kind))return view.gadgetVisible({...sh,gadget:true,kind:sh.spec.kind});
+        return view.sourceVisible(sh.owner)&&view.pointVisible(sh.pos);
+      })};
+  }
+  function encodePeerSnapshot(p,full=null,forceAll=false,forceBaseline=false){
+    const r=replicationFor(p),s=snapshotForPeer(p,full,forceAll),publicUnits=s.units.filter(v=>!v.hidden),signature=publicUnits.map(v=>v.id+':'+v.visibilityEpoch).join('|')+';'+s.gadgets.map((v,i)=>v[0]===0?i+':'+v[1]:'').join('|'),changed=signature!==r.signature;
+    if(changed){state.transport?.dropPendingSnapshots?.(p.id);r.queued.clear();}
+    const rebase=r.encoder.willRebase?.(s,{forceBaseline})??(!r.encoder.currentBase()||forceBaseline);
+    if(rebase||forceAll)s.unitUpdates=(1<<s.units.length)-1;
+    const encoded=r.encoder.encode(s,{forceBaseline,includePath:path=>path[0]!=='units'||['id','fixedUnit','hidden','visibilityEpoch'].includes(path[2])||s.units[path[1]]?.hidden||!!(s.unitUpdates&(1<<path[1]))});
+    const wire={frame:s.frame,delta:encoded.delta};r.latestWire=wire;r.signature=signature;r.visible=new Set(publicUnits.map(v=>v.id));r.gadgetPublic=new Set((r.gadgetSlots||[]).filter(Boolean).map(slot=>slot.g));r.tick++;
+    const updates=new Map(s.units.filter((v,i)=>!v.hidden&&(s.unitUpdates&(1<<i))).map(v=>[v.id,{time:s.time,epoch:v.visibilityEpoch,lifeId:v.lifeId,motionEpoch:v.motionEpoch||0,lagEpoch:v.lagEpoch||0}]));
+    r.queued.set(s.frame,{time:s.time,baseId:encoded.delta[1],delta:JSON.stringify(encoded.delta),visible:new Map(publicUnits.map(v=>[v.id,v.visibilityEpoch])),updates});
+    while(r.queued.size>128)r.queued.delete(r.queued.keys().next().value);
+    return {baseline:encoded.baseline,wire,snapshot:s};
+  }
+  function rememberPeerSnapshot(id,payload){
+    const p=state.peers.get(id),r=p?.replication,record=r?.queued.get(payload?.frame);
+    if(!record||record.baseId!==payload?.delta?.[1]||record.delta!==JSON.stringify(payload.delta))return;
+    r.sent.set(payload.frame,record);r.queued.delete(payload.frame);
+    for(const [frame,v]of r.sent)if(v.time<record.time-2000)r.sent.delete(frame);
+    while(r.sent.size>128)r.sent.delete(r.sent.keys().next().value);
+  }
+  function validPeerSnapshot(s){
+    if(s.unitUpdates===undefined)return true; // 旧い単体fixtureとの互換。製品v8は常にmaskを載せる。
+    if(!Number.isSafeInteger(s.unitUpdates)||s.units.length>20||s.unitUpdates<0||s.unitUpdates>=(1<<s.units.length)||!Array.isArray(s.roster)||s.roster.length>20)return false;
+    const roster=new Set();
+    for(const v of s.roster){if(!v||typeof v.id!=='string'||roster.has(v.id)||typeof v.name!=='string'||!['B','R'].includes(v.team)||!v.sc||typeof v.sc!=='object')return false;roster.add(v.id);}
+    const ids=new Set();
+    if(s.units.some(v=>v?.fixedUnit)&&s.units.length!==s.roster.length)return false;
+    for(const v of s.units){
+      if(!v||!roster.has(v.id)||ids.has(v.id)||!Number.isSafeInteger(v.visibilityEpoch)||v.visibilityEpoch<1||!['pos','vel'].every(k=>Array.isArray(v[k])&&v[k].length===3&&v[k].every(Number.isFinite)))return false;
+      if(v.fixedUnit&&(typeof v.hidden!=='boolean'||v.hidden&&(v.pos.some(x=>x!==0)||v.vel.some(x=>x!==0))))return false;
+      if(v.id===(pendingPrepare?.localId||state.localUnitId)&&v.hidden)return false;
+      ids.add(v.id);
+    }
+    return ids.has(pendingPrepare?.localId||state.localUnitId);
+  }
+  function hideRemoteUnit(u){
+    if(u===player)return;
+    u.onlineHidden=true;u.group.visible=false;remoteUnitHistory.delete(u.entityId);
+    for(const mesh of [u.fieldMesh,u.barrierMesh,u.beam,u.shockFx?.root])if(mesh)mesh.visible=false;
+    if(typeof stopMovementSound==='function')stopMovementSound(u);
+    if(u.tagEl)u.tagEl.style.display='none';
+    if(typeof lock!=='undefined'&&lock.target===u)releaseLock();
+  }
+  function interpolatePeerUnits(target){
+    for(const [id,h]of remoteUnitHistory){
+      const u=unit(id);if(!u||u.onlineHidden||u===player)continue;
+      const samples=h.samples,last=samples.at(-1);if(!last)continue;
+      let a=last,b=last,time=last.time,f=0;
+      if(!h.snap&&u.alive&&!u.downT&&!last.unit.transfer){
+        if(target>=last.time)time=Math.min(target,last.time+100);
+        else if(target>=samples[0].time){
+          a=samples[0];b=a;for(let i=1;i<samples.length;i++){a=samples[i-1];b=samples[i];if(b.time>=target)break;}
+          time=Math.max(a.time,Math.min(target,b.time));f=clamp((time-a.time)/Math.max(.001,b.time-a.time),0,1);
+        }
+      }
+      if(time>last.time){u.pos.copy(vector(last.unit.pos)).addScaledVector(vector(last.unit.vel),(time-last.time)/1000);u.yaw=last.unit.yaw;interpolateRemotePose(u,last.unit,last.unit,0);}
+      else {u.pos.copy(vector(a.unit.pos)).lerp(vector(b.unit.pos),f);u.yaw=a.unit.yaw+wrapAngle(b.unit.yaw-a.unit.yaw)*f;interpolateRemotePose(u,a.unit,b.unit,f);}
+      h.stamp=[visibilitySupport.unitNumber(id),a.frame,b.frame,Math.round(time*1000)/1000,u.onlineVisibilityEpoch];
+      h.snap=false;
+    }
+  }
+  function eventsForPeer(p,events,view=createPeerView(p)){
+    return events.filter(e=>{
+      const d=e.data||{};
+      if(e.type==='hit')return d.unit===p.unitId;
+      if(!view.sourceVisible(e.source)||!view.sourceVisible(e.target))return false;
+      if(d.unit&&!view.visible.has(d.unit))return false;
+      if(e.type==='sfx'&&!d.at)return d.unit===p.unitId||d.name==='capture';
+      const points=[d.at,d.from,d.end].filter(Boolean).map(vector);
+      if(points.some(at=>!view.pointVisible(at)))return false;
+      // source無しの古い表示呼出しも、秘匿機体/設置物の位置を偶然含めない。
+      if(points.some(at=>units.some(u=>u.team!==view.viewer?.team&&!view.visible.has(u.entityId)&&at.distanceTo(u.pos)<6)||
+        typeof gadgets!=='undefined'&&gadgets.some(g=>!view.gadgetVisible(g)&&at.distanceTo(g.pos)<3)))return false;
+      return true;
+    }).map(({id,type,data})=>({id,type,data}));
+  }
+  function filterQueuedEvents(id,payload){
+    const p=state.peers.get(id);if(!p)return [];
+    const r=replicationFor(p),events=[];
+    for(const e of payload||[]){const saved=r.eventCache.get(e.id);if(saved)events.push(saved);else if(e.type==='hit'&&e.data?.unit===p.unitId)events.push(e);}
+    return eventsForPeer(p,events);
+  }
   function applyUnit(u,s) {
     const mechChanged=!!s.mech&&Object.keys(s.mech).some(k=>s.mech[k]!==u.mech?.[k]);
     if(mechChanged)u.mech={...s.mech};
-    if (mechChanged || u.cls !== s.cls || SLOTS.some(k=>s.slots[k]?.key!==u.slots[k]?.w.key)) {
+    if (mechChanged || (u.onlineRenderClass??u.cls) !== s.cls || SLOTS.some(k=>s.slots[k]?.key!==u.slots[k]?.w.key)) {
       u.controlLoadout=Object.fromEntries(SLOTS.map(k=>[k,WEAPONS[s.slots[k]?.key]?s.slots[k].key:CLASSES[s.cls][k]]));equip(u,s.cls);
     }
+    u.onlineHidden=false;u.onlineRenderClass=s.cls;u.onlineVisibilityEpoch=s.visibilityEpoch||0;
     const localYaw = u.yaw, localPitch = u.pitch;
     u.onlineMotionEpoch=s.motionEpoch||0;u.onlineLagEpoch=s.lagEpoch||0;u.onlinePredictionBlocked=s.predictionBlocked||'';
     u.onlineRenderCrouch=Number.isFinite(s.renderCrouch)?s.renderCrouch:null;
     for(const k of ['dashDir','boostVisualDir','catMomentum','lungeDir'])u[k]=s.motionVectors?.[k]?vector(s.motionVectors[k]):null;
     u.catLaunch=s.catLaunch?{...s.catLaunch}:null;u.jumpPad=s.jumpPadIndex>=0?jumpPads[s.jumpPadIndex]||null:null;
     u.localView=u===player;u.controller=u.localView?'localHuman':s.controller==='bot'?'bot':'remoteHuman';
-    for(const k of scalarKeys)if(!Object.hasOwn(s,k))delete u[k];
-    Object.assign(u,safe(s,scalarKeys)); u.pos.fromArray(s.pos); u.vel.fromArray(s.vel); Object.assign(u.sc,s.sc);
+    for(const k of scalarKeys)if(s[k]==null)delete u[k];
+    Object.assign(u,safe(Object.fromEntries(Object.entries(s).filter(([,v])=>v!==null)),scalarKeys)); u.pos.fromArray(s.pos); u.vel.fromArray(s.vel); Object.assign(u.sc,s.sc);
     if (u === player && !prediction.enabled) {u.yaw=localYaw; u.pitch=localPitch;} // 比較試験で予測を切った場合も視点は即時。
     u.swing=s.swing?{...s.swing,hit:new Set()}:null;
     u.zip=Number.isInteger(s.zipLine)&&s.zipLine>=0&&ziplines[s.zipLine]?{line:ziplines[s.zipLine]}:null;
-    u.name=s.name; u.group.visible=u.alive || u.downT>0; u.transfer=s.transfer?{...s.transfer}:null;
-    for (const k of SLOTS) if (s.slots[k]) {for(const field of slotKeys)if(!Object.hasOwn(s.slots[k],field))delete u.slots[k][field];Object.assign(u.slots[k],safe(s.slots[k],slotKeys));}
+    if(s.name!==undefined)u.name=s.name; u.group.visible=u.alive || u.downT>0; u.transfer=s.transfer?{...s.transfer}:null;
+    for (const k of SLOTS) if (s.slots[k]) {for(const field of slotKeys)if(s.slots[k][field]==null)delete u.slots[k][field];Object.assign(u.slots[k],safe(Object.fromEntries(Object.entries(s.slots[k]).filter(([,v])=>v!==null)),slotKeys));}
   }
   function member(list,item,on) { const i=list.indexOf(item);if(on&&i<0)list.push(item);else if(!on&&i>=0)list.splice(i,1); }
   // 壊れた施設は元の destroy 関数と同じ見た目・照準判定にする。得点やダメージは再実行しない。
@@ -674,7 +888,18 @@
     });
   }
   function applySnapshot(s) {
-    for (const v of s.units) {const u=unit(v.id); if(u)applyUnit(u,v);}
+    const sparse=Number.isSafeInteger(s.unitUpdates),visible=new Set(s.units.filter(v=>!v.hidden).map(v=>v.id));
+    if(sparse)for(const u of units)if(!visible.has(u.entityId))hideRemoteUnit(u);
+    for(const v of s.roster||[]){const u=unit(v.id);if(u){u.onlineRenderClass??=u.cls;u.name=v.name;u.cls=v.cls;Object.assign(u.sc,v.sc);}}
+    for (const [i,v] of s.units.entries()) {
+      const u=unit(v.id);if(v.hidden){if(u)hideRemoteUnit(u);continue;}if(!u||sparse&&!(s.unitUpdates&(1<<i)))continue;
+      const previous=remoteUnitHistory.get(v.id),snap=!previous||previous.snap||u.onlineHidden||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||u.onlineVisibilityEpoch!==(v.visibilityEpoch||0)||u.alive!==v.alive;
+      applyUnit(u,v);
+      if(sparse&&u!==player){
+        const samples=snap?[]:previous.samples;samples.push({frame:s.frame,time:s.time,unit:v});while(samples.length>16)samples.shift();
+        remoteUnitHistory.set(v.id,{samples,stamp:[visibilitySupport.unitNumber(v.id),s.frame,s.frame,s.time,v.visibilityEpoch],snap});
+      }
+    }
     cores.B.hp=s.cores.B; cores.R.hp=s.cores.R; timeLeft=s.timeLeft;
     for(const k of ['B','R']){
       spotted[k].clear();spotSrc[k].clear();
@@ -716,9 +941,11 @@
   function handleSnapshotControl(type,data,peerId) {
     if(type==='snapshotResync'&&state.role==='host'){
       const p=state.peers.get(peerId),t=now();
-      if(p&&t-(p.lastResync??-Infinity)>=250&&latestSnapshotWire){
-        p.lastResync=t;const base=snapshotEncoder.currentBase();
-        if(base){state.transport.send('snapshotBase',base,peerId);state.transport.send('snapshot',latestSnapshotWire,peerId);}
+      if(visibilitySupport&&state.matchId&&['preparing','countdown','playing'].includes(state.phase)&&p?.unitId&&unit(p.unitId)&&t-(p.lastResync??-Infinity)>=250){
+        p.lastResync=t;
+        // 再要求の時にも現在の公開範囲で作り直す。以前の可視座標が入った基準を再送しない。
+        const result=encodePeerSnapshot(p,snapshot(),true,true),base=replicationFor(p).encoder.currentBase();
+        if(base){state.transport.send('snapshotBase',base,peerId);state.transport.send('snapshot',result.wire,peerId);}
       }return true;
     }
     if(type==='snapshotBase'&&state.role==='guest'){
@@ -741,7 +968,7 @@
       while(pendingSnapshotWires.size>4)pendingSnapshotWires.delete(pendingSnapshotWires.keys().next().value);
       if(!s)interpolation.missingBaselines++;requestSnapshotResync();return;
     }
-    if(s.frame!==wire.frame||!Number.isFinite(s.time)||!Array.isArray(s.units))return;
+    if(s.frame!==wire.frame||!Number.isFinite(s.time)||!Array.isArray(s.units)||!validPeerSnapshot(s))return;
     pendingSnapshotWires.delete(baseId);
     for(const [id,pending] of pendingSnapshotWires)if(pending.frame<=s.frame)pendingSnapshotWires.delete(id);
     // この写真の基準があれば過去に欠けた別基準はもう要らない。
@@ -749,7 +976,7 @@
     if(!pendingSnapshotWires.size&&!pendingSnapshotBases.size){lastResync=-Infinity;resyncBackoff=250;}
     const t=now(),m=interpolation;
     if(!prepared){
-      const d=pendingPrepare;setupWorld(d.teamSize,d.localId,d.mapId,s.units);player.controller='localHuman';
+      const d=pendingPrepare;setupWorld(d.teamSize,d.localId,d.mapId,s.roster||s.units);player.controller='localHuman';
       prepared=true;pendingPrepare=null;
     }
     if(m.lastArrival!==null){
@@ -814,6 +1041,7 @@
     m.frames++;m.totalDelayMs+=m.delayMs;m.gapMs=gap;m.maxGapMs=Math.max(m.maxGapMs,gap);m.extrapolationMs=extrapolation;m.maxExtrapolationMs=Math.max(m.maxExtrapolationMs,extrapolation);
     if(extrapolation>0)m.extrapolatedFrames++;else m.interpolatedFrames++;
     if(gap>100)m.clampedFrames++;
+    if(Number.isSafeInteger(latest.unitUpdates)){interpolatePeerUnits(target);return;}
     if(extrapolation>0){
       for(const v of latest.units){const u=unit(v.id);if(!u||u===player||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||!v.alive||v.downT>0||v.transfer)continue;
         u.pos.copy(vector(v.pos)).addScaledVector(vector(v.vel),extrapolation/1000);u.yaw=v.yaw;
@@ -871,7 +1099,10 @@
   }
   function afterFrame(dt,t) {
     if(state.role==='guest'){
-      if(state.phase==='playing'&&Number.isFinite(interpolation.renderTime)&&state.lastSnapshot)lastRenderedView={time:interpolation.renderTime,frame:state.lastSnapshot.frame,delayMs:interpolation.delayMs};
+      if(state.phase==='playing'&&Number.isFinite(interpolation.renderTime)&&state.lastSnapshot){
+        lastRenderedView={time:interpolation.renderTime,frame:state.lastSnapshot.frame,delayMs:interpolation.delayMs};
+        if(Number.isSafeInteger(state.lastSnapshot.unitUpdates))lastRenderedView.units=[...remoteUnitHistory].filter(([id,h])=>!unit(id)?.onlineHidden&&h.stamp&&Math.abs(h.stamp[3]-interpolation.renderTime)>.001).map(([,h])=>h.stamp.slice());
+      }
       for(const p of displayedLatencies.splice(0))state[p.kind==='input'?'inputLatency':'hitLatency'].push(now()-p.time);return;
     }
     if(state.role!=='host'||state.phase!=='playing')return;
@@ -879,12 +1110,18 @@
     state.frameMs.push(now()-frameStart);if(state.frameMs.length>60000)state.frameMs.shift();
     state.frame++;
     const begin=now();
-    if(state.events.length){state.transport.broadcast('events',state.events.splice(0));}
-    if(now()-state.lastSent>=50 || ended){const wire=snapshotEncoder.encode(snapshot(stateTime));latestSnapshotWire={frame:state.frame,delta:wire.delta};if(wire.baseline)state.transport.broadcast('snapshotBase',wire.baseline);state.transport.broadcast('snapshot',latestSnapshotWire);state.lastSent=now();}
+    // 間引きの次の50msを待たず、公開範囲が変わったframeで旧待機写真を破棄する。
+    const privacyChanged=[...state.peers.values()].some(p=>{const r=replicationFor(p),view=createPeerView(p),v=view.visible,g=new Set(permittedGadgets(p,view)),old=r.gadgetPublic||new Set();return v.size!==r.visible.size||[...v].some(id=>!r.visible.has(id))||[...old].some(item=>!g.has(item))||old.size<(r.gadgetCapacity||0)&&[...g].some(item=>!old.has(item));});
+    if(state.events.length){const events=state.events.splice(0);for(const p of state.peers.values()){const r=replicationFor(p);for(const e of events)r.eventCache.set(e.id,e);while(r.eventCache.size>2048)r.eventCache.delete(r.eventCache.keys().next().value);const visible=eventsForPeer(p,events);if(visible.length)state.transport.send('events',visible,p.id);}}
+    if(now()-state.lastSent>=50 || ended||privacyChanged){
+      const full=snapshot(stateTime);
+      for(const p of state.peers.values()){const result=encodePeerSnapshot(p,full);if(result.baseline)state.transport.send('snapshotBase',result.baseline,p.id);state.transport.send('snapshot',result.wire,p.id);}
+      state.lastSent=now();
+    }
     state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();
     if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();lagHistory?.clear();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
   }
-  function emit(type,data) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data});}
+  function emit(type,data,source=effectSource,target=effectTarget) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data,source:source||unit(data.unit),target});}
   function playEvents(events) {
     if(!Array.isArray(events))return;playingEffects=true;
     try{for(const e of events){if(state.receivedEvents.has(e.id))continue;state.receivedEvents.add(e.id);if(state.receivedEvents.size>4096)state.receivedEvents.delete(state.receivedEvents.values().next().value);const d=e.data;
@@ -892,7 +1129,7 @@
       if(e.type==='boom')boom(vector(d.at),d.k,d.radius,d.energy);
       if(e.type==='impact')impact(vector(d.at),d.kind,d.delay);
       if(e.type==='sfx')sfx(d.name,d.at?vector(d.at):null,d.unit?unit(d.unit):null,d.rate,d.level);
-      if(e.type==='shot'){const u=unit(d.unit);if(u)mainMuzzleFlash(u,false,u.slots[u.weapon].w);}
+      if(e.type==='shot'){const u=unit(d.unit);if(u&&!u.onlineHidden)mainMuzzleFlash(u,false,u.slots[u.weapon].w);}
       if(e.type==='hit'&&d.unit===state.localUnitId){hitMark(d.head);const q=state.shots.find(x=>!x.done&&d.seq>=x.seq&&d.seq<x.until);if(q){q.done=true;displayedLatencies.push({kind:'hit',time:q.time});}}
     }}finally{playingEffects=false;}
   }
@@ -927,12 +1164,22 @@
   const oldSfx=sfx;sfx=function(name,at,src,rate=1,level=1){
     if(state.role!=='offline'&&state.phase!=='playing'&&(SFX[name]?.motion||SFX[name]?.loop))return;
     // 足音と持続ブーストは双方の描画から鳴る。通信で複製すると未管理のloop音が残る。
-    if(name!=='boostLoop'&&name!=='step')emit('sfx',{name,at:at?.toArray(),unit:src?.entityId,rate,level});
+    if(name!=='boostLoop'&&name!=='step')emit('sfx',{name,at:at?.toArray(),unit:src?.entityId,rate,level},src||effectSource);
     if(playingEffects&&(name==='boostLoop'||name==='step'))return;
     return oldSfx(...arguments);
   };
   const oldFinish=finish;finish=function(){try{return oldFinish(...arguments);}finally{if(state.role!=='offline'){clearStartReservation();stopSessionAudio();}}};
+  if(typeof fire==='function'){
+    const oldFire=fire;fire=function(u){const source=effectSource,target=effectTarget;effectSource=source?.gadget?source:u;effectTarget=null;try{return oldFire(...arguments);}finally{effectSource=source;effectTarget=target;}};
+  }
+  if(typeof detonate==='function'){
+    const oldDetonate=detonate;detonate=function(g){const source=effectSource,target=effectTarget;effectSource=g;effectTarget=null;try{return oldDetonate(...arguments);}finally{effectSource=source;effectTarget=target;}};
+  }
+  if(typeof sentryTick==='function'){
+    const oldSentry=sentryTick;sentryTick=function(g){const source=effectSource,target=effectTarget;effectSource=g;effectTarget=null;try{return oldSentry(...arguments);}finally{effectSource=source;effectTarget=target;}};
+  }
   const oldShot=shot;shot=function(u,sl,aim,spread,missileTarget){
+    const previousSource=effectSource,previousTarget=effectTarget;effectSource=u;effectTarget=null;
     const previous=hitscanContext,previousDamageSeq=damageInputSeq,p=state.role==='host'?state.peers.get(u.ownerPeerId):null,eligible=u.controller==='remoteHuman'&&sl?.w&&!sl.w.proj&&sl.w.type==='gun';
     // release照準は充填銃だけ。解除後に残る通常burst弾は最新movementの照準を使う。
     const pending=p?.pendingShot&&actionIsRecent(p,p.pendingShot)&&(p.pendingShot.trigger||sl?.w.chargeTime)?p.pendingShot:null;
@@ -942,10 +1189,11 @@
     hitscanContext=eligible?{unit:u,weapon:sl.w,input}:null;
     if(eligible)damageInputSeq=input?.seq??null;
     if(eligible&&pending){aim=vector(pending.aimPoint);u.cameraRecoil=pending.cameraRecoil||0;u.cameraRecoilYaw=pending.cameraRecoilYaw||0;}
-    try{return oldShot(u,sl,aim,spread,missileTarget);}finally{hitscanContext=previous;damageInputSeq=previousDamageSeq;if(eligible&&pending){u.cameraRecoil=cameraRecoil;u.cameraRecoilYaw=cameraRecoilYaw;}}
+    try{return oldShot(u,sl,aim,spread,missileTarget);}finally{effectSource=previousSource;effectTarget=previousTarget;hitscanContext=previous;damageInputSeq=previousDamageSeq;if(eligible&&pending){u.cameraRecoil=cameraRecoil;u.cameraRecoilYaw=cameraRecoilYaw;}}
   };
   const oldShoot=shoot;shoot=function(owner){const sh=oldShoot(...arguments);if(sh)sh.onlineInputSeq=owner?.onlineInputSeq||0;return sh;};
   const oldBlast=blast;blast=function(sh){
+    const previousSource=effectSource,previousTarget=effectTarget;effectSource=effectSource?.gadget?effectSource:sh.owner;effectTarget=null;
     const prev=damageInputSeq;damageInputSeq=sh.onlineInputSeq??null;blastDepth++;
     // 爆風は damage() を通らず耐久・弱化を直接変える。爆風1回につき通知も1回にする。
     const watching=state.role==='host'&&state.phase==='playing'&&sh.owner?.controller==='remoteHuman';
@@ -957,7 +1205,7 @@
       if(targets.some(p=>p.e.hp<p.hp||(p.e.weakT||0)>p.weakT||(p.e.stunT||0)>p.stunT||(p.e.jamT||0)>p.jamT||(p.e.electricT||0)>p.electricT))
         emit('hit',{unit:sh.owner.entityId,seq:sh.onlineInputSeq??(sh.owner.onlineInputSeq||0),head:false});
       return result;
-    } finally {blastDepth--;damageInputSeq=prev;}
+    } finally {blastDepth--;damageInputSeq=prev;effectSource=previousSource;effectTarget=previousTarget;}
   };
   const oldDamage=damage;damage=function(r,by,dmg,head){const result=oldDamage(...arguments);if(result&&!blastDepth&&by?.controller==='remoteHuman')emit('hit',{unit:by.entityId,seq:damageInputSeq??(by.onlineInputSeq||0),head:!!head});return result;};
   addEventListener('beforeunload',()=>{if(state.role==='host')state.transport?.broadcast('endHost',{reason:'ホストが退出しました'});});

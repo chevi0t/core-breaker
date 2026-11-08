@@ -11,7 +11,7 @@ class Transport {
   close(){}
 }
 const elements=new Map(),empty=()=>{};
-const c={MAPS:maps,performance,Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineTransport:Transport,CBOnlineCodec:{Encoder:class{},Decoder:class{}},
+const c={MAPS:maps,performance,Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineTransport:Transport,CBOnlineVisibility:require('../../prototype/online/visibility'),CBOnlineCodec:{Encoder:class{},Decoder:class{}},
   window:{},mapId:'mesa',chosenCls:'assault',chosenTeam:'B',selectedTeamSize:null,running:false,ended:true,units:[],scene:{remove:empty},
   document:{exitPointerLock:empty},$:id=>{if(!elements.has(id))elements.set(id,{textContent:'test-v1',querySelector:()=>null});return elements.get(id);},
   stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,selectMap:empty,addEventListener:empty,

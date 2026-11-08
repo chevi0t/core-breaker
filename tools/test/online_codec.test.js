@@ -57,3 +57,148 @@ console.log('状態写真codec：リフト・射出施設の表示状態 成功'
  require('node:assert/strict').deepEqual(d.decode(next.delta).inputAcks,value.inputAcks);
  console.log('状態写真codec：実host可変dtは丸めず保持 成功');
 }
+
+// 受信者別の基準と更新mask。間引いた機体を毎回同じ基準差分として送らない。
+{
+ const e=new Encoder(),d=new Decoder(),s=copy(initial);
+ s.units=s.units.slice(0,3);s.unitUpdates=7;s.visibilityEpoch=1;
+ s.inputAcks={U0:{seq:1,seqDt:1/144,totalDt:7/144}};
+ const encode=(value,options={})=>{
+   const rebased=e.willRebase(value,options);
+   if(rebased)value.unitUpdates=2**value.units.length-1;
+   const mask=value.unitUpdates;
+   const wire=e.encode(value,{...options,includePath:path=>path[0]!=='units'||typeof path[1]!=='number'||!!(mask&(1<<path[1]))});
+   assert.equal(!!wire.baseline,rebased);
+   if(wire.baseline)assert(d.seed(wire.baseline));
+   return wire;
+ };
+ let w=encode(s),r=d.decode(w.delta);assert.equal(r.unitUpdates,7);
+ s.frame++;s.time+=50;s.units[1].pos=[123.45,56.78,90.12];s.units[1].hp=8000;
+ w=encode(s);assert.equal(w.baseline,null);assert.equal(d.decode(w.delta).units[1].hp,8000);
+ s.frame++;s.time+=50;s.unitUpdates=1;s.units[0].pos=[10,20,30];
+ const sparse=encode(s);r=d.decode(sparse.delta);
+ assert.equal(r.unitUpdates,1);assert.equal(r.units[1].hp,initial.units[1].hp);
+ // omitしたunitの復元値は意図的に古い基準のまま。gameはunitUpdates=falseを適用しない。
+ const omitted=copy(s);omitted.units[1].pos=[678.9,123.4,567.8];omitted.units[1].hp=1;
+ assert.deepEqual(encode(omitted).delta,sparse.delta);
+ // 直前の更新写真を欠損しても、次の更新は共通基準だけで最新へ復元できる。
+ s.frame++;s.time+=50;s.unitUpdates=3;s.units[1].hp=7000;
+ encode(s);s.frame++;s.time+=50;s.units[1].hp=6000;
+ w=encode(s);r=d.decode(w.delta);assert.equal(r.units[1].hp,6000);assert.deepEqual(r.units[1].pos,[123.45,56.78,90.12]);
+ assert.deepEqual(r.inputAcks,s.inputAcks);
+ // maskの数値だけが変わってもschemaは安定。新フィールド/削除/装備/再出撃は全可視更新。
+ s.unitUpdates=1;assert.equal(e.willRebase(s),false);
+ s.units[1].slots.main.extra={phase:1};s.units[1].lifeId=2;s.units[1].slots.main.key='new-rifle';
+ assert.equal(e.willRebase(s),true);w=encode(s);assert.equal(s.unitUpdates,7);
+ r=d.decode(w.delta);assert.equal(r.units[1].lifeId,2);assert.equal(r.units[1].slots.main.key,'new-rifle');assert.equal(r.units[1].slots.main.extra.phase,1);
+ delete s.units[1].slots.main.extra;s.unitUpdates=1;w=encode(s);assert(w.baseline.s);assert.equal(d.decode(w.delta).units[1].slots.main.extra,undefined);
+ s.time+=10000;s.frame++;s.unitUpdates=1;assert(e.willRebase(s));w=encode(s);assert.equal(s.unitUpdates,7);
+ assert(w.baseline.parent);assert.deepEqual(d.decode(w.delta).inputAcks,s.inputAcks);
+ // 同数の可視入替もforceで独立した完全基準へ。旧機体の位置/内部状態は再同期しない。
+ s.units[1].pos=[9876.54,8765.43,7654.32];s.units[1].transfer={privateMarker:'hidden-transfer'};
+ w=encode(s,{forceBaseline:true});const secretBase=e.currentBase();assert(JSON.stringify(secretBase).includes('hidden-transfer'));
+ s.units[1]=copy(initial.units[4]);s.visibilityEpoch++;s.unitUpdates=1;
+ assert(e.willRebase(s,{forceBaseline:true}));w=encode(s,{forceBaseline:true});
+ assert.equal(w.baseline.parent,undefined);assert(w.baseline.s&&w.baseline.d);assert.equal(s.unitUpdates,7);
+ const clean=JSON.stringify(w);assert(!clean.includes('hidden-transfer'));assert(!clean.includes('987654'));
+ const fresh=new Decoder();assert(fresh.seed(e.currentBase()));r=fresh.decode(w.delta);
+ assert.deepEqual(r.units.map(u=>u.id),['U0','U4','U2']);assert.equal(r.units[1].transfer,null);
+ // 不可視化で配列を詰め、全消去した空配列も過去の位置なしに単独復元する。
+ s.units=s.units.filter(u=>u.id!=='U4');s.visibilityEpoch++;w=encode(s,{forceBaseline:true});
+ assert.equal(w.baseline.parent,undefined);assert(!JSON.stringify(e.currentBase()).includes('hidden-transfer'));
+ s.units=[];s.visibilityEpoch++;w=encode(s,{forceBaseline:true});assert.equal(s.unitUpdates,0);assert.deepEqual(d.decode(w.delta).units,[]);
+ // 20機の最上位bitまで数値として正確に戻り、更新集合で基準を作り直さない。
+ const many=new Encoder(),manyDecoder=new Decoder(),twenty={time:0,units:Array.from({length:20},(_,i)=>({id:'T'+i,pos:[i,0,0]})),unitUpdates:2**20-1};
+ const first=many.encode(twenty);assert(manyDecoder.seed(first.baseline));assert.equal(manyDecoder.decode(first.delta).unitUpdates,2**20-1);
+ twenty.time=50;twenty.unitUpdates=1<<19;assert.equal(many.willRebase(twenty),false);
+ const next=many.encode(twenty);assert.equal(next.baseline,null);assert.equal(manyDecoder.decode(next.delta).unitUpdates,1<<19);
+ console.log('状態写真codec：機体別差分省略・独立復元・20bit更新mask・全可視基準更新・不可視化再同期 成功');
+}
+
+// 固定スロットは秘匿のたびに構造・基準を変えず、nullable項目だけ独立差分にする。
+{
+ const makeVisible=(i=0)=>({fixedUnit:true,id:'R:'+i,hidden:false,visibilityEpoch:1,team:'R',idx:i,cls:'assault',controller:'bot',
+   motionEpoch:1,lagEpoch:1,renderCrouch:0,predictionBlocked:'',jumpPadIndex:-1,zipLine:-1,
+   pos:[9876.54,8765.43,7654.32],vel:[3,4,5],hp:10000,alive:true,yaw:.5,pitch:0,downYaw:null,weapon:'main',onGround:true,
+   mech:{head:'private-head',parts:{body:'private-body'}},catLaunch:{origin:[11,12,13],time:3},
+   motionVectors:{dashDir:[1,0,0],boostVisualDir:null,catMomentum:[2,3,4],lungeDir:null},
+   swing:{a:'private-swing',t:.25},transfer:{base:'private-transfer',at:[21,22,23]},
+   slots:Object.fromEntries(['main','sub','aux','special'].map(k=>[k,{key:'private-'+k,ammo:30,reloadT:null,held:false,chargeT:0}]))});
+ // 実機の値から埋めない専用中立テンプレート。id/epoch以外は常に同一。
+ const makeHidden=(i,epoch)=>({fixedUnit:true,id:'R:'+i,hidden:true,visibilityEpoch:epoch,team:'',idx:0,cls:'',controller:'',
+   motionEpoch:0,lagEpoch:0,renderCrouch:0,predictionBlocked:'',jumpPadIndex:-1,zipLine:-1,
+   pos:[0,0,0],vel:[0,0,0],hp:null,alive:null,yaw:null,pitch:null,downYaw:null,weapon:null,onGround:null,
+   mech:null,catLaunch:null,motionVectors:{dashDir:null,boostVisualDir:null,catMomentum:null,lungeDir:null},swing:null,transfer:null,
+   slots:Object.fromEntries(['main','sub','aux','special'].map(k=>[k,{key:'',ammo:null,reloadT:null,held:null,chargeT:null}]))});
+ const e=new Encoder(),d=new Decoder(),s={time:0,frame:0,unitUpdates:2**20-1,units:Array.from({length:20},(_,i)=>makeVisible(i)),
+   gadgets:[[1],[1]],inputAcks:{'B:0':{seq:1,seqDt:1/144,totalDt:7/144,steps:[{dt:1/144}]}}};
+ let w=e.encode(s);assert(d.seed(w.baseline));const retainedVisibleBase=e.currentBase();
+ assert(JSON.stringify(retainedVisibleBase).includes('private-transfer'));
+ const schema=JSON.stringify(retainedVisibleBase.s);
+ assert.equal(retainedVisibleBase.s.find(([p])=>JSON.stringify(p)==='["units",0,"pos",0]')[1],100);
+ assert.equal(retainedVisibleBase.s.find(([p])=>JSON.stringify(p)==='["units",0,"slots","main","reloadT"]')[1],'j');
+ assert(!retainedVisibleBase.s.some(([p])=>p[0]==='units'&&(p.length===2||p[2]==='slots'&&p.length<5)));
+ let baselineCount=1;
+ for(let n=1;n<=120;n++){
+   s.time=n*50;s.frame=n;s.unitUpdates=0;
+   const hidden=n%3!==0;
+   s.units=s.units.map((_,i)=>hidden?makeHidden(i,n):makeVisible(i));
+   if(!hidden){
+     for(const u of s.units){
+       u.visibilityEpoch=n;u.hp=10000-n;u.downYaw=.75;
+       u.mech=n%2?null:{head:'changed',extra:[1,2,3]};u.catLaunch=null;u.swing=null;u.transfer=null;
+       u.motionVectors={dashDir:null,boostVisualDir:[0,1,0],catMomentum:null,lungeDir:[1,0,0]};
+       u.slots.main.reloadT=1.25;u.slots.sub.held=true;u.slots.special.chargeT=null;
+     }
+   }
+   s.gadgets=n%2?[[1],[2,0,14,15,16,'visible']]:[[2,1,17,18,19],[1]];
+   assert.equal(e.willRebase(s),false);
+   // 不可視機体はmaskで全て落とそうとしても中立差分を繰り返し送る。
+   w=e.encode(s,{includePath:p=>p[0]!=='units'||!hidden});
+   if(w.baseline){baselineCount++;assert(d.seed(w.baseline));}
+   assert.equal(JSON.stringify(e.currentBase().s),schema);
+   const r=d.decode(w.delta);
+   assert.deepEqual(r.units,s.units);assert.deepEqual(r.gadgets,s.gadgets);assert.deepEqual(r.inputAcks,s.inputAcks);
+ }
+ assert.equal(baselineCount,1);
+ // 可視の低頻度スロットは従来どおり省略し、maskで適用を止める。
+ s.time+=50;s.units[0].hp=1;s.units[0].pos=[1,2,3];
+ w=e.encode(s,{includePath:p=>p[0]!=='units'});
+ assert.equal(w.baseline,null);assert.deepEqual(d.decode(w.delta).units[0],{...makeVisible(0),visibilityEpoch:s.units[0].visibilityEpoch});
+ // 実際に可視だった古い基準を保持し、最初のhideを欠損しても次のhideだけで中立へ。
+ s.units=s.units.map((_,i)=>makeHidden(i,121));s.time+=50;e.encode(s,{includePath:()=>false});
+ s.time+=50;w=e.encode(s,{includePath:p=>p[0]!=='units'});
+ const oldReceiver=new Decoder();assert(oldReceiver.seed(retainedVisibleBase));
+ assert.deepEqual(oldReceiver.decode(w.delta).units,s.units);
+ assert(!JSON.stringify(oldReceiver.decode(w.delta)).includes('private-'));
+ // resyncは現在の中立値を完全基準化し、旧秘密値を新規受信者へ再送しない。
+ w=e.encode(s,{forceBaseline:true,includePath:()=>false});assert.equal(w.baseline.parent,undefined);
+ assert(!JSON.stringify(w.baseline).includes('private-'));assert(!JSON.stringify(e.currentBase()).includes('987654'));
+ const fresh=new Decoder();assert(fresh.seed(e.currentBase()));assert.deepEqual(fresh.decode(w.delta).units,s.units);
+ // hidden基準からのreveal後、空間更新のない写真でも可視フラグ/epochは毎回独立復元。
+ const hiddenBase=e.currentBase(),hiddenReceiver=new Decoder();assert(hiddenReceiver.seed(hiddenBase));
+ s.time+=50;s.unitUpdates=2**20-1;s.units=s.units.map((_,i)=>({...makeVisible(i),visibilityEpoch:122}));
+ const reveal=e.encode(s);assert.equal(reveal.baseline,null);
+ const revealState=hiddenReceiver.decode(reveal.delta);assert.deepEqual(revealState.units,s.units);
+ for(let n=0;n<3;n++){
+   s.time+=50;s.unitUpdates=0;s.units[0].pos=[100+n,200,300];s.units[0].hp=10+n;
+   const held=e.encode(s,{includePath:p=>p[0]!=='units'});assert.equal(held.baseline,null);
+   // reveal写真を受け取った履歴に依存せず、同じhidden基準だけで検証する。
+   const independent=new Decoder();assert(independent.seed(hiddenBase));
+   const heldState=independent.decode(held.delta);assert.equal(heldState.unitUpdates,0);
+   for(let i=0;i<s.units.length;i++){
+     assert.equal(heldState.units[i].id,s.units[i].id);assert.equal(heldState.units[i].fixedUnit,true);
+     assert.equal(heldState.units[i].hidden,false);assert.equal(heldState.units[i].visibilityEpoch,122);
+     assert.deepEqual(heldState.units[i].pos,[0,0,0]);assert.equal(heldState.units[i].hp,null);
+   }
+   // 空間値はmask=0で適用しない。直前のreveal位置を表示側に保持する契約。
+   const rendered=copy(revealState.units);
+   heldState.units.forEach((u,i)=>{if(heldState.unitUpdates&(1<<i))rendered[i]=u;});
+   assert.deepEqual(rendered,revealState.units);
+ }
+ // 定期更新だけは従来の10秒周期。可視化の型変化では新schemaを付けない。
+ s.time+=10000;s.units=s.units.map((_,i)=>makeVisible(i));assert(e.willRebase(s));
+ w=e.encode(s);assert(w.baseline.parent);assert.equal(w.baseline.s,undefined);
+ assert(fresh.seed(w.baseline));assert.deepEqual(fresh.decode(w.delta).units,s.units);
+ console.log('状態写真codec：固定20スロット120回切替・nullable項目・基準数一定・旧基準hide欠損・秘匿mask・再同期 成功');
+}
