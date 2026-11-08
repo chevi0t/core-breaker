@@ -548,9 +548,17 @@
     else if (type === 'events' && state.phase === 'playing') playEvents(data);
   }
   function validInput(v) {
-    if (!v || !Number.isSafeInteger(v.seq) || v.seq < 1 || !Number.isFinite(v.yaw) || !Number.isFinite(v.pitch)) return false;
+    if (!v || typeof v!=='object' || Array.isArray(v) || !Number.isSafeInteger(v.seq) || v.seq<1 ||
+      !Number.isSafeInteger(v.actionSeq) || v.actionSeq<0 || !Number.isSafeInteger(v.lifeId) || v.lifeId<1 || !Number.isFinite(v.sentAt)) return false;
+    // yawは周回を累積する。pitchは本体の視点範囲、反動は通常上限に余裕を持たせた1radまで。
+    if (!Number.isFinite(v.yaw) || Math.abs(v.yaw)>1e6 || !Number.isFinite(v.pitch) || v.pitch<-.9 || v.pitch>.7) return false;
     if (!Array.isArray(v.aimPoint) || v.aimPoint.length !== 3 || !v.aimPoint.every(n => Number.isFinite(n) && Math.abs(n)<1e6)) return false;
-    return ['fwd','side','cameraRecoil','cameraRecoilYaw'].every(k => v[k] == null || Number.isFinite(v[k]));
+    // padとtouchは合算されるので軸は±2を許し、従来どおり受理時に±1へ収める。
+    return [['fwd',-2,2],['side',-2,2],['cameraRecoil',0,1],['cameraRecoilYaw',-1,1],['wheel',-1,1]]
+      .every(([k,lo,hi])=>v[k]===undefined||Number.isFinite(v[k])&&v[k]>=lo&&v[k]<=hi) &&
+      (v.moveActionSeq===undefined||Number.isSafeInteger(v.moveActionSeq)&&v.moveActionSeq>=0&&v.moveActionSeq<=v.actionSeq) &&
+      (v.moveActions===undefined||Array.isArray(v.moveActions)&&v.moveActions.length<=8&&v.moveActions.every(row=>
+        Array.isArray(row)&&row.length===2&&Number.isSafeInteger(row[0])&&row[0]>=1&&row[0]<=v.actionSeq&&Number.isSafeInteger(row[1])&&row[1]>=1&&row[1]<=7));
   }
   const inputKeys = ['KeyW','KeyS','KeyA','KeyD','KeyR','KeyC','KeyF','KeyH','KeyE','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Digit1','Digit2','Digit3','Digit4'];
   const pickedKeys=(o,allowed=inputKeys)=>Object.fromEntries(allowed.filter(k=>o?.[k]).map(k=>[k,true]));
@@ -567,7 +575,6 @@
     const fixed=v.command===true,queue=p.commandQueue||=[];
     if(p.fixedCommands&&!fixed)return;
     if(fixed){
-      if(v.moveActions!==undefined&&(!Array.isArray(v.moveActions)||v.moveActions.length>8||v.moveActions.some(row=>!Array.isArray(row)||row.length!==2||!Number.isSafeInteger(row[0])||row[0]<1||row[0]>v.actionSeq||!Number.isInteger(row[1])||row[1]<1||row[1]>7)))return;
       if(v.seq<=(p.appliedSeq||0)||queue.some(x=>x.seq===v.seq)||
         v.seq>(p.receivedSeq||0)+commandLimits.sequenceJump+Math.floor(Math.max(0,now()-(p.lastCommandArrival??now()))/1000/commandLimits.dt))return;
     }else if(v.seq<=p.receivedSeq)return;
@@ -576,7 +583,7 @@
     while(p.inputTimes.length>120){p.inputTimes.shift();p.inputHistoryTruncated=true;}
     // 移動の押下だけを命令へ結び付ける。射撃/武器/施設操作はreliable側のまま。
     const value={...safe(v,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw']),keys:pickedKeys(v.keys,movementKeys),pressed:{},
-      fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint,lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null,
+      fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint.slice(),lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null,
       receivedAt:now(),view:copyView(v.view)};
     if(fixed){
       value.command=true;value.movePressed=pickedKeys(v.movePressed,movementEdges);
@@ -592,8 +599,9 @@
   }
   function acceptInputBatch(p,data) {
     if(!Array.isArray(data?.inputs)||!data.inputs.length||data.inputs.length>inputLimits.batch)return;
+    // 型変換するsortより先に検証。不正な1件だけを捨て、同じbatchの正常な命令は残す。
     // 逆順batchでも各入力番号で判断。過去batchが最新入力を巻き戻すことはない。
-    for(const input of data.inputs.slice().sort((a,b)=>(a?.seq||0)-(b?.seq||0)))acceptInput(p,input);
+    for(const input of data.inputs.filter(validInput).sort((a,b)=>a.seq-b.seq))acceptInput(p,input);
   }
   function actionIsRecent(p,action) {
     if(now()-action.sentAt>inputLimits.maxAgeMs||now()-(action.receivedAt??now())>inputLimits.maxAgeMs)return false;
@@ -613,12 +621,13 @@
     while(queue.length>inputLimits.actions)queue.shift();
   }
   function acceptInputActions(p,v) {
-    if(!v||!Number.isSafeInteger(v.actionSeq)||v.actionSeq<1||v.actionSeq<=(p.receivedActionSeq||0)||!Number.isSafeInteger(v.seq)||v.seq<1)return;
+    // reliable側も照準・反動・wheelまで検証してから、生命/番号/queueを変更する。
+    if(!validInput(v)||v.actionSeq<1||v.actionSeq<=(p.receivedActionSeq||0))return;
     const u=currentInputLife(p,v);if(!u||!actionIsRecent(p,v))return;
     p.receivedActionSeq=v.actionSeq;p.last=now();
     const action={...safe(v,['actionSeq','seq','lifeId','sentAt']),receivedAt:now(),trigger:!!v.trigger,alt:!!v.alt,keys:pickedKeys(v.keys,inputKeys.filter(k=>!movementKeys.includes(k))),
       pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined};
-    if(validInput(v))Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:copyView(v.view)});
+    Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:copyView(v.view)});
     rememberMovementAction(p,action);
     if(action.pressed.KeyH||action.pressed.KeyE){
       (p.utilityActions||=[]).push({...action,pressed:pickedKeys(action.pressed,['KeyH','KeyE'])});

@@ -489,3 +489,47 @@ F3の反復控除は現在のtick数。防いだ視点上書きは直近2秒・�
 - 「カタパルト飛翔時も画面がガタガタ」：飛翔・ジャンプ台・リフト・ジップライン・格闘の踏み込みの間は先読みできず、自機は写真（30Hz）の位置に飛び飛びに置かれていた。描画だけ、最後の写真の速度でホスト時刻の今まで（最大100ms）進め、写真の届く間隔のゆらぎによる差は毎コマ3割ずつ寄せる（3m以上は即座）。7ms コマの飛翔で変動係数 2.0 → 0.08〜0.25（代役通信の届き方の乱れ込み）。
 - 「撃破のシンボルとか出なかったり、repairのエフェクトが出なかったり」：撃破・破壊・蘇生の札、得点、被弾の方向・爆風の揺れは、本体が「ローカルの機体なら」でホスト画面にだけ出していた。遠隔の人間の物は `remoteFeedback` で本人だけへ送る（`popup`・`score`・`hurt`。文字はゲストで HTML を無害化）。リペアユニットの相手（`healTarget`）を写真に載せ、光線を出す。リペアポッドの光はゲストで写真の `repairing` から付ける。
 - 試験：`online_smooth_view_check.js` 12項目（枠のずれ、飛翔を追加）、新 `online_feedback_check.js` 6項目。
+
+## マージ前レビューで見つかった入力境界・配布生成の修正（2026-11-08）
+
+対象は #217 統合済みの 1970ec0。オーナーの依頼により、再現できたこの2点だけを修正した。ロビーの連続試合対応は別作業であり触らない。main/gh-pagesへのマージ・公開はしない。
+
+### 変更前と変更後
+
+- 連続入力の `actionSeq` が無検証でqueueへ入り、後の数値比較で例外になる。極端に大きい有限の視点反動も本体状態へ入り、写真の整数化で例外になる。reliable入力は照準検査より先にpeerの番号等を更新し、batchの並べ替えにも検査前の型変換があった。
+- 移動/control双方で、型・安全な整数・照準/反動/軸/wheelの範囲を、sort・生命切替・番号・queue更新より先に検査する。不正1件だけを捨て、同じbatchの正常命令と他peerは処理する。広いtry/catchで製品例外を隠す変更は入れない。範囲はDESIGN.mdの入力境界節を参照。通信v9と正常な送信形式、移動/射撃規則は変更しない。
+- Pages/zipは旧three.jsタグの完全一致を要求し、SRI追加後は生成で停止した。また配布一覧にオンライン資材が無かった。指定URLのscriptだけを属性順序・SRIに依存せず同梱版へ置換する共通関数を使い、オンラインのJS6本とui.cssを両方へ収録する。欠落/重複タグは拒否し、作業用の未追跡JS/CSSを混ぜないよう配布する7資材を明示した。Pagesのmanifestも7資材のサイズ/ハッシュを含む。PeerJSの版固定・SRI付きCDN参照と既存zipの `--maps` 指定は維持する。
+
+### 検証
+
+- `node tools/test/online_input_boundary.test.js`：366条件成功。実onMessage・固定scheduler・本体の平地physics・通常/固定スロットの両codecを接続。型/数値の境界、受理前のpeer状態不変、初回/再出撃、同じbatchの正常入力、他peerの移動・写真継続を確認。WebGL・実RTC・実機の操作感は対象外。
+- `node tools/test/online_input_boundary.test.js --revision=1970ec0` は不正actionSeqがpeer状態を変える箇所で失敗することを確認した（比較元の失敗が期待結果）。これとは別に旧版の型変換例外と縦/横反動の写真整数化例外も製品scheduler/physics/codecで再現した。
+- `node --test tools/test/online_*.test.js`：16/16成功。既存fixtureのactionSeq省略3箇所とcontrol照準省略を製品の送信形式へ合わせた。予測契約を緩めたり、不正値を製品側で許す変更ではない。
+- `node tools/test/names_check.js`：14ファイル、重複キーなし。秘匿境界VM91項目、変更JS構文、Python構文、`git diff --check` 成功。
+- `python3 tools/test/distribution_check.py`：24項目成功。SRIあり/なし・引用符・属性順序・欠落/重複・明示資材一覧を確認。
+- 確定したPR版から一時フォルダへ実Pagesを生成し、実zipも生成した。`distribution_check.py <Pages出力先> <zip>` は141項目成功。全ローカルscriptの参照先、元ファイルとのバイト一致、オンライン7資材、Pagesの19ファイルのサイズ/SHA-256、zip CRC等を確認。既定zipは23ファイル、2,576,369 bytes。
+- `--maps` で別パスのマップを指定したzipを別生成し、validatorにも同じ元パスを渡して141項目成功。
+
+配布物を公開せず確認する例（コミット済みの作業ツリーから実行）:
+
+```sh
+mkdir -p /tmp/core-breaker-dist-check/pages
+printf '{}\n' > /tmp/core-breaker-dist-check/pages/build-info.json
+python3 tools/build_pages.py /tmp/core-breaker-dist-check/pages
+python3 tools/build_zip.py review-214
+python3 tools/test/distribution_check.py /tmp/core-breaker-dist-check/pages dist/core-breaker-vreview-214.zip
+# 公開中のマップをzipへ渡した場合は、検査にも同じファイルを指定する
+# python3 tools/test/distribution_check.py <Pages出力先> <zip> --maps <zip生成時に渡したmaps.js>
+```
+
+この検証に対応するSHA-256:
+
+- `prototype/online/game.js`: `9d8a44000b0faa273a40bf1d9adee60bc5e72f754d98d4d9d73c816062519f8f`
+- `tools/build_pages.py`: `db82b4966b6b8a0a51a7ecf6e73188b6dd2a9e679c9c104b01ef1c2c5c8403a2`
+- `tools/build_zip.py`: `0924c6d35eb3f555c10208d10ac23b829d147264cf7fe4590b149bb356c8624d`
+- `tools/test/online_input_boundary.test.js`: `fb4903b1166190fd3932a9e21de578bc1f04ddd412c514f7f20817db1b240375`
+- `tools/test/distribution_check.py`: `50a41941fc4f2a8ff1115ae4fe72326aa6576f5c68fcf880efcc4b39f3aae3a3`
+
+### 未確認と次の判断
+
+`quick_check.js origin/main` はPlaywright既定のChromium実行ファイルが無く起動前に失敗した。環境にあるChromiumもsocketのOperation not permittedで起動できないことを確認済み。従って最終版のpages_check、全武器/Bot回帰、ブラウザ/WebGL/実RTC、操作感は未確認であり、上のNode/配布生成成功から推定しない。既知の `online_lag_check`・`online_loss_check`・`online_ui_check` の失敗は今回修正していない。オーナー側で最終版のブラウザ試験とこの3本を実行し、結果を見て再度マージを判断する。

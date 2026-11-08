@@ -130,7 +130,7 @@ function gameHarness(){
 check('製品input受信でclient受信時刻を捨て、shotのみ巻戻し、現在復旧',()=>{
   const h=gameHarness(),u=h.shooter.u;
   move(h.target.u,0);h.test.captureLagHistory(850);move(h.target.u,10);h.test.captureLagHistory(1000);h.test.rememberLagSnapshot({frame:1,time:900});
-  h.test.acceptInput(h.p,{seq:1,lifeId:1,sentAt:975,receivedAt:-1e9,view:view(),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});
+  h.test.acceptInput(h.p,{seq:1,actionSeq:0,lifeId:1,sentAt:975,receivedAt:-1e9,view:view(),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});
   assert.equal(h.p.input.receivedAt,1000);u.controlInput=h.p.input;
   assert.equal(h.c.shot(u,{w:{type:'gun'}}),0);close(h.target.mesh.matrixWorld.elements[12],10);assert.equal(h.game.metrics().lagCompensation.rewinds,1);
   // fireを直接使う設置銃にはshot contextがない。
@@ -148,7 +148,7 @@ check('当該peerの成功送信だけを巻戻し根拠にし、他peer/未送�
   r.epochs.set(u.entityId,1);r.epochs.set(target.entityId,1);
   otherR.queued.set(1,record());h.test.rememberPeerSnapshot(other.id,{frame:1,delta});
   assert.equal(otherR.sent.size,1);assert.equal(r.sent.size,0);
-  h.test.acceptInput(h.p,{seq:1,lifeId:1,sentAt:975,view:view(),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
+  h.test.acceptInput(h.p,{seq:1,actionSeq:0,lifeId:1,sentAt:975,view:view(),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
   const cast=()=>h.c.shot(u,{w:{type:'gun'}});
   assert.equal(cast(),10);assert.equal(h.game.metrics().lagCompensation.reasons.anchor,1);
   r.queued.set(1,record());assert.equal(cast(),10);assert.equal(r.sent.size,0);
@@ -171,7 +171,7 @@ check('tuple省略でも最後の送信姿勢から100ms超を巻戻しに使わ
     h.test.rememberPeerSnapshot(h.p.id,{frame,delta});
   };
   sent(1,650,650);sent(2,950,null);
-  h.test.acceptInput(h.p,{seq:1,lifeId:1,sentAt:975,view:view({time:900,frame:2}),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
+  h.test.acceptInput(h.p,{seq:1,actionSeq:0,lifeId:1,sentAt:975,view:view({time:900,frame:2}),yaw:0,pitch:0,aimPoint:[0,0,-10],keys:{}});u.controlInput=h.p.input;
   assert.equal(h.c.shot(u,{w:{type:'gun'}}),10);assert.equal(h.game.metrics().lagCompensation.rewinds,0);
   // 同じanchorでも実更新が850msにあれば、900msの姿勢は許可範囲へ戻る。
   sent(3,850,850);sent(4,950,null);h.p.input.view=view({time:900,frame:4});
