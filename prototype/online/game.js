@@ -19,8 +19,10 @@
   let pendingPrepare = null, prepared = false, finalFrame = null, lastSnapshotBaseId = 0;
   const pendingSnapshotWires = new Map(), pendingSnapshotBases = new Map();
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // 写真の送信間隔。2026-11-08 オーナー「ゲストの快適さ」：20Hz（50ms）から30Hzへ。④で1枚が小さくなった分を回す。
+  const SNAPSHOT_INTERVAL_MS=1000/30;
   function interpolationState() {
-    return {delayMs:100,targetDelayMs:100,intervalMs:50,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null,
+    return {delayMs:100,targetDelayMs:100,intervalMs:SNAPSHOT_INTERVAL_MS,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null,
       acceptedSnapshots:0,staleSnapshots:0,missingBaselines:0,resyncRequests:0,frames:0,interpolatedFrames:0,extrapolatedFrames:0,clampedFrames:0,
       extrapolationMs:0,maxExtrapolationMs:0,gapMs:0,maxGapMs:0,totalDelayMs:0,
       recoveryLagMs:0,maxRecoveryLagMs:0,effectiveDelayMs:100,maxEffectiveDelayMs:100,totalEffectiveDelayMs:0,catchupFrames:0};
@@ -498,7 +500,7 @@
     // 読み込み＋4秒の開始待ちを回線jitterに数えない。初期状態は残し、対戦中の写真で描画時計を始める。
     if(state.role==='guest'){
       lastRenderedView=null;
-      state.history=[];Object.assign(interpolation,{delayMs:100,targetDelayMs:100,intervalMs:50,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null});
+      state.history=[];Object.assign(interpolation,{delayMs:100,targetDelayMs:100,intervalMs:SNAPSHOT_INTERVAL_MS,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null});
     }
     // 早く準備できたゲストも、全員の開始時点から入力待機の猶予を持つ。
     if (state.role === 'host') for (const p of state.peers.values()) p.last = state.lastHost;
@@ -1170,6 +1172,37 @@
     if(Number.isFinite(a.renderCrouch)&&Number.isFinite(b.renderCrouch))u.onlineRenderCrouch=a.renderCrouch+(b.renderCrouch-a.renderCrouch)*f;
     if(a.vel&&b.vel)u.vel.copy(vector(a.vel.map((v,i)=>v+(b.vel[i]-v)*f)));
   }
+  // ゲストの発砲の見た目を手元で先に出す（2026-11-08 オーナー「ゲストの快適さ」）。
+  // 発砲炎と発射音だけ。弾・命中・ダメージ・弾数は今どおりホストが決める。対象はふつうの即着弾銃
+  // （飛ぶ弾・チャージ・ガトリングの回し・ミサイル・3点射は除く）。ホストの同じ発砲の炎と音は重ねない。
+  let localFire={cd:0,held:false,weapon:null,lifeId:null,shots:0,lastAt:-Infinity};
+  function localFireWeapon(u){
+    const sl=u?.slots?.[u.weapon],w=sl?.w;
+    if(!w||w.type!=='gun'||w.proj||w.chargeTime||w.spin||w.missile||w.burst||w.drone||!(w.rpm>0))return null;
+    return sl;
+  }
+  function predictLocalFire(input,dt){
+    if(!player||state.role!=='guest')return;
+    const sl=localFireWeapon(player),w=sl?.w;
+    if(localFire.lifeId!==player.lifeId||localFire.weapon!==player.weapon){localFire={cd:0,held:false,weapon:player.weapon,lifeId:player.lifeId,shots:0,lastAt:-Infinity};}
+    localFire.cd=Math.max(localFire.cd-dt,-dt);
+    const trigger=!!input.trigger;
+    if(!sl){localFire.held=trigger;return;}
+    const blocked=!player.alive||player.downT>0||player.stun&&player.stun!=='land'||player.electricT>0||player.shockT>0||player.repairing||player.transfer||player.zip||
+      player.switchT>0||sl.reloadT>0||sl.overheat||!(sl.ammo>0)||(w.semi&&localFire.held);
+    if(trigger&&!blocked){
+      let n=0;
+      while(localFire.cd<=0&&n<4){localFire.cd+=60/w.rpm;n++;}
+      if(n){
+        localFire.shots+=n;localFire.lastAt=now();
+        if(player.weapon==='main')mainMuzzleFlash(player,false,w);
+        sfx(w.sfx,player.pos,player,w.sfxRate);
+      }
+    }
+    localFire.held=trigger;
+  }
+  // 手元で出した発砲は、ホストから届く同じ発砲の炎・音を出さない（0.5秒以内に手元で撃っていた時だけ）。
+  const localFireCovers=()=>!!localFireWeapon(player)&&now()-localFire.lastAt<=500;
   function beforeFrame(dt,t) {
     frameStart=now();diagnosticFrameStart(frameStart);
     if(state.role!=='offline'&&state.phase!=='playing'){running=false;stopSessionAudio();}
@@ -1192,6 +1225,7 @@
     if(!overrideInput)for(const k of ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'])delete input.keys[k];
     input.aimPoint=input.aimPoint||aimed.aim.toArray();input.lockTarget=overrideInput?.lockTarget??(lock.visible?lockId(lock.target):null);input.yaw=input.yaw??player.yaw;input.pitch=input.pitch??player.pitch;
     if(requestedWeapon){input.weapon=requestedWeapon;requestedWeapon=null;}
+    predictLocalFire(input,dt);
     stepLocalCommands(input,dt);
     if(prediction.enabled)for(const [seq,p]of state.pendingInputs)if(p.move&&player.pos.distanceToSquared(vector(p.pos))>1e-10){displayedLatencies.push({kind:'input',time:p.time});state.pendingInputs.delete(seq);}
     wheelDir=0;state.lastInput=now();
@@ -1212,7 +1246,7 @@
     // 間引きの次の50msを待たず、公開範囲が変わったframeで旧待機写真を破棄する。
     const privacyChanged=[...state.peers.values()].some(p=>{const r=replicationFor(p),view=createPeerView(p),v=view.visible,g=new Set(permittedGadgets(p,view)),old=r.gadgetPublic||new Set();return v.size!==r.visible.size||[...v].some(id=>!r.visible.has(id))||[...old].some(item=>!g.has(item))||old.size<(r.gadgetCapacity||0)&&[...g].some(item=>!old.has(item));});
     if(state.events.length){const events=state.events.splice(0);for(const p of state.peers.values()){const r=replicationFor(p);for(const e of events)r.eventCache.set(e.id,e);while(r.eventCache.size>2048)r.eventCache.delete(r.eventCache.keys().next().value);const visible=eventsForPeer(p,events);if(visible.length)state.transport.send('events',visible,p.id);}}
-    if(now()-state.lastSent>=50 || ended||privacyChanged){
+    if(now()-state.lastSent>=SNAPSHOT_INTERVAL_MS-1 || ended||privacyChanged){
       const full=snapshot(stateTime);
       for(const p of state.peers.values()){const result=encodePeerSnapshot(p,full);if(result.baseline)state.transport.send('snapshotBase',result.baseline,p.id);state.transport.send('snapshot',result.wire,p.id);}
       state.lastSent=now();
@@ -1227,8 +1261,8 @@
       if(e.type==='tracer')tracer(vector(d.from),vector(d.end),d.team,d.energy,WEAPONS[d.weapon]||null,d.enlarged);
       if(e.type==='boom')boom(vector(d.at),d.k,d.radius,d.energy);
       if(e.type==='impact')impact(vector(d.at),d.kind,d.delay);
-      if(e.type==='sfx')sfx(d.name,d.at?vector(d.at):null,d.unit?unit(d.unit):null,d.rate,d.level);
-      if(e.type==='shot'){const u=unit(d.unit);if(u&&!u.onlineHidden)mainMuzzleFlash(u,false,u.slots[u.weapon].w);}
+      if(e.type==='sfx'&&!(d.unit===state.localUnitId&&d.name===localFireWeapon(player)?.w.sfx&&localFireCovers()))sfx(d.name,d.at?vector(d.at):null,d.unit?unit(d.unit):null,d.rate,d.level);
+      if(e.type==='shot'){const u=unit(d.unit);if(u&&!u.onlineHidden&&!(u===player&&localFireCovers()))mainMuzzleFlash(u,false,u.slots[u.weapon].w);}
       if(e.type==='hit'&&d.unit===state.localUnitId){hitMark(d.head);const q=state.shots.find(x=>!x.done&&d.seq>=x.seq&&d.seq<x.until);if(q){q.done=true;displayedLatencies.push({kind:'hit',time:q.time});}}
     }}finally{playingEffects=false;}
   }
