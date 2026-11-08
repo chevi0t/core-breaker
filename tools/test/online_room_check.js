@@ -1,4 +1,4 @@
-// 部屋設定UI・所属・非mesa移動施設の同期。ブラウザは親が直列実行する。
+// 部屋設定UI・所属・非mesa移動施設の同期。ブラウザ試験は直列で実行する。
 const fs=require('node:fs'),path=require('node:path');
 const {check}=require('./lib');
 const {harness,pageFor,frames,sleep,TRANSPORT_MODE}=require('./online_test_helpers');

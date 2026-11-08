@@ -16,17 +16,19 @@ const MOCK_PEER_SOURCE=`(() => {
     emit(n,...a){for(const f of [...(this.handlers.get(n)||[])])f(...a);}
   }
   class MockConnection extends Emitter {
-    constructor(owner,remote,id){super();this.owner=owner;this.peer=remote;this.connectionId=id;this.open=false;this.bufferSize=0;this.dataChannel={bufferedAmount:0};}
+    constructor(owner,remote,id,options={}){super();this.owner=owner;this.peer=remote;this.connectionId=id;this.options=options;this.label=options.label||id;this.metadata=options.metadata;this.serialization=options.serialization||'raw';this.reliable=!!options.reliable;this.open=false;this.bufferSize=0;
+      // 代替試験で契約を模倣するだけ。実RTCの生成オプション検証はonline_loss_checkで別に行う。
+      const snapshot=this.label==='core-breaker-snapshot-v5';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
     send(data){if(!this.open)throw Error('代替接続が開いていません');this.owner.post({type:'data',to:this.peer,id:this.connectionId,data});}
-    close(remote=false){if(this.closed)return;this.closed=true;this.open=false;if(!remote)this.owner.post({type:'close',to:this.peer,id:this.connectionId});this.owner.connections.delete(this.connectionId);this.emit('close');}
-    ready(){if(this.closed||this.open)return;this.open=true;this.emit('open');}
+    close(remote=false){if(this.closed)return;this.closed=true;this.open=false;this.dataChannel.readyState='closed';if(!remote)this.owner.post({type:'close',to:this.peer,id:this.connectionId});this.owner.connections.delete(this.connectionId);this.emit('close');}
+    ready(){if(this.closed||this.open)return;this.open=true;this.dataChannel.readyState='open';this.emit('open');}
   }
   class MockPeer extends Emitter {
-    constructor(id){super();this.id=id||crypto.randomUUID();this.connections=new Map();this.bus=new BroadcastChannel('cb-online-test-peer');this.bus.onmessage=e=>this.receive(e.data);queueMicrotask(()=>this.emit('open',this.id));}
+    constructor(id,options={}){super();this.options=options;this.id=id||crypto.randomUUID();this.connections=new Map();this.bus=new BroadcastChannel('cb-online-test-peer');this.bus.onmessage=e=>this.receive(e.data);queueMicrotask(()=>this.emit('open',this.id));}
     post(m){this.bus.postMessage({...m,from:this.id});}
-    connect(to){const c=new MockConnection(this,to,crypto.randomUUID());this.connections.set(c.connectionId,c);queueMicrotask(()=>this.post({type:'offer',to,id:c.connectionId}));return c;}
+    connect(to,options={}){const c=new MockConnection(this,to,crypto.randomUUID(),options);this.connections.set(c.connectionId,c);queueMicrotask(()=>this.post({type:'offer',to,id:c.connectionId,options}));return c;}
     receive(m){if(m.to!==this.id)return;let c=this.connections.get(m.id);
-      if(m.type==='offer'){c=new MockConnection(this,m.from,m.id);this.connections.set(m.id,c);this.emit('connection',c);this.post({type:'accept',to:m.from,id:m.id});c.ready();}
+      if(m.type==='offer'){c=new MockConnection(this,m.from,m.id,m.options);this.connections.set(m.id,c);this.emit('connection',c);this.post({type:'accept',to:m.from,id:m.id});c.ready();}
       else if(m.type==='accept')c?.ready();
       else if(m.type==='data'&&c?.open)c.emit('data',m.data);
       else if(m.type==='close')c?.close(true);
@@ -138,7 +140,7 @@ async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=tru
   }
   console.log('全ゲスト接続完了・試合開始');
   await sleep(100+latencyMs*2); // 装備希望もホストへ届いてから開始する。
-  if(beforeStart)await beforeStart(host);
+  if(beforeStart)await beforeStart(host,pages.slice(1));
   // startはreadyを待つ可能性があるので、固定コマ試験でもイベントループを塞がない。
   await host.evaluate(n=>{window.__startPromise=CBOnlineGame.start({teamSize:n});},teamSize);
   const startDeadline=Date.now()+20000;
@@ -154,4 +156,41 @@ async function identity(p){return p.evaluate(()=>({id:CBOnlineGame.state.localUn
 async function input(p,v){await p.evaluate(v=>CBOnlineGame.testInput(v),v);}
 const neutral={keys:{},pressed:{},fwd:0,side:0,trigger:false,alt:false,wheel:0};
 async function summary(p){return p.evaluate(()=>({phase:CBOnlineGame.state.phase,running:__g.running,time:__g.timeLeft,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId||u.netId||`${u.team}:${u.idx}`,team:u.team,controller:u.controller,hp:u.hp,lifeId:u.lifeId,sc:u.sc,weapon:u.weapon})),metrics:CBOnlineGame.metrics()}));}
-module.exports={MOCK_TRANSPORT,TRANSPORT_MODE,ROOT,sleep,stats,harness,pageFor,frames,room,identity,input,neutral,summary};
+// 成功したwire送信を観測する。製品のsend/codecを変更せず、分割を独立に組み立てる。
+// 呼出側はawait installWireObserver(page)後、page内で__observeOnlineWire(onDatagram,onMessage)。
+// datagram: {envelope,channel,messageBytes,peerId,at,type}。
+// message: 上記＋logicalMessageBytes,fragmentCount,maxDatagramBytes,
+// chunkBase64ExpansionBytes,chunkEnvelopeBytes。messageBytesは断片JSONの総和。
+async function installWireObserver(page){await page.evaluate(()=>{
+  const t=CBOnlineGame.state.transport;if(!t)throw Error('wire観測前に部屋を作成してください');
+  if(t.__wireObserverInstalled)return;t.__wireObserverInstalled=true;
+  const listeners=[],parts=new Map(),utf8=new TextEncoder(),write=t._write.bind(t);
+  window.__wireObserverErrors=[];
+  window.__observeOnlineWire=(onDatagram,onMessage)=>{const entry={onDatagram,onMessage};listeners.push(entry);return ()=>{const i=listeners.indexOf(entry);if(i>=0)listeners.splice(i,1);};};
+  const emit=(key,value)=>{for(const l of listeners)try{l[key]?.(value);}catch(error){__wireObserverErrors.push(error.stack||error.message);}};
+  t._write=(link,item,...args)=>{
+    const sent=write(link,item,...args);if(!sent)return sent;
+    try{
+      const envelope=JSON.parse(item.text),channel=item.channel||(['snapshot','snapshotBase'].includes(item.type)?'snapshot':'control'),at=performance.now();
+      const sample={envelope,channel,messageBytes:item.bytes,peerId:link.conn.peer,at,type:item.type};emit('onDatagram',sample);
+      if(envelope.type!=='snapshotChunk'){
+        emit('onMessage',{...sample,logicalMessageBytes:utf8.encode(item.text).length,fragmentCount:1,maxDatagramBytes:item.bytes,chunkBase64ExpansionBytes:0,chunkEnvelopeBytes:0});return sent;
+      }
+      for(const [key,value]of parts)if(at-value.at>3000)parts.delete(key);
+      const p=envelope.payload,key=[link.conn.peer,envelope.matchId,p.type,p.sequence].join(':');
+      let assembly=parts.get(key);if(!assembly){if(parts.size>=64)parts.delete(parts.keys().next().value);assembly={count:p.count,parts:new Map(),at};parts.set(key,assembly);}
+      if(assembly.count!==p.count)throw Error('wire観測で分割数が不一致');
+      if(assembly.parts.has(p.index))return sent;
+      const raw=Uint8Array.from(atob(p.data),c=>c.charCodeAt(0));assembly.parts.set(p.index,{raw,bytes:item.bytes,base64Bytes:p.data.length});
+      if(assembly.parts.size!==assembly.count)return sent;
+      parts.delete(key);const ordered=Array.from({length:assembly.count},(_,i)=>assembly.parts.get(i));
+      const length=ordered.reduce((n,p)=>n+p.raw.length,0),rawMessage=new Uint8Array(length);let offset=0;
+      for(const p of ordered){rawMessage.set(p.raw,offset);offset+=p.raw.length;}
+      const full=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(rawMessage));
+      const messageBytes=ordered.reduce((n,p)=>n+p.bytes,0),base64Bytes=ordered.reduce((n,p)=>n+p.base64Bytes,0);
+      emit('onMessage',{...sample,envelope:full,type:full.type,messageBytes,logicalMessageBytes:length,fragmentCount:assembly.count,maxDatagramBytes:Math.max(...ordered.map(p=>p.bytes)),chunkBase64ExpansionBytes:base64Bytes-length,chunkEnvelopeBytes:messageBytes-base64Bytes});
+    }catch(error){__wireObserverErrors.push(error.stack||error.message);}
+    return sent;
+  };
+});}
+module.exports={installWireObserver,MOCK_TRANSPORT,TRANSPORT_MODE,ROOT,sleep,stats,harness,pageFor,frames,room,identity,input,neutral,summary};

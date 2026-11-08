@@ -84,7 +84,7 @@
       const entries=flatten(snapshot),schema=entries.map(([p,t])=>[p,t]),values=entries.map(e=>e[2]);
       if(!validSchema(schema)||!values.every(v=>validValue(v)))throw Error('不正な状態写真');
       const signature=JSON.stringify(schema);let baseline=null;
-      // 基準だけは間引かれない通常メッセージに載せる。静的変更もここで反映する。
+      // 基準も写真専用線に載せる。欠落は再同期で復旧し、静的変更もここで反映する。
       if(!this.base||signature!==this.signature||snapshot.time-this.created>=10000){
         this.signature=signature;this.created=snapshot.time;
         const old=this.base;

@@ -1,0 +1,476 @@
+{
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "usesRealWebRTC": false,
+  "productionNetworkPerformanceVerified": false,
+  "method": {
+    "loss": "再組立済みlogical snapshot/snapshotBaseを、transport重複排除前にseed固定LCGで捨てる。SCTP fragment/UDP/IPの損失、再送、別回線、NAT成功は測らない。",
+    "soak": "mesa・10機・人間2人中立・Bot通常。300秒設定の試合を固定50ms高速コマ送り、描画省略。実時間300秒/20Hz/フレーム性能ではない。",
+    "trajectory": "製品beforeFrameを仮想時計60Hzで呼ぶ。一定10m/sの同じ20Hz到着traceで旧v4固定100ms・履歴8枚・外挿なしを再計算。WebGL描画/GPU/実時間性能ではない。25〜55ms遅延、750msごと追加120ms遅延、6秒時点300ms連続欠落。",
+    "metrics": "step=隣接表示位置の距離m、stall=動くfixtureでstep<0.001mの連続区間、gap=適用したsnapshot受信時刻間隔。先頭2秒と10秒時点のrespawn/60m teleport±600msは別集計で除外。missingBaselinesは不明基準deltaを受けた回数で、未復旧基準の個数ではない。",
+    "fixed100msReference": "c74e55b:prototype/online/game.js の interpolate(t)、位置だけを同じ式で再計算。",
+    "comparison": "到着順と損失seedは固定。固定100msとの比較は補間だけの比較で、旧v4全体のnetwork benchmarkではない。"
+  },
+  "sourceHashes": {
+    "prototype/online/game.js": "afc58f6e26dfe3114b197e2d593927e030e0c5d3176ec6d9e82345384527d566",
+    "prototype/online/transport.js": "d707db00fc3713545afada76a6f1d3a55888122ef64e8cc6d1bc43c1e3617e4a"
+  },
+  "trajectory": [
+    {
+      "rate": 0.05,
+      "totalMs": 20000,
+      "generated": 401,
+      "dropped": 24,
+      "delivered": 376,
+      "stale": 24,
+      "fixture": {
+        "decoderReset": true,
+        "sourceChecks": 352
+      },
+      "metrics": {
+        "delayMs": 121.65771266617728,
+        "targetDelayMs": 121.12186998498882,
+        "intervalMs": 61.436985086537014,
+        "jitterMs": 24.8424424492259,
+        "lastArrival": 28884.815404302906,
+        "lastRender": 28940.533333332613,
+        "renderTime": 30629.9386057485,
+        "localOffset": -1811.0629850820624,
+        "acceptedSnapshots": 352,
+        "staleSnapshots": 24,
+        "missingBaselines": 0,
+        "resyncRequests": 0,
+        "frames": 1194,
+        "interpolatedFrames": 1152,
+        "extrapolatedFrames": 42,
+        "clampedFrames": 9,
+        "extrapolationMs": 0,
+        "maxExtrapolationMs": 100,
+        "gapMs": 0,
+        "maxGapMs": 235.31568862234053,
+        "totalDelayMs": 131809.29657993378,
+        "recoveryLagMs": 0,
+        "maxRecoveryLagMs": 135.31568862234053,
+        "effectiveDelayMs": 121.65771266617594,
+        "maxEffectiveDelayMs": 241.56818787492375,
+        "totalEffectiveDelayMs": 134111.64332775993,
+        "catchupFrames": 1026,
+        "meanDelayMs": 110.39304571183735,
+        "meanEffectiveDelayMs": 112.32130931973194
+      },
+      "summary": {
+        "adaptive": {
+          "samples": 1005,
+          "excludedFrames": 194,
+          "stalledMs": 133.33333333333576,
+          "stallCount": 1,
+          "longestStallMs": 133.33333333333576,
+          "backwardSteps": 0,
+          "stepMetres": {
+            "count": 1005,
+            "mean": 0.16626572175757318,
+            "p50": 0.16866666666665253,
+            "p95": 0.16866666666672359,
+            "max": 0.20000000000000284
+          },
+          "speedMetresPerSecond": {
+            "count": 1005,
+            "mean": 9.975943305454393,
+            "p50": 10.11999999999927,
+            "p95": 10.120000000003785,
+            "max": 11.999999999999952
+          }
+        },
+        "fixed100ms": {
+          "samples": 1005,
+          "excludedFrames": 194,
+          "stalledMs": 316.66666666667015,
+          "stallCount": 5,
+          "longestStallMs": 216.6666666666706,
+          "backwardSteps": 0,
+          "stepMetres": {
+            "count": 1005,
+            "mean": 0.16673757627097283,
+            "p50": 0.16173878543096976,
+            "p95": 0.2403324275982186,
+            "max": 2.5264608325722904
+          },
+          "speedMetresPerSecond": {
+            "count": 1005,
+            "mean": 10.004254576258328,
+            "p50": 9.704327125858537,
+            "p95": 14.419945655893642,
+            "max": 151.58764995433467
+          }
+        },
+        "burstRecovery": {
+          "windowMs": [
+            6300,
+            7800
+          ],
+          "adaptive": {
+            "samples": 89,
+            "excludedFrames": 0,
+            "stalledMs": 16.66666666666697,
+            "stallCount": 1,
+            "longestStallMs": 16.66666666666697,
+            "backwardSteps": 0,
+            "stepMetres": {
+              "count": 89,
+              "mean": 0.17669893761604902,
+              "p50": 0.16866666666668095,
+              "p95": 0.20000000000000284,
+              "max": 0.20000000000000284
+            },
+            "speedMetresPerSecond": {
+              "count": 89,
+              "mean": 10.60193625696276,
+              "p50": 10.120000000000674,
+              "p95": 11.999999999999952,
+              "max": 11.999999999999952
+            }
+          },
+          "fixed100ms": {
+            "samples": 89,
+            "excludedFrames": 0,
+            "stalledMs": 16.66666666666697,
+            "stallCount": 1,
+            "longestStallMs": 16.66666666666697,
+            "backwardSteps": 0,
+            "stepMetres": {
+              "count": 89,
+              "mean": 0.18945419175387226,
+              "p50": 0.1577842870001973,
+              "p95": 0.2503214677944783,
+              "max": 2.5264608325722904
+            },
+            "speedMetresPerSecond": {
+              "count": 89,
+              "mean": 11.367251505232131,
+              "p50": 9.467057220011666,
+              "p95": 15.019288067668423,
+              "max": 151.58764995433467
+            }
+          },
+          "stepLimitMetres": 0.21100000000000002
+        },
+        "stallDifferenceMs": -183.3333333333344,
+        "worstStepDifferenceMetres": -2.3264608325722875,
+        "acceptedSnapshotGapMs": {
+          "count": 351,
+          "mean": 56.53049083499562,
+          "p50": 51.523407394997776,
+          "p95": 100.15270064584911,
+          "max": 338.03942285943776
+        },
+        "effectiveDelayMs": {
+          "count": 1007,
+          "mean": 114.35110211381308,
+          "p50": 110.76117140031056,
+          "p95": 144.01430975877884,
+          "max": 241.56818787492375
+        },
+        "recoveryLagMs": {
+          "count": 1007,
+          "mean": 2.2746916307349014,
+          "p50": 0,
+          "p95": 0,
+          "max": 135.31568862234053
+        }
+      }
+    },
+    {
+      "rate": 0.2,
+      "totalMs": 20000,
+      "generated": 401,
+      "dropped": 91,
+      "delivered": 310,
+      "stale": 18,
+      "fixture": {
+        "decoderReset": true,
+        "sourceChecks": 292
+      },
+      "metrics": {
+        "delayMs": 156.64148909966974,
+        "targetDelayMs": 145.98513523478638,
+        "intervalMs": 74.94687356641978,
+        "jitterMs": 30.5191308341833,
+        "lastArrival": 28920.21540430328,
+        "lastRender": 28975.933333332985,
+        "renderTime": 30569.24336544192,
+        "localOffset": -1749.9515212086026,
+        "acceptedSnapshots": 292,
+        "staleSnapshots": 18,
+        "missingBaselines": 0,
+        "resyncRequests": 0,
+        "frames": 1194,
+        "interpolatedFrames": 1141,
+        "extrapolatedFrames": 53,
+        "clampedFrames": 7,
+        "extrapolationMs": 0,
+        "maxExtrapolationMs": 100,
+        "gapMs": 0,
+        "maxGapMs": 200.5403740927759,
+        "totalDelayMs": 183052.06966266973,
+        "recoveryLagMs": 0,
+        "maxRecoveryLagMs": 100.54037409277589,
+        "effectiveDelayMs": 156.64148909967116,
+        "maxEffectiveDelayMs": 241.56818787492375,
+        "totalEffectiveDelayMs": 184315.1928870525,
+        "catchupFrames": 996,
+        "meanDelayMs": 153.30994109101317,
+        "meanEffectiveDelayMs": 154.36783323873743
+      },
+      "summary": {
+        "adaptive": {
+          "samples": 1005,
+          "excludedFrames": 194,
+          "stalledMs": 83.33333333333485,
+          "stallCount": 1,
+          "longestStallMs": 83.33333333333485,
+          "backwardSteps": 0,
+          "stepMetres": {
+            "count": 1005,
+            "mean": 0.16633054619579193,
+            "p50": 0.16866666666665253,
+            "p95": 0.16866666666672359,
+            "max": 0.20000000000000284
+          },
+          "speedMetresPerSecond": {
+            "count": 1005,
+            "mean": 9.9798327717475,
+            "p50": 10.11999999999927,
+            "p95": 10.120000000003785,
+            "max": 11.999999999999952
+          }
+        },
+        "fixed100ms": {
+          "samples": 1005,
+          "excludedFrames": 194,
+          "stalledMs": 1166.6666666666729,
+          "stallCount": 19,
+          "longestStallMs": 216.6666666666706,
+          "backwardSteps": 0,
+          "stepMetres": {
+            "count": 1005,
+            "mean": 0.16682632515172913,
+            "p50": 0.1602529922451481,
+            "p95": 0.24016997608771362,
+            "max": 2.5264608325722904
+          },
+          "speedMetresPerSecond": {
+            "count": 1005,
+            "mean": 10.009579509103729,
+            "p50": 9.615179534709236,
+            "p95": 14.41019856526177,
+            "max": 151.58764995433467
+          }
+        },
+        "burstRecovery": {
+          "windowMs": [
+            6300,
+            7800
+          ],
+          "adaptive": {
+            "samples": 89,
+            "excludedFrames": 0,
+            "stalledMs": 16.66666666666697,
+            "stallCount": 1,
+            "longestStallMs": 16.66666666666697,
+            "backwardSteps": 0,
+            "stepMetres": {
+              "count": 89,
+              "mean": 0.17293940768661478,
+              "p50": 0.16866666666668095,
+              "p95": 0.20000000000000284,
+              "max": 0.20000000000000284
+            },
+            "speedMetresPerSecond": {
+              "count": 89,
+              "mean": 10.376364461196703,
+              "p50": 10.120000000000674,
+              "p95": 11.999999999999952,
+              "max": 11.999999999999952
+            }
+          },
+          "fixed100ms": {
+            "samples": 89,
+            "excludedFrames": 0,
+            "stalledMs": 33.33333333333394,
+            "stallCount": 2,
+            "longestStallMs": 16.66666666666697,
+            "backwardSteps": 0,
+            "stepMetres": {
+              "count": 89,
+              "mean": 0.18945419175387226,
+              "p50": 0.1577842870001973,
+              "p95": 0.27713056407952763,
+              "max": 2.5264608325722904
+            },
+            "speedMetresPerSecond": {
+              "count": 89,
+              "mean": 11.367251505232131,
+              "p50": 9.467057220011666,
+              "p95": 16.627833844771356,
+              "max": 151.58764995433467
+            }
+          },
+          "stepLimitMetres": 0.21100000000000002
+        },
+        "stallDifferenceMs": -1083.333333333338,
+        "worstStepDifferenceMetres": -2.3264608325722875,
+        "acceptedSnapshotGapMs": {
+          "count": 291,
+          "mean": 68.18626214118028,
+          "p50": 56.04188821744174,
+          "p95": 146.8346025282517,
+          "max": 338.03942285943776
+        },
+        "effectiveDelayMs": {
+          "count": 1007,
+          "mean": 160.39665899620633,
+          "p50": 160.14465901665972,
+          "p95": 177.67412613074703,
+          "max": 241.56818787492375
+        },
+        "recoveryLagMs": {
+          "count": 1007,
+          "mean": 1.2426921039799566,
+          "p50": 0,
+          "p95": 0,
+          "max": 100.54037409277589
+        }
+      }
+    }
+  ],
+  "soak": [
+    {
+      "rate": 0.05,
+      "wallSeconds": 82.79,
+      "simulationFrames": 6000,
+      "hostPhase": "ended",
+      "guestPhase": "ended",
+      "timeLeft": -3.396093128937849e-11,
+      "hostCores": [
+        7031.25,
+        7200
+      ],
+      "guestCores": [
+        7031.25,
+        7200
+      ],
+      "received": {
+        "prepare": 1,
+        "snapshotBase": 16,
+        "snapshot": 1315,
+        "begin": 1,
+        "events": 2528,
+        "matchEnded": 1
+      },
+      "dropped": {
+        "snapshot": 59
+      },
+      "interpolation": {
+        "delayMs": 127.06971539936202,
+        "targetDelayMs": 104.89838087798427,
+        "intervalMs": 65.6460822729873,
+        "jitterMs": 14.626149302498481,
+        "lastArrival": 89651.79999999981,
+        "lastRender": 89680.79999999981,
+        "renderTime": 91353.13028460101,
+        "localOffset": -1799.4000000005617,
+        "acceptedSnapshots": 1255,
+        "staleSnapshots": 0,
+        "missingBaselines": 0,
+        "resyncRequests": 0,
+        "frames": 5999,
+        "interpolatedFrames": 5888,
+        "extrapolatedFrames": 111,
+        "clampedFrames": 1,
+        "extrapolationMs": 0,
+        "maxExtrapolationMs": 100,
+        "gapMs": 0,
+        "maxGapMs": 114.92402617751213,
+        "totalDelayMs": 652075.9080077002,
+        "recoveryLagMs": 0,
+        "maxRecoveryLagMs": 17.1347999995578,
+        "effectiveDelayMs": 127.06971539936785,
+        "maxEffectiveDelayMs": 156.68091539936722,
+        "totalEffectiveDelayMs": 652177.696538587,
+        "catchupFrames": 4955,
+        "meanDelayMs": 108.69743424032343,
+        "meanEffectiveDelayMs": 108.71440182340173
+      },
+      "derivedPlayingSnapshotGapMs": {
+        "scope": "採用済frame>0間の間隔を保存済accepted列から再集計。元のgap配列は変更せず、初期frame0から4秒countdownを跨ぐ間隔を除外。",
+        "count": 1253,
+        "mean": 65.91348762968845,
+        "max": 219.79999999981374
+      }
+    },
+    {
+      "rate": 0.2,
+      "wallSeconds": 85.671,
+      "simulationFrames": 6000,
+      "hostPhase": "ended",
+      "guestPhase": "ended",
+      "timeLeft": -3.396093128937849e-11,
+      "hostCores": [
+        7031.25,
+        7200
+      ],
+      "guestCores": [
+        7031.25,
+        7200
+      ],
+      "received": {
+        "prepare": 1,
+        "snapshotBase": 17,
+        "snapshot": 1364,
+        "begin": 1,
+        "events": 2823,
+        "matchEnded": 1
+      },
+      "dropped": {
+        "snapshot": 269,
+        "snapshotBase": 1
+      },
+      "interpolation": {
+        "delayMs": 192.5656910780287,
+        "targetDelayMs": 179.1135258150075,
+        "intervalMs": 100.63028578356369,
+        "jitterMs": 34.24162001572191,
+        "lastArrival": 92581,
+        "lastRender": 92612.20000000019,
+        "renderTime": 94370.23430892198,
+        "localOffset": -1950.5999999998166,
+        "acceptedSnapshots": 1094,
+        "staleSnapshots": 1,
+        "missingBaselines": 1,
+        "resyncRequests": 1,
+        "frames": 5999,
+        "interpolatedFrames": 5819,
+        "extrapolatedFrames": 180,
+        "clampedFrames": 19,
+        "extrapolationMs": 0,
+        "maxExtrapolationMs": 100,
+        "gapMs": 0,
+        "maxGapMs": 313.6559186628074,
+        "totalDelayMs": 984835.6144619107,
+        "recoveryLagMs": 0,
+        "maxRecoveryLagMs": 213.65591866280738,
+        "effectiveDelayMs": 192.56569107802352,
+        "maxEffectiveDelayMs": 368.1000000000058,
+        "totalEffectiveDelayMs": 992824.4284598713,
+        "catchupFrames": 5004,
+        "meanDelayMs": 164.16663018201544,
+        "meanEffectiveDelayMs": 165.49832113016691
+      },
+      "derivedPlayingSnapshotGapMs": {
+        "scope": "採用済frame>0間の間隔を保存済accepted列から再集計。元のgap配列は変更せず、初期frame0から4秒countdownを跨ぐ間隔を除外。",
+        "count": 1092,
+        "mean": 78.27078754578771,
+        "max": 468.30000000074506
+      }
+    }
+  ]
+}

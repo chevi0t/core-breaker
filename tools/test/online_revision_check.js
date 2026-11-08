@@ -2,12 +2,23 @@
 // 通信代替は明示フラグ時だけ。人工状態変更は同期境界の試験であり自然対戦ではない。
 const fs=require('node:fs'),path=require('node:path');
 const {check}=require('./lib');
-const {TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats}=require('./online_test_helpers');
+const {isDeepStrictEqual}=require('node:util');
+const {TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats,installWireObserver}=require('./online_test_helpers');
 async function pumpNetwork(host,guests,n=1){for(let i=0;i<n;i++){await frames(guests,1);await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});await sleep(60);}}
-async function captureWire(page){await page.evaluate(()=>{
-  const t=CBOnlineGame.state.transport;window.__wire=[];if(t.__wireCaptureInstalled)return;t.__wireCaptureInstalled=true;const write=t._write.bind(t);
-  t._write=(link,item)=>{const sent=write(link,item);if(sent)__wire.push({type:item.type,bytes:item.bytes,at:performance.now()});return sent;};
+async function captureWire(page){await installWireObserver(page);await page.evaluate(()=>{
+  const t=CBOnlineGame.state.transport;window.__wire=[];window.__wireMessages=[];
+  if(t.__wireCaptureInstalled)return;t.__wireCaptureInstalled=true;
+  const bytes=x=>new TextEncoder().encode(JSON.stringify(x)).length;
+  window.__observeOnlineWire(w=>__wire.push({type:w.type,bytes:w.messageBytes,channel:w.channel,at:w.at}),w=>{
+    const {payload:data,type}=w.envelope;
+    const m={type,channel:w.channel,bytes:w.messageBytes,logicalBytes:w.logicalMessageBytes,fragmentCount:w.fragmentCount,maxDatagramBytes:w.maxDatagramBytes};
+    if(type==='prepare')Object.assign(m,{hasSnapshotState:['baseline','delta','units'].some(k=>Object.hasOwn(data,k)),metadataKeys:Object.keys(data).sort()});
+    if(type==='snapshotBase')Object.assign(m,{baseId:data.id,parent:data.parent||null,schemaBytes:data.s?bytes(data.s):0,valuesBytes:data.d?bytes(data.d):0});
+    if(type==='snapshot')m.frame=data.frame;
+    __wireMessages.push(m);
+  });
 });}
+async function bootstrap(page){return page.evaluate(()=>({units:__g.units.length,prepare:__wireMessages.filter(x=>x.type==='prepare'),bases:__wireMessages.filter(x=>x.type==='snapshotBase'),initialSnapshots:__wireMessages.filter(x=>x.type==='snapshot'&&x.frame===0),observerErrors:__wireObserverErrors}));}
 async function fakeLoops(page){return page.evaluate(()=>{
   // 実際の音声を鳴らさず、停止API呼出しと音プールの後始末だけを検証する。
   window.__loopProbe={stopped:[],ended:[]};
@@ -43,13 +54,13 @@ async function uiRoom(browser,h,errors,ok){
   let peerId=await request();
   ok((await host.locator('#onlineRequests').textContent()).includes('<b>参加申請</b>')&&await host.locator('#onlineRequests b').count()===0,'申告名をHTMLではなく未認証のテキストとして表示');
   const blocked=await host.evaluate(id=>{
-    const t=CBOnlineGame.state.transport,link=t.links.get(id),types=['snapshot','snapshotBase','prepare','match','events'];
+    const t=CBOnlineGame.state.transport,link=t.links.get(id),types=['snapshot','snapshotBase','prepare','match','events','matchEnded'];
     window.__wire=[];const sent=types.map(type=>t.send(type,{test:true},id));types.forEach(type=>t.broadcast(type,{test:true}));
     return {sent,ready:link.ready,approved:link.approved,peers:CBOnlineGame.state.peers.size};
   },peerId);
   await sleep(180);
-  const leaked=await host.evaluate(()=>__wire.filter(x=>['snapshot','snapshotBase','prepare','match','events'].includes(x.type)));
-  ok(blocked.sent.every(v=>!v)&&!blocked.ready&&!blocked.approved&&blocked.peers===0&&leaked.length===0,'未承認者にはsnapshot・基準・準備・開始・eventを送らない');
+  const leaked=await host.evaluate(()=>__wire.filter(x=>['snapshot','snapshotBase','prepare','match','events','matchEnded'].includes(x.type)));
+  ok(blocked.sent.every(v=>!v)&&!blocked.ready&&!blocked.approved&&blocked.peers===0&&leaked.length===0,'未承認者にはsnapshot・基準・準備・開始・終了・eventを送らない');
   await host.locator('[data-action="rejectGuest"]').click();
   await host.waitForFunction(()=>CBOnlineGame.state.requests.size===0,{},{polling:20});
   await guest.waitForFunction(()=>!document.getElementById('onlineJoin').disabled,{},{polling:20});
@@ -97,10 +108,10 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     const timing=await Promise.all(pages.map(p=>p.evaluate(()=>({startAtHost:CBOnlineGame.state.startAtHost,startAtLocal:CBOnlineGame.state.startAtLocal,actualStartAt:CBOnlineGame.state.actualStartAt,clock:CBOnlineGame.state.transport.clock?.()}))));
     report.countdown={seen:seen.map(s=>[...s]),timing,hostEquivalentStartDifferenceMs:timing[1].actualStartAt+(timing[1].clock?.offsetMs||0)-timing[0].actualStartAt};
     ok(timing.every(t=>t.actualStartAt>=t.startAtLocal),'予約時刻以前には開始しない');
-    report.bootstrap.push(await host.evaluate(()=>({units:__g.units.length,prepare:__wire.filter(x=>x.type==='prepare'),bases:__wire.filter(x=>x.type==='snapshotBase')})));
+    report.bootstrap.push(await bootstrap(host));
     await captureWire(host);
     await frames(pages,100);await sleep(100);
-    report.sizes.push(await host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,transport:CBOnlineGame.state.transport.metrics()})));
+    report.sizes.push(await host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,messages:__wireMessages,observerErrors:__wireObserverErrors,transport:CBOnlineGame.state.transport.metrics()})));
 
     console.log('追加回帰: snapshot間引きと装備・再出撃・施設');
     await guest.evaluate(()=>{
@@ -145,22 +156,66 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     report.baselineRecovery=baselineRecovery;
 
     console.log('追加回帰: 結果画面とループ音停止');
-    // 通常復旧の要求制限時間を過ぎてから、最後のdeltaの直前に全基準を失わせる。
+    // 基準を失った受信機で復旧要求を出し、再送基準・以後の全差分を落とす。
+    // 最終写真だけでなく、その基準も使えない条件でcontrolの結果確定を検証する。
     await sleep(1100);
     await guest.evaluate(()=>{
       const proto=CBOnlineCodec.Decoder.prototype,decode=proto.decode;
-      window.__finalRecovery={cleared:false,snapshots:0,bases:0,resync:0};
+      window.__finalRecovery={cleared:false,snapshots:0,droppedFrames:[],bases:0,baseIds:[],resync:0,results:0};
       proto.decode=function(delta){proto.decode=decode;this.bases.clear();__finalRecovery.cleared=true;return decode.call(this,delta);};
       const t=CBOnlineGame.state.transport,receive=t.options.onMessage,send=t.send.bind(t);
-      t.options.onMessage=(type,data,id)=>{if(type==='snapshot')__finalRecovery.snapshots++;if(type==='snapshotBase')__finalRecovery.bases++;return receive(type,data,id);};
+      t.options.onMessage=(type,data,id)=>{
+        if(type==='snapshotBase'){__finalRecovery.bases++;__finalRecovery.baseIds.push(data.id);return;}
+        if(type==='snapshot'){
+          __finalRecovery.snapshots++;
+          if(__finalRecovery.cleared){__finalRecovery.droppedFrames.push(data.frame);return;}
+        }
+        if(type==='matchEnded')__finalRecovery.results++;
+        return receive(type,data,id);
+      };
       t.send=(type,...args)=>{if(type==='snapshotResync')__finalRecovery.resync++;return send(type,...args);};
     });
+    // 同じ基準の再送はtransportで重複除去される。既存Encoderの番号を保ち、
+    // 次の基準更新を発生させて、その新基準と再送を受信側で失わせる。
+    await host.evaluate(()=>{
+      const proto=CBOnlineCodec.Encoder.prototype,encode=proto.encode;
+      proto.encode=function(s){proto.encode=encode;this.created=-Infinity;return encode.call(this,s);};
+    });
+    const finalDiagnostic=async stage=>{
+      const guestState=await guest.evaluate(()=>({probe:__finalRecovery,phase:CBOnlineGame.state.phase,frame:CBOnlineGame.state.lastSnapshot?.frame,metrics:CBOnlineGame.metrics()}));
+      const hostState=await host.evaluate(()=>({phase:CBOnlineGame.state.phase,frame:CBOnlineGame.state.frame,messages:__wireMessages.slice(-10),metrics:CBOnlineGame.metrics()}));
+      report.finalRecoveryFailure={stage,guest:guestState,host:hostState};console.error('最終結果回帰の診断',JSON.stringify(report.finalRecoveryFailure));
+    };
+    await pumpNetwork(host,[guest],1);
+    await guest.waitForFunction(()=>__finalRecovery.cleared&&__finalRecovery.resync>=1&&__finalRecovery.bases>=1,{},{timeout:6000,polling:20}).catch(async error=>{await finalDiagnostic('基準欠落fixtureの成立');throw error;});
     for(const p of pages)await fakeLoops(p);
-    // finish後は追加snapshotもhost loopも送らない。基準再送だけで保留した最後のdeltaを復旧する。
-    await host.evaluate(()=>{__g.timeLeft=0;__g.finish();CBOnlineGame.afterFrame(0,performance.now());});
-    await guest.waitForFunction(()=>CBOnlineGame.state.phase==='ended',{},{timeout:6000,polling:20});
-    const finalRecovery=await guest.evaluate(()=>__finalRecovery);report.finalRecovery=finalRecovery;
-    ok(finalRecovery.cleared&&finalRecovery.snapshots===1&&finalRecovery.resync>=1&&finalRecovery.bases>=1,'最終snapshotの基準欠落も、追加snapshotなしの基準再送だけで試合結果へ復旧');
+    // finish後は追加host loopを送らない。最後の写真を落とす前提でコアと得点を新しい値へ変える。
+    const finalExpected=await host.evaluate(()=>{
+      __g.timeLeft=0;__g.cores.B.hp=4321;__g.cores.R.hp=7654;
+      const u=__g.units.find(u=>u.controller==='remoteHuman');u.sc.kills+=7;
+      __g.finish();CBOnlineGame.afterFrame(0,performance.now());
+      return {frame:CBOnlineGame.state.frame,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))};
+    });
+    await guest.waitForFunction(()=>CBOnlineGame.state.phase==='ended',{},{timeout:6000,polling:20}).catch(async error=>{await finalDiagnostic('control結果の到着');throw error;});
+    await sleep(180); // controlが先着しても、落とした最後の写真を観測してから集計する。
+    const finalRecovery=await guest.evaluate(()=>({...__finalRecovery,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))}));
+    report.finalRecovery={expected:finalExpected,observed:finalRecovery};
+    ok(finalRecovery.cleared&&finalRecovery.resync>=1&&finalRecovery.bases>=1&&finalRecovery.droppedFrames.includes(finalExpected.frame)&&finalRecovery.results===1,'最終差分・全再送基準が欠落してもcontrol結果1通で終了へ復旧');
+    ok(await host.evaluate(()=>__wireMessages.filter(m=>m.type==='matchEnded').every(m=>m.channel==='control')&&__wireMessages.filter(m=>m.type==='matchEnded').length===1),'最終結果は写真専用線でなくcontrolで1通送信');
+    // 各画面のunitsは自軍先になる。entityIdで揃え、scのキー挿入順に依存せず値を比較。
+    const byId=units=>units.slice().sort((a,b)=>a.id.localeCompare(b.id));
+    const finalMatches=isDeepStrictEqual(finalRecovery.cores,finalExpected.cores)&&isDeepStrictEqual(byId(finalRecovery.units),byId(finalExpected.units));
+    if(!finalMatches){
+      const expectedById=new Map(finalExpected.units.map(u=>[u.id,u])),observedById=new Map(finalRecovery.units.map(u=>[u.id,u]));
+      report.finalRecovery.differences={cores:{expected:finalExpected.cores,observed:finalRecovery.cores},unitCounts:[finalExpected.units.length,finalRecovery.units.length],
+        unitIds:{expected:finalExpected.units.map(u=>u.id),observed:finalRecovery.units.map(u=>u.id)},
+        fields:[...new Set([...expectedById.keys(),...observedById.keys()])].flatMap(id=>{
+          const a=expectedById.get(id),b=observedById.get(id);
+          return ['id','name','cls','sc'].filter(k=>!isDeepStrictEqual(a?.[k],b?.[k])).map(field=>({id,field,expected:a?.[field],observed:b?.[field]}));
+        })};
+      console.error('最終結果の値差分',JSON.stringify(report.finalRecovery.differences));
+    }
+    ok(finalMatches,'写真欠落中の最終コア・全機体の表彰得点もcontrolで一致');
     await guest.evaluate(()=>{const s=__drop.stale;__originalReceive(s.type,s.data,s.id);});
     ok(await guest.evaluate(()=>CBOnlineGame.state.phase==='ended'&&!__g.running),'結果復旧後の古いsnapshotで試合を再開しない');
     for(const p of pages){
@@ -176,13 +231,29 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
 
     console.log('追加回帰: 20機のsnapshotサイズ');
     active=await room(browser,h,errors,{guests:1,teamSize:10,beforeStart:captureWire});
-    report.bootstrap.push(await active.host.evaluate(()=>({units:__g.units.length,prepare:__wire.filter(x=>x.type==='prepare'),bases:__wire.filter(x=>x.type==='snapshotBase')})));
-    for(const b of report.bootstrap)ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.bases.length===0,'初期prepareは1通・上限内で静的基準を二重送信しない（'+b.units+'機）');
+    report.bootstrap.push(await bootstrap(active.host));
+    for(const b of report.bootstrap){
+      ok(b.observerErrors.length===0,'初期wireの断片を独立観測器で復元できる（'+b.units+'機）');
+      ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.prepare[0].channel==='control'&&!b.prepare[0].hasSnapshotState&&JSON.stringify(b.prepare[0].metadataKeys)===JSON.stringify(['localId','mapId','matchId','teamSize']),'初期prepareはcontrol metadata1通だけで静的状態を重複収録しない（'+b.units+'機）');
+      ok(b.bases.length===1&&b.bases[0].channel==='snapshot'&&b.bases[0].schemaBytes>0&&b.bases[0].valuesBytes>0&&b.bases[0].logicalBytes<=262144&&b.initialSnapshots.length===1,'初期基準と差分を写真専用線で各1通送り、静的基準を二重送信しない（'+b.units+'機）');
+      b.controlMetadataBytes=b.prepare.reduce((n,p)=>n+p.bytes,0);b.lossyBootstrapBytes=[...b.bases,...b.initialSnapshots].reduce((n,p)=>n+p.bytes,0);
+    }
     await captureWire(active.host);await frames(active.pages,100);await sleep(100);
-    report.sizes.push(await active.host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,transport:CBOnlineGame.state.transport.metrics()})));
+    report.sizes.push(await active.host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,messages:__wireMessages,observerErrors:__wireObserverErrors,transport:CBOnlineGame.state.transport.metrics()})));
     for(const p of active.pages)await fakeLoops(p);
     await active.host.evaluate(()=>CBOnlineGame.leave('音停止付き退出試験'));await sleep(150);
     for(const p of active.pages){const a=await audioResult(p);ok(a.active===0&&!a.bgm&&a.stopped.length>=3,'ホスト退出時も両画面のループ音・BGMを停止');}
-    for(const s of report.sizes){s.snapshotWireBytes=stats(s.wire.filter(x=>x.type==='snapshot').map(x=>x.bytes));s.totalWireBytes=s.wire.reduce((a,x)=>a+x.bytes,0);s.wireBytesByType=s.wire.reduce((o,x)=>(o[x.type]=(o[x.type]||0)+x.bytes,o),{});console.log('snapshotサイズ',JSON.stringify({units:s.units,full:s.fullSnapshotBytes,compact:s.snapshotWireBytes,wireBytesByType:s.wireBytesByType}));ok(s.snapshotWireBytes.count>0&&s.snapshotWireBytes.mean<s.fullSnapshotBytes,'compact snapshotが従来の完全状態より小さい（'+s.units+'機）');}
+    for(const s of report.sizes){
+      s.snapshotWireBytes=stats(s.messages.filter(x=>x.type==='snapshot').map(x=>x.bytes));
+      s.snapshotLogicalBytes=stats(s.messages.filter(x=>x.type==='snapshot').map(x=>x.logicalBytes));
+      s.snapshotDatagramBytes=stats(s.wire.filter(x=>x.type==='snapshot').map(x=>x.bytes));
+      s.totalWireBytes=s.wire.reduce((a,x)=>a+x.bytes,0);
+      s.wireBytesByType=s.wire.reduce((o,x)=>(o[x.type]=(o[x.type]||0)+x.bytes,o),{});
+      s.wireBytesByChannel=s.wire.reduce((o,x)=>(o[x.channel]+=x.bytes,o),{control:0,snapshot:0});
+      console.log('snapshotサイズ',JSON.stringify({units:s.units,full:s.fullSnapshotBytes,compact:s.snapshotWireBytes,wireBytesByType:s.wireBytesByType,wireBytesByChannel:s.wireBytesByChannel}));
+      ok(s.observerErrors.length===0,'計測wireの全断片を独立観測器で解析できる（'+s.units+'機）');
+      ok(s.snapshotWireBytes.count>0&&s.snapshotWireBytes.mean<s.fullSnapshotBytes,'compact snapshotの全fragment合計が従来の完全状態より小さい（'+s.units+'機）');
+      ok(s.totalWireBytes===s.wireBytesByChannel.control+s.wireBytesByChannel.snapshot&&s.wireBytesByChannel.snapshot===(s.wireBytesByType.snapshot||0)+(s.wireBytesByType.snapshotBase||0),'写真専用線とcontrolの実送信量を分離して合計が一致（'+s.units+'機）');
+    }
   }finally{if(active)await active.close();await h.close();fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'online-revision.json'),JSON.stringify(report,null,2));}
 },{page:false});

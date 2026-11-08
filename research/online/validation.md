@@ -162,3 +162,46 @@ curl -fsSL 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js' | open
 初期同期prepareは65,145Bを1通。中のbaselineは64,850B（schema 58,105B/1,708項目、値6,721B、構造外枠24B）、delta8B、他のprepare項目と通信envelope287B。初期情報の大半は汎用schemaであり、毎回は送らない。途中snapshotBaseは15通・計567,985B、平均37,865.7B/最大61,752B。構造変化時はschemaが必要となるため、通常差分だけで総通信量を説明しない。これらとeventsも専用試験で別々に計上する。
 
 追加圧縮は行わない。非再送経路・遠方の送信頻度低下は今回未実装の次段階。mesa短期Bot戦（30秒）もブラウザエラーなしで終了。
+
+## 次段階①：非再送の写真専用線と自動補間（2026-11-08）
+
+実装は通信規格v5。control（承認/入力/出来事/開始/終了）はreliable ordered、snapshot/snapshotBaseは別PeerJS接続のordered:false/maxRetransmits:0。PeerJS1.5.5の公開reliable:falseだけでは再送0にならないため、写真labelの同期生成時だけ設定を補い、finallyで元に戻す。両接続の同一peer/control ID/承認tokenを照合し、両ready前は試合開始不可。承認前/古いroom・match/逆方向の写真は拒否。
+
+基準は16KiB未満のdatagramへ分割。最大262144B/4組、基準断片10秒・通常写真断片1秒の上限。同じ基準の再同期で足りない片を補えるが、異なる内容は混ぜない。状態と基準は別番号系列で、遅れた親基準と状態の逆戻りを区別する。初期prepareはmetadataだけ、基準/差分が復元できてreadyを返す。最終コア・全員の表彰得点はcontrolのmatchEndedで確定し、最後の写真に依存しない。
+
+### 確認済み
+
+- `online_channel_check.js`：6項目成功。実PeerJS→実RTCPeerConnectionでcontrol ordered=true/maxRetransmits=null、snapshot ordered=false/maxRetransmits=0を観測。正常/例外両方で限定patchを復元し無関係な接続を変えない。PeerServer登録とDataChannel生成の検証であり、ICE/NAT接続成立は未確認。
+- `online_transport.test.js`：5%/20%論理損失で100写真中95/80到達、control100件到達。144KB基準へ異なる20%断片損失を2回注入して復旧。逆順・遅着親基準・容量/期限・孤児token・承認前秘匿・両ready・片線切断・経路混入・不正RTC設定を検査。
+- `online_interpolation.test.js`：損失/逆順各300秒相当、初期線順序差、基準欠落、backoff、malformed通知拒否、終了写真欠落、300/3900ms連続欠落の復旧追従、lifeId/motionEpochの境界を確認。codec/rooms既存Node回帰も成功。
+- `online_loss_check.js --recovery-only --mock-transport`：10項目成功。承認前両線秘匿、片側写真詰まりでもcontrolと他ゲストが進む、基準欠落→再同期、古い写真拒否、最終基準/写真を落としてもcontrol結果へ復旧。
+- `online_room_check.js --mock-transport`：18項目成功。部屋設定・希望所属・定員・マップ/移動施設・両陣営の色を維持。
+- `online_check.js --connections-only --mock-transport`：15項目成功。版拒否、準備時間差、途中参加、切断/入力途絶/ホスト終了を維持。
+
+### 止まり方の変更前後
+
+`online_loss_check.js --trajectory-only --mock-transport`：13項目成功。製品補間と旧v4の固定100ms/外挿なしを、同じ20Hz写真・60fps描画時計・10m/s直線移動・同一乱数seed214で比較。20秒の受信列に25〜55msの揺れ、時々120ms追加遅延、300ms連続欠落、順序逆転を含めた。開始2秒と再出撃/瞬間移動前後600msは測定から除外。各適用写真の復号位置・lifeId・移動epochと生成源の一致を検査。これは決定的な表示軌跡試験で、実回線や人間の操作感ではない。
+
+- 5%欠落：停止合計316.7→133.3ms、停止5→1回、最大1コマ移動2.526→0.200m。
+- 20%欠落：停止合計1166.7→83.3ms、停止19→1回、最大1コマ移動2.526→0.200m。
+- 両条件で逆方向移動0、外挿最大100ms。目標補間待ちは60〜200ms（平均110.4/153.3ms）。
+
+300ms連続欠落では停止自体は残る。表示時計も最新写真+100msで止め、復旧後は最大1.2倍速で追いつくため、欠落分を一度に飛ばさない。この代わりに推定された表示遅れ（最小到着時刻差を基準とするeffectiveDelayMs）は一時的に目標200msを超え、両条件最大241.6ms。回線の片道遅延込みの総遅延を実測した値ではない。追加の復旧遅れ最大135.3/100.5msを別計測した。60〜200msを障害中の実遅延上限とは主張しない。catchupFramesは通常のバッファ縮小も含む「実時間より速く描画時計を進めたコマ数」で、欠落復旧だけの回数ではない。
+
+比較の小さい集計はloss-summary.json。試験の古いfixtureでは実試合と試験用の基準IDが衝突したため、その測定値は破棄し、decoder状態を隔離した上記の再測定だけを採用した。
+
+### 5%/20%損失での自然試合
+
+`online_loss_check.js --soak-only --mock-transport`：5項目成功。両条件ともmesa・人間2人+Bot計10機、300秒の試合を勝敗まで完走し、host/guestの最終コア一致、ブラウザエラーなし。初期同期前から論理message損失を注入した。実RTC packet損失と同じとは扱わない。
+
+- 5%設定：通常写真1,315通を観測し59通を破棄、基準16通。controlの出来事2,528通と終了1通を受信。
+- 20%設定：通常写真1,364通を観測し269通を破棄、基準17通中1通を破棄。controlの出来事2,823通と終了1通を受信。
+- 保存済み採用写真列のframe>0だけから別途集計した試合中の受信間隔は、5%平均65.9ms/最大219.8ms、20%平均78.3ms/最大468.3ms。これは画面停止時間ではない。初期写真→4秒カウントダウンを跨ぐ間隔は除外した。次回用collectorはphaseで試合中/開始待ちの間隔を別々に保存する。
+
+機能試験は固定50msのコマ送り・描画省略（実時間約82.8/85.7秒）。製品の可変dtは変更していない。実PCのCPU性能や実時間20Hz帯域、別回線の操作感の測定ではない。
+
+`online_revision_check.js --mock-transport`：46項目成功。承認UI、3/2/1、静的情報の初期重複なし、装備/再出撃/施設、基準復旧、最後の基準/写真欠落からcontrol結果、両側の音停止、10/20機の経路別/断片合計を確認。
+
+初期同期のv5実測：10機はcontrol metadata266B＋写真専用線89,612B（基準89,368B/8片＋初期差分244B）。20機は267B＋177,850B（基準177,606B/15片＋244B）。最大datagram12,268Bで16KiB未満。基準の分割前JSONは65,429/130,197Bだが、断片のbase64/外枠が増えるため初期総量は大きくなる。今回の主目的は制御と写真の待ちを分離し、古い写真のRTC再送を止めることであり、通常時や初期同期のbyte数が一律減ったとは主張しない。WebRTC/SCTP/DTLS等のヘッダー・再送はこれらのアプリ送信量に含めない。
+
+最終 `quick_check.js origin/main` 成功（カスタマイズ一覧34項目・city/dock各60秒Bot戦、ブラウザエラーなし）。構文/差分検査とtransport/interpolation/codec/rooms Node回帰成功。描画つきbenchとsnapshot専用最大内訳ツールはv5形式へ更新・構文確認済みだが、この段階では再計測していない。後続②/④で目的別に測定する。別PC/別回線の実通信・実機の操作感は未確認。①をpush後、②自機先読み→③hitscan巻戻し→④ゲスト別選別へ順に進む。
