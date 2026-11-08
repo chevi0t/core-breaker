@@ -82,7 +82,8 @@ function deliver(h,e,s,t=s.time){h.at(t);const w=encode(e,s);if(w.base)h.test.ha
     const m=h.game.metrics().interpolation;
     assert(m.delayMs>=60&&m.delayMs<=200);assert(Math.abs(m.delayMs-previous)<=6.0001);previous=m.delayMs;
   }
-  assert.equal(h.game.metrics().interpolation.delayMs,60);
+  // 初期の写真間隔が1000/30msの端数になったので、下限60msへの収束は誤差込みで見る。
+  assert(Math.abs(h.game.metrics().interpolation.delayMs-60)<1e-6);
   // 到着間隔が揺れる場合は徐々に増え、バッファ増加で描画時刻を巻き戻さない。
   let t=10000,render=h.game.metrics().interpolation.renderTime;
   for(let n=201;n<=260;n++){

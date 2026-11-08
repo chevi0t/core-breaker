@@ -37,7 +37,7 @@ for(const [p,hash]of Object.entries(sourceHashes))assert.equal(hash,sha256(fs.re
 const instrumentedGameHash=sha256(gameSource); // VM用hookを足したsourceは製品hashとは別記する。
 function page(role){
   const h=api.harness(),c=h.c,t=c.window.__predictionContractTest;
-  Object.assign(c,{CBOnlineGame:h.game,__predictionTest:t,__g:c,structuredClone,terrainH:()=>0,releaseLock:()=>{},
+  Object.assign(c,{CBOnlineGame:h.game,__predictionTest:t,__g:c,structuredClone,terrainH:()=>0,releaseLock:()=>{},mainMuzzleFlash:()=>{},
     renderer:{render:()=>{}},PARTS:requireParts(),equip:(u)=>{
       // 境界の検出/状態復元を検査。WebGL機体再構築とmechStatsそのものはbrowser版が担当。
       u.lockRange=c.PARTS.head[u.mech.head].lock;

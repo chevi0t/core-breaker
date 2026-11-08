@@ -431,3 +431,32 @@ F3の反復控除は現在のtick数。防いだ視点上書きは直近2秒・�
 `node tools/test/online_prediction_contract.test.js` はbrowser版のfunctional関数と全3つのevaluate処理をそのまま平地VMへ接続し、67項目・生成元/復号状態の照合74回・秘匿枠1件で成功。通常実行は過去commitやネットワーク不要。`--before-v9-fixture=/path/to/old/check.js` を指定すると旧fixtureの同じnull例外を検証できる。再現例はファイル冒頭、最終結果とsource hashは `prediction-contract-summary.json`。VMの地形/施設/射撃、equipの機体再構築、camera/aimには代役があり、結果にも列挙した。
 
 統合後はオンラインNode13スイート、visibility154項目、名前14ファイル、変更JS構文、diff検査が成功。新旋回checkは実時間dt・入力方向への単調回転を確認する通常通信のsmokeとし、反復控除を強制した回帰は既存camera36条件が担当する。今回のbrowser版の実実行、WebRTC、latencyCaseの50/100ms実時間測定は環境制限により未実行であり、VM成功をその代わりの成功とはしない。
+
+## #216提出時の記録：写真30Hzと発砲の先出し（Claude、2026-11-08）
+
+以下は提出者がe446606で記録した過去の結果で、取込環境で再実行した結果ではない。最終実装と今回の検証は次節を参照。
+
+- オーナー「通信ラグが無いのに快適なのがホストだけ」への対応。写真の送信間隔を 50ms（20Hz）から 1000/30ms（30Hz）にした（`SNAPSHOT_INTERVAL_MS`）。④で1枚が小さくなった分を回す。補間の初期値も同じ間隔にした。
+- ゲストの発砲炎と発射音を、引き金を引いたコマに手元で出す（`predictLocalFire`）。対象はふつうの即着弾銃（飛ぶ弾・チャージ・ガトリング・ミサイル・3点射は除く）。弾・命中・ダメージ・弾数は今どおりホスト。手元で 0.5 秒以内に撃っていた時は、ホストから届く自機の同じ発砲の炎と音を出さない。
+- `online_local_fire_check.js`：4項目成功（引き金のコマで炎と音、ホストの発射 41 に対して炎 40・音 40）。`online_view_turn_check.js`：4項目成功（4秒で補正 115 回＝写真が約 29 枚/秒、平均 0.0047m、瞬間合わせ 0）。`online_revision_check.js` 53・`online_room_check.js` 18・`online_result_buttons_check.js` 6 項目成功。Node の online_*.test.js は全て成功（`online_interpolation.test.js` は下限 60ms への収束を誤差込みで見るよう直した）。通信は代役（--mock-transport）で、実回線の通信量は未計測。
+
+
+## #216更新版e446606の統合・補修（2026-11-08）
+
+#216は視点保護だけの44614b1から、b220afaを基準にした写真30Hz・発砲演出先出しのe446606へ更新された。元版を取り込んだa4b1d04に、新版の履歴もmergeする。重複する視点保護は再適用せず、finally復元とF3計測、実時間dtを使う旋回smokeを維持する。validation.mdの追記を両方保存し、同名の旋回checkは#214の強化済み版を残した。
+
+### 写真予定の端数と実送信を区別
+
+提出版の「前回の実行から32.3ms以上なら生成、実行時刻を次の起点にする」判定は端数を捨て、62fpsで20.67Hz、75fpsで25Hz、144fpsで28.8Hzへ下がることを製品afterFrameで再現した。予定時刻を33.333msずつ進めて端数を持ち越す方式へ修正。30/60/61/62/63/75/90/120/144/240fps各30秒で900枚、20fpsは600枚。1frame最大1枚、停止からの追いつきburst禁止、秘匿変更の即送信で定期予定を延期しないこと、終了/次試合のresetを含む29項目が成功した。
+
+`online_snapshot_cadence.test.js` は製品afterFrameを実行し、payload・可視性・codec・20ms最新優先pumpは代役。前後比較は `snapshot-cadence-summary.json`。20ms pump後の間隔は60fpsで20/40ms、62fpsで20/40/60msとなる。平均生成30Hzと毎33.3msの実到着は同義ではない。実RTC・混雑時・総帯域は未測定。同一payloadの20→30Hzは写真部分を約1.5倍にする。④の最適化で必ず相殺されるとは扱わない。
+
+### 発砲先出しの境界と抑止回数
+
+提出版では先出し1回のあと100ms以内に来るhost発砲5回すべての炎・音を消した。修正版では同じ生命/武器の先出し1回ぶんだけを各1回消費し、残り4回を再生する。64件・500msの上限を設け、機体/試合/生命/生死/slot/武器keyの変更でreset。確定CDから開始し、semiは実際に発砲した時だけheldを立て、reload/持替え要求コマは先出しせず、二丁銃は左右の炎を出す。host演出に生命と武器keyを付加し、旧metadataのない演出は抑止しない。
+
+`online_local_fire.test.js` の実関数VM50項目が成功。本体gunTickとの可変dt120frame対照はauto19発・semi4発が一致。末端の炎/音は代役であり実聴感の測定ではない。既知限界もassertする。501ms遅着は二重演出、500ms以内の別seqは1回ぶん誤照合し得る。残弾写真が1秒更新されないammo=1対照では見た目11回・実ammo1のままで、先出しは未確定の弾数を消費しない。host拒否の先出しを取り消す仕組みもない。結果とsource hashは `local-fire-summary.json`。
+
+ブラウザsmoke `online_local_fire_check.js` はmake_dbg既定の50ms固定dtをやめ、手動の16.7ms時計をgame dtへ反映するrealTimeモードへ修正し、回数の上限だけでなく下限も確認する。実時間通信の計測ではない。既存予測契約VMには炎の末端adapterを足し、browserと同じfunctionalの67項目・公開状態照合74回・秘匿枠1件が成功した。最新hash付き `prediction-contract-summary.json` を更新する。
+
+今回の統合後、オンラインNode15スイート、visibility154項目、名前14ファイル、変更JS構文、diff検査が成功。独立レビューでも同一game hashで全15スイートを再成功。実ブラウザcheck・quick_check/npm testのbrowser部分は既知のChromium socket EPERM/WebGL不可により未実行。提出者のブラウザ成功を今回版の成功へ転用しない。新しい製品変更はonline/game.jsだけで、通信v9・draft #214を維持し、main/gh-pagesは変更しない。
