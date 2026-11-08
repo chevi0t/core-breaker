@@ -65,8 +65,8 @@ class FakePeer extends EventEmitter {
     await assert.rejects(wrong.connect(room), /版が違います/);
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
-    oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:3});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 8 \/ 相手: 3）/);
+    oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:8});
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 9 \/ 相手: 8）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);
@@ -236,7 +236,7 @@ class FakePeer extends EventEmitter {
     await until(()=>waitingHost.links.get(waitingGuest.peer?.id)?.pending);
     const unapprovedLink=waitingHost.links.get(waitingGuest.peer.id);
     assert.equal(unapprovedLink.snapshotConn,null);
-    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:8,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
+    const orphan=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:Transport.PROTOCOL,roomId:waitingRoom,controlId:unapprovedLink.conn.connectionId,token:'fake-token-before-approval'}});
     await wait(30);assert(orphan.closed);assert(waitingHost.links.has(waitingGuest.peer.id));assert(!unapprovedLink.approved);
     waitingHost._receive(unapprovedLink,JSON.stringify(waitingGuest._envelope('snapshot',{secret:true})),'snapshot');
     waitingHost._receive(unapprovedLink,JSON.stringify({...waitingGuest._envelope('inputBatch',batch(1)),inputSequence:1}),'snapshot');
@@ -252,7 +252,7 @@ class FakePeer extends EventEmitter {
     assert.equal(actual.control.ordered,true);assert.equal(actual.control.maxRetransmits,null);
     assert.equal(actual.snapshot.ordered,false);assert.equal(actual.snapshot.maxRetransmits,0);
     assert.equal(actual.snapshot.maxPacketLifeTime,null);
-    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:8,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
+    const duplicate=waitingGuest.peer.connect(waitingRoom,{label:Transport.SNAPSHOT_LABEL,reliable:false,serialization:'raw',metadata:{protocolVersion:Transport.PROTOCOL,roomId:waitingRoom,controlId:live.conn.connectionId,token:live.snapshotToken}});
     await wait(30);assert(duplicate.closed);assert.equal(live.snapshotConn.closed,false);
     live.snapshotConn.close();await until(()=>!waitingHost.links.size&&!waitingGuest.links.size);
     // 接続tokenが異なる相手の第2線はcontrolと結び付けない。

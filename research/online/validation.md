@@ -355,3 +355,47 @@ revision54項目、自機予測の機能63項目、50/100msラグ補償200項目
 ### 統合・UI更新後の確認
 
 オンラインNode 7スイート（codec/interpolation/lag/movement/prediction/rooms/transport）、新旧ui.jsの構文、diff検査は成功。結果画面のブラウザ試験は起動を試したが、この実行環境ではPlaywright同梱Chromiumがなく、既存Chromiumもsocket Operation not permittedで起動できなかった（昇格実行でも同じ）。統合後のE2E成功とは扱わない。新しいonline_ui_check.jsは1440/390/320px配置、繰り返し開閉、自動入室、コピー、権限、キーボード所属の回帰を追加。以前の④の試験結果は当時のcommitに対する結果であり、今回の統合後E2Eへ流用しない。サイトでのスモーク確認は別途記録する。
+
+## 通常移動の照合修正・固定命令v9（2026-11-08）
+
+### 診断と原因の範囲
+
+診断先行版1838915のF3は直近2秒を表示する。補正は1mm超の件数・平均・最大m、hardSnapは全件と理由。host開始間隔は実now差、JS処理時間とは別でGPU完了を含まない。到着間隔は最新の受理写真だけ（重複/逆順を除外）、host値は最後に届いた集計。追加の「先読み停止理由」「停止写真の補正件数」は写真のpredictionBlockedタグであり、全replay stepの停止を意味しない。
+
+ユーザーは同じPCのFirefox host/Edge guest、双方60fps、RTT24ms、通常Shiftのみ（加速装置なし）で2秒平均0.970m・最大2.415m・hard18を報告。この値を完全再現したわけではない。旧版の16.7ms送信判定は±0.1msの描画揺れでも30Hzへ落ち、同seq反復と後続の仮dtの重なりを作る。固定命令は生成/実適用/ACKの時間を揃える。初期候補はbatch30Hzのままでも改善したため「送信Hzだけが原因」とはしない。最終版は新固定命令を作ったframeで時間閾値なしにenqueueし、高Hzの命令なしframeは送らない。実wireは既存20ms pump（最大約50Hz）であり、描画Hz/命令Hz/送信Hzを混同しない。
+
+### 実physics・実初期装備・実codecの比較
+
+`node tools/test/online_sync_report.js > research/online/physics-sync-summary.json` で再計算。beforeは1838915、afterは作業ツリー、各source SHA256・正確な装備値・条件・補正例をJSONへ保存。旧commitのないshallow cloneは理由付きで止まり、履歴取得が必要（自動fetchなし）。通常回帰 `online_physics_sync.test.js` は旧commitもネットも不要。
+
+本体physics、parts/weapons/mechStatsによる初期強襲/重火力、送信→host移動→fixedUnit写真→実codec encode/decode→ACK照合を接続した平地VM。Bot射撃/被弾・近接・施設外力なし、製品マップ全体でも実RTC/描画でもない。壁/斜面等は既存online_movement.test.jsで別回帰。初期強襲weight4340/cap4800、walk13/dash46/cruise30。重火力weight5430/cap4800、walk10.9525/dash38.755/cruise25.275。装備値を代役速度で置き換えない。
+
+60/60、guest frame±0.1ms、片道12ms、host位相1ms、2.2秒中の最後2秒。写真判定50msで実到着平均54.76ms（ユーザー実測64msとは異なる）。下は強襲の補正>1mm平均/最大m、hard件数。
+
+| 動作 | 旧 平均/最大/hard | 修正 平均/最大/hard |
+|---|---|---|
+| 停止 | 0/0/0 | 0/0/0 |
+| 直進 | .1500/.2154/0 | .0042/.0076/0 |
+| 短dash | .3651/.7621/11 | .0044/.0082/0 |
+| 長dash | .4016/.6460/5 | .0045/.0086/0 |
+| ジャンプ | .1666/.3821/0 | .0047/.0100/0 |
+
+重火力も5動作で最大2cm未満・hard0。cm丸めを通すので「0補正」とはしない。丸めなし直進対照は一致。加速装置ON対照は実speed45/use2.4で旧平均2.4858m→新2.4864m、hard36のまま。従来の意図的非予測を変更していない別経路で、今回ユーザーの原因とは扱わない。
+
+### 指定の間引き・反復・復帰
+
+60/60、60/144、144/60 × batchを1/2/3guest frameごと × 短/長dashの18組、各4.2秒・最後2秒、実physics/codec/RTT24msに20ms送信pumpの時刻代役（同tickのinput/photoは最新1件）を追加。全組平均/最大とも0.05m未満・hard0。pumpは時刻代役で、製品transportのfragment/bucket/実RTCまで検証したものではない。144/240Hz各12秒でもenqueueは720件以下。transportの120token/秒上限を無条件に上げていない。
+
+追加対照の150ms途中入力欠落では12反復が発生。旧固定候補の長dash最大2.5m/hard4は反復時間控除で0へ。操作変化を含む短dashには欠落境界の大補正が残る。復旧数秒後は短dash/反転最大1cm未満・hard0になるが、queue7・予測負債7tickが残り、hostの新操作反映は約117ms遅れたまま。この上限付き追いつきの制約を隠さず、命令破棄や継続速度増加は追加しない。
+
+500ms guest描画停止ではhost時計が先行し、初期控除案は永久負債30tick・長dash毎写真.65m補正に退行した。250ms中立化後のfresh命令で予測時計のみ再基準化し、最後2秒は短dash/反転最大1cm未満・長dashほぼ0・hard0、負債0に復帰。復帰ACK写真の欠落とジャンプ押下4回の一度ずつ実行も恒久回帰へ追加。host位置/速度budget/未適用命令は巻き戻さない。
+
+### 線形同期対照と保護回帰
+
+線形30m/s・片道1ms・10秒（実physicsではない）を別のfixed-command-rates-summary.jsonに保存。旧可変方式対照→固定方式の平均/最大/hardは60/60が0/0/0→0/0/0、60/144が.3002/.3750/0→0/0/0、144/60が.1108/.1667/0→0/0/0。30/144、60/240、急反転100ms、150ms写真バースト、写真欠落もJSONに残す。通常の実ゲーム値へ流用しない。
+
+固定テストはseq/重複/欠番/2.1秒入力欠落復旧/queue上限/改造70Hz相当の継続速度増加防止、可変dt余り維持、独立通信線の押下順逆転、240Hz複数押下ID、0step施設保持、実H+Space順序、武器host frame一度を確認。移動SP/zip等は固定移動総時間ぶん進み、武器は追いつきで増えない。時間budgetはwallclockでなく既存gameFrame dt（最大50ms）で、10fps等では実時間60命令に届かない制限が残る。
+
+inputAcksはcodecのj原子で、適用済みID0→128→0でも初期以外schema baseline増加0。ただし128ID（1〜128）のJSON deltaは本fixtureで604B増える。2KBは目安で上限ではなく、帯域を無条件に軽量化したとは主張しない。visibilityは呼出内だけpoint/LOSを再利用、10,000比較で出力同一、LOS15554→14193、point176084→87352。実FPS改善量は未測定。
+
+v9はv8を拒否するため両ブラウザを再読込する。高Hzで自機位置が60Hzの階段になる描画補間は未追加。今回環境はChromium socket EPERM、別cloud browserはWebGL作成不可のため新E2E/人の操作感/実FPSは未検証。過去のブラウザ成功を今回版へ転用しない。

@@ -84,11 +84,15 @@
   function castHitscan(u,from,dir,w){
     const hit=hitscanContext?.unit===u&&hitscanContext.weapon===w?castGuestHitscan(u,from,dir,w):castFrom(from,dir,u,w.range||400);effectTarget=hit?.ref||null;return hit;
   }
-  // 確定dtはhostの実行記録だけ。未実行のhost dtは未知なので、送信時の可変dtは仮値として別に保持する。
+  // 移動命令の刻みはhost定義。client申告のdtや描画Hzで機体速度を変えない。
+  const commandLimits={dt:1/60,queue:30,sequenceJump:120,catchupSeconds:.1,catchupBacklog:6,maxFrameSteps:4,maxAheadSteps:2};
+  let localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
   const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:8,visualFrames:6};
   const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,futureMs:250,actions:64};
   const movementKeys=['KeyW','KeyS','KeyA','KeyD','KeyC','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   const movementEdges=['ShiftLeft','ShiftRight','Space'];
+  const movementMask=pressed=>movementEdges.reduce((mask,key,i)=>mask|(pressed?.[key]?1<<i:0),0);
+  const movementPressed=mask=>Object.fromEntries(movementEdges.filter((_,i)=>mask&(1<<i)).map(key=>[key,true]));
   let inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};
   function predictionState(enabled=true) {
     return {enabled,pending:[],actionEdges:[],authoritative:null,reconciliations:0,correctionCount:0,correctionTotal:0,correctionMax:0,corrections:[],
@@ -97,9 +101,11 @@
   }
   let prediction=predictionState();
   function resetPrediction(enabled=prediction.enabled) {
+    localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
     prediction=predictionState(enabled);inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};for(const u of units)delete u.onlineVisualOffset;
   }
   function clearPrediction() {
+    localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
     prediction.pending=[];prediction.actionEdges=[];inputSending.history=[];inputSending.signature=null;prediction.authoritative=null;prediction.visualFrames=0;prediction.hostSteps=[];
     state.pendingInputs.clear();displayedLatencies.length=0;
     for(const u of units)delete u.onlineVisualOffset;
@@ -121,17 +127,27 @@
     prediction.actionEdges=prediction.actionEdges.filter(e=>now()-e.time<=inputLimits.maxAgeMs);
     const copy={...input,keys:{...input.keys},pressed:{...input.pressed}};
     const pressedMove=Object.fromEntries(movementEdges.filter(k=>input.pressed?.[k]).map(k=>[k,true]));
-    if(Number.isSafeInteger(input.actionSeq)&&Object.keys(pressedMove).length&&!prediction.actionEdges.some(e=>e.actionSeq===input.actionSeq)){
-      prediction.actionEdges.push({actionSeq:input.actionSeq,seq:input.seq,lifeId:player.lifeId,time:now(),pressed:pressedMove,needsReplay:false});
+    const edgeActions=input.command&&input.moveActions?.length?input.moveActions.map(([actionSeq,mask])=>({actionSeq,pressed:movementPressed(mask)})):
+      [{actionSeq:input.command?input.moveActionSeq:input.actionSeq,pressed:pressedMove}];
+    for(const edge of edgeActions)if(Number.isSafeInteger(edge.actionSeq)&&edge.actionSeq>0&&Object.keys(edge.pressed).length&&!prediction.actionEdges.some(e=>e.actionSeq===edge.actionSeq)){
+      prediction.actionEdges.push({actionSeq:edge.actionSeq,seq:input.seq,lifeId:player.lifeId,time:now(),pressed:edge.pressed,needsReplay:false});
       if(prediction.actionEdges.length>inputLimits.actions){prediction.droppedActionSeq=prediction.actionEdges.shift().actionSeq;prediction.droppedInputs++;}
     }
     // movementのackがcontrolの到着より先なら、消化していない押下を次の実在する仮dtへ一度だけ乗せる。
-    for(const edge of prediction.actionEdges)if(edge.needsReplay&&edge.lifeId===player.lifeId&&edge.seq<=input.seq){Object.assign(copy.pressed,edge.pressed);edge.needsReplay=false;}
     // 送信情報にdtを含めない。履歴が上限に達したら古い仮stepを捨て、次の確定写真で合わせる。
     prediction.pending.push({input:copy,provisionalDt:dt,lifeId:player.lifeId,time:now()});
     let seconds=prediction.pending.reduce((n,p)=>n+p.provisionalDt,0);
     while(prediction.pending.length>predictionLimits.inputs||seconds>predictionLimits.seconds){const dropped=prediction.pending.shift();seconds-=dropped.provisionalDt;if(dropped.input.seq>=prediction.droppedThroughSeq){prediction.droppedThroughSeq=dropped.input.seq;prediction.droppedThroughDt=dropped.provisionalDt;}prediction.droppedInputs++;}
-    const moved=predictHumanMovement(player,copy,dt);
+    const index=prediction.pending.length-1-(input.command?(prediction.repeatDebt||0):0);
+    if(index<0)return false;
+    const source=input.command?prediction.pending[index].input:copy;
+    const applied={...source,pressed:{...source.pressed}};
+    if(input.command&&(source.moveActions?.length||source.moveActionSeq)){
+      for(const key of movementEdges)delete applied.pressed[key];
+      for(const edge of prediction.actionEdges)if(edge.seq===source.seq)Object.assign(applied.pressed,edge.pressed);
+    }
+    for(const edge of prediction.actionEdges)if(edge.needsReplay&&edge.lifeId===player.lifeId&&edge.seq<=source.seq){Object.assign(applied.pressed,edge.pressed);edge.needsReplay=false;}
+    const moved=predictHumanMovement(player,applied,dt);
     if(moved){prediction.predictedSteps++;prediction.predictedSeconds+=dt;}else prediction.blockedFrames++;
     return moved;
   }
@@ -153,6 +169,9 @@
     const v=s.units.find(u=>u.id===state.localUnitId);if(!v||!player)return;
     const m=prediction,ack=s.inputAcks?.[state.localUnitId],legacyAck=s.acks?.[state.localUnitId]||0;
     // seqDtは同じ入力をhostが複数コマ使った累積。seq番号だけでは部分適用を判定できない。
+    const fixed=ack?.fixed===true;
+    // held補完で既に進んだ固定tickも写真に含まれる。未到着命令を同じ時間へ重ねない。
+    const replaySeq=fixed&&Number.isSafeInteger(ack.replaySeq)?ack.replaySeq:0;
     const seq=Number.isSafeInteger(ack?.seq)?ack.seq:legacyAck,seqDt=Number.isFinite(ack?.seqDt)?Math.max(0,ack.seqDt):Infinity;
     if(ack&&Number.isSafeInteger(ack.step)&&ack.step>=m.lastAckStep){
       for(const step of ack.steps||[])if(Number.isSafeInteger(step.step)&&step.step>m.lastAckStep&&Number.isFinite(step.dt)&&step.dt>0&&step.dt<=.05){m.hostSteps.push({...step});m.hostStepSamples++;}
@@ -160,27 +179,31 @@
       m.lastAckStep=ack.step;m.confirmedHostSeconds=Number.isFinite(ack.totalDt)?ack.totalDt:m.confirmedHostSeconds;
     }
     m.lastAckSeq=Math.max(m.lastAckSeq,seq);
+    m.repeatDebt=fixed?Math.max(0,replaySeq-seq):0;
     const actionSeq=Number.isSafeInteger(ack?.actionSeq)?ack.actionSeq:0;m.lastAckActionSeq=Math.max(m.lastAckActionSeq,actionSeq);
-    m.actionEdges=m.actionEdges.filter(e=>e.actionSeq>actionSeq&&e.lifeId===v.lifeId&&now()-e.time<=inputLimits.maxAgeMs);for(const e of m.actionEdges)e.needsReplay=true;
+    const movementAck=fixed?(ack.movementSeq||0):actionSeq,movementIds=new Set(fixed&&Array.isArray(ack.movementIds)?ack.movementIds:[]);
+    m.actionEdges=m.actionEdges.filter(e=>(fixed?!movementIds.has(e.actionSeq):e.actionSeq>movementAck)&&e.lifeId===v.lifeId&&now()-e.time<=inputLimits.maxAgeMs);for(const e of m.actionEdges)e.needsReplay=true;
     let reason=discontinuityReason(m.authoritative,v);
-    if(!reason&&(seq<m.droppedThroughSeq||seq===m.droppedThroughSeq&&seqDt+1e-9<m.droppedThroughDt||actionSeq<m.droppedActionSeq))reason='history';
+    if(!reason&&(seq<m.droppedThroughSeq||!fixed&&seq===m.droppedThroughSeq&&seqDt+1e-9<m.droppedThroughDt||(fixed?m.droppedActionSeq>0&&!movementIds.has(m.droppedActionSeq):movementAck<m.droppedActionSeq)))reason='history';
     m.authoritative=v;
     if(!m.enabled||state.phase!=='playing'||!previousView)return;
     m.reconciliations++;
-    m.pending=m.pending.filter(p=>p.input.seq>=seq&&p.lifeId===v.lifeId);
-    if(reason){m.pending=[];m.actionEdges=[];inputSending.history=[];}
-    else for(const p of m.pending){
-      const confirmed=p.input.seq===seq,dt=confirmed?Math.max(0,p.provisionalDt-seqDt):p.provisionalDt;
+    m.pending=m.pending.filter(p=>(fixed?p.input.seq>seq:p.input.seq>=seq)&&p.lifeId===v.lifeId);
+    if(reason){m.pending=[];m.actionEdges=[];inputSending.history=[];if(fixed)m.droppedActionSeq=0;}
+    else for(const [index,p] of m.pending.entries()){
+      // hostの次は未適用queueの先頭。反復ぶんは再生時間から引き、入力の順序は飛ばさない。
+      if(fixed&&index>=Math.max(0,m.pending.length-Math.max(0,replaySeq-seq)))break;
+      const confirmed=p.input.seq===seq,dt=fixed?commandLimits.dt:confirmed?Math.max(0,p.provisionalDt-seqDt):p.provisionalDt;
       if(dt<=1e-9)continue;
       if(confirmed)m.partialAcks++;
       // 部分適用の残りdtを作り、押下の消化は下の独立action ackで判断する。
       const input={...p.input,pressed:confirmed?{}:{...p.input.pressed}};
       // controlへ載せた押下はmovement seqでは消化を決めない。独立action ack後だけ捨てる。
-      if(Number.isSafeInteger(p.input.actionSeq))for(const k of movementEdges)delete input.pressed[k];
+      if(p.input.command?p.input.moveActions?.length||Number.isSafeInteger(p.input.moveActionSeq)&&p.input.moveActionSeq>0:Number.isSafeInteger(p.input.actionSeq))for(const k of movementEdges)delete input.pressed[k];
       for(const edge of m.actionEdges)if(edge.needsReplay&&edge.seq<=p.input.seq){Object.assign(input.pressed,edge.pressed);edge.needsReplay=false;}
       if(typeof predictHumanMovement==='function'&&predictHumanMovement(player,input,dt)){m.replayedSteps++;m.replayedSeconds+=dt;}
     }
-    m.pending=m.pending.filter(p=>p.input.seq>seq||p.provisionalDt>seqDt+1e-9);
+    m.pending=m.pending.filter(p=>p.input.seq>seq||!fixed&&p.provisionalDt>seqDt+1e-9);
     // 写真が来るまでに増えたマウス/右スティックの向きは見た目だけの遅延を付けない。
     if(!reason){player.yaw=previousView.yaw;player.pitch=previousView.pitch;}
     const distance=Math.sqrt(previousView.pos.distanceToSquared(player.pos));
@@ -194,7 +217,7 @@
       if(offset.distanceToSquared(vector([0,0,0]))<.25){player.onlineVisualOffset=offset;m.visualFrames=predictionLimits.visualFrames;}
       else {delete player.onlineVisualOffset;m.visualFrames=0;m.hardSnaps++;m.hardSnapReasons.accumulated=(m.hardSnapReasons.accumulated||0)+1;reason='accumulated';}
     }
-    m.corrections.push({at:now(),distance,reason:reason||'smooth',seq,step:m.lastAckStep});if(m.corrections.length>1000)m.corrections.shift();
+    m.corrections.push({at:now(),distance,reason:reason||'smooth',predictionBlocked:v.predictionBlocked||'',seq,step:m.lastAckStep});if(m.corrections.length>1000)m.corrections.shift();
   }
   function decayPredictionVisual() {
     if(!player?.onlineVisualOffset)return;
@@ -204,14 +227,17 @@
   function recordHostInputStep(u,input,dt) {
     if(state.role!=='host'||state.phase!=='playing'||u.controller!=='remoteHuman'||!Number.isSafeInteger(input?.seq)||!Number.isFinite(dt)||dt<=0||dt>.05)return;
     const p=state.peers.get(u.ownerPeerId);if(!p)return;
-    p.pendingEdges={};
-    if(p.activeAction){p.appliedActionSeq=p.activeAction.actionSeq;p.actionState=p.activeAction;p.actions=p.actions.filter(a=>a.actionSeq>p.appliedActionSeq);p.activeAction=null;}
-    // 押下を適用したstepに発射しなかった場合、spin/装填待ち後に古い照準を復活させない。
-    p.pendingShot=null;
+    if(!input.command)acknowledgeInputAction(p);
     if(p.appliedSeq!==input.seq)p.appliedSeqDt=0;
     p.appliedSeq=input.seq;p.appliedSeqDt=(p.appliedSeqDt||0)+dt;p.appliedTotalDt=(p.appliedTotalDt||0)+dt;p.appliedStep=(p.appliedStep||0)+1;
     (p.appliedSteps||=[]).push({step:p.appliedStep,seq:input.seq,dt,seqDt:p.appliedSeqDt,actionSeq:p.appliedActionSeq||0,pressed:Object.keys(input.pressed||{}).filter(k=>input.pressed[k])});
     if(p.appliedSteps.length>predictionLimits.hostSteps)p.appliedSteps.shift();
+  }
+  function acknowledgeInputAction(p){
+    p.pendingEdges={};
+    if(p.activeAction){p.appliedActionSeq=p.activeAction.actionSeq;p.actionState=p.activeAction;p.actions=p.actions.filter(a=>a.actionSeq>p.appliedActionSeq);p.activeAction=null;}
+    // 押下を適用したstepに発射しなかった場合、spin/装填待ち後に古い照準を復活させない。
+    p.pendingShot=null;
   }
 
   const displayedLatencies = [];
@@ -440,7 +466,8 @@
     state.transport.startMatch(state.matchId); setupWorld(teamSize,host.unitId,state.resolvedMapId); player.controller = 'localHuman'; player.name = host.name; player.controlLoadout=preset(host.cls); equip(player,host.cls);
     for (const p of state.peers.values()) {
       p.unitId = assignments.find(r=>r.id===p.id).unitId; p.ready = false; p.last = now(); p.joinedAt = now();
-      const u = unit(p.unitId); u.controller = 'remoteHuman'; u.ownerPeerId = p.id;
+      Object.assign(p,{fixedCommands:true,commandQueue:[],lastCommand:null,fixedStarted:false,fixedClock:0,catchupClock:0,fixedElapsed:0,fixedSteps:0,fixedReplaySeq:0,fixedNeedsResync:false,lastCommandArrival:null,movementActions:[],utilityActions:[],appliedMovementIds:new Set(),appliedMovementActionSeq:0,repeatedCommands:0,droppedCommands:0,inputLifeId:null,input:null,receivedSeq:0,appliedSeq:0,appliedSeqDt:0,appliedTotalDt:0,appliedStep:0,appliedSteps:[],receivedActionSeq:0,appliedActionSeq:0,actions:[]});
+      const u = unit(p.unitId); u.controller = 'remoteHuman'; u.onlineFixedMovement=true;u.ownerPeerId = p.id;
       u.name = p.name; u.controlLoadout = preset(p.cls || 'assault'); equip(u,p.cls || 'assault');
     }
     const initialState=snapshot();
@@ -520,18 +547,37 @@
     const u=unit(p.unitId),age=now()-v?.sentAt;
     if(!u||v.lifeId!==u.lifeId||!Number.isFinite(v.sentAt)||age>inputLimits.maxAgeMs||age< -inputLimits.futureMs)return null;
     if(p.inputLifeId!==u.lifeId){
-      p.inputLifeId=u.lifeId;p.input=null;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
+      p.inputLifeId=u.lifeId;p.input=null;p.commandQueue=[];p.lastCommand=null;p.fixedStarted=false;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;p.fixedReplaySeq=0;p.fixedNeedsResync=false;p.movementActions=[];p.utilityActions=[];p.appliedMovementActionSeq=0;p.appliedMovementIds=new Set();p.appliedSeq=0;p.appliedSeqDt=0;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
     }
     return u;
   }
   function acceptInput(p,v) {
-    if(!validInput(v)||v.seq<=p.receivedSeq||!currentInputLife(p,v))return;
-    p.receivedSeq=v.seq;p.last=now();
-    p.firstInputAt??=now();(p.inputTimes||=[]).push({seq:v.seq,at:now()});while(p.inputTimes.length>120){p.inputTimes.shift();p.inputHistoryTruncated=true;}
-    // dt/射撃/武器/押下はこの線から受け付けない。入力番号を増やしてもhostのframe dtは増えない。
-    p.input={...safe(v,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw']),keys:pickedKeys(v.keys,movementKeys),pressed:{},
+    if(!validInput(v)||!currentInputLife(p,v))return;
+    const fixed=v.command===true,queue=p.commandQueue||=[];
+    if(p.fixedCommands&&!fixed)return;
+    if(fixed){
+      if(v.moveActions!==undefined&&(!Array.isArray(v.moveActions)||v.moveActions.length>8||v.moveActions.some(row=>!Array.isArray(row)||row.length!==2||!Number.isSafeInteger(row[0])||row[0]<1||row[0]>v.actionSeq||!Number.isInteger(row[1])||row[1]<1||row[1]>7)))return;
+      if(v.seq<=(p.appliedSeq||0)||queue.some(x=>x.seq===v.seq)||
+        v.seq>(p.receivedSeq||0)+commandLimits.sequenceJump+Math.floor(Math.max(0,now()-(p.lastCommandArrival??now()))/1000/commandLimits.dt))return;
+    }else if(v.seq<=p.receivedSeq)return;
+    p.receivedSeq=Math.max(p.receivedSeq||0,v.seq);p.last=now();p.lastCommandArrival=now();
+    p.firstInputAt??=now();(p.inputTimes||=[]).push({seq:v.seq,at:now()});p.inputTimes.sort((a,b)=>a.seq-b.seq);
+    while(p.inputTimes.length>120){p.inputTimes.shift();p.inputHistoryTruncated=true;}
+    // 移動の押下だけを命令へ結び付ける。射撃/武器/施設操作はreliable側のまま。
+    const value={...safe(v,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw']),keys:pickedKeys(v.keys,movementKeys),pressed:{},
       fwd:clamp(v.fwd||0,-1,1),side:clamp(v.side||0,-1,1),aimPoint:v.aimPoint,lockTarget:typeof v.lockTarget==='string'?v.lockTarget:null,
       receivedAt:now(),view:copyView(v.view)};
+    if(fixed){
+      value.command=true;value.movePressed=pickedKeys(v.movePressed,movementEdges);
+      value.moveActionSeq=Number.isSafeInteger(v.moveActionSeq)&&v.moveActionSeq>0&&v.moveActionSeq<=v.actionSeq?v.moveActionSeq:0;
+      if(v.moveActions?.length){
+        value.moveActions=v.moveActions.map(row=>row.slice());
+        for(const [actionSeq,mask]of value.moveActions)rememberMovementAction(p,{...value,actionSeq,pressed:movementPressed(mask)});
+      }else if(value.moveActionSeq)rememberMovementAction(p,{...value,actionSeq:value.moveActionSeq,pressed:value.movePressed});
+      p.fixedCommands=true;const u=unit(p.unitId);if(u)u.onlineFixedMovement=true;
+      queue.push(value);queue.sort((a,b)=>a.seq-b.seq);
+      while(queue.length>commandLimits.queue){queue.shift();p.droppedCommands=(p.droppedCommands||0)+1;}
+    }else p.input=value;
   }
   function acceptInputBatch(p,data) {
     if(!Array.isArray(data?.inputs)||!data.inputs.length||data.inputs.length>inputLimits.batch)return;
@@ -547,6 +593,14 @@
     if(action.seq<times[0].seq)return !p.inputHistoryTruncated&&now()-(action.receivedAt??p.firstInputAt)<=inputLimits.maxAgeMs;
     const observed=times.find(t=>t.seq>=action.seq);return !!observed&&now()-observed.at<=inputLimits.maxAgeMs;
   }
+  function rememberMovementAction(p,action){
+    const pressed=pickedKeys(action.pressed,movementEdges);
+    if(!Object.keys(pressed).length||p.appliedMovementIds?.has(action.actionSeq))return;
+    const queue=p.movementActions||=[];
+    if(queue.some(a=>a.actionSeq===action.actionSeq))return;
+    queue.push({...action,pressed});queue.sort((a,b)=>a.actionSeq-b.actionSeq);
+    while(queue.length>inputLimits.actions)queue.shift();
+  }
   function acceptInputActions(p,v) {
     if(!v||!Number.isSafeInteger(v.actionSeq)||v.actionSeq<1||v.actionSeq<=(p.receivedActionSeq||0)||!Number.isSafeInteger(v.seq)||v.seq<1)return;
     const u=currentInputLife(p,v);if(!u||!actionIsRecent(p,v))return;
@@ -554,6 +608,11 @@
     const action={...safe(v,['actionSeq','seq','lifeId','sentAt']),receivedAt:now(),trigger:!!v.trigger,alt:!!v.alt,keys:pickedKeys(v.keys,inputKeys.filter(k=>!movementKeys.includes(k))),
       pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined};
     if(validInput(v))Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:copyView(v.view)});
+    rememberMovementAction(p,action);
+    if(action.pressed.KeyH||action.pressed.KeyE){
+      (p.utilityActions||=[]).push({...action,pressed:pickedKeys(action.pressed,['KeyH','KeyE'])});
+      while(p.utilityActions.length>inputLimits.actions)p.utilityActions.shift();
+    }
     (p.actions||=[]).push(action);while(p.actions.length>inputLimits.actions)p.actions.shift();
     // 再出撃先の選択は移動の実行を待たず受理する。古い命の選択はcurrentInputLifeが落とす。
     if(!u.alive||u.transfer){
@@ -561,7 +620,7 @@
       if(['assault','heavy'].includes(v.nextCls)){u.nextCls=v.nextCls;u.controlLoadout=preset(v.nextCls);}
     }
   }
-  function sendLocalInput(input) {
+  function sendLocalInput(input,deferBatch=false,actionsOnly=false,skipActions=false) {
     const clock=state.transport.clock?.(),sentAt=now()+(Number.isFinite(clock?.offsetMs)?clock.offsetMs:0);
     input.lifeId=player.lifeId;input.sentAt=sentAt;
     // 入力を取った時点で既に描き終わっている写真。今frameの未描画renderTimeとは区別する。
@@ -571,7 +630,7 @@
     const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
     // 古いcontrolが期限切れなら、現在のheld状態だけを新番号で再送する。失効した押下は複製しない。
     const refresh=inputSending.actionSeq>prediction.lastAckActionSeq&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
-    if(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||refresh){
+    if(!skipActions&&(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||refresh)){
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
         wheel:Math.sign(input.wheel||0),weapon:input.weapon,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
         ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:copyView(input.view)};
@@ -580,18 +639,57 @@
       inputSending.signature=signature;inputSending.lastActionAt=now();
     }
     input.actionSeq=inputSending.actionSeq;
-    const movement={...safe(input,['seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw','fwd','side']),keys:pickedKeys(input.keys,movementKeys),
-      aimPoint:input.aimPoint,lockTarget:input.lockTarget,view:copyView(input.view)};
+    if(actionsOnly)return true;
+    const movement={...safe(input,['command','moveActions','moveActionSeq','seq','lifeId','sentAt','actionSeq','yaw','pitch','cameraRecoil','cameraRecoilYaw','fwd','side']),keys:pickedKeys(input.keys,movementKeys),
+      aimPoint:input.aimPoint,lockTarget:input.lockTarget,view:copyView(input.view),...(input.command?{movePressed:pickedKeys(input.pressed,movementEdges)}:{})};
     inputSending.history.push(movement);while(inputSending.history.length>inputLimits.batch)inputSending.history.shift();
-    // 144/240Hzの描画でも予測dtは変えず、送信だけ最大60Hz。one-shotは別control線で保持する。
-    if(now()-inputSending.lastBatch>=inputLimits.sendMs-.001){
-      state.transport.send('inputBatch',{inputs:inputSending.history.map(v=>({...v,keys:{...v.keys},aimPoint:v.aimPoint.slice(),view:copyView(v.view)}))});inputSending.lastBatch=now();
-    }
+    if(!deferBatch)flushLocalInputs();
     return true;
+  }
+  function flushLocalInputs(){
+    if(!inputSending.history.length)return;
+    const latest=inputSending.history.at(-1);
+    // 新固定命令を作った描画frameで送る。高Hzの命令なしframeは重複enqueueせず、実wireはtransportのpumpへ任せる。
+    const fixed=latest.command;
+    if(fixed?latest.seq!==inputSending.lastBatchSeq:now()-inputSending.lastBatch>=inputLimits.sendMs-.001){
+      state.transport.send('inputBatch',{inputs:inputSending.history.map(v=>({...v,keys:{...v.keys},aimPoint:v.aimPoint.slice(),view:copyView(v.view)}))});
+      inputSending.lastBatch=now();inputSending.lastBatchSeq=latest.seq;
+    }
+  }
+
+  function stepLocalCommands(input,dt){
+    if(localCommands.lifeId!==player.lifeId)localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:player.lifeId};
+    // 描画間の短い押下/射撃端もcontrolへ直ちに残す。移動命令自体はまだ作らない。
+    const sampled={...input,seq:state.seq+1,spawnChoice:player.spawnChoice,nextCls:player.nextCls};
+    if(!sendLocalInput(sampled,true,true))return;
+    if(movementEdges.some(k=>input.pressed?.[k])){
+      localCommands.moveActions.push([sampled.actionSeq,movementMask(input.pressed)]);
+      while(localCommands.moveActions.length>8)localCommands.moveActions.shift();
+    }
+    Object.assign(localCommands.pressed,pickedKeys(input.pressed));
+    if(input.wheel)localCommands.wheel=Math.sign(input.wheel);
+    if(input.weapon)localCommands.weapon=input.weapon;
+    localCommands.accumulator+=Math.min(.05,Math.max(0,dt));
+    let generated=0;
+    while(localCommands.accumulator+1e-9>=commandLimits.dt&&generated++<commandLimits.maxFrameSteps){
+      localCommands.accumulator=Math.max(0,localCommands.accumulator-commandLimits.dt);
+      const command={...input,keys:{...input.keys},pressed:{...localCommands.pressed},wheel:localCommands.wheel,weapon:localCommands.weapon||undefined,
+        command:true,moveActions:localCommands.moveActions.map(row=>row.slice()),seq:++state.seq,spawnChoice:player.spawnChoice,nextCls:player.nextCls};
+      localCommands.pressed={};localCommands.wheel=0;localCommands.weapon=null;localCommands.movementActionSeq=0;localCommands.moveActions=[];
+      if(state.pendingInputs.size>600)state.pendingInputs.delete(state.pendingInputs.keys().next().value);
+      const moving=!!(command.keys?.KeyW||command.keys?.KeyS||command.keys?.KeyA||command.keys?.KeyD||command.fwd||command.side);
+      if(moving&&!previousMove)state.pendingInputs.set(command.seq,{time:now(),pos:player.pos.toArray(),move:true});
+      if(command.trigger&&!previousTrigger){state.shots.push({seq:command.seq,time:now(),until:Infinity,done:false});if(state.shots.length>1000)state.shots.shift();}
+      if(!command.trigger&&previousTrigger&&state.shots.length)state.shots[state.shots.length-1].until=command.seq;
+      previousMove=moving;previousTrigger=!!command.trigger;
+      if(!sendLocalInput(command,true,false,true))return;
+      predictLocalInput(command,commandLimits.dt);
+    }
+    flushLocalInputs();
   }
   function remoteInput(u) {
     const p=state.peers.get(u.ownerPeerId);
-    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;p.pendingShot=null;p.shotActionSeq=0;}
+    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.commandQueue=[];p.lastCommand=null;p.fixedStarted=false;p.fixedClock=0;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;p.pendingShot=null;p.shotActionSeq=0;}
     if(!p||!p.input||now()-p.input.sentAt>250||now()-p.last>250){
       if(p){p.pendingEdges={};p.activeAction=null;p.actions=(p.actions||[]).filter(a=>actionIsRecent(p,a));}
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
@@ -611,7 +709,7 @@
     const action=p.activeAction||(p.input.actionSeq<=(p.actionState?.actionSeq||0)?p.actionState:null);
     const result={...p.input,keys:{...p.input.keys,...action?.keys},trigger:!!action?.trigger,alt:!!action?.alt,
       pressed:{...p.pendingEdges,...(p.activeAction?.pressed||{})},wheel:p.activeAction?.wheel||0,weapon:p.activeAction?.weapon||undefined};
-    u.onlineInputSeq=p.receivedSeq;return result;
+    u.onlineInputSeq=p.input.seq;return result;
   }
   function abortPreparation(reason) {
     clearStartReservation();
@@ -627,7 +725,7 @@
     const preparing=['preparing','countdown'].includes(state.phase);
     if(preparing)abortPreparation('準備中にゲストが退出したため、開始を中止しました');
     const u = unit(p.unitId);
-    if (u) { u.controller = 'bot'; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
+    if (u) { u.controller = 'bot';delete u.onlineFixedMovement; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
     state.peers.delete(id); lobbyChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
   }
   function endGuest(reason) {
@@ -672,7 +770,7 @@
         jumpPads:jumpPads.map(p=>p.flash),catapults:catapults.map(p=>({flash:p.flash,opacity:p.film.material.opacity}))},
       shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team})),
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq])),
-      inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
+      inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{fixed:!!p.fixedCommands,replaySeq:p.fixedReplaySeq||0,movementSeq:p.appliedMovementActionSeq||0,movementIds:[...(p.appliedMovementIds||[])],seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
         // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元でき、最近8stepは検証用に残す。
         steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}]))};
     if(state.role==='host')rememberLagSnapshot(s);return s;
@@ -1086,15 +1184,7 @@
     if(!overrideInput)for(const k of ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'])delete input.keys[k];
     input.aimPoint=input.aimPoint||aimed.aim.toArray();input.lockTarget=overrideInput?.lockTarget??(lock.visible?lockId(lock.target):null);input.yaw=input.yaw??player.yaw;input.pitch=input.pitch??player.pitch;
     if(requestedWeapon){input.weapon=requestedWeapon;requestedWeapon=null;}
-    input.seq=++state.seq;input.spawnChoice=player.spawnChoice;input.nextCls=player.nextCls;
-    if(state.pendingInputs.size>600)state.pendingInputs.delete(state.pendingInputs.keys().next().value);
-    const moving=!!(input.keys?.KeyW||input.keys?.KeyS||input.keys?.KeyA||input.keys?.KeyD||input.fwd||input.side);
-    if(moving&&!previousMove)state.pendingInputs.set(input.seq,{time:now(),pos:player.pos.toArray(),move:true});
-    if(input.trigger&&!previousTrigger){state.shots.push({seq:input.seq,time:now(),until:Infinity,done:false});if(state.shots.length>1000)state.shots.shift();}
-    if(!input.trigger&&previousTrigger&&state.shots.length)state.shots[state.shots.length-1].until=input.seq;
-    previousMove=moving;previousTrigger=!!input.trigger;
-    if(!sendLocalInput(input))return;
-    predictLocalInput(input,dt);
+    stepLocalCommands(input,dt);
     if(prediction.enabled)for(const [seq,p]of state.pendingInputs)if(p.move&&player.pos.distanceToSquared(vector(p.pos))>1e-10){displayedLatencies.push({kind:'input',time:p.time});state.pendingInputs.delete(seq);}
     wheelDir=0;state.lastInput=now();
   }
@@ -1145,9 +1235,78 @@
   if(typeof revive==='function'){
     const oldRevive=revive;revive=function(u){const alive=u.alive;try{return oldRevive(...arguments);}finally{if(state.role==='host'&&!alive&&u.alive)u.onlineLagEpoch=(u.onlineLagEpoch||0)+1;}};
   }
-  // 取得した入力ではなく、実際にphysicsを通った入力だけを確定する（行動不能中は進めない）。
+  // 遠隔機の移動だけ固定命令で進め、武器・非移動操作はhost frameで一度だけ処理する。
+  function advanceRemoteCommands(u,p,dt){
+    const queue=p.commandQueue||=[];
+    if(!p.fixedStarted){
+      // 最初だけhost1frameぶん+1命令（最低2）を待つ。初回に使い切らない小さいバッファ。
+      if(queue.length<Math.max(2,Math.ceil(Math.min(.05,Math.max(0,dt))/commandLimits.dt)+1)&&(!queue.length||now()-queue[0].receivedAt<50))return;
+      p.fixedStarted=true;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;
+    }
+    dt=Math.min(.05,Math.max(0,dt));
+    p.fixedElapsed=(p.fixedElapsed||0)+dt;
+    p.fixedClock=Math.min(.1,(p.fixedClock||0)+dt);
+    p.catchupClock=Math.min(commandLimits.catchupSeconds,(p.catchupClock||0)+dt);
+    let count=Math.min(commandLimits.maxFrameSteps,Math.floor((p.fixedClock+1e-9)/commandLimits.dt));
+    p.fixedClock=Math.max(0,p.fixedClock-count*commandLimits.dt);
+    if(queue.length>commandLimits.catchupBacklog&&p.catchupClock>=commandLimits.catchupSeconds&&count<commandLimits.maxFrameSteps&&
+      (p.fixedSteps||0)+count<Math.floor((p.fixedElapsed+1e-9)/commandLimits.dt)+commandLimits.maxAheadSteps){count++;p.catchupClock=0;}
+    for(let i=0;i<count;i++){
+      while(queue.length&&(queue[0].lifeId!==u.lifeId||queue[0].seq<=(p.appliedSeq||0)||now()-queue[0].sentAt>inputLimits.maxAgeMs))queue.shift();
+      let command=queue[0],fresh=false;
+      // 欠番は短く待って冗長再送で埋める。それでも来なければ最新の既知入力へ進む。
+      if(command&&p.lastCommand&&command.seq>p.lastCommand.seq+1&&now()-command.receivedAt<50)command=null;
+      if(command){queue.shift();p.lastCommand=command;p.input=command;fresh=true;}
+      else command=p.lastCommand;
+      if(!p.frameAction){
+        p.frameAction=remoteInput(u);
+      }
+      // 施設操作は実移動の直前に一度だけ。0step frameのcontrol ackでは捨てない。
+      p.utilityActions=(p.utilityActions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
+      const utility=p.utilityActions.find(a=>a.seq<=(command?.seq||0));
+      if(utility){
+        if(typeof humanUtilityInput==='function')humanUtilityInput(u,utility);
+        p.utilityActions=p.utilityActions.filter(a=>a!==utility);
+      }
+      p.movementActions=(p.movementActions||[]).filter(a=>a.lifeId===u.lifeId&&!p.appliedMovementIds?.has(a.actionSeq)&&actionIsRecent(p,a));
+      const edges=p.movementActions.filter(a=>a.seq<=(command?.seq||0));
+      const pressed=edges.length?Object.assign({},...edges.map(edge=>edge.pressed)):fresh&&!command.moveActionSeq&&!command.moveActions?.length?{...command.movePressed}:{};
+      const active=command&&now()-command.sentAt<=250&&now()-p.last<=250;
+      // 250msの中立化を跨いだ復帰は予測時計だけ再基準化。host移動時間budget・未適用queueは戻さない。
+      if(!active)p.fixedNeedsResync=true;
+      else if(fresh&&p.fixedNeedsResync){p.fixedReplaySeq=command.seq-1;p.fixedNeedsResync=false;}
+      const movement=active?{...command,pressed}:{command:true,seq:command?.seq,keys:{},pressed:{},yaw:u.yaw,pitch:u.pitch};
+      if(typeof movementStatusTick==='function')movementStatusTick(u,commandLimits.dt);
+      updateHumanMovement(u,movement,commandLimits.dt,{movementOnly:true});
+      p.fixedSteps=(p.fixedSteps||0)+1;
+      // seqは実命令の消化、replaySeqは反復も含む移動時間の境界。欠番skipでも後退させない。
+      p.fixedReplaySeq=Math.max(command?.seq||0,(p.fixedReplaySeq||0)+1);
+      for(const edge of active?edges:[]){
+        // 非再送線の新押下がreliableの古い押下を追い越しても、番号の大小で消さない。
+        (p.appliedMovementIds||=new Set()).add(edge.actionSeq);
+        while(p.appliedMovementIds.size>128)p.appliedMovementIds.delete(p.appliedMovementIds.values().next().value);
+        p.appliedMovementActionSeq=Math.max(p.appliedMovementActionSeq||0,edge.actionSeq);
+        p.movementActions=p.movementActions.filter(a=>a.actionSeq!==edge.actionSeq);
+      }
+      if(command)recordHostInputStep(u,movement,commandLimits.dt);
+      if(!fresh)p.repeatedCommands=(p.repeatedCommands||0)+1;
+    }
+  }
   if(typeof updateHumanUnit==='function'){
-    const oldUpdateHumanUnit=updateHumanUnit;updateHumanUnit=function(u,input,dt){const applied=state.role==='host'&&state.phase==='playing'&&u.alive&&u.controller==='remoteHuman';const result=oldUpdateHumanUnit(...arguments);if(applied)recordHostInputStep(u,input,dt);return result;};
+    const oldUpdateHumanUnit=updateHumanUnit;updateHumanUnit=function(u,input,dt){
+      const applied=state.role==='host'&&state.phase==='playing'&&u.alive&&u.controller==='remoteHuman';
+      const p=applied?state.peers.get(u.ownerPeerId):null;
+      if(p?.fixedCommands&&typeof updateHumanMovement==='function'){
+        p.frameAction=null;advanceRemoteCommands(u,p,dt);
+        const action=p.frameAction||remoteInput(u);
+        // Space/Shiftと施設操作は別queueで一度だけ消化。武器側で重ねて実行しない。
+        action.pressed=Object.fromEntries(Object.entries(action.pressed||{}).filter(([k])=>!movementEdges.includes(k)&&k!=='KeyH'&&k!=='KeyE'));
+        u.controlInput=action;
+        const result=oldUpdateHumanUnit(u,action,dt,{movementDone:true,utilityDone:true});
+        acknowledgeInputAction(p);return result;
+      }
+      const result=oldUpdateHumanUnit(...arguments);if(applied)recordHostInputStep(u,input,dt);return result;
+    };
   }
   // 描画中だけカメラをずらし、次frameの照準/送信aimPointにはoffsetを混ぜない。
   if(typeof renderView==='function'){
@@ -1248,6 +1407,8 @@
       snapshotAgeMs:state.role==='guest'&&diagnosticTiming.lastWire!==null?Math.max(0,at-diagnosticTiming.lastWire):null,
       rttMs:Number.isFinite(clock?.rttMs)?clock.rttMs:null,
       corrections:{count:changed.length,samples:samples.length,meanM:changed.length?changed.reduce((n,c)=>n+c.distance,0)/changed.length:0,maxM:changed.length?Math.max(...changed.map(c=>c.distance)):0,hardSnaps,reasons},
+      predictionBlocked:player?.onlinePredictionBlocked||(typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(player,inputSending.history.at(-1)):''),
+      blockedCorrections:samples.filter(c=>c.distance>.001&&c.predictionBlocked).length,
       pendingInputs:prediction.pending.length,visibility:typeof document!=='undefined'?document.visibilityState:'unknown'};
   }
   window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,

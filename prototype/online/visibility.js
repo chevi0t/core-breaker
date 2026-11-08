@@ -15,17 +15,32 @@
     const scope=viewer.scoped?Math.max(1,viewer.slots?.[viewer.weapon]?.w?.scopeHigh&&viewer.scopeStep===2?viewer.slots[viewer.weapon].w.scopeHigh:viewer.slots?.[viewer.weapon]?.w?.scope||1):1;
     // 設定上限の縦100度・32:9画面の外接円をhost固定上限とする。clientの画角申告は信用しない。
     const directCos=Math.cos(Math.atan(Math.tan(50/scope*Math.PI/180)*Math.hypot(32/9,1))),aimCos=Math.cos(12*Math.PI/180);
-    const direct=e=>facing(viewer,targetPoint(e))>=directCos&&!!canSee(viewer,e,targetPoint(e));
+    // 同じ公開判定内だけで共有する。次のcreateViewでは位置・遮蔽を必ず取り直す。
+    const points=new Map(),sight=new Map();
+    function point(e){
+      if(!points.has(e))points.set(e,targetPoint(e));
+      return points.get(e);
+    }
+    function hasSight(e){
+      if(!sight.has(e))sight.set(e,!!canSee(viewer,e,point(e)));
+      return sight.get(e);
+    }
+    const direct=e=>facing(viewer,point(e))>=directCos&&hasSight(e);
     for(const e of units){
       const d=distance(viewer.pos,e.pos),friend=e.team===viewer.team;
       const cloakKnown=!e.cloak||allies.some(a=>noticed(e,distance(a.pos,e.pos)));
       const allowed=friend||cloakKnown&&(e.cloak||d<=near||seen.has(e)||direct(e));
       if(!allowed)continue;
       visible.add(e.entityId);
-      const aimed=facing(viewer,targetPoint(e))>=aimCos&&canSee(viewer,e,targetPoint(e));
       const threat=e.target===viewer||e.controlTarget===viewer||locksPlayer?.(e,viewer);
       const locked=viewer.controlTarget===e;
-      cadence.set(e.entityId,e===viewer||d<=near||aimed||threat||locked||viewer.scoped&&direct(e)?1:d<=limits.far?2:4);
+      // 公開可否を決めた後で、射線に関係なく毎回更新する機体を先に選ぶ。
+      if(e===viewer||d<=near||threat||locked){
+        cadence.set(e.entityId,1);
+        continue;
+      }
+      const aimed=facing(viewer,point(e))>=aimCos&&hasSight(e);
+      cadence.set(e.entityId,aimed||viewer.scoped&&direct(e)?1:d<=limits.far?2:4);
     }
     const pointVisible=at=>!!at&&(distance(viewer.pos,at)<=near||facing(viewer,at)>=directCos)&&!!lineOfSight(viewer,at);
     const gadgetVisible=g=>g.team===viewer.team||allies.some(a=>distance(a.pos,g.pos)<=(g.onCore?60:({mine:30,remote:30,sensor:50,sentry:60}[g.kind]||0))&&lineOfSight(a,g.mesh?targetPoint(g):g.pos,g));

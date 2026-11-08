@@ -18,7 +18,7 @@ const MOCK_PEER_SOURCE=`(() => {
   class MockConnection extends Emitter {
     constructor(owner,remote,id,options={}){super();this.owner=owner;this.peer=remote;this.connectionId=id;this.options=options;this.label=options.label||id;this.metadata=options.metadata;this.serialization=options.serialization||'raw';this.reliable=!!options.reliable;this.open=false;this.bufferSize=0;
       // 代替試験で契約を模倣するだけ。実RTCの生成オプション検証はonline_loss_checkで別に行う。
-      const snapshot=this.label==='core-breaker-snapshot-v8';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
+      const snapshot=this.label==='core-breaker-snapshot-v9';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
     send(data){if(!this.open)throw Error('代替接続が開いていません');this.owner.post({type:'data',to:this.peer,id:this.connectionId,data});}
     close(remote=false){if(this.closed)return;this.closed=true;this.open=false;this.dataChannel.readyState='closed';if(!remote)this.owner.post({type:'close',to:this.peer,id:this.connectionId});this.owner.connections.delete(this.connectionId);this.emit('close');}
     ready(){if(this.closed||this.open)return;this.open=true;this.dataChannel.readyState='open';this.emit('open');}

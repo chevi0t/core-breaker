@@ -106,9 +106,9 @@ for(const [patch,reason]of [[{lifeId:2},'respawn'],[{alive:false},'down'],[{stun
 }
 for(const enabled of [false,true]){
   const h=harness(enabled);h.at(100);h.game.state.lastHost=100;
-  h.game.beforeFrame(.016,100);h.game.afterFrame(.016,100);
+  h.game.beforeFrame(1/60,100);h.game.afterFrame(1/60,100);
   assert.equal(h.sent[0].type,'inputActions');assert.equal(h.sent[1].type,'inputBatch');assert.equal(h.sent[1].data.inputs[0].dt,undefined);
-  if(enabled){approx(h.units[0].pos.x,.16);assert.equal(h.game.metrics().inputLatency.length,1);assert.equal(h.game.metrics().inputLatency[0],0);}
+  if(enabled){approx(h.units[0].pos.x,10/60);assert.equal(h.game.metrics().inputLatency.length,1);assert.equal(h.game.metrics().inputLatency[0],0);}
   else {assert.equal(h.units[0].pos.x,0);assert.equal(h.game.metrics().inputLatency.length,0);}
 }
 {
@@ -166,7 +166,7 @@ for(const enabled of [false,true]){
   assert.equal(batches.length,60);assert(batches.every(s=>s.data.inputs.length<=5));
   assert(batches.every(s=>s.data.inputs.every(i=>i.pressed===undefined&&i.trigger===undefined)));
   assert.equal(actions.filter(s=>s.data.pressed.Space).length,1);assert.equal(actions.filter(s=>s.data.trigger).length,1);
-  assert.equal(h.game.metrics().prediction.predictedSteps,240);
+  assert.equal(h.game.metrics().prediction.predictedSteps,60);
 }
 // 冒頭batch全欠落の後でも、先着/後着したまだ新しいcontrol押下は保持する。
 for(const controlFirst of [false,true]){

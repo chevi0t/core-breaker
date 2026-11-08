@@ -8,7 +8,7 @@
   const stylesheet = document.createElement('link'); stylesheet.rel = 'stylesheet';
   stylesheet.href = new URL('ui.css', document.currentScript.src).href; document.head.append(stylesheet);
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'オンライン出撃ロビー');
-  panel.innerHTML = `<header class="online-header"><div><p class="online-eyebrow">コアブレイカー / 通信司令室</p><h2>オンライン出撃</h2><p>仲間と集まり、同じ戦場へ。</p></div><span class="online-badge">試作・通信 v8</span></header>
+  panel.innerHTML = `<header class="online-header"><div><p class="online-eyebrow">コアブレイカー / 通信司令室</p><h2>オンライン出撃</h2><p>仲間と集まり、同じ戦場へ。</p></div><span class="online-badge">試作・通信 v9</span></header>
   <div class="online-body"><div class="online-main">
   <section class="online-card"><h3><span>01</span> パイロット登録</h3><div class="online-fields">
     <label for="onlineName">申告名 <small>本人確認なし</small><input id="onlineName" maxlength="24" value="ゲスト" aria-label="オンラインの申告名"></label>
@@ -35,7 +35,7 @@
   document.body.appendChild(panel);
   const diagnostic=document.createElement('div');diagnostic.id='onlineDiagnostic';diagnostic.hidden=true;diagnostic.setAttribute('aria-label','オンライン試験の診断');document.body.append(diagnostic);
   const number=(v,digits=0)=>Number.isFinite(v)?v.toFixed(digits):'—';
-  const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF'};
+  const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF',melee:'近接',special:'加速・特殊動作',zip:'ジップライン',repair:'修理',launch:'射出',lift:'リフト',planted:'構え',inactive:'行動不能'};
   const diagnosticStats=s=>s?.count?number(s.meanMs,1)+' / '+number(s.p95Ms,1)+' / '+number(s.maxMs,1)+'ms':'標本待ち';
   function refreshDiagnostic(){
     const d=CBOnlineGame.diagnostics(),show=d.phase==='playing'&&document.getElementById('onlineDiagnostics').checked;
@@ -44,7 +44,8 @@
       '画面更新 '+number(d.fps)+'fps / コマ間隔 平均・p95・最大 '+diagnosticStats(d.frame)];
     if(d.role==='guest'){
       const c=d.corrections,h=d.host;
-      rows.push('自機補正（1mm超） '+c.count+'回 / 平均 '+number(c.meanM,3)+'m / 最大 '+number(c.maxM,3)+'m / 照合 '+c.samples+'回',
+      rows.push('先読み停止: '+(diagnosticReasons[d.predictionBlocked]||d.predictionBlocked||'なし')+' / 停止状態の写真での補正 '+(d.blockedCorrections||0)+'回',
+        '自機補正（1mm超） '+c.count+'回 / 平均 '+number(c.meanM,3)+'m / 最大 '+number(c.maxM,3)+'m / 照合 '+c.samples+'回',
         '瞬間合わせ（hardSnap） '+c.hardSnaps+'回 / '+(Object.entries(c.reasons).map(([key,n])=>(diagnosticReasons[key]||key)+':'+n).join('、')||'なし'),
         '新しい写真の到着 平均・p95・最大 '+diagnosticStats(d.arrivals)+' / 最終到着 '+number(d.snapshotAgeMs)+'ms前 / RTT '+number(d.rttMs)+'ms',
         'ホスト実測コマ間隔（最後の受信値） 平均・p95・最大 '+diagnosticStats(h?.frame),

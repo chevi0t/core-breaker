@@ -6934,7 +6934,7 @@ function movementStatusTick(u,dt){
   u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
 }
 function auxiliaryStatusTick(u,dt){
-  u.jamT=Math.max(0,(u.jamT||0)-dt);movementStatusTick(u,dt);
+  u.jamT=Math.max(0,(u.jamT||0)-dt);if(!u.onlineFixedMovement)movementStatusTick(u,dt);
 }
 function radarToolTick(u,sl,dt,on){
   if(!on){sl.scanRadius=0;sl.scanT=0;return;}
@@ -9285,7 +9285,7 @@ function movementPredictionBlockReason(u, input = null) {
   return '';
 }
 // 入力から移動だけを作る共通入口。global player/keysや照準・武器・ダメージは入れ替えない。
-function updateHumanMovement(u, input = {}, dt, { prediction = false } = {}) {
+function updateHumanMovement(u, input = {}, dt, { prediction = false, movementOnly = false } = {}) {
   if (prediction) {
     if (!(Number.isFinite(dt) && dt > 0) || u.onlinePredictionBlocked || movementPredictionBlockReason(u,input)) return null;
     // ホストの同じコマではauxiliaryStatusTickが先に進める。巻き直しでも同じ順序にする。
@@ -9306,7 +9306,7 @@ function updateHumanMovement(u, input = {}, dt, { prediction = false } = {}) {
   if (!artillery && held.ArrowRight) u.yaw -= 2.2 * dt;
   if (!artillery && held.ArrowUp) u.pitch = Math.min(0.7, u.pitch + 1.5 * dt);
   if (!artillery && held.ArrowDown) u.pitch = Math.max(-0.9, u.pitch - 1.5 * dt);
-  if (!prediction) beamCannonTurn(u,dt);
+  if (!prediction&&!movementOnly) beamCannonTurn(u,dt);
   const f = (held.KeyW ? 1 : 0) - (held.KeyS ? 1 : 0) + (input.fwd || 0); // pad：コントローラーの左スティック、touch：画面のスティック（向きだけ使う）
   const s = (held.KeyD ? 1 : 0) - (held.KeyA ? 1 : 0) + (input.side || 0);
   const fwd = new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
@@ -9314,9 +9314,8 @@ function updateHumanMovement(u, input = {}, dt, { prediction = false } = {}) {
   const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
   if (wish.lengthSq() > 0) wish.normalize();
   // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）。エリア移動の待機中も（v0.17。動けもしない、H で取り消し）
-  if (!prediction && edge.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
+  if(!prediction&&!movementOnly)humanUtilityInput(u,input);
   if (u.transfer) wish.set(0, 0, 0);
-  if (!prediction && edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
   const busy = u.repairing || !!u.transfer;
   u.moveInput = wish.lengthSq() > 0.01;
   const boostHeld = !busy && !artillery && (held.ShiftLeft || held.ShiftRight);
@@ -9324,14 +9323,20 @@ function updateHumanMovement(u, input = {}, dt, { prediction = false } = {}) {
   physics(u, wish, boostHeld, !busy && !artillery && edge.Space, dt, !busy && !artillery && held.Space, prediction);
   return { busy, artillery };
 }
+function humanUtilityInput(u,input){
+  const edge=input.pressed||{};
+  if (edge.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
+  if (edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
+}
 function predictHumanMovement(u, input, dt) { return !!updateHumanMovement(u,input,dt,{prediction:true}); }
 // ホストの人間機は、ローカル・遠隔ともこの経路で1コマ1回だけ進む。
 // aimPoint は [x,y,z] または Vector3。遠隔入力にカメラやグローバルキーは使わない。
-function updateHumanUnit(u, input = {}, dt) {
+function updateHumanUnit(u, input = {}, dt, {movementDone=false,utilityDone=false} = {}) {
   if (!isSimulationAuthority()) return false;
   const held = input.keys || {}, edge = input.pressed || {};
   let wheel = input.wheel || 0;
-  const { busy, artillery } = updateHumanMovement(u, input, dt);
+  if(movementDone){if(!utilityDone)humanUtilityInput(u,input);beamCannonTurn(u,dt);}
+  const { busy, artillery } = movementDone?{busy:u.repairing||!!u.transfer,artillery:isArtilleryMode(u)}:updateHumanMovement(u, input, dt);
   if (!u.transfer) SLOTS.forEach((k, i) => { if (edge['Digit' + (i + 1)]) selectWeapon(u, k); }); // エリア移動の待機中は、数字キーとホイールで移動先を選ぶ
   if (wheel && !u.transfer) {
     const next = SLOTS[(SLOTS.indexOf(u.wheelSp ? 'sp' : u.weapon) + (wheel > 0 ? 1 : 3)) % 4];

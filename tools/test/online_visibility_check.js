@@ -51,7 +51,7 @@ function pureChecks(){
   test(V.copyView(view)?.units.length===20,'20機の個別表示stampを保持');
   for(const [name,value]of [['重複',{...view,units:[rows[0],rows[0]]}],['21機',{...view,units:[...rows,[20,1,1,1,1]]}],['不正epoch',{...view,units:[[0,1,2,1,0]]}],['逆順sample',{...view,units:[[0,2,1,1,1]]}],['非有限時刻',{...view,time:NaN}]])test(V.copyView(value)===null,name+'を入力stampから拒否');
   const input={seq:9999999,lifeId:100,actionSeq:999999,sentAt:123456789.123,view,keys:{KeyW:true,ShiftLeft:true},pressed:{},yaw:3.141592653589793,pitch:1.23456789,aimPoint:[100.123456789,200.123456789,300.123456789],cameraRecoil:1.23456789,cameraRecoilYaw:1.23456789,trigger:true,alt:false};
-  const envelope={protocolVersion:8,appVersion:'Ver180',roomId:'fixture-room-'+ 'x'.repeat(36),matchId:'fixture-match-'+ 'y'.repeat(36),sender:'fixture-peer-'+ 'z'.repeat(36),type:'inputBatch',inputSequence:999999,connectionToken:'t'.repeat(48),payload:{inputs:Array.from({length:5},(_,i)=>({...input,seq:input.seq+i}))}};
+  const envelope={protocolVersion:9,appVersion:'Ver180',roomId:'fixture-room-'+ 'x'.repeat(36),matchId:'fixture-match-'+ 'y'.repeat(36),sender:'fixture-peer-'+ 'z'.repeat(36),type:'inputBatch',inputSequence:999999,connectionToken:'t'.repeat(48),payload:{inputs:Array.from({length:5},(_,i)=>({...input,seq:input.seq+i}))}};
   const size=Buffer.byteLength(JSON.stringify(envelope));test(size<=8192,'20機stamp×最新5入力が8KiB以内',{bytes:size});
   const boundaries=productionBoundaryChecks();checks.push(...boundaries.checks);observations.push(...boundaries.observations);
   return {checks,observations,boundaries,inputBatch:{bytes:size,limit:8192,raw:envelope},failure:checks.some(x=>!x.value)};

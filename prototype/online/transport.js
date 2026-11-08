@@ -1,8 +1,8 @@
 /* #212: PeerJS 1.5.5 用のブラウザホスト通信。ゲームの状態はここで計算しない。 */
 (function (root) {
   'use strict';
-  const PROTOCOL = 8, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
-  const CONTROL_LABEL = 'core-breaker-control-v8', SNAPSHOT_LABEL = 'core-breaker-snapshot-v8';
+  const PROTOCOL = 9, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
+  const CONTROL_LABEL = 'core-breaker-control-v9', SNAPSHOT_LABEL = 'core-breaker-snapshot-v9';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
   const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
   const isSnapshot = type => type === 'snapshot' || type === 'snapshotBase';
