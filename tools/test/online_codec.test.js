@@ -38,3 +38,10 @@ console.log('状態写真codec：危険キー拒否・undefined省略/配列null
 for(const [type,value] of [[100,'abc'],[100,Infinity],['b',3],['b',true],['s',3]])assert.equal(new Decoder().seed({v:1,id:1,s:[[['x'],type]],d:[value]}),false);
 const inherited=new Decoder();assert(inherited.seed({v:1,id:1,s:[[['toString','safe'],'j']],d:[true]}));assert.deepEqual(inherited.decode([1,1,'']),{toString:{safe:true}});assert.equal(Object.prototype.toString.safe,undefined);
 console.log('状態写真codec：schema値型整合・継承property非参照 成功');
+// マップ昇降施設も位置はcm・動作状態は基準差分から独立復元。
+const mobilityEncoder=new Encoder(),mobilityDecoder=new Decoder();
+let mobility={time:0,frame:0,mobility:{lifts:[{pos:[0,1,2],direction:1,waitT:2,blocked:false}],jumpPads:[0],catapults:[{flash:0,opacity:.16}]}};
+let mw=mobilityEncoder.encode(mobility);assert(mobilityDecoder.seed(mw.baseline));
+mobility=copy(mobility);mobility.time=50;mobility.frame=1;mobility.mobility.lifts[0]={pos:[0,3.456,2],direction:-1,waitT:0,blocked:true};mobility.mobility.jumpPads[0]=.9;mobility.mobility.catapults[0]={flash:1,opacity:.82};
+mw=mobilityEncoder.encode(mobility);const mr=mobilityDecoder.decode(mw.delta);assert.equal(mr.mobility.lifts[0].pos[1],3.46);assert.equal(mr.mobility.lifts[0].blocked,true);assert.equal(mr.mobility.jumpPads[0],.9);assert.equal(mr.mobility.catapults[0].opacity,.82);
+console.log('状態写真codec：リフト・射出施設の表示状態 成功');

@@ -5,7 +5,7 @@ const {check}=require('./lib');
 const {TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats}=require('./online_test_helpers');
 async function pumpNetwork(host,guests,n=1){for(let i=0;i<n;i++){await frames(guests,1);await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});await sleep(60);}}
 async function captureWire(page){await page.evaluate(()=>{
-  const t=CBOnlineGame.state.transport,write=t._write.bind(t);window.__wire=[];
+  const t=CBOnlineGame.state.transport;window.__wire=[];if(t.__wireCaptureInstalled)return;t.__wireCaptureInstalled=true;const write=t._write.bind(t);
   t._write=(link,item)=>{const sent=write(link,item);if(sent)__wire.push({type:item.type,bytes:item.bytes,at:performance.now()});return sent;};
 });}
 async function fakeLoops(page){return page.evaluate(()=>{
@@ -69,7 +69,7 @@ async function uiRoom(browser,h,errors,ok){
 }
 check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir);let active;
-  const report={mode:TRANSPORT_MODE,method:'固定コマ送り/描画省略の機能回帰。wireBytesはアプリから送ったJSONのUTF8量で、回線ヘッダー・再送を含まない。実音・人間の操作感は未確認。',sizes:[]};
+  const report={mode:TRANSPORT_MODE,method:'固定コマ送り/描画省略の機能回帰。wireBytesはアプリから送ったJSONのUTF8量で、回線ヘッダー・再送を含まない。実音・人間の操作感は未確認。',sizes:[],bootstrap:[]};
   try{
     console.log('追加回帰: UI操作から予約カウントダウン');
     active=await uiRoom(browser,h,errors,ok);
@@ -97,6 +97,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     const timing=await Promise.all(pages.map(p=>p.evaluate(()=>({startAtHost:CBOnlineGame.state.startAtHost,startAtLocal:CBOnlineGame.state.startAtLocal,actualStartAt:CBOnlineGame.state.actualStartAt,clock:CBOnlineGame.state.transport.clock?.()}))));
     report.countdown={seen:seen.map(s=>[...s]),timing,hostEquivalentStartDifferenceMs:timing[1].actualStartAt+(timing[1].clock?.offsetMs||0)-timing[0].actualStartAt};
     ok(timing.every(t=>t.actualStartAt>=t.startAtLocal),'予約時刻以前には開始しない');
+    report.bootstrap.push(await host.evaluate(()=>({units:__g.units.length,prepare:__wire.filter(x=>x.type==='prepare'),bases:__wire.filter(x=>x.type==='snapshotBase')})));
     await captureWire(host);
     await frames(pages,100);await sleep(100);
     report.sizes.push(await host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,transport:CBOnlineGame.state.transport.metrics()})));
@@ -174,7 +175,9 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     await active.close();active=null;
 
     console.log('追加回帰: 20機のsnapshotサイズ');
-    active=await room(browser,h,errors,{guests:1,teamSize:10});
+    active=await room(browser,h,errors,{guests:1,teamSize:10,beforeStart:captureWire});
+    report.bootstrap.push(await active.host.evaluate(()=>({units:__g.units.length,prepare:__wire.filter(x=>x.type==='prepare'),bases:__wire.filter(x=>x.type==='snapshotBase')})));
+    for(const b of report.bootstrap)ok(b.prepare.length===1&&b.prepare[0].bytes<262144&&b.bases.length===0,'初期prepareは1通・上限内で静的基準を二重送信しない（'+b.units+'機）');
     await captureWire(active.host);await frames(active.pages,100);await sleep(100);
     report.sizes.push(await active.host.evaluate(()=>({units:__g.units.length,fullSnapshotBytes:new TextEncoder().encode(JSON.stringify(CBOnlineGame.snapshot())).length,wire:__wire,transport:CBOnlineGame.state.transport.metrics()})));
     for(const p of active.pages)await fakeLoops(p);

@@ -13,7 +13,7 @@ class FakeConnection extends EventEmitter {
 }
 class FakePeer extends EventEmitter {
   constructor(_, options) { super(); this.id = 'peer-' + ++serial; this.options = options; peers.set(this.id, this); queueMicrotask(() => this.emit('open', this.id)); }
-  connect(id, options) { assert.equal(options.reliable, true); assert.equal(options.serialization, 'raw'); const a = new FakeConnection(id), b = new FakeConnection(this.id); a.other=b; b.other=a; queueMicrotask(() => { const target = peers.get(id); if (!target) return; target.emit('connection', b); a.open=b.open=true; b.emit('open'); a.emit('open'); }); return a; }
+  connect(id, options) { assert.equal(options.reliable, true); assert.equal(options.serialization, 'raw'); assert.equal(options.label, 'core-breaker-online-v4'); const a = new FakeConnection(id), b = new FakeConnection(this.id); a.other=b; b.other=a; queueMicrotask(() => { const target = peers.get(id); if (!target) return; target.emit('connection', b); a.open=b.open=true; b.emit('open'); a.emit('open'); }); return a; }
   destroy() { peers.delete(this.id); this.emit('close'); }
 }
 (async () => {
@@ -50,8 +50,8 @@ class FakePeer extends EventEmitter {
     await assert.rejects(wrong.connect(room), /版が違います/);
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
-    oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:2});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います/);
+    oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:3});
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 4 \/ 相手: 3）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);
@@ -99,6 +99,18 @@ class FakePeer extends EventEmitter {
     assert.equal(limited.approvePeer(waitingGuests[3].g.peer.id),false);assert.match((await waitingGuests[3].result).error.message,/満員/);
     const timed=waitingGuests[4];limited.links.get(timed.g.peer.id).opened=performance.now()-180001;limited._tick();assert.match((await timed.result).error.message,/3分/);
     const cancelled=waitingGuests[5];cancelled.g.close();assert((await cancelled.result).error);await until(()=>!limited.links.has(cancelled.g.peer.id));assert.equal(limited.approvePeer(cancelled.g.peer.id),false);
+    // 人間定員はホスト込み。入室受付と承認の両方で適用する。
+    const small=make({capacity:2}), smallRoom=await small.createRoom();
+    const smallGuests=[];
+    for(let i=0;i<3;i++) {const g=make();const result=g.connect(smallRoom).then(()=>({ok:true}),error=>({error}));smallGuests.push({g,result});await until(()=>small.links.get(g.peer?.id)?.pending);}
+    assert(small.approvePeer(smallGuests[0].g.peer.id));await smallGuests[0].result;
+    assert.equal(small.approvePeer(smallGuests[1].g.peer.id),false);assert.match((await smallGuests[1].result).error.message,/2人まで/);
+    await assert.rejects(make().connect(smallRoom),/2人まで/);
+    assert(small.setCapacity(3));assert(small.approvePeer(smallGuests[2].g.peer.id));await smallGuests[2].result;
+    assert.equal(small.setCapacity(2),false);assert.equal(small.capacity,3);
+    for(const invalid of [1,5,2.5,'3',null])assert.equal(small.setCapacity(invalid),false);
+    assert.equal(smallGuests[0].g.setCapacity(4),false);
+    small.startMatch();assert.equal(small.setCapacity(4),false);
     const bad = make({peerOptions:{config:{iceServers:[{urls:'turn:bad.invalid'}]}}});
     await assert.rejects(bad.createRoom(),/STUN/);
     console.log('オンライン通信：承認前の状態秘匿・許可・拒否・ロビー追放・待機者の開始拒否・表示名制限・版拒否・開始後参加拒否・入力・信号切断継続・100ms遅延・送信詰まり・切断・TURN拒否 成功');

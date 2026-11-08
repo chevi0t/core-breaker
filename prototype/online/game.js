@@ -3,13 +3,18 @@
   'use strict';
   const now = () => performance.now();
   const vector = a => new T.Vector3().fromArray(a);
+  // 初期装備の通常コア戦だけ。試験場・コスト戦・近接限定の規則は混ぜない。
+  const roomMaps = Object.entries(MAPS).filter(([,d]) => !d.testOnly && !d.vs && !d.meleeOnly && d.team >= 2 && d.time > 0).map(([id,d]) => ({id,name:d.name}));
+  const roomTeamSizes = Array.from({length:9},(_,i)=>i+2); // 本体2〜50のうち、通信試作は合計20機まで。
+  const defaultSettings = {capacity:4,teamSize:5,mapId:'mesa',teamMode:'random'};
   const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), requests: new Map(), localUnitId: null,
+    settings:null, roster:[], hostTeam:'B', resolvedMapId:null, roomId:null,
     matchId: null, frame: 0, seq: 0, lastSnapshot: null, events: [], history: [], receivedEvents: new Set(),
     inputLatency: [], hitLatency: [], pendingInputs: new Map(), frameMs: [], sendMs: [],
     shots: [], disconnected: [], lastHost: 0, lastSent: 0, lastInput: 0, onStatus: null,
     startAtHost: null, startAtLocal: null, countdownNumber: null, actualStartAt: null };
   let saved = null, overrideInput = null, playingEffects = false, eventId = 0, projectileId = 0, frameStart = 0, previousMove = false, previousTrigger = false;
-  let callbacks = {}, damageInputSeq = null, blastDepth = 0, requestedWeapon = null, preferenceResolve = null, preferenceTimer = null;
+  let callbacks = {}, damageInputSeq = null, blastDepth = 0, requestedWeapon = null, preferenceResolve = null, preferenceReject = null, preferenceTimer = null;
   let snapshotEncoder = new CBOnlineCodec.Encoder(), snapshotDecoder = new CBOnlineCodec.Decoder(), lastResync = -Infinity, pendingSnapshotWire = null;
   const displayedLatencies = [];
   const remoteShells = new Map();
@@ -20,7 +25,66 @@
   const lockId = e => e?.entityId || (e?.kind==='turret' ? 'turret:'+turrets.indexOf(e) : null);
   const lockEntity = id => typeof id==='string'&&id.startsWith('turret:') ? turrets[Number(id.slice(7))] : unit(id);
   function status(text) { state.status = text; state.onStatus?.(text, state); }
-  function rosterChanged() { callbacks.onRoster?.([...state.peers.values()].map(p=>({id:p.id,name:p.name||'ゲスト',cls:p.cls||'assault',ready:!!p.preferred}))); }
+  function hostRoster() {
+    return [{id:state.transport?.peer?.id||'host',name:state.transport?.displayName||'ホスト',cls:callbacks.cls==='heavy'?'heavy':'assault',team:state.hostTeam,host:true,ready:true},
+      ...[...state.peers.values()].map(p=>({id:p.id,name:p.name||'ゲスト',cls:p.cls||'assault',team:p.team,host:false,ready:!!p.preferred}))];
+  }
+  function rosterChanged() {
+    if(state.role==='host')state.roster=hostRoster();
+    callbacks.onRoster?.(state.roster.map(p=>({...p})));
+  }
+  function lobbyChanged() {
+    rosterChanged();callbacks.onSettings?.(state.settings?{...state.settings}:null,state.resolvedMapId);
+    if(state.role==='host'&&state.phase==='lobby')state.transport?.broadcast('lobby',{settings:state.settings,resolvedMapId:state.resolvedMapId,roster:state.roster});
+  }
+  function checkedSettings(input) {
+    if(!input||typeof input!=='object'||Array.isArray(input))throw Error('部屋の設定が正しくありません');
+    const s={capacity:input.capacity,teamSize:input.teamSize,mapId:input.mapId,teamMode:input.teamMode};
+    if(![2,3,4].includes(s.capacity))throw Error('人間の定員はホストを含め2〜4人です');
+    if(!roomTeamSizes.includes(s.teamSize))throw Error('片軍の人数は人間とBotを合わせて2〜10機です');
+    if(s.mapId!=='random'&&!roomMaps.some(m=>m.id===s.mapId))throw Error('通常コア戦のマップを選んでください');
+    if(!['random','choice'].includes(s.teamMode))throw Error('チームはランダムか希望選択を選んでください');
+    return s;
+  }
+  const resolveMap = id => id==='random'?roomMaps[Math.floor(Math.random()*roomMaps.length)].id:id;
+  function requireHostLobby() { if(state.role!=='host'||state.phase!=='lobby')throw Error('待機中のホストだけが部屋を変更できます'); }
+  function updateSettings(patch) {
+    requireHostLobby();
+    const next=checkedSettings({...state.settings,...patch}),roster=hostRoster();
+    if(next.capacity<roster.length)throw Error('参加済みの人数より定員を小さくできません。先に退出してもらってください');
+    if(['B','R'].some(t=>roster.filter(p=>p.team===t).length>next.teamSize))throw Error('現在のチーム人数が上限を超えます。先にチームを移動・シャッフルしてください');
+    if(!state.transport.setCapacity(next.capacity))throw Error('通信側の定員を変更できませんでした');
+    if(next.mapId!==state.settings.mapId)state.resolvedMapId=resolveMap(next.mapId);
+    state.settings=next;lobbyChanged();status('部屋の設定を更新しました');return {...next};
+  }
+  function assignTeam(id,team) { if(id===state.transport.peer.id)state.hostTeam=team;else state.peers.get(id).team=team; }
+  function setPlayerTeam(id,team) {
+    requireHostLobby();
+    if(state.settings.teamMode!=='choice')throw Error('ランダム設定ではチームを選べません');
+    if(!['B','R'].includes(team))throw Error('チームを選んでください');
+    const roster=hostRoster(),current=roster.find(p=>p.id===id);
+    if(!current)throw Error('参加者が見つかりません');
+    if(current.team===team)return true;
+    if(roster.filter(p=>p.team===team).length>=state.settings.teamSize)throw Error('希望するチームは満員です');
+    assignTeam(id,team);lobbyChanged();return true;
+  }
+  function chooseTeam(team) {
+    if(state.phase!=='lobby'||state.settings?.teamMode!=='choice')throw Error('待機中の希望選択モードだけでチームを選べます');
+    if(!['B','R'].includes(team))throw Error('チームを選んでください');
+    if(state.role==='host')return setPlayerTeam(state.transport.peer.id,team);
+    if(state.role==='guest')return state.transport.send('teamChoice',{team});
+    return false;
+  }
+  function shuffleTeams() {
+    requireHostLobby();
+    const roster=hostRoster(),shuffled=roster.slice(),first=Math.random()<.5?'B':'R';
+    for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+    const next=shuffled.map((p,i)=>({id:p.id,team:i%2?(first==='B'?'R':'B'):first}));
+    // 同じ並びを偶然引いた場合も、ボタンを押した結果が必ず変わる。
+    if(next.every(p=>roster.find(r=>r.id===p.id).team===p.team))for(const p of next)p.team=p.team==='B'?'R':'B';
+    for(const p of next)assignTeam(p.id,p.team);
+    lobbyChanged();status('チームをシャッフルしました');return state.roster.map(p=>({...p}));
+  }
   function requestsChanged() { callbacks.onRequests?.([...state.requests.values()].map(p=>({...p}))); }
   function approveGuest(id) {
     if(state.role!=='host'||state.phase!=='lobby')return false;
@@ -80,10 +144,11 @@
   }
   function saveSettings() { if (!saved) saved = { mapId, chosenCls, chosenTeam, selectedTeamSize }; }
   // 初期装備・同じパーツを全機へ。保存用の構成には書き戻さない。
-  function setupWorld(teamSize, localId, roster = null) {
+  function setupWorld(teamSize, localId, battleMapId, roster = null) {
     saveSettings(); running = false; tutorialClearInput(); stopSessionAudio();
-    chosenTeam = 'B'; chosenCls = 'assault'; selectedTeamSize = teamSize;
-    selectMap('mesa', false);
+    // 実際のB/R所属は保存したまま、生成前に自軍の色を選ぶ。施設だけでなく機体も自軍青になる。
+    chosenTeam = localId.split(':')[0]; chosenCls = 'assault'; selectedTeamSize = teamSize;
+    selectMap(battleMapId, false);
     const oldMech = { ...mechCfg }, oldBotMech = botMech;
     try { Object.assign(mechCfg, MECH_DEFAULT); botMech = () => ({...MECH_DEFAULT}); setup(); }
     finally { Object.assign(mechCfg, oldMech); botMech = oldBotMech; }
@@ -94,7 +159,7 @@
       u.controller = 'bot'; u.localView = u.entityId === localId;
       u.isPlayer = u.localView; // 旧い外部試験から読む互換用。動作判定は3関数を使う。
       u.controlLoadout = preset(cls); u.cls = cls; u.nextCls = null;
-      equip(u, cls); u.name = r?.name || `${u.team === 'B' ? '青' : '橙'}${u.idx + 1}`;
+      equip(u, cls); u.name = r?.name || `Bot ${u.team === 'B' ? 'A' : 'B'}${u.idx + 1}`;
       u.group.visible = true;
     }
     player = unit(localId); state.localUnitId = localId;
@@ -106,7 +171,7 @@
   }
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;
-    return { appVersion: opts.appVersion || localVersion(), peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, displayName: opts.displayName,
+    return { appVersion: opts.appVersion || localVersion(), peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, displayName: opts.displayName, capacity:state.settings?.capacity||4,
       onStatus: msg => status(typeof msg === 'string' ? msg : JSON.stringify(msg)),
       onPeerRequest: (id,name) => {
         if(state.role!=='host'||state.phase!=='lobby'){state.transport?.rejectPeer(id,'ロビー以外では入室できません');return;}
@@ -117,44 +182,60 @@
         if (state.role !== 'host') return;
         if (state.phase !== 'lobby') { state.transport.disconnectPeer(id,'試合中は参加できません'); return; }
         state.requests.delete(id);requestsChanged();
-        state.peers.set(id, { id, name:name||'ゲスト', ready:false, input:null, receivedSeq:0, appliedSeq:0, last:now(), pendingEdges:{}, unitId:null });
-        state.transport.send('lobby', {players:state.peers.size + 1}, id); status(`参加者 ${state.peers.size + 1} 人`); rosterChanged();
+        const roster=hostRoster(),team=roster.filter(p=>p.team==='B').length<=roster.filter(p=>p.team==='R').length?'B':'R';
+        state.peers.set(id, { id, name:name||'ゲスト', team, ready:false, input:null, receivedSeq:0, appliedSeq:0, last:now(), pendingEdges:{}, unitId:null });
+        status(`参加者 ${state.peers.size + 1} 人`); lobbyChanged();
       },
       onPeerLeave: (id, reason) => peerLeft(id, reason), onMessage: onMessage };
   }
   async function create(opts = {}) {
+    const settings=checkedSettings({...defaultSettings,...opts.settings});
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
+    state.settings=settings;state.resolvedMapId=resolveMap(settings.mapId);state.hostTeam='B';
     setSimulationRole('host'); state.transport = new CBOnlineTransport(transportOptions(opts));
-    const id = await state.transport.createRoom(); state.roomId = id; status('部屋を作成しました：' + id); return id;
+    const transport=state.transport,id=await transport.createRoom();
+    if(state.transport!==transport||state.phase!=='lobby')throw Error('部屋の作成を取り消しました');
+    state.roomId = id; lobbyChanged();status('部屋を作成しました：' + id); return id;
   }
   async function join(roomId, opts = {}) {
     leave('接続を作り直す'); saveSettings(); resetMeasurements(); state.role = 'guest'; state.phase = 'lobby'; running=false; stopSessionAudio();
     setSimulationRole('guest'); state.transport = new CBOnlineTransport(transportOptions(opts));
-    await state.transport.connect(roomId); state.roomId = roomId;
-    await state.transport.waitForClock();
+    const transport=state.transport;
+    await transport.connect(roomId);
+    if(state.transport!==transport||state.phase!=='lobby')throw Error('入室を取り消しました');
+    state.roomId = roomId;
+    await transport.waitForClock();
+    if(state.transport!==transport||state.phase!=='lobby')throw Error('入室を取り消しました');
     await new Promise((resolve,reject)=>{
-      preferenceResolve=resolve;preferenceTimer=setTimeout(()=>{preferenceResolve=null;reject(Error('兵装の確認が時間切れになりました'));},10000);
-      state.transport.send('preference', {cls:opts.cls === 'heavy' ? 'heavy' : 'assault'});
-    }); status('ホストの開始を待っています');
+      preferenceResolve=resolve;preferenceReject=reject;preferenceTimer=setTimeout(()=>{preferenceResolve=preferenceReject=null;preferenceTimer=null;reject(Error('兵装の確認が時間切れになりました'));},10000);
+      transport.send('preference', {cls:opts.cls === 'heavy' ? 'heavy' : 'assault'});
+    });
+    if(state.transport!==transport||['ended','leaving','idle'].includes(state.phase))throw Error('入室を取り消しました');
+    if(state.phase==='lobby')status('ホストの開始を待っています');
   }
-  function start({teamSize = 5} = {}) {
+  function start(options = {}) {
     if (state.role !== 'host' || state.phase !== 'lobby') throw Error('待機中のホストだけが開始できます');
-    if (state.peers.size < 1 || state.peers.size > 3) throw Error('人間2〜4人で開始してください');
+    if (state.peers.size < 1 || state.peers.size + 1 > state.settings.capacity) throw Error('定員内の人間2〜4人で開始してください');
     if(![...state.peers.values()].every(p=>p.preferred))throw Error('ゲストの兵装確認を待ってください');
-    if (![5,10].includes(teamSize)) throw Error('人数は10機か測定用20機です');
+    if(options.teamSize!==undefined&&options.teamSize!==state.settings.teamSize)updateSettings({teamSize:options.teamSize});
+    checkedSettings(state.settings);
+    if(state.settings.teamMode==='random')shuffleTeams();
+    const teamSize=state.settings.teamSize,roster=hostRoster(),counts={B:0,R:0};
+    if(['B','R'].some(t=>roster.filter(p=>p.team===t).length>teamSize))throw Error('チームの人間数が片軍の人数を超えています');
+    const assignments=roster.map(p=>({...p,unitId:p.team+':'+counts[p.team]++}));
+    const host=assignments.find(p=>p.host);
     clearStartReservation();state.actualStartAt=null;running=false;stopSessionAudio();
     state.phase = 'preparing';
     clearTimeout(state.prepareTimer);state.prepareTimer=setTimeout(()=>{if(state.role==='host'&&state.phase==='preparing')abortPreparation('ゲストの読み込みが15秒以内に完了しなかったため、開始を中止しました');},15000);
     state.matchId = 'match-' + Date.now().toString(36); state.teamSize = teamSize;
-    state.transport.startMatch(state.matchId); setupWorld(teamSize, 'B:0'); player.controller = 'localHuman'; player.name = 'ホスト'; player.controlLoadout=preset(callbacks.cls==='heavy'?'heavy':'assault'); equip(player,callbacks.cls==='heavy'?'heavy':'assault');
-    const ids = ['R:0','B:1','R:1']; let i = 0;
+    state.transport.startMatch(state.matchId); setupWorld(teamSize,host.unitId,state.resolvedMapId); player.controller = 'localHuman'; player.name = host.name; player.controlLoadout=preset(host.cls); equip(player,host.cls);
     for (const p of state.peers.values()) {
-      p.unitId = ids[i++]; p.ready = false; p.last = now(); p.joinedAt = now();
+      p.unitId = assignments.find(r=>r.id===p.id).unitId; p.ready = false; p.last = now(); p.joinedAt = now();
       const u = unit(p.unitId); u.controller = 'remoteHuman'; u.ownerPeerId = p.id;
-      u.name = 'ゲスト' + i; u.controlLoadout = preset(p.cls || 'assault'); equip(u,p.cls || 'assault');
+      u.name = p.name; u.controlLoadout = preset(p.cls || 'assault'); equip(u,p.cls || 'assault');
     }
     const initial=snapshotEncoder.encode(snapshot());
-    for (const p of state.peers.values()) if(!state.transport.send('prepare', {matchId:state.matchId, teamSize, localId:p.unitId, baseline:initial.baseline, delta:initial.delta},p.id)){abortPreparation('初期状態が送信上限を超えたため開始できません');return;}
+    for (const p of state.peers.values()) if(!state.transport.send('prepare', {matchId:state.matchId, teamSize, mapId:state.resolvedMapId, localId:p.unitId, baseline:initial.baseline, delta:initial.delta},p.id)){abortPreparation('初期状態が送信上限を超えたため開始できません');return;}
     status('ゲストの読み込みを待っています');
   }
   function begin() {
@@ -170,7 +251,11 @@
     if(handleSnapshotControl(type,data,peerId))return;
     if (state.role === 'host') {
       const p = state.peers.get(peerId); if (!p) return;
-      if (type === 'preference' && state.phase === 'lobby') {p.cls = data?.cls === 'heavy' ? 'heavy' : 'assault';p.preferred=true;state.transport.send('preferenceAck',{cls:p.cls},peerId);rosterChanged();}
+      if (type === 'preference' && state.phase === 'lobby') {p.cls = data?.cls === 'heavy' ? 'heavy' : 'assault';p.preferred=true;state.transport.send('preferenceAck',{cls:p.cls},peerId);lobbyChanged();}
+      if(type==='teamChoice'){
+        try{setPlayerTeam(peerId,data?.team);state.transport.send('teamChoiceResult',{ok:true},peerId);}
+        catch(e){state.transport.send('teamChoiceResult',{ok:false,reason:e.message},peerId);}
+      }
       if (type === 'ready' && state.phase === 'preparing' && data?.matchId === state.matchId) {
         p.ready = true; p.last = now();
         if ([...state.peers.values()].every(x => x.ready)) reserveStart();
@@ -180,14 +265,23 @@
       return;
     }
     if (state.role !== 'guest') return;
-    if(type==='preferenceAck'){clearTimeout(preferenceTimer);preferenceTimer=null;preferenceResolve?.();preferenceResolve=null;return;}
+    if(type==='lobby'&&state.phase==='lobby'){
+      try{
+        const settings=checkedSettings(data?.settings);
+        if(!roomMaps.some(m=>m.id===data.resolvedMapId)||!Array.isArray(data.roster)||data.roster.length>settings.capacity||data.roster.some(p=>typeof p.id!=='string'||typeof p.name!=='string'||!['B','R'].includes(p.team)))throw Error('部屋の参加者情報が正しくありません');
+        state.settings=settings;state.resolvedMapId=data.resolvedMapId;state.roster=data.roster.map(p=>({...p}));lobbyChanged();
+      }catch(e){endGuest(e.message);}return;
+    }
+    if(type==='teamChoiceResult'){status(data?.ok?'希望するチームへ移動しました':data?.reason||'チームを変更できませんでした');return;}
+    if(type==='preferenceAck'){clearTimeout(preferenceTimer);preferenceTimer=null;preferenceResolve?.();preferenceResolve=preferenceReject=null;return;}
     if (type === 'reject' || type === 'endHost') { endGuest(data?.reason || 'ホストが退出しました'); return; }
     if (type === 'prepare' && state.phase === 'lobby') {
+      if(!state.settings||data.teamSize!==state.settings.teamSize||data.mapId!==state.resolvedMapId||!roomMaps.some(m=>m.id===data.mapId)||!new RegExp('^[BR]:[0-9]+$').test(data.localId)){endGuest('開始するマップ・人数が部屋の設定と一致しません');return;}
       if(!snapshotDecoder.seed(data.baseline)){endGuest('初期状態の基準を読み込めませんでした');return;}
       const initial=snapshotDecoder.decode(data.delta);
       if(!initial){endGuest('初期状態を復元できませんでした');return;}
       state.matchId = data.matchId; state.teamSize = data.teamSize;
-      setupWorld(data.teamSize,data.localId,initial.units); player.controller = 'localHuman';
+      setupWorld(data.teamSize,data.localId,data.mapId,initial.units); player.controller = 'localHuman';
       applySnapshot(initial); state.phase = 'preparing'; state.transport.send('ready',{matchId:state.matchId});
     } else if (type === 'begin' && state.phase==='preparing' && data?.matchId === state.matchId) { countdown(data.startAtHost); }
     else if (type === 'snapshot' && ['playing','ended'].includes(state.phase)) receiveSnapshot(data);
@@ -239,7 +333,7 @@
     if(preparing)abortPreparation('準備中にゲストが退出したため、開始を中止しました');
     const u = unit(p.unitId);
     if (u) { u.controller = 'bot'; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
-    state.peers.delete(id); rosterChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
+    state.peers.delete(id); lobbyChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
   }
   function endGuest(reason) {
     clearStartReservation();
@@ -250,10 +344,11 @@
   function leave(reason = '退出') {
     clearStartReservation();running=false;stopSessionAudio();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
+    clearTimeout(preferenceTimer);preferenceTimer=null;preferenceReject?.(Error(reason));preferenceResolve=preferenceReject=null;
     const t = state.transport;
     state.phase = 'leaving';
     if (t) { if (state.role === 'host') t.broadcast('endHost',{reason}); else t.send('leave',{reason}); t.close(reason); }
-    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear();state.requests.clear();requestsChanged();rosterChanged(); state.events=[]; state.history=[];
+    state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.peers.clear();state.requests.clear();state.settings=null;state.roster=[];state.resolvedMapId=null;state.roomId=null;requestsChanged();lobbyChanged(); state.events=[]; state.history=[];
     for (const mesh of remoteShells.values()) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); } remoteShells.clear();
     setSimulationRole('offline');
     if (saved) {
@@ -263,7 +358,7 @@
   }
   function packUnit(u) {
     return {id:u.entityId,team:u.team,idx:u.idx,cls:u.cls,name:u.name,controller:u.controller,mech:u.mech,
-      ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),sc:{...u.sc},
+      ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
       swing:u.swing ? {a:u.swing.a,...safe(u.swing,['t','phi','yaw0','aimed','tilt','slope','pike','chargeStage','chargeRatio','dashAttack','stopped','queued'])} : null,
       transfer:u.transfer ? safe(u.transfer,['t','base','at']) : null,
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:u.slots[k].w.key,...safe(u.slots[k],slotKeys)}]))};
@@ -276,6 +371,8 @@
       plants:plants.map(p=>safe(p,['id','owner','gauge','capturing','contested'])),
       turrets:turrets.map(p=>safe(p,['hp','alive','yaw','revive','team'])),radars:radars.map(p=>({...safe(p,['hp','alive','revive']),headYaw:p.head.rotation.y,intruders:p.intruders.map(u=>u.entityId)})),
       barricades:barricades.map(p=>safe(p,['hp','alive'])),
+      mobility:{lifts:lifts.map(l=>({pos:l.pos.toArray(),direction:l.direction,waitT:l.waitT,blocked:l.blocked})),
+        jumpPads:jumpPads.map(p=>p.flash),catapults:catapults.map(p=>({flash:p.flash,opacity:p.film.material.opacity}))},
       shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team})),
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq]))};
   }
@@ -289,6 +386,7 @@
     Object.assign(u,safe(s,scalarKeys)); u.pos.fromArray(s.pos); u.vel.fromArray(s.vel); Object.assign(u.sc,s.sc);
     if (u === player) {u.yaw=localYaw; u.pitch=localPitch;} // 視点操作のみ即時。移動は確定位置。
     u.swing=s.swing?{...s.swing,hit:new Set()}:null;
+    u.zip=Number.isInteger(s.zipLine)&&s.zipLine>=0&&ziplines[s.zipLine]?{line:ziplines[s.zipLine]}:null;
     u.name=s.name; u.group.visible=u.alive || u.downT>0; u.transfer=s.transfer?{...s.transfer}:null;
     for (const k of SLOTS) if (s.slots[k]) {for(const field of slotKeys)if(!Object.hasOwn(s.slots[k],field))delete u.slots[k][field];Object.assign(u.slots[k],safe(s.slots[k],slotKeys));}
   }
@@ -319,6 +417,10 @@
     }
     for(const v of s.plants){const p=plants.find(p=>p.id===v.id);if(p){Object.assign(p,v);paintPlant(p);}}
     applyFacilities(s);
+    // ホスト確定の施設位置・発光のみ反映。乗客移動/接触/射出の物理はゲストで行わない。
+    for(const [i,v] of (s.mobility?.lifts||[]).entries()){const l=lifts[i];if(l){setLiftPosition(l,vector(v.pos));l.direction=v.direction;l.waitT=v.waitT;l.blocked=v.blocked;}}
+    for(const [i,flash] of (s.mobility?.jumpPads||[]).entries()){const p=jumpPads[i];if(p){p.flash=flash;p.ring.scale.setScalar(1+flash*.12);}}
+    for(const [i,v] of (s.mobility?.catapults||[]).entries()){const p=catapults[i];if(p){p.flash=v.flash;p.film.material.opacity=v.opacity;}}
     const alive=new Set(s.shells.map(x=>x.id));
     for(const [id,m] of remoteShells)if(!alive.has(id)){scene.remove(m);m.geometry.dispose();m.material.dispose();remoteShells.delete(id);}
     for(const sh of s.shells){let m=remoteShells.get(sh.id);if(!m){m=new T.Mesh(sh.rocket?new T.CylinderGeometry(.2,.2,1.4,8):new T.SphereGeometry(.4,8,6),new T.MeshBasicMaterial({color:sh.weak?0xa070ff:BALLISTIC_COLOR}));remoteShells.set(sh.id,m);scene.add(m);}m.position.fromArray(sh.pos);if(sh.rocket&&sh.vel.some(n=>n))m.quaternion.setFromUnitVectors(UP,vector(sh.vel).normalize());}
@@ -438,7 +540,8 @@
   };
   const oldDamage=damage;damage=function(r,by,dmg,head){const result=oldDamage(...arguments);if(result&&!blastDepth&&by?.controller==='remoteHuman')emit('hit',{unit:by.entityId,seq:damageInputSeq??(by.onlineInputSeq||0),head:!!head});return result;};
   addEventListener('beforeunload',()=>{if(state.role==='host')state.transport?.broadcast('endHost',{reason:'ホストが退出しました'});});
-  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,
+  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,
+    roomOptions:{maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),disconnected:state.disconnected.slice()})};
 })();

@@ -126,11 +126,11 @@ async function frames(pages,n=1,ms=50){
     if(i%5===0)await sleep(5);
   }
 }
-async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[]}={}){
+async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[],beforeStart}={}){
   const pages=[];
   const host=await pageFor(browser,h,errors,{frozen,render});pages.push(host);
   console.log('部屋作成開始');
-  const roomId=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions,latencyMs});
+  const roomId=await host.evaluate(o=>CBOnlineGame.create(o),{peerOptions:h.peerOptions,latencyMs,settings:{teamMode:'choice'}});
   for(let i=0;i<guests;i++){
     const guest=await pageFor(browser,h,errors,{frozen,render});pages.push(guest);
     console.log(`ゲスト ${i+1} 接続開始`);
@@ -138,6 +138,7 @@ async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=tru
   }
   console.log('全ゲスト接続完了・試合開始');
   await sleep(100+latencyMs*2); // 装備希望もホストへ届いてから開始する。
+  if(beforeStart)await beforeStart(host);
   // startはreadyを待つ可能性があるので、固定コマ試験でもイベントループを塞がない。
   await host.evaluate(n=>{window.__startPromise=CBOnlineGame.start({teamSize:n});},teamSize);
   const startDeadline=Date.now()+20000;

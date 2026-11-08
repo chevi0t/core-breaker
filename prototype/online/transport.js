@@ -1,7 +1,7 @@
 /* #212: PeerJS 1.5.5 用のブラウザホスト通信。ゲームの状態はここで計算しない。 */
 (function (root) {
   'use strict';
-  const PROTOCOL = 3, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
+  const PROTOCOL = 4, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
   const encoder = new TextEncoder();
   const now = () => performance.now();
   // 表示名は本人確認済みのIDではない。制御文字・方向制御を除き24コードポイントまで。
@@ -9,6 +9,7 @@
   class CBOnlineTransport {
     constructor(options = {}) {
       this.options = options;
+      this.capacity = Number.isInteger(options.capacity) && options.capacity >= 2 && options.capacity <= 4 ? options.capacity : 4;
       this.appVersion = String(options.appVersion || '').trim();
       this.displayName = cleanName(options.displayName);
       if (!this.appVersion) throw new Error('ゲームの版が指定されていません');
@@ -36,7 +37,7 @@
       this.peer.on('close', () => { if (!this.closed) this.close('接続サービスが終了しました'); });
       this.peer.on('connection', conn => {
         if (this.role !== 'host') { conn.on('open', () => conn.close()); return; }
-        const reject = this.started ? '試合開始後の途中参加はできません' : [...this.links.values()].filter(l=>l.approved&&!l.closing).length >= 3 ? '部屋は満員です（ホストを含め4人まで）' : [...this.links.values()].filter(l=>!l.approved).length >= 8 ? '入室の承認待ちが上限です。少し待ってから入り直してください' : this.links.has(conn.peer) ? '同じ相手は既に接続しています' : '';
+        const reject = this.started ? '試合開始後の途中参加はできません' : [...this.links.values()].filter(l=>l.approved&&!l.closing).length >= this.capacity - 1 ? `部屋は満員です（ホストを含め${this.capacity}人まで）` : [...this.links.values()].filter(l=>!l.approved).length >= 8 ? '入室の承認待ちが上限です。少し待ってから入り直してください' : this.links.has(conn.peer) ? '同じ相手は既に接続しています' : '';
         if (reject) { conn.on('open', () => { conn.send(JSON.stringify({ type: 'reject', reason: reject })); this._later(() => conn.close(), 100); }); return; }
         this._attach(conn);
       });
@@ -59,7 +60,7 @@
       try {
         await this._openPeer();
         return await new Promise((resolve, reject) => {
-          const conn = this.peer.connect(this.roomId, { reliable: true, serialization: 'raw', label: 'core-breaker-online-v3' });
+          const conn = this.peer.connect(this.roomId, { reliable: true, serialization: 'raw', label: 'core-breaker-online-v4' });
           this._attach(conn, resolve, reject);
         });
       } catch (e) { this.close(e.message); throw e; }
@@ -257,10 +258,16 @@
         connectedPeers: [...this.links.values()].filter(l=>l.ready&&l.approved&&!l.closing).length, pendingPeers:[...this.links.values()].filter(l=>l.pending&&!l.closing).length,
         peers: [...this.links].map(([id,l])=>({ id, sentBytes:l.sentBytes, receivedBytes:l.receivedBytes, rttMs:l.rttMs, bufferedBytes:l.conn.dataChannel?.bufferedAmount||0, queue:l.queue.length + l.snapshots.length })), closedPeers: [...this.history].map(([id,s])=>({id,...s})), latencyMs: this.latencyMs };
     }
+    setCapacity(next) {
+      // 承認待ちは定員に含めない。既に許可した参加者を設定変更で追い出さない。
+      if(this.role!=='host'||this.started||this.closed||!Number.isInteger(next)||next<2||next>4)return false;
+      if([...this.links.values()].filter(l=>l.approved&&!l.closing).length+1>next)return false;
+      this.capacity=next;return true;
+    }
     approvePeer(peerId) {
       const link=this.links.get(peerId);
       if(this.role!=='host'||this.started||this.closed||!link?.pending||link.closing)return false;
-      if([...this.links.values()].filter(l=>l.approved&&!l.closing).length>=3) {this._reject(link,'部屋は満員です（ホストを含め4人まで）');return false;}
+      if([...this.links.values()].filter(l=>l.approved&&!l.closing).length>=this.capacity-1) {this._reject(link,`部屋は満員です（ホストを含め${this.capacity}人まで）`);return false;}
       link.pending=false;link.approved=link.ready=true;link.lastReceive=now();
       this._enqueue(link,'welcome',{peerId:link.conn.peer},true);
       this.options.onPeerJoin?.(link.conn.peer,link.displayName);return true;
