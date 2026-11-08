@@ -349,7 +349,7 @@ async function actualWirePhases(active,report){
     await sleep(120);
   }
   report.wire=await host.evaluate(()=>__visibilityProbe);
-  report.guestFinal=await Promise.all(guests.map(p=>p.evaluate(()=>({peerId:CBOnlineGame.state.transport.peer.id,unitId:CBOnlineGame.state.localUnitId,phase:CBOnlineGame.state.phase,
+  report.guestFinal=await Promise.all(guests.map(p=>p.evaluate(()=>({peerId:CBOnlineGame.state.transport.peer.id,unitId:CBOnlineGame.state.localUnitId,finished:CBOnlineGame.state.matchesFinished||0,phase:CBOnlineGame.state.phase,
     hidden:__g.units.filter(u=>u.onlineHidden).map(u=>u.entityId),units:__g.units.map(u=>({id:u.entityId,team:u.team,hidden:!!u.onlineHidden,pos:u.pos.toArray(),sc:u.sc})),lastSnapshot:CBOnlineGame.state.lastSnapshot}))));
 }
 function verifyWire(report,ok){
@@ -364,7 +364,7 @@ function verifyWire(report,ok){
     ok(sent.some(r=>r.envelope.type==='events')&&sent.filter(r=>r.envelope.type==='events').every(r=>r.envelope.payload.every(e=>!e.data.unit||allowed.includes(e.data.unit))),'実events線で秘匿敵sourceを遮断');
     const result=sent.find(r=>r.envelope.type==='matchEnded')?.envelope.payload;
     ok(result&&result.units.length===guest.units.length&&result.units.every(u=>!Object.hasOwn(u,'pos')),'実終了結果は公開scoreだけ');
-    ok(guest.phase==='ended'&&guest.units.every(u=>u.team===team||u.hidden),'終了受信後も秘匿敵を復元しない');
+    ok((guest.phase==='ended'||guest.phase==='lobby'&&guest.finished>0)&&guest.units.every(u=>u.team===team||u.hidden),'終了受信後も秘匿敵を復元しない');
   }
 }
 const pure=pureChecks();

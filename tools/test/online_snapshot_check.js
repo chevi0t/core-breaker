@@ -81,10 +81,10 @@ check('自然Bot戦のsnapshot内訳',async({browser,dir,out,ok,errors})=>{
   const report={mode:TRANSPORT_MODE,commit:execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim(),method:'mesa・10機・人間2人の入力は中立、Botを通常実行。300秒設定の自然試合を固定50msコマ送り、描画省略。実時間20Hz・回線帯域・人間の操作感の測定ではない。',accounting:'messageBytesは1論理メッセージを構成する成功したDataConnection.send全fragmentのJSON UTF8量。logicalMessageBytesは分割前JSON、maxDatagramBytesは1回のsendの最大量。ネットワークヘッダー・WebRTC再送を含まない。カテゴリencodedBytesはbase64化前の二進数（index差varintを当該項目へ加算）、差分base64増量・delta外枠・frame外枠・JSON envelope・fragment base64増量・fragment外枠は別計上。差分は直前snapshotではなくpeer専用基準との比較。公開名簿10機と可視機体数を分け、decode/基準idもpeerごとに独立。'};
   try{
     active=await room(browser,h,errors,{guests:1,teamSize:5,beforeStart:installProbe});
-    for(let n=0;n<6400;n+=10){await frames(active.pages,10);if(n%400===0)console.log('自然Bot戦',Math.round(300-(await summary(active.host)).time)+'秒');if((await summary(active.host)).phase==='ended')break;}
+    for(let n=0;n<6400;n+=10){await frames(active.pages,10);if(n%400===0)console.log('自然Bot戦',Math.round(300-(await summary(active.host)).time)+'秒');if((await summary(active.host)).finished>0)break;}
     await frames(active.pages,8);await sleep(150);
-    const end=await summary(active.host);ok(end.phase==='ended','300秒設定の自然Bot戦が勝敗まで完走');
-    const guest=await summary(active.guests[0]);ok(guest.phase==='ended'&&JSON.stringify(guest.cores)===JSON.stringify(end.cores),'ゲストも同じ最終結果へ到達');
+    const end=await summary(active.host);ok(end.phase==='lobby'&&end.finished>0,'300秒設定の自然Bot戦が勝敗まで完走');
+    const guest=await summary(active.guests[0]);ok(guest.phase==='lobby'&&guest.finished>0&&JSON.stringify(guest.cores)===JSON.stringify(end.cores),'ゲストも同じ最終結果へ到達');
     const probe=await active.host.evaluate(()=>({...__snapshotProbe,observerErrors:__wireObserverErrors}));Object.assign(report,probe,{final:{phase:end.phase,timeLeft:end.time,cores:end.cores}});
     ok(probe.errors.length===0&&probe.observerErrors.length===0,'成功送信した全基準・差分を独立観測器で解析できる');
     ok(probe.prepare.length===1&&probe.prepare[0].channel==='control'&&!probe.prepare[0].hasSnapshotState&&JSON.stringify(probe.prepare[0].metadataKeys)===JSON.stringify(['localId','mapId','matchId','teamSize'])&&probe.prepare[0].messageBytes<262144,'初期prepareはcontrol metadata1通で静的基準を重複収録しない');

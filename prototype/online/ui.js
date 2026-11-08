@@ -89,6 +89,8 @@
   const status = t => { el('onlineStatus').textContent = typeof t === 'string' ? t : t?.message || t?.reason || t?.status || JSON.stringify(t);controls(); };
   const hideDuringPlay = () => { panel.hidden = true; returnButton.hidden = true;controls(); };
   const showResult = () => { panel.hidden = true; returnButton.hidden = false;document.getElementById('start').textContent='オンラインのメニューへ戻る';controls(); };
+  // 試合後も部屋に残る。結果画面のボタンはロビーを開くだけで、退出はロビーの「退出」から。
+  const lobbyReturned = () => { panel.hidden = true; returnButton.hidden = false; returnButton.textContent = 'ロビーへ戻る'; document.getElementById('start').textContent='ロビーへ戻る（同じメンバー）';controls(); };
   const peerLabel = entry => (entry.name || 'ゲスト') + '（未認証・' + entry.id.slice(0, 8) + '）';
   const peerAction = (label,id,action) => {
     const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.peerId=id;b.dataset.action=action;
@@ -128,12 +130,12 @@
     if(settings){el('onlineCapacity').value=String(settings.capacity);el('onlineTeamSize').value=String(settings.teamSize);el('onlineMap').value=settings.mapId;el('onlineTeamMode').value=settings.teamMode;}
     el('onlineResolvedMap').textContent=settings?'出撃マップ: '+(supported.maps.find(m=>m.id===resolvedMapId)?.name||resolvedMapId)+(settings.mapId==='random'?'（抽選済み）':''):'';controls();
   }
-  const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult});
+  const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned});
   const act = async fn => {if(busy)return;busy=true;controls();const mine=++generation;try{await fn(mine);}catch(e){if(mine===generation)status(e.message);}finally{if(mine===generation){busy=false;controls();}}};
-  const resetRoomControls = () => {generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
+  const resetRoomControls = () => {returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
   const startLabel = () => document.getElementById('start');
   const leaveResult = (openPanel=true) => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();startLabel().textContent='もう一度出撃する';panel.hidden=!openPanel;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
-  returnButton.onclick = () => leaveResult(true);
+  returnButton.onclick = () => { if (CBOnlineGame.state.phase === 'lobby') { panel.hidden = false; returnButton.hidden = true; controls(); } else leaveResult(true); };
   button.onclick = () => {panel.hidden=false;controls();document.exitPointerLock?.();el('onlineName').focus();};
   el('onlineCopy').onclick=async()=>{const id=CBOnlineGame.state.roomId;if(!id)return;try{await navigator.clipboard.writeText(id);status('部屋IDをコピーしました。友人に共有してください。');}catch{status('コピーできませんでした。部屋ID欄を選択してコピーしてください。');el('onlineRoom').focus();el('onlineRoom').select();}};
   el('onlineCreate').onclick=()=>act(async mine=>{let room;try{room=await CBOnlineGame.create(options());}catch(e){if(mine===generation)CBOnlineGame.leave('部屋を作成できませんでした');throw e;}if(mine!==generation)return;el('onlineRoom').value=room;status('部屋ID: '+room+'　ゲストの入室を待っています。');});
@@ -155,7 +157,9 @@
       if (!toOnline) e.target.closest('button,a,input,select').click();
       return;
     }
-    panel.hidden = false; status('オンラインを退出してから通常メニューを使ってください。');
+    panel.hidden = false;
+    if (CBOnlineGame.state.phase === 'lobby' && e.target.closest('#start')) { returnButton.hidden = true; controls(); return; }
+    status('オンラインを退出してから通常メニューを使ってください。');
   } }, true);
   el('onlineDiagnostics').addEventListener('change',refreshDiagnostic);
   addEventListener('keydown', e => {
