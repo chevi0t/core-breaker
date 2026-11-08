@@ -257,7 +257,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     await sleep(1100);
     await guest.evaluate(()=>{
       const proto=CBOnlineCodec.Decoder.prototype,decode=proto.decode;
-      window.__finalRecovery={cleared:false,snapshots:0,droppedFrames:[],bases:0,baseIds:[],resync:0,results:0};
+      window.__finalRecovery={cleared:false,snapshots:0,droppedFrames:[],bases:0,baseIds:[],resync:0,results:0,lobbyReturn:0};
       proto.decode=function(delta){proto.decode=decode;this.bases.clear();__finalRecovery.cleared=true;return decode.call(this,delta);};
       const t=CBOnlineGame.state.transport,receive=t.options.onMessage,send=t.send.bind(t);
       t.options.onMessage=(type,data,id)=>{
@@ -267,6 +267,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
           if(__finalRecovery.cleared){__finalRecovery.droppedFrames.push(data.frame);return;}
         }
         if(type==='matchEnded')__finalRecovery.results++;
+        if(type==='lobbyReturn')__finalRecovery.lobbyReturn++;
         return receive(type,data,id);
       };
       t.send=(type,...args)=>{if(type==='snapshotResync')__finalRecovery.resync++;return send(type,...args);};
@@ -296,7 +297,8 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     await sleep(180); // controlが先着しても、落とした最後の写真を観測してから集計する。
     const finalRecovery=await guest.evaluate(()=>({...__finalRecovery,cores:[__g.cores.B.hp,__g.cores.R.hp],units:__g.units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))}));
     report.finalRecovery={expected:finalExpected,observed:finalRecovery};
-    ok(finalRecovery.cleared&&finalRecovery.resync>=1&&finalRecovery.bases>=1&&finalRecovery.droppedFrames.includes(finalExpected.frame)&&finalRecovery.results===1,'最終差分・全再送基準が欠落してもcontrol結果1通で終了へ復旧');
+    // 試合後は同じ部屋の待機へ戻る（#218）。その後に届く最後の写真は、通信層が前の試合番号として捨てるので、ここまで来ない。
+    ok(finalRecovery.cleared&&finalRecovery.resync>=1&&finalRecovery.bases>=1&&(finalRecovery.droppedFrames.includes(finalExpected.frame)||finalRecovery.lobbyReturn===1)&&finalRecovery.results===1,'最終差分・全再送基準が欠落してもcontrol結果1通で終了へ復旧');
     ok(await host.evaluate(()=>__wireMessages.filter(m=>m.type==='matchEnded').every(m=>m.channel==='control')&&__wireMessages.filter(m=>m.type==='matchEnded').length===1),'最終結果は写真専用線でなくcontrolで1通送信');
     // 各画面のunitsは自軍先になる。entityIdで揃え、scのキー挿入順に依存せず値を比較。
     const byId=units=>units.slice().sort((a,b)=>a.id.localeCompare(b.id));
@@ -322,7 +324,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
       await p.keyboard.press('Escape');ok(await p.locator('#onlinePanel').evaluate(e=>e.hidden),'結果中のEscapeではパネルを開かない');
     }
     await host.locator('#onlineReturn').click();
-    ok(await host.evaluate(()=>!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.role==='offline'),'戻るボタンで旧部屋を退出してオンラインメニューへ戻る');
+    ok(await host.evaluate(()=>!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.role==='host'&&CBOnlineGame.state.phase==='lobby'),'戻るボタンで同じ部屋のロビーを開く（試合後も部屋に残る。#218）');
     await active.close();active=null;
 
     console.log('追加回帰: 20機のsnapshotサイズ');

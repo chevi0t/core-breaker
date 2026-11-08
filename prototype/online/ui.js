@@ -167,7 +167,8 @@
     // F3のブラウザ検索・長押し反復を抑え、診断の開閉ではpointer lockを解除しない。
     e.stopImmediatePropagation();e.preventDefault();if(e.repeat)return;
     if(e.code==='F3'){if(CBOnlineGame.state.phase==='playing'){el('onlineDiagnostics').checked=!el('onlineDiagnostics').checked;refreshDiagnostic();}return;}
-    panel.hidden=CBOnlineGame.state.phase==='ended'?true:!panel.hidden;document.exitPointerLock?.();
+    // 結果画面の間（試合後にロビーへ戻っていても、戻るボタンを押すまで）はEscapeでパネルを開かない。
+    panel.hidden=CBOnlineGame.state.phase==='ended'||CBOnlineGame.state.phase==='lobby'&&!returnButton.hidden?true:!panel.hidden;document.exitPointerLock?.();
   }, true);
   // 試作中の通常再出撃ボタンから、独立したオフライン戦を重ねて開始させない。
   document.getElementById('start').addEventListener('click', e => { if (CBOnlineGame.active?.()) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = false; status('オンラインの試合中です。終了してから通常出撃してください。'); } }, true);

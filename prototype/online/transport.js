@@ -254,8 +254,9 @@
     // 次の startMatch と、ロビー中の新しい入室を受け付けられるようにする。古い試合番号の写真や入力は捨てられる。
     returnToLobby() {
       if (this.closed) return false;
+      // 送信待ちの写真は前の試合番号で包んであり、受け手が試合番号の不一致で捨てる。ここでは消さない
+      // （最後の写真も相手へ届け、取りこぼしの観測と結果の照合に使えるようにする）。
       this.started = false; this.matchId = '';
-      for (const link of this.links.values()) { link.snapshots.length = 0; link.lastBase = null; }
       return true;
     }
     startMatch(matchId) {

@@ -794,7 +794,8 @@
     clearStartReservation();clearTimeout(state.prepareTimer);state.prepareTimer=null;
     if(state.phase!=='ended'){clearPrediction();running=false;ended=true;tutorialClearInput();stopSessionAudio();}
     state.transport?.returnToLobby?.();
-    resetMeasurements();
+    // 試合の番号（frame）は戻さない。終わった試合の最終frameを後から照合でき、次の試合も番号が増え続ける。
+    const lastFrame=state.frame;resetMeasurements();state.frame=lastFrame;
     for(const p of state.peers.values())Object.assign(p,{ready:false,unitId:null,input:null});
     state.phase='lobby';state.matchId=null;running=false;ended=true;
     state.matchesFinished=(state.matchesFinished||0)+1;lobbyChanged();callbacks.onLobbyReturn?.();
