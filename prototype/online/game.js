@@ -147,7 +147,11 @@
       for(const edge of prediction.actionEdges)if(edge.seq===source.seq)Object.assign(applied.pressed,edge.pressed);
     }
     for(const edge of prediction.actionEdges)if(edge.needsReplay&&edge.lifeId===player.lifeId&&edge.seq<=source.seq){Object.assign(applied.pressed,edge.pressed);edge.needsReplay=false;}
+    // 視点（yaw/pitch）は手元のマウスが正。移動の計算は命令の向きで行うが、ホストの繰り返し分を補うために
+    // 古い命令を当てたときも、その古い向きを画面へ戻さない（2026-11-08 オーナー報告：マウスで回すとカクつく）。
+    const viewYaw=player.yaw,viewPitch=player.pitch;
     const moved=predictHumanMovement(player,applied,dt);
+    player.yaw=viewYaw;player.pitch=viewPitch;
     if(moved){prediction.predictedSteps++;prediction.predictedSeconds+=dt;}else prediction.blockedFrames++;
     return moved;
   }
