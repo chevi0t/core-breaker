@@ -27,12 +27,33 @@
     <label for="onlineTeamMode">チーム<select id="onlineTeamMode"><option value="random">ランダム</option><option value="choice">希望するチームを選ぶ</option></select></label>
   </div><p id="onlineResolvedMap" class="online-map"></p><button type="button" id="onlineApplySettings" hidden>部屋の設定を反映</button>
   <details><summary>抽選のタイミング</summary><p>マップは作成時・ランダムへ変えたときに一度だけ抽選。チームはシャッフル時と開始時に抽選します。希望選択では開始時の所属を保ちます。</p></details></fieldset>
-  <details class="online-card online-measure"><summary>計測設定</summary><label for="onlineLatency">人工片道遅延<select id="onlineLatency"><option value="0">なし</option><option value="50">50ms</option><option value="100">100ms</option></select></label><p>両端に同じ値を指定してください。送信側に追加する遅延です。通信中は変更できません。</p></details>
+  <details class="online-card online-measure"><summary>計測設定</summary><label class="online-diagnostic-toggle"><input type="checkbox" id="onlineDiagnostics">試合中の診断表示（F3）</label><label for="onlineLatency">人工片道遅延<select id="onlineLatency"><option value="0">なし</option><option value="50">50ms</option><option value="100">100ms</option></select></label><p>両端に同じ値を指定してください。送信側に追加する遅延です。通信中は変更できません。</p></details>
   <details class="online-card"><summary>実回線で試す手順</summary><ol class="online-test-steps"><li>PCを2台、別々の回線につなぎます。</li><li>ホストが部屋を作り、IDを共有します。</li><li>もう1台でIDを入力して入室。ホストが試合を始めます。</li><li>ホストのタブを前面にしたまま、両画面の移動・射撃・終了を確認します。</li></ol></details>
   <p class="online-caution">ホストのタブは前面にしてください。ホストの退出で試合終了。STUNのみのため、回線によっては接続できません。大人数・重いマップは負荷が増えます。</p>
   </aside></div>
   <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><button type="button" id="onlineClose">戻る／退出</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div></footer>`;
   document.body.appendChild(panel);
+  const diagnostic=document.createElement('div');diagnostic.id='onlineDiagnostic';diagnostic.hidden=true;diagnostic.setAttribute('aria-label','オンライン試験の診断');document.body.append(diagnostic);
+  const number=(v,digits=0)=>Number.isFinite(v)?v.toFixed(digits):'—';
+  const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF'};
+  const diagnosticStats=s=>s?.count?number(s.meanMs,1)+' / '+number(s.p95Ms,1)+' / '+number(s.maxMs,1)+'ms':'標本待ち';
+  function refreshDiagnostic(){
+    const d=CBOnlineGame.diagnostics(),show=d.phase==='playing'&&document.getElementById('onlineDiagnostics').checked;
+    diagnostic.hidden=!show;if(!show)return;
+    const rows=[(d.role==='host'?'HOST':'GUEST')+' 診断 / F3で開閉 / 直近2秒（起動直後は得られた標本）',
+      '画面更新 '+number(d.fps)+'fps / コマ間隔 平均・p95・最大 '+diagnosticStats(d.frame)];
+    if(d.role==='guest'){
+      const c=d.corrections,h=d.host;
+      rows.push('自機補正（1mm超） '+c.count+'回 / 平均 '+number(c.meanM,3)+'m / 最大 '+number(c.maxM,3)+'m / 照合 '+c.samples+'回',
+        '瞬間合わせ（hardSnap） '+c.hardSnaps+'回 / '+(Object.entries(c.reasons).map(([key,n])=>(diagnosticReasons[key]||key)+':'+n).join('、')||'なし'),
+        '新しい写真の到着 平均・p95・最大 '+diagnosticStats(d.arrivals)+' / 最終到着 '+number(d.snapshotAgeMs)+'ms前 / RTT '+number(d.rttMs)+'ms',
+        'ホスト実測コマ間隔（最後の受信値） 平均・p95・最大 '+diagnosticStats(h?.frame),
+        'ホストJS処理 平均・p95・最大 '+diagnosticStats(h?.cpu)+'（GPU完了待ちは含まない）');
+    }
+    diagnostic.textContent=rows.join('\n');
+  }
+  setInterval(refreshDiagnostic,500);
+
   const el = id => document.getElementById(id);
   const addOption = (id,value,label) => { const option=document.createElement('option');option.value=value;option.textContent=label;el(id).append(option); };
   const supported=CBOnlineGame.roomOptions;
@@ -134,7 +155,14 @@
     }
     panel.hidden = false; status('オンラインを退出してから通常メニューを使ってください。');
   } }, true);
-  addEventListener('keydown', e => { if (CBOnlineGame.active() && ['F3','Escape'].includes(e.code)) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = CBOnlineGame.state.phase === 'ended' ? true : !panel.hidden; document.exitPointerLock?.(); } }, true);
+  el('onlineDiagnostics').addEventListener('change',refreshDiagnostic);
+  addEventListener('keydown', e => {
+    if(!CBOnlineGame.active()||!['F3','Escape'].includes(e.code))return;
+    // F3のブラウザ検索・長押し反復を抑え、診断の開閉ではpointer lockを解除しない。
+    e.stopImmediatePropagation();e.preventDefault();if(e.repeat)return;
+    if(e.code==='F3'){if(CBOnlineGame.state.phase==='playing'){el('onlineDiagnostics').checked=!el('onlineDiagnostics').checked;refreshDiagnostic();}return;}
+    panel.hidden=CBOnlineGame.state.phase==='ended'?true:!panel.hidden;document.exitPointerLock?.();
+  }, true);
   // 試作中の通常再出撃ボタンから、独立したオフライン戦を重ねて開始させない。
   document.getElementById('start').addEventListener('click', e => { if (CBOnlineGame.active?.()) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = false; status('オンラインの試合中です。終了してから通常出撃してください。'); } }, true);
 })();

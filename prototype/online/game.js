@@ -304,7 +304,7 @@
   function resetMeasurements() {
     for(const p of state.peers.values())delete p.replication;remoteUnitHistory.clear();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;resyncBackoff=250;
     pendingPrepare=null;prepared=false;finalFrame=null;lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();interpolation=interpolationState();
-    resetPrediction();resetLagCompensation();
+    resetPrediction();resetLagCompensation();diagnosticTiming=diagnosticState();
     state.frame = state.seq = 0; state.inputLatency = []; state.hitLatency = []; state.frameMs = []; state.sendMs = [];
     state.shots = []; state.pendingInputs.clear(); state.history = []; state.receivedEvents.clear(); state.events = [];
     state.lastSnapshot = null; state.lastSent = state.lastInput = 0; eventId = projectileId = 0; previousMove=previousTrigger=false; displayedLatencies.length=0;
@@ -661,7 +661,7 @@
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:u.slots[k].w.key,...safe(u.slots[k],slotKeys)}]))};
   }
   function snapshot(stateTime=now()) {
-    const s={frame:state.frame,time:stateTime,timeLeft,running,ended,teamSize:state.teamSize,units:units.map(packUnit),
+    const s={frame:state.frame,time:stateTime,timeLeft,running,ended,hostTiming:diagnosticHostTiming(),teamSize:state.teamSize,units:units.map(packUnit),
       cores:{B:cores.B.hp,R:cores.R.hp},
       spotted:Object.fromEntries(['B','R'].map(k=>[k,[...spotted[k]].filter(([u])=>u.entityId).map(([u,left])=>[u.entityId,left])])),
       spotSrc:Object.fromEntries(['B','R'].map(k=>[k,[...spotSrc[k]].filter(([u])=>u.entityId).map(([u,m])=>[u.entityId,[...m]])])),
@@ -960,6 +960,7 @@
   }
   function receiveSnapshot(wire) {
     if(finalFrame!==null||!wire||!Number.isSafeInteger(wire.frame)||wire.frame<0||!Array.isArray(wire.delta))return;
+    diagnosticArrival(wire.frame);
     if(wire.frame<=(state.lastSnapshot?.frame??-1)){interpolation.staleSnapshots++;const pending=pendingSnapshotWires.get(wire.delta[1]);if(pending?.frame<=wire.frame)pendingSnapshotWires.delete(wire.delta[1]);return;}
     const s=snapshotDecoder.decode(wire.delta),baseId=wire.delta[1];
     if(!s||(!prepared&&!pendingPrepare)){
@@ -1064,7 +1065,7 @@
     if(a.vel&&b.vel)u.vel.copy(vector(a.vel.map((v,i)=>v+(b.vel[i]-v)*f)));
   }
   function beforeFrame(dt,t) {
-    frameStart=now();
+    frameStart=now();diagnosticFrameStart(frameStart);
     if(state.role!=='offline'&&state.phase!=='playing'){running=false;stopSessionAudio();}
     countdownTick();requestSnapshotResync();
     if(state.role==='host'&&state.phase==='playing'){
@@ -1103,7 +1104,7 @@
         lastRenderedView={time:interpolation.renderTime,frame:state.lastSnapshot.frame,delayMs:interpolation.delayMs};
         if(Number.isSafeInteger(state.lastSnapshot.unitUpdates))lastRenderedView.units=[...remoteUnitHistory].filter(([id,h])=>!unit(id)?.onlineHidden&&h.stamp&&Math.abs(h.stamp[3]-interpolation.renderTime)>.001).map(([,h])=>h.stamp.slice());
       }
-      for(const p of displayedLatencies.splice(0))state[p.kind==='input'?'inputLatency':'hitLatency'].push(now()-p.time);return;
+      for(const p of displayedLatencies.splice(0))state[p.kind==='input'?'inputLatency':'hitLatency'].push(now()-p.time);diagnosticFrameEnd();return;
     }
     if(state.role!=='host'||state.phase!=='playing')return;
     const stateTime=now();captureLagHistory(stateTime);
@@ -1118,7 +1119,7 @@
       for(const p of state.peers.values()){const result=encodePeerSnapshot(p,full);if(result.baseline)state.transport.send('snapshotBase',result.baseline,p.id);state.transport.send('snapshot',result.wire,p.id);}
       state.lastSent=now();
     }
-    state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();
+    state.sendMs.push(now()-begin);if(state.sendMs.length>60000)state.sendMs.shift();diagnosticFrameEnd();
     if(ended&&state.phase==='playing'){state.transport.broadcast('matchEnded',matchResult());clearPrediction();lagHistory?.clear();state.phase='ended';window.CBOnlineGame.stopSessionAudio?.();status('試合終了');callbacks.onEnded?.('試合終了');}
   }
   function emit(type,data,source=effectSource,target=effectTarget) {if(state.role==='host'&&state.phase==='playing'&&!playingEffects&&state.events.length<1024)state.events.push({id:++eventId,type,data,source:source||unit(data.unit),target});}
@@ -1209,7 +1210,47 @@
   };
   const oldDamage=damage;damage=function(r,by,dmg,head){const result=oldDamage(...arguments);if(result&&!blastDepth&&by?.controller==='remoteHuman')emit('hit',{unit:by.entityId,seq:damageInputSeq??(by.onlineInputSeq||0),head:!!head});return result;};
   addEventListener('beforeunload',()=>{if(state.role==='host')state.transport?.broadcast('endHost',{reason:'ホストが退出しました'});});
-  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,
+  // 診断は直近2秒の上限付き標本。フレーム間隔とJS処理時間を分け、位置や個人情報は送らない。
+  const diagnosticWindowMs=2000;
+  function diagnosticState(){return {lastFrame:null,lastWire:null,lastWireFrame:-1,frames:[],cpu:[],arrivals:[],hostCache:null,hostCacheAt:-Infinity};}
+  let diagnosticTiming=diagnosticState();
+  function diagnosticSample(list,value,at=now()){
+    if(!Number.isFinite(value)||value<0)return;
+    list.push({at,value});while(list.length&&list[0].at<at-diagnosticWindowMs)list.shift();while(list.length>1200)list.shift();
+  }
+  function diagnosticSummary(list,at=now()){
+    const values=list.filter(s=>s.at>=at-diagnosticWindowMs).map(s=>s.value).sort((a,b)=>a-b),n=values.length;
+    return {count:n,meanMs:n?values.reduce((a,b)=>a+b,0)/n:0,p95Ms:n?values[Math.ceil(n*.95)-1]:0,maxMs:n?values[n-1]:0};
+  }
+  function diagnosticFrameStart(at){
+    if(state.phase!=='playing'||state.role==='offline'){diagnosticTiming.lastFrame=null;return;}
+    if(diagnosticTiming.lastFrame!==null)diagnosticSample(diagnosticTiming.frames,at-diagnosticTiming.lastFrame,at);
+    diagnosticTiming.lastFrame=at;
+  }
+  function diagnosticFrameEnd(){if(state.phase==='playing'&&state.role!=='offline')diagnosticSample(diagnosticTiming.cpu,now()-frameStart);}
+  function diagnosticArrival(frame){
+    if(frame<=diagnosticTiming.lastWireFrame)return;const at=now();
+    if(diagnosticTiming.lastWire!==null)diagnosticSample(diagnosticTiming.arrivals,at-diagnosticTiming.lastWire,at);
+    diagnosticTiming.lastWire=at;diagnosticTiming.lastWireFrame=frame;
+  }
+  function diagnosticHostTiming(){
+    const at=now();if(diagnosticTiming.hostCache&&at-diagnosticTiming.hostCacheAt<250)return diagnosticTiming.hostCache;
+    diagnosticTiming.hostCacheAt=at;
+    return diagnosticTiming.hostCache={windowMs:diagnosticWindowMs,frame:diagnosticSummary(diagnosticTiming.frames,at),cpu:diagnosticSummary(diagnosticTiming.cpu,at)};
+  }
+  function diagnostics() {
+    const at=now(),clock=state.role==='guest'?state.transport?.clock?.():null;
+    const samples=prediction.corrections.filter(c=>c.at>=at-diagnosticWindowMs),changed=samples.filter(c=>c.distance>.001),reasons={};
+    let hardSnaps=0;for(const c of samples)if(c.reason!=='smooth'){hardSnaps++;reasons[c.reason]=(reasons[c.reason]||0)+1;}
+    const local=diagnosticSummary(diagnosticTiming.frames,at),host=state.role==='host'?diagnosticHostTiming():state.lastSnapshot?.hostTiming;
+    return {role:state.role,phase:state.phase,windowMs:diagnosticWindowMs,frame:local,fps:local.count&&local.meanMs>0?1000/local.meanMs:null,
+      host:host?.windowMs===diagnosticWindowMs?host:null,arrivals:diagnosticSummary(diagnosticTiming.arrivals,at),
+      snapshotAgeMs:state.role==='guest'&&diagnosticTiming.lastWire!==null?Math.max(0,at-diagnosticTiming.lastWire):null,
+      rttMs:Number.isFinite(clock?.rttMs)?clock.rttMs:null,
+      corrections:{count:changed.length,samples:samples.length,meanM:changed.length?changed.reduce((n,c)=>n+c.distance,0)/changed.length:0,maxM:changed.length?Math.max(...changed.map(c=>c.distance)):0,hardSnaps,reasons},
+      pendingInputs:prediction.pending.length,visibility:typeof document!=='undefined'?document.visibilityState:'unknown'};
+  }
+  window.CBOnlineGame={create,join,start,leave,approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,
     roomOptions:{maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice()})};

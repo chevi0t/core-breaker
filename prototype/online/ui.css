@@ -68,3 +68,9 @@
 }
 @media(max-width:380px) { #onlinePanel .online-fields { grid-template-columns:1fr; } #onlinePanel .online-join { flex-direction:column; align-items:stretch; } }
 @media(max-height:500px) { #onlinePanel .online-header { padding:8px 16px; } #onlinePanel .online-header p:last-child { display:none; } #onlinePanel .online-footer { padding:8px 16px; } }
+
+/* 診断は0.5秒ごとに数値のみ更新。ゲーム画面を覆わず、通常のオフライン戦では出さない。 */
+#onlineDiagnostic { position:fixed; z-index:9999; top:155px; left:50%; transform:translateX(-50%); max-width:90vw; padding:4px 8px; background:#07121de0; border:1px solid #4c738c; color:#dff2ff; font:11px/1.6 system-ui,sans-serif; pointer-events:none; text-align:left; white-space:pre-line; }
+#onlineDiagnostic[hidden] { display:none!important; }
+#onlinePanel .online-diagnostic-toggle { display:flex; align-items:center; gap:8px; margin:10px 0; }
+#onlinePanel .online-diagnostic-toggle input { width:16px; height:16px; margin:0; }
