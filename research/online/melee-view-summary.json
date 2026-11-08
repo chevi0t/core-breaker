@@ -1,0 +1,809 @@
+{
+  "scope": "製品game/codec/描画wrapperのVM。10/26m/sは人工軌道。physical項目のみ実swordTick/physics/meleeHome・平地・初期ソード。命中判定/地形は代役。実WebGL/RTC/操作感は未検証。",
+  "beforeRevision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+  "before": {
+    "sourceHashes": {
+      "prototype/online/game.js": "b066d4b5f540344e90ffaaee52956e62ec537e87d9546dfeeb9dd867d714b42d",
+      "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8",
+      "prototype/index.html": "0c071a2326517c0b194cb00a418e23d8b24c086e552c1f4ecd5f2162cc815887"
+    },
+    "constant": [
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 60,
+        "speed": 10,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.1754231979766681,
+          "cv": 1.0348509302376152,
+          "reverse": 6
+        },
+        "phase": {
+          "stalled": 12,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.17500000000000002,
+        "maxStackedOffset": 0.2833333333333332
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 60,
+        "speed": 10,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.17546371873009067,
+          "cv": 1.0861986327058233,
+          "reverse": 6
+        },
+        "phase": {
+          "stalled": 13,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.17500000000000002,
+        "maxStackedOffset": 0.4125000000000001
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 60,
+        "speed": 26,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.4333769586672599,
+          "cv": 0.0021654294088434833,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 12,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.17500000000000002,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 60,
+        "speed": 26,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.4333362918931043,
+          "cv": 0.0019607944197754293,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 13,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.17500000000000002,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 144,
+        "speed": 10,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.0714207276665631,
+          "cv": 1.8779005792498162,
+          "reverse": 13
+        },
+        "phase": {
+          "stalled": 51,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.16527777777777772,
+        "maxStackedOffset": 0.39332561728395055
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 144,
+        "speed": 10,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.06855042139454114,
+          "cv": 1.864415937398492,
+          "reverse": 10
+        },
+        "phase": {
+          "stalled": 51,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.16527777777777772,
+        "maxStackedOffset": 0.37500000000000017
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 144,
+        "speed": 26,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.1806105610338015,
+          "cv": 0.004358946211615237,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 51,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.16527777777777772,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+        "hz": 144,
+        "speed": 26,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.18059032846329634,
+          "cv": 0.0037578827168124676,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 51,
+          "reverse": 0,
+          "maxStep": 0.03400000000000003
+        },
+        "maxYawJump": 0.16527777777777772,
+        "maxStackedOffset": 0
+      }
+    ],
+    "physical": [
+      {
+        "physical": {},
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 33,
+        "phaseStalls": 17,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          0
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "physical": {},
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 81,
+        "phaseStalls": 65,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          0
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "physical": {
+          "homing": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 33,
+        "phaseStalls": 17,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0.43,
+          0,
+          -3.52
+        ],
+        "finalDisplayPosition": [
+          0.42999999567887215,
+          0,
+          -3.519999968130815
+        ]
+      },
+      {
+        "physical": {
+          "homing": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 81,
+        "phaseStalls": 65,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0.43,
+          0,
+          -3.52
+        ],
+        "finalDisplayPosition": [
+          0.43,
+          0,
+          -3.52
+        ]
+      },
+      {
+        "physical": {
+          "dash": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 49,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -24.15
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -24.149420550783606
+        ]
+      },
+      {
+        "physical": {
+          "dash": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 188,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -24.15
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -24.15
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "homing": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 49,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          2.04,
+          0,
+          -24.02
+        ],
+        "finalDisplayPosition": [
+          2.039775190127806,
+          0,
+          -24.0194215144222
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "homing": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 188,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          2.04,
+          0,
+          -24.02
+        ],
+        "finalDisplayPosition": [
+          2.04,
+          0,
+          -24.02
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "wall": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 49,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -7.5
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -7.5
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "wall": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 188,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -7.5
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -7.5
+        ]
+      }
+    ]
+  },
+  "after": {
+    "sourceHashes": {
+      "prototype/online/game.js": "d89f81a47aba2f4c4940373d9b199e2b12a2eb3d70213008fb249534d7d4acdc",
+      "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8",
+      "prototype/index.html": "0c071a2326517c0b194cb00a418e23d8b24c086e552c1f4ecd5f2162cc815887"
+    },
+    "constant": [
+      {
+        "revision": "working",
+        "hz": 60,
+        "speed": 10,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.16662320566203867,
+          "cv": 0.005611918678939857,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.017332666666666746
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 60,
+        "speed": 10,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.16666372641546123,
+          "cv": 0.005079880732124523,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.017332666666666746
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 60,
+        "speed": 26,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.4333769786492233,
+          "cv": 0.002165439404310746,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.017332666666666746
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 60,
+        "speed": 26,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 127,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.43333631187506766,
+          "cv": 0.0019607979481036566,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.017332666666666746
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 144,
+        "speed": 10,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.06941033616406532,
+          "cv": 0.005490628131568431,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.007610444444444531
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 144,
+        "speed": 10,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.06942518512011286,
+          "cv": 0.004594820788438273,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.007610444444444531
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 144,
+        "speed": 26,
+        "jitter": false,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.18058979967986014,
+          "cv": 0.0021179560127451446,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.007610444444444531
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      },
+      {
+        "revision": "working",
+        "hz": 144,
+        "speed": 26,
+        "jitter": true,
+        "gap": null,
+        "turn": true,
+        "physical": null,
+        "frames": 303,
+        "snapshots": 61,
+        "motion": {
+          "meanStep": 0.18057489721406103,
+          "cv": 0.0017729308506312367,
+          "reverse": 0
+        },
+        "phase": {
+          "stalled": 0,
+          "reverse": 0,
+          "maxStep": 0.007610444444444531
+        },
+        "maxYawJump": 0,
+        "maxStackedOffset": 0
+      }
+    ],
+    "physical": [
+      {
+        "physical": {},
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 33,
+        "phaseStalls": 2,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          0
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "physical": {},
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 81,
+        "phaseStalls": 8,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          0
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "physical": {
+          "homing": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 33,
+        "phaseStalls": 2,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0.43,
+          0,
+          -3.52
+        ],
+        "finalDisplayPosition": [
+          0.43,
+          0,
+          -3.52
+        ]
+      },
+      {
+        "physical": {
+          "homing": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 81,
+        "phaseStalls": 8,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0.43,
+          0,
+          -3.52
+        ],
+        "finalDisplayPosition": [
+          0.43,
+          0,
+          -3.52
+        ]
+      },
+      {
+        "physical": {
+          "dash": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 1,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -24.15
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -24.15
+        ]
+      },
+      {
+        "physical": {
+          "dash": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 5,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -24.15
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -24.15
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "homing": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 1,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          2.04,
+          0,
+          -24.02
+        ],
+        "finalDisplayPosition": [
+          2.04,
+          0,
+          -24.02
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "homing": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 5,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          2.04,
+          0,
+          -24.02
+        ],
+        "finalDisplayPosition": [
+          2.04,
+          0,
+          -24.02
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "wall": true
+        },
+        "hz": 60,
+        "frames": 127,
+        "phaseFrames": 98,
+        "phaseStalls": 1,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -7.5
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -7.5
+        ]
+      },
+      {
+        "physical": {
+          "dash": true,
+          "wall": true
+        },
+        "hz": 144,
+        "frames": 303,
+        "phaseFrames": 237,
+        "phaseStalls": 5,
+        "phaseReverse": 0,
+        "finalAuthoritativePosition": [
+          0,
+          0,
+          -7.5
+        ],
+        "finalDisplayPosition": [
+          0,
+          0,
+          -7.5
+        ]
+      }
+    ]
+  },
+  "testHashes": {
+    "tools/test/online_melee_view_fixture.js": "d239f4e78db89ebbd42fc4981bc7e921b47283f5441e89935c66d4070a4218bc",
+    "tools/test/online_melee_view.test.js": "fd29bdea6b393c48210994f594635e0d6721eae5213b40c493f4523d843bdc91",
+    "tools/test/online_downed_input.test.js": "9f3abbeef67a2d1cd1b0fbfc24e206c9e8325491074dcd0c85b20b37a2a57ba2",
+    "tools/test/online_downed_input_check.js": "9f8966877486b5d14ec939b255157dc660f6386db95568ab89fedd818f32fc3f",
+    "tools/test/online_prediction_check.js": "c292369e19ad030098cfdcaf96ae04508d2a07cacfcd12827447ace7e757eecf"
+  },
+  "physicalInvariantSnapshots": 320,
+  "checks": {
+    "onlineSuites": 18,
+    "meleeConditions": 35,
+    "visibilityBoundary": 91,
+    "namesFiles": 14,
+    "browser": "not_run: Chromium missing / system Chromium socket denied"
+  }
+}

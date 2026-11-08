@@ -329,8 +329,8 @@ async function functional(active,ok,report){
     ];
     for(const [reason,patch]of boundaries){
       fresh();t.predictLocalInput(input(1),DT);const s=next(),u=own(s);Object.assign(u,patch);u.pos[0]+=.1;deliver(s);
-      const m=game.metrics().prediction,good=m.pendingInputs===0&&m.hardSnapReasons[reason]>=1&&m.visualOffset.every(v=>v===0)&&near(p.pos.toArray(),u.pos,.011);
-      test(good,reason+'境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる');
+      const m=game.metrics().prediction,good=m.pendingInputs===0&&(reason==='melee'?!m.hardSnapReasons.melee:m.hardSnapReasons[reason]>=1)&&m.visualOffset.every(v=>v===0)&&near(p.pos.toArray(),u.pos,.011);
+      test(good,reason==='melee'?'近接開始では過去入力を捨て物理位置は確定し、描画だけ直前位置を引き継ぐ':reason+'境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる');
       if(reason==='equipment')test(p.mech.head===patch.mech.head&&p.lockRange===g.PARTS.head[patch.mech.head].lock,'同lifeの機体変更は移動用statsを新しい機体から再構築');
       details.boundaries.push({reason,metrics:m,position:p.pos.toArray()});
     }

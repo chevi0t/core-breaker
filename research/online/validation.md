@@ -533,3 +533,44 @@ python3 tools/test/distribution_check.py /tmp/core-breaker-dist-check/pages dist
 ### 未確認と次の判断
 
 `quick_check.js origin/main` はPlaywright既定のChromium実行ファイルが無く起動前に失敗した。環境にあるChromiumもsocketのOperation not permittedで起動できないことを確認済み。従って最終版のpages_check、全武器/Bot回帰、ブラウザ/WebGL/実RTC、操作感は未確認であり、上のNode/配布生成成功から推定しない。既知の `online_lag_check`・`online_loss_check`・`online_ui_check` の失敗は今回修正していない。オーナー側で最終版のブラウザ試験とこの3本を実行し、結果を見て再度マージを判断する。
+
+## 行動不能のゲストF入力（2026-11-08）
+
+変更前は行動不能中に固定移動schedulerが止まり、reliable側のFが受信済みでも `remoteInput` の移動入力/番号待ちで止まっていた。行動不能専用のF受け渡しと `downTick` 後の操作ACKを追加。`online_downed_input.test.js` は変更前に「移動未消化でもFを取得」で失敗し、変更後に成功する。移動線の先着/未到着、重複、他操作の抑止、古い生命/500ms超の入力、保持と押下、240Hzの移動0step時の送信を検査する。
+
+`online_downed_input_check.js` は2画面の実キー入力、大破/再出撃写真、コア消費・撃破数・1回だけの大破を検査するために追加。この実行環境ではPlaywright付属Chromiumが未配置で、システムChromiumも `socket() failed: Operation not permitted` により起動前停止（許可付き再実行でも同じ）。今回このブラウザ回帰・実WebRTC・実回線・quick_checkのブラウザ部分は未検証。Node回帰をブラウザ確認の代わりとはしない。
+
+確認済み：`tools/test/online_*.test.js` の既存16本＋今回追加1本、計17本が全成功。`git diff --check` とブラウザ試験ファイルの構文検査も成功。ゲーム本体 `prototype/index.html` の変更はなし。
+
+## ゲストの近接表示とF入力の統合（2026-11-08）
+
+### 変更前と変更後
+
+- 比較元は試験Siteに配信された #214 `ab43ed89a931ad5d7f82787dfabd1d6749952287`。近接中は移動予測を止めるが、写真位置の通常補正が描画外挿へ重なり、遅い踏み込みでは進んだり戻ったりしていた。剣の振り時刻も写真ごとにしか進まなかった。近接開始で視点が写真の角度へ戻り、終了で外挿offsetが消える境界もあった。
+- 確定swingを変えず描画時だけ先行時刻の複製を使う。先行は100ms/攻撃終端まで。近接中は補正を二重加算せず、入りと終わりの描画位置を継ぎ、終了の引継ぎは最大250msで通常移動へ戻す。近接中の速度外挿も欠落上限と描画dtを扱う。生命・被弾・転送・装備・3m以上の差は即時復帰を維持。
+- レビューで、写真の実時間から求めた開始時刻だけでは低FPSホストの同じ振りを新しい攻撃と誤認することと、微小補正写真で終了の引継ぎが延々続くことを再現。確定tの非減少による識別と延長しない250ms期限へ修正し回帰した。
+- F修正は上節のものを統合。通信v9、初期装備、ホストの命中/消費/硬直、ロック追従と照準の規則は変更しない。main/gh-pages/正式公開は変更しない。
+
+### 再現・回帰
+
+- `node tools/test/online_melee_view.test.js`：35条件成功。60/144Hz、到着間隔の揺れ、写真欠落/復旧、同型連打・連撃定義変更、低FPSホスト、開始/終了/通常歩行への復帰、死亡/再出撃/転送/装備/被弾/大差、例外時も確定swing/参照/HP等を復元、cameraのoffsetと描画後復元を確認。
+- 人工10m/s軌道の30Hz写真で、60Hz描画は逆方向frame6→0、振りの停止frame12→0。144Hzは逆方向13→0、振り停止51→0。26m/sでは元から位置の逆方向frameは0で、剣の時刻停止が改善。到着揺れを加えた4条件も記録。評価区間は開始/終了を除く350〜800ms。全条件の数値・製品/試験hashは `melee-view-summary.json`。
+- それとは別に実本体の `swordTick`・`physics`・`meleeHome` と初期ソードを使い、通常/ロック誘導/ダッシュ/誘導付きダッシュ/壁停止 × 60/144Hzの10条件を通した。全320写真の位置/速度/近接タイマー/振り定義は変更前後で一致。平地・初期装備のVMであり、bladeSweep/命中/演出/施設/本物の描画は代役。人の試遊や全マップ回帰とは扱わない。
+- `node --test tools/test/online_*.test.js`：統合後18/18成功（既存16＋近接＋F）。既存の予測契約67項目は、近接開始の「常にhardSnap」を「過去入力を捨て物理は確定、描画は継ぐ」へ変更。他の即時復帰境界は従来どおり。
+- 秘匿境界VM91項目、名前検査14ファイル・変更JS構文・diff検査成功。本体index.html、武器/パーツ表、physics・swordTick自体の変更なし。
+
+再現コマンド（比較元commitの履歴が必要、fixtureは自動fetchしない）：
+
+```sh
+node tools/test/online_melee_view_fixture.js --revision=ab43ed8
+node tools/test/online_melee_view_fixture.js
+node tools/test/online_melee_view.test.js
+node tools/test/online_downed_input.test.js
+node --test tools/test/online_*.test.js
+```
+
+### 限界・次の確認
+
+`quick_check.js origin/main` はPlaywrightのChromium未配置で起動前停止。既存 `/usr/bin/chromium` も `socket() failed: Operation not permitted` で起動不能。最終版のWebGL、実キー/実マウス配送、実RTC、別PC/別回線、音、人の操作感、全武器/Bot戦は未確認。Node成功からブラウザ成功を推定しない。Fのブラウザ回帰は `online_downed_input_check.js` を追加済みで未実行。
+
+最初の近接開始はホスト写真待ちのまま。長い欠落では100ms先行後に停止し、復旧や3m以上の差では補正が残り得る。自機表示だけの修正で、相手機の剣の振り時計は従来どおり。試験Site更新後は両画面を再読込し、通常斬り・ロック踏み込み・ダッシュ斬り・硬直明け・行動不能中Fを実機で確認する。
