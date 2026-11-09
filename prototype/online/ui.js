@@ -41,7 +41,7 @@
   function refreshDiagnostic(){
     const d=CBOnlineGame.diagnostics(),show=d.phase==='playing'&&document.getElementById('onlineDiagnostics').checked;
     diagnostic.hidden=!show;if(!show)return;
-    const rows=[(d.role==='host'?'HOST':'GUEST')+' 診断 / F3で開閉 / 直近2秒（起動直後は得られた標本）',
+    const rows=[(d.role==='host'?'HOST':'GUEST')+' 診断 / F3で開閉 / F8でログをコピー / 直近2秒（起動直後は得られた標本）',
       '画面更新 '+number(d.fps)+'fps / コマ間隔 平均・p95・最大 '+diagnosticStats(d.frame)];
     if(d.role==='guest'){
       const c=d.corrections,h=d.host;
@@ -279,29 +279,62 @@
   document.getElementById('start').addEventListener('click', e => { if (CBOnlineGame.active?.()) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = false; status('オンラインの試合中です。終了してから通常出撃してください。'); } }, true);
 })();
 
-// 共有は手動だけ。プレビュー時の固定テキスト以外をコピー・保存しない。
+// 共有は手動だけ。プレビューかF8操作の時点で固定した安全なテキストだけをコピーする。
 (() => {
   const logs=window.CBOnlineGame?.logs;if(!logs)return;
   const dialog=document.createElement('dialog');dialog.id='onlineLogDialog';dialog.setAttribute('aria-labelledby','onlineLogTitle');
-  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。内容を確認してから、必要な場合だけコピー・保存してください。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><label for="onlineLogText">共有する内容（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">テキストを保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
+  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。F8でこのプレビューをコピーできます。掲示板などへ貼る前に内容を確認してください。部屋IDのコピーとは別です。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><label for="onlineLogText">共有する内容（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">テキストを保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
   document.body.append(dialog);
+  const notice=document.createElement('p');notice.id='onlineLogNotice';notice.hidden=true;notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');document.body.append(notice);
+  let noticeRevision=0;
+  function notify(text,persistent=false){const at=++noticeRevision;notice.textContent=text;notice.hidden=false;if(!persistent)setTimeout(()=>{if(at===noticeRevision)notice.hidden=true;},6000);}
   // 文字選択やTab/Spaceをゲームの入力へ渡さない。Escapeの標準closeは妨げない。
   for(const type of ['keydown','keyup'])dialog.addEventListener(type,e=>e.stopPropagation());
   const el=id=>document.getElementById(id),status=t=>{el('onlineLogStatus').textContent=t;};
-  let preview='',returnFocus=null,revision=0;
+  let preview='',returnFocus=null,revision=0,copyPending=false,shortcutHeld=false;
   function open(){
-    if(dialog.open)return;returnFocus=document.activeElement;preview=logs.preview();revision++;el('onlineLogText').value=preview;status('内容は端末内だけです。');
+    if(dialog.open)return;notice.hidden=true;noticeRevision++;returnFocus=document.activeElement;preview=logs.preview();revision++;el('onlineLogText').value=preview;status('内容は端末内だけです。');
     el('onlineLogStorage').textContent=logs.status().storageAvailable?'再読み込み後も、このブラウザの直近ログを確認できます。ブラウザのデータ削除で消えます。':'ブラウザへの保存ができません。この画面を閉じる前にコピーかテキスト保存をしてください。';
     el('onlineLogCopy').disabled=el('onlineLogSave').disabled=!logs.status().available;
     dialog.showModal();el('onlineLogClose').focus();
   }
   function addButton(id,label,target){const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=open;target.append(b);return b;}
-  const menu=addButton('menuOnlineLog','診断ログを見る',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
+  const menu=addButton('menuOnlineLog','診断ログを見る（F8でコピー）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
   const measure=document.querySelector('#onlinePanel .online-measure');
-  if(measure){const note=document.createElement('p');note.textContent='試験ログは端末内だけに自動記録します。送信・投稿はしません。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
-  const result=addButton('onlineLogResult','試験ログを確認・保存',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
+  if(measure){const note=document.createElement('p');note.textContent='F8：この端末の最新の診断ログをコピー（ホスト・ゲスト共通）。入力欄では無効です。送信・投稿はせず、部屋IDも含みません。貼り付け先と内容を確認して共有してください。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
+  const result=addButton('onlineLogResult','試験ログを確認・保存（F8でコピー）',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
   const refresh=()=>{const available=logs.status().available;menu.hidden=!available;result.hidden=!available||el('onlineReturn').hidden;};setInterval(refresh,500);refresh();
-  el('onlineLogCopy').onclick=async()=>{const text=preview,at=revision;try{await navigator.clipboard.writeText(text);if(dialog.open&&at===revision)status('プレビューの内容をコピーしました。共有するかはご自身で選べます。');}catch(_){if(dialog.open&&at===revision){status('コピーできませんでした。選択された内容を手動でコピーするか、テキスト保存を使ってください。');el('onlineLogText').focus();el('onlineLogText').select();}}};
+  async function copyLog(){
+    if(copyPending)return;
+    const wasOpen=!!dialog.open,at=revision;
+    // 許可リストを通した既存APIだけを使い、部屋ID欄・生のmetrics・DOMの編集値を読まない。
+    const text=wasOpen?preview:logs.preview();
+    if(!logs.status().available){const message='コピーする診断ログがありません。以前のクリップボード内容を貼り付けないでください。オンライン接続後に試してください。';wasOpen?status(message):notify(message);return;}
+    copyPending=true;
+    try{
+      // キー/クリックのユーザー操作中に呼ぶ。許可の事前要求や自動再試行はしない。
+      await navigator.clipboard.writeText(text);
+      if(at===revision&&wasOpen===!!dialog.open){const message='診断ログをコピーしました。貼り付け先と内容を確認して共有してください（自動投稿なし）。';wasOpen?status(message):notify(message);}
+    }catch(_){
+      // 生の例外には接続情報が混ざり得るため、その本文は表示・記録しない。
+      if(at===revision&&wasOpen===!!dialog.open){
+        const message='コピーできませんでした。以前のクリップボード内容を貼り付けないでください。HTTPS・ブラウザの許可・ファイル起動の制限を確認してください。';
+        if(wasOpen){status(message+' 選択された内容を手動コピーするか、テキスト保存を使ってください。');el('onlineLogText').focus();el('onlineLogText').select();}
+        else notify(message+' Escでメニューを開き、「計測設定 → 診断ログを確認」または「診断ログを見る」から手動コピー・保存できます。',true);
+      }
+    }finally{copyPending=false;}
+  }
+  el('onlineLogCopy').onclick=copyLog;
+  // F2/F3・戦闘・定型通信と重ならない単独F8。成功/失敗とも試合とpointer lockを止めない。
+  addEventListener('keydown',e=>{
+    if(e.code!=='F8')return;
+    if(!shortcutHeld&&(e.isComposing||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.target?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])')))return;
+    e.preventDefault();e.stopImmediatePropagation();if(shortcutHeld||e.repeat)return;
+    shortcutHeld=true;void copyLog();
+  },true);
+  addEventListener('keyup',e=>{if(e.code!=='F8'||!shortcutHeld)return;shortcutHeld=false;e.preventDefault();e.stopImmediatePropagation();},true);
+  addEventListener('blur',()=>{shortcutHeld=false;});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)shortcutHeld=false;});
   el('onlineLogSave').onclick=()=>{let url;try{url=URL.createObjectURL(new Blob([preview],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='core-breaker-diagnostic.txt';document.body.append(a);a.click();a.remove();status('プレビューのテキスト保存を開始しました。');}catch(_){status('保存を開始できませんでした。内容をコピーしてください。');}finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}};
   el('onlineLogClear').onclick=()=>{const removed=logs.clear()!==false;preview=logs.preview();revision++;el('onlineLogText').value=preview;el('onlineLogCopy').disabled=el('onlineLogSave').disabled=!logs.status().available;status(removed?'保存済みログを消しました。他のタブや接続中の新しい記録は続きます。':'ブラウザ保存分を消せませんでした。ブラウザのサイトデータ設定から削除してください。');refresh();};
   el('onlineLogClose').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{revision++;returnFocus?.focus();});
