@@ -51,89 +51,679 @@
       lagCompensation:nums(s.lagCompensation,['shots','rewinds','clamped','rejected','maxRewindMs'])};
   }
   function safeBoundary(b,maps){return b&&value(b.elapsedMs)!==null?{elapsedMs:value(b.elapsedMs),code:pick(b.code,events,'transport_error'),reason:pick(b.reason,reasons),data:safeSample(b.data,maps)}:null;}
-  // 共有用は最新1接続の要点だけ。保存済み標本・境界・詳細JSONには手を加えない。
-  const phaseLabels={idle:'待機',lobby:'ロビー',preparing:'準備中',countdown:'開始待ち',playing:'試合中',ended:'試合終了',leaving:'退出中'};
-  const eventLabels={peer_joined:'参加',peer_disconnected:'切断',peer_departed:'退出',match_interrupted:'試合中断',transport_error:'通信エラー',signaling_lost:'接続サービス切断',connection_ready:'接続準備完了',match_started:'試合開始',match_finished:'試合終了',lobby_returned:'ロビー復帰',preparation_aborted:'開始中止',session_ended:'接続終了',page_hidden:'画面非表示',page_visible:'画面復帰',page_closed:'画面終了'};
-  const reasonLabels={other:'分類外',local_leave:'手動退出',reconnect:'再接続',host_left:'ホスト退出',kicked:'退出指定',rejected:'入室拒否',full:'満員',version_mismatch:'ゲーム版不一致',protocol_mismatch:'通信版不一致',connection_error:'接続エラー',snapshot_channel_error:'状態通信エラー',channel_closed:'通信切断',signaling_closed:'接続サービス終了',signaling_error:'接続サービスエラー',peer_unavailable:'相手不在',network_error:'通信エラー',browser_unsupported:'ブラウザ非対応',connection_timeout:'接続時間切れ',approval_timeout:'入室待ち時間切れ',response_timeout:'応答時間切れ',input_timeout:'入力途絶',host_timeout:'ホスト応答途絶',prepare_timeout:'準備時間切れ',prepare_peer_left:'準備中に退出',invalid_data:'不正データ',send_failed:'送信失敗'};
-  const correctionLabels={distance:'距離差',accumulated:'累積差',respawn:'再出撃',equipment:'装備変更',down:'行動不能',transfer:'エリア移動',jumpPad:'跳躍台',catapult:'射出台',stun:'硬直',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測無効',melee:'近接',special:'特別装備',zip:'索移動',repair:'修理',launch:'発進',lift:'リフト',planted:'固定中',inactive:'非活動',smooth:'平滑化',other:'その他'};
-  const dropLabels={artificial:'人工欠損',stale:'古い値',congestion:'混雑',superseded:'新値優先',incomplete:'未完',duplicate:'重複',rateLimited:'頻度制限'};
-  const present=n=>typeof n==='number'&&Number.isFinite(n),fmt=n=>{const scale=n>0&&n<1?1000:10;return String(Math.round(n*scale)/scale);},seconds=ms=>fmt(ms/1000)+'秒';
-  const bytes=n=>n>=1e6?fmt(n/1e6)+'MB':n>=1000?fmt(n/1000)+'kB':fmt(n)+'B';
-  function compactSession(s,active=false){
-    if(!s)return 'コアブレイカー 診断要約 v2\n記録なし';
-    const entries=[...[s.lastMatch,s.lastConnection].filter(Boolean),...s.samples].sort((a,b)=>a.elapsedMs-b.elapsedMs);
-    const last=entries.at(-1),d=last?.data||{},t=d.transport||{};
-    const end=Math.max(last?.elapsedMs||0,...s.events.map(e=>e.elapsedMs));
-    const head=[s.version,s.protocol===null?null:'通信v'+s.protocol,s.role.toUpperCase(),phaseLabels[d.phase]||'状態不明'];
-    if(present(d.humans))head.push('人間'+d.humans+(present(d.capacity)?'/'+d.capacity:'')+'人');
-    if(present(d.teamSize))head.push(d.teamSize+'対'+d.teamSize);
-    if(d.map&&d.map!=='unknown')head.push('map:'+d.map);
-    if(d.visibility==='hidden')head.push('画面非表示');
-    const lines=['コアブレイカー 診断要約 v2（'+(active?'この画面の接続':'最新記録')+'）',head.filter(Boolean).join(' / '),
-      '開始 '+new Date(s.startedAt).toISOString()+' / 記録 '+seconds(end)+' / '+(s.ended?'接続終了':active?'記録中':'終了記録なし')];
-    const battle=entries.filter(e=>e.data.phase==='playing'),representative=battle.at(-1),b=representative?.data;
-    const measurement=[];
-    if(b){
-      if(present(b.fps)&&b.frame.count>0)measurement.push('FPS '+fmt(b.fps));
-      for(const [label,m]of [['frame',b.frame],['JS CPU',b.cpu],...(s.role==='guest'?[['host申告frame',b.hostFrame],['host申告CPU',b.hostCpu],['写真間隔',b.arrivals]]:[])])if(m.count>0&&present(m.p95Ms))measurement.push(label+' p95 '+fmt(m.p95Ms)+'ms');
-      if(s.role==='guest'&&present(b.snapshotAgeMs))measurement.push('写真経過 '+fmt(b.snapshotAgeMs)+'ms');
-      if(measurement.length)lines.push('試合計測 +'+seconds(representative.elapsedMs)+'（直近2秒）: '+measurement.join(' / '));
-      else lines.push('試合計測: 有効な標本なし');
-    }else lines.push('試合計測なし（ロビー等の記録のみ）');
-    const link=[];
-    if(present(t.connectedPeers))link.push('接続相手 '+t.connectedPeers);
-    if(t.pendingPeers>0)link.push('接続待ち '+t.pendingPeers);
-    if(t.sentBytes>0||t.receivedBytes>0){if(present(t.sentBytes))link.push('送信 '+bytes(t.sentBytes));if(present(t.receivedBytes))link.push('受信 '+bytes(t.receivedBytes));}
-    if(t.rtt?.count>0&&present(t.rtt.meanMs))link.push('RTT平均 '+fmt(t.rtt.meanMs)+'ms');
-    else if(present(d.rttMs))link.push('RTT '+fmt(d.rttMs)+'ms');
-    if(link.length)lines.push('通信（記録末尾・量は接続累計）: '+link.join(' / '));
-    // 窓の重複・試合リセットがあるので件数を合算しない。保持範囲の最大値として示す。
-    const peak=(list,get)=>{const a=list.map(e=>get(e.data)).filter(present);return a.length?Math.max(...a):null;};
-    const peaks=[],addPeak=(label,list,get,unit='',minimum=0)=>{const n=peak(list,get);if(n>minimum)peaks.push(label+' '+fmt(n)+unit);};
-    const fps=battle.filter(e=>e.data.frame.count>0&&present(e.data.fps)).map(e=>e.data.fps);
-    if(fps.length)peaks.push('FPS最低 '+fmt(Math.min(...fps)));
-    addPeak('frame最長',battle,x=>x.frame.count>0?x.frame.maxMs:null,'ms');
-    addPeak('JS CPU最長',battle,x=>x.cpu.count>0?x.cpu.maxMs:null,'ms');
-    addPeak('RTT最大',entries,x=>x.transport.rtt.count>0?x.transport.rtt.maxMs:x.rttMs,'ms');
-    if(s.role==='guest'){
-      addPeak('写真経過最大',battle,x=>x.snapshotAgeMs,'ms');
-      addPeak('補正最大',battle,x=>x.corrections.maxM,'m');
-      addPeak('強制補正',battle,x=>x.corrections.hardSnaps,'回/2秒');
-      addPeak('予測停止中の補正',battle,x=>x.blockedCorrections,'回/2秒');
-      addPeak('未ACK入力',battle,x=>x.pendingInputs,'件');
-      addPeak('反復差',battle,x=>x.repeatDebt,'step');
-      addPeak('視点保護',battle,x=>x.preventedLook.count,'回/2秒');
+  // BEGIN fflate 0.8.3 synchronous DEFLATE / dcb3714a6c25db3a2748641019c5277413d09714
+  /*
+MIT License
+
+Copyright (c) 2026 Arjun Barrett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+  */
+  const diagnosticDeflate=(()=>{
+const u8 = Uint8Array, u16 = Uint16Array, i32 = Int32Array;
+const fleb = new u8([
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    0,
+    0,
+    0,
+    0
+]);
+const fdeb = new u8([
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5,
+    5,
+    6,
+    6,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    10,
+    10,
+    11,
+    11,
+    12,
+    12,
+    13,
+    13,
+    0,
+    0
+]);
+const clim = new u8([
+    16,
+    17,
+    18,
+    0,
+    8,
+    7,
+    9,
+    6,
+    10,
+    5,
+    11,
+    4,
+    12,
+    3,
+    13,
+    2,
+    14,
+    1,
+    15
+]);
+const freb = (eb, start)=>{
+    const b = new u16(31);
+    for(let i = 0; i < 31; ++i){
+        b[i] = start += 1 << eb[i - 1];
     }
-    if(peaks.length)lines.push('観測内の最大等: '+peaks.join(' / '));
-    if(s.role==='guest'){
-      const correction=correctionReasons.map(k=>{const n=peak(battle,x=>x.corrections.reasons[k]);return n>0?correctionLabels[k]+' '+fmt(n):null;}).filter(Boolean);
-      if(correction.length)lines.push('強制補正の理由（各2秒窓の最大）: '+correction.join(' / '));
-      if(b?.predictionBlocked&&b.predictionBlocked!=='none')lines.push('試合計測時の予測停止: '+correctionLabels[b.predictionBlocked]);
+    const r = new i32(b[30]);
+    for(let i = 1; i < 30; ++i){
+        for(let j = b[i]; j < b[i + 1]; ++j){
+            r[j] = j - b[i] << 5 | i;
+        }
     }
-    const transport=[];
-    for(const [kind,key]of [['写真','snapshotDrops'],['入力','inputDrops']])for(const k of Object.keys(dropLabels)){const n=peak(entries,x=>x.transport[key][k]);if(n>0)transport.push(kind+':'+dropLabels[k]+' '+fmt(n));}
-    const buffer=peak(entries,x=>x.transport.maxBufferedBytes),queue=peak(entries,x=>x.transport.maxQueue);
-    if(buffer>0)transport.push('送信待ち '+bytes(buffer));if(queue>0)transport.push('待ち行列 '+fmt(queue));
-    if(transport.length)lines.push('通信の観測内最大: '+transport.join(' / '));
-    const simulation=[];
-    for(const [label,key,scale,unit]of [['人工片道遅延','latencyMs',1,'ms'],['人工写真欠損','snapshotDropRate',100,'%'],['人工入力欠損','inputDropRate',100,'%']]){const n=peak(entries,x=>x.transport[key]);if(n>0)simulation.push(label+' '+fmt(n*scale)+unit);}
-    if(simulation.length)lines.push('試験設定（観測内最大）: '+simulation.join(' / '));
-    const extras=[];
-    if(s.role==='guest')for(const [label,key]of [['写真受理','acceptedSnapshots'],['旧写真','staleSnapshots'],['基準不足','missingBaselines'],['再同期要求','resyncRequests'],['外挿frame','extrapolatedFrames'],['外挿上限frame','clampedFrames']]){const n=peak(battle,x=>x.interpolation[key]);if(n>0)extras.push(label+' '+fmt(n));}
-    if(s.role==='host')for(const [label,key]of [['射撃','shots'],['巻戻し','rewinds'],['制限','clamped'],['拒否','rejected']]){const n=peak(battle,x=>x.lagCompensation[key]);if(n>0)extras.push(label+' '+fmt(n));}
-    if(extras.length)lines.push((s.role==='guest'?'写真処理':'ラグ補償')+'（試合別累計の観測内最大）: '+extras.join(' / '));
-    const groups=new Map();
-    for(const e of s.events){if(!eventLabels[e.code])continue;const key=e.code+':'+e.reason;const g=groups.get(key);if(g){g.count++;g.last=e.elapsedMs;}else groups.set(key,{...e,count:1,first:e.elapsedMs,last:e.elapsedMs});}
-    const grouped=[...groups.values()].sort((a,b)=>a.last-b.last);
-    const isProblem=e=>['peer_disconnected','match_interrupted','transport_error','signaling_lost','preparation_aborted'].includes(e.code)||!['none','local_leave','reconnect'].includes(e.reason);
-    const chosen=grouped.filter(isProblem).slice(-8),room=8-chosen.length;
-    const shown=[...chosen,...(room?grouped.filter(e=>!isProblem(e)).slice(-room):[])].sort((a,b)=>a.last-b.last);
-    if(shown.length)lines.push('出来事（保持分）: '+shown.map(e=>eventLabels[e.code]+(e.reason!=='none'?'['+reasonLabels[e.reason]+';'+e.reason+']':'')+' '+e.count+'回 @+'+seconds(e.first)+(e.first!==e.last?'〜'+seconds(e.last):'')).join(' / ')+(grouped.length>shown.length?' / 他'+(grouped.length-shown.length)+'種は詳細へ':''));
-    else lines.push('切断・エラー等の出来事は記録なし');
-    if(s.droppedSamples||s.droppedEvents)lines.push('保持上限で省略: 標本'+s.droppedSamples+' / 出来事'+s.droppedEvents+'（全期間の集計ではありません）');
-    lines.push('未取得・0の項目と反復標本は省略。窓は合算せず、最大等は保持範囲。通信量はアプリJSONのみ、欠落はアプリ内の破棄。原因の断定不可。',
-      '時系列・全接続は「診断ログを見る → 詳細を表示／詳細を保存」。IP・ID・名前・チャット等なし。自動送信なし。');
-    return lines.join('\n');
+    return {
+        b,
+        r
+    };
+};
+const { b: fl, r: revfl } = freb(fleb, 2);
+fl[28] = 258, revfl[258] = 28;
+const { b: fd, r: revfd } = freb(fdeb, 0);
+const rev = new u16(32768);
+for(let i = 0; i < 32768; ++i){
+    let x = (i & 0xAAAA) >> 1 | (i & 0x5555) << 1;
+    x = (x & 0xCCCC) >> 2 | (x & 0x3333) << 2;
+    x = (x & 0xF0F0) >> 4 | (x & 0x0F0F) << 4;
+    rev[i] = ((x & 0xFF00) >> 8 | (x & 0x00FF) << 8) >> 1;
+}
+const hMap = (cd, mb, r)=>{
+    const s = cd.length;
+    let i = 0;
+    const l = new u16(mb);
+    for(; i < s; ++i){
+        if (cd[i]) ++l[cd[i] - 1];
+    }
+    const le = new u16(mb);
+    for(i = 1; i < mb; ++i){
+        le[i] = le[i - 1] + l[i - 1] << 1;
+    }
+    let co;
+    if (r) {
+        co = new u16(1 << mb);
+        const rvb = 15 - mb;
+        for(i = 0; i < s; ++i){
+            if (cd[i]) {
+                const sv = i << 4 | cd[i];
+                const r = mb - cd[i];
+                let v = le[cd[i] - 1]++ << r;
+                for(const m = v | (1 << r) - 1; v <= m; ++v){
+                    co[rev[v] >> rvb] = sv;
+                }
+            }
+        }
+    } else {
+        co = new u16(s);
+        for(i = 0; i < s; ++i){
+            if (cd[i]) {
+                co[i] = rev[le[cd[i] - 1]++] >> 15 - cd[i];
+            }
+        }
+    }
+    return co;
+};
+const flt = new u8(288);
+for(let i = 0; i < 144; ++i)flt[i] = 8;
+for(let i = 144; i < 256; ++i)flt[i] = 9;
+for(let i = 256; i < 280; ++i)flt[i] = 7;
+for(let i = 280; i < 288; ++i)flt[i] = 8;
+const fdt = new u8(32);
+for(let i = 0; i < 32; ++i)fdt[i] = 5;
+const flm = hMap(flt, 9, 0), flrm = hMap(flt, 9, 1);
+const fdm = hMap(fdt, 5, 0), fdrm = hMap(fdt, 5, 1);
+const max = (a)=>{
+    let m = a[0];
+    for(let i = 1; i < a.length; ++i){
+        if (a[i] > m) m = a[i];
+    }
+    return m;
+};
+const bits = (d, p, m)=>{
+    const o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8) >> (p & 7) & m;
+};
+const bits16 = (d, p)=>{
+    const o = p / 8 | 0;
+    return (d[o] | d[o + 1] << 8 | d[o + 2] << 16) >> (p & 7);
+};
+const shft = (p)=>(p + 7) / 8 | 0;
+const slc = (v, s, e)=>{
+    if (s == null || s < 0) s = 0;
+    if (e == null || e > v.length) e = v.length;
+    return new u8(v.subarray(s, e));
+};
+const FlateErrorCode = {
+    UnexpectedEOF: 0,
+    InvalidBlockType: 1,
+    InvalidLengthLiteral: 2,
+    InvalidDistance: 3,
+    StreamFinished: 4,
+    NoStreamHandler: 5,
+    InvalidHeader: 6,
+    NoCallback: 7,
+    InvalidUTF8: 8,
+    ExtraFieldTooLong: 9,
+    InvalidDate: 10,
+    FilenameTooLong: 11,
+    StreamFinishing: 12,
+    InvalidZipData: 13,
+    UnknownCompressionMethod: 14
+};
+const ec = [
+    'unexpected EOF',
+    'invalid block type',
+    'invalid length/literal',
+    'invalid distance',
+    'stream finished',
+    'no stream handler',
+    ,
+    'no callback',
+    'invalid UTF-8 data',
+    'extra field too long',
+    'date not in range 1980-2099',
+    'filename too long',
+    'stream finishing',
+    'invalid zip data'
+];
+const err = (ind, msg, nt)=>{
+    const e = new Error(msg || ec[ind]);
+    e.code = ind;
+    if (Error.captureStackTrace) Error.captureStackTrace(e, err);
+    if (!nt) throw e;
+    return e;
+};
+const wbits = (d, p, v)=>{
+    v <<= p & 7;
+    const o = p / 8 | 0;
+    d[o] |= v;
+    d[o + 1] |= v >> 8;
+};
+const wbits16 = (d, p, v)=>{
+    v <<= p & 7;
+    const o = p / 8 | 0;
+    d[o] |= v;
+    d[o + 1] |= v >> 8;
+    d[o + 2] |= v >> 16;
+};
+const hTree = (d, mb)=>{
+    const t = [];
+    for(let i = 0; i < d.length; ++i){
+        if (d[i]) t.push({
+            s: i,
+            f: d[i]
+        });
+    }
+    const s = t.length;
+    const t2 = t.slice();
+    if (!s) return {
+        t: et,
+        l: 0
+    };
+    if (s == 1) {
+        const v = new u8(t[0].s + 1);
+        v[t[0].s] = 1;
+        return {
+            t: v,
+            l: 1
+        };
+    }
+    t.sort((a, b)=>a.f - b.f);
+    t.push({
+        s: -1,
+        f: 25001
+    });
+    let l = t[0], r = t[1], i0 = 0, i1 = 1, i2 = 2;
+    t[0] = {
+        s: -1,
+        f: l.f + r.f,
+        l,
+        r
+    };
+    while(i1 != s - 1){
+        l = t[t[i0].f < t[i2].f ? i0++ : i2++];
+        r = t[i0 != i1 && t[i0].f < t[i2].f ? i0++ : i2++];
+        t[i1++] = {
+            s: -1,
+            f: l.f + r.f,
+            l,
+            r
+        };
+    }
+    let maxSym = t2[0].s;
+    for(let i = 1; i < s; ++i){
+        if (t2[i].s > maxSym) maxSym = t2[i].s;
+    }
+    const tr = new u16(maxSym + 1);
+    let mbt = ln(t[i1 - 1], tr, 0);
+    if (mbt > mb) {
+        let i = 0, dt = 0;
+        const lft = mbt - mb, cst = 1 << lft;
+        t2.sort((a, b)=>tr[b.s] - tr[a.s] || a.f - b.f);
+        for(; i < s; ++i){
+            const i2 = t2[i].s;
+            if (tr[i2] > mb) {
+                dt += cst - (1 << mbt - tr[i2]);
+                tr[i2] = mb;
+            } else break;
+        }
+        dt >>= lft;
+        while(dt > 0){
+            const i2 = t2[i].s;
+            if (tr[i2] < mb) dt -= 1 << mb - tr[i2]++ - 1;
+            else ++i;
+        }
+        for(; i >= 0 && dt; --i){
+            const i2 = t2[i].s;
+            if (tr[i2] == mb) {
+                --tr[i2];
+                ++dt;
+            }
+        }
+        mbt = mb;
+    }
+    return {
+        t: new u8(tr),
+        l: mbt
+    };
+};
+const ln = (n, l, d)=>{
+    return n.s == -1 ? Math.max(ln(n.l, l, d + 1), ln(n.r, l, d + 1)) : l[n.s] = d;
+};
+const lc = (c)=>{
+    let s = c.length;
+    while(s && !c[--s]);
+    const cl = new u16(++s);
+    let cli = 0, cln = c[0], cls = 1;
+    const w = (v)=>{
+        cl[cli++] = v;
+    };
+    for(let i = 1; i <= s; ++i){
+        if (c[i] == cln && i != s) ++cls;
+        else {
+            if (!cln && cls > 2) {
+                for(; cls > 138; cls -= 138)w(32754);
+                if (cls > 2) {
+                    w(cls > 10 ? cls - 11 << 5 | 28690 : cls - 3 << 5 | 12305);
+                    cls = 0;
+                }
+            } else if (cls > 3) {
+                w(cln), --cls;
+                for(; cls > 6; cls -= 6)w(8304);
+                if (cls > 2) w(cls - 3 << 5 | 8208), cls = 0;
+            }
+            while(cls--)w(cln);
+            cls = 1;
+            cln = c[i];
+        }
+    }
+    return {
+        c: cl.subarray(0, cli),
+        n: s
+    };
+};
+const clen = (cf, cl)=>{
+    let l = 0;
+    for(let i = 0; i < cl.length; ++i)l += cf[i] * cl[i];
+    return l;
+};
+const wfblk = (out, pos, dat)=>{
+    const s = dat.length;
+    const o = shft(pos + 2);
+    out[o] = s & 255;
+    out[o + 1] = s >> 8;
+    out[o + 2] = out[o] ^ 255;
+    out[o + 3] = out[o + 1] ^ 255;
+    for(let i = 0; i < s; ++i)out[o + i + 4] = dat[i];
+    return (o + 4 + s) * 8;
+};
+const wblk = (dat, out, final, syms, lf, df, eb, li, bs, bl, p)=>{
+    wbits(out, p++, final);
+    ++lf[256];
+    const { t: dlt, l: mlb } = hTree(lf, 15);
+    const { t: ddt, l: mdb } = hTree(df, 15);
+    const { c: lclt, n: nlc } = lc(dlt);
+    const { c: lcdt, n: ndc } = lc(ddt);
+    const lcfreq = new u16(19);
+    for(let i = 0; i < lclt.length; ++i)++lcfreq[lclt[i] & 31];
+    for(let i = 0; i < lcdt.length; ++i)++lcfreq[lcdt[i] & 31];
+    const { t: lct, l: mlcb } = hTree(lcfreq, 7);
+    let nlcc = 19;
+    for(; nlcc > 4 && !lct[clim[nlcc - 1]]; --nlcc);
+    const flen = bl + 5 << 3;
+    const ftlen = clen(lf, flt) + clen(df, fdt) + eb;
+    const dtlen = clen(lf, dlt) + clen(df, ddt) + eb + 14 + 3 * nlcc + clen(lcfreq, lct) + 2 * lcfreq[16] + 3 * lcfreq[17] + 7 * lcfreq[18];
+    if (bs >= 0 && flen <= ftlen && flen <= dtlen) return wfblk(out, p, dat.subarray(bs, bs + bl));
+    let lm, ll, dm, dl;
+    wbits(out, p, 1 + (dtlen < ftlen)), p += 2;
+    if (dtlen < ftlen) {
+        lm = hMap(dlt, mlb, 0), ll = dlt, dm = hMap(ddt, mdb, 0), dl = ddt;
+        const llm = hMap(lct, mlcb, 0);
+        wbits(out, p, nlc - 257);
+        wbits(out, p + 5, ndc - 1);
+        wbits(out, p + 10, nlcc - 4);
+        p += 14;
+        for(let i = 0; i < nlcc; ++i)wbits(out, p + 3 * i, lct[clim[i]]);
+        p += 3 * nlcc;
+        const lcts = [
+            lclt,
+            lcdt
+        ];
+        for(let it = 0; it < 2; ++it){
+            const clct = lcts[it];
+            for(let i = 0; i < clct.length; ++i){
+                const len = clct[i] & 31;
+                wbits(out, p, llm[len]), p += lct[len];
+                if (len > 15) wbits(out, p, clct[i] >> 5 & 127), p += clct[i] >> 12;
+            }
+        }
+    } else {
+        lm = flm, ll = flt, dm = fdm, dl = fdt;
+    }
+    for(let i = 0; i < li; ++i){
+        const sym = syms[i];
+        if (sym > 255) {
+            const len = sym >> 18 & 31;
+            wbits16(out, p, lm[len + 257]), p += ll[len + 257];
+            if (len > 7) wbits(out, p, sym >> 23 & 31), p += fleb[len];
+            const dst = sym & 31;
+            wbits16(out, p, dm[dst]), p += dl[dst];
+            if (dst > 3) wbits16(out, p, sym >> 5 & 8191), p += fdeb[dst];
+        } else {
+            wbits16(out, p, lm[sym]), p += ll[sym];
+        }
+    }
+    wbits16(out, p, lm[256]);
+    return p + ll[256];
+};
+const deo = new i32([
+    65540,
+    131080,
+    131088,
+    131104,
+    262176,
+    1048704,
+    1048832,
+    2114560,
+    2117632
+]);
+const et = new u8(0);
+const dflt = (dat, lvl, plvl, pre, post, st)=>{
+    const s = st.z || dat.length;
+    const o = new u8(pre + s + 5 * (1 + Math.ceil(s / 7000)) + post);
+    const w = o.subarray(pre, o.length - post);
+    const lst = st.l;
+    let pos = (st.r || 0) & 7;
+    if (lvl) {
+        if (pos) w[0] = st.r >> 3;
+        const opt = deo[lvl - 1];
+        const n = opt >> 13, c = opt & 8191;
+        const msk = (1 << plvl) - 1;
+        const prev = st.p || new u16(32768), head = st.h || new u16(msk + 1);
+        const bs1 = Math.ceil(plvl / 3), bs2 = 2 * bs1;
+        const hsh = (i)=>(dat[i] ^ dat[i + 1] << bs1 ^ dat[i + 2] << bs2) & msk;
+        const syms = new i32(25000);
+        const lf = new u16(288), df = new u16(32);
+        let lc = 0, eb = 0, i = st.i || 0, li = 0, wi = st.w || 0, bs = 0;
+        for(; i + 2 < s; ++i){
+            const hv = hsh(i);
+            let imod = i & 32767, pimod = head[hv];
+            prev[imod] = pimod;
+            head[hv] = imod;
+            if (wi <= i) {
+                const rem = s - i;
+                if ((lc > 7000 || li > 24576) && (rem > 423 || !lst)) {
+                    pos = wblk(dat, w, 0, syms, lf, df, eb, li, bs, i - bs, pos);
+                    li = lc = eb = 0, bs = i;
+                    for(let j = 0; j < 286; ++j)lf[j] = 0;
+                    for(let j = 0; j < 30; ++j)df[j] = 0;
+                }
+                let l = 2, d = 0, ch = c, dif = imod - pimod & 32767;
+                if (rem > 2 && hv == hsh(i - dif)) {
+                    const maxn = Math.min(n, rem) - 1;
+                    const maxd = Math.min(32767, i);
+                    const ml = Math.min(258, rem);
+                    while(dif <= maxd && --ch && imod != pimod){
+                        if (dat[i + l] == dat[i + l - dif]) {
+                            let nl = 0;
+                            for(; nl < ml && dat[i + nl] == dat[i + nl - dif]; ++nl);
+                            if (nl > l) {
+                                l = nl, d = dif;
+                                if (nl > maxn) break;
+                                const mmd = Math.min(dif, nl - 2);
+                                let md = 0;
+                                for(let j = 0; j < mmd; ++j){
+                                    const ti = i - dif + j & 32767;
+                                    const pti = prev[ti];
+                                    const cd = ti - pti & 32767;
+                                    if (cd > md) md = cd, pimod = ti;
+                                }
+                            }
+                        }
+                        imod = pimod, pimod = prev[imod];
+                        dif += imod - pimod & 32767;
+                    }
+                }
+                if (d) {
+                    syms[li++] = 268435456 | revfl[l] << 18 | revfd[d];
+                    const lin = revfl[l] & 31, din = revfd[d] & 31;
+                    eb += fleb[lin] + fdeb[din];
+                    ++lf[257 + lin];
+                    ++df[din];
+                    wi = i + l;
+                    ++lc;
+                } else {
+                    syms[li++] = dat[i];
+                    ++lf[dat[i]];
+                }
+            }
+        }
+        for(i = Math.max(i, wi); i < s; ++i){
+            syms[li++] = dat[i];
+            ++lf[dat[i]];
+        }
+        pos = wblk(dat, w, lst, syms, lf, df, eb, li, bs, i - bs, pos);
+        if (!lst) {
+            st.r = pos & 7 | w[pos / 8 | 0] << 3;
+            pos -= 7;
+            st.h = head, st.p = prev, st.i = i, st.w = wi;
+        }
+    } else {
+        for(let i = st.w || 0; i < s + lst; i += 65535){
+            let e = i + 65535;
+            if (e >= s) {
+                w[pos / 8 | 0] = lst;
+                e = s;
+            }
+            pos = wfblk(w, pos + 1, dat.subarray(i, e));
+        }
+        st.i = s;
+    }
+    return slc(o, 0, pre + shft(pos) + post);
+};
+const crct = (()=>{
+    const t = new Int32Array(256);
+    for(let i = 0; i < 256; ++i){
+        let c = i, k = 9;
+        while(--k)c = (c & 1 && -306674912) ^ c >>> 1;
+        t[i] = c;
+    }
+    return t;
+})();
+const crc = ()=>{
+    let c = -1;
+    return {
+        p (d) {
+            let cr = c;
+            for(let i = 0; i < d.length; ++i)cr = crct[cr & 255 ^ d[i]] ^ cr >>> 8;
+            c = cr;
+        },
+        d () {
+            return ~c;
+        }
+    };
+};
+const dopt = (dat, opt, pre, post, st)=>{
+    if (!st) {
+        st = {
+            l: 1
+        };
+        if (opt.dictionary) {
+            const dict = opt.dictionary.subarray(-32768);
+            const newDat = new u8(dict.length + dat.length);
+            newDat.set(dict);
+            newDat.set(dat, dict.length);
+            dat = newDat;
+            st.w = dict.length;
+        }
+    }
+    return dflt(dat, opt.level == null ? 6 : opt.level, opt.mem == null ? st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20 : 12 + opt.mem, pre, post, st);
+};
+function deflateSync(data, opts) {
+    return dopt(data, opts || {}, 0, 0);
+}
+
+return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc();c.p(data);return c.d()>>>0;}};
+})();
+  // END fflate synchronous DEFLATE
+/* CBP1: schema 1 の固定列。未知の項目や値を削らず拒否し、null/0/欠落を保存する。 */
+(function(root){
+  'use strict';
+  const MAX_BYTES=512*1024;
+  const DEFAULT_MAPS=Object.freeze(['city','dock','hoshimichi','kanto','mesa','mobility','tidal','wide']);
+  const SCHEMA=["object",[["schema",["literal",1]],["sessions",["array",["object",[["startedAt",["number",1000000000000000.0,false]],["version",["version"]],["protocol",["number",1000,true]],["role",["enum",["host","guest"]]],["ended",["bool"]],["droppedSamples",["number",1000000000000.0,false]],["droppedEvents",["number",1000000000000.0,false]],["lastMatch",["nullable",["object",[["elapsedMs",["number",1000000000000.0,false]],["code",["enum",["session_started","sample","peer_joined","peer_disconnected","peer_departed","match_interrupted","transport_error","signaling_lost","connection_ready","match_started","match_finished","lobby_returned","preparation_aborted","session_ended","page_hidden","page_visible","page_closed"]]],["reason",["enum",["none","other","local_leave","reconnect","host_left","kicked","rejected","full","version_mismatch","protocol_mismatch","connection_error","snapshot_channel_error","channel_closed","signaling_closed","signaling_error","peer_unavailable","network_error","browser_unsupported","connection_timeout","approval_timeout","response_timeout","input_timeout","host_timeout","prepare_timeout","prepare_peer_left","invalid_data","send_failed"]]],["data",["object",[["role",["enum",["host","guest"]]],["phase",["enum",["idle","lobby","preparing","countdown","playing","ended","leaving"]]],["humans",["number",100,true]],["capacity",["number",100,true]],["teamSize",["number",100,true]],["map",["map"]],["visibility",["enum",["visible","hidden","unknown"]]],["fps",["number",10000,true]],["frame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["cpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostFrame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostCpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["arrivals",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["snapshotAgeMs",["number",1000000000000.0,true]],["rttMs",["number",1000000000000.0,true]],["corrections",["object",[["count",["number",1000000000000.0,true]],["samples",["number",1000000000000.0,true]],["meanM",["number",1000000000000.0,true]],["maxM",["number",1000000000000.0,true]],["hardSnaps",["number",1000000000000.0,true]],["reasons",["counter",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other"]]]]]],["predictionBlocked",["enum",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other","none"]]],["blockedCorrections",["number",1000000000000.0,true]],["repeatDebt",["number",1000000000000.0,true]],["pendingInputs",["number",1000000000000.0,true]],["preventedLook",["object",[["count",["number",1000000000000.0,true]],["maxDeg",["number",1000000000000.0,true]]]]],["transport",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]],["connectedPeers",["number",1000000000000.0,true]],["pendingPeers",["number",1000000000000.0,true]],["maxBufferedBytes",["number",1000000000000.0,true]],["maxQueue",["number",1000000000000.0,true]],["bufferedBytes",["number",1000000000000.0,true]],["queue",["number",1000000000000.0,true]],["latencyMs",["number",1000000000000.0,true]],["snapshotDropRate",["number",1000000000000.0,true]],["inputDropRate",["number",1000000000000.0,true]],["rtt",["object",[["count",["number",1000000000000.0,true]],["minMs",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["control",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshot",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshotDrops",["counter",["artificial","stale","congestion","superseded","incomplete"]]],["inputDrops",["counter",["artificial","stale","duplicate","congestion","superseded","rateLimited"]]]]]],["interpolation",["object",[["acceptedSnapshots",["number",1000000000000.0,true]],["staleSnapshots",["number",1000000000000.0,true]],["missingBaselines",["number",1000000000000.0,true]],["resyncRequests",["number",1000000000000.0,true]],["interpolatedFrames",["number",1000000000000.0,true]],["extrapolatedFrames",["number",1000000000000.0,true]],["clampedFrames",["number",1000000000000.0,true]],["delayMs",["number",1000000000000.0,true]],["effectiveDelayMs",["number",1000000000000.0,true]],["maxGapMs",["number",1000000000000.0,true]]]]],["lagCompensation",["object",[["shots",["number",1000000000000.0,true]],["rewinds",["number",1000000000000.0,true]],["clamped",["number",1000000000000.0,true]],["rejected",["number",1000000000000.0,true]],["maxRewindMs",["number",1000000000000.0,true]]]]]]]]]]]],["lastConnection",["nullable",["object",[["elapsedMs",["number",1000000000000.0,false]],["code",["enum",["session_started","sample","peer_joined","peer_disconnected","peer_departed","match_interrupted","transport_error","signaling_lost","connection_ready","match_started","match_finished","lobby_returned","preparation_aborted","session_ended","page_hidden","page_visible","page_closed"]]],["reason",["enum",["none","other","local_leave","reconnect","host_left","kicked","rejected","full","version_mismatch","protocol_mismatch","connection_error","snapshot_channel_error","channel_closed","signaling_closed","signaling_error","peer_unavailable","network_error","browser_unsupported","connection_timeout","approval_timeout","response_timeout","input_timeout","host_timeout","prepare_timeout","prepare_peer_left","invalid_data","send_failed"]]],["data",["object",[["role",["enum",["host","guest"]]],["phase",["enum",["idle","lobby","preparing","countdown","playing","ended","leaving"]]],["humans",["number",100,true]],["capacity",["number",100,true]],["teamSize",["number",100,true]],["map",["map"]],["visibility",["enum",["visible","hidden","unknown"]]],["fps",["number",10000,true]],["frame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["cpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostFrame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostCpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["arrivals",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["snapshotAgeMs",["number",1000000000000.0,true]],["rttMs",["number",1000000000000.0,true]],["corrections",["object",[["count",["number",1000000000000.0,true]],["samples",["number",1000000000000.0,true]],["meanM",["number",1000000000000.0,true]],["maxM",["number",1000000000000.0,true]],["hardSnaps",["number",1000000000000.0,true]],["reasons",["counter",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other"]]]]]],["predictionBlocked",["enum",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other","none"]]],["blockedCorrections",["number",1000000000000.0,true]],["repeatDebt",["number",1000000000000.0,true]],["pendingInputs",["number",1000000000000.0,true]],["preventedLook",["object",[["count",["number",1000000000000.0,true]],["maxDeg",["number",1000000000000.0,true]]]]],["transport",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]],["connectedPeers",["number",1000000000000.0,true]],["pendingPeers",["number",1000000000000.0,true]],["maxBufferedBytes",["number",1000000000000.0,true]],["maxQueue",["number",1000000000000.0,true]],["bufferedBytes",["number",1000000000000.0,true]],["queue",["number",1000000000000.0,true]],["latencyMs",["number",1000000000000.0,true]],["snapshotDropRate",["number",1000000000000.0,true]],["inputDropRate",["number",1000000000000.0,true]],["rtt",["object",[["count",["number",1000000000000.0,true]],["minMs",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["control",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshot",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshotDrops",["counter",["artificial","stale","congestion","superseded","incomplete"]]],["inputDrops",["counter",["artificial","stale","duplicate","congestion","superseded","rateLimited"]]]]]],["interpolation",["object",[["acceptedSnapshots",["number",1000000000000.0,true]],["staleSnapshots",["number",1000000000000.0,true]],["missingBaselines",["number",1000000000000.0,true]],["resyncRequests",["number",1000000000000.0,true]],["interpolatedFrames",["number",1000000000000.0,true]],["extrapolatedFrames",["number",1000000000000.0,true]],["clampedFrames",["number",1000000000000.0,true]],["delayMs",["number",1000000000000.0,true]],["effectiveDelayMs",["number",1000000000000.0,true]],["maxGapMs",["number",1000000000000.0,true]]]]],["lagCompensation",["object",[["shots",["number",1000000000000.0,true]],["rewinds",["number",1000000000000.0,true]],["clamped",["number",1000000000000.0,true]],["rejected",["number",1000000000000.0,true]],["maxRewindMs",["number",1000000000000.0,true]]]]]]]]]]]],["samples",["array",["object",[["elapsedMs",["number",1000000000000.0,false]],["data",["object",[["role",["enum",["host","guest"]]],["phase",["enum",["idle","lobby","preparing","countdown","playing","ended","leaving"]]],["humans",["number",100,true]],["capacity",["number",100,true]],["teamSize",["number",100,true]],["map",["map"]],["visibility",["enum",["visible","hidden","unknown"]]],["fps",["number",10000,true]],["frame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["cpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostFrame",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["hostCpu",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["arrivals",["object",[["count",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["p95Ms",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["snapshotAgeMs",["number",1000000000000.0,true]],["rttMs",["number",1000000000000.0,true]],["corrections",["object",[["count",["number",1000000000000.0,true]],["samples",["number",1000000000000.0,true]],["meanM",["number",1000000000000.0,true]],["maxM",["number",1000000000000.0,true]],["hardSnaps",["number",1000000000000.0,true]],["reasons",["counter",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other"]]]]]],["predictionBlocked",["enum",["distance","accumulated","respawn","equipment","down","transfer","jumpPad","catapult","stun","electric","shock","history","disabled","melee","special","zip","repair","launch","lift","planted","inactive","smooth","other","none"]]],["blockedCorrections",["number",1000000000000.0,true]],["repeatDebt",["number",1000000000000.0,true]],["pendingInputs",["number",1000000000000.0,true]],["preventedLook",["object",[["count",["number",1000000000000.0,true]],["maxDeg",["number",1000000000000.0,true]]]]],["transport",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]],["connectedPeers",["number",1000000000000.0,true]],["pendingPeers",["number",1000000000000.0,true]],["maxBufferedBytes",["number",1000000000000.0,true]],["maxQueue",["number",1000000000000.0,true]],["bufferedBytes",["number",1000000000000.0,true]],["queue",["number",1000000000000.0,true]],["latencyMs",["number",1000000000000.0,true]],["snapshotDropRate",["number",1000000000000.0,true]],["inputDropRate",["number",1000000000000.0,true]],["rtt",["object",[["count",["number",1000000000000.0,true]],["minMs",["number",1000000000000.0,true]],["meanMs",["number",1000000000000.0,true]],["maxMs",["number",1000000000000.0,true]]]]],["control",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshot",["object",[["sentBytes",["number",1000000000000.0,true]],["receivedBytes",["number",1000000000000.0,true]],["sentMessages",["number",1000000000000.0,true]],["receivedMessages",["number",1000000000000.0,true]]]]],["snapshotDrops",["counter",["artificial","stale","congestion","superseded","incomplete"]]],["inputDrops",["counter",["artificial","stale","duplicate","congestion","superseded","rateLimited"]]]]]],["interpolation",["object",[["acceptedSnapshots",["number",1000000000000.0,true]],["staleSnapshots",["number",1000000000000.0,true]],["missingBaselines",["number",1000000000000.0,true]],["resyncRequests",["number",1000000000000.0,true]],["interpolatedFrames",["number",1000000000000.0,true]],["extrapolatedFrames",["number",1000000000000.0,true]],["clampedFrames",["number",1000000000000.0,true]],["delayMs",["number",1000000000000.0,true]],["effectiveDelayMs",["number",1000000000000.0,true]],["maxGapMs",["number",1000000000000.0,true]]]]],["lagCompensation",["object",[["shots",["number",1000000000000.0,true]],["rewinds",["number",1000000000000.0,true]],["clamped",["number",1000000000000.0,true]],["rejected",["number",1000000000000.0,true]],["maxRewindMs",["number",1000000000000.0,true]]]]]]]]]],300]],["events",["array",["object",[["elapsedMs",["number",1000000000000.0,false]],["code",["enum",["session_started","sample","peer_joined","peer_disconnected","peer_departed","match_interrupted","transport_error","signaling_lost","connection_ready","match_started","match_finished","lobby_returned","preparation_aborted","session_ended","page_hidden","page_visible","page_closed"]]],["reason",["enum",["none","other","local_leave","reconnect","host_left","kicked","rejected","full","version_mismatch","protocol_mismatch","connection_error","snapshot_channel_error","channel_closed","signaling_closed","signaling_error","peer_unavailable","network_error","browser_unsupported","connection_timeout","approval_timeout","response_timeout","input_timeout","host_timeout","prepare_timeout","prepare_peer_left","invalid_data","send_failed"]]],["phase",["enum",["idle","lobby","preparing","countdown","playing","ended","leaving"]]],["humans",["number",100,true]]]],128]]]],3]]]];
+  const fail=()=>{throw new Error('診断ログの形式または上限が不正です');};
+  function mapsOption(options){
+    const maps=options?.maps??DEFAULT_MAPS;
+    if(!Array.isArray(maps)||maps.length>256||maps.some(s=>typeof s!=='string'||!/^[-a-z0-9_]{1,48}$/.test(s)||['__proto__','constructor','prototype'].includes(s)))fail();
+    return new Set(['unknown',...maps]);
+  }
+  function object(v){
+    if(!v||typeof v!=='object'||Array.isArray(v))fail();
+    // JSON由来の通常オブジェクトとnull prototypeだけ。アクセサーや隠し項目も拒否。
+    const proto=Object.getPrototypeOf(v);
+    if(proto!==null&&Object.getPrototypeOf(proto)!==null)fail();
+    const keys=Reflect.ownKeys(v);
+    if(keys.some(k=>typeof k!=='string'||!Object.getOwnPropertyDescriptor(v,k)?.enumerable||!Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')))fail();
+    return keys;
+  }
+  function array(v,max){
+    if(!Array.isArray(v)||v.length>max)fail();
+    const keys=Reflect.ownKeys(v);
+    if(keys.length!==v.length+1)fail();
+    for(let i=0;i<v.length;i++){const d=Object.getOwnPropertyDescriptor(v,String(i));if(!d||!d.enumerable||!Object.hasOwn(d,'value'))fail();}
+  }
+  function walk(d,v,decode,maps,depth=0){
+    if(depth>16)fail();
+    const kind=d[0],next=(s,x)=>walk(s,x,decode,maps,depth+1);
+    if(kind==='nullable')return v===null?null:next(d[1],v);
+    if(kind==='object'){
+      const fields=d[1];
+      if(decode){array(v,fields.length);if(v.length!==fields.length)fail();return Object.fromEntries(fields.map(([k,s],i)=>[k,next(s,v[i])]));}
+      const keys=object(v);if(keys.length!==fields.length||fields.some(([k])=>!Object.hasOwn(v,k)))fail();
+      return fields.map(([k,s])=>next(s,v[k]));
+    }
+    if(kind==='array'){array(v,d[2]);return v.map(x=>next(d[1],x));}
+    if(kind==='counter'){
+      const keys=d[1];
+      if(decode){array(v,keys.length);if(v.length!==keys.length)fail();return Object.fromEntries(keys.flatMap((k,i)=>v[i]===null?[]:[[k,next(['number',1e12,false],v[i])]]));}
+      const found=object(v);if(found.some(k=>!keys.includes(k)))fail();
+      return keys.map(k=>Object.hasOwn(v,k)?next(['number',1e12,false],v[k]):null);
+    }
+    if(kind==='number'){if(v===null&&d[2])return null;if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>d[1])fail();return v;}
+    if(kind==='enum'){if(typeof v!=='string'||!d[1].includes(v))fail();return v;}
+    if(kind==='map'){if(typeof v!=='string'||!maps.has(v))fail();return v;}
+    if(kind==='version'){if(typeof v!=='string'||(v!=='unknown'&&!/^Ver[0-9]{1,6}$/.test(v)))fail();return v;}
+    if(kind==='bool'){if(typeof v!=='boolean')fail();return v;}
+    if(kind==='literal'){if(v!==d[1])fail();return v;}
+    fail();
+  }
+  function size(v){if(new TextEncoder().encode(JSON.stringify(v)).length>MAX_BYTES)fail();}
+  function pack(v,options){const maps=mapsOption(options),encoded=walk(SCHEMA,v,false,maps);size(walk(SCHEMA,encoded,true,maps));return ['CBP1',encoded];}
+  function unpack(v,options){array(v,2);if(v.length!==2||v[0]!=='CBP1')fail();const result=walk(SCHEMA,v[1],true,mapsOption(options));size(result);return result;}
+  const api={pack,unpack,MAX_BYTES,DEFAULT_MAPS};
+  root.CBOnlineDiagnosticPack=api;
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+})(typeof window!=='undefined'?window:globalThis);
+
+  const COMPRESSED_LIMITS={text:256*1024,packed:512*1024};
+  function base64url(bytes){
+    const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';let out='';
+    for(let i=0;i<bytes.length;i+=3){const n=(bytes[i]<<16)|((bytes[i+1]||0)<<8)|(bytes[i+2]||0);out+=alphabet[n>>>18]+alphabet[(n>>>12)&63];if(i+1<bytes.length)out+=alphabet[(n>>>6)&63];if(i+2<bytes.length)out+=alphabet[n&63];}
+    return out;
+  }
+  function compressData(data,maps){
+    const packed=CBOnlineDiagnosticPack.pack(data,{maps}),bytes=new TextEncoder().encode(JSON.stringify(packed));
+    if(bytes.length>COMPRESSED_LIMITS.packed)throw Error('診断データの展開上限を超えました');
+    const payload=diagnosticDeflate.deflate(bytes),crc=diagnosticDeflate.crc32(bytes).toString(16).padStart(8,'0');
+    const text='CBL2.D.'+bytes.length.toString(36)+'.'+crc+'.'+base64url(payload);
+    if(text.length>COMPRESSED_LIMITS.text)throw Error('診断データのコピー上限を超えました');
+    return text;
   }
   class Recorder {
     constructor({storage,now=()=>Date.now(),monotonic=()=>performance.now(),maps=[]}={}){
@@ -198,11 +788,13 @@
         this.sessions.sort((a,b)=>a.startedAt-b.startedAt);this.bound();this.storage?.setItem(KEY,this.json());this.storageAvailable=!!this.storage;
       }catch(_){this.bound();this.storageAvailable=false;}
     }
-    summary(){this.bound();const s=this.active||this.sessions.at(-1);return compactSession(s,s===this.active);}
-    preview(){this.bound();return 'コアブレイカー オンライン試験ログ v1\n端末内の記録。自動送信なし。コピー・保存した内容の共有は任意です。\n時刻は端末時計（UTC開始時刻＋elapsedMs）。本人確認や原因の断定には使えません。\n数値は観測値。FPSはフレーム間隔から算出。frame/cpu/arrivals/補正は直近2秒、bytes/欠落は接続中の累計、interpolation/lagCompensationは試合ごと。未取得はnull（count=0は標本なし）。\nbytesはアプリが数えたJSONのUTF-8量。WebRTC/IPヘッダー・再送・回線全体の通信量は含みません。RTTはアプリping、CPUはJSのみ。ホスト値は最後に受信した申告値。\n欠落数はアプリ内の破棄・人工欠損で、回線パケット損失率ではありません。推測した回線原因/IP/ID/名前/チャット/SDP/生エラーは含みません。\n最新3接続・各300標本/128イベント・合計512KiB・再表示時に7日超を除去。droppedは上限で省いた件数。急なクラッシュでは最後の15秒を失う場合があります。\n\n'+JSON.stringify({schema:1,sessions:this.sessions.map(s=>({...s,startedUtc:new Date(s.startedAt).toISOString()}))},null,2);}
+    exportData(){this.bound();return JSON.parse(this.json());}
+    compressed(data=this.exportData()){return compressData(data,this.maps);}
+    capture(){const data=this.exportData(),detail=this.preview(data);try{return {compressed:this.compressed(data),detail};}catch(_){return {compressed:'',detail,error:true};}}
+    preview(data=this.exportData()){return 'コアブレイカー オンライン試験ログ v1\n端末内の記録。自動送信なし。コピー・保存した内容の共有は任意です。\n時刻は端末時計（UTC開始時刻＋elapsedMs）。本人確認や原因の断定には使えません。\n数値は観測値。FPSはフレーム間隔から算出。frame/cpu/arrivals/補正は直近2秒、bytes/欠落は接続中の累計、interpolation/lagCompensationは試合ごと。未取得はnull（count=0は標本なし）。\nbytesはアプリが数えたJSONのUTF-8量。WebRTC/IPヘッダー・再送・回線全体の通信量は含みません。RTTはアプリping、CPUはJSのみ。ホスト値は最後に受信した申告値。\n欠落数はアプリ内の破棄・人工欠損で、回線パケット損失率ではありません。推測した回線原因/IP/ID/名前/チャット/SDP/生エラーは含みません。\n最新3接続・各300標本/128イベント・合計512KiB・再表示時に7日超を除去。droppedは上限で省いた件数。急なクラッシュでは最後の15秒を失う場合があります。\n\n'+JSON.stringify({schema:1,sessions:data.sessions.map(s=>({...s,startedUtc:new Date(s.startedAt).toISOString()}))},null,2);}
     clear(){this.sessions=[];this.active=null;try{this.storage?.removeItem(KEY);return true;}catch(_){this.storageAvailable=false;return false;}}
   }
-  const api={Recorder,LIMITS,KEY,reasonCode,safeSample};root.CBOnlineDiagnosticLog=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  const api={Recorder,LIMITS,KEY,reasonCode,safeSample,COMPRESSED_LIMITS,compressData,Pack:root.CBOnlineDiagnosticPack};root.CBOnlineDiagnosticLog=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 
 /* #212 ブラウザホスト試作。通信以外のゲーム規則は既存本体を使う。 */
@@ -2236,8 +2828,8 @@
     addEventListener('pagehide',()=>logCheckpoint('page_closed'));
   }
   function captureLog(){if(diagnosticLog?.active)diagnosticLog.sample(logSample(),true);return diagnosticLog;}
-  const logs={summary:()=>captureLog()?.summary()||'',preview:()=>captureLog()?.preview()||'',
-    capture:()=>{const log=captureLog();return {summary:log?.summary()||'',detail:log?.preview()||''};},
+  const logs={compressed:()=>captureLog()?.compressed()||'',preview:()=>captureLog()?.preview()||'',
+    capture:()=>captureLog()?.capture()||{compressed:'',detail:''},
     status:()=>({available:!!diagnosticLog?.sessions.length,storageAvailable:!!diagnosticLog?.storageAvailable}),
     clear:()=>{const removed=diagnosticLog?.clear()!==false;if(state.role!=='offline')diagnosticLog?.begin({role:state.role,version:localVersion(),protocol:CBOnlineTransport.PROTOCOL},logSample());return removed;}};
   // 診断は直近2秒の上限付き標本。フレーム間隔とJS処理時間を分け、位置や個人情報は送らない。
