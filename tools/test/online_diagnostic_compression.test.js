@@ -23,7 +23,7 @@ test('実収集/保存復元の秘匿済みデータだけを圧縮し過去接�
  const secret='PRIVATE_ROOM_192.0.2.1_PEER_NAME_CHAT_SDP_ERROR',h=setup('host'),sample={...lobby(),roomId:secret,name:secret,chat:secret,diagnostic:{fps:secret},transport:{peers:[{id:secret}]}};h.begin(sample);h.r.event(secret,secret,sample);h.r.end('local_leave',sample);h.tick(1);h.begin(sample);const d=decodePython(h.r.compressed());assert.equal(d.sessions.length,2);assert(!JSON.stringify(d).includes(secret));
 });
 test('期限をまたいでも圧縮と詳細は単一snapshot・7日超の解析は可能',()=>{
- const h=setup();h.begin(playing());h.r.end('local_leave',playing());const capture=h.r.capture(),packed=decodeJS(capture.compressed),detail=JSON.parse(capture.detail.slice(capture.detail.indexOf('{')));for(const s of detail.sessions)delete s.startedUtc;assert.deepEqual(packed,detail);h.tick(8*86400000);assert.equal(h.r.sessions.length,1);assert.deepEqual(decodePython(capture.compressed),packed);assert.equal(decodeJS(h.r.compressed()).sessions.length,0);
+ const h=setup();h.begin(playing());h.r.end('local_leave',playing());const capture=h.r.capture(),packed=decodePython(capture.compressed),detail=JSON.parse(capture.detail.slice(capture.detail.indexOf('{')));for(const s of detail.sessions)delete s.startedUtc;assert.deepEqual(packed.data.sessions[0].samples.at(-1),detail.sessions[0].samples.at(-1));h.tick(8*86400000);assert.equal(h.r.sessions.length,1);assert.deepEqual(decodePython(capture.compressed),packed);assert.equal(decodeJS(h.r.compressed()).sessions.length,0);
 });
 test('ネイティブCompressionStream・btoa・cryptoなしでも同期圧縮',()=>{
  const vm=require('node:vm'),src=fs.readFileSync(path.join(root,'prototype/online/game.js'),'utf8').split('/* #212 ブラウザホスト試作。')[0],c={module:{exports:{}},TextEncoder,performance,Date};vm.runInNewContext(src,c);const r=new c.module.exports.Recorder({maps:['mesa'],now:()=>1800000000000,monotonic:()=>0});r.begin({role:'host',version:'Ver179',protocol:9},lobby());const result=r.compressed();assert.equal(typeof result,'string');assert.equal(decodeJS(result).sessions[0].role,'host');
@@ -35,5 +35,5 @@ test('Python CLIの入力/展開/型/破損/出力ファイル安全性を検査
 });
 test('出力/展開上限超過時は切り捨てず失敗し詳細保存を残す',()=>{
  const r=fixtures().playing,raw=r.json(),textLimit=COMPRESSED_LIMITS.text,packedLimit=COMPRESSED_LIMITS.packed;
- try{COMPRESSED_LIMITS.text=10;assert.throws(()=>r.compressed());const captured=r.capture();assert(captured.error);assert.equal(captured.compressed,'');assert(captured.detail.includes('sentBytes'));COMPRESSED_LIMITS.text=textLimit;COMPRESSED_LIMITS.packed=10;assert.throws(()=>r.compressed());assert.equal(r.json(),raw);}finally{COMPRESSED_LIMITS.text=textLimit;COMPRESSED_LIMITS.packed=packedLimit;}
+ try{COMPRESSED_LIMITS.text=10;assert.throws(()=>r.compressed());const captured=r.capture();assert(!captured.error);assert(captured.compressed.startsWith('CBL2.S.'));assert(captured.detail.includes('sentBytes'));COMPRESSED_LIMITS.text=textLimit;COMPRESSED_LIMITS.packed=10;assert.throws(()=>r.compressed());assert.equal(r.json(),raw);}finally{COMPRESSED_LIMITS.text=textLimit;COMPRESSED_LIMITS.packed=packedLimit;}
 });

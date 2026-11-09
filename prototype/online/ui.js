@@ -283,7 +283,7 @@
 (() => {
   const logs=window.CBOnlineGame?.logs;if(!logs)return;
   const dialog=document.createElement('dialog');dialog.id='onlineLogDialog';dialog.setAttribute('aria-labelledby','onlineLogTitle');
-  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。通常のF8は保持中の全接続・全標本を復元可能な圧縮データとしてコピーします。この画面では表示中の内容をコピーします。掲示板などへ貼る前に内容を確認してください。部屋IDのコピーとは別です。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><p>圧縮は暗号化ではありません。時系列・未取得値・異常記録は省きません。内容を確認するには「詳細を表示」。CBL2から始まる全文をdotに貼るか、リポジトリの復元ツールで解析できます。既存の保持上限で失った件数はデータ内に残します。</p><button type="button" id="onlineLogToggle">詳細を表示</button><label id="onlineLogLabel" for="onlineLogText">圧縮データ（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">詳細を保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
+  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。通常のF8は原因調査用に選んだ診断データを、改行なし・6000字以内でコピーします。この画面でもF8は6000字以内の選別版です。「内容をコピー」は表示中の内容をコピーします。掲示板などへ貼る前に内容を確認してください。部屋IDのコピーとは別です。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><p>圧縮は暗号化ではありません。版・役割・状態・失敗コード・代表値/極値・障害前の少数時点を残し、それ以外は省きます。省略件数は復元結果で確認できます。内容を確認するには「詳細を表示」。CBL2から始まる全文をdotに貼るか、リポジトリの復元ツールで解析できます。既存の保持上限で失った件数はデータ内に残します。</p><button type="button" id="onlineLogToggle">詳細を表示</button><label id="onlineLogLabel" for="onlineLogText">圧縮データ（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">詳細を保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
   document.body.append(dialog);
   const notice=document.createElement('p');notice.id='onlineLogNotice';notice.hidden=true;notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');document.body.append(notice);
   let noticeRevision=0;
@@ -292,7 +292,7 @@
   for(const type of ['keydown','keyup'])dialog.addEventListener(type,e=>e.stopPropagation());
   const el=id=>document.getElementById(id),status=t=>{el('onlineLogStatus').textContent=t;};
   let preview='',captured={compressed:'',detail:''},showDetail=false,returnFocus=null,revision=0,copyPending=false,shortcutHeld=false;
-  function showCaptured(){preview=showDetail?captured.detail:captured.compressed;el('onlineLogText').value=preview;el('onlineLogToggle').textContent=showDetail?'圧縮データを表示':'詳細を表示';el('onlineLogLabel').textContent=(showDetail?'詳細':'圧縮データ')+'（プレビューを開いた時点）';}
+  function showCaptured(){preview=showDetail?captured.detail:captured.compressed;el('onlineLogText').value=preview;el('onlineLogToggle').textContent=showDetail?'圧縮データを表示':'詳細を表示';el('onlineLogCopy').textContent=showDetail?'詳細をコピー（字数制限なし）':'圧縮データをコピー';el('onlineLogLabel').textContent=(showDetail?'詳細':'圧縮データ')+'（プレビューを開いた時点）';}
   function open(){
     if(dialog.open)return;notice.hidden=true;noticeRevision++;returnFocus=document.activeElement;captured=logs.capture();showDetail=!!captured.error;revision++;showCaptured();status(captured.error?'圧縮できませんでした。詳細は確認・コピー・保存できます。':'内容は端末内だけです。圧縮は暗号化ではありません。');
     el('onlineLogStorage').textContent=logs.status().storageAvailable?'再読み込み後も、このブラウザの直近ログを確認できます。ブラウザのデータ削除で消えます。':'ブラウザへの保存ができません。この画面を閉じる前にコピーかテキスト保存をしてください。';
@@ -302,41 +302,42 @@
   function addButton(id,label,target){const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=open;target.append(b);return b;}
   const menu=addButton('menuOnlineLog','診断ログを見る（F8で圧縮）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
   const measure=document.querySelector('#onlinePanel .online-measure');
-  if(measure){const note=document.createElement('p');note.textContent='F8：保持中の全診断データを可逆圧縮してコピー（ホスト・ゲスト共通）。入力欄では無効です。送信・投稿はせず、部屋IDも含みません。貼り付け先と内容を確認して共有してください。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
+  if(measure){const note=document.createElement('p');note.textContent='F8：原因調査用の診断データを改行なし・6000字以内でコピー（ホスト・ゲスト共通）。入力欄では無効です。送信・投稿はせず、部屋IDも含みません。貼り付け先と内容を確認して共有してください。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
   const result=addButton('onlineLogResult','試験ログを確認・保存（F8で圧縮）',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
   const refresh=()=>{const available=logs.status().available;menu.hidden=!available;result.hidden=!available||el('onlineReturn').hidden;};setInterval(refresh,500);refresh();
-  async function copyLog(){
+  async function copyLog(shortcut=false){
     if(copyPending)return;
     const wasOpen=!!dialog.open,at=revision;
     // 許可リストを通した既存APIだけを使い、部屋ID欄・生のmetrics・DOMの編集値を読まない。
-    let text;try{text=wasOpen?preview:logs.compressed();}catch(_){const message='圧縮できませんでした。以前のクリップボード内容を貼り付けないでください。診断ログを開いて詳細を保存してください。';wasOpen?status(message):notify(message,true);return;}
+    let text;try{text=wasOpen?(shortcut?captured.compressed:preview):logs.compressed();}catch(_){const message='圧縮できませんでした。以前のクリップボード内容を貼り付けないでください。診断ログを開いて詳細を保存してください。';wasOpen?status(message):notify(message,true);return;}
+    if(shortcut&&wasOpen&&captured.error){status('共有用ログを作れませんでした。以前のクリップボード内容を貼らず、詳細を保存してください。');return;}
     if(!logs.status().available){const message='コピーする診断ログがありません。以前のクリップボード内容を貼り付けないでください。オンライン接続後に試してください。';wasOpen?status(message):notify(message);return;}
     copyPending=true;
     try{
       // キー/クリックのユーザー操作中に呼ぶ。許可の事前要求や自動再試行はしない。
       await navigator.clipboard.writeText(text);
-      if(at===revision&&wasOpen===!!dialog.open){const message='診断ログ'+(wasOpen&&showDetail?'（詳細）':'（可逆圧縮）')+'をコピーしました。貼り付け先と内容を確認して共有してください（自動投稿なし）。';wasOpen?status(message):notify(message);}
+      if(at===revision&&wasOpen===!!dialog.open){const message='診断ログ'+(wasOpen&&showDetail&&!shortcut?'（詳細）':'（6000字以内・選別圧縮）')+'をコピーしました。貼り付け先と内容を確認して共有してください（自動投稿なし）。';wasOpen?status(message):notify(message);}
     }catch(_){
       // 生の例外には接続情報が混ざり得るため、その本文は表示・記録しない。
       if(at===revision&&wasOpen===!!dialog.open){
         const message='コピーできませんでした。以前のクリップボード内容を貼り付けないでください。HTTPS・ブラウザの許可・ファイル起動の制限を確認してください。';
-        if(wasOpen){status(message+' 選択された内容を手動コピーするか、テキスト保存を使ってください。');el('onlineLogText').focus();el('onlineLogText').select();}
+        if(wasOpen){if(shortcut&&showDetail){showDetail=false;revision++;showCaptured();}status(message+' 選択された内容を手動コピーするか、テキスト保存を使ってください。');el('onlineLogText').focus();el('onlineLogText').select();}
         else notify(message+' Escでメニューを開き、「計測設定 → 診断ログを確認」または「診断ログを見る」から手動コピー・保存できます。',true);
       }
     }finally{copyPending=false;}
   }
-  el('onlineLogCopy').onclick=copyLog;
+  el('onlineLogCopy').onclick=()=>copyLog();
   // F2/F3・戦闘・定型通信と重ならない単独F8。成功/失敗とも試合とpointer lockを止めない。
   addEventListener('keydown',e=>{
     if(e.code!=='F8')return;
     if(!shortcutHeld&&(e.isComposing||e.ctrlKey||e.altKey||e.metaKey||e.shiftKey||e.target?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])')))return;
     e.preventDefault();e.stopImmediatePropagation();if(shortcutHeld||e.repeat)return;
-    shortcutHeld=true;void copyLog();
+    shortcutHeld=true;void copyLog(true);
   },true);
   addEventListener('keyup',e=>{if(e.code!=='F8'||!shortcutHeld)return;shortcutHeld=false;e.preventDefault();e.stopImmediatePropagation();},true);
   addEventListener('blur',()=>{shortcutHeld=false;});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)shortcutHeld=false;});
-  el('onlineLogToggle').onclick=()=>{if(captured.error){status('圧縮できませんでした。詳細を保存してください。');return;}showDetail=!showDetail;revision++;showCaptured();status('表示を切り替えました。圧縮データも詳細も、開いた時点の記録です。');};
+  el('onlineLogToggle').onclick=()=>{if(captured.error){status('圧縮できませんでした。詳細を保存してください。');return;}showDetail=!showDetail;revision++;showCaptured();status('表示を切り替えました。開いた時点の記録です。圧縮は選別版、詳細保存は全保持データです。');};
   el('onlineLogSave').onclick=()=>{let url;try{url=URL.createObjectURL(new Blob([captured.detail],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='core-breaker-diagnostic.txt';document.body.append(a);a.click();a.remove();status('開いた時点の詳細ログのテキスト保存を開始しました。');}catch(_){status('保存を開始できませんでした。内容をコピーしてください。');}finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}};
   el('onlineLogClear').onclick=()=>{const removed=logs.clear()!==false;captured=logs.capture();if(captured.error)showDetail=true;revision++;showCaptured();el('onlineLogCopy').disabled=el('onlineLogSave').disabled=!logs.status().available;status(removed?'保存済みログを消しました。他のタブや接続中の新しい記録は続きます。':'ブラウザ保存分を消せませんでした。ブラウザのサイトデータ設定から削除してください。');refresh();};
   el('onlineLogClose').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{revision++;returnFocus?.focus();});

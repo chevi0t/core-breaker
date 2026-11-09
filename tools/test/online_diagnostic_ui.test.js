@@ -37,7 +37,7 @@ test('F8は押した時点の最新ログをコピーし、試合・pointer lock
  const h=setup();h.c.document.pointerLockElement={id:'canvas'};const focus=h.c.document.activeElement,locked=h.c.document.pointerLockElement;
  h.change('latest-host');const down=h.key();assert(down.prevented&&down.stopped);assert.deepEqual(h.calls.copies,['latest-host']);await settle();
  assert(!h.e('onlineLogDialog').open);assert.equal(h.c.document.pointerLockElement,locked);assert.equal(h.c.document.activeElement,focus);
- assert.match(h.e('onlineLogNotice').textContent,/診断ログ（可逆圧縮）をコピーしました/);assert(!h.e('onlineLogNotice').hidden);
+ assert.match(h.e('onlineLogNotice').textContent,/診断ログ（6000字以内・選別圧縮）をコピーしました/);assert(!h.e('onlineLogNotice').hidden);
  const up=h.key('keyup');assert(up.prevented&&up.stopped);h.change('latest-guest');h.key();await settle();assert.deepEqual(h.calls.copies,['latest-host','latest-guest']);
  h.timeouts[0].f();assert(!h.e('onlineLogNotice').hidden,'古い通知タイマーは新しい通知を消さない');h.timeouts[1].f();assert(h.e('onlineLogNotice').hidden);
 });
@@ -86,13 +86,13 @@ test('ホスト/ゲストの実Recorder許可リストを通した本文だけ�
  for(const role of ['host','guest']){
   const r=new Recorder({storage:null,now:()=>1800000000000,monotonic:()=>100,maps:['mesa']});
   r.begin({role,version:'Ver179',protocol:9,roomId:secret},{role,phase:'playing',map:'mesa',roomId:secret,peerId:secret,name:secret,chat:secret,sdp:secret,error:secret,diagnostic:{fps:60},transport:{sentBytes:123,peers:[{id:secret}]}});
-  const h=setup({compressed:()=>r.compressed(),capture:()=>({compressed:r.compressed(),detail:r.preview()}),status:()=>({available:true,storageAvailable:false})});h.key();await settle();
-  const text=h.calls.copies[0];assert(!text.includes(secret));assert(text.startsWith('CBL2.D.'));const {Pack}=require('./online_diagnostic_fixture');const packed=JSON.parse(require('node:zlib').inflateRawSync(Buffer.from(text.split('.').at(-1),'base64url')));const restored=Pack.unpack(packed);assert.equal(restored.sessions[0].role,role);assert.equal(restored.sessions[0].samples[0].data.transport.sentBytes,123);h.e('menuOnlineLog').click();h.e('onlineLogToggle').click();await h.e('onlineLogCopy').onclick();const data=JSON.parse(h.calls.copies.at(-1).slice(h.calls.copies.at(-1).indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
+  const h=setup({compressed:()=>r.share(),capture:()=>({compressed:r.share(),detail:r.preview()}),status:()=>({available:true,storageAvailable:false})});h.key();await settle();
+  const text=h.calls.copies[0];assert(!text.includes(secret));assert(text.startsWith('CBL2.S.'));const {Pack}=require('./online_diagnostic_fixture');const packed=JSON.parse(require('node:zlib').inflateRawSync(Buffer.from(text.split('.').at(-1),'base64url')));const restored=Pack.unpack(packed[3]);assert.equal(restored.sessions[0].role,role);assert.equal(restored.sessions[0].samples[0].data.transport.sentBytes,123);h.e('menuOnlineLog').click();h.e('onlineLogToggle').click();await h.e('onlineLogCopy').onclick();const data=JSON.parse(h.calls.copies.at(-1).slice(h.calls.copies.at(-1).indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
  }
 });
 
-test('圧縮データと詳細の切替は同じ固定記録。詳細表示中のF8と保存も保つ',async()=>{
- const h=setup();h.e('menuOnlineLog').click();h.change('new-latest');h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A-detail');assert.match(h.e('onlineLogLabel').textContent,/詳細/);h.key();await settle();assert.deepEqual(h.calls.copies,['preview-A-detail']);h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A');h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'preview-A-detail');h.e('onlineLogClose').click();h.e('menuOnlineLog').click();assert.equal(h.e('onlineLogText').value,'new-latest');assert.match(h.e('onlineLogLabel').textContent,/圧縮データ/);
+test('圧縮データと詳細の切替は同じ固定記録。詳細表示中のF8も選別版、保存は全詳細',async()=>{
+ const h=setup();h.e('menuOnlineLog').click();h.change('new-latest');h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A-detail');assert.match(h.e('onlineLogLabel').textContent,/詳細/);h.key();await settle();assert.deepEqual(h.calls.copies,['preview-A']);h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A');h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'preview-A-detail');h.e('onlineLogClose').click();h.e('menuOnlineLog').click();assert.equal(h.e('onlineLogText').value,'new-latest');assert.match(h.e('onlineLogLabel').textContent,/圧縮データ/);
 });
 test('コピー中に圧縮データ/詳細を切り替えても古い完了通知・失敗選択を出さない',async()=>{
  for(const fail of [false,true]){const h=setup();let resolve,reject;h.e('menuOnlineLog').click();h.c.navigator.clipboard.writeText=()=>new Promise((a,b)=>{resolve=a;reject=b;});h.key();h.e('onlineLogToggle').click();const before=h.e('onlineLogStatus').textContent;fail?reject(Error('private')):resolve();await settle();assert.equal(h.e('onlineLogStatus').textContent,before);assert(!h.e('onlineLogText').selected);assert.equal(h.e('onlineLogText').value,'preview-A-detail');}

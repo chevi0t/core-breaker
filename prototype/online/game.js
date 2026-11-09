@@ -725,6 +725,45 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(text.length>COMPRESSED_LIMITS.text)throw Error('診断データのコピー上限を超えました');
     return text;
   }
+  const SHARE_LIMIT=6000;
+  const shareMetricGetters=[
+    d=>d.frame.count>0?d.fps:null,d=>d.frame.count>0?d.frame.maxMs:null,d=>d.cpu.count>0?d.cpu.maxMs:null,
+    d=>d.transport.rtt.count>0?d.transport.rtt.maxMs:d.rttMs,d=>d.snapshotAgeMs,d=>d.corrections.maxM,d=>d.corrections.hardSnaps,
+    d=>d.transport.maxQueue,d=>d.transport.maxBufferedBytes
+  ];
+  function shareCounts(data){return [data.sessions.length,data.sessions.reduce((n,s)=>n+s.samples.length,0),data.sessions.reduce((n,s)=>n+s.events.length,0),data.sessions.reduce((n,s)=>n+!!s.lastMatch+!!s.lastConnection,0)];}
+  function shareData(data,maps,active){
+    const original=shareCounts(data),source=(active&&data.sessions.find(s=>s.startedAt===active.startedAt&&s.role===active.role))||data.sessions.at(-1);
+    const selected={schema:1,sessions:[]},extrema=[];
+    if(source){
+      const s={...source,samples:[],events:[]};selected.sessions.push(s);
+      const candidates=[...source.samples,...[source.lastMatch,source.lastConnection].filter(Boolean)],indices=[];
+      const add=i=>{if(i>=0&&!indices.includes(i))indices.push(i);};add(source.samples.length-1);
+      const important=e=>['peer_disconnected','peer_departed','match_interrupted','transport_error','signaling_lost','preparation_aborted','session_ended'].includes(e.code)||!['none','local_leave','reconnect'].includes(e.reason);
+      const problems=source.events.filter(important),lastProblem=problems.at(-1);
+      if(lastProblem){const times=new Set();for(let i=source.samples.findLastIndex(x=>x.elapsedMs<=lastProblem.elapsedMs);i>=0&&times.size<3;i--){const at=source.samples[i].elapsedMs;if(!times.has(at)){times.add(at);add(i);}}}
+      for(let code=0;code<shareMetricGetters.length;code++){
+        const get=shareMetricGetters[code];let best=null;
+        for(const sample of candidates){const value=get(sample.data);if(typeof value!=='number'||!Number.isFinite(value))continue;if(!best||(code===0?value<best[1]:value>best[1]))best=[code,value,sample.elapsedMs];}
+        if(best){extrema.push(best);add(source.samples.findLastIndex(x=>x.elapsedMs===best[2]));}
+      }
+      s.samples=indices.slice(0,8).map(i=>source.samples[i]);
+      const chosen=new Set(problems.slice(-12));for(const e of source.events.slice(-4))chosen.add(e);s.events=source.events.filter(e=>chosen.has(e));
+    }
+    function encode(){
+      // 時系列は元の順へ戻す。削る優先順位は別の配列に保持する。
+      const ordered={schema:1,sessions:selected.sessions.map(s=>({...s,samples:[...s.samples].sort((a,b)=>a.elapsedMs-b.elapsedMs)}))};
+      const bytes=new TextEncoder().encode(JSON.stringify(['CBS1',original,extrema,CBOnlineDiagnosticPack.pack(ordered,{maps})]));
+      const payload=diagnosticDeflate.deflate(bytes),crc=diagnosticDeflate.crc32(bytes).toString(16).padStart(8,'0');
+      return 'CBL2.S.'+bytes.length.toString(36)+'.'+crc+'.'+base64url(payload);
+    }
+    let text=encode();const s=selected.sessions[0];
+    while(text.length>SHARE_LIMIT&&s?.samples.length>1){s.samples.pop();text=encode();}
+    for(const key of ['lastMatch','lastConnection'])if(text.length>SHARE_LIMIT&&s?.[key]){s[key]=null;text=encode();}
+    while(text.length>SHARE_LIMIT&&s?.events.length){s.events.shift();text=encode();}
+    if(text.length>SHARE_LIMIT)throw Error('共有用ログの上限を超えました');
+    return text;
+  }
   class Recorder {
     constructor({storage,now=()=>Date.now(),monotonic=()=>performance.now(),maps=[]}={}){
       this.storage=storage;this.now=now;this.monotonic=monotonic;this.maps=maps;this.sessions=[];this.active=null;this.storageAvailable=!!storage;this.lastSave=-Infinity;
@@ -790,11 +829,12 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     }
     exportData(){this.bound();return JSON.parse(this.json());}
     compressed(data=this.exportData()){return compressData(data,this.maps);}
-    capture(){const data=this.exportData(),detail=this.preview(data);try{return {compressed:this.compressed(data),detail};}catch(_){return {compressed:'',detail,error:true};}}
+    share(data=this.exportData()){return shareData(data,this.maps,this.active);}
+    capture(){const data=this.exportData(),detail=this.preview(data);try{return {compressed:this.share(data),detail};}catch(_){return {compressed:'',detail,error:true};}}
     preview(data=this.exportData()){return 'コアブレイカー オンライン試験ログ v1\n端末内の記録。自動送信なし。コピー・保存した内容の共有は任意です。\n時刻は端末時計（UTC開始時刻＋elapsedMs）。本人確認や原因の断定には使えません。\n数値は観測値。FPSはフレーム間隔から算出。frame/cpu/arrivals/補正は直近2秒、bytes/欠落は接続中の累計、interpolation/lagCompensationは試合ごと。未取得はnull（count=0は標本なし）。\nbytesはアプリが数えたJSONのUTF-8量。WebRTC/IPヘッダー・再送・回線全体の通信量は含みません。RTTはアプリping、CPUはJSのみ。ホスト値は最後に受信した申告値。\n欠落数はアプリ内の破棄・人工欠損で、回線パケット損失率ではありません。推測した回線原因/IP/ID/名前/チャット/SDP/生エラーは含みません。\n最新3接続・各300標本/128イベント・合計512KiB・再表示時に7日超を除去。droppedは上限で省いた件数。急なクラッシュでは最後の15秒を失う場合があります。\n\n'+JSON.stringify({schema:1,sessions:data.sessions.map(s=>({...s,startedUtc:new Date(s.startedAt).toISOString()}))},null,2);}
     clear(){this.sessions=[];this.active=null;try{this.storage?.removeItem(KEY);return true;}catch(_){this.storageAvailable=false;return false;}}
   }
-  const api={Recorder,LIMITS,KEY,reasonCode,safeSample,COMPRESSED_LIMITS,compressData,Pack:root.CBOnlineDiagnosticPack};root.CBOnlineDiagnosticLog=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  const api={Recorder,LIMITS,KEY,reasonCode,safeSample,COMPRESSED_LIMITS,compressData,SHARE_LIMIT,shareData,Pack:root.CBOnlineDiagnosticPack};root.CBOnlineDiagnosticLog=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
 
 /* #212 ブラウザホスト試作。通信以外のゲーム規則は既存本体を使う。 */
@@ -2828,7 +2868,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     addEventListener('pagehide',()=>logCheckpoint('page_closed'));
   }
   function captureLog(){if(diagnosticLog?.active)diagnosticLog.sample(logSample(),true);return diagnosticLog;}
-  const logs={compressed:()=>captureLog()?.compressed()||'',preview:()=>captureLog()?.preview()||'',
+  const logs={compressed:()=>captureLog()?.share()||'',preview:()=>captureLog()?.preview()||'',
     capture:()=>captureLog()?.capture()||{compressed:'',detail:''},
     status:()=>({available:!!diagnosticLog?.sessions.length,storageAvailable:!!diagnosticLog?.storageAvailable}),
     clear:()=>{const removed=diagnosticLog?.clear()!==false;if(state.role!=='offline')diagnosticLog?.begin({role:state.role,version:localVersion(),protocol:CBOnlineTransport.PROTOCOL},logSample());return removed;}};

@@ -10,7 +10,7 @@ check('オンライン診断ログのF8コピー',async({browser,dir,out,ok,erro
   for(const p of pages)await p.evaluate(()=>{window.__copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__copied.push(text);}}});document.activeElement?.blur();});
   for(const [i,p]of pages.entries()){
    await p.keyboard.press('F8');
-   ok(await p.evaluate(([role,id])=>{const text=window.__copied.at(-1);return !!text&&text.startsWith('CBL2.D.')&&!text.includes(id)&&!/PRIVATE_HOST|PRIVATE_GUEST/.test(text);},[i?'guest':'host',id]),'両端のF8本文は圧縮形式で名前・部屋IDの平文なし '+i);
+   ok(await p.evaluate(([role,id])=>{const text=window.__copied.at(-1);return !!text&&text.startsWith('CBL2.S.')&&text.length<=6000&&!/[\r\n]/.test(text)&&!text.includes(id)&&!/PRIVATE_HOST|PRIVATE_GUEST/.test(text);},[i?'guest':'host',id]),'両端のF8本文は圧縮形式で名前・部屋IDの平文なし '+i);
    ok(await p.locator('#onlineLogNotice').isVisible(),'コピー通知を表示 '+i);
   }
   await readyAll(pages,host);await host.evaluate(()=>CBOnlineGame.start());
