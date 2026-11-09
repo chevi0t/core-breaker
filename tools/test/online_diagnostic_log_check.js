@@ -20,6 +20,7 @@ check('オンライン試験ログ',async({browser,dir,out,ok,errors})=>{
   const preview=await host.locator('#onlineLogText').inputValue();
   await host.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__logCopied=text;}}}));
   await host.locator('#onlineLogCopy').click();ok(await host.evaluate(text=>window.__logCopied===text,preview),'プレビューの固定内容だけコピー');
+  await host.locator('#onlineLogToggle').click();const detail=await host.locator('#onlineLogText').inputValue();ok(detail.includes('session_ended')&&detail.includes('sentBytes'),'従来の詳細JSONを表示');await host.locator('#onlineLogToggle').click();ok(await host.locator('#onlineLogText').inputValue()===preview,'固定要約へ戻る');
   const downloading=host.waitForEvent('download');await host.locator('#onlineLogSave').click();const download=await downloading;ok(download.suggestedFilename()==='core-breaker-diagnostic.txt','テキスト保存は明示クリック後だけ');
   await host.keyboard.press('Escape');ok(await host.locator('#onlineLogDialog').evaluate(e=>!e.open),'Escapeで閉じられる');
   await host.reload();await host.waitForFunction(()=>window.CBOnlineGame?.logs?.status().available,{},{polling:20});ok(await host.evaluate(()=>CBOnlineGame.logs.preview().includes('session_ended')),'再読み込み後も安全な記録を復元');

@@ -51,6 +51,90 @@
       lagCompensation:nums(s.lagCompensation,['shots','rewinds','clamped','rejected','maxRewindMs'])};
   }
   function safeBoundary(b,maps){return b&&value(b.elapsedMs)!==null?{elapsedMs:value(b.elapsedMs),code:pick(b.code,events,'transport_error'),reason:pick(b.reason,reasons),data:safeSample(b.data,maps)}:null;}
+  // 共有用は最新1接続の要点だけ。保存済み標本・境界・詳細JSONには手を加えない。
+  const phaseLabels={idle:'待機',lobby:'ロビー',preparing:'準備中',countdown:'開始待ち',playing:'試合中',ended:'試合終了',leaving:'退出中'};
+  const eventLabels={peer_joined:'参加',peer_disconnected:'切断',peer_departed:'退出',match_interrupted:'試合中断',transport_error:'通信エラー',signaling_lost:'接続サービス切断',connection_ready:'接続準備完了',match_started:'試合開始',match_finished:'試合終了',lobby_returned:'ロビー復帰',preparation_aborted:'開始中止',session_ended:'接続終了',page_hidden:'画面非表示',page_visible:'画面復帰',page_closed:'画面終了'};
+  const reasonLabels={other:'分類外',local_leave:'手動退出',reconnect:'再接続',host_left:'ホスト退出',kicked:'退出指定',rejected:'入室拒否',full:'満員',version_mismatch:'ゲーム版不一致',protocol_mismatch:'通信版不一致',connection_error:'接続エラー',snapshot_channel_error:'状態通信エラー',channel_closed:'通信切断',signaling_closed:'接続サービス終了',signaling_error:'接続サービスエラー',peer_unavailable:'相手不在',network_error:'通信エラー',browser_unsupported:'ブラウザ非対応',connection_timeout:'接続時間切れ',approval_timeout:'入室待ち時間切れ',response_timeout:'応答時間切れ',input_timeout:'入力途絶',host_timeout:'ホスト応答途絶',prepare_timeout:'準備時間切れ',prepare_peer_left:'準備中に退出',invalid_data:'不正データ',send_failed:'送信失敗'};
+  const correctionLabels={distance:'距離差',accumulated:'累積差',respawn:'再出撃',equipment:'装備変更',down:'行動不能',transfer:'エリア移動',jumpPad:'跳躍台',catapult:'射出台',stun:'硬直',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測無効',melee:'近接',special:'特別装備',zip:'索移動',repair:'修理',launch:'発進',lift:'リフト',planted:'固定中',inactive:'非活動',smooth:'平滑化',other:'その他'};
+  const dropLabels={artificial:'人工欠損',stale:'古い値',congestion:'混雑',superseded:'新値優先',incomplete:'未完',duplicate:'重複',rateLimited:'頻度制限'};
+  const present=n=>typeof n==='number'&&Number.isFinite(n),fmt=n=>{const scale=n>0&&n<1?1000:10;return String(Math.round(n*scale)/scale);},seconds=ms=>fmt(ms/1000)+'秒';
+  const bytes=n=>n>=1e6?fmt(n/1e6)+'MB':n>=1000?fmt(n/1000)+'kB':fmt(n)+'B';
+  function compactSession(s,active=false){
+    if(!s)return 'コアブレイカー 診断要約 v2\n記録なし';
+    const entries=[...[s.lastMatch,s.lastConnection].filter(Boolean),...s.samples].sort((a,b)=>a.elapsedMs-b.elapsedMs);
+    const last=entries.at(-1),d=last?.data||{},t=d.transport||{};
+    const end=Math.max(last?.elapsedMs||0,...s.events.map(e=>e.elapsedMs));
+    const head=[s.version,s.protocol===null?null:'通信v'+s.protocol,s.role.toUpperCase(),phaseLabels[d.phase]||'状態不明'];
+    if(present(d.humans))head.push('人間'+d.humans+(present(d.capacity)?'/'+d.capacity:'')+'人');
+    if(present(d.teamSize))head.push(d.teamSize+'対'+d.teamSize);
+    if(d.map&&d.map!=='unknown')head.push('map:'+d.map);
+    if(d.visibility==='hidden')head.push('画面非表示');
+    const lines=['コアブレイカー 診断要約 v2（'+(active?'この画面の接続':'最新記録')+'）',head.filter(Boolean).join(' / '),
+      '開始 '+new Date(s.startedAt).toISOString()+' / 記録 '+seconds(end)+' / '+(s.ended?'接続終了':active?'記録中':'終了記録なし')];
+    const battle=entries.filter(e=>e.data.phase==='playing'),representative=battle.at(-1),b=representative?.data;
+    const measurement=[];
+    if(b){
+      if(present(b.fps)&&b.frame.count>0)measurement.push('FPS '+fmt(b.fps));
+      for(const [label,m]of [['frame',b.frame],['JS CPU',b.cpu],...(s.role==='guest'?[['host申告frame',b.hostFrame],['host申告CPU',b.hostCpu],['写真間隔',b.arrivals]]:[])])if(m.count>0&&present(m.p95Ms))measurement.push(label+' p95 '+fmt(m.p95Ms)+'ms');
+      if(s.role==='guest'&&present(b.snapshotAgeMs))measurement.push('写真経過 '+fmt(b.snapshotAgeMs)+'ms');
+      if(measurement.length)lines.push('試合計測 +'+seconds(representative.elapsedMs)+'（直近2秒）: '+measurement.join(' / '));
+      else lines.push('試合計測: 有効な標本なし');
+    }else lines.push('試合計測なし（ロビー等の記録のみ）');
+    const link=[];
+    if(present(t.connectedPeers))link.push('接続相手 '+t.connectedPeers);
+    if(t.pendingPeers>0)link.push('接続待ち '+t.pendingPeers);
+    if(t.sentBytes>0||t.receivedBytes>0){if(present(t.sentBytes))link.push('送信 '+bytes(t.sentBytes));if(present(t.receivedBytes))link.push('受信 '+bytes(t.receivedBytes));}
+    if(t.rtt?.count>0&&present(t.rtt.meanMs))link.push('RTT平均 '+fmt(t.rtt.meanMs)+'ms');
+    else if(present(d.rttMs))link.push('RTT '+fmt(d.rttMs)+'ms');
+    if(link.length)lines.push('通信（記録末尾・量は接続累計）: '+link.join(' / '));
+    // 窓の重複・試合リセットがあるので件数を合算しない。保持範囲の最大値として示す。
+    const peak=(list,get)=>{const a=list.map(e=>get(e.data)).filter(present);return a.length?Math.max(...a):null;};
+    const peaks=[],addPeak=(label,list,get,unit='',minimum=0)=>{const n=peak(list,get);if(n>minimum)peaks.push(label+' '+fmt(n)+unit);};
+    const fps=battle.filter(e=>e.data.frame.count>0&&present(e.data.fps)).map(e=>e.data.fps);
+    if(fps.length)peaks.push('FPS最低 '+fmt(Math.min(...fps)));
+    addPeak('frame最長',battle,x=>x.frame.count>0?x.frame.maxMs:null,'ms');
+    addPeak('JS CPU最長',battle,x=>x.cpu.count>0?x.cpu.maxMs:null,'ms');
+    addPeak('RTT最大',entries,x=>x.transport.rtt.count>0?x.transport.rtt.maxMs:x.rttMs,'ms');
+    if(s.role==='guest'){
+      addPeak('写真経過最大',battle,x=>x.snapshotAgeMs,'ms');
+      addPeak('補正最大',battle,x=>x.corrections.maxM,'m');
+      addPeak('強制補正',battle,x=>x.corrections.hardSnaps,'回/2秒');
+      addPeak('予測停止中の補正',battle,x=>x.blockedCorrections,'回/2秒');
+      addPeak('未ACK入力',battle,x=>x.pendingInputs,'件');
+      addPeak('反復差',battle,x=>x.repeatDebt,'step');
+      addPeak('視点保護',battle,x=>x.preventedLook.count,'回/2秒');
+    }
+    if(peaks.length)lines.push('観測内の最大等: '+peaks.join(' / '));
+    if(s.role==='guest'){
+      const correction=correctionReasons.map(k=>{const n=peak(battle,x=>x.corrections.reasons[k]);return n>0?correctionLabels[k]+' '+fmt(n):null;}).filter(Boolean);
+      if(correction.length)lines.push('強制補正の理由（各2秒窓の最大）: '+correction.join(' / '));
+      if(b?.predictionBlocked&&b.predictionBlocked!=='none')lines.push('試合計測時の予測停止: '+correctionLabels[b.predictionBlocked]);
+    }
+    const transport=[];
+    for(const [kind,key]of [['写真','snapshotDrops'],['入力','inputDrops']])for(const k of Object.keys(dropLabels)){const n=peak(entries,x=>x.transport[key][k]);if(n>0)transport.push(kind+':'+dropLabels[k]+' '+fmt(n));}
+    const buffer=peak(entries,x=>x.transport.maxBufferedBytes),queue=peak(entries,x=>x.transport.maxQueue);
+    if(buffer>0)transport.push('送信待ち '+bytes(buffer));if(queue>0)transport.push('待ち行列 '+fmt(queue));
+    if(transport.length)lines.push('通信の観測内最大: '+transport.join(' / '));
+    const simulation=[];
+    for(const [label,key,scale,unit]of [['人工片道遅延','latencyMs',1,'ms'],['人工写真欠損','snapshotDropRate',100,'%'],['人工入力欠損','inputDropRate',100,'%']]){const n=peak(entries,x=>x.transport[key]);if(n>0)simulation.push(label+' '+fmt(n*scale)+unit);}
+    if(simulation.length)lines.push('試験設定（観測内最大）: '+simulation.join(' / '));
+    const extras=[];
+    if(s.role==='guest')for(const [label,key]of [['写真受理','acceptedSnapshots'],['旧写真','staleSnapshots'],['基準不足','missingBaselines'],['再同期要求','resyncRequests'],['外挿frame','extrapolatedFrames'],['外挿上限frame','clampedFrames']]){const n=peak(battle,x=>x.interpolation[key]);if(n>0)extras.push(label+' '+fmt(n));}
+    if(s.role==='host')for(const [label,key]of [['射撃','shots'],['巻戻し','rewinds'],['制限','clamped'],['拒否','rejected']]){const n=peak(battle,x=>x.lagCompensation[key]);if(n>0)extras.push(label+' '+fmt(n));}
+    if(extras.length)lines.push((s.role==='guest'?'写真処理':'ラグ補償')+'（試合別累計の観測内最大）: '+extras.join(' / '));
+    const groups=new Map();
+    for(const e of s.events){if(!eventLabels[e.code])continue;const key=e.code+':'+e.reason;const g=groups.get(key);if(g){g.count++;g.last=e.elapsedMs;}else groups.set(key,{...e,count:1,first:e.elapsedMs,last:e.elapsedMs});}
+    const grouped=[...groups.values()].sort((a,b)=>a.last-b.last);
+    const isProblem=e=>['peer_disconnected','match_interrupted','transport_error','signaling_lost','preparation_aborted'].includes(e.code)||!['none','local_leave','reconnect'].includes(e.reason);
+    const chosen=grouped.filter(isProblem).slice(-8),room=8-chosen.length;
+    const shown=[...chosen,...(room?grouped.filter(e=>!isProblem(e)).slice(-room):[])].sort((a,b)=>a.last-b.last);
+    if(shown.length)lines.push('出来事（保持分）: '+shown.map(e=>eventLabels[e.code]+(e.reason!=='none'?'['+reasonLabels[e.reason]+';'+e.reason+']':'')+' '+e.count+'回 @+'+seconds(e.first)+(e.first!==e.last?'〜'+seconds(e.last):'')).join(' / ')+(grouped.length>shown.length?' / 他'+(grouped.length-shown.length)+'種は詳細へ':''));
+    else lines.push('切断・エラー等の出来事は記録なし');
+    if(s.droppedSamples||s.droppedEvents)lines.push('保持上限で省略: 標本'+s.droppedSamples+' / 出来事'+s.droppedEvents+'（全期間の集計ではありません）');
+    lines.push('未取得・0の項目と反復標本は省略。窓は合算せず、最大等は保持範囲。通信量はアプリJSONのみ、欠落はアプリ内の破棄。原因の断定不可。',
+      '時系列・全接続は「診断ログを見る → 詳細を表示／詳細を保存」。IP・ID・名前・チャット等なし。自動送信なし。');
+    return lines.join('\n');
+  }
   class Recorder {
     constructor({storage,now=()=>Date.now(),monotonic=()=>performance.now(),maps=[]}={}){
       this.storage=storage;this.now=now;this.monotonic=monotonic;this.maps=maps;this.sessions=[];this.active=null;this.storageAvailable=!!storage;this.lastSave=-Infinity;
@@ -114,6 +198,7 @@
         this.sessions.sort((a,b)=>a.startedAt-b.startedAt);this.bound();this.storage?.setItem(KEY,this.json());this.storageAvailable=!!this.storage;
       }catch(_){this.bound();this.storageAvailable=false;}
     }
+    summary(){this.bound();const s=this.active||this.sessions.at(-1);return compactSession(s,s===this.active);}
     preview(){this.bound();return 'コアブレイカー オンライン試験ログ v1\n端末内の記録。自動送信なし。コピー・保存した内容の共有は任意です。\n時刻は端末時計（UTC開始時刻＋elapsedMs）。本人確認や原因の断定には使えません。\n数値は観測値。FPSはフレーム間隔から算出。frame/cpu/arrivals/補正は直近2秒、bytes/欠落は接続中の累計、interpolation/lagCompensationは試合ごと。未取得はnull（count=0は標本なし）。\nbytesはアプリが数えたJSONのUTF-8量。WebRTC/IPヘッダー・再送・回線全体の通信量は含みません。RTTはアプリping、CPUはJSのみ。ホスト値は最後に受信した申告値。\n欠落数はアプリ内の破棄・人工欠損で、回線パケット損失率ではありません。推測した回線原因/IP/ID/名前/チャット/SDP/生エラーは含みません。\n最新3接続・各300標本/128イベント・合計512KiB・再表示時に7日超を除去。droppedは上限で省いた件数。急なクラッシュでは最後の15秒を失う場合があります。\n\n'+JSON.stringify({schema:1,sessions:this.sessions.map(s=>({...s,startedUtc:new Date(s.startedAt).toISOString()}))},null,2);}
     clear(){this.sessions=[];this.active=null;try{this.storage?.removeItem(KEY);return true;}catch(_){this.storageAvailable=false;return false;}}
   }
@@ -2150,7 +2235,9 @@
     document.addEventListener('visibilitychange',()=>logCheckpoint(document.hidden?'page_hidden':'page_visible'));
     addEventListener('pagehide',()=>logCheckpoint('page_closed'));
   }
-  const logs={preview:()=>{if(diagnosticLog?.active)diagnosticLog.sample(logSample(),true);return diagnosticLog?.preview()||'';},
+  function captureLog(){if(diagnosticLog?.active)diagnosticLog.sample(logSample(),true);return diagnosticLog;}
+  const logs={summary:()=>captureLog()?.summary()||'',preview:()=>captureLog()?.preview()||'',
+    capture:()=>{const log=captureLog();return {summary:log?.summary()||'',detail:log?.preview()||''};},
     status:()=>({available:!!diagnosticLog?.sessions.length,storageAvailable:!!diagnosticLog?.storageAvailable}),
     clear:()=>{const removed=diagnosticLog?.clear()!==false;if(state.role!=='offline')diagnosticLog?.begin({role:state.role,version:localVersion(),protocol:CBOnlineTransport.PROTOCOL},logSample());return removed;}};
   // 診断は直近2秒の上限付き標本。フレーム間隔とJS処理時間を分け、位置や個人情報は送らない。

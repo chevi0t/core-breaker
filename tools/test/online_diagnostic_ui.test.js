@@ -16,11 +16,11 @@ function setup(logs){
  for(const id of ['menuOnline','onlineReturn','measure']){const e=new Element('existing');e.id=id;}
  document.activeElement=elements.get('menuOnline');elements.get('onlineReturn').hidden=false;
  class Url extends URL{}Url.createObjectURL=blob=>{calls.urls.push(blob);return 'blob:local';};Url.revokeObjectURL=u=>calls.revoke.push(u);
- const c={window:{CBOnlineGame:{logs:logs||{preview:()=>text,status:()=>({available,storageAvailable:true}),clear:()=>{calls.clears++;available=false;text='empty';}}}},document,URL:Url,Blob,navigator:{clipboard:{writeText:async s=>calls.copies.push(s)}},setInterval:f=>timers.push(f),setTimeout:(f,ms)=>timeouts.push({f,ms}),addEventListener:(name,cb)=>events.set(name,cb)};
+ const c={window:{CBOnlineGame:{logs:logs||{preview:()=>text+'-detail',summary:()=>text,capture:()=>({summary:text,detail:text+'-detail'}),status:()=>({available,storageAvailable:true}),clear:()=>{calls.clears++;available=false;text='empty';}}}},document,URL:Url,Blob,navigator:{clipboard:{writeText:async s=>calls.copies.push(s)}},setInterval:f=>timers.push(f),setTimeout:(f,ms)=>timeouts.push({f,ms}),addEventListener:(name,cb)=>events.set(name,cb)};
  vm.createContext(c);vm.runInContext(source,c);return {c,e:id=>elements.get(id),calls,timers,timeouts,events,change:t=>{text=t;},available:v=>{available=v;},key:(type='keydown',props={})=>{const e={code:'F8',target:document.body,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...props};events.get(type)?.(e);return e;}};
 }
 test('プレビュー前はコピー/保存なし。開いた時点の固定内容だけ明示操作で渡す',async()=>{
- const h=setup();assert.equal(h.calls.copies.length,0);assert.equal(h.calls.downloads.length,0);h.e('menuOnlineLog').click();assert(h.e('onlineLogDialog').open);assert.equal(h.e('onlineLogText').value,'preview-A');h.change('preview-B');await h.e('onlineLogCopy').onclick();assert.deepEqual(h.calls.copies,['preview-A']);h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'preview-A');assert.deepEqual(h.calls.downloads,['core-breaker-diagnostic.txt']);h.timeouts.find(x=>x.ms===1000).f();assert.deepEqual(h.calls.revoke,['blob:local']);
+ const h=setup();assert.equal(h.calls.copies.length,0);assert.equal(h.calls.downloads.length,0);h.e('menuOnlineLog').click();assert(h.e('onlineLogDialog').open);assert.equal(h.e('onlineLogText').value,'preview-A');h.change('preview-B');await h.e('onlineLogCopy').onclick();assert.deepEqual(h.calls.copies,['preview-A']);h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'preview-A-detail');assert.deepEqual(h.calls.downloads,['core-breaker-diagnostic.txt']);h.timeouts.find(x=>x.ms===1000).f();assert.deepEqual(h.calls.revoke,['blob:local']);
  h.e('onlineLogClose').click();assert.equal(h.c.document.activeElement.id,'menuOnline');h.e('menuOnlineLog').click();assert.equal(h.e('onlineLogText').value,'preview-B');
 });
 test('clipboard失敗は本文選択、閉じる/再表示/消去を反復できる',async()=>{
@@ -37,7 +37,7 @@ test('F8は押した時点の最新ログをコピーし、試合・pointer lock
  const h=setup();h.c.document.pointerLockElement={id:'canvas'};const focus=h.c.document.activeElement,locked=h.c.document.pointerLockElement;
  h.change('latest-host');const down=h.key();assert(down.prevented&&down.stopped);assert.deepEqual(h.calls.copies,['latest-host']);await settle();
  assert(!h.e('onlineLogDialog').open);assert.equal(h.c.document.pointerLockElement,locked);assert.equal(h.c.document.activeElement,focus);
- assert.match(h.e('onlineLogNotice').textContent,/診断ログをコピーしました/);assert(!h.e('onlineLogNotice').hidden);
+ assert.match(h.e('onlineLogNotice').textContent,/診断ログ（要約）をコピーしました/);assert(!h.e('onlineLogNotice').hidden);
  const up=h.key('keyup');assert(up.prevented&&up.stopped);h.change('latest-guest');h.key();await settle();assert.deepEqual(h.calls.copies,['latest-host','latest-guest']);
  h.timeouts[0].f();assert(!h.e('onlineLogNotice').hidden,'古い通知タイマーは新しい通知を消さない');h.timeouts[1].f();assert(h.e('onlineLogNotice').hidden);
 });
@@ -86,7 +86,14 @@ test('ホスト/ゲストの実Recorder許可リストを通した本文だけ�
  for(const role of ['host','guest']){
   const r=new Recorder({storage:null,now:()=>1800000000000,monotonic:()=>100,maps:['mesa']});
   r.begin({role,version:'Ver179',protocol:9,roomId:secret},{role,phase:'playing',map:'mesa',roomId:secret,peerId:secret,name:secret,chat:secret,sdp:secret,error:secret,diagnostic:{fps:60},transport:{sentBytes:123,peers:[{id:secret}]}});
-  const h=setup({preview:()=>r.preview(),status:()=>({available:true,storageAvailable:false})});h.key();await settle();
-  const text=h.calls.copies[0];assert(!text.includes(secret));const data=JSON.parse(text.slice(text.indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
+  const h=setup({summary:()=>r.summary(),capture:()=>({summary:r.summary(),detail:r.preview()}),status:()=>({available:true,storageAvailable:false})});h.key();await settle();
+  const text=h.calls.copies[0];assert(!text.includes(secret));assert(text.includes(role.toUpperCase()));assert(text.includes('送信 123B'));assert(!text.includes('null'));h.e('menuOnlineLog').click();h.e('onlineLogToggle').click();await h.e('onlineLogCopy').onclick();const data=JSON.parse(h.calls.copies.at(-1).slice(h.calls.copies.at(-1).indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
  }
+});
+
+test('要約と詳細の切替は同じ固定記録。詳細表示中のF8と保存も保つ',async()=>{
+ const h=setup();h.e('menuOnlineLog').click();h.change('new-latest');h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A-detail');assert.match(h.e('onlineLogLabel').textContent,/詳細/);h.key();await settle();assert.deepEqual(h.calls.copies,['preview-A-detail']);h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'preview-A');h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'preview-A-detail');h.e('onlineLogClose').click();h.e('menuOnlineLog').click();assert.equal(h.e('onlineLogText').value,'new-latest');assert.match(h.e('onlineLogLabel').textContent,/要約/);
+});
+test('コピー中に要約/詳細を切り替えても古い完了通知・失敗選択を出さない',async()=>{
+ for(const fail of [false,true]){const h=setup();let resolve,reject;h.e('menuOnlineLog').click();h.c.navigator.clipboard.writeText=()=>new Promise((a,b)=>{resolve=a;reject=b;});h.key();h.e('onlineLogToggle').click();const before=h.e('onlineLogStatus').textContent;fail?reject(Error('private')):resolve();await settle();assert.equal(h.e('onlineLogStatus').textContent,before);assert(!h.e('onlineLogText').selected);assert.equal(h.e('onlineLogText').value,'preview-A-detail');}
 });
