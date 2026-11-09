@@ -5,6 +5,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {execFileSync}=require('node:child_process');
 const {visibilitySizeFixture}=require('./online_visibility_fixture');
 const {productionBoundaryChecks}=require('./online_visibility_boundary_fixture');
+const {publicStateChecks}=require('./online_visibility_assertions');
 const flags=['functional-only','size-only','node-only'].filter(x=>process.argv.includes('--'+x));
 if(flags.length>1)throw Error('*-only は同時指定できません');
 const beforeArg=process.argv.find(a=>a.startsWith('--before='));
@@ -60,7 +61,7 @@ function instrument(dir){
   const p=path.join(dir,'online/game.js'),s=fs.readFileSync(p,'utf8'),marker='  window.CBOnlineGame=';
   if(!s.includes(marker))throw Error('visibility fixture hook位置がありません');
   const hook='  const __visibilityRawSnapshot=snapshot;snapshot=function(...args){window.__visibilityFixture?.();return __visibilityRawSnapshot(...args);};\n  window.__visibilityTest={setupWorld,preset,fixedUnitForPeer,gadgetPolicyForLoadouts,gadgetCapacityForLoadouts,gadgetSlotsForPeer,snapshotForPeer,encodePeerSnapshot,eventsForPeer,createPeerView,replicationFor,rememberPeerSnapshot,applySnapshot,interpolate,receiveSnapshot,handleSnapshotControl,matchResult,receiveMatchEnded,playEvents,verifiedPeerUnitTimes,interpolatePeerUnits,remoteHistory:()=>remoteUnitHistory,view:()=>lastRenderedView};\n';
-  fs.writeFileSync(p,s.replace(marker,hook+marker));
+  fs.writeFileSync(p,s.replace(marker,hook+'  window.__visibilityTest.publicStateChecks='+publicStateChecks.toString()+';\n'+marker));
 }
 async function installProbe(host,guests){
   const {installWireObserver}=require('./online_test_helpers');
@@ -135,7 +136,7 @@ async function privacyFunctional(host){
       test(s.radars.every(r=>(r.intruders||[]).every(x=>allowed.includes(x))),label+' radarに秘匿敵IDを残さない');
       const numbers=[];const walk=x=>{if(typeof x==='number')numbers.push(x);else if(x&&typeof x==='object')Object.values(x).forEach(walk);};walk(s);
       test(hidden.every(u=>!numbers.includes(u.pos.x)&&!numbers.includes(u.pos.z)),label+' 秘匿位置のsentinelが復号全体にない');
-      test(JSON.stringify(s.cores)===JSON.stringify(game.snapshot().cores)&&JSON.stringify(s.plants)===JSON.stringify(game.snapshot().plants)&&s.timeLeft===g.timeLeft,label+' CORE/plants/timeを保存');
+      for(const c of h.publicStateChecks(s,game.snapshot()))test(c.value,label+' '+c.name,c.data);
     };
     try{
       test(new Set(peers.map(p=>g.units.find(u=>id(u)===p.unitId).team)).size===2,'実ゲストにB/R両陣営がある');
