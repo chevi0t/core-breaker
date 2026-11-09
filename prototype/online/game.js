@@ -411,6 +411,8 @@
   const equipmentVectors=['escortAim','bombard','seekAim'];
   const equipmentScalars='fieldOn fieldN barrierOn escortOn escortT escortCd mirageOn mirageWait postRecall radarHeading radarScanT seekMode repairBlock'.split(' ');
   const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
+  // 他機の武器枠は外見だけ。残弾/CD等は自機へだけ送り、装備が変わっても枠の形を固定する。
+  const remoteSlotKeys={main:['scanRadius'],sub:['scanRadius'],aux:['chargeT','sheathed','scanRadius'],sp:['heat','overheat','scanRadius']};
   const slotKeys = ('ammo reserve resMax reloadT cd spin temp ohT conv heat overheat bn held chargeT holdT cap supply sheathed mode modeHeld pulseT scanT scanRadius').split(' ');
   const safe = (o, keys) => Object.fromEntries(keys.filter(k => o[k] !== undefined && (typeof o[k] !== 'number' || Number.isFinite(o[k]))).map(k => [k,o[k]]));
   const unit = id => units.find(u => u.entityId === id);
@@ -700,7 +702,7 @@
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1', peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1', peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
       onSnapshotSent:(id,payload)=>rememberPeerSnapshot(id,payload),
       filterEvents:(id,payload)=>filterQueuedEvents(id,payload),
@@ -1399,7 +1401,7 @@
     return visibilitySupport.createView({viewer,units,spotted,noticed,canSee,targetPoint,lineOfSight,locksPlayer:typeof locksPlayer==='function'?locksPlayer:null});
   }
   // 実機のoptional値から枠の形を作らない。秘匿中に装備・行動が変わっても同じ値になる。
-  function fixedUnitForPeer(v,hidden,epoch){
+  function fixedUnitForPeer(v,hidden,epoch,own=true){
     const value={fixedUnit:true,id:v.id,hidden:!!hidden,visibilityEpoch:epoch,
       team:hidden?'':v.team,idx:hidden?0:v.idx,cls:hidden?'':v.cls,controller:hidden?'':v.controller,
       mech:hidden?null:v.mech||null,motionEpoch:hidden?0:v.motionEpoch||0,lagEpoch:hidden?0:v.lagEpoch||0,renderCrouch:hidden?0:v.renderCrouch||0,
@@ -1407,7 +1409,7 @@
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
       healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
       swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,
-      slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries(slotKeys.map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
+      slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries((own?slotKeys:remoteSlotKeys[k]).map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
     for(const k of scalarKeys)value[k]=hidden?null:v[k]??null;
     return value;
   }
@@ -1458,9 +1460,9 @@
       const hidden=!view.visible.has(v.id);
       if(hidden&&!r.epochs.has(v.id))r.epochs.set(v.id,1);
       if(!hidden&&!r.visible.has(v.id))r.epochs.set(v.id,(r.epochs.get(v.id)||0)+1);
-      // 隠れた枠は毎回中立値を基準から上書きし、古い可視位置を復元させない。
+      // hiddenは毎回適用する。codecが基準の非公開値を中立化し、最初のhide欠落からも復旧する。
       if(hidden||forceAll||!r.visible.has(v.id)||(r.tick+i)%view.cadence.get(v.id)===0)mask|=1<<i;
-      const packed=fixedUnitForPeer(v,hidden,r.epochs.get(v.id)||1);
+      const packed=fixedUnitForPeer(v,hidden,r.epochs.get(v.id)||1,v.id===p.unitId);
       if(!hidden){packed.equipment=equipmentUnitForPeer(v,view);if(unit(packed.healTarget)&&!view.visible.has(packed.healTarget))packed.healTarget=null;}
       return packed;
     });

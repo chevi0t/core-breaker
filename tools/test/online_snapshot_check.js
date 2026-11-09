@@ -1,4 +1,5 @@
 // node tools/test/online_snapshot_check.js dbg /tmp/online-snapshot [--mock-transport]
+// --fixtures --baseline-root=/path/to/before ではNodeの決定的前後比較のみ。自然戦/ブラウザの代替ではない。
 // 自然Bot戦の成功送信を観測するだけ。製品codec・通信間引き・ゲーム状態は変更しない。
 const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
 const {check}=require('./lib');
@@ -76,7 +77,11 @@ async function installProbe(host){await installWireObserver(host);await host.eva
     }catch(error){probe.errors.push(error.message);}
   });
 });}
-check('自然Bot戦のsnapshot内訳',async({browser,dir,out,ok,errors})=>{
+if(process.argv.includes('--fixtures')){
+  const baselineRoot=process.argv.find(v=>v.startsWith('--baseline-root='))?.slice('--baseline-root='.length);
+  if(!baselineRoot)throw Error('--fixturesには--baseline-root=比較元checkoutが必要です');
+  require('./online_snapshot_payload_fixture')({baselineRoot,output:path.resolve(process.argv[3]||'/tmp/online-snapshot-fixtures')});
+}else check('自然Bot戦のsnapshot内訳',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir);let active;
   const report={mode:TRANSPORT_MODE,commit:execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim(),method:'mesa・10機・人間2人の入力は中立、Botを通常実行。300秒設定の自然試合を固定50msコマ送り、描画省略。実時間20Hz・回線帯域・人間の操作感の測定ではない。',accounting:'messageBytesは1論理メッセージを構成する成功したDataConnection.send全fragmentのJSON UTF8量。logicalMessageBytesは分割前JSON、maxDatagramBytesは1回のsendの最大量。ネットワークヘッダー・WebRTC再送を含まない。カテゴリencodedBytesはbase64化前の二進数（index差varintを当該項目へ加算）、差分base64増量・delta外枠・frame外枠・JSON envelope・fragment base64増量・fragment外枠は別計上。差分は直前snapshotではなくpeer専用基準との比較。公開名簿10機と可視機体数を分け、decode/基準idもpeerごとに独立。'};
   try{

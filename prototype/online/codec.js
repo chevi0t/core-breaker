@@ -1,7 +1,7 @@
 /* 状態写真の通信形式。各差分は直前の写真でなく、確認可能な共通基準から復元する。 */
 (function(root){
   'use strict';
-  const VERSION=1;
+  const VERSION=2;
   const clone=x=>JSON.parse(JSON.stringify(x));
   const forbidden=new Set(['__proto__','prototype','constructor']);
   function validValue(v,depth=0){
@@ -27,7 +27,10 @@
     if(type==='s')return typeof value==='string';
     return type==='j'&&validValue(value);
   }
-  const atoms=new Set(['shells','plants','turrets','radars','barricades','spotted','spotSrc','swing','transfer','equipmentObjects']);
+  const atoms=new Set(['shells','spotted','spotSrc','swing','transfer','equipmentObjects']);
+  const facilities=new Set(['plants','turrets','radars','barricades']);
+  const facilityNumbers=new Set(['gauge','hp','yaw','revive','headYaw']);
+  const facilityFlags=new Set(['alive','contested']);
   function rounded(x){
     if(typeof x==='number')return Math.round(x*1000)/1000;
     if(Array.isArray(x))return x.map(v=>v===undefined?null:rounded(v));
@@ -52,6 +55,8 @@
       const v=typeof value==='number'&&['yaw','pitch','downYaw'].includes(key)?Math.atan2(Math.sin(value),Math.cos(value)):value;
       out.push([path,'j',rounded(v)]);return out;
     }
+    // 固定施設は一覧でなく項目ごとの差分。owner/capturing等のnull切替もschemaを保つ。
+    if(path.length===3&&facilities.has(path[0])&&!facilityNumbers.has(key)&&!facilityFlags.has(key)){out.push([path,'j',rounded(value)]);return out;}
     // 設置物は固定スロットのtupleごとに置換し、空/秘匿/公開で長さが変わっても道筋を保つ。
     if(path.length===2&&path[0]==='gadgets'){out.push([path,'j',rounded(value)]);return out;}
     // hostが実適用した可変dt/累積dtは丸めずIEEE値をJSON roundtripで保つ。
@@ -64,7 +69,7 @@
     let type='s',v=value;
     if(typeof value==='number'){
       type=(parent==='pos'||parent==='vel')?100:1000;
-      const n=['yaw','pitch','downYaw'].includes(key)?Math.atan2(Math.sin(value),Math.cos(value)):value;v=Math.round(n*type);
+      const n=!facilities.has(path[0])&&['yaw','pitch','downYaw'].includes(key)?Math.atan2(Math.sin(value),Math.cos(value)):value;v=Math.round(n*type);
     }else if(typeof value==='boolean'){type='b';v=value?1:0;}
     out.push([path,type,v]);return out;
   }
@@ -74,6 +79,18 @@
       let o=result;for(let j=0;j<path.length-1;j++){const k=path[j];if(!Object.hasOwn(o,k))o[k]=typeof path[j+1]==='number'?[]:{};o=o[k];}
       const v=values[i];o[path[path.length-1]]=typeof type==='number'?v/type:type==='b'?!!v:typeof v==='object'&&v!==null?clone(v):v;
     });return result;
+  }
+  // hiddenだけで非公開枠を消去する。直前のhideが欠落しても共通基準の可視値を復活させない。
+  // game側の中立テンプレートと同じ値をschemaから作り、現在の秘密値は参照しない。
+  function neutralHiddenValues(schema,values){
+    const hidden=new Set(),fixed=new Set();
+    schema.forEach(([path],i)=>{if(path.length!==3||path[0]!=='units'||values[i]!==1)return;if(path[2]==='hidden')hidden.add(path[1]);if(path[2]==='fixedUnit')fixed.add(path[1]);});
+    for(const i of hidden)if(!fixed.has(i))hidden.delete(i);
+    if(!hidden.size)return values;
+    schema.forEach(([path,type],i)=>{
+      if(path[0]!=='units'||!hidden.has(path[1])||path.length===3&&fixedUnitVisibility.has(path[2]))return;
+      values[i]=typeof type==='number'?(path.length===3&&['jumpPadIndex','zipLine'].includes(path[2])?-type:0):type==='s'?'':type==='b'?0:null;
+    });return values;
   }
   const utf8=new TextEncoder(),text=new TextDecoder();
   const to64=bytes=>{if(typeof Buffer!=='undefined')return Buffer.from(bytes).toString('base64');let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.slice(i,i+32768));return btoa(text);};
@@ -116,19 +133,25 @@
         if(old&&!forceBaseline){
           // 定期更新でも不変の名前・装備は繰り返さない。項目増減時も同じ道筋の値を再利用。
           const same=JSON.stringify(old.s)===signature,lookup=new Map(old.s.map((p,i)=>[JSON.stringify(p),old.d[i]]));
-          const patch=[];for(let i=0;i<values.length;i++){const previous=same?old.d[i]:lookup.get(JSON.stringify(schema[i]));if(JSON.stringify(values[i])!==JSON.stringify(previous))patch.push(i,values[i]);}
+          const patch=[];
+          for(let i=0;i<values.length;i++){
+            const path=schema[i][0],u=path[0]==='units'?snapshot.units?.[path[1]]:null;
+            if(u?.fixedUnit&&u.hidden&&!(path.length===3&&fixedUnitVisibility.has(path[2])))continue;
+            const previous=same?old.d[i]:lookup.get(JSON.stringify(schema[i]));
+            if(JSON.stringify(values[i])!==JSON.stringify(previous))patch.push(i,values[i]);
+          }
           baseline={v:VERSION,id:this.base.id,parent:old.id,p:patch};if(!same)baseline.s=schema;
         }else baseline=clone(this.base);
       }
       const changes=[];
       // 間引く機体は基準値との差を繰り返し送らない。復元後の古い基準値を現在値へ
       // 適用しない責任はunitUpdatesを扱うゲーム側にある。基準作成時は全項目を更新する。
-      // 不可視機体は間引きの対象外。毎回すべての中立値を基準との差分に含め、
-      // hide写真の欠落後も、以前の可視位置・内部状態を独立復元で復活させない。
+      // 不可視機体は識別子・hidden・epochだけ送る。受信時に基準由来の全非公開値を中立化する。
       for(let i=0;i<values.length;i++){
         const path=schema[i][0],fixed=path[0]==='units'&&snapshot.units?.[path[1]]?.fixedUnit===true;
         // 可視に戻った後の間引きでも、不可視だった基準のフラグ・epochへ戻さない。
-        const required=fixed&&(snapshot.units[path[1]].hidden===true||path.length===3&&fixedUnitVisibility.has(path[2]));
+        const required=fixed&&path.length===3&&fixedUnitVisibility.has(path[2]);
+        if(fixed&&snapshot.units[path[1]].hidden&&!required)continue;
         if((required||!includePath||includePath(path))&&JSON.stringify(values[i])!==JSON.stringify(this.base.d[i]))changes.push([i,values[i]]);
       }
       return {baseline,delta:[VERSION,this.base.id,packChanges(changes,schema)]};
@@ -145,17 +168,19 @@
         const schema=base.s||parent.s,lookup=new Map(parent.s.map((p,i)=>[JSON.stringify(p),parent.d[i]]));
         const d=base.s?schema.map(p=>lookup.get(JSON.stringify(p))):parent.d.slice();
         for(let i=0;i<base.p.length;i+=2){const n=base.p[i];if(!Number.isSafeInteger(n)||n<0||n>=d.length)return false;d[n]=base.p[i+1];}
+        neutralHiddenValues(schema,d);
         if(d.some(v=>v===undefined))return false;
         base={v:base.v,id:base.id,s:schema,d};
       }
       if(base?.v!==VERSION||!Number.isSafeInteger(base.id)||!Array.isArray(base.s)||!Array.isArray(base.d)||base.s.length!==base.d.length)return false;
       if(!base.d.every((v,i)=>typedValue(base.s[i][1],v)))return false;
+      base={...base,d:neutralHiddenValues(base.s,base.d.slice())};
       this.bases.set(base.id,clone(base));while(this.bases.size>3)this.bases.delete(this.bases.keys().next().value);return true;
     }
     decode(delta){
       if(!Array.isArray(delta)||delta[0]!==VERSION||delta.length!==3||typeof delta[2]!=='string')return null;
       const base=this.bases.get(delta[1]);if(!base)return null;
-      try{const values=base.d.slice();for(const [index,v] of unpackChanges(delta[2],base.s)){if(!typedValue(base.s[index][1],v))return null;values[index]=v;}return inflate(base.s,values);}catch(_){return null;}
+      try{const values=base.d.slice();for(const [index,v] of unpackChanges(delta[2],base.s)){if(!typedValue(base.s[index][1],v))return null;values[index]=v;}return inflate(base.s,neutralHiddenValues(base.s,values));}catch(_){return null;}
     }
   }
   const api={Encoder,Decoder,VERSION};root.CBOnlineCodec=api;
