@@ -740,14 +740,12 @@ node tools/test/online_melee_transition.test.js
 - 受け取り確認（inputAcks）の `steps`（直近8stepの診断用履歴）を既定で送らない。巻き直しに使う seq・step・seqDt・totalDt・replaySeq・movementSeq・movementIds・actionSeq はそのまま。診断で要るときは `create({ackStepHistory:true})` で8件を送る。ゲスト側は届いた時だけ読む。
 - 状態写真の差分（`delta[2]`）を base64 文字列でなくバイナリで送る：`[0xCB][見出しJSONの長さ varint][見出しJSON（delta[2]=0）][差分の生バイト]`。受け手は base64 に戻して元のJSON文字列を作り直し、今までと同じ検査に通す。分割する大きな基準写真は今までどおり文字。通信規格を v10 に上げた（チャネル名も -v10）。
 
-`online_snapshot_check.js`（mesa・10機・自然Bot戦300秒、モック通信）での前後（030005c → 本変更。Bot戦は乱数で同じ試合ではない）：
+`online_snapshot_check.js`（mesa・10機・自然Bot戦300秒、モック通信。Bot戦は乱数で同じ試合ではない）での前後：
 
-| | 変更前 | 変更後 |
-|---|---|---|
-| 写真1通の平均 | 3483 B | 2305 B（−34%） |
-| 写真の p95 / 最大 | 4899 / 6254 B | 3792 / 5612 B |
-| inputAcks（最大の写真） | 1036 B | 172 B |
-| 写真線の合計 | 13.53 MB | 8.94 MB（−34%） |
-| 制御線を含む合計 | 14.04 MB | 9.56 MB（−32%） |
+| | 030005c | 本変更のみ（030005cの上） | b733504（Codex の削減） | b733504＋本変更 |
+|---|---|---|---|---|
+| 写真1通の平均 | 3483 B | 2305 B | 3038 B | 1536 B |
+| 写真の p95 / 最大 | 4899 / 6254 B | 3792 / 5612 B | 4418 / 6832 B | 2576 / 3814 B |
+| inputAcks（最大の写真） | 1036 B | 172 B | | |
 
-確認：`node --test tools/test/online_*.test.js` 36本、ブラウザ試験（モック通信）snapshot 13、online_check 41、channel 6（実PeerJS）、jitter 8、smooth_view 12、view_turn 4、feedback 6、local_fire 6、prediction 90、revision 53、result_buttons 14、downed_input 7、lag 200、loss 26、ui 22、visibility 825、room 18、ready 24、すべて成功。実回線の2台での確認はまだ。
+確認（b733504の上）：`node --test tools/test/online_*.test.js` 38本、ブラウザ試験（モック通信）snapshot 13、online_check 41、channel 6（実PeerJS）、jitter 8、smooth_view 12、view_turn 4、feedback 6、local_fire 6、prediction 90、revision 53、result_buttons 14、downed_input 7、lag 200、loss 26、ui 22、room 18、ready 24 成功。visibility は「initial/base CORE/plants/timeを保存」の1項目が失敗するが、b733504 単体でも同じ所で失敗する（本変更の前から）。実回線の2台での確認はまだ。
