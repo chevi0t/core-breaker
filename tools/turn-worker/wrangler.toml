@@ -1,0 +1,8 @@
+# Cloudflare Worker：オンライン試作の中継（TURN）の合言葉を配る。手順は README.md。
+name = "core-breaker-online"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+# 公開サイト、Codex の試験サイト、zip をそのまま開いたとき（file:// は "null"）。
+ALLOWED_ORIGINS = "https://chevi0t.github.io,https://core-breaker-online-test.lighttamarind1.chatgpt.site,null"

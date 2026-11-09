@@ -5,6 +5,27 @@
   const CONTROL_LABEL = 'core-breaker-control-v10', SNAPSHOT_LABEL = 'core-breaker-snapshot-v10';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
   const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
+  // 直接つながらない回線のための中継（TURN）。合言葉は Cloudflare の TURN を Worker（tools/turn-worker/）が毎回発行する。
+  // オーナーの指定 2026-11-09：中継は Cloudflare の TURN（無料枠）。空のうちは今までどおり STUN だけ。
+  const ICE_URL = '';
+  const STUN_ONLY = [{ urls: 'stun:stun.l.google.com:19302' }];
+  const ICE_FETCH_MS = 5000;
+  const iceUrls = s => Array.isArray(s?.urls) ? s.urls : [s?.urls];
+  // stun:/turn:/turns: だけ。TURN には合言葉が要る。ブラウザが待たされる53番ポートは外す（Cloudflare の案内）。
+  const cleanIceServers = list => {
+    if (!Array.isArray(list)) return null;
+    const out = [];
+    for (const s of list) {
+      if (!s || typeof s !== 'object') return null;
+      const urls = iceUrls(s).filter(u => typeof u === 'string' && !/:53(\?|$)/.test(u));
+      if (iceUrls(s).some(u => typeof u !== 'string' || !/^(stun|turns?):/.test(u))) return null;
+      const relay = urls.some(u => /^turns?:/.test(u));
+      if (relay && (typeof s.username !== 'string' || typeof s.credential !== 'string' || !s.username || !s.credential)) return null;
+      if (urls.length) out.push(relay ? { urls, username: s.username, credential: s.credential } : { urls });
+    }
+    return out.length ? out : null;
+  };
+  const hasRelay = list => list.some(s => iceUrls(s).some(u => /^turns?:/.test(u)));
   const isSnapshot = type => type === 'snapshot' || type === 'snapshotBase';
   const isInputBatch = payload => payload && !Array.isArray(payload) && Array.isArray(payload.inputs) &&
     payload.inputs.length > 0 && payload.inputs.length <= INPUT_FRAMES && payload.inputs.every(input =>
@@ -76,14 +97,53 @@
       else if(detail.error)this.options.onDiagnostic?.('transport_error', detail.type==='peer-unavailable'?'peer_unavailable':detail.type==='network'?'network_error':detail.type==='browser-incompatible'?'browser_unsupported':text);
       this.options.onStatus?.(text, detail);
     }
+    // 中継の合言葉を Worker から受け取る。取れなくても STUN だけで続ける（直接つながる相手とは今までどおり）。
+    async _fetchIceServers() {
+      // 既定の ICE_URL は game.js が渡す（試験の偽 Peer では外へ問い合わせない）。
+      const url = this.options.iceServersUrl || '';
+      if (!url) { this.relayStatus = 'off'; return STUN_ONLY; }
+      const fetcher = this.options.fetch || root.fetch;
+      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      const t = ctrl ? this._later(() => ctrl.abort(), ICE_FETCH_MS) : null;
+      try {
+        const res = await fetcher(url, { method: 'POST', signal: ctrl?.signal, headers: { 'content-type': 'application/json' }, body: '{}' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const list = cleanIceServers((await res.json())?.iceServers);
+        if (!list || !hasRelay(list)) throw new Error('中継先がありません');
+        this.relayStatus = 'ready';
+        // 直接の通り道も探す（STUN）。中継は直接がダメなときだけブラウザが選ぶ。
+        return list.some(s => iceUrls(s).some(u => u.startsWith('stun:'))) ? list : STUN_ONLY.concat(list);
+      } catch (e) {
+        this.relayStatus = 'unavailable';
+        this._status('中継サーバーの情報を受け取れませんでした。直接つながる相手とだけ接続します', { relay: false });
+        return STUN_ONLY;
+      } finally { if (t) { clearTimeout(t); this._timers.delete(t); } }
+    }
+    // つながった経路（直接か中継か）。診断と表示だけに使い、相手のアドレスは持ち出さない。
+    async _checkRoute(link) {
+      try {
+        const pc = link.conn.peerConnection; if (!pc?.getStats) return;
+        const stats = await pc.getStats(); let pair = null;
+        stats.forEach(r => { if (r.type === 'transport' && r.selectedCandidatePairId) pair = stats.get(r.selectedCandidatePairId); });
+        if (!pair) stats.forEach(r => { if (!pair && r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r; });
+        if (!pair) return;
+        const local = stats.get(pair.localCandidateId), remote = stats.get(pair.remoteCandidateId);
+        link.route = local?.candidateType === 'relay' || remote?.candidateType === 'relay' ? 'relay' : 'direct';
+        if (this.role === 'guest' && link.route === 'relay') this._status('部屋に接続しました（中継サーバー経由）', { route: 'relay' });
+      } catch (_) {}
+    }
     _later(fn, ms) { const t = setTimeout(() => { this._timers.delete(t); fn(); }, ms); this._timers.add(t); return t; }
     async _openPeer() {
       const PeerClass = this.options.Peer || root.Peer;
       if (!PeerClass) throw new Error('PeerJS 1.5.5 を読み込めませんでした');
       const supplied = this.options.peerOptions || {};
-      // TURN を既定値からも持ち込まない。試験では iceServers: [] も指定できる。
-      const iceServers = supplied.config?.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }];
-      if (iceServers.some(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).some(u => typeof u !== 'string' || !u.startsWith('stun:')))) throw new Error('試作は STUN のみです（TURN は使えません）');
+      // 試験では iceServers: [] も指定できる（指定があれば中継の合言葉を取りに行かない）。
+      let iceServers = supplied.config?.iceServers;
+      if (iceServers) {
+        if (iceServers.length && !cleanIceServers(iceServers)) throw new Error('接続の設定（STUN/TURN）が正しくありません');
+        iceServers = iceServers.length ? cleanIceServers(iceServers) : [];
+      } else iceServers = await this._fetchIceServers();
+      this.relayAvailable = hasRelay(iceServers);
       this.peer = new PeerClass(undefined, { ...supplied, config: { ...(supplied.config || {}), iceServers } });
       this.peer.on('disconnected', () => this._status('接続の仲立ちが切れました。接続済みの対戦は続けます', { signaling: false }));
       this.peer.on('error', e => this._status('接続エラー: ' + (e.message || e.type), { error: true, type: e.type }));
@@ -151,7 +211,7 @@
       });
       conn.on('data', data => this._receive(link, data, 'control'));
       conn.on('close', () => this._drop(link, '対戦接続が切れました'));
-      conn.on('error', e => this._drop(link, '対戦接続エラー: ' + (e.message || e.type)));
+      conn.on('error', e => { if (!link.closing) this._drop(link, '対戦接続エラー: ' + (e.message || e.type)); });
     }
     _connectSnapshot(link) {
       // PeerJS 1.5.5のNegotiatorは公開connectオプションのmaxRetransmitsを渡さない。
@@ -190,6 +250,7 @@
       link.resolve?.(this.roomId);link.resolve=null;link.reject=null;
       this.options.onPeerJoin?.(link.conn.peer,link.displayName);
       if(this.role==='guest')this._status('部屋に接続しました');
+      this._checkRoute(link);
     }
     _envelope(type, payload) {
       return { protocolVersion: PROTOCOL, appVersion: this.appVersion, roomId: this.roomId, matchId: this.matchId, sender: this.peer?.id, type, payload };
@@ -450,8 +511,9 @@
     _reject(link, reason) {
       if(link.closing)return;link.closing=true;link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
       this._status(reason, { error: true });
-      try { link.conn.send(JSON.stringify({ type: 'reject', reason })); } catch (_) {}
-      this._later(() => this._drop(link, reason), 100);
+      // 開く前の PeerJS 接続へ送ると「Connection is not open」のエラーが出て、本当の理由を上書きする（2026-11-09）。
+      if (link.conn.open) { try { link.conn.send(JSON.stringify({ type: 'reject', reason })); } catch (_) {} this._later(() => this._drop(link, reason), 100); }
+      else this._drop(link, reason);
     }
     _drop(link, reason) {
       if (this.links.get(link.conn.peer) !== link) return;
@@ -471,7 +533,7 @@
       const t = now();
       for (const link of [...this.links.values()]) {
         if (link.closing) continue;
-        if (!link.ready && t - link.opened > (link.pending?180000:15000)) { this._reject(link, link.pending?'入室許可の待ち時間が3分を超えました':'直接接続が時間切れです。STUN のみでは接続できない回線があります'); continue; }
+        if (!link.ready && t - link.opened > (link.pending?180000:this.relayAvailable?20000:15000)) { this._reject(link, link.pending?'入室許可の待ち時間が3分を超えました':this.relayAvailable?'接続が時間切れです。中継サーバーを通してもつながりませんでした':'直接接続が時間切れです。STUN のみでは接続できない回線があります'); continue; }
         if (link.ready && t - link.lastReceive > 10000) { this._drop(link, '対戦通信の応答がありません'); continue; }
         if (!link.conn.open) continue;
         for(const [key,a] of link.assemblies)if(t-a.at>(a.type==='snapshotBase'?BASE_TTL:ASSEMBLY_TTL)){link.assemblies.delete(key);this.snapshotDrops.incomplete++;}
@@ -675,6 +737,8 @@
   CBOnlineTransport.SNAPSHOT_LABEL = SNAPSHOT_LABEL;
   CBOnlineTransport.CONTROL_LABEL = CONTROL_LABEL;
   CBOnlineTransport.PEERJS_VERSION = '1.5.5';
+  CBOnlineTransport.ICE_URL = ICE_URL;
+  CBOnlineTransport.cleanIceServers = cleanIceServers;
   root.CBOnlineTransport = CBOnlineTransport;
   if (typeof module !== 'undefined' && module.exports) module.exports = CBOnlineTransport;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -30,7 +30,7 @@
   <details><summary>抽選のタイミング</summary><p>マップは作成時・ランダムへ変えたときに一度だけ抽選。チームはシャッフル時と開始時に抽選します。希望選択では開始時の所属を保ちます。</p></details></fieldset>
   <details class="online-card online-measure"><summary>計測設定</summary><label class="online-diagnostic-toggle"><input type="checkbox" id="onlineDiagnostics">試合中の診断表示（F3）</label><label for="onlineLatency">人工片道遅延<select id="onlineLatency"><option value="0">なし</option><option value="50">50ms</option><option value="100">100ms</option></select></label><p>両端に同じ値を指定してください。送信側に追加する遅延です。通信中は変更できません。</p></details>
   <details class="online-card"><summary>実回線で試す手順</summary><ol class="online-test-steps"><li>PCを2台、別々の回線につなぎます。</li><li>ホストが部屋を作り、IDを共有します。</li><li>もう1台でIDを入力して入室。全員がReadyを押したら、ホストが試合を始めます。</li><li>ホストのタブを前面にしたまま、両画面の移動・射撃・終了を確認します。</li></ol></details>
-  <p class="online-caution">ホストのタブは前面にしてください。ホストの退出で試合終了。STUNのみのため、回線によっては接続できません。大人数・重いマップは負荷が増えます。</p>
+  <p class="online-caution">ホストのタブは前面にしてください。ホストの退出で試合終了。${window.CBOnlineTransport?.ICE_URL?'直接つながらない回線では中継サーバーを通します（少し遅れます）。':'STUNのみのため、回線によっては接続できません。'}大人数・重いマップは負荷が増えます。</p>
   </aside></div>
   <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><button type="button" id="onlineClose">戻る／退出</button><button type="button" id="onlineReady" hidden aria-pressed="false">Ready（準備完了）</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div></footer>`;
   document.body.appendChild(panel);

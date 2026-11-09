@@ -14,7 +14,7 @@
     '接続サービスが終了しました':'signaling_closed','対戦通信の応答がありません':'response_timeout','ホストから5秒間応答がありません':'host_timeout',
     '入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます':'input_timeout',
     '準備中にゲストが退出したため、開始を中止しました':'prepare_peer_left',
-    '直接接続が時間切れです。STUN のみでは接続できない回線があります':'connection_timeout','接続サービスへの登録が時間切れになりました':'connection_timeout',
+    '直接接続が時間切れです。STUN のみでは接続できない回線があります':'connection_timeout','接続が時間切れです。中継サーバーを通してもつながりませんでした':'connection_timeout','接続サービスへの登録が時間切れになりました':'connection_timeout',
     '入室許可の待ち時間が3分を超えました':'approval_timeout','操作の送信ができないため対戦を中断しました':'send_failed'
   };
   const value=(v,max=1e12)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max?Math.round(v*1000)/1000:null;
@@ -1444,7 +1444,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1', peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1', peerOptions: opts.peerOptions, iceServersUrl: opts.iceServersUrl ?? CBOnlineTransport.ICE_URL, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
       onSnapshotSent:(id,payload)=>rememberPeerSnapshot(id,payload),
       filterEvents:(id,payload)=>filterQueuedEvents(id,payload),
