@@ -5699,7 +5699,7 @@ function downTick(u, dt) {
 }
 // 起こせる機体：蘇生できる修理装備を持ち、使用可能なゲージがある。
 function canRevive(e) { const sp = e.slots && e.slots.sp; return !meleeOnly() && !!sp && !sp.overheat && (['repair', 'repairPost'].includes(sp.w.type) || sp.w.type === 'field' && sp.heat > 0 && !e.repairing); }
-function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
+function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && g.owner && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
 // 起き上がる（修理装備で REVIVE_NEED 修理されたとき）
 function revive(v, by) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
@@ -6725,7 +6725,7 @@ function addGadget(g) {
   return g;
 }
 function removeGadget(g) {
-  if (g.kind === 'repairPost') { if (g.owner.post === g) g.owner.post = null; if (g.field) scene.remove(g.field); }
+  if (g.kind === 'repairPost') { if (g.owner?.post === g) g.owner.post = null; if (g.field) scene.remove(g.field); }
   if (!g.alive) return;
   g.alive = false;
   if (g.kind === 'decoy') {
@@ -10386,8 +10386,8 @@ $('rlist').addEventListener('click', e => {
 });
 // 兵装の選択：出撃前の画面と、撃破後の再出撃画面
 function pickClass(k) {
-  if (window.CBOnlineGame?.active() && !['assault','heavy'].includes(k)) return;
-  if (window.CBOnlineGame?.active() && isSimulationAuthority() && player && (!player.alive || player.transfer?.base)) player.controlLoadout = Object.fromEntries(SLOTS.map(slot => [slot, CLASSES[k][slot]]));
+  if (window.CBOnlineGame?.active() && !window.CBOnlineGame.roomOptions.classes.some(c=>c.id===k)) return;
+  if (window.CBOnlineGame?.active() && isSimulationAuthority() && player && (!player.alive || player.transfer?.base)) player.controlLoadout = window.CBOnlineGame.respawnLoadout(k);
   chosenCls = k;
   if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);

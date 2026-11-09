@@ -27,7 +27,7 @@
     if(type==='s')return typeof value==='string';
     return type==='j'&&validValue(value);
   }
-  const atoms=new Set(['shells','plants','turrets','radars','barricades','spotted','spotSrc','swing','transfer']);
+  const atoms=new Set(['shells','plants','turrets','radars','barricades','spotted','spotSrc','swing','transfer','equipmentObjects']);
   function rounded(x){
     if(typeof x==='number')return Math.round(x*1000)/1000;
     if(Array.isArray(x))return x.map(v=>v===undefined?null:rounded(v));

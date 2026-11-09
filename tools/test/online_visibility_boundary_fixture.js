@@ -6,7 +6,7 @@ function makeHarness({withoutVisibility=false}={}){
     pos:new T.Vector3(x,200,z),vel:new T.Vector3(),yaw:0,pitch:0,weapon:'main',slots:{main:{w:{key:'rifle',type:'gun'}}},sc:{kills:0}});
   const viewer=make('B:0','B',0),owner=make('R:0','R',50),c={T,CBOnlineCodec:require('../../prototype/online/codec'),
     MAPS:{mesa:{name:'台地',team:5,time:300}},Map,Set,Date,Math,Number,console,setTimeout,clearTimeout,performance:{now:()=>time},window:{},
-    SLOTS:['main'],WEAPONS:{},CLASSES:{assault:{main:'rifle'},heavy:{main:'rifle'}},units:[viewer,owner],player:viewer,hittables:[],gadgets:[],shells:[],radars:[],mirages:[],
+    SLOTS:['main'],WEAPONS:{},CLASSES:{assault:{main:'rifle'},heavy:{main:'rifle'}},units:[viewer,owner],player:viewer,hittables:[],gadgets:[],shells:[],radars:[],mirages:[],drones:[],barrages:[],heatFields:[],stunFields:[],
     spotted:{B:new Map(),R:new Map()},noticed:(e,d)=>!e.cloak||d<8+e.vis*e.vis*80,canSee:()=>true,targetPoint:u=>u.pos.clone().add(new T.Vector3(0,2.4,0)),
     addEventListener:noop,weaponLook:noop,tracer:noop,boom:noop,impact:noop,sfx:noop,finish:noop,shoot:noop,blast:noop,damage:noop,shot:noop,castFrom:()=>null,
     RAID_SENTRY_SCALE:3.96,SENTRY_SCALE:3.96,SENTRY_TIP:new T.Vector3(0,1,0),UP:new T.Vector3(0,1,0),heldMirage:()=>null};

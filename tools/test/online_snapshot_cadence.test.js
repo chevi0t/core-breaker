@@ -9,7 +9,7 @@ function harness(code=source){
   const generated=[],wire=[],c={state:{role:'host',phase:'playing',frame:0,frameMs:[],sendMs:[],lastSent:0,nextSnapshotAt:0,events:[],peers:new Map([['g',{id:'g'}]])},
     frameStart:0,ended:false,now:()=>clock,captureLagHistory:()=>{},
     replicationFor:()=>({visible:new Set(),gadgetPublic:new Set(),gadgetCapacity:0}),
-    createPeerView:()=>({visible:new Set(privacy?['visible']:[])}),permittedGadgets:()=>[],
+    createPeerView:()=>({visible:new Set(privacy?['visible']:[])}),permittedGadgets:()=>[],visibleEquipmentSources:()=>new Set(),
     snapshot:()=>({time:clock}),encodePeerSnapshot:(_p,s)=>({wire:s}),diagnosticFrameEnd:()=>{},
     matchResult:()=>({}),clearPrediction:()=>{},lagHistory:null,window:{CBOnlineGame:{}},status:()=>{},callbacks:{}};
   c.state.transport={send(type,data){if(type==='snapshot'){generated.push(clock);pending=data;}},broadcast:()=>{}};

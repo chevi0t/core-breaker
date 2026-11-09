@@ -43,7 +43,7 @@
       cadence.set(e.entityId,aimed||viewer.scoped&&direct(e)?1:d<=limits.far?2:4);
     }
     const pointVisible=at=>!!at&&(distance(viewer.pos,at)<=near||facing(viewer,at)>=directCos)&&!!lineOfSight(viewer,at);
-    const gadgetVisible=g=>g.team===viewer.team||allies.some(a=>distance(a.pos,g.pos)<=(g.onCore?60:({mine:30,remote:30,sensor:50,sentry:60}[g.kind]||0))&&lineOfSight(a,g.mesh?targetPoint(g):g.pos,g));
+    const gadgetVisible=g=>g.team===viewer.team||allies.some(a=>distance(a.pos,g.pos)<=(g.onCore?60:({mine:30,remote:30,sensor:50,sentry:60,decoy:80,repairPost:60,ammo:50}[g.kind]||0))&&lineOfSight(a,g.mesh?targetPoint(g):g.pos,g));
     const sourceVisible=e=>!e||e.entityId?(!e||visible.has(e.entityId)):e.gadget?gadgetVisible(e):e.kind==='turret'||e.kind==='radar'||e.kind==='core'||e.kind==='barricade'?true:pointVisible(e.pos);
     return {viewer,visible,cadence,pointVisible,gadgetVisible,sourceVisible};
   }

@@ -19,7 +19,7 @@ function harness(){
   const c={MAPS:{mesa:{name:'台地',team:5,time:300}},T:{Vector3:V3},performance:{now:()=>time},Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineCodec:codec,CBOnlineVisibility:visibility,
     // 近距離2機・壁なし。可視性判定自体は製品moduleを通す。
     canSee:()=>true,noticed:()=>false,targetPoint:u=>u.pos.clone(),
-    window:{},SLOTS:[],WEAPONS:{},CLASSES:{assault:{},heavy:{}},units,player:units[0],running:true,ended:false,timeLeft:300,cores:{B:{hp:1000},R:{hp:1000}},spotted:{B:new Map(),R:new Map()},spotSrc:{B:new Map(),R:new Map()},plants:[],turrets:[],radars:[],barricades:[],lifts:[],jumpPads:[],catapults:[],ziplines:[],shells:[],
+    window:{},SLOTS:[],WEAPONS:{},CLASSES:{assault:{},heavy:{}},units,player:units[0],running:true,ended:false,timeLeft:300,cores:{B:{hp:1000},R:{hp:1000}},spotted:{B:new Map(),R:new Map()},spotSrc:{B:new Map(),R:new Map()},plants:[],turrets:[],radars:[],barricades:[],lifts:[],jumpPads:[],catapults:[],ziplines:[],shells:[],drones:[],barrages:[],heatFields:[],stunFields:[],
     document:{exitPointerLock:empty},$:id=>{if(!elements.has(id))elements.set(id,{querySelector:()=>null});return elements.get(id);},wrapAngle:x=>Math.atan2(Math.sin(x),Math.cos(x)),
     showPage:empty,stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,addEventListener:empty,weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,shot:empty,shoot:empty,blast:empty,damage:empty,
     doTransfer:u=>{u.pos.fromArray([900,0,0]);u.transfer=null;return 42;},

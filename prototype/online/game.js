@@ -125,10 +125,10 @@
   'use strict';
   const now = () => performance.now();
   const vector = a => new T.Vector3().fromArray(a);
-  // 初期装備の通常コア戦だけ。試験場・コスト戦・近接限定の規則は混ぜない。
+  // 通常コア戦だけ。試験場・コスト戦・近接限定の規則は混ぜない。
   const roomMaps = Object.entries(MAPS).filter(([,d]) => !d.testOnly && !d.vs && !d.meleeOnly && d.team >= 2 && d.time > 0).map(([id,d]) => ({id,name:d.name}));
   const roomTeamSizes = Array.from({length:9},(_,i)=>i+2); // 本体2〜50のうち、通信試作は合計20機まで。
-  const roomClasses=['assault','heavy'];
+  const roomClasses=Object.keys(CLASSES);
   const defaultSettings = {capacity:4,teamSize:5,mapId:'mesa',teamMode:'random'};
   const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), requests: new Map(), localUnitId: null,
     settings:null, roster:[], hostTeam:'B', resolvedMapId:null, roomId:null,
@@ -406,13 +406,16 @@
   }
 
   const displayedLatencies = [];
-  const remoteShells = new Map();
-  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf actionBlockBoost shockSlow zipCd flightSpeed').split(' ');
-  const slotKeys = ('ammo reserve resMax reloadT cd spin temp ohT conv heat overheat bn held chargeT holdT cap supply').split(' ');
+  const remoteShells = new Map(), remoteEquipment = new Map();
+  const equipmentActions=[];
+  const equipmentVectors=['escortAim','bombard','seekAim'];
+  const equipmentScalars='fieldOn fieldN barrierOn escortOn escortT escortCd mirageOn mirageWait postRecall radarHeading radarScanT seekMode repairBlock'.split(' ');
+  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
+  const slotKeys = ('ammo reserve resMax reloadT cd spin temp ohT conv heat overheat bn held chargeT holdT cap supply sheathed mode modeHeld pulseT scanT scanRadius').split(' ');
   const safe = (o, keys) => Object.fromEntries(keys.filter(k => o[k] !== undefined && (typeof o[k] !== 'number' || Number.isFinite(o[k]))).map(k => [k,o[k]]));
   const unit = id => units.find(u => u.entityId === id);
-  const lockId = e => e?.entityId || (e?.kind==='turret' ? 'turret:'+turrets.indexOf(e) : null);
-  const lockEntity = id => typeof id==='string'&&id.startsWith('turret:') ? turrets[Number(id.slice(7))] : unit(id);
+  const lockId = e => e?.entityId || (e?.onlinePublicId?'gadget:'+e.onlinePublicId:null) || (e?.kind==='turret' ? 'turret:'+turrets.indexOf(e) : null);
+  const lockEntity = (id,p=null) => typeof id==='string'&&id.startsWith('gadget:') ? (p?.replication?.gadgetSlots||[]).find(s=>s?.id===Number(id.slice(7)))?.g||null : typeof id==='string'&&id.startsWith('turret:') ? turrets[Number(id.slice(7))] : unit(id);
   function status(text) { state.status = text; state.onStatus?.(text, state); }
   // 定型通信はIDだけを受け、本文・送信者・宛先はホストが決める。既存GのBot指示とは独立。
   const quickChatCategories = [
@@ -515,15 +518,15 @@
     rosterChanged();callbacks.onSettings?.(state.settings?{...state.settings}:null,state.resolvedMapId);
     if(state.role==='host'&&state.phase==='lobby')state.transport?.broadcast('lobby',{settings:state.settings,resolvedMapId:state.resolvedMapId,roster:state.roster,revision:state.lobbyRevision});
   }
-  // 未同期の設置物・特殊SP・追加の専用照準を開放しない。既存の銃/投射/近接と加速・重砲の系統。
-  function onlineWeapon(key){const w=WEAPONS[key];return !!w&&['gun','sword','charger','cannon'].includes(w.type)&&!w.drone&&!w.missile&&!w.proj?.max&&!w.proj?.guided&&!['remote','mine','sensor','sentry','sonar','ammo','float','roam','curtain'].includes(w.proj?.kind)&&!w.saw&&!w.proj?.heatDps;}
+  // 正規カタログの全兵装・武器。兵装と4枠の組み合わせはcheckedEquipmentで検査する。
+  function onlineWeapon(key){return Object.hasOwn(WEAPONS,key);}
   function equipmentOptions(cls='assault'){
-    if(!roomClasses.includes(cls))throw Error('オンラインでは強襲・重火力を選んでください');
+    if(!roomClasses.includes(cls))throw Error('オンラインの兵装を選んでください');
     return {weapons:Object.fromEntries(SLOTS.map(slot=>[slot,ARMORY[cls][slot].filter(onlineWeapon).map(key=>({id:key,name:WEAPONS[key].name}))])),
       parts:Object.fromEntries(PART_SLOTS.map(slot=>[slot,Object.entries(PARTS[slot]).map(([id,p])=>({id,name:p.model||p.name||id}))])),paints:PAINTS.map(p=>({id:p.id,name:p.name}))};
   }
   function checkedEquipment(input){
-    if(!input||!roomClasses.includes(input.cls))throw Error('オンラインでは強襲・重火力を選んでください');
+    if(!input||!roomClasses.includes(input.cls))throw Error('オンラインの兵装を選んでください');
     const cls=input.cls,loadout=input.loadout||preset(cls),mech=input.mech||MECH_DEFAULT;
     if(!SLOTS.every(k=>typeof loadout[k]==='string'&&ARMORY[cls][k].includes(loadout[k])&&onlineWeapon(loadout[k])))throw Error('オンライン未対応の武器、または兵装に合わない武器です');
     if(!PART_SLOTS.every(k=>typeof mech[k]==='string'&&Object.hasOwn(PARTS[k],mech[k]))||!PAINTS.some(p=>p.id===mech.color))throw Error('機体パーツが正しくありません');
@@ -621,6 +624,7 @@
   function localVersion() { return $('appVersion')?.textContent?.trim() || ''; }
   function preset(cls) { return Object.fromEntries(SLOTS.map(k => [k, CLASSES[cls][k]])); }
   function resetMeasurements() {
+    clearRemoteEquipment();equipmentActions.length=0;clearRemoteShells();
     for(const p of state.peers.values())delete p.replication;remoteUnitHistory.clear();snapshotDecoder=new CBOnlineCodec.Decoder();lastResync=-Infinity;resyncBackoff=250;
     pendingPrepare=null;prepared=false;finalFrame=null;lastSnapshotBaseId=0;pendingSnapshotWires.clear();pendingSnapshotBases.clear();interpolation=interpolationState();
     resetPrediction();resetLocalFire();resetLagCompensation();diagnosticTiming=diagnosticState();
@@ -662,7 +666,7 @@
     countdown(startAtHost);
   }
   function saveSettings() { if (!saved) saved = { mapId, chosenCls, chosenTeam, selectedTeamSize }; }
-  // 初期装備・同じパーツを全機へ。保存用の構成には書き戻さない。
+  // 初期装備・同じパーツで生成してから、参加者の部屋専用構成を適用する。保存用の構成には書き戻さない。
   function setupWorld(teamSize, localId, battleMapId, roster = null) {
     saveSettings(); running = false; tutorialClearInput(); stopSessionAudio();
     // 実際のB/R所属は保存したまま、生成前に自軍の色を選ぶ。施設だけでなく機体も自軍青になる。
@@ -674,7 +678,7 @@
     for (const u of units) {
       u.entityId = u.team + ':' + u.idx;
       const r = roster?.find(x => x.id === u.entityId);
-      const cls = r?.cls || (u.idx % 2 ? 'heavy' : 'assault');
+      const cls = r?.cls || (Object.keys(CLASSES)[u.idx % Object.keys(CLASSES).length]);
       u.controller = 'bot'; u.localView = u.entityId === localId;
       u.isPlayer = u.localView; // 旧い外部試験から読む互換用。動作判定は3関数を使う。
       u.controlLoadout = preset(cls); u.cls = cls; u.nextCls = null;
@@ -696,7 +700,7 @@
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1', peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1', peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
       onSnapshotSent:(id,payload)=>rememberPeerSnapshot(id,payload),
       filterEvents:(id,payload)=>filterQueuedEvents(id,payload),
@@ -878,6 +882,7 @@
     // padとtouchは合算されるので軸は±2を許し、従来どおり受理時に±1へ収める。
     return [['fwd',-2,2],['side',-2,2],['cameraRecoil',0,1],['cameraRecoilYaw',-1,1],['wheel',-1,1]]
       .every(([k,lo,hi])=>v[k]===undefined||Number.isFinite(v[k])&&v[k]>=lo&&v[k]<=hi) &&
+      (v.equipmentActions===undefined||Array.isArray(v.equipmentActions)&&v.equipmentActions.length<=8&&v.equipmentActions.every(validEquipmentAction)) &&
       (v.moveActionSeq===undefined||Number.isSafeInteger(v.moveActionSeq)&&v.moveActionSeq>=0&&v.moveActionSeq<=v.actionSeq) &&
       (v.moveActions===undefined||Array.isArray(v.moveActions)&&v.moveActions.length<=8&&v.moveActions.every(row=>
         Array.isArray(row)&&row.length===2&&Number.isSafeInteger(row[0])&&row[0]>=1&&row[0]<=v.actionSeq&&Number.isSafeInteger(row[1])&&row[1]>=1&&row[1]<=7));
@@ -948,7 +953,7 @@
     const u=currentInputLife(p,v);if(!u||!actionIsRecent(p,v))return;
     p.receivedActionSeq=v.actionSeq;p.last=now();
     const action={...safe(v,['actionSeq','seq','lifeId','sentAt']),receivedAt:now(),trigger:!!v.trigger,alt:!!v.alt,keys:pickedKeys(v.keys,inputKeys.filter(k=>!movementKeys.includes(k))),
-      pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined};
+      pressed:pickedKeys(v.pressed),wheel:Math.sign(v.wheel||0),weapon:SLOTS.includes(v.weapon)?v.weapon:undefined,equipmentActions:v.equipmentActions?.map(a=>({...a,point:a.point?.slice()}))};
     Object.assign(action,safe(v,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),{aimPoint:v.aimPoint.slice(),view:copyView(v.view)});
     rememberMovementAction(p,action);
     if(action.pressed.KeyH||action.pressed.KeyE){
@@ -959,7 +964,7 @@
     // 再出撃先の選択は移動の実行を待たず受理する。古い命の選択はcurrentInputLifeが落とす。
     if(!u.alive||u.transfer){
       if(spawnPoints(u.team).some(x=>x.id===v.spawnChoice))u.spawnChoice=v.spawnChoice;
-      if(['assault','heavy'].includes(v.nextCls)){u.nextCls=v.nextCls;u.controlLoadout=preset(v.nextCls);}
+      if((!u.alive||u.transfer?.base)&&Object.keys(CLASSES).includes(v.nextCls)){u.nextCls=v.nextCls;u.controlLoadout=respawnLoadout(v.nextCls,p);}
     }
   }
   function sendLocalInput(input,deferBatch=false,actionsOnly=false,skipActions=false) {
@@ -972,9 +977,9 @@
     const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
     // 古いcontrolが期限切れなら、現在のheld状態だけを新番号で再送する。失効した押下は複製しない。
     const refresh=inputSending.actionSeq>prediction.lastAckActionSeq&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
-    if(!skipActions&&(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||refresh)){
+    if(!skipActions&&(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||input.equipmentActions?.length||refresh)){
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
-        wheel:Math.sign(input.wheel||0),weapon:input.weapon,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
+        wheel:Math.sign(input.wheel||0),weapon:input.weapon,equipmentActions:input.equipmentActions,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
         ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:copyView(input.view)};
       input.actionSeq=action.actionSeq;
       if(!state.transport.send('inputActions',action)){endGuest('操作の送信ができないため対戦を中断しました');return false;}
@@ -1112,8 +1117,8 @@
       if(p){p.pendingEdges={};p.activeAction=null;p.actions=(p.actions||[]).filter(a=>actionIsRecent(p,a));}
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
     }
-    const target=lockEntity(p.input.lockTarget);
-    u.controlTarget=target&&(!p.replication||p.replication.visible.has(target.entityId))&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target))?target:null;
+    const target=lockEntity(p.input.lockTarget,p);
+    u.controlTarget=target&&(!p.replication||(target.gadget?!!p.replication.gadgetPublic?.has(target):!target.entityId||p.replication.visible.has(target.entityId)))&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target))?target:null;
     p.actions=(p.actions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
     // action先着は対応する移動番号まで待つ。後着も一度だけ実updateへ。dead中はqueueを消化しない。
     p.activeAction=p.actions.find(a=>a.seq<=p.input.seq)||null;
@@ -1126,7 +1131,7 @@
     // movementで新しいactionの存在が判ったら、遅いcontrolを待つ間は古いtriggerを保持しない。
     const action=p.activeAction||(p.input.actionSeq<=(p.actionState?.actionSeq||0)?p.actionState:null);
     const result={...p.input,keys:{...p.input.keys,...action?.keys},trigger:!!action?.trigger,alt:!!action?.alt,
-      pressed:{...p.pendingEdges,...(p.activeAction?.pressed||{})},wheel:p.activeAction?.wheel||0,weapon:p.activeAction?.weapon||undefined};
+      pressed:{...p.pendingEdges,...(p.activeAction?.pressed||{})},wheel:p.activeAction?.wheel||0,weapon:p.activeAction?.weapon||undefined,equipmentActions:p.activeAction?.equipmentActions};
     u.onlineInputSeq=p.input.seq;return result;
   }
   function abortPreparation(reason) {
@@ -1174,6 +1179,7 @@
   function leave(reason = '退出') {
     diagnosticLog?.end(reason,logSample());
     resetQuickChat();
+    clearRemoteEquipment();equipmentActions.length=0;
     clearStartReservation();clearPrediction();resetLagCompensation();running=false;stopSessionAudio();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     clearTimeout(preferenceTimer);preferenceTimer=null;preferenceReject?.(Error(reason));preferenceResolve=preferenceReject=null;
@@ -1182,18 +1188,181 @@
     if (t) { if (state.role === 'host') t.broadcast('endHost',{reason}); else t.send('leave',{reason}); t.close(reason); }
     Object.assign(state,{lobbyReady:false,lobbyRevision:0,editing:false,equipment:null,equipmentVersion:0,equipmentPending:false,nudgeActive:false,lastNudgeAt:null});
     state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.matchId=null; state.peers.clear();state.requests.clear();state.settings=null;state.roster=[];state.resolvedMapId=null;state.roomId=null;requestsChanged();lobbyChanged(); state.events=[]; state.history=[];remoteUnitHistory.clear();
-    for (const mesh of remoteShells.values()) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); } remoteShells.clear();
+    clearRemoteShells();
     setSimulationRole('offline');
     if (saved) {
       running = false; ended = true; tutorialClearInput(); chosenCls = saved.chosenCls; chosenTeam = saved.chosenTeam; selectedTeamSize = saved.selectedTeamSize;
       selectMap(saved.mapId,false); saved = null; $('overlay').hidden = false;
     }
   }
+  // 武器ごとのゲーム計算はホストだけ。写真には描画/HUDに必要な値と公開可能な参照だけを載せる。
+  function equipmentRef(e){return e?.entityId||(e?.gadget?'gadget:'+gadgets.indexOf(e):null)||(['turret','radar'].includes(e?.kind)?e.kind+':'+(e.kind==='turret'?turrets:radars).indexOf(e):null);}
+  function equipmentEntity(id){if(typeof id!=='string')return null;if(id.startsWith('gadget:'))return remoteEquipment.get('g:'+id.slice(7))||null;const m=/^(turret|radar):(\d+)$/.exec(id);return m?(m[1]==='turret'?turrets:radars)[+m[2]]||null:unit(id)||null;}
+  function packEquipmentUnit(u){
+    const f=u.reflect,b=u.beamFire;
+    return {vectors:Object.fromEntries(equipmentVectors.map(k=>[k,u[k]?.toArray()||null])),
+      reflect:f?{...safe(f,['phase','t','along']),...Object.fromEntries(['a','at','goal','ground'].map(k=>[k,f[k]?.toArray()||null]))}:null,
+      beam:b?{...safe(b,['warm','elapsed','yaw','pitch']),paths:(u.onlineBeamPaths||[]).map(p=>({...p,from:p.from.slice(),dir:p.dir.slice()}))}:null,
+      recovery:u.meleeRecovery?{a:u.meleeRecovery.a,...safe(u.meleeRecovery,['t','phi','yaw0','aimed','tilt','slope','pike','chargeStage','chargeRatio','dashAttack','stopped','queued'])}:null,
+      missiles:Object.fromEntries(SLOTS.map(k=>{const sl=u.slots[k];return [k,{locks:(sl.missileLocks||[]).map(e=>[equipmentRef(e.target),e.life]),progress:[...(sl.missileProgress||[])].map(([e,n])=>[equipmentRef(e),n]),candidates:(sl.missileCandidates||[]).map(equipmentRef)}];}))};
+  }
+  function equipmentUnitForPeer(v,view){
+    if(!v.equipment)return null;const e=JSON.parse(JSON.stringify(v.equipment));
+    const peer=[...state.peers.values()].find(p=>p.unitId===view.viewer.entityId),slots=peer?.replication?.gadgetSlots||[];
+    const reference=id=>{if(!id)return null;if(id.startsWith('gadget:')){const g=gadgets[Number(id.slice(7))],slot=slots.find(s=>s?.g===g);return slot?'gadget:'+slot.id:null;}return !unit(id)||view.visible.has(id)?id:null;};
+    for(const sl of Object.values(e.missiles)){sl.locks=sl.locks.map(([id,n])=>[reference(id),n]).filter(([id])=>id);sl.progress=sl.progress.map(([id,n])=>[reference(id),n]).filter(([id])=>id);sl.candidates=sl.candidates.map(reference).filter(Boolean);}
+    // 背部自動砲の照準と遠距離SPの非公開地点を、可視機体に付けて迂回送信しない。
+    if(e.vectors.escortAim&&!view.pointVisible(vector(e.vectors.escortAim)))e.vectors.escortAim=null;
+    if(v.id!==view.viewer.entityId){e.vectors.seekAim=null;e.vectors.bombard=null;e.recovery=null;
+      if(e.reflect&&!['a','at','goal','ground'].every(k=>!e.reflect[k]||view.pointVisible(vector(e.reflect[k]))))e.reflect=null;
+      if(e.beam)e.beam.paths=e.beam.paths.filter(p=>view.pointVisible(vector(p.from))&&view.pointVisible(vector(p.from).addScaledVector(vector(p.dir),p.length)));}
+    return e;
+  }
+  function applyEquipmentUnit(u,e){
+    for(const k of equipmentVectors)u[k]=e?.vectors?.[k]?vector(e.vectors[k]):null;
+    u.reflect=e?.reflect?{...e.reflect,...Object.fromEntries(['a','at','goal','ground'].map(k=>[k,e.reflect[k]?vector(e.reflect[k]):null]))}:null;
+    u.beamFire=e?.beam?{...e.beam}:null;u.onlineBeamPaths=e?.beam?.paths||[];
+    u.meleeRecovery=e?.recovery||null;
+    for(const k of SLOTS){const sl=u.slots[k],m=e?.missiles?.[k];if(!sl.w?.missile)continue;
+      sl.missileLocks=(m?.locks||[]).map(([id,life])=>({target:equipmentEntity(id),life})).filter(e=>e.target);
+      sl.missileProgress=new Map((m?.progress||[]).map(([id,n])=>[equipmentEntity(id),n]).filter(([e])=>e));
+      sl.missileCandidates=(m?.candidates||[]).map(equipmentEntity).filter(Boolean);}
+  }
+  function respawnLoadout(cls,p=null){const e=p?.equipment||state.equipment;return {...(e?.cls===cls?e.loadout:preset(cls))};}
+  function matchEquipmentLoadouts(){return [...Object.keys(CLASSES).map(preset),...units.map(u=>Object.fromEntries(SLOTS.map(k=>[k,u.slots[k].w.key])))];}
+  let gadgetKeyCache=null;
+  const gadgetWeaponKey=g=>{gadgetKeyCache||=new Map(Object.entries(WEAPONS).flatMap(([k,w])=>[[w,k],...(w.proj?[[w.proj,k]]:[])]));return gadgetKeyCache.get(g.spec)||'';};
+  function visibleEquipmentSources(view){
+    const seen=new Set(),add=(o,team,at)=>{if(at&&(team===view.viewer?.team||view.pointVisible(at)))seen.add(o);};
+    for(const d of drones)add(d,d.team,d.pos);
+    for(const b of barrages){if(b.mesh.visible)add(b,b.team,b.mesh.position);if(b.warn)add(b.warn,b.team,b.warn.position);}
+    for(const h of heatFields)add(h,h.team,h.pos);for(const f of stunFields)add(f,f.team,f.mesh.position);
+    for(const u of units)if(u.postFlight)add(u.postFlight,u.team,u.postFlight.pos);
+    return seen;
+  }
+  function equipmentObjectsForPeer(view){
+    const result=[],publicObjects=new Set(),put=(o,type,at,data)=>{
+      if(!at||!(o.team===view.viewer.team||view.pointVisible(at)))return;
+      // 非公開の出現・消滅は公開IDの連番にも影響させない。
+      const p=[...state.peers.values()].find(p=>p.unitId===view.viewer.entityId),r=replicationFor(p);
+      r.objectIds||=new Map();if(!r.objectIds.has(o))r.objectIds.set(o,r.nextObjectId=(r.nextObjectId||0)+1);
+      publicObjects.add(o);result.push({id:r.objectIds.get(o),type,team:o.team,pos:at.toArray(),...data});
+    };
+    for(const d of drones)put(d,'drone',d.pos,{dir:d.dir.toArray(),rotation:d.mesh.rotation.toArray().slice(0,3),spec:safe(d.spec,['scan','keep','hover','alt','dist','speed']),owner:view.visible.has(d.owner?.entityId)?d.owner.entityId:null});
+    for(const b of barrages){if(b.mesh.visible)put(b,'artillery',b.mesh.position,{rotation:b.mesh.rotation.toArray().slice(0,3)});if(b.warn){b.warn.team=b.team;put(b.warn,'artilleryWarn',b.warn.position,{});}}
+    for(const h of heatFields)put(h,'heat',h.pos,{radius:h.spec.blast,life:h.life,age:h.age||0});
+    for(const f of stunFields)put(f,'stun',f.mesh.position,{dir:f.dir.toArray(),len:f.len,width:f.width,height:f.height,life:f.life,max:f.max});
+    for(const u of units)if(u.postFlight){u.postFlight.team=u.team;put(u.postFlight,'postFlight',u.postFlight.pos,{key:u.postFlight.w.key});}
+    const peer=[...state.peers.values()].find(p=>p.unitId===view.viewer.entityId),r=replicationFor(peer);
+    for(const o of r.objectIds?.keys()||[])if(!publicObjects.has(o))r.objectIds.delete(o);
+    r.objectPublic=publicObjects;
+    return result;
+  }
+  function removeRemoteEquipment(id){
+    const o=remoteEquipment.get(id);if(!o)return;
+    if(o.gadget){const i=gadgets.indexOf(o);if(i>=0)gadgets.splice(i,1);const j=mirages.indexOf(o);if(j>=0)mirages.splice(j,1);if(o.owner?.post===o)o.owner.post=null;}
+    const i=drones.indexOf(o);if(i>=0)drones.splice(i,1);
+    for(const mesh of [o.mesh,o.field,o.warn])if(mesh){scene.remove(mesh);const j=hittables.indexOf(mesh);if(j>=0)hittables.splice(j,1);}
+    if(o.type==='heat')removeHeatVisual(o);if(o.bolts)shockDispose(o.bolts);
+    if(o.decoyModel){o.decoyModel.geometry.dispose();o.decoyModel.material.dispose();}remoteEquipment.delete(id);
+  }
+  function packShellVisual(sh){
+    const m=sh.mesh;return {kind:sh.spec.kind||'',model:sh.spec.model||'',wave:!!sh.spec.bladeWave,energy:!!sh.energyFrom,style:sh.plasmaVisual?'plasma':sh.chargeVisual?'charge':'',
+      rotation:m.rotation.toArray().slice(0,3),scale:m.scale.toArray(),children:m.children.map(o=>({pos:o.position.toArray(),scale:o.scale.toArray(),rotation:o.rotation.toArray().slice(0,3)}))};
+  }
+  function makeRemoteShell(sh){
+    const v=sh.visual;let m;
+    if(v?.style)m=cannonShotMesh(v.style);
+    else if(v?.model)m=new T.Mesh(weaponGeo(v.model),toolMat[sh.team]);
+    else if(v?.wave)m=new T.Mesh(bladeWaveGeo,bladeWaveMat[sh.team]);
+    else if(v?.energy)m=new T.Mesh(energyShotGeo,energyShotMat);
+    else {m=new T.Mesh(sh.rocket?new T.CylinderGeometry(.2,.2,1.4,8):new T.SphereGeometry(v?.kind==='shell'?.7:.4,8,6),new T.MeshBasicMaterial({color:sh.weak?0xa070ff:BALLISTIC_COLOR}));m.userData.onlineOwned=true;}
+    return m;
+  }
+  function removeRemoteShell(m){scene.remove(m);if(m.userData.onlineOwned){m.geometry.dispose();m.material.dispose();}}
+  function clearRemoteShells(){for(const mesh of remoteShells.values())removeRemoteShell(mesh);remoteShells.clear();}
+  function clearRemoteEquipment(){for(const id of [...remoteEquipment.keys()])removeRemoteEquipment(id);}
+  function applyEquipmentObjects(slots,objects){
+    const live=new Set();
+    for(const row of slots){if(row[0]!==0)continue;
+      const [_,id,kind,team,key,pos,rotation,scale,hp,maxHp,ownerId,meshPos,fieldOn,decoy]=row,token='g:'+id;live.add(token);
+      const w=WEAPONS[key],spec=w?.proj||w;if(!spec)continue;let o=remoteEquipment.get(token);
+      if(o&&!o.mesh.parent){removeRemoteEquipment(token);o=null;}
+      if(!o){
+        let mesh,decoyModel=null;
+        if(kind==='decoy'){
+          // 残像は公開された模型だけを独立生成。隠れている所有者の実体は参照しない。
+          const built=buildMech(TEAM[team].color,decoy?.mech||MECH_DEFAULT);
+          for(const [part,slot]of [['gun','main'],['blade','aux'],['pack','sp']])if(decoy?.loadout?.[slot])setWeaponGeo(built[part],decoy.loadout[slot]);
+          mesh=mirageMesh({group:built.g,flame:built.flame,pos:vector(pos)},spec);disposeMech(built.g);decoyModel=mesh;
+        }else mesh=new T.Mesh(weaponGeo(spec.model||key),toolMat[team]);
+        o={type:'gadget',gadget:true,onlinePublicId:id,lifeId:1,kind,team,spec,mesh,decoyModel,name:kind==='decoy'?'残像':GADGET_NAME[kind]||w.name,weaponName:w.name,pos:new T.Vector3(),vel:new T.Vector3(),dir:new T.Vector3(),alive:true,owner:null};
+        if(kind==='repairPost'){o.field=new T.Mesh(fieldGeo,fieldMat);scene.add(o.field);}
+        mesh.userData.ref=o;scene.add(mesh);if(!spec.invulnerable)hittables.push(mesh);gadgets.push(o);if(kind==='decoy')mirages.push(o);remoteEquipment.set(token,o);
+      }
+      Object.assign(o,{hp,maxHp,owner:equipmentEntity(ownerId),yaw:rotation[1]});o.pos.fromArray(pos);o.mesh.position.fromArray(meshPos||pos);o.mesh.rotation.set(...rotation);o.mesh.scale.fromArray(scale);o.dir.set(-Math.sin(rotation[1]),0,-Math.cos(rotation[1]));
+      if(kind==='decoy'&&decoy){o.mesh.material.opacity=decoy.opacity;o.mesh.material.transparent=decoy.opacity<1;}
+      if(o.field){o.field.visible=fieldOn;o.field.position.copy(o.pos);o.field.scale.setScalar(spec.radius);if(o.owner)o.owner.post=o;}
+    }
+    for(const v of objects){const token='o:'+v.id;live.add(token);let o=remoteEquipment.get(token);
+      if(!o){
+        let mesh,bolts=null;
+        if(v.type==='heat')mesh=makeHeatField(vector(v.pos),v.radius);
+        else if(v.type==='stun'){mesh=new T.Group();bolts=shockLines(16);mesh.add(bolts);}
+        else mesh=new T.Mesh(v.type==='artilleryWarn'?artilleryWarnGeo:v.type==='artillery'?artilleryShellGeo:weaponGeo(v.type==='drone'?'drone':v.key),v.type==='artilleryWarn'?artilleryWarnMat:v.type==='artillery'?shellMat[v.team]:toolMat[v.team]);
+        o={type:v.type,team:v.team,mesh,bolts,pos:new T.Vector3(),dir:new T.Vector3(),spec:v.spec||{},owner:equipmentEntity(v.owner)};
+        if(v.type==='drone'){mesh.scale.setScalar(1.4);drones.push(o);}
+        scene.add(mesh);remoteEquipment.set(token,o);
+      }
+      o.owner=equipmentEntity(v.owner);if(v.spec)o.spec=v.spec;
+      o.pos.fromArray(v.pos);o.mesh.position.copy(o.pos);o.mesh.visible=v.visible!==false;if(v.rotation)o.mesh.rotation.set(...v.rotation);if(v.dir)o.dir.fromArray(v.dir);
+      if(v.type==='artillery'){if(v.warn&&!o.warn){o.warn=new T.Mesh(artilleryWarnGeo,artilleryWarnMat);scene.add(o.warn);}if(o.warn){o.warn.visible=!!v.warn;if(v.warn)o.warn.position.fromArray(v.warn);}}
+      if(v.type==='heat'){o.life=v.life;o.age=v.age;heatVisualTick(o,0);}
+      if(v.type==='stun'){o.mesh.rotation.y=Math.atan2(v.dir[0],v.dir[2]);shockBolts(o.bolts,16,(x,y,z)=>[x*v.width/2,(y-.5)*v.height,z*v.len/2],.12,.08);shockOpacity(o.bolts,Math.max(0,Math.min(1,v.life/.25)));}
+    }
+    for(const id of [...remoteEquipment.keys()])if(!live.has(id))removeRemoteEquipment(id);
+  }
+  function guestEquipmentVisuals(dt){
+    for(const u of units){
+      if(u.onlineHidden)continue;
+      if(u.beamFire&&u.onlineBeamPaths?.length)beamCannonVisual(u,u.onlineBeamPaths.map(p=>({...p,from:vector(p.from),dir:vector(p.dir)})),u.beamFire.warm<=0);
+      else if(u.beamVisual)u.beamVisual.root.visible=false;
+      if(u.slots?.[u.weapon]?.w.type==='radarTool')emitReconPulse(u,'fan',u.slots[u.weapon].w.cone||90);
+    }
+    reflectorUpdate();
+    for(const o of remoteEquipment.values()){
+      if(o.kind==='sensor')emitReconPulse(o,o.spec.planar?'plane':o.spec.col?'down':o.spec.cone?'fan':'radial',o.spec.cone||360);
+      if(o.type==='drone')emitReconPulse(o,'down');
+      if(o.type==='heat')heatVisualTick(o,dt);
+    }
+  }
+  const equipmentActionKinds=['mapConfirm','mapCancel','beamCancel','scopeCycle','seekToggle'];
+  function validEquipmentAction(a){return !!a&&equipmentActionKinds.includes(a.kind)&&(a.point===undefined||Array.isArray(a.point)&&a.point.length===3&&a.point.every(n=>Number.isFinite(n)&&Math.abs(n)<1e6));}
+  function queueEquipmentAction(kind,point){if(state.role!=='guest'||state.phase!=='playing')return false;if(equipmentActions.length<8)equipmentActions.push({kind,...(point?{point:point.toArray()}: {})});return true;}
+  function applyEquipmentActions(u,input){
+    for(const a of input.equipmentActions||[]){
+      if(a.kind==='mapConfirm'&&a.point&&isArtilleryMode(u))artilleryConfirm(u,vector(a.point));
+      if(a.kind==='mapCancel')stopArtillery(u);
+      if(a.kind==='beamCancel')stopBeamCannon(u,true);
+      if(a.kind==='scopeCycle'&&u.slots[u.weapon].w.scopeHigh&&!u.repairing&&!u.transfer&&u.switchT<=0)u.scopeStep=((u.scopeStep||0)+1)%3;
+      if(a.kind==='seekToggle'&&seekerHeld(u))setSeekMode(u,!u.seekMode);
+    }
+  }
+  for(const [name,kind]of [['artilleryConfirm','mapConfirm'],['reflectorConfirm','mapConfirm'],['stopArtillery','mapCancel'],['stopBeamCannon','beamCancel'],['setSeekMode','seekToggle']]){
+    const old=globalThis[name];if(typeof old!=='function')continue;globalThis[name]=function(u,arg){if(u===player&&state.role==='guest'&&state.phase==='playing'&&(kind!=='beamCancel'||arg===true)){queueEquipmentAction(kind,kind==='mapConfirm'?arg:null);if(kind==='mapCancel'){mapOpen=false;mouseDown=rightDown=false;}return true;}return old.apply(this,arguments);};
+  }
+  if(typeof aimPress==='function'){const oldEquipmentAimPress=aimPress;aimPress=function(button,pad){
+    const cycle=state.role==='guest'&&state.phase==='playing'&&button===2&&player?.slots[player.weapon]?.w.scopeHigh,previous=player?.scopeStep;
+    const result=oldEquipmentAimPress(...arguments);if(cycle){player.scopeStep=previous;queueEquipmentAction('scopeCycle');}return result;
+  };}
+  if(typeof deployMirage==='function'){const old=deployMirage;deployMirage=function(u){const g=old(...arguments);if(g&&state.role==='host')g.onlineAppearance={mech:{...u.mech},cls:u.cls,loadout:Object.fromEntries(SLOTS.map(k=>[k,u.slots[k].w.key]))};return g;};}
+  if(typeof beamCannonVisual==='function'){const oldBeamVisual=beamCannonVisual;beamCannonVisual=function(u,paths,active){if(state.role==='host')u.onlineBeamPaths=paths.map(p=>({...p,from:p.from.toArray(),dir:p.dir.toArray()}));return oldBeamVisual(...arguments);};}
+
   function packUnit(u) {
     return {id:u.entityId,team:u.team,idx:u.idx,cls:u.cls,name:u.name,controller:u.controller,mech:u.mech,motionEpoch:u.onlineMotionEpoch||0,lagEpoch:u.onlineLagEpoch||0,renderCrouch:u.rig?.crouch||0,
       ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),predictionBlocked:typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(u):'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,u[k]?.toArray()||null])),
-      healTarget:u.healTarget?.entityId||null,catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
+      healTarget:equipmentRef(u.healTarget),equipment:packEquipmentUnit(u),catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
       swing:u.swing ? {a:u.swing.a,...safe(u.swing,['t','phi','yaw0','aimed','tilt','slope','pike','chargeStage','chargeRatio','dashAttack','stopped','queued'])} : null,
       transfer:u.transfer ? safe(u.transfer,['t','base','at']) : null,
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:u.slots[k].w.key,...safe(u.slots[k],slotKeys)}]))};
@@ -1208,7 +1377,7 @@
       barricades:barricades.map(p=>safe(p,['hp','alive'])),
       mobility:{lifts:lifts.map(l=>({pos:l.pos.toArray(),direction:l.direction,waitT:l.waitT,blocked:l.blocked})),
         jumpPads:jumpPads.map(p=>p.flash),catapults:catapults.map(p=>({flash:p.flash,opacity:p.film.material.opacity}))},
-      shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team})),
+      shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team,visual:packShellVisual(s)})),
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq])),
       inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{fixed:!!p.fixedCommands,replaySeq:p.fixedReplaySeq||0,movementSeq:p.appliedMovementActionSeq||0,movementIds:[...(p.appliedMovementIds||[])],seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
         // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元でき、最近8stepは検証用に残す。
@@ -1236,13 +1405,13 @@
       mech:hidden?null:v.mech||null,motionEpoch:hidden?0:v.motionEpoch||0,lagEpoch:hidden?0:v.lagEpoch||0,renderCrouch:hidden?0:v.renderCrouch||0,
       pos:hidden?[0,0,0]:v.pos,vel:hidden?[0,0,0]:v.vel,predictionBlocked:hidden?'':v.predictionBlocked||'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
-      healTarget:hidden?null:v.healTarget||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
+      healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
       swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries(slotKeys.map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
     for(const k of scalarKeys)value[k]=hidden?null:v[k]??null;
     return value;
   }
-  // 設置上限は許可兵装の既存ルールからだけ作る。初期の強襲/重火力は設置物0枠。
+  // 試合開始時の公開装備集合と再出撃用初期装備から上限を固定。秘匿中の設置/消去で枠数を変えない。
   function gadgetPolicyForLoadouts(loadouts){
     const specs=new Set(),special=new Set();let perUnit=0;
     for(const key of new Set(loadouts.flatMap(loadout=>Object.values(loadout)))){
@@ -1256,11 +1425,11 @@
   }
   function gadgetCapacityForLoadouts(loadouts,unitCount=units.length){return gadgetPolicyForLoadouts(loadouts).perUnit*unitCount;}
   function permittedGadgets(p,view){
-    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts([preset('assault'),preset('heavy')]));
+    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts(matchEquipmentLoadouts()));
     return (typeof gadgets!=='undefined'?gadgets:[]).filter(g=>g.alive!==false&&(policy.specs.has(g.spec)||policy.special.has(g.kind))&&(!g.attached||view.visible.has(g.attached.entityId))&&view.gadgetVisible(g));
   }
   function gadgetSlotsForPeer(p,view=createPeerView(p)){
-    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts([preset('assault'),preset('heavy')]));
+    const r=replicationFor(p),policy=r.gadgetPolicy||=(gadgetPolicyForLoadouts(matchEquipmentLoadouts()));
     if(r.gadgetCapacityPolicy!==policy){r.gadgetCapacityPolicy=policy;r.gadgetCapacity=policy.perUnit*units.length;r.gadgetSlots=Array(r.gadgetCapacity).fill(null);}
     const capacity=r.gadgetCapacity,live=typeof gadgets!=='undefined'?gadgets:[],eligible=permittedGadgets(p,view),set=new Set(eligible);
     for(let i=0;i<capacity;i++)if(r.gadgetSlots[i]&&!set.has(r.gadgetSlots[i].g))r.gadgetSlots[i]=null;
@@ -1272,8 +1441,10 @@
     r.gadgetOmitted=Math.min(65535,omitted); // ローカル診断だけ。隠れた個数をwireへ載せない。
     return r.gadgetSlots.map(slot=>{
       if(!slot)return [1];const {g,id}=slot,mesh=g.mesh;
-      return [0,id,g.kind,g.team,g.spec?.model||'',g.pos.toArray(),[mesh?.rotation.x||0,mesh?.rotation.y||0,mesh?.rotation.z||0],
-        [mesh?.scale.x??1,mesh?.scale.y??1,mesh?.scale.z??1],g.hp||0,g.maxHp||0];
+      return [0,id,g.kind,g.team,gadgetWeaponKey(g),g.pos.toArray(),[mesh?.rotation.x||0,mesh?.rotation.y||0,mesh?.rotation.z||0],
+        [mesh?.scale.x??1,mesh?.scale.y??1,mesh?.scale.z??1],g.hp||0,g.maxHp||0,
+        view.visible.has(g.owner?.entityId)?g.owner.entityId:null,mesh?.position.toArray()||g.pos.toArray(),!!g.field?.visible,
+        g.kind==='decoy'?{...(g.onlineAppearance||={mech:{...g.owner.mech},cls:g.owner.cls,loadout:Object.fromEntries(SLOTS.map(k=>[k,g.owner.slots[k].w.key]))}),yaw:g.yaw,opacity:mesh.material.opacity}:null];
     });
   }
   function snapshotForPeer(p,full=null,forceAll=false){
@@ -1281,6 +1452,7 @@
     if(!p?.unitId||!unit(p.unitId))throw Error('対戦機体が割り当てられていない参加者へ写真を送れません');
     full||=snapshot();
     const r=replicationFor(p),view=createPeerView(p),viewer=view.viewer;
+    const gadgetRows=gadgetSlotsForPeer(p,view);
     const ordered=full.units.slice().sort((a,b)=>a.id.localeCompare(b.id));let mask=0;
     const spatial=ordered.map((v,i)=>{
       const hidden=!view.visible.has(v.id);
@@ -1288,12 +1460,14 @@
       if(!hidden&&!r.visible.has(v.id))r.epochs.set(v.id,(r.epochs.get(v.id)||0)+1);
       // 隠れた枠は毎回中立値を基準から上書きし、古い可視位置を復元させない。
       if(hidden||forceAll||!r.visible.has(v.id)||(r.tick+i)%view.cadence.get(v.id)===0)mask|=1<<i;
-      return fixedUnitForPeer(v,hidden,r.epochs.get(v.id)||1);
+      const packed=fixedUnitForPeer(v,hidden,r.epochs.get(v.id)||1);
+      if(!hidden){packed.equipment=equipmentUnitForPeer(v,view);if(unit(packed.healTarget)&&!view.visible.has(packed.healTarget))packed.healTarget=null;}
+      return packed;
     });
     const own=viewer.team,foe=own==='B'?'R':'B';
     return {...full,units:spatial,unitUpdates:mask,
       roster:full.units.map(v=>({id:v.id,team:v.team,idx:v.idx,name:v.name,cls:v.cls,sc:{...v.sc}})),
-      gadgets:gadgetSlotsForPeer(p,view),
+      gadgets:gadgetRows,equipmentObjects:equipmentObjectsForPeer(view),
       spotted:Object.fromEntries(['B','R'].map(team=>[team,team===own?(full.spotted?.[team]||[]).filter(([id])=>view.visible.has(id)):[]])),
       spotSrc:Object.fromEntries(['B','R'].map(team=>[team,team===foe?(full.spotSrc?.[team]||[]).filter(([id])=>id===p.unitId):[]])),
       radars:full.radars.map((v,i)=>({...v,intruders:radars[i]?.team===own?v.intruders.filter(id=>view.visible.has(id)):[]})),
@@ -1307,7 +1481,7 @@
       })};
   }
   function encodePeerSnapshot(p,full=null,forceAll=false,forceBaseline=false){
-    const r=replicationFor(p),s=snapshotForPeer(p,full,forceAll),publicUnits=s.units.filter(v=>!v.hidden),signature=publicUnits.map(v=>v.id+':'+v.visibilityEpoch).join('|')+';'+s.gadgets.map((v,i)=>v[0]===0?i+':'+v[1]:'').join('|'),changed=signature!==r.signature;
+    const r=replicationFor(p),s=snapshotForPeer(p,full,forceAll),publicUnits=s.units.filter(v=>!v.hidden),signature=publicUnits.map(v=>v.id+':'+v.visibilityEpoch).join('|')+';'+s.gadgets.map((v,i)=>v[0]===0?i+':'+v[1]:'').join('|')+';'+s.equipmentObjects.map(v=>v.id).join('|'),changed=signature!==r.signature;
     if(changed){state.transport?.dropPendingSnapshots?.(p.id);r.queued.clear();}
     const rebase=r.encoder.willRebase?.(s,{forceBaseline})??(!r.encoder.currentBase()||forceBaseline);
     if(rebase||forceAll)s.unitUpdates=(1<<s.units.length)-1;
@@ -1342,8 +1516,8 @@
   }
   function hideRemoteUnit(u){
     if(u===player)return;
-    u.onlineHidden=true;u.group.visible=false;remoteUnitHistory.delete(u.entityId);
-    for(const mesh of [u.fieldMesh,u.barrierMesh,u.beam,u.shockFx?.root])if(mesh)mesh.visible=false;
+    u.onlineHidden=true;u.group.visible=false;u.reflect=null;u.beamFire=null;u.onlineBeamPaths=[];remoteUnitHistory.delete(u.entityId);
+    for(const mesh of [u.fieldMesh,u.barrierMesh,u.beam,u.shockFx?.root,u.beamVisual?.root,u.reflectVisual?.root,u.postFlight?.mesh])if(mesh)mesh.visible=false;
     if(typeof stopMovementSound==='function')stopMovementSound(u);
     if(u.tagEl)u.tagEl.style.display='none';
     if(typeof lock!=='undefined'&&lock.target===u)releaseLock();
@@ -1417,7 +1591,7 @@
     u.onlineMotionEpoch=s.motionEpoch||0;u.onlineLagEpoch=s.lagEpoch||0;u.onlinePredictionBlocked=s.predictionBlocked||'';
     u.onlineRenderCrouch=Number.isFinite(s.renderCrouch)?s.renderCrouch:null;
     for(const k of ['dashDir','boostVisualDir','catMomentum','lungeDir'])u[k]=s.motionVectors?.[k]?vector(s.motionVectors[k]):null;
-    u.catLaunch=s.catLaunch?{...s.catLaunch}:null;u.healTarget=s.healTarget?(s.healTarget===u.entityId?u:unit(s.healTarget)||null):null;u.jumpPad=s.jumpPadIndex>=0?jumpPads[s.jumpPadIndex]||null:null;
+    u.catLaunch=s.catLaunch?{...s.catLaunch}:null;u.healTarget=equipmentEntity(s.healTarget);applyEquipmentUnit(u,s.equipment);u.jumpPad=s.jumpPadIndex>=0?jumpPads[s.jumpPadIndex]||null:null;
     u.localView=u===player;u.controller=u.localView?'localHuman':s.controller==='bot'?'bot':'remoteHuman';
     for(const k of scalarKeys)if(s[k]==null)delete u[k];
     Object.assign(u,safe(Object.fromEntries(Object.entries(s).filter(([,v])=>v!==null)),scalarKeys)); u.pos.fromArray(s.pos); u.vel.fromArray(s.vel); Object.assign(u.sc,s.sc);
@@ -1471,14 +1645,15 @@
       for(const [id,list] of s.spotSrc?.[k]||[]){const u=unit(id);if(u)spotSrc[k].set(u,new Map(list));}
     }
     for(const v of s.plants){const p=plants.find(p=>p.id===v.id);if(p){Object.assign(p,v);paintPlant(p);}}
-    applyFacilities(s);
+    applyFacilities(s);applyEquipmentObjects(s.gadgets||[],s.equipmentObjects||[]);
+    for(const [i,v]of s.units.entries())if(!v.hidden&&(!sparse||(s.unitUpdates&(1<<i)))){const u=unit(v.id);if(u)applyEquipmentUnit(u,v.equipment);}
     // ホスト確定の施設位置・発光のみ反映。乗客移動/接触/射出の物理はゲストで行わない。
     for(const [i,v] of (s.mobility?.lifts||[]).entries()){const l=lifts[i];if(l){setLiftPosition(l,vector(v.pos));l.direction=v.direction;l.waitT=v.waitT;l.blocked=v.blocked;}}
     for(const [i,flash] of (s.mobility?.jumpPads||[]).entries()){const p=jumpPads[i];if(p){p.flash=flash;p.ring.scale.setScalar(1+flash*.12);}}
     for(const [i,v] of (s.mobility?.catapults||[]).entries()){const p=catapults[i];if(p){p.flash=v.flash;p.film.material.opacity=v.opacity;}}
     const alive=new Set(s.shells.map(x=>x.id));
-    for(const [id,m] of remoteShells)if(!alive.has(id)){scene.remove(m);m.geometry.dispose();m.material.dispose();remoteShells.delete(id);}
-    for(const sh of s.shells){let m=remoteShells.get(sh.id);if(!m){m=new T.Mesh(sh.rocket?new T.CylinderGeometry(.2,.2,1.4,8):new T.SphereGeometry(.4,8,6),new T.MeshBasicMaterial({color:sh.weak?0xa070ff:BALLISTIC_COLOR}));remoteShells.set(sh.id,m);scene.add(m);}m.position.fromArray(sh.pos);if(sh.rocket&&sh.vel.some(n=>n))m.quaternion.setFromUnitVectors(UP,vector(sh.vel).normalize());}
+    for(const [id,m] of remoteShells)if(!alive.has(id)){removeRemoteShell(m);remoteShells.delete(id);}
+    for(const sh of s.shells){let m=remoteShells.get(sh.id);if(!m){m=makeRemoteShell(sh);remoteShells.set(sh.id,m);scene.add(m);}m.position.fromArray(sh.pos);if(sh.visual){m.rotation.set(...sh.visual.rotation);m.scale.fromArray(sh.visual.scale);for(const [i,v]of sh.visual.children.entries()){const o=m.children[i];if(o){o.position.fromArray(v.pos);o.rotation.set(...v.rotation);o.scale.fromArray(v.scale);}}}else if(sh.rocket&&sh.vel.some(n=>n))m.quaternion.setFromUnitVectors(UP,vector(sh.vel).normalize());}
   }
   function requestSnapshotResync() {
     if(state.role!=='guest'||finalFrame!==null||!['preparing','countdown','playing'].includes(state.phase))return;
@@ -1575,7 +1750,7 @@
       !['B','R'].every(k=>Number.isFinite(result.cores?.[k]))||!Array.isArray(result.units)||result.units.length!==units.length)return;
     const ids=new Set();
     for(const v of result.units){
-      if(!v||typeof v!=='object'||Array.isArray(v)||!unit(v.id)||ids.has(v.id)||typeof v.name!=='string'||!['assault','heavy'].includes(v.cls)||!v.sc||typeof v.sc!=='object'||Array.isArray(v.sc)||
+      if(!v||typeof v!=='object'||Array.isArray(v)||!unit(v.id)||ids.has(v.id)||typeof v.name!=='string'||!Object.keys(CLASSES).includes(v.cls)||!v.sc||typeof v.sc!=='object'||Array.isArray(v.sc)||
          Object.keys(unit(v.id).sc).some(k=>typeof v.sc[k]!==typeof unit(v.id).sc[k])||
          Object.entries(v.sc).some(([k,n])=>!Object.hasOwn(unit(v.id).sc,k)||!Number.isFinite(n)))return;
       ids.add(v.id);
@@ -1729,18 +1904,19 @@
     if(state.role!=='guest'||state.phase!=='playing')return;
     if(now()-state.lastHost>5000){endGuest('ホストから5秒間応答がありません');return;}
     if(now()-state.lastHost>500)status('通信遅延：ホストの状態を待っています');
-    interpolate(now());decayPredictionVisual();guestPodVisuals();
+    interpolate(now());decayPredictionVisual();guestPodVisuals();if(typeof reflectorUpdate==='function')guestEquipmentVisuals(dt);
     if(!player)return;
     if(!overrideInput){
       const turn=2.2*dt;
       if(keys.ArrowLeft)player.yaw+=turn;if(keys.ArrowRight)player.yaw-=turn;
       if(keys.ArrowUp)player.pitch=Math.min(.7,player.pitch+1.5*dt);if(keys.ArrowDown)player.pitch=Math.max(-.9,player.pitch-1.5*dt);
     }
-    const aimed=updateLocalHumanAim(player,dt,false);
+    const aimed=updateLocalHumanAim(player,dt,typeof isArtilleryMode==='function'&&isArtilleryMode(player));
     const input=overrideInput?{...overrideInput}:collectLocalInput(player);
     if(!overrideInput)for(const k of ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'])delete input.keys[k];
     input.aimPoint=input.aimPoint||aimed.aim.toArray();input.lockTarget=overrideInput?.lockTarget??(lock.visible?lockId(lock.target):null);input.yaw=input.yaw??player.yaw;input.pitch=input.pitch??player.pitch;
     if(requestedWeapon){input.weapon=requestedWeapon;requestedWeapon=null;}
+    if(equipmentActions.length)input.equipmentActions=equipmentActions.splice(0,8);
     predictLocalFire(input,dt);
     stepLocalCommands(input,dt);
     if(prediction.enabled)for(const [seq,p]of state.pendingInputs)if(p.move&&player.pos.distanceToSquared(vector(p.pos))>1e-10){displayedLatencies.push({kind:'input',time:p.time});state.pendingInputs.delete(seq);}
@@ -1760,7 +1936,7 @@
     state.frame++;
     const begin=now();
     // 次の定期写真を待たず、公開範囲が変わったframeで旧待機写真を破棄する。
-    const privacyChanged=[...state.peers.values()].some(p=>{const r=replicationFor(p),view=createPeerView(p),v=view.visible,g=new Set(permittedGadgets(p,view)),old=r.gadgetPublic||new Set();return v.size!==r.visible.size||[...v].some(id=>!r.visible.has(id))||[...old].some(item=>!g.has(item))||old.size<(r.gadgetCapacity||0)&&[...g].some(item=>!old.has(item));});
+    const privacyChanged=[...state.peers.values()].some(p=>{const r=replicationFor(p),view=createPeerView(p),v=view.visible,g=new Set(permittedGadgets(p,view)),old=r.gadgetPublic||new Set(),objects=visibleEquipmentSources(view),previousObjects=r.objectPublic||new Set();return v.size!==r.visible.size||[...v].some(id=>!r.visible.has(id))||[...old].some(item=>!g.has(item))||old.size<(r.gadgetCapacity||0)&&[...g].some(item=>!old.has(item))||objects.size!==previousObjects.size||[...objects].some(o=>!previousObjects.has(o));});
     if(state.events.length){const events=state.events.splice(0);for(const p of state.peers.values()){const r=replicationFor(p);for(const e of events)r.eventCache.set(e.id,e);while(r.eventCache.size>2048)r.eventCache.delete(r.eventCache.keys().next().value);const visible=eventsForPeer(p,events);if(visible.length)state.transport.send('events',visible,p.id);}}
     if(!state.nextSnapshotAt)state.nextSnapshotAt=stateTime;
     const snapshotDue=stateTime+1e-6>=state.nextSnapshotAt;
@@ -1879,16 +2055,18 @@
         // Space/Shiftと施設操作は別queueで一度だけ消化。武器側で重ねて実行しない。
         action.pressed=Object.fromEntries(Object.entries(action.pressed||{}).filter(([k])=>!movementEdges.includes(k)&&k!=='KeyH'&&k!=='KeyE'));
         u.controlInput=action;
+        applyEquipmentActions(u,action);
         const result=oldUpdateHumanUnit(u,action,dt,{movementDone:true,utilityDone:true});
         acknowledgeInputAction(p);return result;
       }
+      if(applied)applyEquipmentActions(u,input);
       const result=oldUpdateHumanUnit(...arguments);if(applied)recordHostInputStep(u,input,dt);return result;
     };
   }
   // ロックの枠・名札・得点の飛び出しなど画面へ投影する表示も、描画と同じずらしたカメラで計算する
   // （2026-11-08 オーナー「ロックオンカーソルが微振動」：ずらす前のカメラで投影すると、枠だけが刻みごとに揺れた）。
   for(const name of ['hud','popUpdate'])if(typeof globalThis[name]==='function'){
-    const old=globalThis[name];globalThis[name]=function(){
+    const old=globalThis[name];if(typeof old!=='function')continue;globalThis[name]=function(){
       const offset=state.role==='guest'?viewOffsetOf(player):null;if(!offset)return old.apply(this,arguments);
       const position=camera.position.clone();camera.position.add(offset);camera.updateMatrixWorld();
       try{return old.apply(this,arguments);}finally{camera.position.copy(position);camera.updateMatrixWorld();}
@@ -2014,7 +2192,7 @@
       pendingInputs:prediction.pending.length,visibility:typeof document!=='undefined'?document.visibilityState:'unknown'};
   }
   window.CBOnlineGame={create,join,start,leave,setReady,setEditing,setEquipment,equipmentOptions,canStart,
-    quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,
+    quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,respawnLoadout,
     roomOptions:{classes:roomClasses.map(id=>({id,name:CLASSES[id].name||id})),maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice(),localTracers:{...localTracerStats}})};

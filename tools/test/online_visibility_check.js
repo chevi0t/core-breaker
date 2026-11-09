@@ -127,7 +127,7 @@ async function privacyFunctional(host){
       test(JSON.stringify(ids)===JSON.stringify(allowed),label+' 可視stateに同陣営だけ存在',{ids,allowed});
       test(s.units.length===g.units.length&&new Set(s.units.map(u=>u.id)).size===g.units.length&&s.units.every(u=>u.fixedUnit===true),label+' 秘匿機も固定unit枠を保持');
       test(s.units.filter(u=>u.hidden).every(scrubbed),label+' 秘匿枠はnested行動/装備を含め中立値だけ');
-      test(Array.isArray(s.gadgets)&&s.gadgets.length===0&&h.gadgetCapacityForLoadouts([h.preset('assault'),h.preset('heavy')])===0,label+' 正式な現許可装備のgadget枠は0');
+      test(Array.isArray(s.gadgets)&&s.gadgets.length===h.gadgetCapacityForLoadouts([...Object.keys(g.CLASSES).map(h.preset),...g.units.map(u=>Object.fromEntries(g.SLOTS.map(k=>[k,u.slots[k].w.key])))])&&s.gadgets.every(row=>row[0]===1),label+' 開始時装備の固定gadget枠は空と秘匿で同じ印');
       test(s.roster.length===g.units.length&&s.roster.every(u=>!['pos','vel','yaw','pitch','slots','cloak','vis','hp'].some(k=>Object.hasOwn(u,k))),label+' rosterは全機の公開属性だけ');
       test(Object.keys(s.inputAcks||{}).every(x=>x===own.entityId)&&Object.keys(s.acks||{}).every(x=>x===own.entityId),label+' 入力ackは自機だけ');
       test(Object.values(s.spotted||{}).flat().every(([x])=>allowed.includes(x)),label+' spottedから秘匿IDを除外');
