@@ -66,7 +66,7 @@ class FakePeer extends EventEmitter {
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
     oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:8});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 9 \/ 相手: 8）/);
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 10 \/ 相手: 8）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);
@@ -168,6 +168,14 @@ class FakePeer extends EventEmitter {
       const resumed=partial(6);sent.hl.snapshotConn.dataChannel.bufferedAmount=0;sent.h._tick();
       assert.equal(resumed.packetIndex,resumed.packets.length);assert.deepEqual(complete.map(x=>x.payload.frame),[1,3,6]);
       sent.h._tick();assert.equal(complete.length,3);
+      // 差分本体はbase64文字でなくバイナリで送り、受け手で元の文字列に戻す。
+      {const body=Buffer.from(Array.from({length:900},(_,i)=>(i*37)%256)).toString('base64'),wired=[];
+       const write=sent.hl.snapshotConn.send.bind(sent.hl.snapshotConn);sent.hl.snapshotConn.send=raw=>{wired.push(raw);write(raw);};
+       assert(sent.h.send('snapshot',{...payload(7),delta:[1,1,body]},sent.g.peer.id));const item=sent.hl.snapshots.at(-1);sent.h._tick();
+       sent.hl.snapshotConn.send=write;
+       assert(ArrayBuffer.isView(wired[0])&&wired[0][0]===0xCB);assert(item.bytes<Buffer.byteLength(item.text)-250);
+       assert.deepEqual(complete.at(-1).payload.delta,[1,1,body]);assert.equal(JSON.parse(Transport.wireText(wired[0])).payload.delta[2],body);
+       const bad=Uint8Array.from(wired[0]);bad[1]=127;assert.equal(Transport.wireText(bad),null);complete.pop();}
       // 一部送信後に新しい写真で集約したもの、期限切れ、可視範囲切替の破棄は完了しない。
       partial(7);sent.hl.snapshotConn.dataChannel.bufferedAmount=0;
       sent.h.send('snapshot',payload(8),sent.g.peer.id);sent.h._tick();assert.equal(complete.at(-1).payload.frame,8);
@@ -218,17 +226,17 @@ class FakePeer extends EventEmitter {
       filtered.h._tick();assert.equal(calls.length,0);
       for(const item of filtered.hl.queue)item.due=performance.now();filtered.h._tick();
       assert.equal(calls.length,1);assert.equal(calls[0].id,filtered.g.peer.id);
-      const eventWire=wire.filter(raw=>JSON.parse(raw).type==='events');assert.equal(eventWire.length,1);
+      const eventWire=wire.filter(raw=>JSON.parse(Transport.wireText(raw)).type==='events');assert.equal(eventWire.length,1);
       assert.deepEqual(JSON.parse(eventWire[0]).payload,[{id:2,data:{at:[9,8,7]}}]);
       assert.equal(filtered.h.metrics().byType.events,Buffer.byteLength(eventWire[0]));
       filtered.h.latencyMs=0;const count=filtered.h.metrics().sentMessages;
       allowed.clear();filtered.h.send('events',[{id:1}],filtered.g.peer.id);filtered.h._tick();assert.equal(filtered.h.metrics().sentMessages,count);
       throws=true;filtered.h.send('events',[{id:2}],filtered.g.peer.id);
       filtered.h.send('matchEnded',{winner:'B'},filtered.g.peer.id);assert.doesNotThrow(()=>filtered.h._tick());
-      assert(wire.some(raw=>JSON.parse(raw).type==='matchEnded'));assert.equal(filtered.h.metrics().sentMessages,count+1);
+      assert(wire.some(raw=>JSON.parse(Transport.wireText(raw)).type==='matchEnded'));assert.equal(filtered.h.metrics().sentMessages,count+1);
       throws=false;expand=true;filtered.h.send('events',[{id:2}],filtered.g.peer.id);filtered.h._tick();
       assert.equal(filtered.h.metrics().sentMessages,count+1);assert.equal(filtered.hl.queue.length,0);
-      assert.equal(wire.filter(raw=>JSON.parse(raw).type==='events').length,1);
+      assert.equal(wire.filter(raw=>JSON.parse(Transport.wireText(raw)).type==='events').length,1);
       console.log('出来事の送信直前選別：遅延中の公開範囲変更・空/例外の安全破棄・制御継続・実bytes集計 成功');
     }
     const waitingHost=make(),waitingRoom=await waitingHost.createRoom(),waitingGuest=make();
@@ -366,7 +374,7 @@ class FakePeer extends EventEmitter {
       const delayed=await inputPair({onMessage:(type,payload)=>{if(type==='inputBatch')arrived.push(payload.inputs.at(-1).seq);}},{latencyMs});
       const write=delayed.gl.snapshotConn.send.bind(delayed.gl.snapshotConn);
       delayed.gl.snapshotConn.send=raw=>{
-        const message=JSON.parse(raw),seq=message.payload.inputs.at(-1).seq,t=performance.now();
+        const message=JSON.parse(Transport.wireText(raw)),seq=message.payload.inputs.at(-1).seq,t=performance.now();
         sent.push({seq,at:t,ageMs:t-generated.get(seq)});write(raw);
       };
       for(let seq=1;seq<=count;seq++) {

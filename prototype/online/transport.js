@@ -1,8 +1,8 @@
 /* #212: PeerJS 1.5.5 用のブラウザホスト通信。ゲームの状態はここで計算しない。 */
 (function (root) {
   'use strict';
-  const PROTOCOL = 9, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
-  const CONTROL_LABEL = 'core-breaker-control-v9', SNAPSHOT_LABEL = 'core-breaker-snapshot-v9';
+  const PROTOCOL = 10, MAX_BYTES = 262144, MAX_QUEUE = 256, HIGH_WATER = 262144;
+  const CONTROL_LABEL = 'core-breaker-control-v10', SNAPSHOT_LABEL = 'core-breaker-snapshot-v10';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
   const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
   const isSnapshot = type => type === 'snapshot' || type === 'snapshotBase';
@@ -15,6 +15,36 @@
     bufferedBytes: conn.dataChannel.bufferedAmount || 0
   } : null;
   const encoder = new TextEncoder();
+  // 状態写真（差分）は、中身のbase64文字列をやめてバイナリのまま送る（約3割減。2026-11-08 オーナーと分担した通信量の削減）。
+  // 形：[0xCB][見出しJSONの長さ varint][見出しJSON utf8][差分の生バイト]。見出しは delta[2] を0にした元の封筒そのもの。
+  // 受け手は base64 に戻して元のJSON文字列を作り直し、今までと同じ検査へ渡す。分割する大きな基準写真は今までどおり文字。
+  const BINARY_MAGIC = 0xCB, textDecoder = new TextDecoder();
+  const bytesFrom64 = s => typeof Buffer !== 'undefined' ? new Uint8Array(Buffer.from(s, 'base64')) : Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const bytesTo64 = b => { if (typeof Buffer !== 'undefined') return Buffer.from(b).toString('base64'); let t = ''; for (let i = 0; i < b.length; i += 32768) t += String.fromCharCode(...b.subarray(i, i + 32768)); return btoa(t); };
+  const isBinaryWire = raw => raw instanceof ArrayBuffer || ArrayBuffer.isView(raw);
+  function binarySnapshot(envelope) {
+    const delta = envelope?.payload?.delta;
+    if (envelope?.type !== 'snapshot' || !Array.isArray(delta) || delta.length !== 3 || typeof delta[2] !== 'string') return null;
+    const body = bytesFrom64(delta[2]), header = encoder.encode(JSON.stringify({ ...envelope, payload: { ...envelope.payload, delta: [delta[0], delta[1], 0] } }));
+    const length = []; let n = header.length; while (n >= 128) { length.push(n % 128 + 128); n = Math.floor(n / 128); } length.push(n);
+    const out = new Uint8Array(1 + length.length + header.length + body.length);
+    out[0] = BINARY_MAGIC; out.set(length, 1); out.set(header, 1 + length.length); out.set(body, 1 + length.length + header.length);
+    return out;
+  }
+  // 受け取ったバイナリ写真を元のJSON文字列へ戻す。形が違えば null（呼び手が不正な通信として切る）。
+  function textFromBinary(raw) {
+    const bytes = raw instanceof ArrayBuffer ? new Uint8Array(raw) : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+    if (bytes.length < 3 || bytes[0] !== BINARY_MAGIC) return null;
+    let at = 1, n = 0, mul = 1;
+    for (let count = 0; ; count++) { if (at >= bytes.length || count > 4) return null; const b = bytes[at++]; n += (b & 127) * mul; if (b < 128) break; mul *= 128; }
+    if (at + n > bytes.length) return null;
+    try {
+      const envelope = JSON.parse(textDecoder.decode(bytes.subarray(at, at + n))), delta = envelope?.payload?.delta;
+      if (envelope?.type !== 'snapshot' || !Array.isArray(delta) || delta.length !== 3 || delta[2] !== 0) return null;
+      delta[2] = bytesTo64(bytes.subarray(at + n));
+      return JSON.stringify(envelope);
+    } catch (_) { return null; }
+  }
   const now = () => performance.now();
   // 表示名は本人確認済みのIDではない。制御文字・方向制御を除き24コードポイントまで。
   const cleanName = value => [...(typeof value === 'string' ? value : '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, '').trim()].slice(0,24).join('') || 'ゲスト';
@@ -202,6 +232,7 @@
         if(link.inputs.length>INPUT_QUEUE){link.inputs.splice(1,1);this.inputDrops.superseded++;}
       } else if (isSnapshot(type)) {
         item.packets=this._snapshotPackets(envelope,text);item.packetIndex=0;
+        if(item.packets.length===1&&item.packets[0].binary)item.bytes=item.packets[0].bytes;
         if(item.packets.some(p=>p.bytes>PACKET_BYTES)){this._status('状態用の分割データが上限を超えました',{error:true});return false;}
         if(type==='snapshotBase') {
           const old=link.snapshots.filter(x=>x.type===type);this.snapshotDrops.superseded+=old.length;
@@ -225,7 +256,10 @@
     }
     _snapshotPackets(envelope, text) {
       const data=encoder.encode(text);
-      if(data.byteLength<=PACKET_BYTES)return [{text,bytes:data.byteLength,type:envelope.type,channel:'snapshot'}];
+      if(data.byteLength<=PACKET_BYTES){
+        const binary=binarySnapshot(envelope);
+        return [binary?{text,binary,bytes:binary.byteLength,type:envelope.type,channel:'snapshot'}:{text,bytes:data.byteLength,type:envelope.type,channel:'snapshot'}];
+      }
       const packets=[],count=Math.ceil(data.byteLength/CHUNK_BYTES);
       for(let index=0;index<count;index++) {
         const chunk=data.subarray(index*CHUNK_BYTES,(index+1)*CHUNK_BYTES);
@@ -277,8 +311,16 @@
     _receive(link, raw, channel = 'control') {
       if (this.closed || link.closing || this.links.get(link.conn.peer)!==link) return;
       if(channel==='snapshot' && (!link.ready || !link.approved))return;
+      let wireBytes=null;
+      if (isBinaryWire(raw)) {
+        // バイナリは写真専用線のゲスト受信だけ。大きさを先に確かめてから戻す。
+        wireBytes=raw.byteLength;
+        const text=channel==='snapshot'&&this.role==='guest'&&wireBytes<=PACKET_BYTES?textFromBinary(raw):null;
+        if(text===null){this._drop(link,'不正な通信形式です');return;}
+        raw=text;
+      }
       if (typeof raw !== 'string' || raw.length > MAX_BYTES) { this._drop(link, '不正な通信形式です'); return; }
-      const bytes = encoder.encode(raw).byteLength;
+      const bytes = wireBytes ?? encoder.encode(raw).byteLength;
       if (bytes > (channel==='snapshot'?(this.role==='host'?INPUT_BYTES:PACKET_BYTES):MAX_BYTES)) { this._drop(link, '受信データが大きすぎます'); return; }
       let msg; try { msg = JSON.parse(raw); } catch (_) { this._drop(link, 'JSON が壊れています'); return; }
       if (!msg || typeof msg !== 'object') { this._drop(link, '不正な通信データです'); return; }
@@ -531,7 +573,7 @@
         if(item.type === 'ping' && link.pendingPing?.token === envelope.payload.token)link.pendingPing.at=envelope.payload.sentAt;
         item.text=JSON.stringify(envelope);item.bytes=encoder.encode(item.text).byteLength;
       }
-      try { conn.send(item.text); } catch (e) { this._drop(link, '送信に失敗しました: ' + e.message); return false; }
+      try { conn.send(item.binary||item.text); } catch (e) { this._drop(link, '送信に失敗しました: ' + e.message); return false; }
       this.totals.sentBytes += item.bytes; this.totals.sentMessages++; link.sentBytes += item.bytes;
       const lane=conn===link.snapshotConn?'snapshot':'control';
       this.byChannel[lane].sentBytes+=item.bytes;this.byChannel[lane].sentMessages++;
@@ -628,6 +670,8 @@
     }
   }
   CBOnlineTransport.PROTOCOL = PROTOCOL;
+  // 試験が送信内容を読むための道具（バイナリ写真も元のJSON文字列で返す）。
+  CBOnlineTransport.wireText = raw => isBinaryWire(raw) ? textFromBinary(raw) : raw;
   CBOnlineTransport.SNAPSHOT_LABEL = SNAPSHOT_LABEL;
   CBOnlineTransport.CONTROL_LABEL = CONTROL_LABEL;
   CBOnlineTransport.PEERJS_VERSION = '1.5.5';

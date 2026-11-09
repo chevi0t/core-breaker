@@ -213,7 +213,7 @@
   // 移動命令の刻みはhost定義。client申告のdtや描画Hzで機体速度を変えない。
   const commandLimits={dt:1/60,queue:30,sequenceJump:120,catchupSeconds:.1,catchupBacklog:6,maxFrameSteps:4,maxAheadSteps:2};
   let localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
-  const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:8,visualFrames:6};
+  const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:0,visualFrames:6};
   const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,futureMs:250,actions:64};
   const movementKeys=['KeyW','KeyS','KeyA','KeyD','KeyC','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   const movementEdges=['ShiftLeft','ShiftRight','Space'];
@@ -728,7 +728,7 @@
     requireVisibilitySupport();
     const settings=checkedSettings({...defaultSettings,...opts.settings}),equipment=checkedEquipment(opts.equipment||{cls:roomClasses.includes(opts.cls)?opts.cls:'assault'});
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
-    lagEnabled=opts.lagCompensationEnabled!==false;
+    lagEnabled=opts.lagCompensationEnabled!==false;predictionLimits.wireSteps=opts.ackStepHistory?8:0;
     state.settings=settings;state.resolvedMapId=resolveMap(settings.mapId);state.hostTeam='B';state.equipment=equipment;
     setSimulationRole('host'); state.transport = new CBOnlineTransport(transportOptions(opts));
     diagnosticLog?.begin({role:'host',version:localVersion(),protocol:CBOnlineTransport.PROTOCOL},logSample());
@@ -1382,8 +1382,9 @@
       shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team,visual:packShellVisual(s)})),
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq])),
       inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{fixed:!!p.fixedCommands,replaySeq:p.fixedReplaySeq||0,movementSeq:p.appliedMovementActionSeq||0,movementIds:[...(p.appliedMovementIds||[])],seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
-        // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元でき、最近8stepは検証用に残す。
-        steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}]))};
+        // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元できる。
+        // 最近のstep一覧は診断用で、巻き直しには使わない。毎回約1KBになるので既定では送らない（create の ackStepHistory で8件を送る）。
+        ...(predictionLimits.wireSteps>0?{steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}:{})}]))};
     if(state.role==='host')rememberLagSnapshot(s);return s;
   }
   function replicationFor(p){

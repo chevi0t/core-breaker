@@ -29,7 +29,7 @@ async function installProbe(host){await installWireObserver(host);await host.eva
     probe.datagrams++;probe.maxDatagramBytes=Math.max(probe.maxDatagramBytes,wire.messageBytes);
   },wire=>{
     try{
-      const {envelope,channel,messageBytes,logicalMessageBytes,fragmentCount,maxDatagramBytes,chunkBase64ExpansionBytes,chunkEnvelopeBytes}=wire;
+      const {envelope,channel,messageBytes,logicalMessageBytes,fragmentCount,maxDatagramBytes,chunkBase64ExpansionBytes,chunkEnvelopeBytes,binaryWireSavedBytes}=wire;
       const {type,payload:data}=envelope,peerId=wire.peerId;
       let decoder=decoders.get(peerId);if(!decoder){decoder=new CBOnlineCodec.Decoder();decoders.set(peerId,decoder);}
       const hiddenNeutral=u=>Object.entries(u).every(([key,value])=>{
@@ -51,7 +51,7 @@ async function installProbe(host){await installWireObserver(host);await host.eva
         return {localId,rosterCount:roster.length,fixedUnitCount:s.units.length,visibleUnitCount:publicUnits.length,hiddenUnitCount:s.units.length-publicUnits.length,alliedUnitCount:publicUnits.filter(u=>u.team===team).length,visibleEnemyCount:publicUnits.filter(u=>u.team!==team).length,unitUpdates:s.unitUpdates};
       };
       if(!['prepare','snapshotBase','snapshot'].includes(type))return;
-      const framing={peerId,channel,messageBytes,logicalMessageBytes,fragmentCount,maxDatagramBytes,chunkBase64ExpansionBytes,chunkEnvelopeBytes};
+      const framing={peerId,channel,messageBytes,logicalMessageBytes,fragmentCount,maxDatagramBytes,chunkBase64ExpansionBytes,chunkEnvelopeBytes,binaryWireSavedBytes:binaryWireSavedBytes||0};
       if(type==='prepare'){
         locals.set(peerId,data.localId);
         probe.prepare.push({...framing,payloadBytes:bytes(data),hasSnapshotState:['baseline','delta','units'].some(k=>Object.hasOwn(data,k)),metadataKeys:Object.keys(data).sort()});
@@ -98,7 +98,7 @@ if(process.argv.includes('--fixtures')){
     ok(probe.samples.length>0&&probe.maximum?.counts.roster===10&&probe.maximum?.alliedUnitCount===5,'全10機の公開名簿と味方5機を維持した通常snapshotの最大payloadを保存');
     ok(probe.samples.every(s=>s.rosterCount===10&&s.alliedUnitCount===5&&s.fixedUnitCount===10&&s.visibleUnitCount===5+s.visibleEnemyCount&&s.hiddenUnitCount+s.visibleUnitCount===10&&s.visibleEnemyCount>=0&&s.visibleEnemyCount<=5),'全写真で公開名簿/固定slot10機と自機/味方5機を維持し、可視敵と中立化した秘匿枠を区別して計測');
     ok(probe.samples.every(s=>Object.values(s.categories).reduce((n,c)=>n+c.encodedBytes,0)===s.binaryBytes),'全snapshotのカテゴリbyte合計が二進payload長と一致');
-    ok(probe.samples.every(s=>s.channel==='snapshot'&&s.messageBytes===s.binaryBytes+s.base64ExpansionBytes+s.deltaWrapperBytes+s.frameWrapperBytes+s.envelopeOverheadBytes+s.chunkBase64ExpansionBytes+s.chunkEnvelopeBytes),'全snapshotの二進差分・base64増量・delta/frame/envelope外枠・fragment増量の合計が送信量と一致');
+    ok(probe.samples.every(s=>s.channel==='snapshot'&&s.messageBytes===s.binaryBytes+s.base64ExpansionBytes+s.deltaWrapperBytes+s.frameWrapperBytes+s.envelopeOverheadBytes+s.chunkBase64ExpansionBytes+s.chunkEnvelopeBytes-s.binaryWireSavedBytes),'全snapshotの二進差分・base64増量・delta/frame/envelope外枠・fragment増量の合計からバイナリ送信の節約分を引くと送信量と一致');
     ok(probe.baselines.every(b=>b.messageBytes===b.schemaBytes+b.valuesBytes+b.patchBytes+b.baselineWrapperBytes+b.envelopeOverheadBytes+b.chunkBase64ExpansionBytes+b.chunkEnvelopeBytes),'全基準のschema・値・patch・外枠・fragment増量の合計が送信量と一致');
     ok(probe.byChannel.snapshot===(probe.byType.snapshot||0)+(probe.byType.snapshotBase||0)&&Object.values(probe.byType).reduce((n,b)=>n+b,0)===probe.byChannel.snapshot+probe.byChannel.control,'写真専用線とcontrolの実送信量を二重計上なく分類');
     report.summary={snapshotMessageBytes:stats(probe.samples.map(s=>s.messageBytes)),snapshotBinaryBytes:stats(probe.samples.map(s=>s.binaryBytes)),changedFields:stats(probe.samples.map(s=>s.changedFields)),snapshotLogicalMessageBytes:stats(probe.samples.map(s=>s.logicalMessageBytes)),snapshotFragmentCount:stats(probe.samples.map(s=>s.fragmentCount)),baselineMessageBytes:stats(probe.baselines.map(b=>b.messageBytes)),initialPrepare:probe.prepare[0],initialBaseline:probe.baselines[0],initialSnapshot:probe.initialSnapshots[0],byChannel:probe.byChannel,maxDatagramBytes:probe.maxDatagramBytes,maximum:(({fields,payload,shells,...rest})=>rest)(probe.maximum)};

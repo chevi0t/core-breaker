@@ -732,3 +732,22 @@ node tools/test/online_melee_transition.test.js
 - 既存 `auxiliary_equipment_check.js` は歴史的な総数285の固定検査が現323武器に合わない。今回その試験は変更していないため、再利用時は総数検査を現カタログへ合わせてから補助35型の実射試験へ進む必要がある。
 - ACK履歴の削減・バイナリ送信は別PRの担当範囲として触っていない。秘匿/武器枠/一覧の追加最適化と、その通信量の測定もこの実装段階には含めない。
 - #214はdraft維持。mainへのマージ、gh-pages、正式公開版の更新はしない。生成物は確認専用で公開していない。
+
+## 通信量の削減：受け取り確認の履歴とバイナリ送信（2026-11-09、Claude）
+
+オーナーと Codex との分担（秘匿・武器枠・一覧の送り方は Codex、こちらは通信の部品だけ）。
+
+- 受け取り確認（inputAcks）の `steps`（直近8stepの診断用履歴）を既定で送らない。巻き直しに使う seq・step・seqDt・totalDt・replaySeq・movementSeq・movementIds・actionSeq はそのまま。診断で要るときは `create({ackStepHistory:true})` で8件を送る。ゲスト側は届いた時だけ読む。
+- 状態写真の差分（`delta[2]`）を base64 文字列でなくバイナリで送る：`[0xCB][見出しJSONの長さ varint][見出しJSON（delta[2]=0）][差分の生バイト]`。受け手は base64 に戻して元のJSON文字列を作り直し、今までと同じ検査に通す。分割する大きな基準写真は今までどおり文字。通信規格を v10 に上げた（チャネル名も -v10）。
+
+`online_snapshot_check.js`（mesa・10機・自然Bot戦300秒、モック通信）での前後（030005c → 本変更。Bot戦は乱数で同じ試合ではない）：
+
+| | 変更前 | 変更後 |
+|---|---|---|
+| 写真1通の平均 | 3483 B | 2305 B（−34%） |
+| 写真の p95 / 最大 | 4899 / 6254 B | 3792 / 5612 B |
+| inputAcks（最大の写真） | 1036 B | 172 B |
+| 写真線の合計 | 13.53 MB | 8.94 MB（−34%） |
+| 制御線を含む合計 | 14.04 MB | 9.56 MB（−32%） |
+
+確認：`node --test tools/test/online_*.test.js` 36本、ブラウザ試験（モック通信）snapshot 13、online_check 41、channel 6（実PeerJS）、jitter 8、smooth_view 12、view_turn 4、feedback 6、local_fire 6、prediction 90、revision 53、result_buttons 14、downed_input 7、lag 200、loss 26、ui 22、visibility 825、room 18、ready 24、すべて成功。実回線の2台での確認はまだ。
