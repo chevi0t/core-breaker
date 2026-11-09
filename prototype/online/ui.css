@@ -117,3 +117,7 @@
 #onlineLogDialog button:disabled { opacity:.5; cursor:default; }
 #onlineLogDialog button:focus-visible,#onlineLogText:focus-visible { outline:2px solid #8ee7ff; outline-offset:2px; }
 @media(max-width:480px) { #onlineLogDialog { padding:12px; } .online-log-actions button { flex:1 1 40%; } }
+
+/* コピー通知は操作を奪わず、失敗時は手動保存の案内を残す。 */
+#onlineLogNotice { box-sizing:border-box; position:fixed; z-index:10010; top:12px; left:50%; transform:translateX(-50%); width:min(680px,calc(100vw - 24px)); margin:0; padding:12px 16px; color:#e3edf5; background:#101f2cf5; border:1px solid #77b8d8; border-radius:8px; font:13px/1.7 var(--body,system-ui,sans-serif); overflow-wrap:anywhere; pointer-events:none; }
+#onlineLogNotice[hidden] { display:none !important; }
