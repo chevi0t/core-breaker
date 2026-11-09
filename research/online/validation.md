@@ -640,3 +640,51 @@ node tools/test/online_melee_transition.test.js
 4. 止まっていた機体は変化が無いので写真に載らず、動き出した最初のコマで古い記録からの残りを一度に進めて跳んだ（2m以上）。前の記録で止まっていたら、1つ前の写真の時刻にも同じ所にいたことにする。
 
 分かっていて数えないこと：試験の機械が詰まってコマの間隔が揃わないコマ（引っかかり）。ロック追従はそういうコマで1〜2px乱れる（通信と関係なく起きる）。実WebRTC・実GPU・人の感じ方は測っていない。
+
+## ロビーのReady・装備編集の回帰（2026-11-09）
+
+- `node --test tools/test/online_*.test.js`：20ファイル成功。部屋設定・本人だけの装備変更解除・全員Readyの開始条件・装備中の拒否・古い設定のReady拒否・不正装備拒否・本人限定通知・30秒抑制・試合後/退出時のリセットを含む。通信代役/VMの回帰であり、実WebRTCや描画の成功ではない。
+- `node tools/test/names_check.js`：14ファイル、重複キーなし。`node --check prototype/online/game.js`・`prototype/online/ui.js` と `git diff --check` も成功。
+- 新規 `online_ready_check.js` は2画面で明示Ready、武器/パーツ変更、取消、保存不変、手動開始、選択装備/機体の反映、試合後と退出を確認する手順。既存のUI・部屋設定・結果画面・開始試験にも明示Ready操作を追加した。
+- この実行環境ではブラウザ起動前に停止。Playwrightの指定Chromiumが未導入で、利用可能なシステムChromiumも `socket() failed: Operation not permitted` となった。したがって新規ブラウザ試験・画面/コンソール確認・quick_check は未完了。装備の組合せや実回線での操作感は未検証のまま。
+- 統合後に再実行する順：上記Node回帰、`python3 tools/test/make_dbg.py dbg`、`node tools/test/online_ready_check.js dbg <出力先> --mock-transport`、`online_ui_check.js`・`online_room_check.js`・`online_result_buttons_check.js`（同様の引数）、`node tools/test/quick_check.js origin/main`。ブラウザを複数同時に起動しない。代替通信と実WebRTCは結果を分ける。
+
+## 端末内の試験ログ（2026-11-09）
+
+`online/game.js` 冒頭の診断Recorderがホスト・ゲストそれぞれで記録する。オンライン作成/参加から2秒ごとに集計し、参加/切断/試合終了/ロビー復帰/退出/タブ非表示の境界では状態を消す前にも確保する。サーバーへのログ送信、投稿、アップロードは追加しない。診断UI/CSSは既存の `online/ui.js` / `online/ui.css` 内に収め、配布の既存7資材の構成を変えない。
+
+- ロビーの計測設定、通常メニュー、結果画面の「診断ログ」から全文プレビューを開く。コピー/テキスト保存は別の明示操作。プレビュー後に記録が増えても、コピー/保存する内容は表示した時点で固定する。clipboard不可なら本文を選択して手動コピーできる。保存済み記録の消去も可能。
+- 記録はメモリと専用 `localStorage` キー `coreBreakerOnlineDiagnosticsV1` に置く。15秒ごと/境界で保存し、再読み込みにも残す。最大3接続、接続ごと300標本/128イベント、保存JSON合計512KiB。上限では古い標本を捨て、件数を記録する。最後の試合終了/切断直前の要約は通常標本と分け、ロビーで待って標本が一周しても残す。再表示・次回保存時に7日超を除去する。突然のクラッシュでは直前15秒程度を失い得る。保存不可でも現在画面内のプレビューは残る。別タブの保存は直近分を取り込み、現在接続を優先するが、ブラウザの同時書込みには完全な履歴保存を保証しない。削除後も接続中/他タブの新規記録は続く。
+- 許可リスト方式。ホスト/ゲスト、固定の状態/理由コード、端末UTC開始時刻と経過ms、表示版（Ver番号）/通信版、組み込みマップコード、参加人数/定員/片軍人数、可視状態、数値集計だけを保存する。IP、部屋/試合/接続/参加者/機体ID、名前、チャット、SDP、ICE情報、UA、ページURL、位置、装備、任意のエラー文字列は保存しない。raw `metrics()` は使わない。保存からの復元でも同じ許可リストで再構成し、未知のキー/文字列/NaN/Infinity/範囲外値を捨てる。
+- 数値: FPS（実フレーム間隔から算出）、直近2秒のframe/JS CPU/写真到着間隔、受信したhostのframe/CPU、写真年齢、アプリping RTT（hostは相手を識別しない最小/平均/最大）、送受信JSON UTF-8バイトとメッセージ数、control/snapshot別バイト、送信待ち/混雑上限、人工遅延/欠損設定、アプリ内破棄数、補正/hardSnap/固定理由、先読み停止/反復控除/視点上書き防止、補間/基準再同期、射撃ラグ補償。
+- JSONバイトは既存transport計数値。WebRTC/IPヘッダー・再送・回線全体の量を含まない。欠落数はアプリの破棄/注入であり、回線パケット損失率ではない。JS CPUはGPU完了待ちを含まない。host値は最後の受信申告値。各時系列は端末時計由来であり外部監査による真正性は保証しない。回線原因は推測せず、未知の原因は `other` とする。累計の適用範囲・未取得値はログ冒頭に明記する。
+
+検証:
+
+- `node --test tools/test/online_diagnostic_log.test.js tools/test/online_diagnostic_ui.test.js tools/test/online_diagnostic_lifecycle.test.js`: 許可リスト/復元/上限/保持期限/保存不能/複数タブ、明示コピー/保存とプレビュー固定、失敗時選択、リセット前確保、IDなしtransport集計をNode/VMで確認。
+- 既存 `tools/test/online*.test.js` を順次実行。`names_check.js` と `make_dbg.py` も確認。
+- `node tools/test/online_diagnostic_log_check.js dbg /tmp/online-log-check --mock-transport` は実ブラウザ用の再検証手順。現在の実行環境ではPlaywright既定binaryが無く、既存 `/usr/bin/chromium` も通常/許可要求付き実行とも `socket() Operation not permitted` で起動前に停止した。ブラウザでの画面配置/clipboard/ダウンロード、quick_check/通常Bot戦、実WebRTC/実回線は今回未検証。VM成功と混同しない。
+
+## 定型通信・Ready・端末内ログの部分統合（2026-11-09）
+
+最新の #214 `b147a6a` を基点に、V→数字の定型通信、明示Readyと部屋専用装備、端末内診断ログを統合した。全4兵装・全武器の同期拡張は別段階で、この時点では未完了。main・gh-pages・正式公開版は変更しない。
+
+統合で直したこと:
+
+- 定型文「準備できた」はReady状態を変更しない。明示Readyを必要とする契約を試験へ追加した。
+- 診断プレビューを開くと定型通信メニューを閉じ、V/数字/Escapeを背後の通信へ横取りしない。閉じた後は再び通信できる。
+- Ready/装備中の更新で、ホストの未反映のマップ・人数等を元へ戻さない。同じ確定設定の通知だけを区別し、確定変更・拒否・退出後は正しい設定を反映する。
+- 診断ログは既存のgame.js/ui.js/ui.cssへ収めた。新規配布資材を追加せず、配布7資材と保護された生成器を維持した。
+- 装備の保存不変検査は、独立して増える診断専用キーだけを除外し、オフライン構成とその他の保存キーを引き続き比較する。
+
+確認済み:
+
+- `node --test --test-concurrency=1 tools/test/online_*.test.js`：26ファイル、36テストすべて成功。既存入力・予測・近接・行動不能・秘匿・部屋回帰に加え、定型通信、診断13ケース、ui.js全体のDOM代役での共存操作を含む。
+- `node tools/test/online_visibility_check.js dbg <出力先> --node-only`：154項目成功。`names_check.js`：14ファイル、重複キーなし。オンラインJS全ファイルの構文、`git diff --check`、dbg生成も成功。
+- `distribution_check.py`：単体24項目成功。未公開の一時Pagesと確認用ZIPを生成し、参照解決・元資材一致・7オンライン資材・manifestのサイズ/SHA-256・ZIP CRCなど141項目成功。生成器のファイルは変更していない。生成物はテスト用で公開していない。
+
+未完了:
+
+- `quick_check.js origin/main` は新旧dbg生成まで成功し、Playwright指定のChromiumが未配置のため起動前停止。追加した実ブラウザの定型通信試験も同じ理由で停止した。利用可能なシステムChromiumのsocket制限も各担当で確認済み。
+- ブラウザの画面配置/実キー操作/clipboard/ダウンロード/コンソール、実WebRTC、別回線、人の操作感、全武器・4マップBot戦はこの統合版では確認できていない。Node/DOM代役/配布検査の成功を代用しない。
+- 実行可能な環境ではdbgを再生成し、`online_ready_check.js`、`online_quick_chat_check.js`、`online_diagnostic_log_check.js`、既存UI/部屋/結果試験、quick_checkと必要なBot回帰を1本ずつ実行する。通信代替の結果と実WebRTCを分ける。

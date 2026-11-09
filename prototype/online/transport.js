@@ -41,7 +41,11 @@
       this.history = new Map(); this._timers = new Set();
       this._tickTimer = setInterval(() => this._tick(), 20);
     }
-    _status(text, detail = {}) { this.options.onStatus?.(text, detail); }
+    _status(text, detail = {}) {
+      if(detail.signaling===false)this.options.onDiagnostic?.('signaling_lost','none');
+      else if(detail.error)this.options.onDiagnostic?.('transport_error', detail.type==='peer-unavailable'?'peer_unavailable':detail.type==='network'?'network_error':detail.type==='browser-incompatible'?'browser_unsupported':text);
+      this.options.onStatus?.(text, detail);
+    }
     _later(fn, ms) { const t = setTimeout(() => { this._timers.delete(t); fn(); }, ms); this._timers.add(t); return t; }
     async _openPeer() {
       const PeerClass = this.options.Peer || root.Peer;
@@ -409,6 +413,7 @@
     }
     _drop(link, reason) {
       if (this.links.get(link.conn.peer) !== link) return;
+      this.options.onDiagnostic?.('peer_disconnected',reason);
       this.links.delete(link.conn.peer);
       this.history.set(link.conn.peer, { sentBytes: link.sentBytes, receivedBytes: link.receivedBytes, rttMs: link.rttMs, reason, channels:{control:channelSettings(link.conn),snapshot:channelSettings(link.snapshotConn)} });
       link.assemblies.clear();link.receivedInputBatches.clear();link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
@@ -551,6 +556,17 @@
         await new Promise(resolve=>setTimeout(resolve,50));
       }
       throw new Error('ホストとの時刻合わせが時間切れになりました');
+    }
+    // 個人を識別するキーや接続情報を含まない、診断ログ専用の集計。
+    diagnostics() {
+      const links=[...this.links.values()],rtts=links.filter(l=>Number.isFinite(l.rttMs)).map(l=>l.rttMs);
+      return {sentBytes:this.totals.sentBytes,receivedBytes:this.totals.receivedBytes,sentMessages:this.totals.sentMessages,receivedMessages:this.totals.receivedMessages,
+        connectedPeers:links.filter(l=>l.ready&&l.approved&&!l.closing).length,pendingPeers:links.filter(l=>l.pending&&!l.closing).length,
+        maxBufferedBytes:this.totals.maxBufferedBytes,maxQueue:this.totals.maxQueue,
+        bufferedBytes:links.reduce((n,l)=>n+(l.conn.dataChannel?.bufferedAmount||0)+(l.snapshotConn?.dataChannel?.bufferedAmount||0),0),queue:links.reduce((n,l)=>n+l.queue.length+l.snapshots.length+l.inputs.length,0),
+        rtt:{count:rtts.length,minMs:rtts.length?Math.min(...rtts):null,meanMs:rtts.length?rtts.reduce((a,b)=>a+b,0)/rtts.length:null,maxMs:rtts.length?Math.max(...rtts):null},
+        control:this.byChannel.control,snapshot:this.byChannel.snapshot,latencyMs:this.latencyMs,snapshotDropRate:this.snapshotDropRate,inputDropRate:this.inputDropRate,
+        snapshotDrops:this.snapshotDrops,inputDrops:this.inputDrops};
     }
     metrics() {
       const seconds = Math.max(.001, (now() - this.createdAt) / 1000);

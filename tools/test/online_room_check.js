@@ -1,7 +1,7 @@
 // 部屋設定UI・所属・非mesa移動施設の同期。ブラウザ試験は直列で実行する。
 const fs=require('node:fs'),path=require('node:path');
 const {check}=require('./lib');
-const {harness,pageFor,frames,sleep,TRANSPORT_MODE}=require('./online_test_helpers');
+const {readyAll,harness,pageFor,frames,sleep,TRANSPORT_MODE}=require('./online_test_helpers');
 check('オンライン部屋設定と所属',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir),pages=[],report={mode:TRANSPORT_MODE,method:'描画省略の機能試験。実WebRTC/操作感/負荷性能を代替通信結果から推定しない。'};
   const page=async()=>{const p=await pageFor(browser,h,errors);pages.push(p);await p.evaluate(peerOptions=>{const create=CBOnlineGame.create,join=CBOnlineGame.join;CBOnlineGame.create=o=>create({...o,peerOptions});CBOnlineGame.join=(id,o)=>join(id,{...o,peerOptions});},h.peerOptions);return p;};
@@ -32,6 +32,7 @@ check('オンライン部屋設定と所属',async({browser,dir,out,ok,errors})=
     ok(!!map&&map.lifts+map.pads+map.cats>0,'移動施設を持つ非mesaマップを試験対象にする');report.map=map;
     await host.locator('#onlineMap').selectOption(map.id);await host.locator('#onlineTeamMode').selectOption('choice');await host.locator('#onlineApplySettings').click();await sleep(120);
     const before=await host.evaluate(()=>CBOnlineGame.state.roster);
+    await readyAll([host,...guests],host);
     await host.locator('#onlineStart').click();const active=[host,...guests],deadline=Date.now()+25000;
     while(Date.now()<deadline){await frames(active,1);if(await host.evaluate(()=>CBOnlineGame.state.phase==='playing'))break;await sleep(25);}
     for(const p of active)await p.waitForFunction(()=>CBOnlineGame.state.phase==='playing',{},{polling:20});

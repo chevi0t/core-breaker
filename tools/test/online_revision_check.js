@@ -4,7 +4,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const {check}=require('./lib');
 const {isDeepStrictEqual}=require('node:util');
-const {TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats,installWireObserver}=require('./online_test_helpers');
+const {readyAll,TRANSPORT_MODE,harness,pageFor,frames,room,sleep,stats,installWireObserver}=require('./online_test_helpers');
 async function pumpNetwork(host,guests,n=1){for(let i=0;i<n;i++){await frames(guests,1);await host.evaluate(()=>{CBOnlineGame.beforeFrame(0,performance.now());CBOnlineGame.afterFrame(0,performance.now());});await sleep(60);}}
 const bootstrapOnly=process.argv.includes('--bootstrap-only');
 const teamSizeArg=process.argv.find(x=>x.startsWith('--team-size='));
@@ -181,6 +181,7 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
     console.log('追加回帰: UI操作から予約カウントダウン');
     active=await uiRoom(browser,h,errors,ok);
     const {host,guest,pages}=active;
+    await readyAll(active.pages,host);
     await host.locator('#onlineStart').click();
     const seen=[new Set(),new Set()],first=new Map();let started=false;
     const deadline=Date.now()+20000;

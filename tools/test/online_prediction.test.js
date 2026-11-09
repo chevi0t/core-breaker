@@ -16,12 +16,14 @@ class V3 {
 }
 function harness(enabled=true){
   let time=0;const calls=[],sent=[],elements=new Map();
-  const makeUnit=id=>({entityId:id,cls:'assault',name:id,lifeId:1,alive:true,hp:100,downT:0,pos:new V3(),vel:new V3(),yaw:0,pitch:0,boost:100,slots:{},sc:{total:0},group:{visible:true},controller:'localHuman'});
+  const makeUnit=id=>({entityId:id,team:id.split(':')[0],cls:'assault',name:id,lifeId:1,alive:true,hp:100,downT:0,pos:new V3(),vel:new V3(),yaw:0,pitch:0,boost:100,slots:{},sc:{total:0},group:{visible:true},controller:'localHuman'});
   const units=[makeUnit('B:0'),makeUnit('R:0')];let renderedCamera=null;
   const c={MAPS:{mesa:{name:'台地',team:5,time:300}},T:{Vector3:V3},performance:{now:()=>time},Map,Set,Date,Math,console,setTimeout,clearTimeout,CBOnlineCodec:codec,
     window:{},SLOTS:[],WEAPONS:{},CLASSES:{assault:{},heavy:{}},units,player:units[0],running:true,ended:false,timeLeft:300,cores:{B:{hp:1000},R:{hp:1000}},spotted:{B:new Map(),R:new Map()},spotSrc:{B:new Map(),R:new Map()},plants:[],turrets:[],radars:[],barricades:[],lifts:[],jumpPads:[],catapults:[],ziplines:[],shells:[],
     document:{exitPointerLock:empty},$:id=>{if(!elements.has(id))elements.set(id,{querySelector:()=>null});return elements.get(id);},wrapAngle:x=>Math.atan2(Math.sin(x),Math.cos(x)),
-    showPage:empty,stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,addEventListener:empty,weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,shot:empty,shoot:empty,blast:empty,damage:empty,finish:empty,SFX:{},scene:{remove:empty},
+    showPage:empty,stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,addEventListener:empty,weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,shot:empty,shoot:empty,blast:empty,damage:empty,finish:empty,SFX:{},scene:{remove:empty,add:empty},
+    // 機体変更時の製品rebuildも通す。ここでは形状は代役で、WebGLの検証はブラウザ試験が担当。
+    TEAM:{B:{color:0},R:{color:0}},hittables:[],refOf:o=>o.userData?.ref,disposeMech:empty,buildMech:()=>({g:{position:new V3(),rotation:{},traverse:empty,visible:true}}),
     keys:{},lock:{visible:false},wheelDir:0,updateLocalHumanAim:()=>({aim:new V3()}),
     collectLocalInput:u=>({keys:{KeyW:true},pressed:{},yaw:u.yaw,pitch:u.pitch,aimPoint:[0,0,-100]}),
     predictHumanMovement(u,input,dt){

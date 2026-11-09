@@ -74,3 +74,46 @@
 #onlineDiagnostic[hidden] { display:none!important; }
 #onlinePanel .online-diagnostic-toggle { display:flex; align-items:center; gap:8px; margin:10px 0; }
 #onlinePanel .online-diagnostic-toggle input { width:16px; height:16px; margin:0; }
+
+/* 定型通信はHUD/ロビー共通。受信文字列はtextContentで描き、勝敗・照準の中央を覆わない。 */
+#onlineQuickChat, #onlineQuickChatLog, #onlineQuickChatNotice, #onlineQuickChatOpen { position:fixed; z-index:10020; box-sizing:border-box; color:#eaf5ff; font:14px/1.6 var(--body,system-ui,sans-serif); text-align:left; }
+#onlineQuickChat[hidden], #onlineQuickChatLog[hidden], #onlineQuickChatNotice[hidden], #onlineQuickChatOpen[hidden] { display:none !important; }
+#onlineQuickChat { top:22%; left:18px; width:min(310px,calc(100vw - 36px)); max-height:65vh; overflow:auto; padding:14px; border:1px solid #60bbef; border-radius:8px; background:#0b1927f5; box-shadow:0 8px 32px #0009; pointer-events:auto; }
+#onlineQuickChat strong { display:block; margin-bottom:10px; color:#91d7ff; }
+#onlineQuickChatChoices { display:grid; gap:6px; }
+#onlineQuickChat button, #onlineQuickChatOpen { margin:0; min-height:36px; padding:6px 10px; border:1px solid #426d87; border-radius:4px; background:#152e40; color:#eaf5ff; font:inherit; cursor:pointer; pointer-events:auto; }
+#onlineQuickChat button:hover, #onlineQuickChat button:focus-visible { background:#285574; outline:2px solid #91d7ff; }
+#onlineQuickChat p { margin:10px 0 2px; font-size:12px; } #onlineQuickChat small { color:#a7bece; font-size:11px; }
+#onlineQuickChatLog { right:18px; top:30%; width:min(340px,calc(100vw - 36px)); pointer-events:none; overflow-wrap:anywhere; }
+#onlineQuickChatLog p { margin:3px 0; padding:6px 9px; border-left:3px solid #6fc8ff; background:#081723e8; border-radius:3px; }
+#onlineQuickChatNotice { bottom:145px; left:50%; transform:translateX(-50%); max-width:calc(100vw - 24px); padding:6px 12px; background:#452c15f0; border:1px solid #e6b46c; border-radius:4px; pointer-events:none; }
+#onlineQuickChatOpen { left:18px; top:calc(22% - 44px); font-size:12px; }
+@media(max-width:600px) { #onlineQuickChat { left:10px; top:15%; width:min(290px,calc(100vw - 20px)); } #onlineQuickChatLog { top:auto; bottom:160px; right:10px; width:min(300px,calc(100vw - 20px)); font-size:12px; } }
+
+#onlinePanel #onlineQuickChatLog { position:static; width:100%; margin-top:10px; font-size:13px; }
+#onlinePanel #onlineQuickChatLog p { margin:4px 0; }
+
+/* ロビーの準備状態。催促は装備欄だけで控えめに表示し、音や強制遷移は使わない。 */
+#onlinePanel .online-readiness { color:#b4bdc7; border:1px solid #526172; border-radius:3px; padding:1px 6px; white-space:nowrap; }
+#onlinePanel .online-readiness[data-ready=true] { color:#9ce3c5; border-color:#51866e; }
+#onlinePanel #onlineReady[aria-pressed=true] { background:#245342; border-color:#76d9b3; color:#dbfff0; }
+#onlinePanel #onlineEquipmentEditor { margin-top:14px; padding-top:12px; border-top:1px solid #385368; }
+#onlinePanel #onlineEquipmentEditor h4 { margin:4px 0; }
+#onlinePanel #onlineEquipmentFields { margin-top:12px; }
+#onlinePanel .online-equipment-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+#onlinePanel #onlineReadyNudge { color:#e8d6a7; background:#493c2540; border-left:2px solid #b49a61; padding:8px 10px; font-size:12px; }
+#onlinePanel .online-actions { flex-wrap:wrap; }
+@media(min-width:761px) { #onlinePanel .online-status-wrap { flex:1; } #onlinePanel .online-actions { max-width:55%; justify-content:flex-end; } }
+
+/* 任意共有の診断ログプレビュー。 */
+#onlineLogDialog { box-sizing:border-box; width:min(900px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:20px; border:1px solid #47718a; border-radius:12px; background:#101f2c; color:#e3edf5; overflow:auto; }
+#onlineLogDialog::backdrop { background:#000b; }
+#onlineLogDialog h2 { margin:0 0 12px; font-size:20px; }
+#onlineLogDialog p { line-height:1.6; font-size:13px; }
+#onlineLogDialog label { display:block; margin-bottom:6px; }
+#onlineLogText { box-sizing:border-box; display:block; width:100%; height:min(42dvh,360px); min-height:100px; resize:vertical; background:#08121b; border:1px solid #53728b; color:#dae8ef; font:12px/1.5 monospace; padding:10px; }
+.online-log-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+#onlineLogDialog button { padding:10px 14px; border:1px solid #6f8ba3; border-radius:4px; background:#203e55; color:#fff; cursor:pointer; }
+#onlineLogDialog button:disabled { opacity:.5; cursor:default; }
+#onlineLogDialog button:focus-visible,#onlineLogText:focus-visible { outline:2px solid #8ee7ff; outline-offset:2px; }
+@media(max-width:480px) { #onlineLogDialog { padding:12px; } .online-log-actions button { flex:1 1 40%; } }

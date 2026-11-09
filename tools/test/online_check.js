@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const connectionsOnly=process.argv.includes('--connections-only');
 const {check}=require('./lib');
-const {TRANSPORT_MODE,harness,pageFor,frames,room,identity,input,neutral,summary,sleep}=require('./online_test_helpers');
+const {readyAll,TRANSPORT_MODE,harness,pageFor,frames,room,identity,input,neutral,summary,sleep}=require('./online_test_helpers');
 check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir);let active;
   const results={mode:TRANSPORT_MODE+'・固定コマ送り・描画省略。性能測定ではない',matches:[]};
@@ -31,6 +31,7 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
           return send(type,payload,peerId);
         };
       });
+      await readyAll(pages,host);
       await host.evaluate(()=>CBOnlineGame.start({teamSize:5}));
       const waitingAt=Date.now();let earlyReady=false,slowWaiting=false;
       while(Date.now()-waitingAt<10000){

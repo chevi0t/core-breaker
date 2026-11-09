@@ -2,7 +2,7 @@
 // node tools/test/online_ui_check.js dbg --mock-transport
 const path=require('node:path');
 const {check}=require('./lib');
-const {harness,pageFor}=require('./online_test_helpers');
+const {readyAll,harness,pageFor}=require('./online_test_helpers');
 // 試験ページは requestAnimationFrame を止めている（pageFor）。waitForFunction の既定の rAF 待ちは二度と評価されないので、時間で待つ。
 check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
   const h=await harness(dir),pages=[];
@@ -38,7 +38,9 @@ check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
     ok(await host.evaluate(()=>window.__copiedRoom===CBOnlineGame.state.roomId),'クリックした部屋IDだけをコピー');
     const guest=await make();await guest.locator('#menuOnline').click();await guest.locator('#onlineRoom').fill(id);await guest.locator('#onlineJoin').click();
     await host.waitForFunction(()=>CBOnlineGame.state.roster.length===2&&[...CBOnlineGame.state.peers.values()].every(p=>p.preferred),{},{polling:20});
-    ok(await host.locator('#onlineStart').isEnabled(),'自動入室後はホストが出撃できる');
+    ok(await host.locator('#onlineStart').isDisabled(),'入室だけでは開始できない');
+    await readyAll([host,guest],host);
+    ok(await host.locator('#onlineStart').isEnabled(),'全員Readyの後だけホストが出撃できる');
     ok(await guest.locator('#onlineStart').isHidden()&&await guest.locator('#onlineMap').isDisabled(),'ゲストに開始・設定変更の操作を出さない');
     const team=host.locator('#onlineRoster [data-team="R"]');await team.focus();await host.keyboard.press('Enter');
     await host.waitForFunction(()=>CBOnlineGame.state.roster.find(p=>p.host)?.team==='R',{},{polling:20});

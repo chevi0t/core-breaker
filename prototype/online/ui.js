@@ -12,13 +12,14 @@
   <div class="online-body"><div class="online-main">
   <section class="online-card"><h3><span>01</span> パイロット登録</h3><div class="online-fields">
     <label for="onlineName">申告名 <small>本人確認なし</small><input id="onlineName" maxlength="24" value="ゲスト" aria-label="オンラインの申告名"></label>
-    <label for="onlineClass">兵装<select id="onlineClass"><option value="assault">強襲</option><option value="heavy">重火力</option></select></label>
-  </div><p class="online-note">初期装備で出撃します。保存済みの装備は変更しません。</p></section>
+    <label for="onlineClass">兵装<select id="onlineClass"></select></label>
+  </div><p class="online-note">入室後に武器・パーツを変更できます。保存済みの装備は変更しません。</p></section>
   <section class="online-card"><h3><span>02</span> 部屋を作る・参加する</h3>
     <div class="online-entry"><div><p>ホストとして招待する</p><button type="button" id="onlineCreate" class="online-primary">部屋を作る</button></div><div><label for="onlineRoom">受け取った部屋IDで参加</label><div class="online-join"><input id="onlineRoom" maxlength="100" placeholder="部屋IDを入力" aria-label="部屋ID" spellcheck="false" autocomplete="off"><button type="button" id="onlineJoin">部屋に入る</button></div></div></div>
     <div class="online-share"><p class="online-note">作成した部屋IDを友人に共有してください。入室は自動です。</p><button type="button" id="onlineCopy" hidden>部屋IDをコピー</button></div>
   </section>
-  <section class="online-card online-squad"><h3><span>03</span> 出撃メンバー</h3><div id="onlineRequests" aria-label="入室承認待ち" hidden></div><div id="onlineRoster" aria-label="参加者"></div><p id="onlineEmpty" class="online-empty">まだ部屋に入っていません。<br><small>人間2〜4人で出撃。空き枠はBotが担当します。</small></p><button type="button" id="onlineShuffle" hidden>チームをシャッフル</button></section>
+  <section class="online-card online-squad"><h3><span>03</span> 出撃メンバー</h3><div id="onlineRequests" aria-label="入室承認待ち" hidden></div><div id="onlineRoster" aria-label="参加者"></div><p id="onlineEmpty" class="online-empty">まだ部屋に入っていません。<br><small>人間2〜4人で出撃。空き枠はBotが担当します。</small></p><button type="button" id="onlineShuffle" hidden>チームをシャッフル</button><p id="onlineReadySummary" class="online-note"></p><button type="button" id="onlineEquipment" hidden>装備を変更</button>
+    <section id="onlineEquipmentEditor" hidden aria-label="オンライン用装備"><h4>この部屋の装備</h4><p class="online-note">開くと自分のReadyが解除されます。強襲・重火力の対応済み装備を選べます。設置物・誘導弾・専用照準・追加特殊装備は同期対応後に追加予定です。</p><label>兵装<select id="onlineEquipmentClass"></select></label><div id="onlineEquipmentFields" class="online-fields"></div><p id="onlineEquipmentWeight" class="online-note"></p><p id="onlineReadyNudge" role="status" aria-live="polite" hidden></p><div class="online-equipment-actions"><button type="button" id="onlineEquipmentSave">この装備で戻る</button><button type="button" id="onlineEquipmentCancel">変更せず戻る</button></div></section></section>
   </div><aside class="online-side">
   <fieldset id="onlineSettings" class="online-card"><legend>作戦設定</legend><p class="online-note">作成後はホストだけが変更できます。</p><div class="online-fields">
     <label for="onlineCapacity">人間の定員（ホストを含む）<select id="onlineCapacity"></select></label>
@@ -28,10 +29,10 @@
   </div><p id="onlineResolvedMap" class="online-map"></p><button type="button" id="onlineApplySettings" hidden>部屋の設定を反映</button>
   <details><summary>抽選のタイミング</summary><p>マップは作成時・ランダムへ変えたときに一度だけ抽選。チームはシャッフル時と開始時に抽選します。希望選択では開始時の所属を保ちます。</p></details></fieldset>
   <details class="online-card online-measure"><summary>計測設定</summary><label class="online-diagnostic-toggle"><input type="checkbox" id="onlineDiagnostics">試合中の診断表示（F3）</label><label for="onlineLatency">人工片道遅延<select id="onlineLatency"><option value="0">なし</option><option value="50">50ms</option><option value="100">100ms</option></select></label><p>両端に同じ値を指定してください。送信側に追加する遅延です。通信中は変更できません。</p></details>
-  <details class="online-card"><summary>実回線で試す手順</summary><ol class="online-test-steps"><li>PCを2台、別々の回線につなぎます。</li><li>ホストが部屋を作り、IDを共有します。</li><li>もう1台でIDを入力して入室。ホストが試合を始めます。</li><li>ホストのタブを前面にしたまま、両画面の移動・射撃・終了を確認します。</li></ol></details>
+  <details class="online-card"><summary>実回線で試す手順</summary><ol class="online-test-steps"><li>PCを2台、別々の回線につなぎます。</li><li>ホストが部屋を作り、IDを共有します。</li><li>もう1台でIDを入力して入室。全員がReadyを押したら、ホストが試合を始めます。</li><li>ホストのタブを前面にしたまま、両画面の移動・射撃・終了を確認します。</li></ol></details>
   <p class="online-caution">ホストのタブは前面にしてください。ホストの退出で試合終了。STUNのみのため、回線によっては接続できません。大人数・重いマップは負荷が増えます。</p>
   </aside></div>
-  <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><button type="button" id="onlineClose">戻る／退出</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div></footer>`;
+  <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><button type="button" id="onlineClose">戻る／退出</button><button type="button" id="onlineReady" hidden aria-pressed="false">Ready（準備完了）</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div></footer>`;
   document.body.appendChild(panel);
   const diagnostic=document.createElement('div');diagnostic.id='onlineDiagnostic';diagnostic.hidden=true;diagnostic.setAttribute('aria-label','オンライン試験の診断');document.body.append(diagnostic);
   const number=(v,digits=0)=>Number.isFinite(v)?v.toFixed(digits):'—';
@@ -59,6 +60,7 @@
   const el = id => document.getElementById(id);
   const addOption = (id,value,label) => { const option=document.createElement('option');option.value=value;option.textContent=label;el(id).append(option); };
   const supported=CBOnlineGame.roomOptions;
+  supported.classes.forEach(c=>{addOption('onlineClass',c.id,c.name);addOption('onlineEquipmentClass',c.id,c.name);});
   supported.capacities.forEach(n=>addOption('onlineCapacity',n,n+'人'));
   supported.teamSizes.forEach(n=>addOption('onlineTeamSize',n,n+'対'+n+'（合計'+n*2+'機）'));
   addOption('onlineMap','random','ランダム');supported.maps.forEach(m=>addOption('onlineMap',m.id,m.name));
@@ -79,7 +81,15 @@
     el('onlineEmpty').hidden=s.roster.length>0;
     el('onlineSettings').hidden=s.role==='guest'&&!s.settings;
     el('onlineApplySettings').hidden=!host;el('onlineShuffle').hidden=!host;el('onlineShuffle').disabled=busy||!host;
-    el('onlineStart').hidden=!host;el('onlineStart').disabled=busy||!host||s.peers.size<1||![...s.peers.values()].every(p=>p.preferred);
+    el('onlineStart').hidden=!host;el('onlineStart').disabled=busy||!CBOnlineGame.canStart();
+    const lobby=active&&s.phase==='lobby'&&!!s.equipment,editing=!el('onlineEquipmentEditor').hidden;
+    el('onlineReady').hidden=!lobby;el('onlineReady').disabled=busy||editing||s.editing||s.equipmentPending;
+    el('onlineReady').textContent=s.lobbyReady?'Readyを取り消す':'Ready（準備完了）';el('onlineReady').setAttribute('aria-pressed',String(s.lobbyReady));
+    el('onlineEquipment').hidden=!lobby;el('onlineEquipment').disabled=busy||editing||s.equipmentPending;
+    for(const field of el('onlineEquipmentEditor').querySelectorAll('button,select'))field.disabled=!lobby||busy||s.equipmentPending;
+    el('onlineReadySummary').textContent=lobby?'Ready '+s.roster.filter(p=>p.ready).length+' / '+s.roster.length+'人。全員Readyの後、ホストが開始します。BotはReady不要です。':'';
+    if(!s.nudgeActive)el('onlineReadyNudge').hidden=true;
+    if(!lobby)el('onlineEquipmentEditor').hidden=true;
     for(const b of panel.querySelectorAll('[data-action]'))b.disabled=!host;
     for(const row of panel.querySelectorAll('#onlineRoster [data-team]')){
       const full=s.roster.filter(p=>p.team===row.dataset.team).length>=s.settings?.teamSize&&row.getAttribute('aria-pressed')!=='true';
@@ -108,6 +118,7 @@
     const participant = entry => {
       const member=document.createElement('span');member.className='online-member';
       const name=document.createElement('span');name.textContent=peerLabel(entry)+(entry.host?'・ホスト':'')+(entry.id===localId?'・あなた':'')+(!choice?'・グループ'+(entry.team==='B'?'A':'B'):'');member.append(name);
+      const readiness=document.createElement('span');readiness.className='online-readiness';readiness.dataset.ready=String(!!entry.ready);readiness.textContent=entry.editing?'装備中':entry.ready?'Ready':'準備中';member.append(readiness);
       if(s.role==='host'&&!entry.host&&editable)member.append(peerAction('退出させる',entry.id,'kickGuest'));
       return member;
     };
@@ -126,13 +137,17 @@
     }
     const note=document.createElement('p');note.textContent=choice?'希望する行をクリックして所属を選べます。空き枠はBotになります。出撃後はどちらの所属でも自軍が青、敵軍が橙です。':'開始時にチームを再抽選します。今の所属は名前の横に表示しています。空き枠はBotになります。';list.append(note);controls();
   }
-  function settingsChanged(settings,resolvedMapId) {
-    if(settings){el('onlineCapacity').value=String(settings.capacity);el('onlineTeamSize').value=String(settings.teamSize);el('onlineMap').value=settings.mapId;el('onlineTeamMode').value=settings.teamMode;}
+  let lastSettingsSignature=null;
+  function settingsChanged(settings,resolvedMapId,force=false) {
+    const signature=settings?JSON.stringify([settings.capacity,settings.teamSize,settings.mapId,settings.teamMode,resolvedMapId]):null;
+    // Ready/装備中の通知でも呼ばれる。確定設定が同じならホストの未反映の選択を消さない。
+    if(settings&&(force||signature!==lastSettingsSignature)){el('onlineCapacity').value=String(settings.capacity);el('onlineTeamSize').value=String(settings.teamSize);el('onlineMap').value=settings.mapId;el('onlineTeamMode').value=settings.teamMode;}
+    lastSettingsSignature=signature;
     el('onlineResolvedMap').textContent=settings?'出撃マップ: '+(supported.maps.find(m=>m.id===resolvedMapId)?.name||resolvedMapId)+(settings.mapId==='random'?'（抽選済み）':''):'';controls();
   }
-  const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned});
+  const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned,onNudge:text=>{el('onlineReadyNudge').textContent=text;el('onlineReadyNudge').hidden=false;}});
   const act = async fn => {if(busy)return;busy=true;controls();const mine=++generation;try{await fn(mine);}catch(e){if(mine===generation)status(e.message);}finally{if(mine===generation){busy=false;controls();}}};
-  const resetRoomControls = () => {returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
+  const resetRoomControls = () => {el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
   const startLabel = () => document.getElementById('start');
   const leaveResult = (openPanel=true) => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();startLabel().textContent='もう一度出撃する';panel.hidden=!openPanel;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
   returnButton.onclick = () => { if (CBOnlineGame.state.phase === 'lobby') { panel.hidden = false; returnButton.hidden = true; controls(); } else leaveResult(true); };
@@ -140,12 +155,32 @@
   el('onlineCopy').onclick=async()=>{const id=CBOnlineGame.state.roomId;if(!id)return;try{await navigator.clipboard.writeText(id);status('部屋IDをコピーしました。友人に共有してください。');}catch{status('コピーできませんでした。部屋ID欄を選択してコピーしてください。');el('onlineRoom').focus();el('onlineRoom').select();}};
   el('onlineCreate').onclick=()=>act(async mine=>{let room;try{room=await CBOnlineGame.create(options());}catch(e){if(mine===generation)CBOnlineGame.leave('部屋を作成できませんでした');throw e;}if(mine!==generation)return;el('onlineRoom').value=room;status('部屋ID: '+room+'　ゲストの入室を待っています。');});
   el('onlineJoin').onclick=()=>act(async mine=>{const id=el('onlineRoom').value.trim();if(!id)throw Error('部屋IDを入力してください');try{await CBOnlineGame.join(id,options());}catch(e){if(mine===generation)CBOnlineGame.leave('接続できませんでした');throw e;}if(mine===generation)status('接続しました。ホストの開始を待っています。');});
-  el('onlineApplySettings').onclick=()=>{try{CBOnlineGame.updateSettings(roomSettings());}catch(e){settingsChanged(CBOnlineGame.state.settings,CBOnlineGame.state.resolvedMapId);status(e.message);}};
+  el('onlineApplySettings').onclick=()=>{try{CBOnlineGame.updateSettings(roomSettings());}catch(e){settingsChanged(CBOnlineGame.state.settings,CBOnlineGame.state.resolvedMapId,true);status(e.message);}};
   el('onlineShuffle').onclick=()=>{try{CBOnlineGame.shuffleTeams();}catch(e){status(e.message);}};
-  el('onlineStart').onclick=()=>act(async()=>{CBOnlineGame.updateSettings(roomSettings());await CBOnlineGame.start();status('ゲストの準備完了を待っています');});
+  let equipmentDraft=null;
+  function renderEquipment(){
+    const cls=equipmentDraft.cls,options=CBOnlineGame.equipmentOptions(cls),fields=el('onlineEquipmentFields');fields.replaceChildren();
+    el('onlineEquipmentClass').value=cls;
+    const add=(labelText,key,values,current,onChange)=>{
+      const label=document.createElement('label'),select=document.createElement('select');label.textContent=labelText;select.dataset.equipment=key;
+      for(const value of values){const option=document.createElement('option');option.value=value.id;option.textContent=value.name;select.append(option);}
+      select.value=current;select.onchange=()=>{onChange(select.value);equipmentWeight();};label.append(select);fields.append(label);
+    };
+    const slotNames={main:'主武器',sub:'副武器',aux:'補助装備',sp:'特別装備'};
+    for(const slot of SLOTS)add(slotNames[slot],slot,options.weapons[slot],equipmentDraft.loadout[slot],value=>equipmentDraft.loadout[slot]=value);
+    for(const slot of PART_SLOTS)add(PART_NAMES[slot]||slot,slot,options.parts[slot],equipmentDraft.mech[slot],value=>equipmentDraft.mech[slot]=value);
+    add('塗装','color',options.paints,equipmentDraft.mech.color,value=>equipmentDraft.mech.color=value);equipmentWeight();controls();
+  }
+  function equipmentWeight(){const st=mechStats(equipmentDraft.mech,equipmentDraft.loadout);el('onlineEquipmentWeight').textContent='総重量 '+st.weight+'kg / 積載 '+st.cap+'kg'+(st.excess>0?'（重量超過 +'+st.excess+'kg、速度 −'+Math.round(st.slow*100)+'%）':'');}
+  el('onlineEquipment').onclick=()=>{try{CBOnlineGame.setEditing(true);equipmentDraft=JSON.parse(JSON.stringify(CBOnlineGame.state.equipment));el('onlineEquipmentEditor').hidden=false;renderEquipment();el('onlineEquipmentClass').focus();}catch(e){status(e.message);}};
+  el('onlineEquipmentClass').onchange=()=>{equipmentDraft.cls=el('onlineEquipmentClass').value;equipmentDraft.loadout=Object.fromEntries(SLOTS.map(k=>[k,CLASSES[equipmentDraft.cls][k]]));renderEquipment();};
+  const closeEquipment=save=>{try{if(save)CBOnlineGame.setEquipment(equipmentDraft);CBOnlineGame.setEditing(false);el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;controls();el('onlineReady').focus();}catch(e){status(e.message);}};
+  el('onlineEquipmentSave').onclick=()=>closeEquipment(true);el('onlineEquipmentCancel').onclick=()=>closeEquipment(false);
+  el('onlineReady').onclick=()=>{try{CBOnlineGame.setReady(!CBOnlineGame.state.lobbyReady);controls();}catch(e){status(e.message);}};
+  el('onlineStart').onclick=()=>act(async()=>{CBOnlineGame.updateSettings(roomSettings());await CBOnlineGame.start();status('ゲームの読み込みを待っています');});
   el('onlineClose').onclick=()=>{CBOnlineGame.leave();resetRoomControls();panel.hidden=true;button.focus();};
   // 通常のマップ変更・射撃場・チュートリアルへ対戦中のまま入らない。
-  document.addEventListener('click', e => { if (CBOnlineGame.active() && e.target.closest?.('#overlay') && !e.target.closest?.('#onlineReturn')) {
+  document.addEventListener('click', e => { if (CBOnlineGame.active() && e.target.closest?.('#overlay') && !e.target.closest?.('#onlineReturn,#onlineLogResult,#menuOnlineLog')) {
     // 表彰/スコアを触っただけで窓を開かない。結果から戻る操作は専用ボタンだけ。
     if (!e.target.closest?.('button,a,input,select')) return;
     e.stopImmediatePropagation(); e.preventDefault();
@@ -161,9 +196,79 @@
     if (CBOnlineGame.state.phase === 'lobby' && e.target.closest('#start')) { returnButton.hidden = true; controls(); return; }
     status('オンラインを退出してから通常メニューを使ってください。');
   } }, true);
+  // V → 数字でカテゴリ → 数字で送信。押下を消費したキーはkeyupまで隔離し、長押しでも武器へ漏らさない。
+  const chat=CBOnlineGame.quickChat;
+  const chatBox=document.createElement('section');chatBox.id='onlineQuickChat';chatBox.hidden=true;
+  chatBox.setAttribute('aria-label','定型通信');chatBox.innerHTML='<strong id="onlineQuickChatTitle"></strong><div id="onlineQuickChatChoices"></div><p>数字で選択 / 0で戻る / V・Escで閉じる</p><small>テキスト通信。音声・地点指定・Botへの指示はありません。</small>';
+  const chatLog=document.createElement('div');chatLog.id='onlineQuickChatLog';chatLog.hidden=true;chatLog.setAttribute('role','log');chatLog.setAttribute('aria-live','polite');chatLog.setAttribute('aria-label','定型通信の受信');
+  const chatNotice=document.createElement('div');chatNotice.id='onlineQuickChatNotice';chatNotice.hidden=true;chatNotice.setAttribute('role','status');
+  const chatButton=document.createElement('button');chatButton.type='button';chatButton.id='onlineQuickChatOpen';chatButton.textContent='V 定型通信';chatButton.hidden=true;
+  const lobbyChatButton=document.createElement('button');lobbyChatButton.type='button';lobbyChatButton.id='onlineLobbyChat';lobbyChatButton.textContent='V 定型通信（全員）';lobbyChatButton.hidden=true;
+  const lobbyChatSection=document.createElement('section');lobbyChatSection.className='online-card online-lobby-chat';lobbyChatSection.hidden=true;
+  const lobbyChatTitle=document.createElement('h3');lobbyChatTitle.textContent='定型通信 / 全員';lobbyChatSection.append(lobbyChatTitle,lobbyChatButton);panel.querySelector('.online-main').append(lobbyChatSection);
+  document.body.append(chatBox,chatLog,chatNotice,chatButton);
+  let chatGroup=null,chatContext='',chatOpenedAt=0,chatNoticeUntil=0,chatLogSignature='';
+  const chatConsumed=new Set();
+  const chatStamp=()=>[CBOnlineGame.state.roomId,CBOnlineGame.state.phase,CBOnlineGame.state.matchId,CBOnlineGame.state.phase==='playing'?player?.lifeId:''].join('|');
+  const chatAvailable=()=>!el('onlineLogDialog')?.open&&chat.allowed()&&(CBOnlineGame.state.phase==='lobby'?!panel.hidden:panel.hidden);
+  const closeChat=()=>{chatBox.hidden=true;chatGroup=null;};
+  function showChatChoices(){
+    const list=el('onlineQuickChatChoices');list.replaceChildren();
+    el('onlineQuickChatTitle').textContent=(CBOnlineGame.state.phase==='lobby'?'全員':'味方のみ')+' / '+(chatGroup===null?'定型通信':chat.categories[chatGroup].label);
+    const entries=chatGroup===null?chat.categories:chat.categories[chatGroup].items;
+    entries.forEach((entry,index)=>{const b=document.createElement('button');b.type='button';b.textContent=(index+1)+'  '+(entry.label||entry.text);b.onclick=()=>chooseChat(index);list.append(b);});
+  }
+  function openChat(){
+    if(!chatAvailable())return;
+    chatGroup=null;chatContext=chatStamp();chatOpenedAt=performance.now();chatBox.hidden=false;
+    // 既に開いていた円形メニューのキー解放で旧指示・武器選択を送らない。
+    wsel.open=qc.open=false;showChatChoices();
+  }
+  function chooseChat(index){
+    if(!chatAvailable()||chatContext!==chatStamp()){closeChat();return;}
+    if(chatGroup===null){if(chat.categories[index]){chatGroup=index;chatOpenedAt=performance.now();showChatChoices();}return;}
+    const phrase=chat.categories[chatGroup].items[index];if(!phrase)return;
+    closeChat();chat.send(phrase.id);
+  }
+  chatButton.onclick=lobbyChatButton.onclick=()=>chatBox.hidden?openChat():closeChat();
+  for(const node of [chatBox,chatButton,lobbyChatButton])for(const type of ['mousedown','mouseup','auxclick','wheel'])node.addEventListener(type,e=>{e.stopPropagation();if(type!=='wheel')e.preventDefault();});
+  const eatChatKey=e=>{e.preventDefault();e.stopImmediatePropagation();chatConsumed.add(e.code);delete keys[e.code];delete pressed[e.code];};
+  addEventListener('keydown',e=>{
+    if(chatConsumed.has(e.code)){eatChatKey(e);return;}
+    if(!chatBox.hidden&&(!chatAvailable()||chatContext!==chatStamp()))closeChat();
+    if(e.isComposing||e.ctrlKey||e.altKey||e.metaKey||e.target?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))return;
+    if(e.code==='KeyV'&&chatAvailable()){eatChatKey(e);if(!e.repeat)chatBox.hidden?openChat():closeChat();return;}
+    if(chatBox.hidden)return;
+    if(['Escape','Backspace'].includes(e.code)){eatChatKey(e);if(!e.repeat){if(e.code==='Backspace'&&chatGroup!==null){chatGroup=null;showChatChoices();}else closeChat();}return;}
+    const digit=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);if(!digit)return;
+    eatChatKey(e);if(e.repeat)return;
+    if(digit[1]==='0'){if(chatGroup===null)closeChat();else{chatGroup=null;showChatChoices();}}else chooseChat(Number(digit[1])-1);
+  },true);
+  addEventListener('keyup',e=>{if(!chatConsumed.delete(e.code))return;e.preventDefault();e.stopImmediatePropagation();delete keys[e.code];delete pressed[e.code];},true);
+  addEventListener('blur',()=>{closeChat();chatConsumed.clear();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){closeChat();chatConsumed.clear();}});
+  function refreshChat(){
+    const s=CBOnlineGame.state,at=performance.now();
+    if(!chatBox.hidden&&(!chatAvailable()||chatContext!==chatStamp()||at-chatOpenedAt>10000))closeChat();
+    lobbyChatButton.hidden=s.phase!=='lobby'||!CBOnlineGame.active();lobbyChatButton.disabled=!chat.allowed();
+    chatButton.hidden=s.phase!=='playing'||!panel.hidden||!chat.allowed();
+    lobbyChatSection.hidden=s.phase!=='lobby'||!CBOnlineGame.active();
+    const logParent=s.phase==='lobby'?lobbyChatSection:document.body;if(chatLog.parentNode!==logParent)logParent.append(chatLog);
+    const lines=chat.lines(),signature=lines.map(line=>line.event).join(',');
+    if(signature!==chatLogSignature){chatLogSignature=signature;chatLog.replaceChildren();for(const line of lines){const row=document.createElement('p');row.textContent=(line.scope==='all'?'[全員] ':'[味方] ')+line.name+'：'+line.text;chatLog.append(row);}}
+    chatLog.hidden=!lines.length||!CBOnlineGame.active()||!['lobby','playing'].includes(s.phase);
+    chatNotice.hidden=at>=chatNoticeUntil||!CBOnlineGame.active();
+  }
+  chat.subscribe((type,value)=>{
+    if(type==='notice'){chatNotice.textContent=value.reason;chatNoticeUntil=performance.now()+3500;}
+    if(type==='reset'){closeChat();chatConsumed.clear();chatNoticeUntil=0;chatLogSignature='';chatLog.replaceChildren();}
+    refreshChat();
+  });
+  setInterval(refreshChat,100);
   el('onlineDiagnostics').addEventListener('change',refreshDiagnostic);
   addEventListener('keydown', e => {
     if(!CBOnlineGame.active()||!['F3','Escape'].includes(e.code))return;
+    if(document.getElementById('onlineLogDialog')?.open)return;
     // F3のブラウザ検索・長押し反復を抑え、診断の開閉ではpointer lockを解除しない。
     e.stopImmediatePropagation();e.preventDefault();if(e.repeat)return;
     if(e.code==='F3'){if(CBOnlineGame.state.phase==='playing'){el('onlineDiagnostics').checked=!el('onlineDiagnostics').checked;refreshDiagnostic();}return;}
@@ -172,4 +277,32 @@
   }, true);
   // 試作中の通常再出撃ボタンから、独立したオフライン戦を重ねて開始させない。
   document.getElementById('start').addEventListener('click', e => { if (CBOnlineGame.active?.()) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = false; status('オンラインの試合中です。終了してから通常出撃してください。'); } }, true);
+})();
+
+// 共有は手動だけ。プレビュー時の固定テキスト以外をコピー・保存しない。
+(() => {
+  const logs=window.CBOnlineGame?.logs;if(!logs)return;
+  const dialog=document.createElement('dialog');dialog.id='onlineLogDialog';dialog.setAttribute('aria-labelledby','onlineLogTitle');
+  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。内容を確認してから、必要な場合だけコピー・保存してください。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><label for="onlineLogText">共有する内容（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">テキストを保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
+  document.body.append(dialog);
+  // 文字選択やTab/Spaceをゲームの入力へ渡さない。Escapeの標準closeは妨げない。
+  for(const type of ['keydown','keyup'])dialog.addEventListener(type,e=>e.stopPropagation());
+  const el=id=>document.getElementById(id),status=t=>{el('onlineLogStatus').textContent=t;};
+  let preview='',returnFocus=null,revision=0;
+  function open(){
+    if(dialog.open)return;returnFocus=document.activeElement;preview=logs.preview();revision++;el('onlineLogText').value=preview;status('内容は端末内だけです。');
+    el('onlineLogStorage').textContent=logs.status().storageAvailable?'再読み込み後も、このブラウザの直近ログを確認できます。ブラウザのデータ削除で消えます。':'ブラウザへの保存ができません。この画面を閉じる前にコピーかテキスト保存をしてください。';
+    el('onlineLogCopy').disabled=el('onlineLogSave').disabled=!logs.status().available;
+    dialog.showModal();el('onlineLogClose').focus();
+  }
+  function addButton(id,label,target){const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=open;target.append(b);return b;}
+  const menu=addButton('menuOnlineLog','診断ログを見る',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
+  const measure=document.querySelector('#onlinePanel .online-measure');
+  if(measure){const note=document.createElement('p');note.textContent='試験ログは端末内だけに自動記録します。送信・投稿はしません。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
+  const result=addButton('onlineLogResult','試験ログを確認・保存',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
+  const refresh=()=>{const available=logs.status().available;menu.hidden=!available;result.hidden=!available||el('onlineReturn').hidden;};setInterval(refresh,500);refresh();
+  el('onlineLogCopy').onclick=async()=>{const text=preview,at=revision;try{await navigator.clipboard.writeText(text);if(dialog.open&&at===revision)status('プレビューの内容をコピーしました。共有するかはご自身で選べます。');}catch(_){if(dialog.open&&at===revision){status('コピーできませんでした。選択された内容を手動でコピーするか、テキスト保存を使ってください。');el('onlineLogText').focus();el('onlineLogText').select();}}};
+  el('onlineLogSave').onclick=()=>{let url;try{url=URL.createObjectURL(new Blob([preview],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='core-breaker-diagnostic.txt';document.body.append(a);a.click();a.remove();status('プレビューのテキスト保存を開始しました。');}catch(_){status('保存を開始できませんでした。内容をコピーしてください。');}finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}};
+  el('onlineLogClear').onclick=()=>{const removed=logs.clear()!==false;preview=logs.preview();revision++;el('onlineLogText').value=preview;el('onlineLogCopy').disabled=el('onlineLogSave').disabled=!logs.status().available;status(removed?'保存済みログを消しました。他のタブや接続中の新しい記録は続きます。':'ブラウザ保存分を消せませんでした。ブラウザのサイトデータ設定から削除してください。');refresh();};
+  el('onlineLogClose').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{revision++;returnFocus?.focus();});
 })();

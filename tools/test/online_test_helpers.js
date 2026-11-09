@@ -128,6 +128,15 @@ async function frames(pages,n=1,ms=50){
     if(i%5===0)await sleep(5);
   }
 }
+// 明示Readyを試験操作として押す。部屋/装備変更の配信が到着してから操作する。
+async function readyAll(pages,host=pages[0]){
+  const revision=await host.evaluate(()=>CBOnlineGame.state.lobbyRevision);
+  for(const p of pages){
+    await p.waitForFunction(rev=>CBOnlineGame.state.lobbyRevision===rev&&!!CBOnlineGame.state.equipment&&!CBOnlineGame.state.equipmentPending&&!CBOnlineGame.state.editing,revision,{polling:20});
+    await p.evaluate(()=>CBOnlineGame.setReady(true));
+  }
+  await host.waitForFunction(()=>CBOnlineGame.canStart(),{},{polling:20});
+}
 async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[],beforeStart,predictionEnabled=true}={}){
   const pages=[];
   const host=await pageFor(browser,h,errors,{frozen,render});pages.push(host);
@@ -140,7 +149,9 @@ async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=tru
   }
   console.log('全ゲスト接続完了・試合開始');
   await sleep(100+latencyMs*2); // 装備希望もホストへ届いてから開始する。
+  await host.evaluate(n=>CBOnlineGame.updateSettings({teamSize:n}),teamSize);
   if(beforeStart)await beforeStart(host,pages.slice(1));
+  await readyAll(pages,host);
   // startはreadyを待つ可能性があるので、固定コマ試験でもイベントループを塞がない。
   await host.evaluate(n=>{window.__startPromise=CBOnlineGame.start({teamSize:n});},teamSize);
   const startDeadline=Date.now()+20000;
@@ -193,4 +204,4 @@ async function installWireObserver(page){await page.evaluate(()=>{
     return sent;
   };
 });}
-module.exports={installWireObserver,MOCK_TRANSPORT,TRANSPORT_MODE,ROOT,sleep,stats,harness,pageFor,frames,room,identity,input,neutral,summary};
+module.exports={readyAll,installWireObserver,MOCK_TRANSPORT,TRANSPORT_MODE,ROOT,sleep,stats,harness,pageFor,frames,room,identity,input,neutral,summary};
