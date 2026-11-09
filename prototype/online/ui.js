@@ -283,7 +283,7 @@
 (() => {
   const logs=window.CBOnlineGame?.logs;if(!logs)return;
   const dialog=document.createElement('dialog');dialog.id='onlineLogDialog';dialog.setAttribute('aria-labelledby','onlineLogTitle');
-  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>この端末に自動記録しています。サーバーへの送信や自動投稿はしません。通常のF8は原因調査用に選んだ診断データを、改行なし・6000字以内でコピーします。この画面でもF8は6000字以内の選別版です。「内容をコピー」は表示中の内容をコピーします。掲示板などへ貼る前に内容を確認してください。部屋IDのコピーとは別です。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><p>圧縮は暗号化ではありません。版・役割・状態・失敗コード・代表値/極値・障害前の少数時点を残し、それ以外は省きます。省略件数は復元結果で確認できます。内容を確認するには「詳細を表示」。CBL2から始まる全文をdotに貼るか、リポジトリの復元ツールで解析できます。既存の保持上限で失った件数はデータ内に残します。</p><button type="button" id="onlineLogToggle">詳細を表示</button><label id="onlineLogLabel" for="onlineLogText">圧縮データ（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">詳細を保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
+  dialog.innerHTML=`<h2 id="onlineLogTitle">試験用の診断ログ</h2><p>不具合が起きたらF8を押して、コピーされたログを投稿してください。投稿は任意です。自動送信・自動投稿はしません。F8は現試合だけの診断要約を、改行なし・241字以内でコピーします。この画面でもF8は241字以内の選別版です。「内容をコピー」は表示中の内容をコピーします。共有するかは内容を確認して決めてください。部屋IDのコピーとは別です。</p><p>IP・部屋/参加者ID・名前・チャット・SDP・生のエラー本文は記録しません。最新3接続、直近300標本・128イベント、合計512KiB、7日まで保持します。</p><p id="onlineLogStorage" role="status"></p><p>圧縮は暗号化ではありません。現試合（終了後は直前の試合）の版・役割・状態・失敗コード・代表値/極値だけを残します。別の試合・接続、全時系列、未収録の項目は意図的に省きます。開始境界の欠落は復元結果で確認できます。内容を確認するには「詳細を表示」。CBL3から始まる全文をdotに貼るか、リポジトリの復元ツールで解析できます。既存の保持上限で失った件数はデータ内に残します。</p><button type="button" id="onlineLogToggle">詳細を表示</button><label id="onlineLogLabel" for="onlineLogText">圧縮データ（プレビューを開いた時点）</label><textarea id="onlineLogText" readonly spellcheck="false"></textarea><p id="onlineLogStatus" role="status" aria-live="polite"></p><div class="online-log-actions"><button type="button" id="onlineLogCopy">内容をコピー</button><button type="button" id="onlineLogSave">詳細を保存</button><button type="button" id="onlineLogClear">保存済みログを消す</button><button type="button" id="onlineLogClose">閉じる</button></div>`;
   document.body.append(dialog);
   const notice=document.createElement('p');notice.id='onlineLogNotice';notice.hidden=true;notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');document.body.append(notice);
   let noticeRevision=0;
@@ -300,9 +300,9 @@
     dialog.showModal();el('onlineLogClose').focus();
   }
   function addButton(id,label,target){const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=open;target.append(b);return b;}
-  const menu=addButton('menuOnlineLog','診断ログを見る（F8で圧縮）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
+  const menu=addButton('menuOnlineLog','不具合のログ（F8でコピー）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);
   const measure=document.querySelector('#onlinePanel .online-measure');
-  if(measure){const note=document.createElement('p');note.textContent='F8：原因調査用の診断データを改行なし・6000字以内でコピー（ホスト・ゲスト共通）。入力欄では無効です。送信・投稿はせず、部屋IDも含みません。貼り付け先と内容を確認して共有してください。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
+  if(measure){const note=document.createElement('p');note.textContent='不具合が起きたらF8を押して、コピーされたログを投稿してください（任意）。現試合だけ・241字以内。自動投稿はしません。入力欄では無効です。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
   const result=addButton('onlineLogResult','試験ログを確認・保存（F8で圧縮）',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
   const refresh=()=>{const available=logs.status().available;menu.hidden=!available;result.hidden=!available||el('onlineReturn').hidden;};setInterval(refresh,500);refresh();
   async function copyLog(shortcut=false){
@@ -312,11 +312,12 @@
     let text;try{text=wasOpen?(shortcut?captured.compressed:preview):logs.compressed();}catch(_){const message='圧縮できませんでした。以前のクリップボード内容を貼り付けないでください。診断ログを開いて詳細を保存してください。';wasOpen?status(message):notify(message,true);return;}
     if(shortcut&&wasOpen&&captured.error){status('共有用ログを作れませんでした。以前のクリップボード内容を貼らず、詳細を保存してください。');return;}
     if(!logs.status().available){const message='コピーする診断ログがありません。以前のクリップボード内容を貼り付けないでください。オンライン接続後に試してください。';wasOpen?status(message):notify(message);return;}
+    if((shortcut||!showDetail)&&(typeof text!=='string'||text.length>241||/[\r\n]/.test(text))){const message='241字以内の診断要約を作れませんでした。詳細を保存してください。';wasOpen?status(message):notify(message,true);return;}
     copyPending=true;
     try{
       // キー/クリックのユーザー操作中に呼ぶ。許可の事前要求や自動再試行はしない。
       await navigator.clipboard.writeText(text);
-      if(at===revision&&wasOpen===!!dialog.open){const message='診断ログ'+(wasOpen&&showDetail&&!shortcut?'（詳細）':'（6000字以内・選別圧縮）')+'をコピーしました。貼り付け先と内容を確認して共有してください（自動投稿なし）。';wasOpen?status(message):notify(message);}
+      if(at===revision&&wasOpen===!!dialog.open){const message='診断ログ'+(wasOpen&&showDetail&&!shortcut?'（詳細）':'（241字以内・選別圧縮）')+'をコピーしました。貼り付け先と内容を確認して共有してください（自動投稿なし）。';wasOpen?status(message):notify(message);}
     }catch(_){
       // 生の例外には接続情報が混ざり得るため、その本文は表示・記録しない。
       if(at===revision&&wasOpen===!!dialog.open){

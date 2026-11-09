@@ -37,7 +37,7 @@ test('F8は押した時点の最新ログをコピーし、試合・pointer lock
  const h=setup();h.c.document.pointerLockElement={id:'canvas'};const focus=h.c.document.activeElement,locked=h.c.document.pointerLockElement;
  h.change('latest-host');const down=h.key();assert(down.prevented&&down.stopped);assert.deepEqual(h.calls.copies,['latest-host']);await settle();
  assert(!h.e('onlineLogDialog').open);assert.equal(h.c.document.pointerLockElement,locked);assert.equal(h.c.document.activeElement,focus);
- assert.match(h.e('onlineLogNotice').textContent,/診断ログ（6000字以内・選別圧縮）をコピーしました/);assert(!h.e('onlineLogNotice').hidden);
+ assert.match(h.e('onlineLogNotice').textContent,/診断ログ（241字以内・選別圧縮）をコピーしました/);assert(!h.e('onlineLogNotice').hidden);
  const up=h.key('keyup');assert(up.prevented&&up.stopped);h.change('latest-guest');h.key();await settle();assert.deepEqual(h.calls.copies,['latest-host','latest-guest']);
  h.timeouts[0].f();assert(!h.e('onlineLogNotice').hidden,'古い通知タイマーは新しい通知を消さない');h.timeouts[1].f();assert(h.e('onlineLogNotice').hidden);
 });
@@ -87,7 +87,7 @@ test('ホスト/ゲストの実Recorder許可リストを通した本文だけ�
   const r=new Recorder({storage:null,now:()=>1800000000000,monotonic:()=>100,maps:['mesa']});
   r.begin({role,version:'Ver179',protocol:9,roomId:secret},{role,phase:'playing',map:'mesa',roomId:secret,peerId:secret,name:secret,chat:secret,sdp:secret,error:secret,diagnostic:{fps:60},transport:{sentBytes:123,peers:[{id:secret}]}});
   const h=setup({compressed:()=>r.share(),capture:()=>({compressed:r.share(),detail:r.preview()}),status:()=>({available:true,storageAvailable:false})});h.key();await settle();
-  const text=h.calls.copies[0];assert(!text.includes(secret));assert(text.startsWith('CBL2.S.'));const {Pack}=require('./online_diagnostic_fixture');const packed=JSON.parse(require('node:zlib').inflateRawSync(Buffer.from(text.split('.').at(-1),'base64url')));const restored=Pack.unpack(packed[3]);assert.equal(restored.sessions[0].role,role);assert.equal(restored.sessions[0].samples[0].data.transport.sentBytes,123);h.e('menuOnlineLog').click();h.e('onlineLogToggle').click();await h.e('onlineLogCopy').onclick();const data=JSON.parse(h.calls.copies.at(-1).slice(h.calls.copies.at(-1).indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
+  const text=h.calls.copies[0];assert(!text.includes(secret));assert(text.startsWith('CBL3.'));assert(text.length<=241);assert(!/[\r\n]/.test(text));const restored=JSON.parse(require('node:child_process').execFileSync('python3',['tools/decode_diagnostic_log.py'],{input:text,stdio:['pipe','pipe','pipe']}));assert.equal(restored.role,role);assert.equal(restored.format,'CBM1');assert(!JSON.stringify(restored).includes(secret));h.e('menuOnlineLog').click();h.e('onlineLogToggle').click();await h.e('onlineLogCopy').onclick();const data=JSON.parse(h.calls.copies.at(-1).slice(h.calls.copies.at(-1).indexOf('{')));assert.equal(data.sessions[0].role,role);assert.equal(data.sessions[0].samples[0].data.transport.sentBytes,123);
  }
 });
 
@@ -101,3 +101,5 @@ test('コピー中に圧縮データ/詳細を切り替えても古い完了通�
 test('圧縮上限/失敗では既存clipboardを貼らず詳細保存へ案内',async()=>{
  const logs={compressed(){throw Error('PRIVATE');},capture:()=>({compressed:'',detail:'safe-detail',error:true}),status:()=>({available:true,storageAvailable:true})};const h=setup(logs);h.key();await settle();assert.equal(h.calls.copies.length,0);assert.match(h.e('onlineLogNotice').textContent,/圧縮できません/);assert(!h.e('onlineLogNotice').textContent.includes('PRIVATE'));h.e('menuOnlineLog').click();assert.equal(h.e('onlineLogText').value,'safe-detail');h.e('onlineLogToggle').click();assert.equal(h.e('onlineLogText').value,'safe-detail');h.e('onlineLogSave').click();assert.equal(await h.calls.urls[0].text(),'safe-detail');
 });
+
+test('F8直前の防御は241字超過や改行をclipboardへ渡さない',async()=>{for(const text of ['x'.repeat(242),'line1\nline2']){const h=setup({compressed:()=>text,capture:()=>({compressed:text,detail:'safe'}),status:()=>({available:true})});h.key();await settle();assert.equal(h.calls.copies.length,0);assert.match(h.e('onlineLogNotice').textContent,/241字以内/);}});

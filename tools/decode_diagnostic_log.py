@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CBL2の診断データを端末内で復元する。圧縮は暗号・署名ではない。
+"""CBL3の1試合要約と旧CBL2の診断データを端末内で復元する。圧縮は暗号・署名ではない。
 
 python3 tools/decode_diagnostic_log.py compressed.txt --output restored.json
 入力省略または - は標準入力。出力先なしは標準出力。既存ファイルは上書きしない。
@@ -11,27 +11,140 @@ import binascii
 import json
 import math
 import re
+import struct
 import sys
 import zlib
 
-from diagnostic_log_format import unpack, strict_json_loads
+from diagnostic_log_format import DEFAULT_MAPS, unpack, strict_json_loads
 
 MAX_TEXT = 256 * 1024
 MAX_INPUT = MAX_TEXT + 8192  # 掲示板で入った改行・空白の分も有界
 MAX_PACKED = 512 * 1024
 MAX_JSON = 512 * 1024
 HEADER = re.compile(r"CBL2\.([DS])\.([1-9a-z][0-9a-z]{0,5})\.([0-9a-f]{8})\.([A-Za-z0-9_-]+)", re.ASCII)
+MAX_MATCH_TEXT = 241
+MATCH_BYTES = 152
+MATCH_HEADER = re.compile(r"CBL3\.([BZ])\.([0-9a-f]{8})\.([A-Za-z0-9_-]+)", re.ASCII)
+MATCH_EVENTS = (
+    'session_started', 'sample', 'peer_joined', 'peer_disconnected',
+    'peer_departed', 'match_interrupted', 'transport_error', 'signaling_lost',
+    'connection_ready', 'match_started', 'match_finished', 'lobby_returned',
+    'preparation_aborted', 'session_ended', 'page_hidden', 'page_visible', 'page_closed',
+)
+MATCH_REASONS = (
+    'none', 'other', 'local_leave', 'reconnect', 'host_left', 'kicked',
+    'rejected', 'full', 'version_mismatch', 'protocol_mismatch',
+    'connection_error', 'snapshot_channel_error', 'channel_closed',
+    'signaling_closed', 'signaling_error', 'peer_unavailable', 'network_error',
+    'browser_unsupported', 'connection_timeout', 'approval_timeout',
+    'response_timeout', 'input_timeout', 'host_timeout', 'prepare_timeout',
+    'prepare_peer_left', 'invalid_data', 'send_failed',
+)
+MATCH_EXTREMA = (
+    'fpsMin', 'frameMaxMs', 'cpuMaxMs', 'rttMaxMs', 'snapshotAgeMaxMs',
+    'correctionMaxM', 'hardSnapsMaxPerWindow', 'queueMax', 'bufferedMaxBytes',
+)
+MISSING_FLOAT = bytes.fromhex('000000000000f87f')
+
+
+def decode_match(text):
+    """固定152バイトだけを読む。文字列・可変長配列・追加フィールドは扱わない。"""
+    if len(text) > MAX_MATCH_TEXT:
+        raise ValueError('1試合ログが241字を超えています')
+    match = MATCH_HEADER.fullmatch(text)
+    if not match:
+        raise ValueError('1試合ログの形式が不正です')
+    method, checksum, encoded = match.groups()
+    try:
+        content = base64.b64decode(encoded + '=' * (-len(encoded) % 4), altchars=b'-_', validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError('base64urlが不正です') from exc
+    if base64.urlsafe_b64encode(content).decode('ascii').rstrip('=') != encoded:
+        raise ValueError('base64urlの末尾が不正です')
+    if method == 'Z':
+        inflater = zlib.decompressobj(wbits=-15)
+        try:
+            packed = inflater.decompress(content, MATCH_BYTES + 1)
+        except zlib.error as exc:
+            raise ValueError('圧縮データが壊れています') from exc
+        # flushせず153バイトで打ち切る。連結stream・末尾のゴミも拒否する。
+        if len(packed) != MATCH_BYTES or not inflater.eof or inflater.unconsumed_tail or inflater.unused_data:
+            raise ValueError('展開サイズ不一致、打切り、または余分なデータがあります')
+    else:
+        packed = content
+        if len(packed) != MATCH_BYTES:
+            raise ValueError('1試合ログは152バイトである必要があります')
+    if f'{zlib.crc32(packed) & 0xffffffff:08x}' != checksum:
+        raise ValueError('CRC不一致です。内容が変化しています')
+    flags = packed[0]
+    if not flags & 1 or flags & 128 or packed[7] or packed[150:152] != b'\0\0':
+        raise ValueError('1試合ログのフラグまたは予約領域が不正です')
+
+    def enum(offset, choices, missing='unknown'):
+        index = packed[offset]
+        if index == 255 and missing is not None:
+            return missing
+        if index >= len(choices):
+            raise ValueError('1試合ログの固定コードが不正です')
+        return choices[index]
+
+    def integer(offset, fmt, limit, missing=None):
+        number = struct.unpack_from(fmt, packed, offset)[0]
+        if missing is not None and number == missing:
+            return None
+        if number > limit:
+            raise ValueError('1試合ログの整数が上限外です')
+        return number
+
+    def number(offset):
+        if packed[offset:offset + 8] == MISSING_FLOAT:
+            return None
+        result = struct.unpack_from('<d', packed, offset)[0]
+        if not math.isfinite(result) or not 0 <= result <= 1e12:
+            raise ValueError('1試合ログの数値が不正です')
+        return result
+
+    version = integer(8, '<I', 999999, 0xffffffff)
+    event_count = integer(146, '<H', 130)
+    fault_count = integer(148, '<H', 130)
+    if fault_count > event_count:
+        raise ValueError('障害件数がイベント件数を超えています')
+    return {
+        'format': 'CBM1',
+        'scope': 'no_session' if flags & 32 else 'no_match' if flags & 16 else 'last_match' if flags & 8 else 'current_match',
+        'selectedOnly': True,
+        'omitted': 'Full time series, other matches/sessions and unlisted metrics are intentionally excluded',
+        'scopeBoundaryMissing': bool(flags & 2),
+        'retentionDropped': bool(flags & 4),
+        'invalidScalar': bool(flags & 64),
+        'version': 'unknown' if version is None else f'Ver{version}',
+        'protocol': integer(12, '<H', 1000, 65535),
+        'role': enum(1, ('host', 'guest')),
+        'phase': enum(2, ('idle', 'lobby', 'preparing', 'countdown', 'playing', 'ended', 'leaving')),
+        'humans': integer(14, '<H', 100, 65535),
+        'map': enum(5, DEFAULT_MAPS),
+        'visibility': enum(6, ('visible', 'hidden', 'unknown'), None),
+        'durationMs': number(16),
+        'event': {'code': enum(3, MATCH_EVENTS, 'none'), 'reason': enum(4, MATCH_REASONS, 'none'), 'elapsedMs': number(24)},
+        'extrema': {name: number(32 + index * 8) for index, name in enumerate(MATCH_EXTREMA)},
+        'representative': {name: number(104 + index * 8) for index, name in enumerate(('elapsedMs', 'fps', 'rttMs', 'snapshotAgeMs', 'correctionMaxM'))},
+        'observationCount': integer(144, '<H', 302),
+        'eventCount': event_count,
+        'faultCount': fault_count,
+    }
 
 
 def decode(text):
     if not isinstance(text, str) or len(text) > MAX_INPUT:
         raise ValueError("入力上限を超えています")
     text = re.sub(r"[ \t\r\n]", "", text)
+    if text.startswith('CBL3.'):
+        return decode_match(text)
     if len(text) > MAX_TEXT:
         raise ValueError("圧縮テキストの上限を超えています")
     match = HEADER.fullmatch(text)
     if not match:
-        raise ValueError("形式が不正です。CBL2から始まる全文が必要です")
+        raise ValueError("形式が不正です。CBL3またはCBL2から始まる全文が必要です")
     method, size36, checksum, encoded = match.groups()
     if method == "S" and len(text) > 6000:
         raise ValueError("掲示板用ログが6000字を超えています")
@@ -107,7 +220,10 @@ def main():
                 handle.write(output)
         else:
             sys.stdout.write(output)
-        print("復元成功。CRCは破損検査であり、改ざん防止・本人確認ではありません。保持上限は3接続・各300標本/128イベント・512KiB・7日。droppedSamples/droppedEventsは保持時に省かれた件数です。", file=sys.stderr)
+        if restored.get('format') == 'CBM1':
+            print('復元成功。1試合の選別要約であり、全時系列・別試合・別接続・未収録項目は含みません。CRCは破損検査であり、改ざん防止・本人確認ではありません。', file=sys.stderr)
+        else:
+            print("復元成功。CRCは破損検査であり、改ざん防止・本人確認ではありません。保持上限は3接続・各300標本/128イベント・512KiB・7日。droppedSamples/droppedEventsは保持時に省かれた件数です。", file=sys.stderr)
     except (ValueError, OSError, UnicodeError, RecursionError) as exc:
         print("復元失敗: " + str(exc), file=sys.stderr)
         return 1
