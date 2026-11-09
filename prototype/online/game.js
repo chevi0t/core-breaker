@@ -1254,7 +1254,7 @@
     for(const b of barrages){if(b.mesh.visible)put(b,'artillery',b.mesh.position,{rotation:b.mesh.rotation.toArray().slice(0,3)});if(b.warn){b.warn.team=b.team;put(b.warn,'artilleryWarn',b.warn.position,{});}}
     for(const h of heatFields)put(h,'heat',h.pos,{radius:h.spec.blast,life:h.life,age:h.age||0});
     for(const f of stunFields)put(f,'stun',f.mesh.position,{dir:f.dir.toArray(),len:f.len,width:f.width,height:f.height,life:f.life,max:f.max});
-    for(const u of units)if(u.postFlight){u.postFlight.team=u.team;put(u.postFlight,'postFlight',u.postFlight.pos,{key:u.postFlight.w.key});}
+    for(const u of units)if(u.postFlight){u.postFlight.team=u.team;put(u.postFlight,'postFlight',u.postFlight.pos,{key:u.postFlight.w.key,owner:view.visible.has(u.entityId)?u.entityId:null});}
     const peer=[...state.peers.values()].find(p=>p.unitId===view.viewer.entityId),r=replicationFor(peer);
     for(const o of r.objectIds?.keys()||[])if(!publicObjects.has(o))r.objectIds.delete(o);
     r.objectPublic=publicObjects;
@@ -1262,6 +1262,7 @@
   }
   function removeRemoteEquipment(id){
     const o=remoteEquipment.get(id);if(!o)return;
+    if(o.type==='postFlight'&&o.owner?.postFlight===o)o.owner.postFlight=null;
     if(o.gadget){const i=gadgets.indexOf(o);if(i>=0)gadgets.splice(i,1);const j=mirages.indexOf(o);if(j>=0)mirages.splice(j,1);if(o.owner?.post===o)o.owner.post=null;}
     const i=drones.indexOf(o);if(i>=0)drones.splice(i,1);
     for(const mesh of [o.mesh,o.field,o.warn])if(mesh){scene.remove(mesh);const j=hittables.indexOf(mesh);if(j>=0)hittables.splice(j,1);}
@@ -1316,7 +1317,10 @@
         if(v.type==='drone'){mesh.scale.setScalar(1.4);drones.push(o);}
         scene.add(mesh);remoteEquipment.set(token,o);
       }
+      // 投擲模型が見えても、持ち主が隠れた写真ではHUD用の参照を残さない。
+      if(o.type==='postFlight'&&o.owner?.postFlight===o)o.owner.postFlight=null;
       o.owner=equipmentEntity(v.owner);if(v.spec)o.spec=v.spec;
+      if(o.type==='postFlight'){o.w=WEAPONS[v.key];if(o.owner)o.owner.postFlight=o;}
       o.pos.fromArray(v.pos);o.mesh.position.copy(o.pos);o.mesh.visible=v.visible!==false;if(v.rotation)o.mesh.rotation.set(...v.rotation);if(v.dir)o.dir.fromArray(v.dir);
       if(v.type==='artillery'){if(v.warn&&!o.warn){o.warn=new T.Mesh(artilleryWarnGeo,artilleryWarnMat);scene.add(o.warn);}if(o.warn){o.warn.visible=!!v.warn;if(v.warn)o.warn.position.fromArray(v.warn);}}
       if(v.type==='heat'){o.life=v.life;o.age=v.age;heatVisualTick(o,0);}
@@ -1329,7 +1333,7 @@
       if(u.onlineHidden)continue;
       if(u.beamFire&&u.onlineBeamPaths?.length)beamCannonVisual(u,u.onlineBeamPaths.map(p=>({...p,from:vector(p.from),dir:vector(p.dir)})),u.beamFire.warm<=0);
       else if(u.beamVisual)u.beamVisual.root.visible=false;
-      if(u.slots?.[u.weapon]?.w.type==='radarTool')emitReconPulse(u,'fan',u.slots[u.weapon].w.cone||90);
+      const w=u.slots?.[u.weapon]?.w;if(w?.type==='radarTool')emitReconPulse(u,w.arc>=360?'radial':'fan',w.arc);
     }
     reflectorUpdate();
     for(const o of remoteEquipment.values()){

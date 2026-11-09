@@ -34,11 +34,11 @@ function makeUnit(id,cls='assault'){
   c.equip(u,cls);c.units.push(u);c.scene.add(u.group);return u;
 }
 const own=makeUnit('B:0'),enemy=makeUnit('R:0','heavy');c.player=own;
-const source=fs.readFileSync(file('prototype/online/game.js'),'utf8').replace('  window.CBOnlineGame={create',`  window.__equipmentTest={encodePeerSnapshot,replicationFor,createPeerView,slotKeys,remoteSlotKeys:typeof remoteSlotKeys==='undefined'?null:remoteSlotKeys,packUnit,applyUnit,packEquipmentUnit,applyEquipmentUnit,equipmentUnitForPeer,snapshotForPeer,fixedUnitForPeer,gadgetPolicyForLoadouts,gadgetSlotsForPeer,equipmentObjectsForPeer,applyEquipmentObjects,clearRemoteEquipment,guestEquipmentVisuals,hideRemoteUnit,validInput,acceptInputActions,applyEquipmentActions,sendLocalInput,peerLeft,resetMeasurements,
+const source=fs.readFileSync(file('prototype/online/game.js'),'utf8').replace('  window.CBOnlineGame={create',`  window.__equipmentTest={snapshot,applySnapshot,encodePeerSnapshot,replicationFor,createPeerView,slotKeys,remoteSlotKeys:typeof remoteSlotKeys==='undefined'?null:remoteSlotKeys,packUnit,applyUnit,packEquipmentUnit,applyEquipmentUnit,equipmentUnitForPeer,snapshotForPeer,fixedUnitForPeer,gadgetPolicyForLoadouts,gadgetSlotsForPeer,equipmentObjectsForPeer,applyEquipmentObjects,clearRemoteEquipment,guestEquipmentVisuals,hideRemoteUnit,validInput,acceptInputActions,applyEquipmentActions,sendLocalInput,peerLeft,resetMeasurements,
   actions:()=>equipmentActions,remote:()=>remoteEquipment,checkedEquipment,equipmentRef,equipmentEntity,packShellVisual,makeRemoteShell,removeRemoteShell};\n  window.CBOnlineGame={create`);
 vm.runInContext(source,c);const game=c.window.CBOnlineGame,test=c.window.__equipmentTest;
 const sent=[];game.state.transport={send:(type,data)=>{sent.push({type,data:copy(data)});return true;},broadcast:noop,metrics:()=>({})};game.state.role='host';game.state.phase='playing';game.state.localUnitId='B:0';game.state.teamSize=1;
 const peer={id:'peer',unitId:'B:0',equipment:{cls:'assault',loadout:{...c.CLASSES.assault}},inputLifeId:1,receivedSeq:0,last:time};game.state.peers.set(peer.id,peer);
 
-return {T,c,game,test,codec,own,enemy,peer,makeUnit,copy,calls,sent,noop,time,setTime:value=>time=value};
+return {html,segment,T,c,game,test,codec,own,enemy,peer,makeUnit,copy,calls,sent,noop,time,setTime:value=>time=value};
 };
