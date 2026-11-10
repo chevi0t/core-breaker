@@ -66,7 +66,7 @@ class FakePeer extends EventEmitter {
     assert(status.some(s=>s.includes('Ver178')));
     const oldProtocol=make();const envelope=oldProtocol._envelope.bind(oldProtocol);
     oldProtocol._envelope=(...a)=>({...envelope(...a),protocolVersion:8});
-    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 10 \/ 相手: 8）/);
+    await assert.rejects(oldProtocol.connect(room), /通信規格が違います（自分: 11 \/ 相手: 8）/);
     const denied=make();const deniedResult=denied.connect(room).then(()=>null,e=>e);
     await until(()=>host.links.get(denied.peer?.id)?.pending);assert(host.rejectPeer(denied.peer.id));assert(!host.approvePeer(denied.peer.id));
     assert.match((await deniedResult).message,/入室を拒否/);

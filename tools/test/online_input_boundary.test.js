@@ -44,7 +44,7 @@ invalid.push(['seq',0],['lifeId',0],['yaw',1e6+.01],['yaw',-1e6-.01],['pitch',-.
   ['cameraRecoil',-.000001],['cameraRecoil',1.000001],['cameraRecoil',1e20],['cameraRecoilYaw',-1.000001],['cameraRecoilYaw',1.000001],['cameraRecoilYaw',1e20],['wheel',-1.000001],['wheel',1.000001]);
 for(const value of [undefined,null,{},[],[0,0],[0,0,0,0],[0,NaN,0],[0,Infinity,0],[0,'0',0],[0,badObject,0],[0,1e6,0],[0,-1e6,0]])invalid.push(['aimPoint',value]);
 for(const value of [null,'1',badObject,-1,.5,2,Number.MAX_SAFE_INTEGER+1])invalid.push(['moveActionSeq',value]);
-for(const value of [null,{},[null],[[0,1]],[[2,1]],[[1,0]],[[1,8]],[[1,1.5]],[[1,'1']],[[badObject,1]],[[1,1,1]],Array(9).fill([1,1])])invalid.push(['moveActions',value]);
+for(const value of [null,{},[null],[[0,1]],[[2,1]],[[1,0]],[[1,16]],[[1,1.5]],[[1,'1']],[[badObject,1]],[[1,1,1]],Array(9).fill([1,1])])invalid.push(['moveActions',value]);
 
 // 不正な値はpeerの番号・生命・queueを一切更新しない。正常peerのframeと写真は進む。
 for(const type of ['inputBatch','inputActions'])for(const [key,value]of invalid){

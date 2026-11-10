@@ -21,7 +21,7 @@ const c={SLOTS:slots,PART_SLOTS:parts,MECH_DEFAULT:{...Object.fromEntries(parts.
   stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,selectMap:empty,addEventListener:empty,
   weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,finish:empty,shot:empty,shoot:empty,blast:empty,damage:empty};
 const savedBuildFixture=require('./online_saved_build_fixture')(c);
-  vm.createContext(c);vm.runInContext(fs.readFileSync(require.resolve('../../prototype/online/game.js'),'utf8').replace('  window.CBOnlineGame={create','  window.__lobbyTest={backToLobby};\n  window.CBOnlineGame={create'),c);const game=c.window.CBOnlineGame;
+  vm.createContext(c);require('./action_fixture')(c);vm.runInContext(fs.readFileSync(require.resolve('../../prototype/online/game.js'),'utf8').replace('  window.CBOnlineGame={create','  window.__lobbyTest={backToLobby};\n  window.CBOnlineGame={create'),c);const game=c.window.CBOnlineGame;
 const json=x=>JSON.parse(JSON.stringify(x));
 function join(id,name=id){game.state.transport.options.onPeerJoin(id,name);game.state.transport.options.onMessage('preference',{cls:'assault'},id);}
 function team(id){return game.state.roster.find(p=>p.id===id).team;}
