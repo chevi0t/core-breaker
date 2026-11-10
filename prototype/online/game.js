@@ -2043,7 +2043,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
     }
     const target=lockEntity(p.input.lockTarget,p);
-    u.controlTarget=target&&(!p.replication||(target.gadget?!!p.replication.gadgetPublic?.has(target):!target.entityId||p.replication.visible.has(target.entityId)))&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target))?target:null;
+    u.controlTarget=target&&(!p.replication||(target.gadget?!!p.replication.gadgetPublic?.has(target):!target.entityId||p.replication.visible.has(target.entityId)))&&target.alive&&!target.downT&&target.team!==u.team&&!target.cloak&&lockAllowed(u)&&target.pos.distanceTo(u.pos)<=u.lockRange*1.15*spotMul(u.team,target)&&canSee(u,target,targetPoint(target),true)?target:null;
     p.actions=(p.actions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
     // action先着は対応する移動番号まで待つ。後着も一度だけ実updateへ。dead中はqueueを消化しない。
     p.activeAction=p.actions.find(a=>a.seq<=p.input.seq)||null;
