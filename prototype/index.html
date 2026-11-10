@@ -5502,7 +5502,8 @@ function fxUpdate(dt) {
 }
 function refOf(obj) { while (obj) { if (obj.userData.ref) return obj.userData.ref; obj = obj.parent; } return null; }
 const barrierCastSphere = new T.Sphere(), barrierCastPoint = new T.Vector3();
-function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
+// passAllies：ignore と同じ軍の機体を素通しする（ロックの見通し。味方が間を横切ってもロックを切らない）
+function castFrom(origin, dir, ignore, far = 400, needNormal = false, passAllies = false) {
   const th = terrainHit(origin, dir, far);
   ray.set(origin, dir); ray.far = th ? th.dist : far;
   const hits = ray.intersectObjects(hittables, false);
@@ -5512,6 +5513,7 @@ function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
     const r = refOf(h.object);
     if (r === ignore || r?.onlineHidden) continue;
     if (r && r.kind === 'unit' && !r.alive) continue;
+    if (passAllies && r && r.kind === 'unit' && ignore && r.team === ignore.team) continue;
     best = { point: h.point, normal: needNormal && h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld), ref: r, dist: h.distance, wm: !!h.object.userData.weaponModel, slot: h.object.userData.armorSlot || 'body' }; break;
   }
   // 球面を機体とは別に判定する。前面型の裏側と、内側から撃つ弾は通す。
@@ -6148,11 +6150,12 @@ function nearestEnemy(u, range) {
 // 光学迷彩中の敵機には、近いか、動いたり撃ったりして見えやすくなっていないと気づけない（Botと防衛砲台。プレイヤーは画面で見る）
 // 距離は画面の濃さ（見えやすさの2乗。cloakLook）に合わせる（2026-11-05、オーナー「光学迷彩時にえらい普通に撃たれる」）
 function noticed(e, d) { return !e.cloak || d < 8 + e.vis * e.vis * 80; }
-function canSee(u, target, tp) {
+// passAllies：味方の機体では遮られない（ロック中の見通しだけに使う。2026-11-10 オーナー「味方が敵との間をすれ違うとロック切れるんはゲーム的にちがう」）
+function canSee(u, target, tp, passAllies = false) {
   const eye = u.pos.clone(); eye.y += 3;
   const dir = tp.clone().sub(eye);
   const dist = dir.length();
-  const hit = castFrom(eye, dir.normalize(), u, dist + 2);
+  const hit = castFrom(eye, dir.normalize(), u, dist + 2, false, passAllies);
   return hit && hit.ref === target;
 }
 
@@ -9987,7 +9990,8 @@ function toggleLock(u) {
 function lockUpdate(u, dt) {
   if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
   if (!lock.target) return;
-  const seen = e => canSee(u, e, targetPoint(e)), list = lockCandidates(u);
+  // ロック中の見通しは、味方の機体では遮られない（壁・地形・敵の機体では今までどおり遮られる）。新しく捕捉するときは今までどおり
+  const seen = e => canSee(u, e, targetPoint(e), true), list = lockCandidates(u);
   if (lock.target) {
     const cur = list.find(c => c.e === lock.target);
     lock.losT -= dt;

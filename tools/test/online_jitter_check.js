@@ -75,23 +75,33 @@ check('オンラインのゲスト画面の震えとコマ送り',async({browser
     // ホスト：ゲストの機体は倒れないように。敵1機をゲストの前に置き、左右へゆっくり往復させる（ロックの的）。
     const enemy=await host.evaluate(()=>{
       const id=CBOnlineGame.state.peers.values().next().value.unitId,me=__g.units.find(u=>u.entityId===id),T=__g.T;
-      const en=__g.units.find(u=>u.team!==me.team&&u.alive);let at=null,yaw=0;
-      // ゲストが左右へ±4m動き、敵が±6m往復しても、ずっと見通せる向きと距離を探す（遮られるとロックが外れ、試験の外の動きになる）。
-      const home=me.pos.clone(),clear=(p,r)=>{for(const a of [-4,0,4])for(const b of [-6,-3,0,3,6]){
+      const en=__g.units.find(u=>u.team!==me.team&&u.alive);let at=null,yaw=0,right=new T.Vector3(1,0,0);
+      // 置き直せるように関数にする。歩き旋回の場面でゲストが動いた後、ロックの場面の直前にもう一度、その時の位置から探す
+      // （始めの位置でだけ確かめていたので、歩いた先で防衛砲台が間に入り、ロックが切れて時々落ちた。2026-11-10）。
+      window.__placeEnemy=()=>{at=null;
+      // ゲストが横へ動き、敵が±6m往復しても、ずっと見通せる向きと距離を探す（遮られるとロックが外れ、試験の外の動きになる）。
+      // 横移動は右へ0.75秒（約9m）進んで戻る。前は±4mしか確かめておらず、その先に物がある場所ではロックが切れて時々落ちた（2026-11-10）。
+      const home=me.pos.clone(),clear=(p,r)=>{for(let a=-3;a<=12;a++)for(let b=-6;b<=6;b+=1.5){ // 細い物も拾えるよう1m刻み（3m刻みでは間の柱を見落とした）
+       
         me.pos.copy(home).addScaledVector(r,a);me.group.position.copy(me.pos);me.group.updateMatrixWorld(true);
         en.pos.copy(p).addScaledVector(r,b);en.pos.y=__g.terrainH(en.pos.x,en.pos.z);en.group.position.copy(en.pos);en.group.updateMatrixWorld(true);
         if(!__g.canSee(me,en,__g.targetPoint(en)))return false;}return true;};
       for(let i=0;i<32&&!at;i++)for(const dist of [30,25,40]){yaw=me.yaw+i*Math.PI/16;const p=home.clone().add(new T.Vector3(-Math.sin(yaw)*dist,0,-Math.cos(yaw)*dist));
         p.y=__g.terrainH(p.x,p.z);if(clear(p,new T.Vector3(Math.cos(yaw),0,-Math.sin(yaw)))){at=p;break;}}
-      me.pos.copy(home);me.group.position.copy(home);
-      if(!at)return null;
+      me.pos.copy(home);me.group.position.copy(home);me.group.updateMatrixWorld(true);
+      if(!at)return false;
+      right.set(Math.cos(yaw),0,-Math.sin(yaw));en.pos.copy(at);return true;};
+      if(!__placeEnemy())return null;
       me.yaw=yaw;
-      const right=new T.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),t0=performance.now();
+      const t0=performance.now();
       const after=CBOnlineGame.afterFrame;CBOnlineGame.afterFrame=(dt,t)=>{
         const s=(performance.now()-t0)/1000,k=Math.sin(s*.9)*6;
         if(window.__pinEnemy!==false){en.pos.copy(at).addScaledVector(right,k);en.pos.y=__g.terrainH(en.pos.x,en.pos.z);en.vel.copy(right).multiplyScalar(Math.cos(s*.9)*6*.9);en.hp=en.maxHp;}
         // 遠ざけたBotが置いた妨害（ジャマー）などでロックが外れないよう、ゲスト機の状態異常も毎コマ消す。
         me.hp=me.maxHp;me.jamT=0;for(const u of __g.units)if(u.team!==me.team&&u!==en){u.pos.set(4000,0,4000);u.vel.set(0,0,0);}
+        // 味方のBotも遠ざける。ゲストのすぐ前（敵との見通しの線上）に立たれると、横移動のたびに敵が味方の陰に入ってロックが切れ、
+        // ロック追従の向きが止まる・動き出すのを「跳ね・止まり」と数えていた（2026-11-10：統合の前後どちらでも3〜4回に1回落ちた原因）。
+        for(const u of __g.units)if(u.team===me.team&&u!==me){u.pos.set(-4000,0,4000);u.vel.set(0,0,0);}
         return after(dt,t);};
       return {id:en.entityId,yaw};
     });
@@ -129,7 +139,9 @@ check('オンラインのゲスト画面の震えとコマ送り',async({browser
     };
     // 1. 歩きながらマウスで旋回（毎コマ、経過時間に比例した量だけ横へ回す）
     await scene('歩き旋回',`let last=performance.now();__g.releaseLock();window.__drive=()=>{const t=performance.now(),d=(t-last)/1000;last=t;__g.keys.KeyW=true;__g.lookMove(300*d,0,.0025);};`,3000);
-    // 2. 動く敵をロックして横移動
+    // 2. 動く敵をロックして横移動（歩いた先の位置から、見通せる所へ敵を置き直す）
+    ok(await host.evaluate(()=>__placeEnemy()),'歩いた後の位置からも、見通せる所に敵を置けた');
+    await sleep(600);
     await g.evaluate(id=>{const P=__g.player,t=__g.units.find(u=>u.entityId===id);const a=__g.anglesTo(P,__g.targetPoint(t));P.yaw=a.yaw;P.pitch=a.pitch;__g.setLock(P,t);},enemy.id);
     // 左右へ0.75秒ずつ切り返しながら横移動する（遠くへ行って見通しが変わらないように）
     await scene('ロック横移動',`const t0=performance.now();window.__drive=()=>{const r=Math.floor((performance.now()-t0)/750)%2===0;__g.keys.KeyD=r;__g.keys.KeyA=!r;};`,3000);
