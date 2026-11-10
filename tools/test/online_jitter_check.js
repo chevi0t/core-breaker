@@ -92,6 +92,9 @@ check('オンラインのゲスト画面の震えとコマ送り',async({browser
         if(window.__pinEnemy!==false){en.pos.copy(at).addScaledVector(right,k);en.pos.y=__g.terrainH(en.pos.x,en.pos.z);en.vel.copy(right).multiplyScalar(Math.cos(s*.9)*6*.9);en.hp=en.maxHp;}
         // 遠ざけたBotが置いた妨害（ジャマー）などでロックが外れないよう、ゲスト機の状態異常も毎コマ消す。
         me.hp=me.maxHp;me.jamT=0;for(const u of __g.units)if(u.team!==me.team&&u!==en){u.pos.set(4000,0,4000);u.vel.set(0,0,0);}
+        // 味方のBotも遠ざける。ゲストのすぐ前（敵との見通しの線上）に立たれると、横移動のたびに敵が味方の陰に入ってロックが切れ、
+        // ロック追従の向きが止まる・動き出すのを「跳ね・止まり」と数えていた（2026-11-10：統合の前後どちらでも3〜4回に1回落ちた原因）。
+        for(const u of __g.units)if(u.team===me.team&&u!==me){u.pos.set(-4000,0,4000);u.vel.set(0,0,0);}
         return after(dt,t);};
       return {id:en.entityId,yaw};
     });
