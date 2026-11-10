@@ -109,7 +109,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver182</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver183</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -4408,7 +4408,7 @@ function mechPose(u, dt) {
   r.last.copy(p); r.hasLast = true;
   const floating=hoverLegs(u);
   if (u.hoverJet) { u.hoverJet.visible=hoverActive(u); u.hoverJet.material.opacity=.55+Math.min(.3,Math.hypot(velocity.x,velocity.z)/100); }
-  const walking = !floating && !(u.kneeSlideT > 0) && grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
+  const walking = !u.actionMove && !(u.actionRecoverT > 0) && !floating && !(u.kneeSlideT > 0) && grounded && !blocked && !dash && Math.hypot(velocity.x, velocity.z) > .5 && distance < 5;
   r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
   if (walking) {
     const before = Math.floor(r.phase / Math.PI);
@@ -4422,8 +4422,9 @@ function mechPose(u, dt) {
   const low = u.crouching ? ACTIONS.crouch.lower : u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
   if (simulationRole === 'guest' && !isLocalView(u) && Number.isFinite(u.onlineRenderCrouch)) r.crouch = u.onlineRenderCrouch;
   else { r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20)); if (dt === 0 && !r.lastPose) r.crouch = low; }
-  const melee = u.meleePose, action = u.actionMove;
-  const actionPose = action ? action.phase === 'windup' ? Math.min(1,action.elapsed/ACTIONS.kick.windup) : 1 : 0;
+  const melee = u.meleePose, action = u.actionMove || (u.actionRecoverT > 0 ? { id:normalizeAction(u.actionId), phase:'recovery' } : null);
+  const actionPose = !action ? 0 : action.phase === 'recovery' ? Math.min(1,u.actionRecoverT/(action.id==='tackle'?ACTIONS.tackle.hitRecovery:ACTIONS.kick.recovery)) :
+    action.id === 'tackle' ? Math.min(1,action.elapsed/.18) : action.phase === 'windup' ? Math.min(1,action.elapsed/ACTIONS.kick.windup) : 1;
   const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
   // 深い屈みと着地が重なっても脛を床へ押し込まない。歩幅分の腰下げで接地脚の伸び切りも防ぐ。
   B.hip.node.position.y -= Math.min(.64, r.crouch + .22 * impact + melee.sink + .15 * r.move + (dash && grounded ? .065 : 0) - bob);
@@ -4431,9 +4432,10 @@ function mechPose(u, dt) {
   B.chest.node.rotation.set((dash ? -.12 : 0) + melee.lean, melee.twist - B.hip.node.rotation.y * .6, -side * r.move * .025);
   if (floating && hoverActive(u)) { B.chest.node.rotation.x+=forward*.045; B.chest.node.rotation.z-=side*.06; }
   if (action) {
-    B.chest.node.rotation.x -= (action.id==='tackle' ? .28 : floating ? .38 : .1)*actionPose;
-    B.chest.node.rotation.y += (action.id==='tackle' ? -.4 : .15)*actionPose;
+    B.chest.node.rotation.x -= (action.id==='tackle' ? .38 : floating ? .38 : .1)*actionPose;
+    B.chest.node.rotation.y += (action.id==='tackle' ? .65 : .15)*actionPose;
     if(floating)B.hip.node.position.z-=.45*actionPose;
+    else if(action.id==='tackle'){B.hip.node.position.y-=.2*actionPose;B.hip.node.position.z-=.18*actionPose;}
   }
   B.head.node.rotation.y = -B.chest.node.rotation.y * .6;
   B.head.node.rotation.x = Math.max(-.15, Math.min(.15, (u.pitch || 0) * .25));
@@ -4460,6 +4462,13 @@ function mechPose(u, dt) {
       poseHands[0].lerp(posePoint(poseFoot,-.85,2.35,-.5),u.meleePose.oneHand||0);
     }
   }
+  if (action?.id==='tackle') {
+    // 右肩を先に当てる。銃を前へ突き出さず、両肘を曲げて胸の近くへ畳む。
+    poseHands[1].lerp(posePoint(poseFoot,.9,2.25,-.2),actionPose);
+    poseHands[0].lerp(posePoint(poseFoot,-.8,2.15,-.15),actionPose);
+    u.gun.position.lerp(posePoint(poseFoot,.8,2.05,-.1),actionPose);
+    if(dual)u.gun2.position.lerp(posePoint(poseFoot,-.8,2.05,-.1),actionPose);
+  }
   if (u.zip) posePoint(poseHands[0], -.3, ZIP_HAND - .05, -.1); // ジップラインの綱を左手で掴む
   for (let i = 0; i < 2; i++) {
     const s = poseSides[i], sd = i === 0 ? -1 : 1;
@@ -4475,7 +4484,7 @@ function mechPose(u, dt) {
     if(!floating&&grounded&&cur.acMelee==='pike'){const drive=u.blade.userData.pikeDrive||0;foot.z=sd===1?-.32-.5*drive:.28+.25*drive;foot.y=.3; }
     if (action && !floating) {
       if(action.id==='kick' && sd===1){foot.z=-1.65*actionPose;foot.y=.3+1.3*actionPose;}
-      else if(action.id==='tackle'){foot.z=sd===1?-.55:.5;foot.y=.3;}
+      else if(action.id==='tackle'){foot.z+=(sd===1?-.7:.55)*actionPose;foot.x+=sd*.1*actionPose;foot.y=.3;}
     }
     limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, poseKnee);
     if (floating && B['brake'+s]) B['brake'+s].node.rotation.z=hoverActive(u) && !grounded && velocity.y<=0 && u.boost>0 && !u.overheat && !u.charging ? sd*.65 : 0;
@@ -4722,8 +4731,8 @@ function ceilingAt(x, z, y) {
 // ---- アクション（入力・装備と動作を分離。数値は本作オリジナルの仮置き） ----
 const ACTIONS = Object.freeze({
   crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 },
-  tackle: { name: 'タックル', distance: 8, time: .35, boost: 20, damage: 2000, minWeight: .7, maxWeight: 1.4, downRatio: 1.25, hitRecovery: .5, missRecovery: .9, cooldown: 3 },
-  kick: { name: '蹴り', reach: 3, angle: Math.PI / 2, windup: .2, boost: 10, damage: 1200, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .4, landRecovery: .6, cooldown: 1.5 },
+  tackle: { name: 'タックル', distance: 8, time: .8, hitStart: .18, boost: 20, damage: 600, staggerTime: 1.15, minWeight: .7, maxWeight: 1.4, downRatio: 1.25, hitRecovery: .3, missRecovery: .3, cooldown: 1.5 },
+  kick: { name: '蹴り', dashDistance: .5, time: .35, reach: 3, angle: Math.PI / 2, windup: .2, boost: 15, damage: 800, staggerTime: 1.35, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .6, landRecovery: .6, cooldown: 1.8 },
 });
 const DEFAULT_ACTION = 'crouch';
 // #228 は脚の kind に対応する行を足す。既存の脚・格闘武器の性能は変えない。
@@ -4731,6 +4740,11 @@ const ACTION_LEG_MUL = Object.freeze({ hover: { tackle: { distance: 1.3, damage:
 const ACTION_HOLD_DIVE = .25, ACTION_BOT_RATE = .8;
 function normalizeAction(id) { return Object.hasOwn(ACTIONS, id) ? id : DEFAULT_ACTION; }
 function actionScale(u, id) { return { distance: 1, damage: 1, ...ACTION_LEG_MUL[PARTS.legs[u.mech?.legs]?.kind || u.stats?.P.legs.kind]?.[id] }; }
+// 通常クイックブースト1回は、その機体のdashV×SHORT_TIME（既存のパイクと同じ基準）。
+function actionDistance(u, id, air = false) {
+  const a=ACTIONS[id], distance=air ? a.airDistance : a.dashDistance ? u.dashV*SHORT_TIME*a.dashDistance : a.distance;
+  return distance*actionScale(u,id).distance;
+}
 function actionBusy(u) { return !!u.actionMove || u.actionRecoverT > 0; }
 function actionCanStart(u) {
   return u.alive !== false && !(u.downT > 0) && !u.flying && !u.zip && !u.stun && !u.planted && !u.transfer && !u.repairing &&
@@ -4791,7 +4805,7 @@ function actionClear(u, e) {
   return true;
 }
 function actionMoveHit(u) {
-  const m = u.actionMove; if (!m || !isSimulationAuthority()) return false;
+  const m = u.actionMove; if (!m || !isSimulationAuthority() || m.id === 'tackle' && (m.hit || m.elapsed < ACTIONS.tackle.hitStart-1e-8)) return false;
   const a = ACTIONS[m.id], mul = actionScale(u, m.id), fx = -Math.sin(m.yaw), fz = -Math.cos(m.yaw);
   const enemies = units.filter(e => e !== u && e.kind === 'unit' && e.alive && !(e.downT > 0) && e.team !== u.team).sort((a,b) => a.pos.distanceToSquared(u.pos) - b.pos.distanceToSquared(u.pos));
   for (const e of enemies) {
@@ -4806,6 +4820,8 @@ function actionMoveHit(u) {
     if (!damage(e,u,dmg,false,true,null,u.pos,true,true,a.name)) continue;
     m.hit = true; u.actionHitUnits.add(e);
     jolt(e,u.pos,down ? DOWN_MELEE : STAGGER_MELEE,true);
+    // 威力とは別によろけを取る。ポッド・射出保護・既存のダウンはjoltの結果を尊重する。
+    if (e.alive && !e.repairing && !launchStaggerProtected(e) && e.stun === 'stagger') e.stunT = Math.max(e.stunT,a.staggerTime);
     if (e.alive && m.id === 'kick' && !e.repairing && !launchStaggerProtected(e)) {
       const length = d || 1;
       e.actionPush = { x: d ? dx/length : fx, z: d ? dz/length : fz, left: a.push, time: a.pushTime };
@@ -4833,15 +4849,30 @@ function actionMoveTick(u, dt) {
   let left = dt;
   while (left > 1e-8 && u.actionMove) {
     const m = u.actionMove, a = ACTIONS[m.id], mul = actionScale(u,m.id), windup = m.phase === 'windup';
-    const duration = windup ? a.windup : m.id === 'tackle' ? a.time : a.airTime;
+    const duration = windup ? a.windup : m.air ? a.airTime : a.time;
     const step = Math.min(left,1/120,Math.max(0,duration-m.elapsed));
     u.yaw = m.yaw;
-    if (m.id === 'tackle' && actionMoveHit(u)) { actionMoveEnd(u); break; }
-    const length = windup ? 0 : (m.id === 'tackle' ? a.distance : a.airDistance) * mul.distance * step / duration;
-    const horizontal = m.air ? length / Math.SQRT2 : length, ox = u.pos.x, oz = u.pos.z, oy = u.pos.y;
+    if (m.id === 'tackle') actionMoveHit(u);
+    const length = windup || m.phase === 'hold' ? 0 : actionDistance(u,m.id,m.air) * step / duration;
+    let horizontal = m.air ? length / Math.SQRT2 : length;
+    const ox = u.pos.x, oz = u.pos.z, oy = u.pos.y;
+    // 命中しても短い踏み込みを続ける。ただし相手の体へ潜り込まず、密着した所で止まる。
+    // 肩を出す前の移動でも密着した相手を追い越さない。攻撃開始までは位置だけ止める。
+    const victim = m.id !== 'tackle' ? null : m.hit ? u.actionHitUnits.values().next().value : units.filter(e => {
+      const dx=e.pos.x-ox,dz=e.pos.z-oz;
+      return e!==u && e.kind==='unit' && e.alive && e.team!==u.team && !(e.downT>0) && !(e.invulT>0) &&
+        e.pos.y+UNIT_H>=oy+.5 && e.pos.y<=oy+UNIT_H-.5 && -dx*Math.sin(m.yaw)-dz*Math.cos(m.yaw)>=0 &&
+        Math.abs(dx*Math.cos(m.yaw)-dz*Math.sin(m.yaw))<R;
+    }).sort((a,b)=>a.pos.distanceToSquared(u.pos)-b.pos.distanceToSquared(u.pos))[0];
+    if (victim?.alive && Math.abs(victim.pos.y-oy) < UNIT_H) {
+      const dx=victim.pos.x-ox, dz=victim.pos.z-oz;
+      if (Math.abs(dx*Math.cos(m.yaw)-dz*Math.sin(m.yaw)) < R)
+        horizontal=Math.min(horizontal,Math.max(0,-dx*Math.sin(m.yaw)-dz*Math.cos(m.yaw)-R));
+    }
+    const bodyBlocked = !windup && horizontal < (m.air ? length/Math.SQRT2 : length)-1e-8;
     const nx = ox-Math.sin(m.yaw)*horizontal, nz = oz-Math.cos(m.yaw)*horizontal;
     const moved = stepTo(u,nx,nz);
-    const blocked = !moved || Math.hypot(u.pos.x-nx,u.pos.z-nz) > 1e-5 || Math.abs(u.pos.x)>MAP_X-R || Math.abs(u.pos.z)>MAP_Z-R;
+    const blocked = bodyBlocked || !moved || Math.hypot(u.pos.x-nx,u.pos.z-nz) > 1e-5 || Math.abs(u.pos.x)>MAP_X-R || Math.abs(u.pos.z)>MAP_Z-R;
     u.pos.x = Math.max(-MAP_X+R,Math.min(MAP_X-R,u.pos.x)); u.pos.z = Math.max(-MAP_Z+R,Math.min(MAP_Z-R,u.pos.z));
     const wasGround = u.onGround;
     if (m.air && !windup) { u.vel.y = -a.airDistance*mul.distance/Math.SQRT2/a.airTime; u.pos.y -= length/Math.SQRT2; }
@@ -4850,12 +4881,17 @@ function actionMoveTick(u, dt) {
     const contact = u.pos.y <= gh || wasGround && u.pos.y-gh < Math.max(.3,horizontal*1.2);
     if (contact) { u.pos.y=gh; u.onGround=true; } else u.onGround=false;
     u.vel.x = step ? (u.pos.x-ox)/step : 0; u.vel.z = step ? (u.pos.z-oz)/step : 0;
-    m.distance += length; m.elapsed += step; left -= step;
-    if (!windup) { actionMoveHit(u); if(m.id==='tackle' && m.hit) actionMoveEnd(u); }
+    m.distance += Math.hypot(u.pos.x-ox,u.pos.z-oz,m.air && !windup ? u.pos.y-oy : 0); m.elapsed += step; left -= step;
+    if (!windup) actionMoveHit(u);
     if (windup && m.elapsed >= duration-1e-8) {
       m.phase='move'; m.elapsed=0; sfx('swing',u.pos,u);
-      if (!m.air) { actionMoveHit(u); actionMoveEnd(u); }
-    } else if (blocked || !windup && (m.elapsed >= duration-1e-8 || m.id === 'tackle' && !u.onGround || m.air && contact)) actionMoveEnd(u);
+      if (!m.air) actionMoveHit(u);
+    } else if (!windup && (m.elapsed >= duration-1e-8 || !m.air && !u.onGround || m.air && contact)) actionMoveEnd(u);
+    else if (blocked) {
+      // 肩を当てた所・壁際でも突撃の0.8秒を省略しない。位置だけ止めて動作を続ける。
+      if (m.id === 'tackle') { m.phase='hold'; u.vel.x=u.vel.z=0; }
+      else actionMoveEnd(u);
+    }
     if (contact) {
       if (!wasGround) { if (u.actionMove?.air) actionMoveEnd(u); land(u,-u.vel.y); }
       u.vel.y=0;
@@ -4869,7 +4905,7 @@ function botActionMove(u, dt) {
   const e=u.target, id=normalizeAction(u.actionId), a=ACTIONS[id];
   if (id==='crouch' || !e?.alive || e.kind!=='unit' || e.team===u.team || !actionCanStart(u) || u.actionCd>0) return false;
   if (!(e.planted || e.stun || e.electricT>0 || e.shockT>0 || e.recoverT>0 || e.actionRecoverT>0)) return false;
-  const dx=e.pos.x-u.pos.x,dz=e.pos.z-u.pos.z,d=Math.hypot(dx,dz),range=id==='tackle'?a.distance*actionScale(u,id).distance+2*R:a.reach;
+  const dx=e.pos.x-u.pos.x,dz=e.pos.z-u.pos.z,d=Math.hypot(dx,dz),range=id==='tackle'?a.distance*actionScale(u,id).distance+2*R:actionDistance(u,id,!u.onGround)/(u.onGround?1:Math.SQRT2)+a.reach;
   if (d>range || Math.abs(e.pos.y-u.pos.y)>UNIT_H || !actionClear(u,e) || Math.abs(wrapAngle(Math.atan2(-dx,-dz)-u.yaw))>.3) return false;
   return Math.random()<1-Math.exp(-ACTION_BOT_RATE*dt) && actionMoveStart(u);
 }
@@ -12573,7 +12609,7 @@ function gameFrame(now) {
     // 小さい巻き直し補正はモデルだけへ。pos/vel/当たり判定の確定値には混ぜない。
     if (u.onlineVisualOffset || u.onlineRenderOffset) u.group.position.add(onlineViewOffset(u));
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
-    const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
+    const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? .42 * Math.min(1,u.stunT/.15) : 0;
     if (!(simulationRole === 'guest' && !isLocalView(u))) u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
     u.group.rotation.x = u.tilt; // よろけでのけぞり、ダウンで後ろへ倒れる
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない

@@ -67,34 +67,34 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     yes(g.normalizeAction(undefined) === 'crouch' && g.normalizeAction('unknown') === 'crouch' && g.normalizeAction('__proto__') === 'crouch', '未設定・不正なアクションはしゃがみ');
     for (const hz of [30, 60, 120]) {
       reset(); const initial = p.boost;
-      yes(g.actionMoveStart(p) && near(initial - p.boost, 20) && near(p.actionCd, 3), hz + 'Hz：タックルは20消費・再使用3秒');
-      tick(.35, hz);
-      yes(near(p.pos.z, 12) && near(p.pos.x, 0) && !p.actionMove, hz + 'Hz：0.35秒で8m進む');
-      yes(near(p.actionRecoverT, .9, 1 / hz + .01), hz + 'Hz：空振り硬直0.9秒');
-      const at = p.pos.clone(); tick(.4, hz, p, new T.Vector3(1, 0, 0));
+      yes(g.actionMoveStart(p) && near(initial - p.boost, 20) && near(p.actionCd, 1.5), hz + 'Hz：タックルは20消費・再使用1.5秒');
+      tick(.8, hz);
+      yes(near(p.pos.z, 12) && near(p.pos.x, 0) && !p.actionMove, hz + 'Hz：0.8秒で公開版と同じ8m進む');
+      yes(near(p.actionRecoverT, .3, 1 / hz + .01), hz + 'Hz：空振り硬直0.3秒');
+      const at = p.pos.clone(); tick(.2, hz, p, new T.Vector3(1, 0, 0));
       yes(p.pos.distanceTo(at) < .01, hz + 'Hz：硬直中は移動しない');
     }
-    reset(); g.actionMoveStart(p); p.yaw = Math.PI / 2; tick(.35);
+    reset(); g.actionMoveStart(p); p.yaw = Math.PI / 2; tick(.8);
     yes(near(p.pos.x, 0) && near(p.pos.z, 12), 'タックルは発動時の方向を維持');
     for (const ratio of [.1, .81, 1, 1.249, 1.25, 4]) {
-      reset(); p.stats.weight = 5000 * ratio; const e = target(enemies[0], 0, 16);
-      const hp = e.hp, expected = 2000 * Math.max(.7, Math.min(1.4, Math.sqrt(ratio))) * g.armorMult(e);
+      reset(); p.stats.weight = 5000 * ratio; const e = target(enemies[0], 0, 17);
+      const hp = e.hp, expected = 600 * Math.max(.7, Math.min(1.4, Math.sqrt(ratio))) * g.armorMult(e);
       g.actionMoveStart(p); finish();
       yes(near(hp - e.hp, expected), 'タックル重量比 ' + ratio + '：平方根と0.7〜1.4倍の威力');
       yes(e.stun === (ratio >= 1.25 ? 'down' : 'stagger'), 'タックル重量比 ' + ratio + '：よろけ／ダウン');
-      yes(near(p.actionRecoverT, .5), '命中時の硬直0.5秒');
+      yes(near(p.actionRecoverT, .3), '命中時の硬直0.3秒');
     }
     for (const state of ['electricT', 'shockT']) {
-      reset(); const e = target(enemies[0], 0, 16); e[state] = 1;
+      reset(); const e = target(enemies[0], 0, 17); e[state] = 1;
       g.actionMoveStart(p); finish(); yes(e.stun === 'down', state + '中の相手は重量比によらずダウン');
     }
-    reset(); const first = target(enemies[0], 0, 16), second = target(enemies[1], 0, 13), friend = target(ally, 0, 18);
+    reset(); const first = target(enemies[0], 0, 17), second = target(enemies[1], 0, 16), friend = target(ally, 0, 18);
     const hps = [first.hp, second.hp, friend.hp]; g.actionMoveStart(p); finish();
-    yes(first.hp < hps[0] && second.hp === hps[1] && friend.hp === hps[2], '味方を無視し、最初の敵1機だけに当たる');
-    reset(); g.obstacles.push({ minX: -10, maxX: 10, minZ: 14, maxZ: 15, top: 220 });
-    g.actionMoveStart(p); finish(); yes(p.pos.z > 15, 'タックルは壁を通り抜けない'); g.obstacles.pop();
+    yes(first.hp < hps[0] && second.hp === hps[1] && friend.hp === hps[2], '味方を無視し、最初の敵1機だけに当たり踏み込みを続ける');
+    reset(); g.obstacles.push({ minX: -10, maxX: 10, minZ: 17.9, maxZ: 18, top: 220 });
+    g.actionMoveStart(p); finish(); yes(p.pos.z >= 19.3 - .025, 'タックルは壁を通り抜けない'); g.obstacles.pop();
     for (const id of ['tackle', 'kick']) {
-      for (const state of [{ boost: id === 'tackle' ? 19 : 9 }, { overheat: true }, { repairing: true },
+      for (const state of [{ boost: id === 'tackle' ? 19 : 14 }, { overheat: true }, { repairing: true },
         { planted: true }, { transfer: {} }, { downT: 1 }, { alive: false }, { stun: 'stagger' },
         { electricT: 1 }, { swing: {} }, { recoverT: .5 }, { lungeT: 1 }, { flying: true }, { zip: {} }, { actionCd: 1 }]) {
         reset(id); Object.assign(p, state); const fuel = p.boost;
@@ -113,25 +113,25 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     }
     reset(); p.onGround = false; p.pos.y = 230; yes(!g.actionMoveStart(p), '空中ではタックル不可');
     reset('kick'); const e = target(enemies[0], 0, 17.5), hp = e.hp, z = e.pos.z, fuel = p.boost;
-    yes(g.actionMoveStart(p) && near(fuel - p.boost, 10) && near(p.actionCd, 1.5), '蹴りは10消費・再使用1.5秒');
+    yes(g.actionMoveStart(p) && near(fuel - p.boost, 15) && near(p.actionCd, 1.8), '蹴りは15消費・再使用1.8秒');
     tick(.19); yes(e.hp === hp, '蹴りの発生前0.19秒では当たらない'); tick(.02);
-    yes(near(hp - e.hp, 1200 * g.armorMult(e)) && e.stun === 'stagger', '蹴りは0.2秒で1200・必ずよろけ');
+    yes(near(hp - e.hp, 800 * g.armorMult(e)) && e.stun === 'stagger', '蹴りは0.2秒で800・必ずよろけ');
     tick(.3, 120, e);
     yes(near(z - e.pos.z, 6), '蹴りは6m押し出す');
-    finish(); yes(near(p.actionRecoverT, .4, .02), '蹴りの硬直0.4秒');
+    finish(); yes(near(p.actionRecoverT, .6, .02), '蹴りの硬直0.6秒');
     reset('kick'); const hit = [target(enemies[0], -1, 18), target(enemies[1], 1, 18)], friendly = target(ally, 0, 18);
-    const all = [...hit, friendly], before = all.map(u => u.hp); g.actionMoveStart(p); tick(.21);
+    const all = [...hit, friendly], before = all.map(u => u.hp); g.actionMoveStart(p); tick(.66);
     yes(hit.every((u, i) => u.hp < before[i]) && friendly.hp === before[2], '蹴りの扇は複数の前方敵に当たり、味方には当たらない');
-    for (const [x, z, label] of [[0, 22, '後方'], [0, 14, '3mより遠方'], [2.5, 19, '全幅90度の扇の外']]) {
+    for (const [x, z, label] of [[0, 22, '後方'], [0, 10, '踏み込みを含めた射程より遠方'], [2.5, 19, '全幅90度の扇の外']]) {
       reset('kick'); const outside = target(enemies[0], x, z), outsideHp = outside.hp;
-      g.actionMoveStart(p); tick(.21); yes(outside.hp === outsideHp, '蹴りは' + label + 'に当たらない');
+      g.actionMoveStart(p); tick(.66); yes(outside.hp === outsideHp, '蹴りは' + label + 'に当たらない');
     }
     for (const id of ['tackle', 'kick']) {
-      reset(id, 'skimmer'); const e = target(enemies[0], 0, id === 'kick' ? 18 : 16), hp = e.hp;
+      reset(id, 'skimmer'); const e = target(enemies[0], 0, id === 'kick' ? 18 : 17), hp = e.hp;
       g.actionMoveStart(p); finish();
-      yes(near(hp - e.hp, (id === 'tackle' ? 2000 : 1200) * .8 * g.armorMult(e)), 'ホバーの' + id + 'は威力0.8倍');
+      yes(near(hp - e.hp, (id === 'tackle' ? 600 : 800) * .8 * g.armorMult(e)), 'ホバーの' + id + 'は威力0.8倍');
     }
-    reset('tackle', 'skimmer'); g.actionMoveStart(p); tick(.35); yes(near(20 - p.pos.z, 10.4), 'ホバーのタックルは距離1.3倍');
+    reset('tackle', 'skimmer'); g.actionMoveStart(p); tick(.8); yes(near(20 - p.pos.z, 10.4), 'ホバーのタックルは距離1.3倍');
     reset('kick'); p.onGround = false; p.pos.y = 230; g.actionMoveStart(p); tick(.2); const from = p.pos.clone(); finish();
     const delta = p.pos.clone().sub(from);
     yes(near(delta.length(), 6, .12) && near(-delta.y, -delta.z, .12), '空中蹴りは約45度下へ6m進む');
@@ -189,7 +189,7 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     }
     reset('kick'); const pushed = target(enemies[0], 0, 17.5), pushedFrom = pushed.pos.z;
     g.obstacles.push({ minX: -10, maxX: 10, minZ: 13, maxZ: 14, top: 220 });
-    g.actionMoveStart(p); tick(.21); tick(.3, 120, pushed);
+    g.actionMoveStart(p); tick(.66); tick(.3, 120, pushed);
     yes(pushed.pos.z > 14 && pushed.pos.z < pushedFrom && pushedFrom - pushed.pos.z < 6 && !pushed.actionPush, '蹴りの押し出しは壁で止まり、壁を越えない');
     g.obstacles.pop();
     reset('kick'); p.onGround = false; p.pos.y = 206; g.actionMoveStart(p); finish();
