@@ -78,7 +78,8 @@ check('オンラインのゲスト画面の震えとコマ送り',async({browser
       const en=__g.units.find(u=>u.team!==me.team&&u.alive);let at=null,yaw=0;
       // ゲストが横へ動き、敵が±6m往復しても、ずっと見通せる向きと距離を探す（遮られるとロックが外れ、試験の外の動きになる）。
       // 横移動は右へ0.75秒（約9m）進んで戻る。前は±4mしか確かめておらず、その先に物がある場所ではロックが切れて時々落ちた（2026-11-10）。
-      const home=me.pos.clone(),clear=(p,r)=>{for(const a of [-3,0,3,6,9,12])for(const b of [-6,-3,0,3,6]){
+      const home=me.pos.clone(),clear=(p,r)=>{for(let a=-3;a<=12;a++)for(let b=-6;b<=6;b+=1.5){ // 細い物も拾えるよう1m刻み（3m刻みでは間の柱を見落とした）
+       
         me.pos.copy(home).addScaledVector(r,a);me.group.position.copy(me.pos);me.group.updateMatrixWorld(true);
         en.pos.copy(p).addScaledVector(r,b);en.pos.y=__g.terrainH(en.pos.x,en.pos.z);en.group.position.copy(en.pos);en.group.updateMatrixWorld(true);
         if(!__g.canSee(me,en,__g.targetPoint(en)))return false;}return true;};
