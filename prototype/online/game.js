@@ -15,7 +15,7 @@
     '接続サービスが終了しました':'signaling_closed','対戦通信の応答がありません':'response_timeout','ホストから5秒間応答がありません':'host_timeout',
     '入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます':'input_timeout',
     '準備中にゲストが退出したため、開始を中止しました':'prepare_peer_left',
-    '直接接続が時間切れです。STUN のみでは接続できない回線があります':'connection_timeout','接続サービスへの登録が時間切れになりました':'connection_timeout',
+    '直接接続が時間切れです。STUN のみでは接続できない回線があります':'connection_timeout','接続が時間切れです。中継サーバーを通してもつながりませんでした':'connection_timeout','接続サービスへの登録が時間切れになりました':'connection_timeout',
     '入室許可の待ち時間が3分を超えました':'approval_timeout','操作の送信ができないため対戦を中断しました':'send_failed'
   };
   const value=(v,max=1e12)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max?Math.round(v*1000)/1000:null;
@@ -956,7 +956,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   // 移動命令の刻みはhost定義。client申告のdtや描画Hzで機体速度を変えない。
   const commandLimits={dt:1/60,queue:30,sequenceJump:120,catchupSeconds:.1,catchupBacklog:6,maxFrameSteps:4,maxAheadSteps:2};
   let localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
-  const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:8,visualFrames:6};
+  const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:0,visualFrames:6};
   const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,activeMs:250,futureMs:250,actions:64};
   const movementKeys=['KeyW','KeyS','KeyA','KeyD','KeyC','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   const movementEdges=['ShiftLeft','ShiftRight','Space'];
@@ -1488,7 +1488,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1 / class-loadouts-1 / reconnect-1 / class-choice-1', reconnect:true, peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: (typeof opts.displayName==='string'&&opts.displayName.trim())||pilotNameForOnline(), capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1 / class-loadouts-1 / reconnect-1 / class-choice-1', reconnect:true, peerOptions: opts.peerOptions, iceServersUrl: opts.iceServersUrl ?? (typeof CBOnlineTransport==='undefined'?'':CBOnlineTransport.ICE_URL), latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: (typeof opts.displayName==='string'&&opts.displayName.trim())||pilotNameForOnline(), capacity:state.settings?.capacity||4,
       canResumePeer:id=>state.role==='host'&&state.phase==='playing'&&!!unit((state.peers.get(id)||state.resumePeers.get(id))?.unitId),
       onReconnectFailed:reason=>{if(state.reconnecting)endGuest(reason);},
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
@@ -1523,7 +1523,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     requireVisibilitySupport();
     const settings=checkedSettings({...defaultSettings,...opts.settings}),equipment=opts.equipment?checkedEquipment(opts.equipment):savedEquipment(opts.cls);
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
-    lagEnabled=opts.lagCompensationEnabled!==false;
+    lagEnabled=opts.lagCompensationEnabled!==false;predictionLimits.wireSteps=opts.ackStepHistory?8:0;
     state.settings=settings;state.resolvedMapId=resolveMap(settings.mapId);state.hostTeam='B';state.equipment=equipment;
     setSimulationRole('host'); state.transport = new CBOnlineTransport(transportOptions(opts));
     diagnosticLog?.begin({role:'host',version:localVersion(),protocol:CBOnlineTransport.PROTOCOL},logSample());
@@ -2328,8 +2328,9 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       shells:shells.map(s=>({id:s.onlineId||(s.onlineId=++projectileId),pos:s.pos.toArray(),vel:s.vel.toArray(),rocket:!!s.spec.rocket,weak:!!s.spec.weak,team:s.team,visual:packShellVisual(s)})),
       acks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,p.appliedSeq])),
       inputAcks:Object.fromEntries([...state.peers.values()].map(p=>[p.unitId,{fixed:!!p.fixedCommands,replaySeq:p.fixedReplaySeq||0,movementSeq:p.appliedMovementActionSeq||0,movementIds:[...(p.appliedMovementIds||[])],seq:p.appliedSeq||0,step:p.appliedStep||0,seqDt:p.appliedSeqDt||0,actionSeq:p.appliedActionSeq||0,totalDt:p.appliedTotalDt||0,
-        // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元でき、最近8stepは検証用に残す。
-        steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}]))};
+        // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元できる。
+        // 最近のstep一覧は診断用で、巻き直しには使わない。毎回約1KBになるので既定では送らない（create の ackStepHistory で8件を送る）。
+        ...(predictionLimits.wireSteps>0?{steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}:{})}]))};
     // 自機の予測再生はcm丸めで地形の境界を跨がないよう、同じ写真の確定位置をACKへ保持する。
     // inputAcksはcodecで丸めず、送信時には受信者自身の項目だけに絞る。
     for(const v of s.units)if(s.inputAcks[v.id])s.inputAcks[v.id].pos=v.pos.slice();

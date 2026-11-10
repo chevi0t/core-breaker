@@ -38,7 +38,7 @@ function harness(t){
   Object.assign(guest,{role:'guest',peer:{id:'guest'}});
   const hl=host._attach(connection('guest')),gl=guest._attach(connection('host'));
   for(const link of [hl,gl])Object.assign(link,{ready:true,approved:true,snapshotConn:connection(link.conn.peer)});
-  hl.snapshotConn.send=text=>hostPackets.push(JSON.parse(text));
+  hl.snapshotConn.send=text=>hostPackets.push(JSON.parse(Transport.wireText(text))); // 写真の差分はバイナリ（通信規格 v10）
   gl.conn.send=text=>guestPackets.push(JSON.parse(text));
   const peer={id:'guest',unitId:'B:0'},world=[{entityId:'B:0',team:'B'},{entityId:'R:0',team:'R'}];
   let full,clock=1000,visible=new Set(world.map(u=>u.entityId)),cadence=1,gadgetVisible=false,objectVisible=false;

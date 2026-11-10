@@ -83,7 +83,7 @@ function approx(actual,expected){assert(Math.abs(actual-expected)<1e-10,`${actua
   const raw=h.game.snapshot(),encoder=new codec.Encoder(),decoder=new codec.Decoder(),wire=encoder.encode(raw);assert(decoder.seed(wire.baseline));
   assert.deepEqual(decoder.decode(wire.delta).inputAcks,copy(raw.inputAcks));
   for(let i=0;i<200;i++)h.c.updateHumanUnit(h.units[1],{...input(3),pressed:{}},.016);
-  assert.equal(p.appliedSteps.length,120);assert.equal(h.game.snapshot().inputAcks['R:0'].steps.length,8);
+  assert.equal(p.appliedSteps.length,120);assert.equal(h.game.snapshot().inputAcks['R:0'].steps,undefined);
 }
 {
   const h=harness();reconcile(h,snapshot(h));h.test.predictLocalInput(input(1),.02);

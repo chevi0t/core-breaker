@@ -18,7 +18,7 @@ const MOCK_PEER_SOURCE=`(() => {
   class MockConnection extends Emitter {
     constructor(owner,remote,id,options={}){super();this.owner=owner;this.peer=remote;this.connectionId=id;this.options=options;this.label=options.label||id;this.metadata=options.metadata;this.serialization=options.serialization||'raw';this.reliable=!!options.reliable;this.open=false;this.bufferSize=0;
       // 代替試験で契約を模倣するだけ。実RTCの生成オプション検証はonline_loss_checkで別に行う。
-      const snapshot=this.label==='core-breaker-snapshot-v9';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
+      const snapshot=this.label==='core-breaker-snapshot-v10';this.dataChannel={bufferedAmount:0,ordered:this.reliable,maxRetransmits:snapshot?0:null,maxPacketLifeTime:null,readyState:'connecting'};}
     send(data){if(!this.open)throw Error('代替接続が開いていません');this.owner.post({type:'data',to:this.peer,id:this.connectionId,data});}
     close(remote=false){if(this.closed)return;this.closed=true;this.open=false;this.dataChannel.readyState='closed';if(!remote)this.owner.post({type:'close',to:this.peer,id:this.connectionId});this.owner.connections.delete(this.connectionId);this.emit('close');}
     ready(){if(this.closed||this.open)return;this.open=true;this.dataChannel.readyState='open';this.emit('open');}
@@ -185,7 +185,9 @@ async function installWireObserver(page){await page.evaluate(()=>{
       const envelope=JSON.parse(item.text),channel=item.channel||(['snapshot','snapshotBase'].includes(item.type)?'snapshot':'control'),at=performance.now();
       const sample={envelope,channel,messageBytes:item.bytes,peerId:link.conn.peer,at,type:item.type};emit('onDatagram',sample);
       if(envelope.type!=='snapshotChunk'){
-        emit('onMessage',{...sample,logicalMessageBytes:utf8.encode(item.text).length,fragmentCount:1,maxDatagramBytes:item.bytes,chunkBase64ExpansionBytes:0,chunkEnvelopeBytes:0});return sent;
+        const logical=utf8.encode(item.text).length;
+        // バイナリ写真はJSON文字列より短い（base64の増量とdelta文字列の引用符が無い）。その差を別に返す。
+        emit('onMessage',{...sample,logicalMessageBytes:logical,fragmentCount:1,maxDatagramBytes:item.bytes,chunkBase64ExpansionBytes:0,chunkEnvelopeBytes:0,binaryWireSavedBytes:item.binary?logical-item.bytes:0});return sent;
       }
       for(const [key,value]of parts)if(at-value.at>3000)parts.delete(key);
       const p=envelope.payload,key=[link.conn.peer,envelope.matchId,p.type,p.sequence].join(':');

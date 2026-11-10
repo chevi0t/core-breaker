@@ -18,7 +18,7 @@ function load(c,names){
   }
   return c;
 }
-function conn(id){return Object.assign(new EventEmitter(),{peer:id,label:'core-breaker-control-v9',open:true,bufferSize:0,dataChannel:{bufferedAmount:0},send(){},close(){}});}
+function conn(id){return Object.assign(new EventEmitter(),{peer:id,label:Transport.CONTROL_LABEL,open:true,bufferSize:0,dataChannel:{bufferedAmount:0},send(){},close(){}});}
 function fixture(t,count=4){
   let stateSnapshot,clock=5000,shown=new Set(),cadence=1;
   const hosts=[],guests=[],applied=[];
@@ -33,7 +33,7 @@ function fixture(t,count=4){
   }
   const hl=host._attach(conn('guest')),gl=guest._attach(conn('host'));
   for(const l of [hl,gl])Object.assign(l,{ready:true,approved:true,snapshotConn:conn(l.conn.peer)});
-  hl.snapshotConn.send=s=>hosts.push(JSON.parse(s));gl.conn.send=s=>guests.push(JSON.parse(s));
+  hl.snapshotConn.send=s=>hosts.push(JSON.parse(Transport.wireText(s)));gl.conn.send=s=>guests.push(JSON.parse(s));
   hc=load({Map,Set,CBOnlineCodec:Codec,SLOTS:['main','sub','aux','sp'],visibilitySupport:{},requireVisibilitySupport(){},unit:id=>world.find(u=>u.entityId===id),
     createPeerView:()=>({viewer:world[0],visible:shown,cadence:new Map(world.map(u=>[u.entityId,cadence])),gadgetVisible:()=>false,sourceVisible:()=>false,pointVisible:()=>false}),
     gadgetSlotsForPeer:()=>[[1]],equipmentObjectsForPeer:()=>[],equipmentUnitForPeer:v=>v.equipment,radars:[],shells:[],now:()=>clock,snapshot:()=>clone(stateSnapshot),
