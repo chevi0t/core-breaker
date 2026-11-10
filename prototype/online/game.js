@@ -2439,6 +2439,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function eventsForPeer(p,events,view=createPeerView(p)){
     return events.filter(e=>{
       const d=e.data||{};
+      if(e.type==='feed')return true; // 戦況ログは全員に同じ物（オフラインでも見えない場所の撃破が出る）
       if(e.type==='hit'||personalEvents.has(e.type))return d.unit===p.unitId;
       if(!view.sourceVisible(e.source)||!view.sourceVisible(e.target))return false;
       if(d.unit&&!view.visible.has(d.unit))return false;
@@ -2454,6 +2455,27 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   // 本人にだけ送る手応え（撃破・破壊・蘇生の札、得点、被弾の方向）。本体は遠隔の人間に対して remoteFeedback を呼ぶ。
   const personalEvents=new Set(['popup','score','hurt']);
   // 本体が window.CBOnlineGame?.remoteFeedback で呼ぶ（公開は下の CBOnlineGame の後で足す）。
+  // 戦況ログ（撃破・蘇生・占拠・破壊）をゲストへも出す。ホストの feedAll から呼ぶ。
+  function shareFeed(html,cls=''){
+    if(state.role!=='host'||state.phase!=='playing'||typeof html!=='string'||html.length>600)return;
+    // 色と「自軍・敵軍」は見る人の軍で変わるので、印（{cB}・{nB} など）にして送り、ゲストが自分の軍で戻す。
+    let wire=html;
+    for(const k of ['B','R'])wire=wire.split('color:'+TEAM[k].css+'"').join('color:{c'+k+'}"');
+    wire=wire.replace(/(color:\{c[BR]\}">)(自軍|敵軍)(?=[<の])/g,(m,head,name)=>head+'{n'+(name===TEAM.B.name?'B':'R')+'}');
+    emit('feed',{html:wire,cls},null,null);
+  }
+  // ホストから届いた戦況ログは、色付きの span と文字だけを通す（それ以外のタグ・属性は文字にする）。
+  function safeFeedHtml(html){
+    const own=player?.team||'B';
+    html=html.slice(0,600).replace(/\{c([BR])\}/g,(m,k)=>sideColors(k,own).css).replace(/\{n([BR])\}/g,(m,k)=>k===own?'自軍':'敵軍');
+    const src=document.createElement('template'),out=document.createElement('div');src.innerHTML=html;
+    for(const n of src.content.childNodes){
+      const style=n.nodeType===1&&n.tagName==='SPAN'&&n.attributes.length===1?n.getAttribute('style'):null;
+      if(style!==null&&/^color:\s*(#[0-9a-fA-F]{3,8}|var\(--[a-z-]+\))$/.test(style)){const e=document.createElement('span');e.style.cssText=style;e.textContent=n.textContent;out.append(e);}
+      else out.append(document.createTextNode(n.textContent));
+    }
+    return out.innerHTML;
+  }
   function remoteFeedback(u,type,data){
     if(state.role!=='host'||state.phase!=='playing'||!personalEvents.has(type)||u?.controller!=='remoteHuman'||!u.entityId)return;
     emit(type,{...data,unit:u.entityId},u,null);
@@ -2539,13 +2561,15 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
         remoteUnitHistory.set(v.id,{samples,stamp:[visibilitySupport.unitNumber(v.id),s.frame,s.frame,s.time,v.visibilityEpoch],snap});
       }
     }
+    // ゲストの画面でもアナウンスを出す（ホストの annCore・annPlant はホストの自軍だけを見て鳴らす）。
+    if(running&&typeof annCore==='function')for(const k of ['B','R'])if(s.cores[k]<cores[k].hp-1e-6)annCore(k);
     cores.B.hp=s.cores.B; cores.R.hp=s.cores.R; timeLeft=s.timeLeft;
     for(const k of ['B','R']){
       spotted[k].clear();spotSrc[k].clear();
       for(const [id,left] of s.spotted?.[k]||[]){const u=unit(id);if(u)spotted[k].set(u,left);}
       for(const [id,list] of s.spotSrc?.[k]||[]){const u=unit(id);if(u)spotSrc[k].set(u,new Map(list));}
     }
-    for(const v of s.plants){const p=plants.find(p=>p.id===v.id);if(p){Object.assign(p,v);paintPlant(p);}}
+    for(const v of s.plants){const p=plants.find(p=>p.id===v.id);if(p){const prev=p.owner;Object.assign(p,v);paintPlant(p);if(running&&prev!==p.owner&&typeof annPlant==='function')annPlant(p,prev);}}
     applyFacilities(s);applyEquipmentObjects(s.gadgets||[],s.equipmentObjects||[]);
     for(const [i,v]of s.units.entries())if(!v.hidden&&(!sparse||(s.unitUpdates&(1<<i)))){const u=unit(v.id);if(u)applyEquipmentUnit(u,v.equipment);}
     // ホスト確定の施設位置・発光のみ反映。乗客移動/接触/射出の物理はゲストで行わない。
@@ -2809,6 +2833,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(now()-state.lastHost>500)status('通信遅延：ホストの状態を待っています');
     interpolate(now());decayPredictionVisual();guestPodVisuals();if(typeof reflectorUpdate==='function')guestEquipmentVisuals(dt);
     if(!player)return;
+    if(running&&typeof annTick==='function')annTick(); // 残り時間・コアの残り・ベース侵入（写真で届いた値から、ゲスト自身の軍で判定）
     if(!overrideInput){
       const turn=2.2*dt;
       if(keys.ArrowLeft)player.yaw+=turn;if(keys.ArrowRight)player.yaw-=turn;
@@ -2864,6 +2889,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       if(e.type==='tracer'&&!(d.unit===state.localUnitId&&localFireCovers('tracer',d)))tracer(vector(d.from),vector(d.end),d.team,d.energy,WEAPONS[d.weapon]||null,d.enlarged);
       if(e.type==='boom')boom(vector(d.at),d.k,d.radius,d.energy);
       if(e.type==='impact')impact(vector(d.at),d.kind,d.delay);
+      if(e.type==='feed'&&typeof d.html==='string'&&typeof feed==='function')feed(safeFeedHtml(d.html),d.cls==='chat'?'chat':'');
       if(e.type==='sfx'&&!(d.unit===state.localUnitId&&d.name===localFireWeapon(player)?.w.sfx&&localFireCovers('sfx',d)))sfx(d.name,d.at?vector(d.at):null,d.unit?unit(d.unit):null,d.rate,d.level);
       if(e.type==='shot'){const u=unit(d.unit);if(u&&!u.onlineHidden&&!(u===player&&localFireCovers('shot',d)))mainMuzzleFlash(u,false,u.slots[u.weapon].w);}
       if(e.type==='popup'&&d.unit===state.localUnitId&&Array.isArray(d.at))popup(vector(d.at),htmlText(d.label),htmlText(d.sub),!!d.good);
@@ -3105,7 +3131,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     savedBuilds,chooseSavedBuild,saveEquipmentBuilds,savedBuildStatus,pilotNameForOnline,
     quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,respawnLoadout,
     roomOptions:{classes:roomClasses.map(id=>({id,name:CLASSES[id].name||id})),maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
-    active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
+    active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},shareFeed,safeFeedHtml,testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice(),localTracers:{...localTracerStats}})};
   window.CBOnlineGame.remoteFeedback=remoteFeedback;
 })();
