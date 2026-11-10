@@ -99,6 +99,14 @@ const dir=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]||'/tmp/
   const legacyPage=await open(legacyContext);yes((await snapshot(legacyPage)).mech.head==='standard'&&(await legacyPage.locator('#buildSaveStatus').innerText()).includes('差があります'),'旧形式の食い違いを無断で上書きせず知らせる');
   await legacyPage.locator('#buildRestore').click();yes((await snapshot(legacyPage)).mech.head==='heavy3','旧形式の構成側に残った機体を復元できる');
   await legacyPage.locator('#buildRestore').click();yes((await snapshot(legacyPage)).mech.head==='standard','旧形式の復元も取り消せる');await legacyContext.close();assert.deepEqual(errors,[]);
+  // 読めるが形の違う保存（list が無い）でも起動し、アクションはしゃがみになる（#232 の確認で見つけた後退）。
+  for(const text of ['{}','5','"abc"','[]','{"cur":0}','{"cur":0,"list":[]}']){
+   const odd=await browser.newContext();await odd.route('**fonts.g*/**',r=>r.fulfill({body:'',contentType:'text/css'}));
+   await odd.addInitScript(text=>{requestAnimationFrame=()=>0;window.AudioContext=window.webkitAudioContext=undefined;if(!localStorage.getItem('__oddFixture')){localStorage.setItem('__oddFixture','1');localStorage.setItem('coreBreakerBuilds',text);}},text);
+   const oddPage=await open(odd);
+   yes(await oddPage.evaluate(()=>typeof __g!=='undefined'&&__g.builds.list.length===3&&__g.builds.list.every(b=>b.actionId==='crouch')),'形の違う保存 '+text+' でも起動し、アクションはしゃがみ');
+   await odd.close();assert.deepEqual(errors,[]);
+  }
   fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify({checks,errors},null,2)+'\n');console.log(JSON.stringify({checks:checks.length,errors}));
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e.stack);process.exit(1)});
