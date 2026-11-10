@@ -4610,7 +4610,14 @@ function startTransfer(u, at) {
   u.xferCd = clock() + AREA_CD;
   return true;
 }
-function cancelTransfer(u) { u.transfer = null; if (isHumanControlled(u)) u.nextCls = null; }
+function cancelTransfer(u) {
+  u.transfer = null;
+  if (isHumanControlled(u)) {
+    u.nextCls = null;
+    // オンラインの兵装予約はcontrolLoadoutも先に変える。取消時は現在の装備へ戻す。
+    if (window.CBOnlineGame?.active()) u.controlLoadout = Object.fromEntries(SLOTS.map(k => [k, u.slots[k].w.key]));
+  }
+}
 function doTransfer(u) {
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
   u.raidRoute = null;

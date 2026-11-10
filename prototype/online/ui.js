@@ -1,4 +1,4 @@
-// #212 の試作専用メニュー。保存済み装備やマップ設定は書き換えない。
+// #212 の試作メニュー。装備はオフラインの3構成と共用、マップ設定は部屋専用。
 (() => {
   const menu = document.getElementById('menuRange');
   const button = document.createElement('button'); button.type = 'button'; button.id = 'menuOnline';
@@ -14,15 +14,15 @@
   panel.innerHTML = `<header class="online-header"><div><p class="online-eyebrow">コアブレイカー / 通信司令室</p><h2>オンライン出撃</h2><p>仲間と集まり、同じ戦場へ。</p></div><span class="online-badge">試作・通信 v9</span></header>
   <div class="online-body"><div class="online-main">
   <section class="online-card"><h3><span>01</span> パイロット登録</h3><div class="online-fields">
-    <label for="onlineName">申告名 <small>本人確認なし</small><input id="onlineName" maxlength="24" value="ゲスト" aria-label="オンラインの申告名"></label>
-    <label for="onlineClass">兵装<select id="onlineClass"></select></label>
-  </div><p class="online-note">入室後に武器・パーツを変更できます。保存済みの装備は変更しません。</p></section>
+    <label for="onlineName">パイロット名 <small>本人確認なし</small><input id="onlineName" maxlength="24" aria-label="オンラインのパイロット名"></label>
+    <label for="onlineClass">兵装<select id="onlineClass"></select></label><label for="onlineBuild">共通の構成<select id="onlineBuild"></select></label>
+  </div><p class="online-note">パイロット画面の名前と、オフラインで保存した3構成を使います。装備は入室後も変更できます。同じブラウザ・同じサイトの保存を共用します。別サイト・端末の装備は、通常のカスタマイズ画面で設定ファイルを読み込んで移せます。</p><p id="onlineBuildStatus" class="online-note" role="status"></p></section>
   <section class="online-card"><h3><span>02</span> 部屋を作る・参加する</h3>
     <div class="online-entry"><div><p>ホストとして招待する</p><button type="button" id="onlineCreate" class="online-primary">部屋を作る</button></div><div><label for="onlineRoom">受け取った部屋IDで参加</label><div class="online-join"><input id="onlineRoom" maxlength="100" placeholder="部屋IDを入力" aria-label="部屋ID" spellcheck="false" autocomplete="off"><button type="button" id="onlineJoin">部屋に入る</button></div></div></div>
     <div class="online-share"><p class="online-note">作成した部屋IDを友人に共有してください。入室は自動です。</p><button type="button" id="onlineCopy" hidden>部屋IDをコピー</button></div>
   </section>
   <section class="online-card online-squad"><h3><span>03</span> 出撃メンバー</h3><div id="onlineRequests" aria-label="入室承認待ち" hidden></div><div id="onlineRoster" aria-label="参加者"></div><p id="onlineEmpty" class="online-empty">まだ部屋に入っていません。<br><small>人間2〜4人で出撃。空き枠はBotが担当します。</small></p><button type="button" id="onlineShuffle" hidden>チームをシャッフル</button><p id="onlineReadySummary" class="online-note"></p><button type="button" id="onlineEquipment" hidden>装備を変更</button>
-    <section id="onlineEquipmentEditor" hidden aria-label="オンライン用装備"><h4>この部屋の装備</h4><p class="online-note">開くと自分のReadyが解除されます。4兵装の全武器と機体パーツを選べます。試作のため、特殊装備の実画面と実回線での確認は継続中です。</p><label>兵装<select id="onlineEquipmentClass"></select></label><div id="onlineEquipmentFields" class="online-fields"></div><p id="onlineEquipmentWeight" class="online-note"></p><p id="onlineReadyNudge" role="status" aria-live="polite" hidden></p><div class="online-equipment-actions"><button type="button" id="onlineEquipmentSave">この装備で戻る</button><button type="button" id="onlineEquipmentCancel">変更せず戻る</button></div></section></section>
+    <section id="onlineEquipmentEditor" hidden aria-label="共通の保存構成"><h4>オフラインと共通の3構成</h4><p class="online-note">開くと自分のReadyが解除されます。「保存してこの構成を使う」で、編集した構成の全兵装・パーツ・塗装をオフラインと共通の保存へ反映します。構成を切り替えても下書きは残ります。取消は未保存の下書きだけを破棄し、保存済みの構成は退出後も残ります。</p><div class="online-fields"><label>共通の構成<select id="onlineEquipmentBuild"></select></label><label>兵装<select id="onlineEquipmentClass"></select></label></div><div id="onlineEquipmentFields" class="online-fields"></div><p id="onlineEquipmentWeight" class="online-note"></p><p id="onlineReadyNudge" role="status" aria-live="polite" hidden></p><div class="online-equipment-actions"><button type="button" id="onlineEquipmentSave">保存してこの構成を使う</button><button type="button" id="onlineEquipmentCancel">下書きを破棄して戻る</button></div></section></section>
   </div><aside class="online-side">
   <fieldset id="onlineSettings" class="online-card"><legend>作戦設定</legend><p class="online-note">作成後はホストだけが変更できます。</p><div class="online-fields">
     <label for="onlineCapacity">人間の定員（ホストを含む）<select id="onlineCapacity"></select></label>
@@ -64,6 +64,8 @@
   const addOption = (id,value,label) => { const option=document.createElement('option');option.value=value;option.textContent=label;el(id).append(option); };
   const supported=CBOnlineGame.roomOptions;
   supported.classes.forEach(c=>{addOption('onlineClass',c.id,c.name);addOption('onlineEquipmentClass',c.id,c.name);});
+  for(let i=0;i<3;i++){addOption('onlineBuild',i,'構成'+(i+1));addOption('onlineEquipmentBuild',i,'構成'+(i+1));}
+  el('onlineBuild').value=String(CBOnlineGame.savedBuilds().cur);el('onlineName').value=CBOnlineGame.pilotNameForOnline();
   supported.capacities.forEach(n=>addOption('onlineCapacity',n,n+'人'));
   supported.teamSizes.forEach(n=>addOption('onlineTeamSize',n,n+'対'+n+'（合計'+n*2+'機）'));
   addOption('onlineMap','random','ランダム');supported.maps.forEach(m=>addOption('onlineMap',m.id,m.name));
@@ -75,8 +77,10 @@
   const roomSettings = () => ({capacity:Number(el('onlineCapacity').value),teamSize:Number(el('onlineTeamSize').value),mapId:el('onlineMap').value,teamMode:el('onlineTeamMode').value});
   function controls() {
     const s=CBOnlineGame.state,active=CBOnlineGame.active(),host=s.role==='host'&&s.phase==='lobby',editable=!busy&&(!active||host);
-    for(const id of ['onlineCreate','onlineJoin','onlineClass','onlineLatency','onlineName'])el(id).disabled=busy||active;
+    for(const id of ['onlineCreate','onlineJoin','onlineClass','onlineBuild','onlineLatency','onlineName'])el(id).disabled=busy||active;
     el('onlineRoom').readOnly=active;el('onlineRoom').disabled=busy;
+    if(!active)el('onlineBuild').value=String(CBOnlineGame.savedBuilds().cur);
+    const saved=CBOnlineGame.savedBuildStatus();el('onlineBuildStatus').textContent=saved.text;el('onlineBuildStatus').style.color=saved.failed?'#ffbd7f':'';
     for(const id of ['onlineCapacity','onlineTeamSize','onlineMap','onlineTeamMode','onlineApplySettings'])el(id).disabled=!editable;
     panel.dataset.phase=s.phase;panel.setAttribute('aria-busy',String(busy));
     el('onlinePhase').textContent=busy?'通信中':s.phase==='lobby'?(s.role==='host'?'ホスト / 入室待機':'ゲスト / 開始待機'):s.phase==='playing'?'作戦進行中':'接続待機';
@@ -148,22 +152,27 @@
     lastSettingsSignature=signature;
     el('onlineResolvedMap').textContent=settings?'出撃マップ: '+(supported.maps.find(m=>m.id===resolvedMapId)?.name||resolvedMapId)+(settings.mapId==='random'?'（抽選済み）':''):'';controls();
   }
-  const options = () => ({displayName:el('onlineName').value.trim()||'ゲスト',cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned,onNudge:text=>{el('onlineReadyNudge').textContent=text;el('onlineReadyNudge').hidden=false;}});
+  const options = () => ({displayName:el('onlineName').value.trim()||CBOnlineGame.pilotNameForOnline(),cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned,onNudge:text=>{el('onlineReadyNudge').textContent=text;el('onlineReadyNudge').hidden=false;}});
   const act = async fn => {if(busy)return;busy=true;controls();const mine=++generation;try{await fn(mine);}catch(e){if(mine===generation)status(e.message);}finally{if(mine===generation){busy=false;controls();}}};
   const resetRoomControls = () => {el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
   const startLabel = () => document.getElementById('start');
   const leaveResult = (openPanel=true) => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();startLabel().textContent='もう一度出撃する';panel.hidden=!openPanel;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
   returnButton.onclick = () => { if (CBOnlineGame.state.phase === 'lobby') { panel.hidden = false; returnButton.hidden = true; controls(); } else leaveResult(true); };
-  button.onclick = () => {panel.hidden=false;controls();document.exitPointerLock?.();el('onlineName').focus();};
+  button.onclick = () => {if(!CBOnlineGame.active())el('onlineName').value=CBOnlineGame.pilotNameForOnline();panel.hidden=false;controls();document.exitPointerLock?.();el('onlineName').focus();};
+  el('onlineBuild').onchange=()=>{try{CBOnlineGame.chooseSavedBuild(Number(el('onlineBuild').value));controls();}catch(e){status(e.message);}};
   el('onlineCopy').onclick=async()=>{const id=CBOnlineGame.state.roomId;if(!id)return;try{await navigator.clipboard.writeText(id);status('部屋IDをコピーしました。友人に共有してください。');}catch{status('コピーできませんでした。部屋ID欄を選択してコピーしてください。');el('onlineRoom').focus();el('onlineRoom').select();}};
   el('onlineCreate').onclick=()=>act(async mine=>{let room;try{room=await CBOnlineGame.create(options());}catch(e){if(mine===generation)CBOnlineGame.leave('部屋を作成できませんでした');throw e;}if(mine!==generation)return;el('onlineRoom').value=room;status('部屋ID: '+room+'　ゲストの入室を待っています。');});
   el('onlineJoin').onclick=()=>act(async mine=>{const id=el('onlineRoom').value.trim();if(!id)throw Error('部屋IDを入力してください');try{await CBOnlineGame.join(id,options());}catch(e){if(mine===generation)CBOnlineGame.leave('接続できませんでした');throw e;}if(mine===generation)status('接続しました。ホストの開始を待っています。');});
   el('onlineApplySettings').onclick=()=>{try{CBOnlineGame.updateSettings(roomSettings());}catch(e){settingsChanged(CBOnlineGame.state.settings,CBOnlineGame.state.resolvedMapId,true);status(e.message);}};
   el('onlineShuffle').onclick=()=>{try{CBOnlineGame.shuffleTeams();}catch(e){status(e.message);}};
-  let equipmentDraft=null;
+  let equipmentDraft=null,buildDraft=null,buildBaseline=null;
+  function selectDraftBuild(cls){
+    const build=buildDraft.list[buildDraft.cur];
+    equipmentDraft={cls,mech:build.mech,loadouts:build.loadout,loadout:build.loadout[cls]};
+  }
   function renderEquipment(){
     const cls=equipmentDraft.cls,options=CBOnlineGame.equipmentOptions(cls),fields=el('onlineEquipmentFields');fields.replaceChildren();
-    el('onlineEquipmentClass').value=cls;
+    el('onlineEquipmentClass').value=cls;el('onlineEquipmentBuild').value=String(buildDraft.cur);
     const add=(labelText,key,values,current,onChange)=>{
       const label=document.createElement('label'),select=document.createElement('select');label.textContent=labelText;select.dataset.equipment=key;
       for(const value of values){const option=document.createElement('option');option.value=value.id;option.textContent=value.name;select.append(option);}
@@ -175,9 +184,19 @@
     add('塗装','color',options.paints,equipmentDraft.mech.color,value=>equipmentDraft.mech.color=value);equipmentWeight();controls();
   }
   function equipmentWeight(){const st=mechStats(equipmentDraft.mech,equipmentDraft.loadout);el('onlineEquipmentWeight').textContent='総重量 '+st.weight+'kg / 積載 '+st.cap+'kg'+(st.excess>0?'（重量超過 +'+st.excess+'kg、速度 −'+Math.round(st.slow*100)+'%）':'');}
-  el('onlineEquipment').onclick=()=>{try{CBOnlineGame.setEditing(true);equipmentDraft=JSON.parse(JSON.stringify(CBOnlineGame.state.equipment));el('onlineEquipmentEditor').hidden=false;renderEquipment();el('onlineEquipmentClass').focus();}catch(e){status(e.message);}};
-  el('onlineEquipmentClass').onchange=()=>{equipmentDraft.cls=el('onlineEquipmentClass').value;equipmentDraft.loadout=Object.fromEntries(SLOTS.map(k=>[k,CLASSES[equipmentDraft.cls][k]]));renderEquipment();};
-  const closeEquipment=save=>{try{if(save)CBOnlineGame.setEquipment(equipmentDraft);CBOnlineGame.setEditing(false);el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;controls();el('onlineReady').focus();}catch(e){status(e.message);}};
+  el('onlineEquipment').onclick=()=>{try{
+    CBOnlineGame.setEditing(true);buildBaseline=CBOnlineGame.savedBuilds();buildDraft=JSON.parse(JSON.stringify(buildBaseline));
+    selectDraftBuild(CBOnlineGame.state.equipment.cls);el('onlineEquipmentEditor').hidden=false;renderEquipment();el('onlineEquipmentBuild').focus();
+  }catch(e){status(e.message);}};
+  el('onlineEquipmentClass').onchange=()=>{selectDraftBuild(el('onlineEquipmentClass').value);renderEquipment();};
+  el('onlineEquipmentBuild').onchange=()=>{buildDraft.cur=Number(el('onlineEquipmentBuild').value);selectDraftBuild(equipmentDraft.cls);renderEquipment();};
+  const closeEquipment=save=>{try{
+    const result=save?CBOnlineGame.saveEquipmentBuilds(buildDraft,buildBaseline,equipmentDraft.cls):null;
+    CBOnlineGame.setEditing(false);el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;
+    if(save){el('onlineBuild').value=String(buildDraft.cur);el('onlineClass').value=equipmentDraft.cls;
+      status(result.saved?'構成'+(buildDraft.cur+1)+'を共通の保存へ反映しました。'+(result.pending?'ホストの装備確認を待っています。':'Readyを押してください。'):CBOnlineGame.savedBuildStatus().text);}
+    equipmentDraft=buildDraft=buildBaseline=null;controls();el('onlineReady').focus();
+  }catch(e){status(e.message);}};
   el('onlineEquipmentSave').onclick=()=>closeEquipment(true);el('onlineEquipmentCancel').onclick=()=>closeEquipment(false);
   el('onlineReady').onclick=()=>{try{CBOnlineGame.setReady(!CBOnlineGame.state.lobbyReady);controls();}catch(e){status(e.message);}};
   el('onlineStart').onclick=()=>act(async()=>{CBOnlineGame.updateSettings(roomSettings());await CBOnlineGame.start();status('ゲームの読み込みを待っています');});

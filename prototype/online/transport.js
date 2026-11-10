@@ -34,6 +34,8 @@
       this.inputDrops = { artificial: 0, stale: 0, duplicate: 0, congestion: 0, superseded: 0, rateLimited: 0 };
       this.peer = null; this.role = ''; this.roomId = ''; this.matchId = '';
       this.links = new Map(); this.closed = false; this.started = false;
+      // 復帰証明はこのページのメモリだけ。名前/部屋IDだけでは元の席を取り戻せない。
+      this.resumeSessions = new Map(); this.resumeToken = ''; this.reconnectUntil = 0; this.reconnectTimer = null;
       this.createdAt = now(); this.samples = []; this.sequence = 0;
       this.totals = { sentBytes: 0, receivedBytes: 0, sentMessages: 0, receivedMessages: 0, byType: {}, maxBufferedBytes: 0, maxQueue: 0 };
       this.messageSizes = Object.create(null);
@@ -55,8 +57,26 @@
       const iceServers = supplied.config?.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }];
       if (iceServers.some(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).some(u => typeof u !== 'string' || !u.startsWith('stun:')))) throw new Error('試作は STUN のみです（TURN は使えません）');
       this.peer = new PeerClass(undefined, { ...supplied, config: { ...(supplied.config || {}), iceServers } });
-      this.peer.on('disconnected', () => this._status('接続の仲立ちが切れました。接続済みの対戦は続けます', { signaling: false }));
-      this.peer.on('error', e => this._status('接続エラー: ' + (e.message || e.type), { error: true, type: e.type }));
+      this.peer.on('disconnected', () => {
+        if(this.closed)return;
+        this._status('接続の仲立ちが切れました。接続済みの対戦は続けます', { signaling: false });
+        // 対戦線が生きていても、仲立ちへの登録を復旧しないと新しい接続を受けられない。
+        const until=now()+30000;
+        const retry=()=>{if(this.closed||this.peer.destroyed||!this.peer.disconnected||now()>until)return;
+          try{this.peer.reconnect();}catch(_){}this._later(retry,1000);};
+        this._later(retry,500);
+      });
+      this.peer.on('error', e => {
+        if(this.closed)return;
+        // 制御線が未open・未承認の初回入室だけ、相手不在で待ちを終える。
+        // 制御線open後や承認後はsnapshot交渉のerrorもあるため、不在と断定しない。
+        // 試合中の一時切断・復帰は従来の再試行期限で扱う。
+        const joining=this.role==='guest'&&!this.started?this.links.get(this.roomId):null;
+        if(e.type==='peer-unavailable'&&joining&&!joining.ready&&!joining.approved&&!joining.conn.open&&!joining.closing){
+          this._drop(joining,'部屋が見つかりません。部屋IDとホストが待機中か確認してください',false);return;
+        }
+        this._status('接続エラー: ' + (e.message || e.type), { error: true, type: e.type });
+      });
       this.peer.on('close', () => { if (!this.closed) this.close('接続サービスが終了しました'); });
       this.peer.on('connection', conn => {
         if (this.role !== 'host') { this._closeOrphan(conn); return; }
@@ -69,20 +89,35 @@
           }
           this._attachSnapshot(link, conn); return;
         }
-        const reject = this.started ? '試合開始後の途中参加はできません' : [...this.links.values()].filter(l=>l.approved&&!l.closing).length >= this.capacity - 1 ? `部屋は満員です（ホストを含め${this.capacity}人まで）` : [...this.links.values()].filter(l=>!l.approved).length >= 8 ? '入室の承認待ちが上限です。少し待ってから入り直してください' : this.links.has(conn.peer) ? '同じ相手は既に接続しています' : '';
+        const resume=this.resumeSessions.get(conn.peer),meta=conn.metadata;
+        const resuming=this.started&&this.options.reconnect===true&&resume&&resume.matchId===this.matchId&&resume.until>now()&&
+          meta?.matchId===this.matchId&&meta?.resumeToken===resume.token&&this.options.canResumePeer?.(conn.peer)!==false;
+        const reject = this.started&&!resuming ? '試合開始後の途中参加はできません' : !resuming&&[...this.links.values()].filter(l=>l.approved&&!l.closing).length >= this.capacity - 1 ? `部屋は満員です（ホストを含め${this.capacity}人まで）` : !resuming&&[...this.links.values()].filter(l=>!l.approved).length >= 8 ? '入室の承認待ちが上限です。少し待ってから入り直してください' : !resuming&&this.links.has(conn.peer) ? '同じ相手は既に接続しています' : '';
         if (reject) { conn.on('open', () => { try { conn.send(JSON.stringify({ type: 'reject', reason: reject })); } catch (_) {} this._later(() => conn.close(), 100); }); return; }
+        if(resuming){
+          const old=this.links.get(conn.peer);if(old)this._drop(old,'対戦接続が切れました',true);
+          const link=this._attach(conn);link.resuming=true;link.displayName=resume.name;return;
+        }
         this._attach(conn);
       });
       return new Promise((resolve, reject) => {
-        const t = this._later(() => reject(new Error('接続サービスへの登録が時間切れになりました')), 15000);
-        this.peer.on('open', id => { clearTimeout(t); this._timers.delete(t); resolve(id); });
-        this.peer.on('error', e => { clearTimeout(t); this._timers.delete(t); reject(new Error(e.message || e.type)); });
+        let settled=false;
+        const finish=(error,id)=>{
+          if(settled)return;settled=true;clearTimeout(t);this._timers.delete(t);
+          if(this._cancelOpen===cancel)this._cancelOpen=null;
+          if(error)reject(error);else resolve(id);
+        };
+        const cancel=error=>finish(error);
+        const t=this._later(()=>finish(new Error('接続サービスへの登録が時間切れになりました')),15000);
+        this._cancelOpen=cancel;
+        this.peer.on('open',id=>finish(this.closed?new Error('接続を取り消しました'):null,id));
+        this.peer.on('error',e=>finish(new Error(e.message||e.type)));
       });
     }
     async createRoom() {
       if (this.peer || this.closed) throw new Error('新しい通信インスタンスで部屋を作ってください');
       this.role = 'host';
-      try { this.roomId = await this._openPeer(); this._status('部屋を作成しました', { roomId: this.roomId }); return this.roomId; }
+      try { const id=await this._openPeer();if(this.closed)throw new Error('部屋の作成を取り消しました');this.roomId=id; this._status('部屋を作成しました', { roomId: this.roomId }); return this.roomId; }
       catch (e) { this.close(e.message); throw e; }
     }
     async connect(roomId) {
@@ -91,6 +126,7 @@
       this.role = 'guest'; this.roomId = roomId.trim();
       try {
         await this._openPeer();
+        if(this.closed)throw new Error('接続を取り消しました');
         return await new Promise((resolve, reject) => {
           const conn = this.peer.connect(this.roomId, { reliable: true, serialization: 'raw', label: CONTROL_LABEL });
           this._attach(conn, resolve, reject);
@@ -104,7 +140,7 @@
       try { conn.close(); } catch (_) {}
     }
     _attach(conn, resolve, reject) {
-      const link = { conn, snapshotConn: null, snapshotToken: '', snapshotOpen: false, remoteChannelsReady: false,
+      const link = { conn, snapshotConn: null, snapshotToken: '', resumeToken: '', resuming: false, terminal: false, snapshotOpen: false, remoteChannelsReady: false,
         ready: false, approved: false, pending: false, requested: false, displayName: '', queue: [], snapshots: [], inputs: [],
         inputSequence:0, receivedInputSequence:0, receivedInputBatches:new Set(), inputSendWindow:{at:now(),tokens:INPUT_RATE}, inputReceiveWindow:{at:now(),tokens:INPUT_RATE*2},
         lastBase:null,receivedBases:new Set(),snapshotSequence: {snapshot:0,snapshotBase:0}, receivedSequence: {snapshot:0,snapshotBase:0}, assemblies:new Map(),
@@ -121,7 +157,8 @@
       });
       conn.on('data', data => this._receive(link, data, 'control'));
       conn.on('close', () => this._drop(link, '対戦接続が切れました'));
-      conn.on('error', e => this._drop(link, '対戦接続エラー: ' + (e.message || e.type)));
+      conn.on('error', e => this._drop(link, '対戦接続エラー: ' + (e.message || e.type),true));
+      return link;
     }
     _connectSnapshot(link) {
       // PeerJS 1.5.5のNegotiatorは公開connectオプションのmaxRetransmitsを渡さない。
@@ -152,13 +189,15 @@
       });
       conn.on('data',data=>this._receive(link,data,'snapshot'));
       conn.on('close',()=>this._drop(link,'状態用チャネルが切れました'));
-      conn.on('error',e=>this._drop(link,'状態用チャネルの接続エラー: '+(e.message||e.type)));
+      conn.on('error',e=>this._drop(link,'状態用チャネルの接続エラー: '+(e.message||e.type),true));
     }
     _maybeReady(link) {
       if(link.ready || link.closing || !link.approved || !link.conn.open || !link.snapshotOpen || !link.remoteChannelsReady)return;
       link.ready=true;link.pending=false;link.lastReceive=now();
       link.resolve?.(this.roomId);link.resolve=null;link.reject=null;
-      this.options.onPeerJoin?.(link.conn.peer,link.displayName);
+      if(this.role==='guest'&&link.resuming){this.reconnectUntil=0;clearTimeout(this.reconnectTimer);this.reconnectTimer=null;}
+      const resume=this.resumeSessions.get(link.conn.peer);if(resume)resume.until=Infinity;
+      this.options.onPeerJoin?.(link.conn.peer,link.displayName,{reconnected:link.resuming});
       if(this.role==='guest')this._status('部屋に接続しました');
     }
     _envelope(type, payload) {
@@ -242,14 +281,15 @@
       return !!link && this._enqueue(link, type, payload);
     }
     broadcast(type, payload) { let count = 0; for (const id of this.links.keys()) if (this.send(type, payload, id)) count++; return count; }
-    dropPendingSnapshots(peerId) {
+    dropPendingSnapshots(peerId,{details=false}={}) {
       const link=this.links.get(peerId);
-      if(this.role!=='host'||!link)return 0;
+      if(this.role!=='host'||!link)return details?{count:0,baselines:0}:0;
       // 可視範囲の切替時は旧写真の残り断片も捨てる。既にsend済みの情報は撤回できない。
       // controlや逆方向の入力は触らず、この相手の写真と再同期用基準番号だけを無効化する。
-      const count=link.snapshots.length;
+      const count=link.snapshots.length,baselines=link.snapshots.filter(item=>item.type==='snapshotBase').length;
       this.snapshotDrops.superseded+=count;link.snapshots.length=0;link.lastBase=null;
-      return count;
+      // 従来の件数返却を維持。詳細は破棄したローカル待機列だけを表し、相手の受信状況ではない。
+      return details?{count,baselines}:count;
     }
     canStartMatch() {
       return this.role==='host' && !this.closed && !this.started && [...this.links.values()].every(l=>l.closing || !l.approved || l.ready);
@@ -260,7 +300,7 @@
       if (this.closed) return false;
       // 送信待ちの写真は前の試合番号で包んであり、受け手が試合番号の不一致で捨てる。ここでは消さない
       // （最後の写真も相手へ届け、取りこぼしの観測と結果の照合に使えるようにする）。
-      this.started = false; this.matchId = '';
+      this.started = false; this.matchId = '';this.resumeSessions.clear();this.reconnectUntil=0;clearTimeout(this.reconnectTimer);this.reconnectTimer=null;
       return true;
     }
     startMatch(matchId) {
@@ -268,11 +308,18 @@
       this.matchId = matchId || ('match-' + Math.random().toString(36).slice(2));
       if (typeof this.matchId !== 'string' || this.matchId.length > 128) throw new Error('試合 ID が正しくありません');
       this.started = true;
+      const startingMatchId=this.matchId;
+      const stillStarting=()=>!this.closed&&this.started&&this.matchId===startingMatchId;
       for (const link of [...this.links.values()]) {
-        if (link.ready && link.approved) this._enqueue(link, 'match', { matchId: this.matchId }, true);
+        // enqueue/reject中の同期通知で退出やロビー復帰が起きたら、残りの相手へ開始を流さない。
+        if(!stillStarting())return null;
+        if (link.ready && link.approved) {
+          if(link.resumeToken)this.resumeSessions.set(link.conn.peer,{token:link.resumeToken,matchId:this.matchId,name:link.displayName,until:Infinity});
+          if(!this._enqueue(link, 'match', { matchId: startingMatchId }, true))return null;
+        }
         else this._reject(link, 'ホストが試合を開始したため、承認待ちの入室を取り消しました');
       }
-      return this.matchId;
+      return stillStarting()?startingMatchId:null;
     }
     _receive(link, raw, channel = 'control') {
       if (this.closed || link.closing || this.links.get(link.conn.peer)!==link) return;
@@ -290,7 +337,7 @@
         this._drop(link,'制御用チャネルに連続入力または状態データが届きました');return;
       }
       if(msg.type==='inputActions' && this.role!=='host'){this._drop(link,'入力操作の送信方向が正しくありません');return;}
-      if (msg.type === 'reject' && !link.ready) { this._drop(link, typeof msg.reason === 'string' ? msg.reason.slice(0,200) : '参加を拒否されました'); return; }
+      if (msg.type === 'reject' && !link.ready) { link.terminal=true;this._drop(link, typeof msg.reason === 'string' ? msg.reason.slice(0,200) : '参加を拒否されました'); return; }
       if (msg.protocolVersion !== PROTOCOL) { this._reject(link, 'オンライン通信規格が違います（自分: ' + PROTOCOL + ' / 相手: ' + String(msg.protocolVersion).slice(0,20) + '）。同じ試作版で入り直してください'); return; }
       if(channel==='control' && link.conn.label!==CONTROL_LABEL){this._reject(link,'制御用チャネルの名前が一致しません');return;}
       if (msg.roomId !== this.roomId || msg.sender !== link.conn.peer || typeof msg.type !== 'string') { this._drop(link, '通信規格または部屋情報が一致しません'); return; }
@@ -298,9 +345,10 @@
       this.totals.receivedBytes += bytes; this.totals.receivedMessages++; link.receivedBytes += bytes; link.lastReceive = now();
       this.byChannel[channel].receivedBytes+=bytes;this.byChannel[channel].receivedMessages++;
       if (msg.type === 'hello' && this.role === 'host' && !link.ready && !link.pending && !link.approved) {
-        if (this.started) { this._reject(link, '試合開始後の途中参加はできません'); return; }
-        if (msg.matchId !== '') { this._reject(link, '試合情報が一致しません'); return; }
+        if (this.started&&!link.resuming) { this._reject(link, '試合開始後の途中参加はできません'); return; }
+        if (msg.matchId !== (link.resuming?this.matchId:'')) { this._reject(link, '試合情報が一致しません'); return; }
         if(typeof msg.payload?.displayName !== 'string' || msg.payload.displayName.length>256) {this._reject(link,'表示名が長すぎるか、形式が正しくありません');return;}
+        if(link.resuming){this._approveLink(link);return;}
         link.requested=link.pending=true;link.opened=now();link.displayName=cleanName(msg.payload.displayName);
         this._enqueue(link,'pending',{name:link.displayName,timeoutSeconds:180},true);
         this.options.onPeerRequest?.(link.conn.peer,link.displayName); return;
@@ -308,19 +356,23 @@
       if(msg.type==='pending' && this.role==='guest' && !link.ready && !link.approved && msg.matchId==='') {
         link.pending=true;link.opened=now();this._status('ホストの入室許可を待っています（3分まで）',{approvalPending:true});return;
       }
-      if (msg.type === 'welcome' && this.role === 'guest' && !link.approved && msg.matchId === '') {
+      if (msg.type === 'welcome' && this.role === 'guest' && !link.approved && msg.matchId === (link.resuming?this.matchId:'')) {
         if(typeof msg.payload?.snapshotToken!=='string' || msg.payload.snapshotToken.length<16 || msg.payload.snapshotToken.length>128){this._drop(link,'状態用チャネルの確認情報がありません');return;}
         link.approved=true;link.pending=false;link.opened=now();link.snapshotToken=msg.payload.snapshotToken;
+        if(typeof msg.payload.resumeToken==='string'&&/^[a-f0-9]{48}$/.test(msg.payload.resumeToken))this.resumeToken=msg.payload.resumeToken;
         this._connectSnapshot(link);return;
       }
-      if(msg.type==='channelsReady' && link.approved && msg.matchId==='' && msg.payload?.token===link.snapshotToken) {
+      if(msg.type==='channelsReady' && link.approved && msg.matchId===(link.resuming?this.matchId:'') && msg.payload?.token===link.snapshotToken) {
         link.remoteChannelsReady=true;this._maybeReady(link);return;
       }
       if (!link.ready || !link.approved) { this._drop(link, '接続確認が終わっていません'); return; }
       if (msg.type === 'match' && this.role === 'guest' && !this.started && typeof msg.payload?.matchId === 'string' && msg.payload.matchId === msg.matchId) {
         this.matchId = msg.matchId; this.started = true; this.options.onMatch?.(this.matchId); return;
       }
-      if (msg.matchId !== this.matchId && !['ping','pong'].includes(msg.type)) { return; } // 開始前に送られた入力が残っていても新しい試合へ適用しない。
+      // 明示退出は試合ではなく現在の接続を終了する。ロビー復帰通知の送信待ちでも受け取る。
+      // 現在link・部屋・sender・版・readyの確認後だけ許し、復帰可能byeは試合番号を維持する。
+      const terminalBye=msg.type==='bye'&&msg.payload?.reconnect!==true;
+      if (msg.matchId !== this.matchId && !['ping','pong'].includes(msg.type) && !terminalBye) { return; } // 開始前に送られた入力が残っていても新しい試合へ適用しない。
       if(channel==='snapshot'){
         if(msg.type==='inputBatch')this._deliverInputBatch(link,msg);
         else if(msg.type==='snapshotChunk')this._receiveChunk(link,msg);else this._deliverSnapshot(link,msg);
@@ -340,7 +392,12 @@
         }
         return;
       }
-      if (msg.type === 'bye') { this._drop(link, String(msg.payload?.reason || '相手が退出しました').slice(0,200)); return; }
+      if (msg.type === 'bye') {
+        const recoverable=this.role==='guest'&&msg.payload?.reconnect===true;
+        if(!recoverable){link.terminal=true;this.resumeSessions.delete(link.conn.peer);}
+        this._drop(link, String(msg.payload?.reason || '相手が退出しました').slice(0,200),recoverable); return;
+      }
+      if(msg.type==='leave'&&this.role==='host'){link.terminal=true;this.resumeSessions.delete(link.conn.peer);}
       if (['hello','pending','welcome','reject','match','channelsReady'].includes(msg.type)) { this._drop(link, '通信順序が正しくありません'); return; }
       this.options.onMessage?.(msg.type, msg.payload, link.conn.peer);
     }
@@ -406,13 +463,17 @@
       this._deliverSnapshot(link,full);
     }
     _reject(link, reason) {
-      if(link.closing)return;link.closing=true;link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
+      if(link.closing)return;link.terminal=true;link.closing=true;link.queue.length=0;link.snapshots.length=0;link.inputs.length=0;
       this._status(reason, { error: true });
-      try { link.conn.send(JSON.stringify({ type: 'reject', reason })); } catch (_) {}
+      // 接続に失敗した相手へは通知を送れない。PeerJSは未open送信でerrorを追加通知する。
+      if(link.conn.open)try { link.conn.send(JSON.stringify({ type: 'reject', reason })); } catch (_) {}
       this._later(() => this._drop(link, reason), 100);
     }
-    _drop(link, reason) {
+    _drop(link, reason, recoverable = ['対戦接続が切れました','状態用チャネルが切れました','対戦通信の応答がありません','通信の詰まりが回復しません'].includes(reason)) {
       if (this.links.get(link.conn.peer) !== link) return;
+      recoverable=!!(recoverable&&!link.terminal&&!this.closed&&this.started&&this.options.reconnect===true);
+      const resume=this.resumeSessions.get(link.conn.peer);
+      if(resume){if(recoverable)resume.until=now()+30000;else this.resumeSessions.delete(link.conn.peer);}
       this.options.onDiagnostic?.('peer_disconnected',reason);
       this.links.delete(link.conn.peer);
       this.history.set(link.conn.peer, { sentBytes: link.sentBytes, receivedBytes: link.receivedBytes, rttMs: link.rttMs, reason, channels:{control:channelSettings(link.conn),snapshot:channelSettings(link.snapshotConn)} });
@@ -421,14 +482,40 @@
       try { link.conn.close(); } catch (_) {}
       try { link.snapshotConn?.close(); } catch (_) {}
       this._status(reason, { peerId: link.conn.peer, error: true });
-      if (link.ready && link.approved) this.options.onPeerLeave?.(link.conn.peer, reason);
+      if (link.ready && link.approved) this.options.onPeerLeave?.(link.conn.peer, reason,{reconnecting:recoverable});
       else if(link.requested || link.pending)this.options.onRequestClosed?.(link.conn.peer,reason);
+      if(this.role==='guest'&&recoverable&&this.resumeToken)this._scheduleReconnect();
+      else if(this.role==='guest'&&link.resuming&&this.reconnectUntil&&!this.closed){this.reconnectUntil=0;this.options.onReconnectFailed?.(reason);}
+    }
+    _scheduleReconnect() {
+      if(this.closed||!this.started||!this.resumeToken)return;
+      if(!this.reconnectUntil)this.reconnectUntil=now()+30000;
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer=this._later(()=>{
+        this.reconnectTimer=null;
+        if(this.closed||!this.started)return;
+        if(now()>=this.reconnectUntil){this.reconnectUntil=0;this.options.onReconnectFailed?.('30秒以内に再接続できませんでした');return;}
+        if(this.links.has(this.roomId)){this._scheduleReconnect();return;}
+        if(this.peer.disconnected||this.peer.destroyed){this._scheduleReconnect();return;}
+        try{
+          const conn=this.peer.connect(this.roomId,{reliable:true,serialization:'raw',label:CONTROL_LABEL,metadata:{matchId:this.matchId,resumeToken:this.resumeToken}});
+          const link=this._attach(conn);link.resuming=true;
+        }catch(_){this._scheduleReconnect();}
+      },1000);
+    }
+    reconnect(reason='ホストから5秒間応答がありません') {
+      const link=this.links.get(this.roomId);
+      if(this.role!=='guest'||!this.started||!this.resumeToken||this.closed)return false;
+      if(link)this._drop(link,reason,true);else this._scheduleReconnect();return true;
     }
     _tick() {
       if (this.closed) return;
       const t = now();
+      for(const [id,s] of this.resumeSessions)if(s.until<=t)this.resumeSessions.delete(id);
       for (const link of [...this.links.values()]) {
         if (link.closing) continue;
+        if(this.role==='guest'&&link.resuming&&!link.ready&&this.reconnectUntil&&t>=this.reconnectUntil){link.terminal=true;this._drop(link,'30秒以内に再接続できませんでした');continue;}
+        if(link.resuming&&!link.ready&&t-link.opened>4000){this._drop(link,'対戦通信の応答がありません',true);continue;}
         if (!link.ready && t - link.opened > (link.pending?180000:15000)) { this._reject(link, link.pending?'入室許可の待ち時間が3分を超えました':'直接接続が時間切れです。STUN のみでは接続できない回線があります'); continue; }
         if (link.ready && t - link.lastReceive > 10000) { this._drop(link, '対戦通信の応答がありません'); continue; }
         if (!link.conn.open) continue;
@@ -590,11 +677,15 @@
       const link=this.links.get(peerId);
       if(this.role!=='host'||this.started||this.closed||!link?.pending||link.approved||link.closing)return false;
       if([...this.links.values()].filter(l=>l.approved&&!l.closing).length>=this.capacity-1) {this._reject(link,`部屋は満員です（ホストを含め${this.capacity}人まで）`);return false;}
+      return this._approveLink(link);
+    }
+    _approveLink(link) {
       // randomUUIDが無い非HTTPS表示でも、暗号学的乱数で接続を結び付ける。
-      try { link.snapshotToken=[...root.crypto.getRandomValues(new Uint8Array(24))].map(n=>n.toString(16).padStart(2,'0')).join(''); }
+      const token=()=>[...root.crypto.getRandomValues(new Uint8Array(24))].map(n=>n.toString(16).padStart(2,'0')).join('');
+      try { link.snapshotToken=token();link.resumeToken=link.resuming?this.resumeSessions.get(link.conn.peer)?.token:this.options.reconnect===true?token():''; }
       catch (_) {this._status('接続確認用の乱数を作れませんでした',{error:true});return false;}
       link.pending=false;link.approved=true;link.opened=link.lastReceive=now();
-      this._enqueue(link,'welcome',{peerId:link.conn.peer,snapshotToken:link.snapshotToken},true);
+      this._enqueue(link,'welcome',{peerId:link.conn.peer,snapshotToken:link.snapshotToken,resumeToken:link.resumeToken},true);
       return true;
     }
     rejectPeer(peerId, reason='ホストが入室を拒否しました') {
@@ -607,24 +698,27 @@
       if(this.role!=='host'||this.started||this.closed||!link?.approved||link.closing)return false;
       return this.disconnectPeer(peerId,reason);
     }
-    disconnectPeer(peerId, reason = '対戦から退出しました') {
+    disconnectPeer(peerId, reason = '対戦から退出しました', {reconnect=false} = {}) {
       const link = this.links.get(peerId);
       if (!link || link.closing) return false;
       // 所有権を失った相手には状態も入力も送受信せず、終了理由だけを通知する。
+      link.terminal=!reconnect;if(!reconnect)this.resumeSessions.delete(peerId);
       link.closing = true; link.queue.length = 0; link.snapshots.length = 0; link.inputs.length = 0;
-      if (link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason }))); } catch (_) {} }
+      if (link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason,reconnect }))); } catch (_) {} }
       // 通知は最善努力。相手の応答がなくてもこの接続だけを必ず閉じる。
-      this._later(() => this._drop(link, reason), 500);
+      this._later(() => this._drop(link, reason,reconnect), 500);
       return true;
     }
     close(reason = '部屋を閉じました') {
       if (this.closed) return;
       // 終了通知は最善努力。閉じた後の通信成功を保証しない。
       for (const link of this.links.values()) if (link.ready && link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason }))); } catch (_) {} }
-      this.closed = true; clearInterval(this._tickTimer);
+      const wasReconnecting=this.role==='guest'&&this.reconnectUntil>0;
+      this.closed = true;this._cancelOpen?.(new Error(reason));this.resumeToken='';this.resumeSessions.clear();this.reconnectUntil=0;clearTimeout(this.reconnectTimer);clearInterval(this._tickTimer);
       for (const t of this._timers) clearTimeout(t); this._timers.clear();
       for (const link of [...this.links.values()]) this._drop(link, reason);
       try { this.peer?.destroy(); } catch (_) {}
+      if(wasReconnecting)this.options.onReconnectFailed?.(reason);
     }
   }
   CBOnlineTransport.PROTOCOL = PROTOCOL;
