@@ -115,7 +115,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver183</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver184</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -7449,13 +7449,15 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
     const sl = u.slots[k], type = sl.w.type;
     if (meleeOnly() && (k !== 'aux' || type !== 'sword')) continue;
     // リペアポッドの上ではリペアユニットだけ使える（ポッドと効果が重なる。ユーザー指定、v0.9.3）
-    const on = !actionBusy(u) && !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer) && (!sl.w.missile || u.alive && !u.transfer);
-    const t = on && trigger;
+    const available = !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer) && (!sl.w.missile || u.alive && !u.transfer);
+    const on = available && !actionBusy(u), t = on && trigger;
     let r = false;
     if (type === 'gun') {
-      if (!on) sl.bn = sl.chargeT = sl.holdT = 0; // 持ち替えたら3点射の残りは撃たず、溜めも消える
+      // スタンガンだけ、タックル・蹴りと後硬直の間は充填を保存する。持ち替えや被電撃などは今までどおり消す。
+      const pauseCharge = available && actionBusy(u) && sl.w.stunField && u.alive && !(u.downT > 0) && !u.transfer;
+      if (!on) { sl.bn = 0; if (!pauseCharge) sl.chargeT = sl.holdT = 0; }
       if (sl.w.missile) missileLockTick(u, sl, dt, on, on && alt);
-      r = gunTick(u, sl, dt, t && !(sl.w.missile && alt), aim, spread);
+      r = gunTick(u, sl, dt, t && !(sl.w.missile && alt), aim, spread, pauseCharge);
       if (on && alt && !u.altHeld && sl.w.proj && sl.w.proj.kind === 'remote') detonateRemotes(u); // 遠隔爆弾：持っている間に右クリックで全部起爆
     }
     else if (type === 'sword') {
@@ -7646,7 +7648,7 @@ function setSeekMode(u, on) {
   u.seekMode = on;
   if (isLocalView(u)) { sfx(on ? 'lock' : 'switch', u.pos, u); if (on) releaseLock(); }
 }
-function gunTick(u, sl, dt, trigger, aim, spread) {
+function gunTick(u, sl, dt, trigger, aim, spread, pauseCharge = false) {
   const w = sl.w;
   if (w.missile && !trigger) sl.held = false;
   sl.cd = Math.max(sl.cd - dt, -dt); // 撃てない間に発射の権利を溜め込まない
@@ -7665,6 +7667,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
   }
   if (sl.ammo <= 0) { if (sl.reserve > 0) sl.reloadT = w.reload * u.reloadMul; return false; } // 予備もなければ補給待ち
   if (w.missile) return missileGunTick(u, sl, trigger, aim, spread);
+  if (pauseCharge) return false; // 冷却・射撃間隔は進め、充填と満タン保持時間は止める。離した扱いで誤発射しない。
   // チャージ撃ち（v0.15、Codex 版から）：引いている間は溜めるだけで、離したときに溜めた割合（q）で1発撃つ。
   // 満タンの爆発（chargeBlast）は、当てた相手には直撃（部位・頭の判定あり）、周りへは爆風（2026-11-07。前は当てた相手にも爆風だけで、頭の倍率が無く、爆心からの距離で威力が減っていた）
   // 満タンのまま chargeHold 秒持っているとオーバーヒート（溜めは消える）
