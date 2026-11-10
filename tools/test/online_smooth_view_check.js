@@ -9,6 +9,10 @@ check('オンラインのゲスト自機の表示のなめらかさ',async({brow
     r=await room(browser,h,errors,{guests:1,teamSize:2});
     const g=r.guests[0];
     await frames(r.pages,30,16.7);
+    // 実際の遊びでは描画の時計と通信の時計は同じ。試験のコマ送り（7ms）は実時間より遅く回ることがあり、そのずれが表示の
+    // ばらつきとして数えられて時々落ちていた。ここから両方のページの performance.now をコマ送りの時計で進める。
+    const frameClock=()=>Promise.all(r.pages.map(p=>p.evaluate(()=>{if(window.__frameClock)return;window.__frameClock=true;const real=performance.now.bind(performance),d=real()-window.__onlineT;performance.now=()=>window.__onlineT+d;})));
+    await frameClock();
     // ホストで敵1機をゲストの40m前に止めておく（写真を作る直前に毎コマ戻す）。
     const enemy=await r.host.evaluate(()=>{
       const id=CBOnlineGame.state.peers.values().next().value.unitId,me=__g.units.find(u=>u.entityId===id);
@@ -66,9 +70,7 @@ check('オンラインのゲスト自機の表示のなめらかさ',async({brow
     await r.host.evaluate(()=>{__g.releaseLock?.();const id=CBOnlineGame.state.peers.values().next().value.unitId,me=__g.units.find(u=>u.entityId===id);
       const cp=__g.catapults[0];if(cp)__g.launch(me,cp);window.__launched=!!cp;});
     if(await r.host.evaluate(()=>window.__launched)){
-      // 実際の遊びでは描画の時計と通信の時計は同じ。試験のコマ送り（7ms）と実時間がずれないよう、ここから両方のページの
-      // performance.now もコマ送りの時計で進める（途中で戻らないよう、今の差を足して続ける）。
-      for(const p of r.pages)await p.evaluate(()=>{const real=performance.now.bind(performance),d=real()-window.__onlineT;performance.now=()=>window.__onlineT+d;});
+      await frameClock();
       await frames(r.pages,4,7);
       await g.evaluate(()=>{__g.releaseLock();window.__view=[];const P=__g.player;
         CBOnlineGame.afterFrame=(dt,tm)=>{CBOnlineGame.__afterOrig(dt,tm);const o=__g.onlineViewOffset(P),p=P.pos.clone(),v=o?p.clone().add(o):p;
