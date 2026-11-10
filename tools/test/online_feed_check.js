@@ -17,6 +17,8 @@ check('オンラインのゲストの戦況ログとアナウンス',async({brow
       __g.kill(ally,enemy,false,1000,null); // ゲストの味方が、敵に撃破される
       // プラントを1つゲストの軍の物にし、ゲストの軍のコアを削る（写真で届く値）
       const pl=__g.plants[0];pl.owner=me.team;pl.gauge=me.team==='B'?1:-1;__g.cores[me.team].hp-=500;
+      // 別のプラントを、ゲストの敵が占拠中（中立のままゲージだけ敵側へ）にする
+      const p2=__g.plants[1];if(p2){p2.owner=null;p2.gauge=me.team==='B'?-60:60;window.__p2=p2.id;}
       return {guestTeam:me.team,enemy:enemy.name,ally:ally.name,plant:pl.id,hostFeed:document.getElementById('feed').textContent};
     });
     await frames(r.pages,30,16.7);
@@ -25,6 +27,14 @@ check('オンラインのゲストの戦況ログとアナウンス',async({brow
       ann:[...document.getElementById('announce').children].map(e=>e.textContent),
       ally:__g.sideColors(__g.player.team,__g.player.team).css,enemy:__g.sideColors(__g.player.team==='B'?'R':'B',__g.player.team).css}));
     console.log('ホスト',JSON.stringify(info),'ゲスト',JSON.stringify(got));
+    // 画面上のプラントの占拠ゲージ：敵が占拠中なら敵の色（R側のゲストでも、自軍が青・敵が橙）
+    const p2=await r.host.evaluate(()=>window.__p2||null);
+    if(p2){
+      const bar=await g.evaluate(({id,enemy})=>{const f=c=>{const e=document.createElement('i');e.style.color=c;document.body.append(e);const v=getComputedStyle(e).color;e.remove();return v;};
+        const b=document.querySelector('#pl-'+id+' i');return {bg:getComputedStyle(b).backgroundColor,width:b.style.width,want:f(enemy)};},{id:p2,enemy:got.enemy});
+      console.log('占拠ゲージ',JSON.stringify(bar));
+      ok(bar.width==='60%'&&bar.bg===bar.want,'敵が占拠中のプラントのゲージは、ゲストの画面で敵の色');
+    }
     const row=got.feed.find(f=>f.text.includes('を撃破'));
     ok(info.hostFeed.includes(info.enemy)&&info.hostFeed.includes('を撃破'),'ホストの戦況ログは今までどおり出る');
     ok(!!row&&row.text.includes(info.enemy)&&row.text.includes(info.ally),'ゲストにも撃破の戦況ログが出る（倒した機体と倒された機体の名前）');

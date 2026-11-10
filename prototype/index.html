@@ -11819,7 +11819,7 @@ function hud(timeLeft, dt) {
     el.className = 'pl' + (pl.owner ? ' ' + pl.owner : '') + (pl.capturing ? ' cap' : '');
     const bar = el.querySelector('i');
     bar.style.width = Math.abs(pl.gauge) + '%';
-    bar.style.background = pl.gauge >= 0 ? 'var(--blue)' : 'var(--orange)';
+    bar.style.background = pl.gauge >= 0 ? 'var(--team-b)' : 'var(--team-r)'; // 正はB陣営のゲージ。色は見る側の自軍が青（北側・オンラインのR側でも。2026-11-10 オーナー報告）
   }
   respawnPanel(p);
   missileHud(p);
