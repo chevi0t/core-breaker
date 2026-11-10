@@ -43,7 +43,8 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
     await wait(guest,()=>!CBOnlineGame.state.editing&&!CBOnlineGame.state.equipmentPending&&CBOnlineGame.state.equipment.cls==='heavy');
     const expected=await guest.evaluate(()=>JSON.parse(JSON.stringify(CBOnlineGame.state.equipment)));
     ok(await host.evaluate(()=>CBOnlineGame.state.roster.find(p=>p.host).ready&&!CBOnlineGame.state.roster.find(p=>!p.host).ready),'個人装備変更で自分だけReady解除');
-    ok(await guest.evaluate(()=>window.__savedBuild===window.__offlineBuild()),'装備の変更はオフライン装備と保存データを変更しない');
+    ok(await guest.evaluate(()=>window.__savedBuild!==window.__offlineBuild()),'本人の保存操作でオフラインと共通の保存構成へ反映する');
+    await guest.evaluate(()=>window.__savedBuild=window.__offlineBuild());
     await guest.locator('#onlineReady').click();await wait(host,()=>CBOnlineGame.canStart());
     ok(await host.locator('#onlineStart').isEnabled()&&await host.evaluate(()=>CBOnlineGame.state.phase==='lobby'),'全員Readyでも自動開始せずホストの出撃を待つ');
     await host.evaluate(()=>CBOnlineGame.updateSettings({teamSize:3}));
@@ -71,7 +72,7 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
       ok(await p.locator('#onlineReady').isEnabled(),'試合後は同じ部屋で全員のReadyをリセット');
     }
     ok(await guest.evaluate(e=>JSON.stringify(CBOnlineGame.state.equipment)===JSON.stringify(e),expected),'次の試合にも部屋専用装備を保持');
-    await readyAll(pages,host);await guest.locator('#onlineClose').click();
+    await readyAll(pages,host);await guest.locator('#onlineClose').click();await guest.locator('#onlineLeaveConfirm').click();
     await wait(host,()=>CBOnlineGame.state.roster.length===1);
     ok(await host.locator('#onlineStart').isDisabled()&&!await host.evaluate(()=>CBOnlineGame.state.lobbyReady),'退出時もReadyを解除し一人だけでは出撃しない');
     for(const p of pages)ok(await p.evaluate(()=>window.__savedBuild===window.__offlineBuild()),'試合後・退出後もオフライン保存は不変');

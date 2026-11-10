@@ -64,7 +64,7 @@ function requireParts(){
   // 公開標的R:0を残し、秘匿slotの不変検査も空集合で成功しないようR:1を足す。
   const hidden={...snapshot.units[1],id:'R:1'};
   snapshot.roster.push({id:hidden.id,name:hidden.name,team:hidden.team,cls:hidden.cls,sc:hidden.sc});
-  snapshot.units=snapshot.units.map(u=>h.test.fixedUnitForPeer(u,false,1));snapshot.units.push(h.test.fixedUnitForPeer(hidden,true,1));
+  snapshot.units=snapshot.units.map(u=>h.test.fixedUnitForPeer(u,false,1,u.id==='B:0'));snapshot.units.push(h.test.fixedUnitForPeer(hidden,true,1));
   snapshot.unitUpdates=(1<<snapshot.units.length)-1;snapshot.gadgets=[];
   // browserのtemplateもwire復号済み。秘匿slotを含め値とキー順を同じ入口へ通す。
   const encoder=new h.c.CBOnlineCodec.Encoder(),decoder=new h.c.CBOnlineCodec.Decoder(),wire=encoder.encode(snapshot);

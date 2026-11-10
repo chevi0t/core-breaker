@@ -52,5 +52,6 @@ el('onlineLogDialog').open=true;refresh();assert(box.hidden,'診断ログを開�
 const beforeLog=sent.length;assert(!press('KeyV').stopped);assert(box.hidden,'ログ閲覧中のVを横取りしない');
 press('Digit1');assert.equal(sent.length,beforeLog,'ログ閲覧中の数字は通信を送らない');
 el('onlineLogDialog').open=false;press('KeyV');assert(!box.hidden,'ログを閉じた後は定型通信を再開');press('Escape');
+el('onlineLeaveDialog').open=true;assert(!press('KeyV').stopped);assert(box.hidden,'退出確認中は定型通信を開かない');el('onlineLeaveDialog').open=false;
 state.role='offline';refresh();assert(el('onlineQuickChatOpen').hidden);assert(!press('KeyV').stopped,'オフライン操作を変えない');
 console.log('定型通信キー境界：V/数字・テンキー・repeat/keyup・入力欄/修飾キー・Esc/0・死亡の兵装選択・life/phase/blur/timeout/退出 成功');

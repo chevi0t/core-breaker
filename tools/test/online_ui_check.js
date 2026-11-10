@@ -47,7 +47,7 @@ check('オンライン通信司令室',async({browser,dir,out,ok,errors})=>{
     ok(await team.getAttribute('aria-pressed')==='true','キーボードで希望所属を選べる');
     await host.screenshot({path:path.join(out,'online-lobby-desktop.png')});
     await host.setViewportSize({width:390,height:844});await host.screenshot({path:path.join(out,'online-lobby-mobile.png')});
-    await guest.locator('#onlineClose').click();await host.locator('#onlineClose').click();await host.locator('#menuOnline').click();
+    await guest.locator('#onlineClose').click();await guest.locator('#onlineLeaveConfirm').click();await host.locator('#onlineClose').click();await host.locator('#onlineLeaveConfirm').click();await host.locator('#menuOnline').click();
     ok(await host.locator('#onlineRoom').inputValue()===''&&await host.locator('#onlineCopy').isHidden()&&await host.locator('#onlineEmpty').isVisible(),'退出後の再表示で古い部屋ID・参加者を残さない');
   } finally {for(const p of pages)if(!p.isClosed())await p.evaluate(()=>CBOnlineGame.leave('UI試験終了')).catch(()=>{});await h.close();}
 },{page:false});

@@ -1488,7 +1488,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1 / class-loadouts-1 / reconnect-1', reconnect:true, peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: (typeof opts.displayName==='string'&&opts.displayName.trim())||pilotNameForOnline(), capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1 / class-loadouts-1 / reconnect-1 / class-choice-1', reconnect:true, peerOptions: opts.peerOptions, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: (typeof opts.displayName==='string'&&opts.displayName.trim())||pilotNameForOnline(), capacity:state.settings?.capacity||4,
       canResumePeer:id=>state.role==='host'&&state.phase==='playing'&&!!unit((state.peers.get(id)||state.resumePeers.get(id))?.unitId),
       onReconnectFailed:reason=>{if(state.reconnecting)endGuest(reason);},
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
@@ -1552,7 +1552,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(state.phase==='lobby')status('ホストの開始を待っています');
   }
   function resetPeerCommands(p){
-    Object.assign(p,{fixedCommands:true,commandStartAt:now(),commandQueue:[],lastCommand:null,expiredCommandSeq:0,fixedStarted:false,fixedClock:0,catchupClock:0,fixedElapsed:0,fixedSteps:0,fixedReplaySeq:0,fixedNeedsResync:false,lastCommandArrival:null,movementActions:[],utilityActions:[],appliedMovementIds:new Set(),appliedMovementActionSeq:0,repeatedCommands:0,droppedCommands:0,inputLifeId:null,input:null,receivedSeq:0,appliedSeq:0,appliedSeqDt:0,appliedTotalDt:0,appliedStep:0,appliedSteps:[],receivedActionSeq:0,appliedActionSeq:0,actions:[]});
+    Object.assign(p,{fixedCommands:true,commandStartAt:now(),commandQueue:[],lastCommand:null,expiredCommandSeq:0,fixedStarted:false,fixedClock:0,catchupClock:0,fixedElapsed:0,fixedSteps:0,fixedReplaySeq:0,fixedNeedsResync:false,lastCommandArrival:null,movementActions:[],utilityActions:[],pendingClassChoice:null,appliedMovementIds:new Set(),appliedMovementActionSeq:0,repeatedCommands:0,droppedCommands:0,inputLifeId:null,input:null,receivedSeq:0,appliedSeq:0,appliedSeqDt:0,appliedTotalDt:0,appliedStep:0,appliedSteps:[],receivedActionSeq:0,appliedActionSeq:0,actions:[]});
     Object.assign(p,{pendingEdges:{},inputTimes:[],inputHistoryTruncated:false,firstInputAt:null,actionState:null,activeAction:null,frameAction:null,pendingShot:null,shotActionSeq:0});
   }
   function resumeGuest(id){
@@ -1721,6 +1721,62 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     }
     else if (type === 'events' && state.phase === 'playing') playEvents(data);
   }
+  // 再出撃の兵装は、保持状態でなく明示選択1回を1番号として扱う。
+  // 自動取消後の同じ選択の再掲を死亡画面で再受理せず、新しい選択は遅着写真で消さない。
+  function rememberClassChoice(u){
+    if(state.role!=='guest'||u!==player)return;
+    const phase=!u.alive?'dead':u.transfer?.base?'transfer':null;if(!phase)return;
+    // 失効Hの受信より新写真が先に届く場合もある。ホスト生成時刻で期限を越えた写真だけが、
+    // 未処理Hへの結び付けを退役できる。手元時刻や写真到着時刻では遅着した旧写真を区別できない。
+    const pendingH=(inputSending.lastHActionSeq||0)>(u.onlineProcessedHSeq||0)&&
+      !(Number.isFinite(inputSending.lastHSentAt)&&state.lastSnapshot?.time>inputSending.lastHSentAt+inputLimits.maxAgeMs);
+    u.onlineClassChoice={id:Math.max(u.onlineClassChoice?.id||0,u.onlineClassChoiceAck||0)+1,phase,lagEpoch:u.onlineLagEpoch||0,
+      transferEpoch:u.onlineTransferEpoch||0,transferActionSeq:pendingH?inputSending.lastHActionSeq:u.onlineTransferActionSeq||0};
+  }
+  function validClassChoice(v){
+    return !!v&&typeof v==='object'&&!Array.isArray(v)&&Number.isSafeInteger(v.id)&&v.id>0&&
+      ['dead','transfer'].includes(v.phase)&&['lagEpoch','transferEpoch','transferActionSeq'].every(k=>Number.isSafeInteger(v[k])&&v[k]>=0);
+  }
+  function startedClassTransfer(u){
+    if(state.role!=='host')return;
+    u.onlineTransferEpoch=(u.onlineTransferEpoch||0)+1;u.onlineTransferActionSeq=0;
+  }
+  function finishedClassUtility(u,input,started){
+    if(state.role!=='host'||!input.pressed?.KeyH)return;
+    if(started&&u.transfer)u.onlineTransferActionSeq=input.actionSeq||0;
+    if(Number.isSafeInteger(input.actionSeq))u.onlineProcessedHSeq=Math.max(u.onlineProcessedHSeq||0,input.actionSeq);
+    const p=state.peers.get(u.ownerPeerId),pending=p?.pendingClassChoice;
+    if(pending&&pending.classChoice.transferActionSeq===input.actionSeq){
+      delete p.pendingClassChoice;
+      // 実行されたHへ結び付いた予約だけを評価する。取消/開始失敗ならここで番号を消化する。
+      if(pending.lifeId===u.lifeId&&actionIsRecent(p,pending))acceptClassChoice(u,pending,p,true);
+      else u.onlineClassChoiceAck=Math.max(u.onlineClassChoiceAck||0,pending.classChoice.id);
+    }
+  }
+  function retirePendingClassChoice(u,p){
+    const pending=p.pendingClassChoice;if(!pending)return;
+    if(pending.lifeId===u.lifeId&&actionIsRecent(p,pending)&&p.utilityActions?.some(a=>a.actionSeq===pending.classChoice.transferActionSeq))return;
+    u.onlineClassChoiceAck=Math.max(u.onlineClassChoiceAck||0,pending.classChoice.id);delete p.pendingClassChoice;
+  }
+  function acceptClassChoice(u,v,p,utilityDone=false){
+    const choice=v.classChoice;
+    if(!choice||choice.id<=(u.onlineClassChoiceAck||0))return;
+    // 同じreliable線でもHの実行は移動stepを待つ。届いた順だけで次の転送を確定しない。
+    if(!utilityDone&&choice.phase==='transfer'&&p.utilityActions?.some(a=>a.lifeId===u.lifeId&&a.actionSeq===choice.transferActionSeq&&a.pressed?.KeyH&&actionIsRecent(p,a))){
+      if(!p.pendingClassChoice||choice.id>p.pendingClassChoice.classChoice.id)p.pendingClassChoice=v;
+      return;
+    }
+    // 不適切な局面で届いた選択も番号を消化し、後の死亡や移動へ持ち越さない。
+    u.onlineClassChoiceAck=choice.id;
+    const phase=!u.alive?'dead':u.transfer?.base?'transfer':null;
+    if(choice.phase!==phase||choice.lagEpoch!==(u.onlineLagEpoch||0)||!Object.keys(CLASSES).includes(v.nextCls))return;
+    if(phase==='transfer'){
+      // 写真前の新選択は送信済Hの番号へ、Hなしの観測はhostの転送世代へ結び付ける。
+      if(choice.transferActionSeq!==(u.onlineTransferActionSeq||0)||
+        (!choice.transferActionSeq&&choice.transferEpoch!==(u.onlineTransferEpoch||0)))return;
+    }
+    u.nextCls=v.nextCls;u.controlLoadout=respawnLoadout(v.nextCls,p);
+  }
   function validInput(v) {
     if (!v || typeof v!=='object' || Array.isArray(v) || !Number.isSafeInteger(v.seq) || v.seq<1 ||
       !Number.isSafeInteger(v.actionSeq) || v.actionSeq<0 || !Number.isSafeInteger(v.lifeId) || v.lifeId<1 || !Number.isFinite(v.sentAt)) return false;
@@ -1730,6 +1786,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     // padとtouchは合算されるので軸は±2を許し、従来どおり受理時に±1へ収める。
     return [['fwd',-2,2],['side',-2,2],['cameraRecoil',0,1],['cameraRecoilYaw',-1,1],['wheel',-1,1]]
       .every(([k,lo,hi])=>v[k]===undefined||Number.isFinite(v[k])&&v[k]>=lo&&v[k]<=hi) &&
+      (v.classChoice===undefined||validClassChoice(v.classChoice)&&v.classChoice.transferActionSeq<=v.actionSeq) &&
       (v.equipmentActions===undefined||Array.isArray(v.equipmentActions)&&v.equipmentActions.length<=8&&v.equipmentActions.every(validEquipmentAction)) &&
       (v.moveActionSeq===undefined||Number.isSafeInteger(v.moveActionSeq)&&v.moveActionSeq>=0&&v.moveActionSeq<=v.actionSeq) &&
       (v.moveActions===undefined||Array.isArray(v.moveActions)&&v.moveActions.length<=8&&v.moveActions.every(row=>
@@ -1741,7 +1798,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     const u=unit(p.unitId),age=now()-v?.sentAt;
     if(!u||v.lifeId!==u.lifeId||!Number.isFinite(v.sentAt)||age>inputLimits.maxAgeMs||age< -inputLimits.futureMs)return null;
     if(p.inputLifeId!==u.lifeId){
-      p.inputLifeId=u.lifeId;p.input=null;p.commandQueue=[];p.lastCommand=null;p.expiredCommandSeq=0;p.fixedStarted=false;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;p.fixedReplaySeq=0;p.fixedNeedsResync=false;p.movementActions=[];p.utilityActions=[];p.appliedMovementActionSeq=0;p.appliedMovementIds=new Set();p.appliedSeq=0;p.appliedSeqDt=0;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
+      p.inputLifeId=u.lifeId;p.input=null;p.commandQueue=[];p.lastCommand=null;p.expiredCommandSeq=0;p.fixedStarted=false;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;p.fixedReplaySeq=0;p.fixedNeedsResync=false;p.movementActions=[];p.utilityActions=[];p.pendingClassChoice=null;p.appliedMovementActionSeq=0;p.appliedMovementIds=new Set();p.appliedSeq=0;p.appliedSeqDt=0;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
     }
     return u;
   }
@@ -1815,21 +1872,24 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     // 再出撃先の選択は移動の実行を待たず受理する。古い命の選択はcurrentInputLifeが落とす。
     if(!u.alive||u.transfer){
       if(spawnPoints(u.team).some(x=>x.id===v.spawnChoice))u.spawnChoice=v.spawnChoice;
-      if((!u.alive||u.transfer?.base)&&Object.keys(CLASSES).includes(v.nextCls)){u.nextCls=v.nextCls;u.controlLoadout=respawnLoadout(v.nextCls,p);}
     }
+    acceptClassChoice(u,v,p);
   }
   function sendLocalInput(input,deferBatch=false,actionsOnly=false,skipActions=false) {
     const clock=state.transport.clock?.(),sentAt=now()+(Number.isFinite(clock?.offsetMs)?clock.offsetMs:0);
     input.lifeId=player.lifeId;input.sentAt=sentAt;
+    // 再接続でsenderが作り直されても、以前のH番号を別の転送へ再利用しない。
+    inputSending.actionSeq=Math.max(inputSending.actionSeq,player.onlineProcessedHSeq||0);
     // 入力を取った時点で既に描き終わっている写真。今frameの未描画renderTimeとは区別する。
     input.view=copyView(lastRenderedView);
-    if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.classActionSeq=0;inputSending.lifeId=input.lifeId;}
+    if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.lifeId=input.lifeId;}
     const actionKeys=pickedKeys(input.keys,inputKeys.filter(k=>!movementKeys.includes(k))),edges=pickedKeys(input.pressed);
     // 同じlifeでも大破/エリア移動の開始でhostの地点選択はリセットされる。
     // 表示中の地点が前回と同じでも、選択画面の切替時は必ず送り直す。
     const selectionMode=player.alive?(player.transfer?(player.transfer.base?'transferBase':'transfer'):'alive'):(player.downT>0?'down':'respawn');
     const selecting=selectionMode==='respawn'||selectionMode==='transferBase'||selectionMode==='transfer';
-    const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
+    input.classChoice=input.nextCls?player.onlineClassChoice:undefined;
+    const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls,input.classChoice?.id]);
     // 古いcontrolが期限切れなら、現在のheld状態だけを新番号で再送する。失効した押下は複製しない。
     const refresh=inputSending.actionSeq>prediction.lastAckActionSeq&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
     const actionChanged=signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||input.equipmentActions?.length;
@@ -1837,15 +1897,15 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     // 選択中は確認済みでも低頻度で再送。写真欠落やhostのリセット直前に受理された場合も回復する。
     const selectionRefresh=selecting&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
     if(!skipActions&&(actionChanged||refresh||selectionChanged||selectionRefresh)){
-      // 未確認の新しい兵装予約は途中の地点送信にも載せ、後の累積ACKに隠されて失われるのを防ぐ。
-      const sendClass=actionChanged||inputSending.classActionSeq>prediction.lastAckActionSeq;
+      // 兵装固有のACKまでは地点更新にも同じ予約番号を載せる。通常入力の累積ACKでは消さない。
+      const sendClass=actionChanged||!!input.classChoice&&input.classChoice.id>(player.onlineClassChoiceAck||0);
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
         // 地点だけの再確認では取消済みかもしれない兵装予約を再採用させない。通常の選択変更/未確認再送は従来どおり。
-        wheel:Math.sign(input.wheel||0),weapon:input.weapon,equipmentActions:input.equipmentActions,spawnChoice:input.spawnChoice,nextCls:sendClass?input.nextCls:undefined,
+        wheel:Math.sign(input.wheel||0),weapon:input.weapon,equipmentActions:input.equipmentActions,spawnChoice:input.spawnChoice,nextCls:sendClass&&input.nextCls?input.nextCls:undefined,classChoice:sendClass&&input.classChoice?{...input.classChoice}:undefined,
         ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:copyView(input.view)};
       input.actionSeq=action.actionSeq;
       if(!state.transport.send('inputActions',action)){if(!state.transport.reconnect('操作の送信ができないため対戦を中断しました'))endGuest('操作の送信ができないため対戦を中断しました');return false;}
-      if(sendClass)inputSending.classActionSeq=input.nextCls?action.actionSeq:0;
+      if(edges.KeyH){inputSending.lastHActionSeq=action.actionSeq;inputSending.lastHSentAt=sentAt;}
       inputSending.signature=signature;inputSending.selectionMode=selectionMode;inputSending.lastActionAt=now();
     }
     input.actionSeq=inputSending.actionSeq;
@@ -2247,6 +2307,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
 
   function packUnit(u) {
     return {id:u.entityId,team:u.team,idx:u.idx,cls:u.cls,name:u.name,controller:u.controller,mech:u.mech,motionEpoch:u.onlineMotionEpoch||0,lagEpoch:u.onlineLagEpoch||0,renderCrouch:u.rig?.crouch||0,
+      classSelection:{ack:u.onlineClassChoiceAck||0,pending:u.nextCls||'',transferEpoch:u.onlineTransferEpoch||0,transferActionSeq:u.onlineTransferActionSeq||0,processedHSeq:u.onlineProcessedHSeq||0},
       ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),predictionBlocked:typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(u):'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,u[k]?.toArray()||null])),
       healTarget:equipmentRef(u.healTarget),equipment:packEquipmentUnit(u),catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
@@ -2296,7 +2357,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       pos:hidden?[0,0,0]:v.pos,vel:hidden?[0,0,0]:v.vel,predictionBlocked:hidden?'':v.predictionBlocked||'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
       healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
-      swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,
+      swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,classSelection:hidden||!own?null:v.classSelection||{ack:0,pending:'',transferEpoch:0,transferActionSeq:0,processedHSeq:0},
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries((own?slotKeys:remoteSlotKeys[k]).map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
     for(const k of scalarKeys)value[k]=hidden?null:v[k]??null;
     return value;
@@ -2405,7 +2466,11 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     for(const v of s.units){
       if(!v||!roster.has(v.id)||ids.has(v.id)||!Number.isSafeInteger(v.visibilityEpoch)||v.visibilityEpoch<1||!['pos','vel'].every(k=>Array.isArray(v[k])&&v[k].length===3&&v[k].every(Number.isFinite)))return false;
       if(v.fixedUnit&&(typeof v.hidden!=='boolean'||v.hidden&&(v.pos.some(x=>x!==0)||v.vel.some(x=>x!==0))))return false;
-      if(v.id===(pendingPrepare?.localId||state.localUnitId)&&v.hidden)return false;
+      if(v.id===(pendingPrepare?.localId||state.localUnitId)){
+        if(v.hidden||!v.classSelection||!Number.isSafeInteger(v.classSelection.ack)||v.classSelection.ack<0||
+          !['',...Object.keys(CLASSES)].includes(v.classSelection.pending)||
+          !['transferEpoch','transferActionSeq','processedHSeq'].every(k=>Number.isSafeInteger(v.classSelection[k])&&v.classSelection[k]>=0))return false;
+      }else if(v.classSelection!==null)return false;
       ids.add(v.id);
     }
     return ids.has(pendingPrepare?.localId||state.localUnitId);
@@ -2477,6 +2542,13 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function applyUnit(u,s) {
     // 新lifeで前の予約を消す。同じlifeの写真では未確認の新しい選択を上書きしない。
     if(u===player&&u.lifeId!==s.lifeId)u.nextCls=null;
+    if(u===player&&s.classSelection){
+      u.onlineClassChoiceAck=Math.max(u.onlineClassChoiceAck||0,s.classSelection.ack);
+      u.onlineTransferEpoch=s.classSelection.transferEpoch;u.onlineTransferActionSeq=s.classSelection.transferActionSeq;
+      u.onlineProcessedHSeq=Math.max(u.onlineProcessedHSeq||0,s.classSelection.processedHSeq);
+      // 明示選択を送る前でも連番は既に進んでいる。旧取消ACKはその選択へ届かない。
+      if(u.onlineClassChoice&&s.classSelection.ack>=u.onlineClassChoice.id&&s.classSelection.pending!==u.nextCls)u.nextCls=null;
+    }
     if(u===player&&(!s.swing||u.lifeId!==s.lifeId||u.onlineMotionEpoch!==(s.motionEpoch||0)||u.onlineLagEpoch!==(s.lagEpoch||0)||u.cls!==s.cls))localMeleeSwing=null;
     const mechChanged=!!s.mech&&Object.keys(s.mech).some(k=>s.mech[k]!==u.mech?.[k]);
     if(mechChanged)replaceMech(u,s.mech);
@@ -2916,6 +2988,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       }
       // 施設操作は実移動の直前に一度だけ。0step frameのcontrol ackでは捨てない。
       p.utilityActions=(p.utilityActions||[]).filter(a=>a.lifeId===u.lifeId&&actionIsRecent(p,a));
+      retirePendingClassChoice(u,p);
       const utility=p.utilityActions.find(a=>a.seq<=(command?.seq||0));
       if(utility){
         if(typeof humanUtilityInput==='function')humanUtilityInput(u,utility);
@@ -3103,7 +3176,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   }
   window.CBOnlineGame={create,join,start,leave,setReady,setEditing,setEquipment,equipmentOptions,canStart,
     savedBuilds,chooseSavedBuild,saveEquipmentBuilds,savedBuildStatus,pilotNameForOnline,
-    quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,respawnLoadout,
+    quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,respawnLoadout,rememberClassChoice,startedClassTransfer,finishedClassUtility,
     roomOptions:{classes:roomClasses.map(id=>({id,name:CLASSES[id].name||id})),maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,
       inputLatency:state.inputLatency.slice(),hitLatency:state.hitLatency.slice(),frameMs:state.frameMs.slice(),sendMs:state.sendMs.slice(),transport:state.transport?.metrics(),prediction:predictionMetrics(),lagCompensation:{enabled:lagEnabled,...lagMetrics,reasons:{...lagMetrics.reasons},historyFrames:lagHistory?.frames.length||0},interpolation:{...interpolation,meanDelayMs:interpolation.frames?interpolation.totalDelayMs/interpolation.frames:100,meanEffectiveDelayMs:interpolation.frames?interpolation.totalEffectiveDelayMs/interpolation.frames:100},disconnected:state.disconnected.slice(),localTracers:{...localTracerStats}})};

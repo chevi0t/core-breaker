@@ -64,6 +64,6 @@ assert.equal(test.validInput({...wire,equipmentActions:[{kind:'eval',point:[0,0,
 const count=peer.actions.length;test.acceptInputActions(peer,{...wire,actionSeq:wire.actionSeq+1,lifeId:0});assert.equal(peer.actions.length,count);
 // 再出撃の兵装4種を受理し、選択した同兵装はカスタムを維持する。
 peer.equipment={cls:'support',loadout:{...c.CLASSES.support,main:c.ARMORY.support.main.at(-1)}};own.alive=false;
-for(const [i,cls]of Object.keys(c.CLASSES).entries()){test.acceptInputActions(peer,{...wire,actionSeq:wire.actionSeq+i+2,nextCls:cls,equipmentActions:[]});assert.equal(own.nextCls,cls);assert.equal(own.controlLoadout.main,cls==='support'?peer.equipment.loadout.main:c.CLASSES[cls].main);}
+for(const [i,cls]of Object.keys(c.CLASSES).entries()){test.acceptInputActions(peer,{...wire,actionSeq:wire.actionSeq+i+2,nextCls:cls,classChoice:{id:i+1,phase:'dead',lagEpoch:own.onlineLagEpoch||0,transferEpoch:own.onlineTransferEpoch||0,transferActionSeq:own.onlineTransferActionSeq||0},equipmentActions:[]});assert.equal(own.nextCls,cls);assert.equal(own.controlLoadout.main,cls==='support'?peer.equipment.loadout.main:c.CLASSES[cls].main);}
 own.controller='remoteHuman';own.ownerPeerId=peer.id;const retained=own.slots.sp.w.key;test.peerLeft(peer.id,'切断');assert.equal(own.controller,'bot');assert.equal(own.slots.sp.w.key,retained);assert.equal(game.state.peers.size,0);
 console.log(JSON.stringify({scope:'実snapshot/codec/装備操作/秘匿。模型末端は代役、実ブラウザ・RTC・命中は未検証',roundtrips,gadgetVariants:gadgets,checks:'4兵装・全武器key/残弾/SP/納刀/索敵半径・施設修理・循環近接状態・設置生成消去・偵察再可視化・地上榴弾予告・照射秘匿・reliable重複/不正拒否・再出撃装備保持・切断Bot引継ぎ'}));

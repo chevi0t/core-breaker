@@ -31,7 +31,7 @@ check('オンライン結果画面のボタン',async({browser,dir,ok,errors})=>
   await playAndEnd('2試合目（同じ部屋で連続）',[host,g]);
   await g.locator('#menuRange').click();await frames([g],2);
   ok(await g.evaluate(()=>CBOnlineGame.state.phase==='lobby'&&!document.getElementById('onlinePanel').hidden),'ゲスト：結果画面のほかのボタンでは部屋を出ず、ロビーを開いて退出を案内する');
-  await g.locator('#onlineClose').click();await frames([host,g],4);
+  await g.locator('#onlineClose').click();await g.locator('#onlineLeaveConfirm').click();await frames([host,g],4);
   await host.waitForFunction(()=>CBOnlineGame.state.roster.length===1,{},{polling:20,timeout:5000});
   ok(await g.evaluate(()=>CBOnlineGame.state.phase==='idle'&&document.getElementById('start').textContent==='もう一度出撃する'),'ゲスト：ロビーの退出で部屋を出て、出撃ボタンの表示も戻る');
   const g2=await page();await g2.locator('#menuOnline').click();await g2.locator('#onlineRoom').fill(id);await g2.locator('#onlineJoin').click();

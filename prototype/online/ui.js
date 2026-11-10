@@ -8,7 +8,7 @@
   const stylesheet = document.createElement('link'); stylesheet.rel = 'stylesheet';
   stylesheet.href = new URL('ui.css', document.currentScript.src).href; document.head.append(stylesheet);
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'オンライン出撃ロビー');
-  panel.innerHTML = `<header class="online-header"><div><p class="online-eyebrow">コアブレイカー / 通信司令室</p><h2>オンライン出撃</h2><p>仲間と集まり、同じ戦場へ。</p></div><span class="online-badge">試作・通信 v9</span></header>
+  panel.innerHTML = `<header class="online-header"><div><p class="online-eyebrow">コアブレイカー / 通信司令室</p><h2>オンライン出撃</h2><p id="onlineLocation" aria-live="polite">部屋を作る・参加する</p></div><span class="online-badge">試作・通信 v9</span></header>
   <div class="online-body"><div class="online-main">
   <section class="online-card"><h3><span>01</span> パイロット登録</h3><div class="online-fields">
     <label for="onlineName">パイロット名 <small>本人確認なし</small><input id="onlineName" maxlength="24" aria-label="オンラインのパイロット名"></label>
@@ -19,7 +19,7 @@
     <div class="online-share"><p class="online-note">作成した部屋IDを友人に共有してください。入室は自動です。</p><button type="button" id="onlineCopy" hidden>部屋IDをコピー</button></div>
   </section>
   <section class="online-card online-squad"><h3><span>03</span> 出撃メンバー</h3><div id="onlineRequests" aria-label="入室承認待ち" hidden></div><div id="onlineRoster" aria-label="参加者"></div><p id="onlineEmpty" class="online-empty">まだ部屋に入っていません。<br><small>人間2〜4人で出撃。空き枠はBotが担当します。</small></p><button type="button" id="onlineShuffle" hidden>チームをシャッフル</button><p id="onlineReadySummary" class="online-note"></p><button type="button" id="onlineEquipment" hidden>装備を変更</button>
-    <section id="onlineEquipmentEditor" hidden aria-label="共通の保存構成"><h4>オフラインと共通の3構成</h4><p class="online-note">開くと自分のReadyが解除されます。「保存してこの構成を使う」で、編集した構成の全兵装・パーツ・塗装をオフラインと共通の保存へ反映します。構成を切り替えても下書きは残ります。取消は未保存の下書きだけを破棄し、保存済みの構成は退出後も残ります。</p><div class="online-fields"><label>共通の構成<select id="onlineEquipmentBuild"></select></label><label>兵装<select id="onlineEquipmentClass"></select></label></div><div id="onlineEquipmentFields" class="online-fields"></div><p id="onlineEquipmentWeight" class="online-note"></p><p id="onlineReadyNudge" role="status" aria-live="polite" hidden></p><div class="online-equipment-actions"><button type="button" id="onlineEquipmentSave">保存してこの構成を使う</button><button type="button" id="onlineEquipmentCancel">下書きを破棄して戻る</button></div></section></section>
+    <section id="onlineEquipmentEditor" hidden aria-label="共通の保存構成"><h4>オフラインと共通の3構成</h4><p class="online-note">部屋には参加したまま編集します。下の「保存して部屋に戻る」で、編集した構成の全兵装・パーツ・塗装をオフラインと共通の保存へ反映します。構成を切り替えても下書きは残ります。「下書きを破棄して部屋に戻る」は未保存の下書きだけを破棄し、保存済みの構成は残します。編集後はもう一度Readyを押してください。</p><div class="online-fields"><label>共通の構成<select id="onlineEquipmentBuild"></select></label><label>兵装<select id="onlineEquipmentClass"></select></label></div><div id="onlineEquipmentFields" class="online-fields"></div><p id="onlineEquipmentWeight" class="online-note"></p><p id="onlineReadyNudge" role="status" aria-live="polite" hidden></p></section></section>
   </div><aside class="online-side">
   <fieldset id="onlineSettings" class="online-card"><legend>作戦設定</legend><p class="online-note">作成後はホストだけが変更できます。</p><div class="online-fields">
     <label for="onlineCapacity">人間の定員（ホストを含む）<select id="onlineCapacity"></select></label>
@@ -32,8 +32,12 @@
   <details class="online-card"><summary>実回線で試す手順</summary><ol class="online-test-steps"><li>PCを2台、別々の回線につなぎます。</li><li>ホストが部屋を作り、IDを共有します。</li><li>もう1台でIDを入力して入室。全員がReadyを押したら、ホストが試合を始めます。</li><li>ホストのタブを前面にしたまま、両画面の移動・射撃・終了を確認します。</li></ol></details>
   <p class="online-caution">ホストのタブは前面にしてください。ホストの退出で試合終了。STUNのみのため、回線によっては接続できません。大人数・重いマップは負荷が増えます。</p>
   </aside></div>
-  <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><button type="button" id="onlineClose">戻る／退出</button><button type="button" id="onlineReady" hidden aria-pressed="false">Ready（準備完了）</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div></footer>`;
+  <footer class="online-footer"><div class="online-status-wrap"><span class="online-status-dot" aria-hidden="true"></span><div><span id="onlinePhase" class="online-eyebrow">接続待機</span><p id="onlineStatus" role="status" aria-live="polite" tabindex="-1">部屋を作るか、友人から受け取ったIDで入ってください。</p></div></div><div class="online-actions"><div id="onlineEquipmentActions" class="online-equipment-actions" hidden aria-label="装備編集を終えて部屋に戻る"><button type="button" id="onlineEquipmentSave" class="online-primary">保存して部屋に戻る</button><button type="button" id="onlineEquipmentCancel">下書きを破棄して部屋に戻る</button></div><div id="onlineRoomActions" class="online-room-actions"><button type="button" id="onlineReady" hidden aria-pressed="false">Ready（準備完了）</button><button type="button" id="onlineStart" class="online-primary" hidden>試合を始める</button></div><div class="online-exit-actions"><button type="button" id="onlineClose">最初のメニューへ</button></div></div></footer>`;
   document.body.appendChild(panel);
+  const leaveDialog=document.createElement('dialog');leaveDialog.id='onlineLeaveDialog';
+  leaveDialog.setAttribute('aria-labelledby','onlineLeaveTitle');leaveDialog.setAttribute('aria-describedby','onlineLeaveDescription');
+  leaveDialog.innerHTML='<h2 id="onlineLeaveTitle">部屋を退出しますか？</h2><p id="onlineLeaveDescription"></p><div class="online-leave-actions"><button type="button" id="onlineLeaveCancel" autofocus>退出せず戻る</button><button type="button" id="onlineLeaveConfirm">退出して最初のメニューへ</button></div>';
+  document.body.appendChild(leaveDialog);
   const diagnostic=document.createElement('div');diagnostic.id='onlineDiagnostic';diagnostic.hidden=true;diagnostic.setAttribute('aria-label','オンライン試験の診断');document.body.append(diagnostic);
   const number=(v,digits=0)=>Number.isFinite(v)?v.toFixed(digits):'—';
   const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF',melee:'近接',special:'加速・特殊動作',zip:'ジップライン',repair:'修理',launch:'射出',lift:'リフト',planted:'構え',inactive:'行動不能'};
@@ -86,14 +90,20 @@
     el('onlineSettings').hidden=s.role==='guest'&&!s.settings;
     el('onlineApplySettings').hidden=!host;el('onlineShuffle').hidden=!host;el('onlineShuffle').disabled=busy||!host;
     el('onlineStart').hidden=!host;el('onlineStart').disabled=busy||!CBOnlineGame.canStart();
-    const lobby=active&&s.phase==='lobby'&&!!s.equipment,editing=!el('onlineEquipmentEditor').hidden;
+    const lobby=active&&s.phase==='lobby'&&!!s.equipment;
+    if(!lobby)el('onlineEquipmentEditor').hidden=true;
+    const editing=!el('onlineEquipmentEditor').hidden;
+    el('onlineLocation').textContent=editing?'部屋に参加中 › 装備を変更中':lobby?'部屋に参加中 › 出撃準備':s.phase==='playing'?'試合中':'部屋を作る・参加する';
+    el('onlineEquipmentActions').hidden=!editing;el('onlineRoomActions').hidden=editing;
+    el('onlineClose').textContent=active?'部屋を退出して最初のメニューへ':busy?'接続を取り消して最初のメニューへ':'最初のメニューへ';
     el('onlineReady').hidden=!lobby;el('onlineReady').disabled=busy||editing||s.editing||s.equipmentPending;
     el('onlineReady').textContent=s.lobbyReady?'Readyを取り消す':'Ready（準備完了）';el('onlineReady').setAttribute('aria-pressed',String(s.lobbyReady));
     el('onlineEquipment').hidden=!lobby;el('onlineEquipment').disabled=busy||editing||s.equipmentPending;
     for(const field of el('onlineEquipmentEditor').querySelectorAll('button,select'))field.disabled=!lobby||busy||s.equipmentPending;
+    for(const field of el('onlineEquipmentActions').querySelectorAll('button'))field.disabled=!lobby||busy||s.equipmentPending;
     el('onlineReadySummary').textContent=lobby?'Ready '+s.roster.filter(p=>p.ready).length+' / '+s.roster.length+'人。全員Readyの後、ホストが開始します。BotはReady不要です。':'';
     if(!s.nudgeActive)el('onlineReadyNudge').hidden=true;
-    if(!lobby)el('onlineEquipmentEditor').hidden=true;
+    if(leaveDialog.open)refreshLeavePrompt();
     for(const b of panel.querySelectorAll('[data-action]'))b.disabled=!host;
     for(const row of panel.querySelectorAll('#onlineRoster [data-team]')){
       const full=s.roster.filter(p=>p.team===row.dataset.team).length>=s.settings?.teamSize&&row.getAttribute('aria-pressed')!=='true';
@@ -101,7 +111,7 @@
     }
   }
   const status = t => { el('onlineStatus').textContent = typeof t === 'string' ? t : t?.message || t?.reason || t?.status || JSON.stringify(t);controls(); };
-  const hideDuringPlay = () => { panel.hidden = true; returnButton.hidden = true;controls(); };
+  const hideDuringPlay = () => { if(leaveDialog.open)leaveDialog.close();panel.hidden = true; returnButton.hidden = true;controls(); };
   const showResult = () => { panel.hidden = true; returnButton.hidden = false;document.getElementById('start').textContent='オンラインのメニューへ戻る';controls(); };
   // 試合後も部屋に残る。結果画面のボタンはロビーを開くだけで、退出はロビーの「退出」から。
   const lobbyReturned = () => { panel.hidden = true; returnButton.hidden = false; returnButton.textContent = 'ロビーへ戻る'; document.getElementById('start').textContent='ロビーへ戻る（同じメンバー）';controls(); };
@@ -151,7 +161,7 @@
   }
   const options = () => ({displayName:el('onlineName').value.trim()||CBOnlineGame.pilotNameForOnline(),cls:el('onlineClass').value,latencyMs:Number(el('onlineLatency').value),settings:roomSettings(),onStatus:status,onCountdown:hideDuringPlay,onStarted:hideDuringPlay,onRequests:requestsChanged,onRoster:rosterChanged,onSettings:settingsChanged,onEnded:showResult,onLobbyReturn:lobbyReturned,onNudge:text=>{el('onlineReadyNudge').textContent=text;el('onlineReadyNudge').hidden=false;}});
   const act = async fn => {if(busy)return;busy=true;controls();const mine=++generation;try{await fn(mine);}catch(e){if(mine===generation)status(e.message);}finally{if(mine===generation){busy=false;controls();}}};
-  const resetRoomControls = () => {el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
+  const resetRoomControls = () => {equipmentDraft=buildDraft=buildBaseline=null;el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;returnButton.textContent='オンラインへ戻る';if(document.getElementById('start').textContent.startsWith('ロビーへ戻る'))document.getElementById('start').textContent='もう一度出撃する';generation++;busy=false;el('onlineRoom').value='';el('onlineRoom').readOnly=false;el('onlineRequests').hidden=true;el('onlineRoster').replaceChildren();el('onlineRequests').replaceChildren();returnButton.hidden=true;controls();};
   const startLabel = () => document.getElementById('start');
   const leaveResult = (openPanel=true) => {CBOnlineGame.leave('試合結果から退出');resetRoomControls();startLabel().textContent='もう一度出撃する';panel.hidden=!openPanel;status('前の部屋を終了しました。新しく部屋を作るか、部屋IDを入力してください。');};
   returnButton.onclick = () => { if (CBOnlineGame.state.phase === 'lobby') { panel.hidden = false; returnButton.hidden = true; controls(); } else leaveResult(true); };
@@ -187,17 +197,33 @@
   }catch(e){status(e.message);}};
   el('onlineEquipmentClass').onchange=()=>{selectDraftBuild(el('onlineEquipmentClass').value);renderEquipment();};
   el('onlineEquipmentBuild').onchange=()=>{buildDraft.cur=Number(el('onlineEquipmentBuild').value);selectDraftBuild(equipmentDraft.cls);renderEquipment();};
-  const closeEquipment=save=>{try{
+  const closeEquipment=save=>{if(el('onlineEquipmentEditor').hidden)return;try{
     const result=save?CBOnlineGame.saveEquipmentBuilds(buildDraft,buildBaseline,equipmentDraft.cls):null;
     CBOnlineGame.setEditing(false);el('onlineEquipmentEditor').hidden=true;el('onlineReadyNudge').hidden=true;
     if(save){el('onlineBuild').value=String(buildDraft.cur);el('onlineClass').value=equipmentDraft.cls;
       status(result.saved?'構成'+(buildDraft.cur+1)+'を共通の保存へ反映しました。'+(result.pending?'ホストの装備確認を待っています。':'Readyを押してください。'):CBOnlineGame.savedBuildStatus().text);}
-    equipmentDraft=buildDraft=buildBaseline=null;controls();el('onlineReady').focus();
+    if(!save)status('下書きを破棄して部屋に戻りました。保存済みの構成は変わりません。Readyを押してください。');
+    equipmentDraft=buildDraft=buildBaseline=null;controls();(el('onlineReady').disabled?el('onlineStatus'):el('onlineReady')).focus();
   }catch(e){status(e.message);}};
   el('onlineEquipmentSave').onclick=()=>closeEquipment(true);el('onlineEquipmentCancel').onclick=()=>closeEquipment(false);
   el('onlineReady').onclick=()=>{try{CBOnlineGame.setReady(!CBOnlineGame.state.lobbyReady);controls();}catch(e){status(e.message);}};
   el('onlineStart').onclick=()=>act(async()=>{CBOnlineGame.updateSettings(roomSettings());await CBOnlineGame.start();status('ゲームの読み込みを待っています');});
-  el('onlineClose').onclick=()=>{CBOnlineGame.leave();resetRoomControls();panel.hidden=true;button.focus();};
+  function refreshLeavePrompt(){
+    const s=CBOnlineGame.state;
+    el('onlineLeaveTitle').textContent=busy?'接続を取り消して退出しますか？':'部屋を退出しますか？';
+    el('onlineLeaveDescription').textContent=(s.role==='host'?'ホストが退出すると部屋を閉じ、全員の接続と試合を終了します。':s.role==='guest'?'この部屋との接続を終了します。':'接続を取り消します。')+(!el('onlineEquipmentEditor').hidden?'未保存の装備の下書きは破棄します。':'')+'保存済みの構成は残ります。最初のメニューへ移動します。';
+    el('onlineLeaveCancel').textContent=!el('onlineEquipmentEditor').hidden?'退出せず装備編集を続ける':'退出せず戻る';
+  }
+  const leaveToMenu=()=>{CBOnlineGame.leave();resetRoomControls();panel.hidden=true;button.focus();};
+  el('onlineClose').onclick=()=>{
+    if(!CBOnlineGame.active()&&!busy){leaveToMenu();return;}
+    refreshLeavePrompt();if(!leaveDialog.open)leaveDialog.showModal();el('onlineLeaveCancel').focus();
+  };
+  el('onlineLeaveCancel').onclick=()=>leaveDialog.close();
+  el('onlineLeaveConfirm').onclick=()=>{if(!leaveDialog.open)return;leaveDialog.close();leaveToMenu();};
+  leaveDialog.addEventListener('close',()=>{if(!panel.hidden)el('onlineClose').focus();});
+  // 確認のEscapeは確認だけを閉じる。背後のロビー・下書き・ゲーム入力へ伝えない。
+  for(const type of ['keydown','keyup'])leaveDialog.addEventListener(type,e=>e.stopPropagation());
   // 通常のマップ変更・射撃場・チュートリアルへ対戦中のまま入らない。
   document.addEventListener('click', e => { if (CBOnlineGame.active() && e.target.closest?.('#overlay') && !e.target.closest?.('#onlineReturn,#onlineLogResult,#menuOnlineLog')) {
     // 表彰/スコアを触っただけで窓を開かない。結果から戻る操作は専用ボタンだけ。
@@ -229,7 +255,7 @@
   let chatGroup=null,chatContext='',chatOpenedAt=0,chatNoticeUntil=0,chatLogSignature='';
   const chatConsumed=new Set();
   const chatStamp=()=>[CBOnlineGame.state.roomId,CBOnlineGame.state.phase,CBOnlineGame.state.matchId,CBOnlineGame.state.phase==='playing'?player?.lifeId:''].join('|');
-  const chatAvailable=()=>!el('onlineLogDialog')?.open&&chat.allowed()&&(CBOnlineGame.state.phase==='lobby'?!panel.hidden:panel.hidden);
+  const chatAvailable=()=>!el('onlineLeaveDialog')?.open&&!el('onlineLogDialog')?.open&&chat.allowed()&&(CBOnlineGame.state.phase==='lobby'?!panel.hidden:panel.hidden);
   const closeChat=()=>{chatBox.hidden=true;chatGroup=null;};
   function showChatChoices(){
     const list=el('onlineQuickChatChoices');list.replaceChildren();
@@ -288,11 +314,17 @@
   addEventListener('keydown', e => {
     if(!CBOnlineGame.active()||!['F3','Escape'].includes(e.code))return;
     if(document.getElementById('onlineLogDialog')?.open)return;
+    if(document.getElementById('onlineLeaveDialog')?.open)return;
     // F3のブラウザ検索・長押し反復を抑え、診断の開閉ではpointer lockを解除しない。
     e.stopImmediatePropagation();e.preventDefault();if(e.repeat)return;
     if(e.code==='F3'){if(CBOnlineGame.state.phase==='playing'){el('onlineDiagnostics').checked=!el('onlineDiagnostics').checked;refreshDiagnostic();}return;}
-    // 結果画面の間（試合後にロビーへ戻っていても、戻るボタンを押すまで）はEscapeでパネルを開かない。
-    panel.hidden=CBOnlineGame.state.phase==='ended'||CBOnlineGame.state.phase==='lobby'&&!returnButton.hidden?true:!panel.hidden;document.exitPointerLock?.();
+    // ロビーのEscapeで最初のメニューを露出しない。装備の下書きも暗黙に捨てない。
+    if(CBOnlineGame.state.phase==='lobby'){
+      if(!panel.hidden)status(!el('onlineEquipmentEditor').hidden?'編集内容は残っています。下の「保存して部屋に戻る」か「下書きを破棄して部屋に戻る」を選んでください。':'この部屋に参加しています。終了するときは「部屋を退出して最初のメニューへ」を選んでください。');
+      return;
+    }
+    // 結果画面の間はEscapeでパネルを開かない。試合中は従来どおり開閉する。
+    panel.hidden=CBOnlineGame.state.phase==='ended'?true:!panel.hidden;document.exitPointerLock?.();
   }, true);
   // 試作中の通常再出撃ボタンから、独立したオフライン戦を重ねて開始させない。
   document.getElementById('start').addEventListener('click', e => { if (CBOnlineGame.active?.()) { e.stopImmediatePropagation(); e.preventDefault(); panel.hidden = false; status('オンラインの試合中です。終了してから通常出撃してください。'); } }, true);

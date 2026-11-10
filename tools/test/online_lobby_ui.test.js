@@ -53,7 +53,7 @@ async function run(){
  els.get('onlineCapacity').value='1';els.get('onlineApplySettings').click();assert.equal(els.get('onlineCapacity').value,'4');assert.match(els.get('onlineStatus').textContent,/定員/);
  // nullでsignatureをクリアし、同じ部屋設定を受けても再適用できる。
  els.get('onlineMap').value='mesa';
- els.get('onlineClose').click();assert.equal(game.state.role,'offline');
+ els.get('onlineClose').click();els.get('onlineLeaveConfirm').click();assert.equal(game.state.role,'offline');
  els.get('menuOnline').click();els.get('onlineMap').value='city';els.get('onlineTeamSize').value='4';
  els.get('onlineCreate').click();els.get('onlineMap').value='mesa';await new Promise(r=>setTimeout(r,0));assert.equal(game.state.settings.mapId,'city');
  assert.equal(els.get('onlineMap').value,'city');join('guest');game.setReady(false);
@@ -72,7 +72,7 @@ async function run(){
  els.get('onlineEquipmentCancel').click();assert(!game.state.editing);assert(!game.state.lobbyReady);els.get('onlineReady').click();assert(game.canStart());
  game.state.phase='ended';c.window.__lobbyTest.backToLobby();assert(game.state.roster.every(p=>!p.ready));assert(els.get('onlinePanel').hidden);els.get('onlineReturn').click();assert(!els.get('onlinePanel').hidden);
  for(const fn of intervals)fn();
- els.get('onlineClose').click();assert.equal(game.state.role,'offline');for(const fn of intervals)fn();assert(els.get('onlineQuickChatLog').hidden);
+ els.get('onlineClose').click();els.get('onlineLeaveConfirm').click();assert.equal(game.state.role,'offline');for(const fn of intervals)fn();assert(els.get('onlineQuickChatLog').hidden);
  console.log('ロビーUI全体：初期化・未適用設定保持/確定変更/拒否復元/退出リセット・Ready・装備編集・入力欄V・Esc/取消・結果復帰 成功（DOM/通信/描画は代役）');
 }
 if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});

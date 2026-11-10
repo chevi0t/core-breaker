@@ -76,7 +76,7 @@ function createCameraSuite(revision='working'){
         if(time-lastSnapshot>=snapshotMs){
           const s=JSON.parse(JSON.stringify(host.game.snapshot()));s.frame=hostFrame;s.time=time;
           s.roster=s.units.map(u=>({id:u.id,name:u.name,team:u.team,cls:u.cls,sc:u.sc}));
-          s.units=s.units.map(u=>host.test.fixedUnitForPeer(u,false,1));s.unitUpdates=(1<<s.units.length)-1;s.gadgets=[];
+          s.units=s.units.map(u=>host.test.fixedUnitForPeer(u,false,1,u.id==='B:0'));s.unitUpdates=(1<<s.units.length)-1;s.gadgets=[];
           send(time,'snapshot',{s,wire:encoder.encode(s)});lastSnapshot=time;
         }
       }else if(e.kind==='snapshot'){

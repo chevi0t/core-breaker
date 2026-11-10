@@ -4608,6 +4608,7 @@ function startTransfer(u, at) {
   u.dashT = 0; u.longDash = false; u.dashState = ''; u.scoped = false;
   if (isHumanControlled(u)) { u.spawnChoice = base ? null : 'base'; u.nextCls = null; } // 最初の移動先：ベースの外ならベース、ベースの中なら最前線のプラント
   u.xferCd = clock() + AREA_CD;
+  globalThis.CBOnlineGame?.startedClassTransfer?.(u);
   return true;
 }
 function cancelTransfer(u) {
@@ -9339,7 +9340,11 @@ function updateHumanMovement(u, input = {}, dt, { prediction = false, movementOn
 }
 function humanUtilityInput(u,input){
   const edge=input.pressed||{};
-  if (edge.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
+  if (edge.KeyH) {
+    const previous=u.transfer;
+    if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます');
+    globalThis.CBOnlineGame?.finishedClassUtility?.(u,input,!previous&&!!u.transfer);
+  }
   if (edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
 }
 function predictHumanMovement(u, input, dt) { return !!updateHumanMovement(u,input,dt,{prediction:true}); }
@@ -10396,7 +10401,10 @@ function pickClass(k) {
   if (window.CBOnlineGame?.active() && !window.CBOnlineGame.roomOptions.classes.some(c=>c.id===k)) return;
   if (window.CBOnlineGame?.active() && isSimulationAuthority() && player && (!player.alive || player.transfer?.base)) player.controlLoadout = window.CBOnlineGame.respawnLoadout(k);
   chosenCls = k;
-  if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
+  if (player && (!player.alive || (player.transfer && player.transfer.base))) {
+    player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
+    window.CBOnlineGame?.rememberClassChoice?.(player);
+  }
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {

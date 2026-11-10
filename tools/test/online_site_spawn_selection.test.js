@@ -90,7 +90,7 @@ test('selection heartbeat stops in ordinary alive play after acknowledgment',()=
 test('spawn-only refresh does not restore a canceled class after a missed restart snapshot',()=>{
  const p=scenario();p.host.c.startTransfer(p.hu);p.sync();p.panel();p.guest.c.pickClass('heavy');p.input();
  assert.equal(p.hu.nextCls,'heavy');p.host.c.cancelTransfer(p.hu);p.host.c.startTransfer(p.hu);
- p.sync();p.panel();assert.equal(p.gu.nextCls,'heavy','known stale local reservation is deliberately present');assert.equal(p.hu.nextCls,null);
+ p.sync();p.panel();assert.equal(p.gu.nextCls,null,'authoritative cancellation clears the acknowledged old reservation');assert.equal(p.hu.nextCls,null);
  p.advance(500);p.input();assert.equal(p.sent.at(-1).nextCls,undefined);assert.equal(p.hu.spawnChoice,'A');assert.equal(p.hu.nextCls,null);
  p.host.c.doTransfer(p.hu);assert.equal(p.hu.cls,'assault');p.checkPlant();
 });

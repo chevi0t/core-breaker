@@ -52,7 +52,7 @@ function harness(t){
   for(const name of ['equipmentScalars','scalarKeys','slotKeys','remoteSlotKeys']){
     const match=game.match(new RegExp('^  const '+name+' ?=.*$','m'));assert(match,name);vm.runInContext(match[0],hc);
   }
-  const gc=context({Map,Set,state:{role:'guest',phase:'playing',localUnitId:'B:0',matchId:'match',transport:guest,history:[],pendingInputs:new Map()},
+  const gc=context({Map,Set,CLASSES:{assault:{},heavy:{},raid:{},support:{}},state:{role:'guest',phase:'playing',localUnitId:'B:0',matchId:'match',transport:guest,history:[],pendingInputs:new Map()},
     finalFrame:null,prepared:true,pendingPrepare:null,lastSnapshotBaseId:0,snapshotDecoder:new Codec.Decoder(),pendingSnapshotWires:new Map(),pendingSnapshotBases:new Map(),lastResync:-Infinity,resyncBackoff:250,
     now:()=>clock,diagnosticArrival(){},capturePredictionView(){return null;},reconcilePrediction(){},applySnapshot:s=>applied.push(copy(s)),
     interpolation:{staleSnapshots:0,missingBaselines:0,resyncRequests:0,lastArrival:null,acceptedSnapshots:0,localOffset:null,intervalMs:50,jitterMs:0,targetDelayMs:60,renderTime:null},

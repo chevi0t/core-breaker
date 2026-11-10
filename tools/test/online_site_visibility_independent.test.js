@@ -40,7 +40,7 @@ function fixture(t,count=4){
     state:{role:'host',phase:'playing',matchId:'match-1',peers:new Map([['guest',peer]]),transport:host}},
     ['replicationFor','fixedUnitForPeer','snapshotForPeer','encodePeerSnapshot','rememberPeerSnapshot','handleSnapshotControl']);
   for(const name of ['equipmentScalars','scalarKeys','slotKeys','remoteSlotKeys'])vm.runInContext(source.match(new RegExp('^  const '+name+' ?=.*$','m'))[0],hc);
-  gc=load({Map,Set,state:{role:'guest',phase:'playing',matchId:'match-1',localUnitId:'B:0',transport:guest,history:[],pendingInputs:new Map()},
+  gc=load({Map,Set,CLASSES:{assault:{},heavy:{},raid:{},support:{}},state:{role:'guest',phase:'playing',matchId:'match-1',localUnitId:'B:0',transport:guest,history:[],pendingInputs:new Map()},
     finalFrame:null,prepared:true,pendingPrepare:null,lastSnapshotBaseId:0,snapshotDecoder:new Codec.Decoder(),pendingSnapshotWires:new Map(),pendingSnapshotBases:new Map(),lastResync:-Infinity,resyncBackoff:250,
     now:()=>clock,diagnosticArrival(){},capturePredictionView(){},reconcilePrediction(){},applySnapshot:s=>applied.push(clone(s)),clamp:(x,a,b)=>Math.min(b,Math.max(a,x)),
     interpolation:{staleSnapshots:0,missingBaselines:0,resyncRequests:0,lastArrival:null,acceptedSnapshots:0,localOffset:null,intervalMs:50,jitterMs:0,targetDelayMs:60,renderTime:null}},

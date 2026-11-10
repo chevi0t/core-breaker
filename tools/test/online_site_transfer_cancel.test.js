@@ -37,15 +37,15 @@ const pickedKeys=(o,allowed=inputKeys)=>Object.fromEntries(allowed.filter(k=>o?.
 const safe=(o,keys)=>Object.fromEntries(keys.filter(k=>o[k]!==undefined&&(typeof o[k]!=='number'||Number.isFinite(o[k]))).map(k=>[k,o[k]]));
 const unit=id=>units.find(u=>u.entityId===id);let clock=1000;const now=()=>clock;const vector=a=>new T.Vector3().fromArray(a);`,c);
 for(const name of ['isHumanControlled','isLocalView','isSimulationAuthority','slotOf','equip','resetLifeState','spawn','cancelTransfer','doTransfer','pickClass'])vm.runInContext(extract(html,name,'index.html'),c);
-for(const name of ['preset','respawnLoadout','validInput','currentInputLife','actionIsRecent','rememberMovementAction','acceptInputActions','applyUnit','packUnit','fixedUnitForPeer','packEquipmentUnit','equipmentRef','applyEquipmentUnit'])vm.runInContext(extract(game,name,'online/game.js'),c);
+for(const name of ['preset','respawnLoadout','validInput','currentInputLife','actionIsRecent','rememberMovementAction','acceptInputActions','rememberClassChoice','validClassChoice','acceptClassChoice','startedClassTransfer','finishedClassUtility','applyUnit','packUnit','fixedUnitForPeer','packEquipmentUnit','equipmentRef','applyEquipmentUnit'])vm.runInContext(extract(game,name,'online/game.js'),c);
 vm.runInContext(game.match(/^  const equipmentScalars=.*$/m)[0]+game.match(/^  const scalarKeys =.*$/m)[0]+game.match(/^  const slotKeys =.*$/m)[0],c);
-c.CBOnlineGame={active:()=>true,roomOptions:{classes:Object.keys(c.CLASSES).map(id=>({id}))},respawnLoadout:cls=>c.respawnLoadout(cls)};
+c.CBOnlineGame={active:()=>true,roomOptions:{classes:Object.keys(c.CLASSES).map(id=>({id}))},respawnLoadout:cls=>c.respawnLoadout(cls),rememberClassChoice:u=>c.rememberClassChoice(u),startedClassTransfer:u=>c.startedClassTransfer(u),finishedClassUtility:(...a)=>c.finishedClassUtility(...a)};
 function setup(cls,role='host'){
  const u={entityId:'B:0',idx:0,name:'fixture',ownerPeerId:'guest',team:'B',controller:role==='host'?'localHuman':'remoteHuman',localView:role==='host',cls,lifeId:1,alive:true,hp:10000,maxHp:10000,mech:{},sx:{},sc:{},group:{visible:true},pos:new c.T.Vector3(),vel:new c.T.Vector3(),controlLoadout:c.preset(cls),transfer:{base:true,t:1},nextCls:null};
  c.units=[u];c.player=role==='host'?u:null;c.state.equipment={cls,loadouts:structuredClone(c.loadout)};const p={unitId:u.entityId,inputLifeId:1,receivedSeq:0,equipment:c.state.equipment};c.state.peers=new Map([['guest',p]]);c.equip(u,cls);return {u,p};
 }
 function select(u,p,cls,role){if(role==='host'){c.pickClass(cls);return;}
- c.acceptInputActions(p,{seq:1,actionSeq:1,lifeId:u.lifeId,sentAt:1000,yaw:0,pitch:0,aimPoint:[0,2,0],keys:{},pressed:{},nextCls:cls,spawnChoice:'base'});
+ c.acceptInputActions(p,{seq:1,actionSeq:1,lifeId:u.lifeId,sentAt:1000,yaw:0,pitch:0,aimPoint:[0,2,0],keys:{},pressed:{},nextCls:cls,spawnChoice:'base',classChoice:{id:1,phase:u.alive?'transfer':'dead',lagEpoch:u.onlineLagEpoch||0,transferEpoch:u.onlineTransferEpoch||0,transferActionSeq:u.onlineTransferActionSeq||0}});
  assert.equal(p.receivedActionSeq,1,'valid guest action accepted');
 }
 const slots=u=>Object.fromEntries(c.SLOTS.map(k=>[k,u.slots[k].w.key]));const matches=(u,cls)=>c.SLOTS.every(k=>u.slots[k].w.key===c.CLASSES[cls][k]);
@@ -75,7 +75,7 @@ for(const mode of ['online_no_class_change','offline','bot'])for(const cls of Ob
 // 操作の遅延、重複、古い命。製品受信関数そのものへ時刻を付けて渡す。
 for(const delayMs of [0,100,250,500,501,900])for(const oldLife of [false,true]){
  const {u,p}=setup('assault','guest');u.lifeId=2;u.alive=false;u.transfer=null;
- const input={seq:1,actionSeq:1,lifeId:oldLife?u.lifeId-1:u.lifeId,sentAt:1000-delayMs,yaw:0,pitch:0,aimPoint:[0,2,0],keys:{},pressed:{},nextCls:'heavy',spawnChoice:'base'};
+ const input={seq:1,actionSeq:1,lifeId:oldLife?u.lifeId-1:u.lifeId,sentAt:1000-delayMs,yaw:0,pitch:0,aimPoint:[0,2,0],keys:{},pressed:{},nextCls:'heavy',spawnChoice:'base',classChoice:{id:1,phase:'dead',lagEpoch:0,transferEpoch:0,transferActionSeq:0}};
  c.acceptInputActions(p,input);c.acceptInputActions(p,input);const expected=!oldLife&&delayMs<=500;
  report.cases.push({case:'delayed_duplicate_death_class_selection',delayMs,oldLife,accepted:p.receivedActionSeq===1,queueLength:p.actions?.length||0,pass:expected?p.receivedActionSeq===1&&p.actions.length===1&&u.nextCls==='heavy':p.receivedActionSeq===undefined&&u.nextCls===null});
 }
