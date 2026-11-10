@@ -66,9 +66,11 @@ check('オンラインCアクション',async({browser,dir,ok,errors})=>{
     return v.stun==='stagger'&&v.stunT>a.staggerTime-.15&&v.slots.main.ammo===ammo&&!g.shortDash(v,g.fwdOf(v));
    }),actionId+'：ホストの被弾プレイヤーは長いよろけ中に射撃・ダッシュできない');
    await sleep(80);await frames([guest],3,1000/60);
-   ok(await guest.evaluate(id=>{
-    const v=__g.units.find(u=>u.entityId===id);return v?.stun==='stagger'&&v.stunT>.5;
-   },fixture.targetId),actionId+'：被弾側のよろけと残り時間をゲストにも同期');
+   const staggerSeen=id=>{const v=__g.units.find(u=>u.entityId===id);return v?.stun==='stagger'&&v.stunT>.5;};
+   let staggered=await guest.evaluate(staggerSeen,fixture.targetId);
+   // 命中したコマが30Hz写真を送るコマとは限らない。ホストを1コマずつ進めて、次の写真がゲストへ届くのを待つ（よろけは1秒以上残る）。
+   for(let i=0;i<4&&!staggered;i++){await frames(r.pages,1,1000/60);await sleep(80);await frames([guest],2,1000/60);staggered=await guest.evaluate(staggerSeen,fixture.targetId);}
+   ok(staggered,actionId+'：被弾側のよろけと残り時間をゲストにも同期');
    await input(guest,neutral);
    await frames(r.pages,70,1000/60);await sleep(80);await frames([guest],3,1000/60);
    const result=await r.host.evaluate(()=>({hp:__actionTarget.hp,cd:__actionActor.actionCd,move:__actionActor.actionMove,recover:__actionActor.actionRecoverT,pos:__actionActor.pos.toArray(),target:__actionTarget.pos.toArray(),stun:__actionTarget.stun,yaw:__actionActor.yaw}));
