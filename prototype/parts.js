@@ -157,10 +157,48 @@ const PART_SERIES = {
   bulwark: { maker: 'gard', name: 'ブルワーク', desc: '重く硬いが遅い', types: ['heavy', 'heavy2', 'heavy3'], set: { text: '装甲 +3%（各部位の被ダメージ −3%）', fx: PART_SLOTS.map(k => [k, 'armor', 'add', -0.03]) } },
 };
 for (const [id, ps] of Object.entries(PART_SERIES)) ps.types.forEach((t, i) => { for (const k of PART_SLOTS) Object.assign(PARTS[k][t], { series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' }); });
+// ---- 準備中の脚：四脚と逆脚（#227、2026-11-11）----
+// アーケード版に無い本作オリジナルの脚で、数値は全部オリジナルの仮置き（オーナーの了承 2026-11-10。採用記録 research/parts/types/leg-kinds.json）。
+// 動きと形をゲームに入れるのは #228。それまでは PARTS.legs に入れず、この表に置く（機体カスタマイズ・Bot・保存・オンラインの一覧に出ない）。
+// #228 で PARTS.legs と PART_SERIES へ移す。脚だけのシリーズ（頭・胴・腕は無い、セットボーナス無し）。
+// LEG_KIND_TRAITS は脚の種類ごとの特性の基準。型ごとの traits は、基準に型の差を重ねた物（動きは kind ではなく型の traits を読む）。
+//   spread：射撃のばらつきの倍率、recoil：反動の倍率（腕の反動吸収に掛ける）、stagger：よろけ・ダウンの閾値の倍率、hoverCost：空中で浮くブースト消費の倍率
+//   jump：ジャンプの初速の倍率（高さは2乗。1.15 で約6.8m → 約9m）、landSpeed：着地硬直が出る落下の速さ（二脚は LAND_SPEED 28）、landTime：着地硬直の長さの倍率
+//   plantTime：構える武器の構えにかかる時間の倍率、action：タックル・蹴りの倍率（ACTION_LEG_MUL と同じ形。airReach は空中の蹴りの届く距離）
+//   crouch：しゃがみの中身。brace＝踏ん張り（止まる、ばらつき spread 倍、押されない、閾値 stagger 倍）、charge＝溜め（time 秒以上しゃがんでからジャンプで初速 jump 倍、ジャンプのブースト cost 倍）
+const LEG_KIND_TRAITS = {
+  quad: { spread: 0.8, recoil: 0.7, stagger: 1.3, hoverCost: 0.6, jump: 0.8, landSpeed: 28, landTime: 1, plantTime: 0.6,
+    action: { tackle: { distance: 0.6, damage: 1.5 }, kick: { damage: 1.2 } }, crouch: { type: 'brace', spread: 0.6, stagger: 1.5 } },
+  reverse: { spread: 1, recoil: 1, stagger: 0.9, hoverCost: 1, jump: 1.15, landSpeed: 34, landTime: 0.5, plantTime: 1,
+    action: { tackle: { damage: 0.8 }, kick: { damage: 1.5, airReach: 2 } }, crouch: { type: 'charge', time: 0.3, jump: 1.33, cost: 2 } }, // 溜め：1.33²×約6.8m ≒ 12m
+};
+const WIP_LEG_SERIES = {
+  // 四脚：止まって当てる移動砲台。比べる相手は重装二脚（1340kg・0.77・4.8・19.4・17.2・6450）。形は重機型（media/legs-proto/quadB.png）
+  dozer: { name: 'ドーザー', maker: 'gard', kind: 'quad', desc: '四脚。射撃が安定し、よろけにくい。しゃがみで踏ん張る。遅く、脚が横に広い。Ⅱは積載、Ⅲは機動、Ⅳは砲撃を優先',
+    types: {
+      dozer: { weight: 1350, armor: 0.80, walk: 4.6, dash: 18.0, cruise: 17.0, cap: 6800 },
+      dozer2: { weight: 1420, armor: 0.80, walk: 4.4, dash: 17.4, cruise: 16.6, cap: 7300 }, // 積載：重く遅い代わりに重量耐性
+      dozer3: { weight: 1290, armor: 0.86, walk: 5.0, dash: 19.0, cruise: 17.8, cap: 6400 }, // 機動：速い代わりに装甲と重量耐性
+      dozer4: { weight: 1400, armor: 0.78, walk: 4.3, dash: 17.6, cruise: 16.8, cap: 6800, traits: { spread: 0.74, recoil: 0.64, jump: 0.75 } }, // 砲撃：ばらつきと反動をさらに抑える代わりに遅く、跳べない
+    } },
+  // 逆脚：縦に動く軽い脚。比べる相手は軽量二脚（770kg・1.17・7.6・24.8・21.4・3700）。形は2節の逆関節（media/legs-proto/revA.png）
+  hopper: { name: 'ホッパー', maker: 'sylph', kind: 'reverse', desc: '逆脚。高く跳び、着地の隙が短い。しゃがみで溜めて大ジャンプ。装甲が薄く、積めない。Ⅱは跳躍、Ⅲは積載、Ⅳは疾走を優先',
+    types: {
+      hopper: { weight: 800, armor: 1.15, walk: 6.8, dash: 22.0, cruise: 19.0, cap: 4000 },
+      hopper2: { weight: 780, armor: 1.20, walk: 6.6, dash: 21.6, cruise: 18.8, cap: 3850, traits: { jump: 1.22 } }, // 跳躍：約10m。装甲と重量耐性を削る
+      hopper3: { weight: 860, armor: 1.10, walk: 6.4, dash: 21.2, cruise: 18.6, cap: 4350, traits: { jump: 1.10 } }, // 積載：重量耐性と装甲の代わりに速さと跳躍
+      hopper4: { weight: 790, armor: 1.18, walk: 7.2, dash: 23.2, cruise: 20.0, cap: 3800, traits: { jump: 1.12, landTime: 0.6 } }, // 疾走：横に速い代わりに跳躍・装甲・重量耐性
+    } },
+};
+const WIP_LEGS = {};
+for (const [id, ps] of Object.entries(WIP_LEG_SERIES)) Object.entries(ps.types).forEach(([key, row], i) => {
+  const { traits, ...stats } = row, base = LEG_KIND_TRAITS[ps.kind];
+  WIP_LEGS[key] = { ...stats, kind: ps.kind, traits: { ...base, ...traits }, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型', wip: true };
+});
 // 塗装。'team' はチームの色。ほかの色に塗ってもチームの色は細い帯に残る（Botはチームの色のまま）
 const PAINTS = [
   { id: 'team', name: 'チームの色', color: null }, { id: 'ash', name: 'アッシュ', color: 0xaebcc8 }, { id: 'sand', name: 'サンド', color: 0xd2b782 },
   { id: 'forest', name: 'フォレスト', color: 0x648d79 }, { id: 'violet', name: 'バイオレット', color: 0x9c82c7 }, { id: 'crimson', name: 'クリムゾン', color: 0xc76363 },
 ];
-return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS };
+return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS, LEG_KIND_TRAITS, WIP_LEG_SERIES, WIP_LEGS };
 }

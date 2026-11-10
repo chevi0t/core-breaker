@@ -3,8 +3,8 @@
 
 使い方（リポジトリの直下で）:
   python3 media/legs-proto/patch_index.py /tmp/legs/index.html
-  python3 tools/test/make_dbg.py media/legs-proto/dbg --src /tmp/legs/index.html
-  node media/legs-proto/cap.js        # quadA.png・quadB.png・revA.png・revB.png を書き出す（dbg/ は .gitignore 済みでなければコミットしない）
+  python3 tools/test/make_dbg.py /tmp/legs/dbg --src /tmp/legs/index.html
+  node media/legs-proto/cap2.js /tmp/legs/dbg   # 仕上げた形の絵4枚と shapes.json（最初の下描き4案は cap.js）
 """
 import pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
