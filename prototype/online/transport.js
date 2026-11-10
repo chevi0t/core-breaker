@@ -5,8 +5,8 @@
   const CONTROL_LABEL = 'core-breaker-control-v10', SNAPSHOT_LABEL = 'core-breaker-snapshot-v10';
   const PACKET_BYTES = 16384, CHUNK_BYTES = 9000, MAX_ASSEMBLIES = 4, ASSEMBLY_TTL = 1000, BASE_TTL = 10000;
   const INPUT_BYTES = 8192, INPUT_FRAMES = 5, INPUT_RATE = 120, INPUT_QUEUE = 16, INPUT_TTL = 250;
-  // 直接つながらない回線のための中継（TURN）。合言葉は Cloudflare の TURN を Worker（tools/turn-worker/）が毎回発行する。
-  // オーナーの指定 2026-11-09：中継は Cloudflare の TURN（無料枠）。空のうちは今までどおり STUN だけ。
+  // 直接つながらない回線のための中継（TURN）。期限つきの合言葉を Worker（tools/turn-worker/）から受け取る。
+  // 中継の既定先は coturn。URL が空のうちは今までどおり STUN だけ。
   const ICE_URL = '';
   const STUN_ONLY = [{ urls: 'stun:stun.l.google.com:19302' }];
   const ICE_FETCH_MS = 5000;
@@ -106,20 +106,31 @@
       if (!url) { this.relayStatus = 'off'; return STUN_ONLY; }
       const fetcher = this.options.fetch || root.fetch;
       const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-      const t = ctrl ? this._later(() => ctrl.abort(), ICE_FETCH_MS) : null;
+      // Peer登録より前の待機もcloseで完了する。fetch/jsonがabortを無視しても遅着を採用しない。
+      let rejectWait;
+      const interrupted = new Promise((_, reject) => { rejectWait = reject; });
+      const cancel = error => { rejectWait(error); ctrl?.abort(); };
+      this._cancelIce = cancel;
+      const t = this._later(() => cancel(new Error('中継情報の取得が時間切れになりました')), ICE_FETCH_MS);
       try {
-        const res = await fetcher(url, { method: 'POST', signal: ctrl?.signal, headers: { 'content-type': 'application/json' }, body: '{}' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const list = cleanIceServers((await res.json())?.iceServers);
-        if (!list || !hasRelay(list)) throw new Error('中継先がありません');
+        const request = (async () => {
+          const res = await fetcher(url, { method: 'POST', signal: ctrl?.signal, headers: { 'content-type': 'application/json' }, body: '{}' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const list = cleanIceServers((await res.json())?.iceServers);
+          if (!list || !hasRelay(list)) throw new Error('中継先がありません');
+          return list;
+        })();
+        const list = await Promise.race([request, interrupted]);
+        if (this.closed) throw new Error('接続を取り消しました');
         this.relayStatus = 'ready';
         // 直接の通り道も探す（STUN）。中継は直接がダメなときだけブラウザが選ぶ。
         return list.some(s => iceUrls(s).some(u => u.startsWith('stun:'))) ? list : STUN_ONLY.concat(list);
       } catch (e) {
+        if (this.closed) throw e;
         this.relayStatus = 'unavailable';
         this._status('中継サーバーの情報を受け取れませんでした。直接つながる相手とだけ接続します', { relay: false });
         return STUN_ONLY;
-      } finally { if (t) { clearTimeout(t); this._timers.delete(t); } }
+      } finally { clearTimeout(t); this._timers.delete(t); if (this._cancelIce === cancel) this._cancelIce = null; }
     }
     // つながった経路（直接か中継か）。診断と表示だけに使い、相手のアドレスは持ち出さない。
     async _checkRoute(link) {
@@ -821,7 +832,7 @@
       // 終了通知は最善努力。閉じた後の通信成功を保証しない。
       for (const link of this.links.values()) if (link.ready && link.conn.open) { try { link.conn.send(JSON.stringify(this._envelope('bye', { reason }))); } catch (_) {} }
       const wasReconnecting=this.role==='guest'&&this.reconnectUntil>0;
-      this.closed = true;this._cancelOpen?.(new Error(reason));this.resumeToken='';this.resumeSessions.clear();this.reconnectUntil=0;clearTimeout(this.reconnectTimer);clearInterval(this._tickTimer);
+      this.closed = true;this._cancelIce?.(new Error(reason));this._cancelOpen?.(new Error(reason));this.resumeToken='';this.resumeSessions.clear();this.reconnectUntil=0;clearTimeout(this.reconnectTimer);clearInterval(this._tickTimer);
       for (const t of this._timers) clearTimeout(t); this._timers.clear();
       for (const link of [...this.links.values()]) this._drop(link, reason);
       try { this.peer?.destroy(); } catch (_) {}
