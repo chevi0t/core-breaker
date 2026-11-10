@@ -158,7 +158,7 @@ const PART_SERIES = {
 };
 for (const [id, ps] of Object.entries(PART_SERIES)) ps.types.forEach((t, i) => { for (const k of PART_SLOTS) Object.assign(PARTS[k][t], { series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' }); });
 // ---- 準備中の機体：四脚ドーザーと逆脚ホッパー（#227、2026-11-11）----
-// アーケード版に無い本作オリジナルの脚で、数値は全部オリジナルの仮置き（オーナーの了承 2026-11-10。採用記録 research/parts/types/leg-kinds.json）。
+// 脚はアーケード版に無い本作オリジナルで、脚の数値はオリジナルの仮置き（オーナーの了承 2026-11-10。採用記録 research/parts/types/leg-kinds.json）。
 // 動きと形をゲームに入れるのは #228。それまでは PARTS に入れず、この表に置く（機体カスタマイズ・Bot・保存・オンラインの一覧に出ない）。
 // #228 で PARTS と PART_SERIES へ移す。
 // LEG_KIND_TRAITS は脚の種類ごとの特性の基準。型ごとの traits は、基準に型の差を重ねた物（動きは kind ではなく型の traits を読む）。
@@ -172,61 +172,43 @@ const LEG_KIND_TRAITS = {
   reverse: { spread: 1, recoil: 1, stagger: 0.9, hoverCost: 1, jump: 1.15, landSpeed: 34, landTime: 0.5, plantTime: 1,
     action: { tackle: { damage: 0.8 }, kick: { damage: 1.5, airReach: 2 } }, crouch: { type: 'charge', time: 0.3, jump: 1.33, cost: 2 } }, // 溜め：1.33²×約6.8m ≒ 12m
 };
-// 全身のシリーズ（オーナーの指定 2026-11-11「全身作って」）：頭・胴・腕も各4型。脚と同じ並び（Ⅰ基準、Ⅱ〜Ⅳ は1つ良くして1つ悪くする、各値は Ⅰ型の ±10% くらいまで）。
-// 頭・胴・腕はふつうのパーツと同じ項目だけを持つ（特別な動きは脚の traits だけ）。セットボーナスは PART_SERIES と同じ形。
+// 全身のシリーズ（オーナーの指定 2026-11-11「全身作って」）：頭・胴・腕も各4型。セットボーナスは PART_SERIES と同じ形。
+// 頭・胴・腕の数値はアーケード版 wiki の表を換算した物（オーナーの指定 2026-11-11：ドーザー＝ランドバルク、ホッパー＝フォーミュラ。「脚性能はオリジナルで」）。
+// 換算はホバーと同じ：本作の標準Ⅰ型 × AC の値 ÷ AC クーガーⅠ型（HOVER_PART_BASE）。SP の基準値は AC の表に無いので標準のまま。
+// ac は AC 原表（並びは HOVER_PART_FIELDS：頭＝重量・装甲・射撃補正・ロックオン、胴＝重量・装甲・ブースター・SP供給率、腕＝重量・装甲・反動吸収・リロード・武器変更・予備弾数）。
+// 採用記録：research/parts/types/leg-kinds.json、原表：research/arcade/parts/quad-reverse-sources.md。
+// 脚はオリジナル（Ⅰ基準、Ⅱ〜Ⅳ は1つ良くして1つ悪くする、各値は Ⅰ型の ±10% くらいまで）。特別な動きは脚の traits だけ。
 const WIP_SERIES = {
-  // ドーザー：重量級の四脚。止まって当てる移動砲台。比べる相手はブルワーク（重装二脚：頭830・0.77、胴1480・0.81、腕1030・0.77、脚1340・0.77・4.8・19.4・17.2・6450）。形は重機型（media/legs-proto/）
+  // ドーザー：重量級の四脚。止まって当てる移動砲台。形は重機型（media/legs-proto/）
+  // 頭・胴・腕の原表はランドバルク Ⅰ型・Ⅱ型・Ⅳ型・AT：https://w.atwiki.jp/borderbreak/pages/501.html （頭 https://w.atwiki.jp/borderbreak/pages/495.html ）
+  // セットボーナスも原表（重量耐性UP +150）
   dozer: { name: 'ドーザー', maker: 'gard', kind: 'quad', profileNote: 'heavy',
-    desc: '重量級の四脚。射撃が安定し、よろけにくい。しゃがみで踏ん張る。遅く、脚が横に広い。Ⅱは積載、Ⅲは機動、Ⅳは砲撃を優先',
-    set: { text: '反動吸収 +5%、重量耐性 +200kg', fx: [['arms', 'recoil', 'mul', 1.05], ['legs', 'cap', 'add', 200]] },
+    desc: '重量級の四脚。射撃が安定し、よろけにくい。しゃがみで踏ん張る。遅く、脚が横に広い。上半身はⅡがブースト、Ⅲが反動吸収、Ⅳが装甲を優先。脚はⅡが積載、Ⅲが機動、Ⅳが砲撃',
+    set: { text: '重量耐性 +150kg', fx: [['legs', 'cap', 'add', 150]] },
     types: ['dozer', 'dozer2', 'dozer3', 'dozer4'],
-    head: [ // 広い測距儀：重装の頭より狙いが良く、ロックが遠い。重い
-      { weight: 860, armor: 0.80, lock: 60, aim: 0.95 },
-      { weight: 900, armor: 0.76, lock: 55, aim: 0.92 }, // 積載（装甲）：硬い代わりに重く、狙いが落ちる
-      { weight: 820, armor: 0.86, lock: 64, aim: 0.95 }, // 機動：軽くロックが遠い代わりに装甲
-      { weight: 880, armor: 0.80, lock: 56, aim: 1.04 }, // 砲撃：狙いが良い代わりに重く、ロックが近い
-    ],
-    body: [ // 箱形の砲塔：硬く、SP の回りが良い。ブーストは少ない
-      { weight: 1560, armor: 0.78, boost: 76, sp: 120, supply: 1.15 },
-      { weight: 1640, armor: 0.74, boost: 72, sp: 120, supply: 1.15 }, // 積載（装甲）
-      { weight: 1500, armor: 0.84, boost: 83, sp: 115, supply: 1.05 }, // 機動：ブーストの代わりに装甲と回復
-      { weight: 1580, armor: 0.78, boost: 72, sp: 130, supply: 1.25 }, // 砲撃：SP と回復の代わりにブースト
-    ],
-    arms: [ // 反動に強く、弾を多く持つ。持ち替えとリロードは遅い
-      { weight: 1080, armor: 0.80, reload: 1.15, swap: 0.76, recoil: 1.40, ammo: 1.35 },
-      { weight: 1150, armor: 0.76, reload: 1.20, swap: 0.72, recoil: 1.40, ammo: 1.48 }, // 積載：弾と装甲の代わりに重く遅い
-      { weight: 1020, armor: 0.86, reload: 1.06, swap: 0.83, recoil: 1.30, ammo: 1.28 }, // 機動：取り回しの代わりに反動・弾・装甲
-      { weight: 1110, armor: 0.80, reload: 1.22, swap: 0.70, recoil: 1.54, ammo: 1.35 }, // 砲撃：反動吸収の代わりにリロードと持ち替え
-    ],
+    ac: {
+      head: [[710, 0.90, 0.96, 80], [700, 0.90, 1.00, 100], [750, 0.90, 1.08, 60], [800, 0.71, 0.96, 50]],
+      body: [[1340, 0.90, 115, 1.0], [1370, 0.90, 125, 0.65], [1400, 0.85, 90, 1.1], [1460, 0.78, 105, 1.0]],
+      arms: [[930, 0.90, 1.00, 0.86, 0.95, 1.41], [900, 0.90, 0.85, 0.86, 1.05, 1.41], [950, 0.90, 1.30, 0.86, 0.80, 1.45], [1030, 0.82, 1.05, 0.82, 0.94, 1.41]],
+    },
     legs: [
       { weight: 1350, armor: 0.80, walk: 4.6, dash: 18.0, cruise: 17.0, cap: 6800 },
       { weight: 1420, armor: 0.80, walk: 4.4, dash: 17.4, cruise: 16.6, cap: 7300 }, // 積載：重く遅い代わりに重量耐性
       { weight: 1290, armor: 0.86, walk: 5.0, dash: 19.0, cruise: 17.8, cap: 6400 }, // 機動：速い代わりに装甲と重量耐性
       { weight: 1400, armor: 0.78, walk: 4.3, dash: 17.6, cruise: 16.8, cap: 6800, traits: { spread: 0.74, recoil: 0.64, jump: 0.75 } }, // 砲撃：ばらつきと反動をさらに抑える代わりに遅く、跳べない
     ] },
-  // ホッパー：軽量級の逆脚。縦に動く。比べる相手はスウィフト（軽量二脚：頭460・1.24、胴1010・1.24、腕680・1.17、脚770・1.17・7.6・24.8・21.4・3700）。形は2節の逆関節（media/legs-proto/）
+  // ホッパー：軽量級の逆脚。縦に動く。形は2節の逆関節（media/legs-proto/）
+  // 頭・胴・腕の原表はフォーミュラ Ⅱ型・Ⅱ型C・F型・MST：https://w.atwiki.jp/borderbreak/pages/550.html （頭 https://w.atwiki.jp/borderbreak/pages/551.html ）
+  // セットボーナスは原表の「高速移動UP +0.72m/s、加速UP −0.27秒」のうち高速移動だけ（加速の時間はホバーの脚だけが持つ）
   hopper: { name: 'ホッパー', maker: 'sylph', kind: 'reverse', profileNote: 'light',
-    desc: '軽量級の逆脚。高く跳び、着地の隙が短い。しゃがみで溜めて大ジャンプ。装甲が薄く、積めない。Ⅱは跳躍、Ⅲは積載、Ⅳは疾走を優先',
-    set: { text: 'ブースト +5、持ち替え +5%', fx: [['body', 'boost', 'add', 5], ['arms', 'swap', 'mul', 1.05]] },
+    desc: '軽量級の逆脚。高く跳び、着地の隙が短い。しゃがみで溜めて大ジャンプ。装甲が薄く、積めない。上半身はⅡがブーストとロック、ⅢがSP回復と持ち替え、Ⅳが射撃補正とリロードを優先。脚はⅡが跳躍、Ⅲが積載、Ⅳが疾走',
+    set: { text: 'ダッシュ +0.72m/s', fx: [['legs', 'dash', 'add', 0.72]] },
     types: ['hopper', 'hopper2', 'hopper3', 'hopper4'],
-    head: [ // 前へ突き出た細い頭：軽く、ロックが遠い（上から狙う）。薄い
-      { weight: 440, armor: 1.28, lock: 72, aim: 1.12 },
-      { weight: 420, armor: 1.34, lock: 78, aim: 1.08 }, // 跳躍：軽くロックが遠い代わりに装甲と狙い
-      { weight: 470, armor: 1.22, lock: 66, aim: 1.12 }, // 積載（装甲）
-      { weight: 450, armor: 1.28, lock: 66, aim: 1.22 }, // 疾走：狙いの代わりにロック
-    ],
-    body: [ // 小さな胴：ブーストが多い。薄く、回復は遅め
-      { weight: 960, armor: 1.28, boost: 126, sp: 80, supply: 0.9 },
-      { weight: 940, armor: 1.34, boost: 136, sp: 75, supply: 0.85 }, // 跳躍：ブーストの代わりに装甲と回復
-      { weight: 1030, armor: 1.20, boost: 118, sp: 85, supply: 0.95 }, // 積載（装甲）
-      { weight: 970, armor: 1.28, boost: 120, sp: 86, supply: 0.98 }, // 疾走：回復の代わりにブースト
-    ],
-    arms: [ // 持ち替えとリロードが速い。反動に弱く、弾が少ない
-      { weight: 650, armor: 1.22, reload: 0.93, swap: 1.25, recoil: 0.72, ammo: 0.80 },
-      { weight: 620, armor: 1.28, reload: 0.93, swap: 1.36, recoil: 0.66, ammo: 0.76 }, // 跳躍：軽く持ち替えが速い代わりに反動・弾・装甲
-      { weight: 700, armor: 1.16, reload: 0.98, swap: 1.15, recoil: 0.78, ammo: 0.88 }, // 積載：弾と装甲の代わりに取り回し
-      { weight: 660, armor: 1.22, reload: 0.86, swap: 1.25, recoil: 0.72, ammo: 0.74 }, // 疾走：リロードの代わりに弾
-    ],
+    ac: {
+      head: [[530, 1.25, 1.12, 100], [510, 1.25, 1.16, 110], [550, 1.25, 1.16, 80], [540, 1.19, 1.25, 85]],
+      body: [[1090, 1.25, 90, 1.35], [1120, 1.25, 110, 1.00], [1170, 1.13, 75, 1.60], [1180, 1.13, 115, 1.00]],
+      arms: [[700, 1.19, 0.90, 0.82, 1.10, 1.23], [750, 1.13, 1.15, 0.91, 1.05, 1.27], [710, 1.25, 0.85, 0.82, 1.30, 1.27], [730, 1.13, 0.90, 0.78, 1.20, 1.14]],
+    },
     legs: [
       { weight: 800, armor: 1.15, walk: 6.8, dash: 22.0, cruise: 19.0, cap: 4000 },
       { weight: 780, armor: 1.20, walk: 6.6, dash: 21.6, cruise: 18.8, cap: 3850, traits: { jump: 1.22 } }, // 跳躍：約10m。装甲と重量耐性を削る
@@ -234,11 +216,21 @@ const WIP_SERIES = {
       { weight: 790, armor: 1.18, walk: 7.2, dash: 23.2, cruise: 20.0, cap: 3800, traits: { jump: 1.12, landTime: 0.6 } }, // 疾走：横に速い代わりに跳躍・装甲・重量耐性
     ] },
 };
+// AC 原表の1行を本作の値にする（PART_VARIANTS と同じ桁の丸め）
+const wipFromAc = (slot, row) => {
+  const p = { ...PARTS[slot].standard };
+  HOVER_PART_FIELDS[slot].forEach((field, j) => {
+    const digits = field === 'weight' ? 0 : ['lock', 'boost'].includes(field) ? 1 : 4;
+    p[field] = +(p[field] * row[j] / HOVER_PART_BASE[slot][j]).toFixed(digits);
+  });
+  return p;
+};
 // WIP_PARTS[部位][型のキー]：PARTS と同じ形（series・model・label 付き）。脚は kind と traits も持つ。WIP_LEGS は WIP_PARTS.legs の別名
 const WIP_PARTS = { head: {}, body: {}, arms: {}, legs: {} };
 for (const [id, ps] of Object.entries(WIP_SERIES)) ps.types.forEach((key, i) => {
   for (const slot of PART_SLOTS) {
-    const { traits, ...stats } = ps[slot][i], p = { ...stats, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型', wip: true };
+    const { traits, ...stats } = slot === 'legs' ? ps.legs[i] : wipFromAc(slot, ps.ac[slot][i]);
+    const p = { ...stats, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型', wip: true };
     if (slot === 'legs') Object.assign(p, { kind: ps.kind, traits: { ...LEG_KIND_TRAITS[ps.kind], ...traits } });
     WIP_PARTS[slot][key] = p;
   }
