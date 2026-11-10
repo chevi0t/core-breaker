@@ -12,7 +12,7 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
   try {
-    const page = await browser.newPage({ viewport: { width: 640, height: 400 } });
+    let page = await browser.newPage({ viewport: { width: 640, height: 400 } });
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -108,6 +108,14 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
     assert.equal(result.combinations, result.seriesCount**4);
     assert.equal(result.shots, result.combinations*5);
     console.log('機体形状:', JSON.stringify(result));
+
+    // 大量の混成・実射検証で使った描画資源を残さず、画像確認は新しいページで行う。
+    await page.close();
+    page = await browser.newPage({ viewport: { width: 1360, height: 900 } });
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.route('**fonts.g*/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    await page.goto('file://' + path.join(dir, 'dbg.html'));
 
     const configurations = {
       swift: { head: 'light', body: 'light', arms: 'light', legs: 'light' },

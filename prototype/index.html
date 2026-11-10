@@ -62,6 +62,7 @@
 <div class="hud" id="qchat" hidden></div>
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
 <div class="hud" id="center"></div>
+<div class="hud" id="actionCooldown" hidden aria-label="アクション再使用"></div>
 <div class="hud" id="announce" role="status" aria-live="polite"></div>
 <div class="hud" id="lockDirections" hidden></div>
 <div class="hud" id="baseAlert" hidden></div>
@@ -376,6 +377,7 @@
       <div class="cuBar"><div class="ctabs" id="cuTabs" role="tablist" aria-label="兵装"></div><div class="ctabs" id="cuBuilds" role="group" aria-label="保存した構成"></div></div>
       <p id="buildSaveStatus" class="note" role="status" aria-live="polite"></p>
       <div class="ctabs" role="group" aria-label="設定の保存と復元"><button type="button" id="buildExport">設定を書き出す</button><button type="button" id="buildImport">設定を読み込む</button><button type="button" id="buildRestore">前の保存に戻す</button><button type="button" id="buildSaveRetry" hidden>保存を再試行</button><input type="file" id="buildImportFile" accept=".json,application/json" hidden></div>
+      <div class="ctabs" id="cuActions" role="group" aria-label="アクション"></div>
       <div class="cuCols">
         <div class="cuCol" id="cuSlotList" role="group" aria-label="部位と武器の枠"></div>
         <div class="cuCol" id="cuSeries"></div>
@@ -3200,7 +3202,7 @@ function zipNear(u) {
   return best;
 }
 function zipGrab(u) {
-  if (!zipCan(u)) return false;
+  if (actionBusy(u) || !zipCan(u)) return false;
   const n = zipNear(u); if (!n) return false;
   u.zip = { line: n.z, t: n.t, k: 0, off: u.pos.clone().sub(n.z.bottom.clone().addScaledVector(n.z.dir, n.z.len * n.t)) };
   Object.assign(u, { dashT: 0, longDash: false, flying: false, jumpPad: null, onGround: false, lungeT: 0, slideT: 0, charging: false });
@@ -4420,13 +4422,19 @@ function mechPose(u, dt) {
   const low = u.crouching ? ACTIONS.crouch.lower : u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
   if (simulationRole === 'guest' && !isLocalView(u) && Number.isFinite(u.onlineRenderCrouch)) r.crouch = u.onlineRenderCrouch;
   else { r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20)); if (dt === 0 && !r.lastPose) r.crouch = low; }
-  const melee = u.meleePose;
+  const melee = u.meleePose, action = u.actionMove;
+  const actionPose = action ? action.phase === 'windup' ? Math.min(1,action.elapsed/ACTIONS.kick.windup) : 1 : 0;
   const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
   // 深い屈みと着地が重なっても脛を床へ押し込まない。歩幅分の腰下げで接地脚の伸び切りも防ぐ。
   B.hip.node.position.y -= Math.min(.64, r.crouch + .22 * impact + melee.sink + .15 * r.move + (dash && grounded ? .065 : 0) - bob);
   B.hip.node.rotation.y = .055 * Math.sin(r.phase) * r.move;
   B.chest.node.rotation.set((dash ? -.12 : 0) + melee.lean, melee.twist - B.hip.node.rotation.y * .6, -side * r.move * .025);
   if (floating && hoverActive(u)) { B.chest.node.rotation.x+=forward*.045; B.chest.node.rotation.z-=side*.06; }
+  if (action) {
+    B.chest.node.rotation.x -= (action.id==='tackle' ? .28 : floating ? .38 : .1)*actionPose;
+    B.chest.node.rotation.y += (action.id==='tackle' ? -.4 : .15)*actionPose;
+    if(floating)B.hip.node.position.z-=.45*actionPose;
+  }
   B.head.node.rotation.y = -B.chest.node.rotation.y * .6;
   B.head.node.rotation.x = Math.max(-.15, Math.min(.15, (u.pitch || 0) * .25));
   r.root.updateMatrixWorld(true);
@@ -4465,6 +4473,10 @@ function mechPose(u, dt) {
     if (!floating && dash && grounded) { foot.z += sd === 1 ? .42 : -.3; foot.y += sd === 1 ? .08 : 0; }
     if (!floating && cur.type === 'sword' && grounded) { foot.z += sd === 1 ? -.32 : .28; foot.x += sd * .08; }
     if(!floating&&grounded&&cur.acMelee==='pike'){const drive=u.blade.userData.pikeDrive||0;foot.z=sd===1?-.32-.5*drive:.28+.25*drive;foot.y=.3; }
+    if (action && !floating) {
+      if(action.id==='kick' && sd===1){foot.z=-1.65*actionPose;foot.y=.3+1.3*actionPose;}
+      else if(action.id==='tackle'){foot.z=sd===1?-.55:.5;foot.y=.3;}
+    }
     limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, poseKnee);
     if (floating && B['brake'+s]) B['brake'+s].node.rotation.z=hoverActive(u) && !grounded && velocity.y<=0 && u.boost>0 && !u.overheat && !u.charging ? sd*.65 : 0;
     limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, poseHands[i], posePole.set(sd, -.3, .8));
@@ -4562,6 +4574,7 @@ function resetLifeState(u) {
   Object.assign(u, {
     downT: 0, downBy: null, reviveAcc: 0, deathWeapon: null,
     actionHeld: false, crouching: false, actionBlockBoost: false, kneeSlideT: 0,
+    actionPressed: false, actionWasHeld: false, actionHeldTime: 0, actionCd: 0, actionMove: null, actionHitUnits: null, actionRecoverT: 0, actionLandMiss: false, actionPush: null,
     stun: '', stunT: 0, tilt: 0, electricT: 0, shockT: 0, jamT: 0, recoverT: 0,
     dashT: 0, longDash: false, dashState: '', slideT: 0, lungeT: 0, charging: false,
     swing: null, meleeRecovery: null, scoped: false, planted: false, repairing: false, healing: false, healTarget: null, bombard: null, reflect: null, seekMode: false,
@@ -4602,7 +4615,7 @@ function areaTime(u) { return Math.min(AREA_MAX, AREA_T0 + Math.max(0, u.stats.w
 function inOwnBase(u) { return !VS && inBase(u.pos,u.team); }
 function startTransfer(u, at) {
   if (isArtilleryMode(u) || beamCannonMode(u)) return false;
-  if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing) return false;
+  if (VS || !u.alive || u.transfer || u.flying || !u.onGround || u.stun || u.swing || u.repairing || actionBusy(u)) return false;
   const base = inOwnBase(u);
   u.transfer = { t: areaTime(u) * (base ? 0.5 : 1), base, at };
   u.dashT = 0; u.longDash = false; u.dashState = ''; u.scoped = false;
@@ -4706,11 +4719,44 @@ function ceilingAt(x, z, y) {
 }
 
 // ホバーの浮遊は脚だけで決まる。構え・転送・吹き飛びでは下向き噴射を止める。OHだけでは水没させない。
-// ---- アクション（入力と動作を分離。将来は actionId とこの定義を差し替える） ----
-const ACTIONS = Object.freeze({ crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 } });
+// ---- アクション（入力・装備と動作を分離。数値は本作オリジナルの仮置き） ----
+const ACTIONS = Object.freeze({
+  crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 },
+  tackle: { name: 'タックル', distance: 8, time: .35, boost: 20, damage: 2000, minWeight: .7, maxWeight: 1.4, downRatio: 1.25, hitRecovery: .5, missRecovery: .9, cooldown: 3 },
+  kick: { name: '蹴り', reach: 3, angle: Math.PI / 2, windup: .2, boost: 10, damage: 1200, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .4, landRecovery: .6, cooldown: 1.5 },
+});
 const DEFAULT_ACTION = 'crouch';
-function actionUpdate(u, held, boost, jump) {
-  const eligible = (u.actionId || DEFAULT_ACTION) === 'crouch' &&
+// #228 は脚の kind に対応する行を足す。既存の脚・格闘武器の性能は変えない。
+const ACTION_LEG_MUL = Object.freeze({ hover: { tackle: { distance: 1.3, damage: .8 }, kick: { damage: .8 } } });
+const ACTION_HOLD_DIVE = .25, ACTION_BOT_RATE = .8;
+function normalizeAction(id) { return Object.hasOwn(ACTIONS, id) ? id : DEFAULT_ACTION; }
+function actionScale(u, id) { return { distance: 1, damage: 1, ...ACTION_LEG_MUL[PARTS.legs[u.mech?.legs]?.kind || u.stats?.P.legs.kind]?.[id] }; }
+function actionBusy(u) { return !!u.actionMove || u.actionRecoverT > 0; }
+function actionCanStart(u) {
+  return u.alive !== false && !(u.downT > 0) && !u.flying && !u.zip && !u.stun && !u.planted && !u.transfer && !u.repairing &&
+    !(u.electricT > 0) && !(u.shockT > 0) && !(u.recoverT > 0) && !u.swing && !beamCannonMode(u) && !isArtilleryMode(u) &&
+    !(u.lungeT > 0) && !(u.ctrlLockT > 0) && !actionBusy(u) && !u.actionPush;
+}
+function actionMoveStart(u) {
+  const id = normalizeAction(u.actionId), a = ACTIONS[id];
+  if (!isSimulationAuthority() || id === 'crouch' || !actionCanStart(u) || u.actionCd > 1e-6 || u.overheat || u.boost < a.boost || id === 'tackle' && !u.onGround) return false;
+  u.boost -= a.boost; u.boostIdle = 0; if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
+  u.actionCd = a.cooldown; u.actionHitUnits = new Set();
+  u.actionMove = { id, phase: id === 'kick' ? 'windup' : 'move', elapsed: 0, yaw: u.yaw, air: !u.onGround, hit: false, distance: 0 };
+  u.dashT = u.lungeT = u.slideT = u.kneeSlideT = 0; u.longDash = u.charging = u.crouching = u.scoped = false; u.dashState = '';
+  u.vel.x = u.vel.z = 0;
+  cancelSpawnInvul(u); reveal(u);
+  sfx(id === 'tackle' ? 'dash' : 'swing', u.pos, u);
+  return true;
+}
+function actionUpdate(u, held, boost, jump, dt = 0, movementOnly = false) {
+  const edge = !!u.actionPressed || held && !u.actionWasHeld;
+  u.actionWasHeld = !!held; u.actionPressed = false;
+  u.actionHeldTime = held ? (u.actionHeldTime || 0) + dt : 0;
+  u.actionCd = Math.max(0, (u.actionCd || 0) - dt);
+  u.actionRecoverT = Math.max(0, (u.actionRecoverT || 0) - dt);
+  if (!movementOnly && edge) actionMoveStart(u);
+  const eligible = normalizeAction(u.actionId) === 'crouch' &&
     u.alive !== false && !(u.downT > 0) && (u.onGround || (u.crouching && hoverLegs(u))) &&
     !u.flying && !u.zip && !u.stun && !u.planted && !u.transfer && !u.repairing &&
     !(u.electricT > 0) && !(u.recoverT > 0) && !u.swing && !beamCannonMode(u) && !jump && !(u.lungeT > 0);
@@ -4723,6 +4769,109 @@ function actionUpdate(u, held, boost, jump) {
   }
   u.crouching = !!(held && eligible && (!boost || u.actionBlockBoost));
   if (!u.crouching || !u.onGround) u.kneeSlideT = 0;
+}
+// 攻撃の線は壁・地面で遮る。味方・施設を攻撃対象にしない（味方越しの蹴りも可）。
+function actionClear(u, e) {
+  const from = u.pos.clone().addScaledVector(UP, UNIT_H / 2), to = e.pos.clone().addScaledVector(UP, UNIT_H / 2), dir = to.sub(from), len = dir.length();
+  if (len < 1e-6) return true;
+  for (const o of obstacles) {
+    let lo = 0, hi = 1;
+    for (const [axis, min, max] of [['x', o.minX, o.maxX], ['y', o.bottom ?? -Infinity, o.top], ['z', o.minZ, o.maxZ]]) {
+      if (Math.abs(dir[axis]) < 1e-9) { if (from[axis] < min || from[axis] > max) { hi = -1; break; } }
+      else { const a = (min - from[axis]) / dir[axis], b = (max - from[axis]) / dir[axis]; lo = Math.max(lo, Math.min(a, b)); hi = Math.min(hi, Math.max(a, b)); }
+    }
+    if (lo <= hi && hi >= 0 && lo <= 1) return false;
+  }
+  for (let d = .25; d < len; d += .25) { const p = from.clone().addScaledVector(dir, d / len); if (terrainH(p.x, p.z) > p.y) return false; }
+  // 市街地の独自形状は箱一覧だけでは表せない。静止した壁の実形状も調べる。
+  if (cityMap) {
+    const check = new T.Raycaster(from,dir.clone().normalize(),0,len);
+    if (check.intersectObjects(hittables,false).some(h => { const r=refOf(h.object); return !r || !['unit','decoy'].includes(r.kind) && !r.gadget; })) return false;
+  }
+  return true;
+}
+function actionMoveHit(u) {
+  const m = u.actionMove; if (!m || !isSimulationAuthority()) return false;
+  const a = ACTIONS[m.id], mul = actionScale(u, m.id), fx = -Math.sin(m.yaw), fz = -Math.cos(m.yaw);
+  const enemies = units.filter(e => e !== u && e.kind === 'unit' && e.alive && !(e.downT > 0) && e.team !== u.team).sort((a,b) => a.pos.distanceToSquared(u.pos) - b.pos.distanceToSquared(u.pos));
+  for (const e of enemies) {
+    if (u.actionHitUnits.has(e) || e.invulT > 0) continue;
+    const dx = e.pos.x-u.pos.x, dz = e.pos.z-u.pos.z, d = Math.hypot(dx,dz), forward = dx*fx+dz*fz;
+    if (e.pos.y + UNIT_H < u.pos.y + .5 || e.pos.y > u.pos.y + UNIT_H - .5 || forward < 0) continue;
+    if (m.id === 'tackle' ? d > 2*R || Math.abs(dx*fz-dz*fx) > R : d > a.reach || d > 1e-6 && forward / d < Math.cos(a.angle / 2) - 1e-9) continue;
+    if (!actionClear(u,e)) continue;
+    const ratio = Math.max(1, u.stats.weight) / Math.max(1, e.stats.weight);
+    const dmg = a.damage * mul.damage * (m.id === 'tackle' ? Math.max(a.minWeight, Math.min(a.maxWeight, Math.sqrt(ratio))) : 1);
+    const down = m.id === 'tackle' ? ratio >= a.downRatio || e.electricT > 0 || e.shockT > 0 : m.air;
+    if (!damage(e,u,dmg,false,true,null,u.pos,true,true,a.name)) continue;
+    m.hit = true; u.actionHitUnits.add(e);
+    jolt(e,u.pos,down ? DOWN_MELEE : STAGGER_MELEE,true);
+    if (e.alive && m.id === 'kick' && !e.repairing && !launchStaggerProtected(e)) {
+      const length = d || 1;
+      e.actionPush = { x: d ? dx/length : fx, z: d ? dz/length : fz, left: a.push, time: a.pushTime };
+      e.vel.x = e.vel.z = 0;
+    }
+    sfx('slash',e.pos,null,.7); impact(e.pos.clone().addScaledVector(UP,2),'hit',0);
+    if (isLocalView(u)) hitMark(false);
+    if (m.id === 'tackle') return true;
+  }
+  return m.hit;
+}
+function actionMoveEnd(u) {
+  const m = u.actionMove; if (!m) return;
+  const a = ACTIONS[m.id];
+  u.actionRecoverT = m.id === 'tackle' ? m.hit ? a.hitRecovery : a.missRecovery : a.recovery;
+  if (m.id === 'kick' && m.air && !m.hit) u.actionLandMiss = true;
+  u.actionMove = null; u.actionHitUnits = null; u.vel.x = u.vel.z = 0; u.dashState = '';
+}
+// 突進は1/120秒以下で壁判定。方向と総距離は固定し、普段の歩行加速を混ぜない。
+function actionMoveTick(u, dt) {
+  if (!u.actionMove) return false;
+  if (!u.alive || u.downT > 0 || u.stun || u.electricT > 0 || u.shockT > 0 || u.repairing || u.transfer || u.planted || u.zip || u.flying) {
+    u.actionMove = null; u.actionHitUnits = null; u.vel.x = u.vel.z = 0; return false;
+  }
+  let left = dt;
+  while (left > 1e-8 && u.actionMove) {
+    const m = u.actionMove, a = ACTIONS[m.id], mul = actionScale(u,m.id), windup = m.phase === 'windup';
+    const duration = windup ? a.windup : m.id === 'tackle' ? a.time : a.airTime;
+    const step = Math.min(left,1/120,Math.max(0,duration-m.elapsed));
+    u.yaw = m.yaw;
+    if (m.id === 'tackle' && actionMoveHit(u)) { actionMoveEnd(u); break; }
+    const length = windup ? 0 : (m.id === 'tackle' ? a.distance : a.airDistance) * mul.distance * step / duration;
+    const horizontal = m.air ? length / Math.SQRT2 : length, ox = u.pos.x, oz = u.pos.z, oy = u.pos.y;
+    const nx = ox-Math.sin(m.yaw)*horizontal, nz = oz-Math.cos(m.yaw)*horizontal;
+    const moved = stepTo(u,nx,nz);
+    const blocked = !moved || Math.hypot(u.pos.x-nx,u.pos.z-nz) > 1e-5 || Math.abs(u.pos.x)>MAP_X-R || Math.abs(u.pos.z)>MAP_Z-R;
+    u.pos.x = Math.max(-MAP_X+R,Math.min(MAP_X-R,u.pos.x)); u.pos.z = Math.max(-MAP_Z+R,Math.min(MAP_Z-R,u.pos.z));
+    const wasGround = u.onGround;
+    if (m.air && !windup) { u.vel.y = -a.airDistance*mul.distance/Math.SQRT2/a.airTime; u.pos.y -= length/Math.SQRT2; }
+    else { u.vel.y -= GRAV*step; u.pos.y += u.vel.y*step; }
+    const gh = hoverLegs(u) ? hoverGroundAt(u,u.pos.x,u.pos.z,oy) : groundAt(u.pos.x,u.pos.z,oy);
+    const contact = u.pos.y <= gh || wasGround && u.pos.y-gh < Math.max(.3,horizontal*1.2);
+    if (contact) { u.pos.y=gh; u.onGround=true; } else u.onGround=false;
+    u.vel.x = step ? (u.pos.x-ox)/step : 0; u.vel.z = step ? (u.pos.z-oz)/step : 0;
+    m.distance += length; m.elapsed += step; left -= step;
+    if (!windup) { actionMoveHit(u); if(m.id==='tackle' && m.hit) actionMoveEnd(u); }
+    if (windup && m.elapsed >= duration-1e-8) {
+      m.phase='move'; m.elapsed=0; sfx('swing',u.pos,u);
+      if (!m.air) { actionMoveHit(u); actionMoveEnd(u); }
+    } else if (blocked || !windup && (m.elapsed >= duration-1e-8 || m.id === 'tackle' && !u.onGround || m.air && contact)) actionMoveEnd(u);
+    if (contact) {
+      if (!wasGround) { if (u.actionMove?.air) actionMoveEnd(u); land(u,-u.vel.y); }
+      u.vel.y=0;
+    }
+  }
+  if (left > 0 && !u.actionMove) u.actionRecoverT = Math.max(0,u.actionRecoverT-left);
+  return true;
+}
+// 確率は秒あたり。発動条件・費用・判定は人間と同じ入口に通す。
+function botActionMove(u, dt) {
+  const e=u.target, id=normalizeAction(u.actionId), a=ACTIONS[id];
+  if (id==='crouch' || !e?.alive || e.kind!=='unit' || e.team===u.team || !actionCanStart(u) || u.actionCd>0) return false;
+  if (!(e.planted || e.stun || e.electricT>0 || e.shockT>0 || e.recoverT>0 || e.actionRecoverT>0)) return false;
+  const dx=e.pos.x-u.pos.x,dz=e.pos.z-u.pos.z,d=Math.hypot(dx,dz),range=id==='tackle'?a.distance*actionScale(u,id).distance+2*R:a.reach;
+  if (d>range || Math.abs(e.pos.y-u.pos.y)>UNIT_H || !actionClear(u,e) || Math.abs(wrapAngle(Math.atan2(-dx,-dz)-u.yaw))>.3) return false;
+  return Math.random()<1-Math.exp(-ACTION_BOT_RATE*dt) && actionMoveStart(u);
 }
 function actionLower(u) { return u.crouching ? Math.min(ACTIONS.crouch.lower, u.rig?.crouch || 0) : 0; }
 function hoverLegs(u) { return (u.stats?.P.legs.kind || u.rig?.legKind) === 'hover'; }
@@ -4814,7 +4963,7 @@ const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が�
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
 function shortDash(u, wish, movementOnly = false) {
   if (movementOnly && movementPredictionBlockReason(u)) return false;
-  if (u.actionBlockBoost || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
+  if (u.actionBlockBoost || actionBusy(u) || u.actionPush || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
   if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun || u.shockT > 0 || u.electricT > 0) return false; // 電撃の間も踏めない
   if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
   if (u.recoverT > 0) {
@@ -4843,15 +4992,18 @@ const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑
 function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movementOnly = false) {
   // 先読みでも移動の式は共通。施設・武器由来の移動は権威側に残し、再実行する音や設置物を作らない。
   if (movementOnly && (movementPredictionBlockReason(u) || u.chargerOn && boostHeld)) return;
-  actionUpdate(u, u.actionHeld, boostHeld, jumpPressed || jumpHeld);
-  if(u.actionBlockBoost)boostHeld=false;
   // 高速のカタパルトだけ細分化し、低FPSで建物角をすり抜けたり衝突先が変わるのを抑える。
   if(u.flying && u.catMomentum && !u.jumpPad && dt>1/120+1e-8){
     const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld,movementOnly);return;
   }
+  actionUpdate(u, u.actionHeld, boostHeld, jumpPressed || jumpHeld, dt, movementOnly);
+  if (!movementOnly && actionMoveTick(u, dt)) return;
+  const actionRecovering = u.actionRecoverT > 0;
+  if (actionRecovering) { wish=STOP; boostHeld=jumpPressed=jumpHeld=false; u.vel.x=u.vel.z=0; u.dashT=u.slideT=0; u.longDash=u.charging=false; }
+  if(u.actionBlockBoost)boostHeld=false;
   const floating=hoverLegs(u), water=hoverOnWater(u);
   // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
-  const hoverDive=floating && !u.onGround && !!u.actionHeld && !u.flying;
+  const hoverDive=floating && !u.onGround && !!u.actionHeld && !u.flying && (normalizeAction(u.actionId) === 'crouch' || u.actionHeldTime >= ACTION_HOLD_DIVE-1e-8);
   // 空中で燃料が尽きたホバーは満充填まで制動噴射を再開しない。
   if(floating && !u.onGround && u.boost<=0){u.boost=0;u.overheat=true;}
   const catFlight = u.flying && !u.jumpPad && u.catMomentum;
@@ -4893,6 +5045,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movement
   u.charging = charging;
   let speed = u.walkV, dir = wish, accel = floating ? wish.lengthSq()>.01 ? HOVER_ACCEL : HOVER_BRAKE : u.onGround ? 10 : 3, grav = GRAV;
   if (u.crouching) speed *= ACTIONS.crouch.walkScale;
+  if (actionRecovering) speed=0;
   if (water) speed *= .8; // 水上通常移動の低下率は原表で不明。本作の初期調整。
   u.dashState = '';
   if (charging) {
@@ -5005,6 +5158,11 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movement
   let dx=floating && !catFlight && accel>0 ? dir.x*speed*dt+(vx-dir.x*speed)*k/accel : u.vel.x*dt;
   let dz=floating && !catFlight && accel>0 ? dir.z*speed*dt+(vz-dir.z*speed)*k/accel : u.vel.z*dt;
   if(kneeDx!==null){dx=kneeDx;dz=kneeDz;}
+  if (u.actionPush) {
+    const p=u.actionPush,t=Math.min(dt,p.time),dist=p.time>0?p.left*t/p.time:0;
+    dx=p.x*dist;dz=p.z*dist;p.left-=dist;p.time-=t;u.vel.x=u.vel.z=0;
+    if(p.time<=1e-8)u.actionPush=null;
+  }
   if(u.swing?.pike&&u.dashState==='lunge'){
     // 準備中に近くの敵を通り越さない。射程内の正面で止まり、既存の判定時刻で打つ。
     const sw=u.swing,a=sw.a,len=Math.hypot(dx,dz);let allowed=len;
@@ -5042,6 +5200,7 @@ function land(u, v, movementOnly = false) {
     const power = Math.min(1, Math.max(.15, v / 32));
     sfx('land', u.pos, u, 1.1 - power * .25, .3 + power * .7); u.stepQuiet = .12;
   }
+  if (u.actionLandMiss) { u.actionLandMiss=false; u.actionRecoverT=Math.max(u.actionRecoverT || 0,ACTIONS.kick.landRecovery); u.vel.x=u.vel.z=0; }
   if (u.stun === 'down') return;
   if (v < LAND_SPEED || u.stun || u.jumpBuf > 0) return;
   u.stun = 'land'; u.stunT = Math.min(LAND_TIME[1], LAND_TIME[0] + (v - LAND_SPEED) * 0.05);
@@ -5058,7 +5217,7 @@ function jolt(u, from, amount, melee) {
   const away = u.pos.clone().sub(from).setY(0);
   if (away.lengthSq() < 0.01) away.copy(fwdOf(u)).negate();
   away.normalize();
-  Object.assign(u, { swing: null, meleeRecovery: null, lungeT: 0, recoverT: 0, dashT: 0, longDash: false, charging: false, scoped: false });
+  Object.assign(u, { swing: null, meleeRecovery: null, lungeT: 0, recoverT: 0, dashT: 0, longDash: false, charging: false, scoped: false, actionMove: null, actionHitUnits: null, actionPush: null });
   if (down) {
     if (u.planted) selectWeapon(u, u.prevWeapon); // 重砲や偵察機の構えは解ける
     Object.assign(u, { stun: 'down', stunT: DOWN_LIE*(hoverLegs(u) ? .5 : 1), onGround: false, ukemiTry: !isHumanControlled(u) && Math.random() < 0.4 });
@@ -5665,6 +5824,7 @@ let killcam = null; // { by：倒した相手, at：撃破された場所, end�
 const REVIVE_WAIT = 10, REVIVE_NEED = 3000, REVIVE_HP = 0.3, REVIVE_INVUL = 3, REVIVE_BIG = DOWN_DMG, REVIVE_CALL = 120;
 function kill(v, by, head, hit = Infinity, weaponName = null) {
   v.actionHeld = v.crouching = v.actionBlockBoost = false; v.kneeSlideT=0;
+  v.actionMove=v.actionHitUnits=v.actionPush=null;v.actionRecoverT=v.actionHeldTime=0;v.actionLandMiss=v.actionWasHeld=v.actionPressed=false;
   deathEnergyBurst(v);
   stopBeamCannon(v);
   v.deathWeapon = attackName(by, weaponName);
@@ -6369,6 +6529,7 @@ function botUpdate(u, dt) {
   else if (u.fallTry === null && u.vel.y < -LAND_SPEED * 0.8) u.fallTry = Math.random() < 0.6;
   const fallSave = !!u.fallTry && u.vel.y < -LAND_SPEED * 0.8 && u.pos.y - terrainH(u.pos.x, u.pos.z) < 5;
   const ukemi = u.stun === 'down' && u.ukemiTry && !u.onGround && u.vel.y < 0;
+  botActionMove(u, dt);
   physics(u, wish, wantLong || chargeGo || ukemi, dodge || fallSave || (u.sideT > 0.9 && Math.random() < 0.05), dt, dodge || ukemi || hoverLegs(u) && !u.onGround && !!u.target && u.boost>35 && u.vel.y<0);
   // 照準と射撃
   const tracking = u.target && u.target.alive;
@@ -6389,7 +6550,7 @@ function botUpdate(u, dt) {
   const face = aim || u.pos.clone().add(wish.lengthSq() ? wish : new T.Vector3(0, 0, t.dir));
   const want = Math.atan2(-(face.x - u.pos.x), -(face.z - u.pos.z));
   let dy = want - u.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-  if (!isArtilleryMode(u)) u.yaw += dy * Math.min(1, dt * 6 * (u.slots[u.weapon].w.turn || 1));
+  if (!isArtilleryMode(u) && !u.actionMove) u.yaw += dy * Math.min(1, dt * 6 * (u.slots[u.weapon].w.turn || 1));
   if(beamCannonMode(u))u.pitch=Math.max(-.9,Math.min(.7,Math.atan2(face.y-u.pos.y-3.25,Math.hypot(face.x-u.pos.x,face.z-u.pos.z))));
   beamCannonTurn(u,dt);
   const ready = !!aim && canFire && !busy && (isArtilleryMode(u) || Math.abs(dy) < 0.35);
@@ -7008,12 +7169,15 @@ const loadout = (() => {
   try { saved = JSON.parse(localStorage.getItem(LOADOUT_KEY)) || {}; } catch (_) {}
   return normLoadout(saved);
 })();
+// JSONとして読める旧保存でも、listが無い形なら初期アクションで起動する。
+const bootBuild = buildBoot.record || buildBoot.legacy;
+let selectedAction = normalizeAction(Array.isArray(bootBuild?.list) ? bootBuild.list[bootBuild.cur]?.actionId : undefined);
 const MELEE_WEAPONS = Object.keys(WEAPONS).filter(key => WEAPONS[key].type === 'sword');
 let arenaMeleeKey = loadout.assault.aux;
 function saveLoadout() { return saveBuilds(); }
 // 保存した構成（v0.13、ユーザー決定）：機体（パーツと色）と4兵装の武器の組み合わせを3つまで保存し、カスタマイズの画面とメニューで切り替える。
 // 今の構成は mechCfg と loadout そのもので、変えるたびに builds.list[builds.cur] へ写して保存する
-const snapBuild = () => ({ mech: { ...mechCfg }, loadout: JSON.parse(JSON.stringify(loadout)) });
+const snapBuild = () => ({ actionId: selectedAction, mech: { ...mechCfg }, loadout: JSON.parse(JSON.stringify(loadout)) });
 const builds = (() => {
   let b = copyBuildData(buildBoot.record || buildBoot.legacy);
   if (!buildBoot.record && b) {
@@ -7028,7 +7192,7 @@ const builds = (() => {
   }
   if (!b || !Array.isArray(b.list) || b.list.length !== 3) b = { cur: 0, list: [0, 1, 2].map(snapBuild) };
   if (![0, 1, 2].includes(b.cur)) b.cur = 0;
-  b.list = b.list.map(v => ({ mech: normMech(v?.mech), loadout: normLoadout(v?.loadout) }));
+  b.list = b.list.map(v => ({ actionId: normalizeAction(v?.actionId), mech: normMech(v?.mech), loadout: normLoadout(v?.loadout) }));
   b.list[b.cur] = snapBuild(); // 今の機体と武器（それぞれのキーにも保存している）が正
   return b;
 })();
@@ -7045,7 +7209,8 @@ function renderBuildSaveStatus() {
 }
 function applyBuildRecord(record, refresh = true) {
   builds.cur = record.cur;
-  builds.list = record.list.map(v => ({ mech: normMech(v.mech), loadout: normLoadout(v.loadout) }));
+  builds.list = record.list.map(v => ({ actionId: normalizeAction(v.actionId), mech: normMech(v.mech), loadout: normLoadout(v.loadout) }));
+  selectedAction = builds.list[builds.cur].actionId;
   Object.assign(mechCfg, builds.list[builds.cur].mech);
   for (const c of CLASS_KEYS) Object.assign(loadout[c], builds.list[builds.cur].loadout[c]);
   if (refresh) { cuHover = null; renderClsButtons(); renderBuildTabs(); if (!$('pgCustom').hidden) renderCustom(); }
@@ -7055,6 +7220,7 @@ function mergeBuildChanges(latest, wanted) {
   const next = copyBuildData(latest); next.cur = wanted.cur;
   for (let i = 0; i < 3; i++) {
     const before = lastBuildRecord.list[i], after = wanted.list[i], merged = next.list[i];
+    if (normalizeAction(before.actionId) !== normalizeAction(after.actionId)) merged.actionId = normalizeAction(after.actionId);
     for (const k of [...PART_SLOTS, 'color']) if (before.mech[k] !== after.mech[k]) merged.mech[k] = after.mech[k];
     for (const c of CLASS_KEYS) for (const k of SLOTS) if (before.loadout[c][k] !== after.loadout[c][k]) merged.loadout[c][k] = after.loadout[c][k];
   }
@@ -7086,6 +7252,7 @@ function switchBuild(i) {
   if (![0, 1, 2].includes(i) || i === builds.cur) return;
   builds.list[builds.cur] = snapBuild(); builds.cur = i;
   const b = builds.list[i] || {};
+  selectedAction = normalizeAction(b.actionId);
   Object.assign(mechCfg, normMech(b.mech));
   const ld = normLoadout(b.loadout);
   for (const c of CLASS_KEYS) Object.assign(loadout[c], ld[c]);
@@ -7095,7 +7262,7 @@ function validBuildImport(record) {
   if (record?.format !== 'core-breaker-settings' || !parseBuildRecord(JSON.stringify(record))) return false;
   return record.list.every(v => {
     const mech = normMech(v.mech), weapons = normLoadout(v.loadout);
-    return [...PART_SLOTS, 'color'].every(k => mech[k] === v.mech[k]) && CLASS_KEYS.every(c => SLOTS.every(k => weapons[c][k] === v.loadout[c][k]));
+    return (v.actionId === undefined || typeof v.actionId === 'string' && Object.hasOwn(ACTIONS, v.actionId)) && [...PART_SLOTS, 'color'].every(k => mech[k] === v.mech[k]) && CLASS_KEYS.every(c => SLOTS.every(k => weapons[c][k] === v.loadout[c][k]));
   });
 }
 let buildImportSequence = 0;
@@ -7153,6 +7320,7 @@ function equip(u, cls) {
   if (u.postFlight) scene.remove(u.postFlight.mesh);
   u.postFlight = null; u.postRecall = false; u.repairBlock = 0; u.jamT=u.electricT=u.shockT=0; u.radarHeading=null;
   const c = CLASSES[cls], A = ARMORY[cls];
+  u.actionId = isHumanControlled(u) ? normalizeAction(u.controlActionId ?? (isLocalView(u) && !tutorial ? selectedAction : DEFAULT_ACTION)) : u.actionId || Object.keys(ACTIONS)[Math.floor(Math.random() * Object.keys(ACTIONS).length)];
   // プレイヤーは機体カスタマイズで選んだ武器、Botは出撃ごとに枠ごとにランダム（v0.11）
   const pick = k => u.controlLoadout?.[k] || (isHumanControlled(u) ? (isLocalView(u) && !tutorial ? loadout[cls][k] : c[k]) : A[k][Math.floor(Math.random() * A[k].length)]);
   const keys = Object.fromEntries(SLOTS.map(k => [k, pick(k)]));
@@ -7173,7 +7341,7 @@ function equip(u, cls) {
 // 光学迷彩と加速装置は、選んだ時点で作動し、もう一度選ぶと止まる。持っている武器はそのまま（v0.9.5、ユーザー指定）。リペアフィールドも同じ（v0.11）
 const TOGGLE_SP = ['mirage', 'charger', 'camo', 'field', 'barrier', 'escort'];
 function toggleSp(u) {
-  if (meleeOnly()) return false;
+  if (actionBusy(u) || meleeOnly()) return false;
   const sl = u.slots.sp;
   if (sl.cd > 0 || u.repairing || !u.alive || (u.stun && u.stun !== 'land')) return false;
   sl.cd = 0.5;
@@ -7193,7 +7361,7 @@ function toggleSp(u) {
 function selectWeapon(u, w) {
   if (!isSimulationAuthority()) { if (isLocalView(u)) window.CBOnlineGame?.requestWeapon(w); return; }
   if (meleeOnly() && w !== 'aux') return;
-  if (u.swing) return;
+  if (u.swing || actionBusy(u)) return;
   if (w !== 'sp' && beamCannonMode(u)) stopBeamCannon(u);
   if (u.zip && (u.slots[w].w.plant || MAP_SP.includes(u.slots[w].w.type))) return; // ジップラインで昇る間は構えられない
   if (w !== u.weapon) {
@@ -7238,7 +7406,7 @@ function weaponsTick(u, dt, trigger, aim, spread, alt = false) {
     const sl = u.slots[k], type = sl.w.type;
     if (meleeOnly() && (k !== 'aux' || type !== 'sword')) continue;
     // リペアポッドの上ではリペアユニットだけ使える（ポッドと効果が重なる。ユーザー指定、v0.9.3）
-    const on = !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer) && (!sl.w.missile || u.alive && !u.transfer);
+    const on = !actionBusy(u) && !(u.electricT>0) && k === u.weapon && u.switchT <= 0 && (!u.repairing || type === 'repair') && !!aim && (!u.stun || u.stun === 'land') && !(u.zip && type === 'sword') && (!sl.w.chargeWave || u.alive && !u.transfer) && (!sl.w.missile || u.alive && !u.transfer);
     const t = on && trigger;
     let r = false;
     if (type === 'gun') {
@@ -9284,6 +9452,7 @@ function updateLocalAimMark(u, aim, busy) {
 // 移動以外の状態遷移は写真を待つ。しゃがみ・状態異常の局所的な移動状態は同じ式で進める。
 // inputなしなら写真に載せる停止理由。施設参照や近接の内部オブジェクトをゲストで再実行しない。
 function movementPredictionBlockReason(u, input = null) {
+  if (u?.actionMove || u?.actionRecoverT > 0 || u?.actionPush || u?.actionLandMiss || (u?.actionId && u.actionId !== DEFAULT_ACTION && (input?.keys?.KeyC || input?.pressed?.KeyC))) return 'action';
   if (!u || !u.alive || u.downT > 0) return 'inactive';
   if (u.transfer) return 'transfer';
   if (u.zip) return 'zip';
@@ -9318,6 +9487,7 @@ function updateHumanMovement(u, input = {}, dt, { prediction = false, movementOn
       u.cameraRecoilYaw = Number.isFinite(input.cameraRecoilYaw) ? input.cameraRecoilYaw : 0;
     }
   }
+  u.actionPressed = !!edge.KeyC;
   u.actionHeld = !!held.KeyC; // 左Ctrlは外した（2026-11-04、オーナー指定。ブラウザの Ctrl+W などと重なるため）
   const artillery = isArtilleryMode(u);
   if (!artillery && held.ArrowLeft) u.yaw += 2.2 * dt;
@@ -10976,7 +11146,13 @@ function renderDiff() {
     + `<span class="bar" aria-hidden="true"><i style="width:${x(Math.min(st1.weight, st1.cap))}"></i>${st1.excess > 0 ? `<i class="ov" style="left:${x(st1.cap)};width:${x(st1.excess)}"></i>` : ''}<u style="left:${x(st1.cap)}"></u></span>`
     + `<span${st1.excess > 0 ? ' class="over"' : ''}>${st1.excess > 0 ? `${st1.excess}kg 超過・速さ −${Math.round(st1.slow * 100)}%` : `あと ${st1.cap - st1.weight}kg 積める`}</span>`;
 }
+$('cuActions').addEventListener('click', e => {
+  const id = e.target.closest('button')?.dataset.action;
+  if (!Object.hasOwn(ACTIONS, id)) return;
+  selectedAction = id; saveBuilds(); renderCustom();
+});
 function renderCustom() {
+  $('cuActions').innerHTML = '<span class="lbl">アクション（C）</span>' + Object.entries(ACTIONS).map(([id, a]) => `<button type="button" data-action="${id}" aria-pressed="${id === selectedAction}">${a.name}</button>`).join('');
   $('cuTabs').innerHTML = CLASS_KEYS.map(k => `<button type="button" role="tab" data-cu="${k}" aria-selected="${k === cuCls}">${CLASSES[k].name}</button>`).join('');
   renderBuildTabs(); renderSlotList(); renderSeries(); renderDiff();
   $('cuPaint').innerHTML = PAINTS.map(pt => {
@@ -11683,6 +11859,9 @@ function hud(timeLeft, dt) {
   const arcade = consoleMode === 'arcade';
   $('timer').textContent = arcade ? String(Math.max(0, Math.ceil(timeLeft))) : fmt(timeLeft); // アーケードは秒で数える
   const p = player;
+  const action = normalizeAction(p.actionId), actionHud = $('actionCooldown');
+  actionHud.hidden = !p.alive || p.downT > 0 || action === DEFAULT_ACTION;
+  actionHud.textContent = `C：${ACTIONS[action].name} ${p.actionCd > 0 ? 'あと ' + p.actionCd.toFixed(1) + '秒' : '使用可能'}`;
   consoleTelemetry(p);
   pilotHud(p);
   $('status').classList.toggle('low', p.hp / p.maxHp <= .3);

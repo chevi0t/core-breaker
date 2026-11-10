@@ -99,6 +99,27 @@ const dir=path.resolve(process.argv[2]),out=path.resolve(process.argv[3]||'/tmp/
   const legacyPage=await open(legacyContext);yes((await snapshot(legacyPage)).mech.head==='standard'&&(await legacyPage.locator('#buildSaveStatus').innerText()).includes('差があります'),'旧形式の食い違いを無断で上書きせず知らせる');
   await legacyPage.locator('#buildRestore').click();yes((await snapshot(legacyPage)).mech.head==='heavy3','旧形式の構成側に残った機体を復元できる');
   await legacyPage.locator('#buildRestore').click();yes((await snapshot(legacyPage)).mech.head==='standard','旧形式の復元も取り消せる');await legacyContext.close();assert.deepEqual(errors,[]);
+  // JSONとして読めても構造が違う保存を、実際の起動から確認する（#226）。
+  const malformed=['{}','5','"abc"','[]','{"cur":0}','null','{"cur":0,"list":[]}','{"cur":0,"list":null}','{"cur":0,"list":{}}','{"cur":0,"list":"abc"}'];
+  const mirror={mech:{...exported.list[0].mech,head:'prism3'},loadout:exported.list[0].loadout};
+  async function bootStored(text,backup=null){
+   const c=await browser.newContext({acceptDownloads:true});await c.route('**fonts.g*/**',r=>r.fulfill({body:'',contentType:'text/css'}));
+   await c.addInitScript(({text,backup,mirror})=>{requestAnimationFrame=()=>0;window.AudioContext=window.webkitAudioContext=undefined;localStorage.setItem('coreBreakerBuilds',text);if(backup)localStorage.setItem('coreBreakerBuildsBackup',JSON.stringify(backup));localStorage.setItem('coreBreakerMech',JSON.stringify(mirror.mech));localStorage.setItem('coreBreakerLoadout',JSON.stringify(mirror.loadout));},{text,backup,mirror});
+   return {c,p:await open(c)};
+  }
+  for(const text of malformed){
+   const {c,p}=await bootStored(text);const state=await p.evaluate(()=>({action:__g.selectedAction,list:__g.builds.list,mech:__g.mechCfg,loadout:__g.loadout,stored:localStorage.getItem('coreBreakerBuilds')}));
+   yes(state.action==='crouch'&&state.list.length===3&&state.list.every(b=>b.actionId==='crouch'),text+'：起動して全3構成をしゃがみにする');
+   assert.deepEqual(state.mech,mirror.mech);assert.deepEqual(state.loadout,mirror.loadout);yes(true,text+'：残っている機体と4兵装を保持');
+   yes(state.stored===text,text+'：起動だけで不完全な保存を上書きしない');await c.close();
+  }
+  for(const action of ['tackle','kick']){
+   const record=JSON.parse(JSON.stringify(exported));record.list[record.cur].actionId=action;
+   const {c,p}=await bootStored(JSON.stringify(record));yes(await p.evaluate(()=>__g.selectedAction)===action,'正常な保存の'+action+'を起動時に保持');await c.close();
+  }
+  const backupAction=JSON.parse(JSON.stringify(exported));backupAction.list[backupAction.cur].actionId='kick';
+  const restoredAction=await bootStored('{}',backupAction);
+  yes(await restoredAction.p.evaluate(()=>__g.selectedAction==='kick'&&__g.buildBoot.restored),'正本の構造が不正でもバックアップの蹴りを復元');await restoredAction.c.close();assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify({checks,errors},null,2)+'\n');console.log(JSON.stringify({checks:checks.length,errors}));
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e.stack);process.exit(1)});

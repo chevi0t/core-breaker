@@ -26,6 +26,7 @@ const elements=new Map(),calls=[],c={T,console,structuredClone,Map,Set,Math,Date
   isArtilleryMode:u=>u.weapon==='sp'&&['artillery','reflector'].includes(u.slots.sp.w.type),seekerHeld:u=>!!u.slots[u.weapon].w.proj?.seek,aimPress:(button)=>{if(button===2)c.player.scopeStep=((c.player.scopeStep||0)+1)%3;},
   fwdOf:()=>new T.Vector3(0,0,-1),spawnPoints:()=>[{id:'base'}]};
 vm.createContext(c);
+require('./action_fixture')(c,html);
 vm.runInContext(html.match(/^function baseKick.*$/m)[0]+'\n'+fs.readFileSync(file('prototype/weapons.js'),'utf8')+'\nObject.assign(this,weaponModels());Object.assign(this,weaponTables());',c);
 vm.runInContext(segment('function slotOf(', '\nfunction equip('),c);
 c.equip=(u,cls)=>{u.cls=cls;u.slots=Object.fromEntries(c.SLOTS.map(k=>[k,c.slotOf(u.controlLoadout?.[k]||c.CLASSES[cls][k])]));};
