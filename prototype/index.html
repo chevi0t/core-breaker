@@ -378,12 +378,12 @@
       <p id="buildSaveStatus" class="note" role="status" aria-live="polite"></p>
       <div class="ctabs" role="group" aria-label="設定の保存と復元"><button type="button" id="buildExport">設定を書き出す</button><button type="button" id="buildImport">設定を読み込む</button><button type="button" id="buildRestore">前の保存に戻す</button><button type="button" id="buildSaveRetry" hidden>保存を再試行</button><input type="file" id="buildImportFile" accept=".json,application/json" hidden></div>
       <div class="ctabs" id="cuActions" role="group" aria-label="アクション"></div>
+      <div id="cuWBar"></div>
       <div class="cuCols">
         <div class="cuCol" id="cuSlotList" role="group" aria-label="部位と武器の枠"></div>
         <div class="cuCol" id="cuSeries"></div>
         <div class="cuCol cuRight"><canvas id="cuPreview" width="320" height="280" aria-label="機体のプレビュー。ドラッグで回せます"></canvas><table id="cuDiff"></table><p class="cuSet" id="cuSet"></p><div class="paints" id="cuPaint" role="group" aria-label="塗装"></div><p class="note">チームの色以外に塗っても、細い帯にチームの色が残ります。Botはいつもチームの色です。</p></div>
       </div>
-      <div id="cuWBar"></div>
       <details id="cuMore"><summary>兵装ごとの重量（今の構成で）</summary><div class="tblWrap"><table id="cuWeight"></table></div></details>
       <button type="button" class="back">戻る</button>
     </section>
@@ -11128,15 +11128,48 @@ function renderSlotList() {
   const btn = sl => { const k = cuEquipped(sl); return `<button type="button" class="cuItem${sl === cuSlot ? ' sel' : ''}" data-cslot="${sl}" aria-pressed="${sl === cuSlot}"><b>${CU_NAMES[sl]}</b><span class="kg">${itemKg(sl, k)}kg</span><small>${itemName(sl, k)}</small></button>`; };
   $('cuSlotList').innerHTML = `<h3>機体（4兵装で共通）</h3>${PART_SLOTS.map(btn).join('')}<h3>武器（${CLASSES[cuCls].name}）</h3>${SLOTS.map(btn).join('')}`;
 }
+// 並べ替えに使える性能（2026-11-11、オーナー「頭であればロックオン性能や集弾率などパーツごとの各種性能でソートできるように」）：
+// その枠の型が持つ数値（itemNums。差の表と同じ物）のうち、2つ以上の型にある物。重量は「軽い順・重い順」があるので除く。
+// ホバー脚の呼び名（通常移動・高速移動）は二脚の歩行・ダッシュと同じ性能として並べる。
+const CU_SORT_ALIAS = { '通常移動': '歩行', '高速移動': 'ダッシュ' };
+const cuSortId = name => CU_SORT_ALIAS[name] || name;
+const cuSortNum = (sl, key, id) => itemNums(sl, key).find(r => cuSortId(r[0]) === id && Number.isFinite(r[1]));
+function cuSortStats(sl) {
+  const m = new Map();
+  for (const k of cuItems(sl)) {
+    const seen = new Set();
+    for (const [name, v, , hi] of itemNums(sl, k)) {
+      const id = cuSortId(name);
+      if (id === '重量' || !Number.isFinite(v) || seen.has(id)) continue;
+      seen.add(id);
+      if (!m.has(id)) m.set(id, { id, hi, n: 0, names: [id] });
+      const st = m.get(id); st.n++;
+      if (!st.names.includes(name)) st.names.push(name);
+    }
+  }
+  return [...m.values()].filter(st => st.n > 1).map(st => ({ id: st.id, hi: st.hi, label: st.names.join('・') }));
+}
 function renderSeries() {
   const sl = cuSlot, items = cuItems(sl), eq = cuEquipped(sl);
+  // cuSort：'order'（メーカーごと）・'light'・'heavy'・'stat:性能の名前'（良い順）。この枠に無い性能なら、メーカーごとで出す
+  const stats = cuSortStats(sl), stat = stats.find(st => 'stat:' + st.id === cuSort) || null;
+  const mode = stat ? cuSort : cuSort === 'light' || cuSort === 'heavy' ? cuSort : 'order';
   if (!cuSeen.has(sl)) { cuSeen.add(sl); cuOpen.add(sl + ':' + seriesInfo(sl, eq).id); } // 最初は装備中のシリーズを開く
   const row = (key, flat) => {
     const x = itemOf(sl, key), on = key === eq;
-    return `<button type="button" class="cuItem${flat ? '' : ' cuType'}${on ? ' sel' : ''}" data-pick="${key}" aria-pressed="${on}"><b>${isPart(sl) ? x.model : `${x.model} ${x.name}`}${on ? '<i class="on">装備中</i>' : ''}</b><span class="kg">${itemKg(sl, key)}kg</span><small>${flat ? MAKERS[seriesInfo(sl, key).maker].name + ' · ' : ''}${keyStats(sl, key).join('　')}</small></button>`;
+    return `<button type="button" class="cuItem${flat ? '' : ' cuType'}${on ? ' sel' : ''}" data-pick="${key}" aria-pressed="${on}"><b>${isPart(sl) ? x.model : `${x.model} ${x.name}`}${on ? '<i class="on">装備中</i>' : ''}</b><span class="kg">${sortTag(key)}${itemKg(sl, key)}kg</span><small>${flat ? MAKERS[seriesInfo(sl, key).maker].name + ' · ' : ''}${keyStats(sl, key).join('　')}</small></button>`;
   };
-  let h = `<div class="cuHead"><h3>${CU_NAMES[sl]}のシリーズ</h3><label>並べ替え <select id="cuSortSel">${[['order', 'メーカーごと'], ['light', '軽い順'], ['heavy', '重い順']].map(([v, t]) => `<option value="${v}"${v === cuSort ? ' selected' : ''}>${t}</option>`).join('')}</select></label></div>`;
-  if (cuSort !== 'order') h += [...items].sort((a, b) => (itemKg(sl, a) - itemKg(sl, b)) * (cuSort === 'light' ? 1 : -1)).map(k => row(k, true)).join('');
+  // 性能で並べているときは、その数値を行の右（重量の左）にも出す（主な数値の3つに入っていない性能でも見える）
+  const sortTag = key => { const r = stat && cuSortNum(sl, key, stat.id); return stat ? `<em>${r ? `${r[0]} ${r[2](r[1])}` : stat.id + ' —'}</em>` : ''; };
+  const opt = (v, t) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`;
+  let h = `<div class="cuHead"><h3>${CU_NAMES[sl]}のシリーズ</h3><label>並べ替え <select id="cuSortSel">${opt('order', 'メーカーごと')}<optgroup label="重量">${opt('light', '軽い順')}${opt('heavy', '重い順')}</optgroup>`
+    + `${stats.length ? `<optgroup label="性能の良い順">${stats.map(st => opt('stat:' + st.id, st.label)).join('')}</optgroup>` : ''}</select></label></div>`;
+  if (stat) {
+    // 良い順（大きいほど良い性能は大きい順、小さいほど良い性能は小さい順）。その性能を持たない型は最後。同じ値は元の並びのまま
+    const val = k => { const r = cuSortNum(sl, k, stat.id); return r ? r[1] : null; };
+    h += [...items].sort((a, b) => { const x = val(a), y = val(b); return x === null ? (y === null ? 0 : 1) : y === null ? -1 : stat.hi ? y - x : x - y; }).map(k => row(k, true)).join('');
+  }
+  else if (mode !== 'order') h += [...items].sort((a, b) => (itemKg(sl, a) - itemKg(sl, b)) * (mode === 'light' ? 1 : -1)).map(k => row(k, true)).join('');
   else {
     const groups = new Map(); // メーカー → シリーズ → 型
     for (const k of items) {
