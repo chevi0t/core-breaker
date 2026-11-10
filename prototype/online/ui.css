@@ -1,0 +1,138 @@
+/* オンライン専用。通常のメニュー・戦闘HUDへ見た目を漏らさない。 */
+#onlinePanel { position:fixed; z-index:10000; inset:3vh max(20px, calc((100vw - 1180px)/2)); display:flex; flex-direction:column; overflow:hidden; color:#e7f1fa; background:#0b141e; border:1px solid #3b566b; border-top:3px solid #52bcff; border-radius:14px; box-shadow:0 24px 100px #000c; pointer-events:auto; font:14px/1.6 var(--body,system-ui,sans-serif); text-align:left; }
+#onlinePanel[hidden], #onlinePanel [hidden] { display:none !important; }
+#onlinePanel * { box-sizing:border-box; }
+#onlinePanel .online-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px 18px; border-bottom:1px solid #294051; background:linear-gradient(110deg,#152d40,#0b141e 75%); }
+#onlinePanel h2 { font-size:26px; letter-spacing:.09em; margin:2px 0; color:#fff; }
+#onlinePanel p { margin:6px 0; }
+#onlinePanel .online-header p:last-child { color:#a7bdce; }
+#onlinePanel .online-eyebrow { font-size:10px; font-weight:700; letter-spacing:.15em; color:#88bbd7; }
+#onlinePanel .online-badge { border:1px solid #8f6e39; padding:5px 12px; color:#ffd28c; font-size:12px; white-space:nowrap; }
+#onlinePanel .online-body { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr); gap:20px; min-height:0; overflow:auto; padding:22px 28px; overscroll-behavior:contain; scrollbar-color:#456276 #101b25; }
+#onlinePanel .online-main, #onlinePanel .online-side { min-width:0; display:flex; flex-direction:column; gap:16px; }
+#onlinePanel .online-card { min-width:0; margin:0; padding:18px; border:1px solid #2d4354; border-radius:8px; background:#101e2a; }
+#onlinePanel h3 { display:flex; align-items:center; gap:10px; margin:0 0 15px; font-size:15px; letter-spacing:.04em; }
+#onlinePanel h3 > span { color:#69c6ff; font:700 12px/1.5 var(--display,monospace); border-bottom:2px solid #3799d7; padding-bottom:2px; }
+#onlinePanel legend { padding:0 8px; color:#b8d1e3; font-weight:700; }
+#onlinePanel .online-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+#onlinePanel label { display:block; font-size:12px; color:#b4c9d9; min-width:0; }
+#onlinePanel label small { color:#8c9fac; font-size:10px; }
+#onlinePanel input, #onlinePanel select { width:100%; min-width:0; height:42px; display:block; margin:6px 0 0; padding:8px 10px; border:1px solid #3e5a6e; border-radius:4px; background:#09121c; color:#eaf5ff; font:inherit; font-size:14px; }
+#onlinePanel button { min-height:42px; margin:0; padding:9px 16px; border:1px solid #496c85; border-radius:5px; color:#dceefa; background:#1b3447; font:600 13px/1.5 var(--body,system-ui,sans-serif); cursor:pointer; box-shadow:none; text-transform:none; letter-spacing:.02em; }
+#onlinePanel button:hover:not(:disabled) { background:#284d66; border-color:#7dccff; }
+#onlinePanel button.online-primary { background:#57bcf8; color:#061623; border-color:#79cdff; }
+#onlinePanel button.online-primary:hover:not(:disabled) { background:#8bd4ff; }
+#onlinePanel :disabled { opacity:.48; cursor:not-allowed; }
+#onlinePanel :focus-visible { outline:3px solid #ffe0a0; outline-offset:3px; }
+#onlinePanel .online-entry { display:grid; grid-template-columns:1fr 1.8fr; gap:20px; align-items:end; }
+#onlinePanel .online-entry p { font-size:12px; color:#b4c9d9; }
+#onlinePanel .online-entry > div:first-child button { width:100%; }
+#onlinePanel .online-join { display:flex; align-items:end; gap:8px; }
+#onlinePanel .online-join button { flex:none; }
+#onlinePanel .online-share { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+#onlinePanel .online-note, #onlinePanel details p, #onlinePanel .online-caution, #onlineRoster > p { font-size:11px; color:#9bb1c3; line-height:1.8; }
+#onlinePanel .online-note { margin-top:10px; }
+#onlinePanel .online-empty { padding:22px 12px; color:#acc4d6; text-align:center; border:1px dashed #355064; border-radius:5px; }
+#onlinePanel .online-empty small { font-size:11px; color:#8da6ba; }
+#onlinePanel .online-team { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px; margin:10px 0; border:1px solid #385368; border-radius:5px; background:#0b1722; }
+#onlinePanel .online-team[role=button] { cursor:pointer; }
+#onlinePanel .online-team[aria-pressed=true] { border-color:#6cc8ff; background:#17354a; box-shadow:inset 3px 0 #6cc8ff; }
+#onlinePanel .online-team > strong { width:100%; color:#b7dfff; font-size:12px; }
+#onlinePanel .online-member { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; border:1px solid #2e485a; border-radius:4px; font-size:12px; overflow-wrap:anywhere; max-width:100%; }
+#onlinePanel .online-member button { min-height:32px; padding:4px 8px; font-size:10px; color:#ffc4b4; border-color:#755344; background:#322a29; }
+#onlinePanel .online-map { color:#80cffc; font-size:12px; }
+#onlinePanel details { margin-top:12px; }
+#onlinePanel summary { cursor:pointer; color:#aac5d9; font-size:12px; padding:4px 0; }
+#onlinePanel .online-measure { margin:0; }
+#onlinePanel .online-measure label { margin-top:12px; }
+#onlinePanel .online-test-steps { font-size:12px; color:#acc4d6; padding-left:20px; margin:10px 0 0; }
+#onlinePanel .online-test-steps li + li { margin-top:8px; }
+#onlinePanel .online-caution { border-left:2px solid #8b6d40; padding-left:12px; margin:0; }
+#onlinePanel .online-footer { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 28px; background:#101f2b; border-top:1px solid #355065; flex-shrink:0; }
+#onlinePanel .online-status-wrap { display:flex; gap:10px; align-items:center; min-width:0; }
+#onlinePanel .online-status-dot { width:7px; height:7px; border-radius:50%; background:#6e91aa; flex:none; }
+#onlinePanel[data-phase=lobby] .online-status-dot { background:#76d9b3; box-shadow:0 0 12px #76d9b344; }
+#onlinePanel #onlineStatus { font-size:12px; margin:3px 0 0; overflow-wrap:anywhere; max-height:5.4em; overflow:auto; }
+#onlinePanel .online-actions { display:flex; gap:10px; flex-shrink:0; }
+#onlinePanel #onlineStart { min-width:150px; }
+@media(max-width:760px) {
+  #onlinePanel { inset:8px; border-radius:8px; }
+  #onlinePanel .online-header { padding:14px 16px; }
+  #onlinePanel h2 { font-size:21px; }
+  #onlinePanel .online-body { grid-template-columns:1fr; padding:16px; gap:16px; }
+  #onlinePanel .online-card { padding:14px; }
+  #onlinePanel .online-entry { grid-template-columns:1fr; gap:14px; }
+  #onlinePanel .online-footer { padding:12px 16px; flex-direction:column; align-items:stretch; gap:10px; }
+  #onlinePanel .online-actions button { flex:1; }
+  #onlinePanel .online-header p:last-child { font-size:12px; }
+}
+@media(max-width:380px) { #onlinePanel .online-fields { grid-template-columns:1fr; } #onlinePanel .online-join { flex-direction:column; align-items:stretch; } }
+@media(max-height:500px) { #onlinePanel .online-header { padding:8px 16px; } #onlinePanel .online-header p:last-child { display:none; } #onlinePanel .online-footer { padding:8px 16px; } }
+
+/* 診断は0.5秒ごとに数値のみ更新。ゲーム画面を覆わず、通常のオフライン戦では出さない。 */
+#onlineDiagnostic { position:fixed; z-index:9999; top:155px; left:50%; transform:translateX(-50%); max-width:90vw; padding:4px 8px; background:#07121de0; border:1px solid #4c738c; color:#dff2ff; font:11px/1.6 system-ui,sans-serif; pointer-events:none; text-align:left; white-space:pre-line; }
+#onlineDiagnostic[hidden] { display:none!important; }
+#onlinePanel .online-diagnostic-toggle { display:flex; align-items:center; gap:8px; margin:10px 0; }
+#onlinePanel .online-diagnostic-toggle input { width:16px; height:16px; margin:0; }
+
+/* 定型通信はHUD/ロビー共通。受信文字列はtextContentで描き、勝敗・照準の中央を覆わない。 */
+#onlineQuickChat, #onlineQuickChatLog, #onlineQuickChatNotice, #onlineQuickChatOpen { position:fixed; z-index:10020; box-sizing:border-box; color:#eaf5ff; font:14px/1.6 var(--body,system-ui,sans-serif); text-align:left; }
+#onlineQuickChat[hidden], #onlineQuickChatLog[hidden], #onlineQuickChatNotice[hidden], #onlineQuickChatOpen[hidden] { display:none !important; }
+#onlineQuickChat { top:22%; left:18px; width:min(310px,calc(100vw - 36px)); max-height:65vh; overflow:auto; padding:14px; border:1px solid #60bbef; border-radius:8px; background:#0b1927f5; box-shadow:0 8px 32px #0009; pointer-events:auto; }
+#onlineQuickChat strong { display:block; margin-bottom:10px; color:#91d7ff; }
+#onlineQuickChatChoices { display:grid; gap:6px; }
+#onlineQuickChat button, #onlineQuickChatOpen { margin:0; min-height:36px; padding:6px 10px; border:1px solid #426d87; border-radius:4px; background:#152e40; color:#eaf5ff; font:inherit; cursor:pointer; pointer-events:auto; }
+#onlineQuickChat button:hover, #onlineQuickChat button:focus-visible { background:#285574; outline:2px solid #91d7ff; }
+#onlineQuickChat p { margin:10px 0 2px; font-size:12px; } #onlineQuickChat small { color:#a7bece; font-size:11px; }
+#onlineQuickChatLog { right:18px; top:30%; width:min(340px,calc(100vw - 36px)); pointer-events:none; overflow-wrap:anywhere; }
+#onlineQuickChatLog p { margin:3px 0; padding:6px 9px; border-left:3px solid #6fc8ff; background:#081723e8; border-radius:3px; }
+#onlineQuickChatNotice { bottom:145px; left:50%; transform:translateX(-50%); max-width:calc(100vw - 24px); padding:6px 12px; background:#452c15f0; border:1px solid #e6b46c; border-radius:4px; pointer-events:none; }
+#onlineQuickChatOpen { left:18px; top:calc(22% - 44px); font-size:12px; }
+@media(max-width:600px) { #onlineQuickChat { left:10px; top:15%; width:min(290px,calc(100vw - 20px)); } #onlineQuickChatLog { top:auto; bottom:160px; right:10px; width:min(300px,calc(100vw - 20px)); font-size:12px; } }
+
+#onlinePanel #onlineQuickChatLog { position:static; width:100%; margin-top:10px; font-size:13px; }
+#onlinePanel #onlineQuickChatLog p { margin:4px 0; }
+
+/* ロビーの準備状態。催促は装備欄だけで控えめに表示し、音や強制遷移は使わない。 */
+#onlinePanel .online-readiness { color:#b4bdc7; border:1px solid #526172; border-radius:3px; padding:1px 6px; white-space:nowrap; }
+#onlinePanel .online-readiness[data-ready=true] { color:#9ce3c5; border-color:#51866e; }
+#onlinePanel #onlineReady[aria-pressed=true] { background:#245342; border-color:#76d9b3; color:#dbfff0; }
+#onlinePanel #onlineEquipmentEditor { margin-top:14px; padding-top:12px; border-top:1px solid #385368; }
+#onlinePanel #onlineEquipmentEditor h4 { margin:4px 0; }
+#onlinePanel #onlineEquipmentFields { margin-top:12px; }
+#onlinePanel .online-equipment-actions, #onlinePanel .online-room-actions { display:flex; flex-wrap:wrap; gap:8px; }
+#onlinePanel .online-exit-actions { width:100%; border-top:1px solid #385368; padding-top:8px; text-align:right; }
+#onlinePanel #onlineClose { color:#ffd0ba; border-color:#876653; background:#322a26; font-size:12px; }
+#onlinePanel #onlineClose:hover:not(:disabled) { background:#49382e; border-color:#dfac8e; }
+#onlinePanel #onlineReadyNudge { color:#e8d6a7; background:#493c2540; border-left:2px solid #b49a61; padding:8px 10px; font-size:12px; }
+#onlinePanel .online-actions { flex-wrap:wrap; }
+@media(min-width:761px) { #onlinePanel .online-status-wrap { flex:1; } #onlinePanel .online-actions { max-width:55%; justify-content:flex-end; } }
+@media(max-width:760px) { #onlinePanel .online-equipment-actions, #onlinePanel .online-room-actions { width:100%; } #onlinePanel .online-equipment-actions button { flex:1 1 180px; } #onlinePanel .online-exit-actions { text-align:left; } #onlinePanel #onlineClose { width:100%; } }
+/* 横向き・拡大時は窓全体をスクロールし、固定欄で装備や退出ボタンを画面外へ押し出さない。 */
+@media(max-height:560px) { #onlinePanel { display:block; overflow:auto; } #onlinePanel .online-body { overflow:visible; } }
+
+/* 退出だけは確認を分け、既定フォーカスは部屋・下書きを残す方へ。 */
+#onlineLeaveDialog { box-sizing:border-box; width:min(480px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:22px; border:1px solid #b78b69; border-radius:10px; color:#e7f1fa; background:#14212e; font:14px/1.7 var(--body,system-ui,sans-serif); text-align:left; }
+#onlineLeaveDialog::backdrop { background:#000b; }
+#onlineLeaveDialog h2 { margin:0 0 12px; color:#fff; font-size:20px; }
+#onlineLeaveDialog .online-leave-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+#onlineLeaveDialog button { flex:1 1 180px; min-height:44px; padding:10px 12px; border:1px solid #658aa2; border-radius:5px; color:#e7f1fa; background:#243d50; font:inherit; cursor:pointer; }
+#onlineLeaveDialog #onlineLeaveConfirm { color:#ffd0ba; border-color:#876653; background:#322a26; }
+#onlineLeaveDialog button:focus-visible { outline:3px solid #ffe0a0; outline-offset:3px; }
+
+/* 任意共有の診断ログプレビュー。 */
+#onlineLogDialog { box-sizing:border-box; width:min(900px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:20px; border:1px solid #47718a; border-radius:12px; background:#101f2c; color:#e3edf5; overflow:auto; }
+#onlineLogDialog::backdrop { background:#000b; }
+#onlineLogDialog h2 { margin:0 0 12px; font-size:20px; }
+#onlineLogDialog p { line-height:1.6; font-size:13px; }
+#onlineLogDialog label { display:block; margin-bottom:6px; }
+#onlineLogText { box-sizing:border-box; display:block; width:100%; height:min(42dvh,360px); min-height:100px; resize:vertical; background:#08121b; border:1px solid #53728b; color:#dae8ef; font:12px/1.5 monospace; padding:10px; }
+.online-log-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+#onlineLogDialog button { padding:10px 14px; border:1px solid #6f8ba3; border-radius:4px; background:#203e55; color:#fff; cursor:pointer; }
+#onlineLogDialog button:disabled { opacity:.5; cursor:default; }
+#onlineLogDialog button:focus-visible,#onlineLogText:focus-visible { outline:2px solid #8ee7ff; outline-offset:2px; }
+@media(max-width:480px) { #onlineLogDialog { padding:12px; } .online-log-actions button { flex:1 1 40%; } }
+
+/* コピー通知は操作を奪わず、失敗時は手動保存の案内を残す。 */
+#onlineLogNotice { box-sizing:border-box; position:fixed; z-index:10010; top:12px; left:50%; transform:translateX(-50%); width:min(680px,calc(100vw - 24px)); margin:0; padding:12px 16px; color:#e3edf5; background:#101f2cf5; border:1px solid #77b8d8; border-radius:8px; font:13px/1.7 var(--body,system-ui,sans-serif); overflow-wrap:anywhere; pointer-events:none; }
+#onlineLogNotice[hidden] { display:none !important; }

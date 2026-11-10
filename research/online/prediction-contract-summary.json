@@ -1,0 +1,165 @@
+{
+  "scope": "平地VM・browserと同じfunctional fixture。実browser/RTC/描画遅延は未実行",
+  "adapters": [
+    "地形・施設・射撃は既存physics fixtureの代役",
+    "equipは変更検出とlockRange復元のみ",
+    "camera/aimは代役、offset wrapperは製品関数"
+  ],
+  "sourceHashes": {
+    "prototype/online/game.js": "b63504981a3a43f268cf96ae4af9f15c99c3cd1e5c6d8f3e0b6ce2c8d6083236",
+    "prototype/index.html": "d33a236e47ded33cefe56ac0bc97f2fc9a87beb088a41506e6c85e5926eb9f9c",
+    "prototype/parts.js": "7b9a43e4e99be3931223df03441c9a3741add5156af73f4c48ccf03e68c4aa14",
+    "prototype/weapons.js": "829af2c45e3a9b102470debd744f0c79463a981d5e7b4688009d4eec2b1128ec",
+    "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8",
+    "tools/test/online_prediction_check.js": "72304d8f5c9be6490f1425874da0c291ddf3629f02341b9a1f5d1df6ffbb8d85"
+  },
+  "instrumentedGameHash": "212e1302ac18823b8137e87b2cf24fe2e658f122575cc508a7992bcad3731519",
+  "checks": 67,
+  "hiddenSlots": 1,
+  "sourceChecks": 74,
+  "hostSteps": [
+    {
+      "dt": 0.011,
+      "ack": {
+        "fixed": true,
+        "replaySeq": 0,
+        "movementSeq": 0,
+        "movementIds": [],
+        "seq": 0,
+        "step": 0,
+        "seqDt": 0,
+        "actionSeq": 0,
+        "totalDt": 0,
+        "steps": []
+      }
+    },
+    {
+      "dt": 0.029,
+      "ack": {
+        "fixed": true,
+        "replaySeq": 12,
+        "movementSeq": 1,
+        "movementIds": [
+          1
+        ],
+        "seq": 12,
+        "step": 2,
+        "seqDt": 0.016666666666666666,
+        "actionSeq": 1,
+        "totalDt": 0.03333333333333333,
+        "steps": [
+          {
+            "step": 1,
+            "seq": 11,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": [
+              "ShiftLeft",
+              "Space"
+            ]
+          },
+          {
+            "step": 2,
+            "seq": 12,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": []
+          }
+        ]
+      }
+    },
+    {
+      "dt": 0.007,
+      "ack": {
+        "fixed": true,
+        "replaySeq": 12,
+        "movementSeq": 1,
+        "movementIds": [
+          1
+        ],
+        "seq": 12,
+        "step": 2,
+        "seqDt": 0.016666666666666666,
+        "actionSeq": 1,
+        "totalDt": 0.03333333333333333,
+        "steps": [
+          {
+            "step": 1,
+            "seq": 11,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": [
+              "ShiftLeft",
+              "Space"
+            ]
+          },
+          {
+            "step": 2,
+            "seq": 12,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": []
+          }
+        ]
+      }
+    },
+    {
+      "dt": 0.023,
+      "ack": {
+        "fixed": true,
+        "replaySeq": 14,
+        "movementSeq": 1,
+        "movementIds": [
+          1
+        ],
+        "seq": 12,
+        "step": 4,
+        "seqDt": 0.05,
+        "actionSeq": 1,
+        "totalDt": 0.06666666666666667,
+        "steps": [
+          {
+            "step": 1,
+            "seq": 11,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": [
+              "ShiftLeft",
+              "Space"
+            ]
+          },
+          {
+            "step": 2,
+            "seq": 12,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.016666666666666666,
+            "actionSeq": 0,
+            "pressed": []
+          },
+          {
+            "step": 3,
+            "seq": 12,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.03333333333333333,
+            "actionSeq": 1,
+            "pressed": []
+          },
+          {
+            "step": 4,
+            "seq": 12,
+            "dt": 0.016666666666666666,
+            "seqDt": 0.05,
+            "actionSeq": 1,
+            "pressed": []
+          }
+        ]
+      }
+    }
+  ],
+  "pacing": 60
+}

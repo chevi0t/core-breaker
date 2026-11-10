@@ -1,0 +1,1536 @@
+{
+  "createdAt": "2026-11-08T07:06:50.902Z",
+  "testSourceHash": "46cac88ddd49b3ec05930bd793eb65374849f2ebbd9685ea967f3c2d7ef83fd8",
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "usesRealWebRTC": false,
+  "validationCompleted": true,
+  "commit": "91d5dc2 + stage3 working tree (sourceHashes identify measured code)",
+  "sourceHashes": {
+    "prototype/index.html": "c19386a3256b4e612aaa29f6dce04030edfa816571661ccdc2bb3acf70abc708",
+    "prototype/online/game.js": "674bcc21ba434b68154e51e70caa6dcfba836386b14736d80fc821ffeb1fe262",
+    "prototype/online/lag-compensation.js": "31c33616c06b68bdf9170d616a4eaf99d9e1199c411c74084d714f98e750a663"
+  },
+  "method": {
+    "functional": "実機体/被弾面/製品shot・damage、人工配置・時計・RTT条件。current raycast/HP/damage呼出回数/行列を独立観測。50/100msは決定的な条件であって回線実測ではない。",
+    "wire": "製品snapshotをguestが描画した後の時刻stampと、各方向50/100ms遅延の製品transport送信・受信を観測。固定コマ送り・描画省略。",
+    "hitRate": "実時間timer・両方向の製品transport遅延。横12m/s・60m奥行、同一12発の時刻表。guestの前回表示位置を照準として送信。hostの受理control actionごとに製品shotを1回呼びHPとdamage回数を照合する人工射撃fixture。通常gunTickの発射周期/人の照準操作を測る試験ではない。200ms上限後の表示時刻残差も保存。",
+    "scope": "BroadcastChannel代替。実WebRTC/別回線/NAT/操作感は未検証。"
+  },
+  "comparisons": [
+    {
+      "oneWayInjectedMs": 50,
+      "off": {
+        "hits": 0,
+        "shots": 12,
+        "hitRate": 0
+      },
+      "on": {
+        "hits": 12,
+        "shots": 12,
+        "hitRate": 1
+      },
+      "hitRateChange": 1,
+      "percentagePointChange": 100,
+      "clamped": 12,
+      "maxRewindMs": 200
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "off": {
+        "hits": 0,
+        "shots": 12,
+        "hitRate": 0
+      },
+      "on": {
+        "hits": 5,
+        "shots": 12,
+        "hitRate": 0.4166666666666667
+      },
+      "hitRateChange": 0.4166666666666667,
+      "percentagePointChange": 41.66666666666667,
+      "clamped": 12,
+      "maxRewindMs": 200
+    }
+  ],
+  "browserChecks": 200,
+  "functional": [
+    {
+      "oneWayInjectedMs": 50,
+      "checks": [
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去直立headを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去直立bodyを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去しゃがみheadを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去しゃがみbodyを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在追加した壁を過去機体の手前で保持"
+        },
+        {
+          "value": true,
+          "name": "ロック対象があっても照準外の射線を中心へ補正しない"
+        },
+        {
+          "value": true,
+          "name": "dead境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "life境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "motion境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "mech境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "revive境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "raycast例外でもfinallyで現在の全被弾状態を復元"
+        },
+        {
+          "value": true,
+          "name": "例外後の通常raycastとHPは現在のまま"
+        },
+        {
+          "value": true,
+          "name": "初回lazy境界の巻戻し後も現在raycastを例外なく実行"
+        },
+        {
+          "value": true,
+          "name": "二機目の巻戻し準備途中の例外でも既変更全機を復元"
+        },
+        {
+          "value": true,
+          "name": "散弾5発の各pelletを一度だけ現在HPへ適用"
+        },
+        {
+          "value": true,
+          "name": "散弾の全damageは復元後の現在位置"
+        },
+        {
+          "value": true,
+          "name": "最初の致死pellet後は残りの過去像を撃たず撃破/score一回"
+        },
+        {
+          "value": true,
+          "name": "撃破は現在位置、空中の死体は現在XZの真下へ落下"
+        },
+        {
+          "value": true,
+          "name": "Bot射手の手持ち銃を巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "設置銃/背部自動砲と同じshot外fire経路を巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "飛翔弾の発射でhitscan巻戻しを使わない"
+        },
+        {
+          "value": true,
+          "name": "実近接の振りと判定はhitscan巻戻しを使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻futureを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻NaNを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻oldを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "control先着だけで対応movement前に射撃しない"
+        },
+        {
+          "value": true,
+          "name": "control-firstでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "control-firstの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "control-first初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "control-firstの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "control-first継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "control-firstの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "movement-firstでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "movement-first初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "movement-first継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "reverse-batch初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "reverse-batch継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movement初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movement継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "古い表示申告でも実際の巻戻し呼出しを過去200ms以内へ制限"
+        },
+        {
+          "value": true,
+          "name": "250ms履歴を無制限に蓄積しない"
+        }
+      ],
+      "failure": null
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "checks": [
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去直立headを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去直立bodyを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去しゃがみheadを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在の横切り後の標的には旧照準が当たらない"
+        },
+        {
+          "value": true,
+          "name": "過去しゃがみbodyを同じ射線・部位で捕捉"
+        },
+        {
+          "value": true,
+          "name": "巻戻しraycast後に現在の骨・被弾面・姿勢を復元"
+        },
+        {
+          "value": true,
+          "name": "射手自身の現在colliderを巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "照会だけではHPもdamage回数も進めない"
+        },
+        {
+          "value": true,
+          "name": "手持ちshotから部位倍率込みdamageを現在へ一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "damageは過去位置ではなく現在位置で実行"
+        },
+        {
+          "value": true,
+          "name": "現在追加した壁を過去機体の手前で保持"
+        },
+        {
+          "value": true,
+          "name": "ロック対象があっても照準外の射線を中心へ補正しない"
+        },
+        {
+          "value": true,
+          "name": "dead境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "life境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "motion境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "mech境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "revive境界の前の標的を命中扱いにしない"
+        },
+        {
+          "value": true,
+          "name": "raycast例外でもfinallyで現在の全被弾状態を復元"
+        },
+        {
+          "value": true,
+          "name": "例外後の通常raycastとHPは現在のまま"
+        },
+        {
+          "value": true,
+          "name": "初回lazy境界の巻戻し後も現在raycastを例外なく実行"
+        },
+        {
+          "value": true,
+          "name": "二機目の巻戻し準備途中の例外でも既変更全機を復元"
+        },
+        {
+          "value": true,
+          "name": "散弾5発の各pelletを一度だけ現在HPへ適用"
+        },
+        {
+          "value": true,
+          "name": "散弾の全damageは復元後の現在位置"
+        },
+        {
+          "value": true,
+          "name": "最初の致死pellet後は残りの過去像を撃たず撃破/score一回"
+        },
+        {
+          "value": true,
+          "name": "撃破は現在位置、空中の死体は現在XZの真下へ落下"
+        },
+        {
+          "value": true,
+          "name": "Bot射手の手持ち銃を巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "設置銃/背部自動砲と同じshot外fire経路を巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "飛翔弾の発射でhitscan巻戻しを使わない"
+        },
+        {
+          "value": true,
+          "name": "実近接の振りと判定はhitscan巻戻しを使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻futureを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻NaNを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "申告時刻oldを過去命中へ使わない"
+        },
+        {
+          "value": true,
+          "name": "control先着だけで対応movement前に射撃しない"
+        },
+        {
+          "value": true,
+          "name": "control-firstでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "control-firstの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "control-first初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "control-firstの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "control-first継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "control-firstの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "movement-firstでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "movement-first初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "movement-first継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "movement-firstの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "reverse-batch初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "reverse-batch継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "reverse-batchの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementでも移動yaw/pitch/照準入力は最新movementのまま"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの初発はaction時刻と照準の対で現在標的へ一度damage"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movement初発のshot/hit通知もaction.seqへ関連付ける"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの同actionSeq再到着は初発を再注入しない"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movement継続射撃の通知は最新movement.seqへ進む"
+        },
+        {
+          "value": true,
+          "name": "lost-first-movementの継続射撃は最新movementの時刻と照準へ進む"
+        },
+        {
+          "value": true,
+          "name": "古い表示申告でも実際の巻戻し呼出しを過去200ms以内へ制限"
+        },
+        {
+          "value": true,
+          "name": "250ms履歴を無制限に蓄積しない"
+        }
+      ],
+      "failure": null
+    }
+  ],
+  "wire": [
+    {
+      "oneWayInjectedMs": 50,
+      "completed": true,
+      "crouchSamples": 28,
+      "crouchMaxError": 0,
+      "headHeightResidualMetres": 2.6460604540812227e-14
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "completed": true,
+      "crouchSamples": 28,
+      "crouchMaxError": 0,
+      "headHeightResidualMetres": 7.537902973808741e-06
+    }
+  ],
+  "hitRate": [
+    {
+      "oneWayInjectedMs": 50,
+      "enabled": false,
+      "completed": true,
+      "requestedShots": 12,
+      "shots": 12,
+      "hits": 0,
+      "hitRate": 0,
+      "trajectory": {
+        "metresPerSecond": 12,
+        "startX": -30,
+        "height": 200,
+        "targetZ": 0,
+        "shooter": [
+          0,
+          200,
+          60
+        ],
+        "shotIntervalMs": 300,
+        "warmupMs": 1800
+      },
+      "clamped": 0,
+      "maxRewindMs": 0,
+      "hostTicks": 407,
+      "errors": [],
+      "viewAgeMs": {
+        "count": 12,
+        "min": 217.89909757040732,
+        "mean": 232.5295626718465,
+        "max": 252.6433013670612
+      },
+      "actualRewindAgeMs": {
+        "count": 0,
+        "min": null,
+        "mean": null,
+        "max": null
+      },
+      "residualViewMs": {
+        "count": 0,
+        "min": null,
+        "mean": null,
+        "max": null
+      },
+      "acceptedTransitMs": {
+        "count": 12,
+        "min": 51.74999999906868,
+        "mean": 58.82499999941016,
+        "max": 67.95000000018626
+      },
+      "shotsDetail": [
+        {
+          "seq": 115,
+          "actionSeq": 2,
+          "viewAgeMs": 218.07771371725357,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 51.74999999906868,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 135,
+          "actionSeq": 4,
+          "viewAgeMs": 230.3285137176299,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 67.74999999906868,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 153,
+          "actionSeq": 6,
+          "viewAgeMs": 248.29850064792663,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 59.84999999869615,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 171,
+          "actionSeq": 8,
+          "viewAgeMs": 217.89909757040732,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 56.049999999813735,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 191,
+          "actionSeq": 10,
+          "viewAgeMs": 234.39678268844364,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 52.24999999906868,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 210,
+          "actionSeq": 12,
+          "viewAgeMs": 235.52244168948346,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 67.74999999906868,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 228,
+          "actionSeq": 14,
+          "viewAgeMs": 252.6433013670612,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 60.049999999813735,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 247,
+          "actionSeq": 16,
+          "viewAgeMs": 237.08436489375708,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 55.64999999944121,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 265,
+          "actionSeq": 18,
+          "viewAgeMs": 221.70303329941999,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 52.049999999813735,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 284,
+          "actionSeq": 20,
+          "viewAgeMs": 237.83196682666858,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 67.95000000018626,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 302,
+          "actionSeq": 22,
+          "viewAgeMs": 220.40074311655917,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 59.14999999944121,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 322,
+          "actionSeq": 24,
+          "viewAgeMs": 236.16829252754724,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 55.64999999944121,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        }
+      ]
+    },
+    {
+      "oneWayInjectedMs": 50,
+      "enabled": true,
+      "completed": true,
+      "requestedShots": 12,
+      "shots": 12,
+      "hits": 12,
+      "hitRate": 1,
+      "trajectory": {
+        "metresPerSecond": 12,
+        "startX": -30,
+        "height": 200,
+        "targetZ": 0,
+        "shooter": [
+          0,
+          200,
+          60
+        ],
+        "shotIntervalMs": 300,
+        "warmupMs": 1800
+      },
+      "clamped": 12,
+      "maxRewindMs": 200,
+      "hostTicks": 407,
+      "errors": [],
+      "viewAgeMs": {
+        "count": 12,
+        "min": 219.40189327135704,
+        "mean": 233.31255739925896,
+        "max": 257.37382841538056
+      },
+      "actualRewindAgeMs": {
+        "count": 12,
+        "min": 192.40189327135704,
+        "mean": 197.73588114216636,
+        "max": 199.09999999962747
+      },
+      "residualViewMs": {
+        "count": 12,
+        "min": 20.862952397841582,
+        "mean": 35.57667625709261,
+        "max": 58.673828416125616
+      },
+      "acceptedTransitMs": {
+        "count": 12,
+        "min": 52.24999999906868,
+        "mean": 60.174999999813735,
+        "max": 69.25000000093132
+      },
+      "shotsDetail": [
+        {
+          "seq": 114,
+          "actionSeq": 2,
+          "viewAgeMs": 219.9690717025369,
+          "actualRewindAgeMs": 194,
+          "residualViewMs": 25.969071702536894,
+          "acceptedTransitMs": 52.24999999906868,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 14000,
+          "hpAfter": 13900,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 134,
+          "actionSeq": 4,
+          "viewAgeMs": 244.8221262182069,
+          "actualRewindAgeMs": 198.09999999962747,
+          "residualViewMs": 46.72212621857943,
+          "acceptedTransitMs": 69.25000000093132,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13900,
+          "hpAfter": 13800,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 152,
+          "actionSeq": 6,
+          "viewAgeMs": 257.37382841538056,
+          "actualRewindAgeMs": 198.69999999925494,
+          "residualViewMs": 58.673828416125616,
+          "acceptedTransitMs": 60.950000000186265,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13800,
+          "hpAfter": 13700,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 170,
+          "actionSeq": 8,
+          "viewAgeMs": 222.05895631473322,
+          "actualRewindAgeMs": 198.09999999962747,
+          "residualViewMs": 23.958956315105752,
+          "acceptedTransitMs": 57.450000000186265,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13700,
+          "hpAfter": 13600,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 190,
+          "actionSeq": 10,
+          "viewAgeMs": 236.51670272100637,
+          "actualRewindAgeMs": 198.7999999988824,
+          "residualViewMs": 37.716702722123955,
+          "acceptedTransitMs": 53.14999999944121,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13600,
+          "hpAfter": 13500,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 208,
+          "actionSeq": 12,
+          "viewAgeMs": 235.57481994621776,
+          "actualRewindAgeMs": 199.09999999962747,
+          "residualViewMs": 36.47481994659029,
+          "acceptedTransitMs": 69.25000000093132,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13500,
+          "hpAfter": 13400,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 226,
+          "actionSeq": 14,
+          "viewAgeMs": 219.40189327135704,
+          "actualRewindAgeMs": 192.40189327135704,
+          "residualViewMs": 27,
+          "acceptedTransitMs": 61.25000000093132,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13400,
+          "hpAfter": 13300,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 246,
+          "actionSeq": 16,
+          "viewAgeMs": 235.29262978562474,
+          "actualRewindAgeMs": 199,
+          "residualViewMs": 36.29262978562474,
+          "acceptedTransitMs": 57.049999999813735,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13300,
+          "hpAfter": 13200,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 264,
+          "actionSeq": 18,
+          "viewAgeMs": 219.7629523982141,
+          "actualRewindAgeMs": 198.90000000037253,
+          "residualViewMs": 20.862952397841582,
+          "acceptedTransitMs": 53.59999999869615,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13200,
+          "hpAfter": 13100,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 284,
+          "actionSeq": 20,
+          "viewAgeMs": 235.6864248262391,
+          "actualRewindAgeMs": 198.90000000037253,
+          "residualViewMs": 36.78642482586656,
+          "acceptedTransitMs": 68.79999999981374,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13100,
+          "hpAfter": 13000,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 302,
+          "actionSeq": 22,
+          "viewAgeMs": 252.16260275397144,
+          "actualRewindAgeMs": 198.69999999925494,
+          "residualViewMs": 53.4626027547165,
+          "acceptedTransitMs": 61.59999999869615,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13000,
+          "hpAfter": 12900,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 320,
+          "actionSeq": 24,
+          "viewAgeMs": 221.12868043761955,
+          "actualRewindAgeMs": 198.12868043761955,
+          "residualViewMs": 23,
+          "acceptedTransitMs": 57.49999999906868,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 12900,
+          "hpAfter": 12800,
+          "rewindDelta": 1
+        }
+      ]
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "enabled": false,
+      "completed": true,
+      "requestedShots": 12,
+      "shots": 12,
+      "hits": 0,
+      "hitRate": 0,
+      "trajectory": {
+        "metresPerSecond": 12,
+        "startX": -30,
+        "height": 200,
+        "targetZ": 0,
+        "shooter": [
+          0,
+          200,
+          60
+        ],
+        "shotIntervalMs": 300,
+        "warmupMs": 1800
+      },
+      "clamped": 0,
+      "maxRewindMs": 0,
+      "hostTicks": 413,
+      "errors": [],
+      "viewAgeMs": {
+        "count": 12,
+        "min": 311.3636602511888,
+        "mean": 329.3516220498688,
+        "max": 347.97639301481286
+      },
+      "actualRewindAgeMs": {
+        "count": 0,
+        "min": null,
+        "mean": null,
+        "max": null
+      },
+      "residualViewMs": {
+        "count": 0,
+        "min": null,
+        "mean": null,
+        "max": null
+      },
+      "acceptedTransitMs": {
+        "count": 12,
+        "min": 102.65000000037253,
+        "mean": 109.57500000127281,
+        "max": 118.75000000186265
+      },
+      "shotsDetail": [
+        {
+          "seq": 114,
+          "actionSeq": 2,
+          "viewAgeMs": 311.3636602511888,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 102.65000000037253,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 133,
+          "actionSeq": 4,
+          "viewAgeMs": 328.8543320033823,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 118.45000000111759,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 151,
+          "actionSeq": 6,
+          "viewAgeMs": 329.9877145668652,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 110.15000000037253,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 171,
+          "actionSeq": 8,
+          "viewAgeMs": 346.5864904760274,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 106.55000000074506,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 189,
+          "actionSeq": 10,
+          "viewAgeMs": 314.59292339946296,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 102.65000000223517,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 209,
+          "actionSeq": 12,
+          "viewAgeMs": 331.3313414400327,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 118.75000000186265,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 227,
+          "actionSeq": 14,
+          "viewAgeMs": 347.55061062191453,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 110.65000000223517,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 245,
+          "actionSeq": 16,
+          "viewAgeMs": 315.2911727153387,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 106.55000000074506,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 265,
+          "actionSeq": 18,
+          "viewAgeMs": 332.0082523882011,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 102.65000000223517,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 283,
+          "actionSeq": 20,
+          "viewAgeMs": 332.04298070639015,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 118.75000000186265,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 302,
+          "actionSeq": 22,
+          "viewAgeMs": 347.97639301481286,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 110.75000000186265,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        },
+        {
+          "seq": 320,
+          "actionSeq": 24,
+          "viewAgeMs": 314.63359301480887,
+          "actualRewindAgeMs": null,
+          "residualViewMs": null,
+          "acceptedTransitMs": 106.34999999962747,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 0
+        }
+      ]
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "enabled": true,
+      "completed": true,
+      "requestedShots": 12,
+      "shots": 12,
+      "hits": 5,
+      "hitRate": 0.4166666666666667,
+      "trajectory": {
+        "metresPerSecond": 12,
+        "startX": -30,
+        "height": 200,
+        "targetZ": 0,
+        "shooter": [
+          0,
+          200,
+          60
+        ],
+        "shotIntervalMs": 300,
+        "warmupMs": 1800
+      },
+      "clamped": 12,
+      "maxRewindMs": 200,
+      "hostTicks": 413,
+      "errors": [],
+      "viewAgeMs": {
+        "count": 12,
+        "min": 317.12965434187754,
+        "mean": 333.5121675034164,
+        "max": 348.6833936645635
+      },
+      "actualRewindAgeMs": {
+        "count": 12,
+        "min": 195.09999999962747,
+        "mean": 198.45000000034148,
+        "max": 199.30000000074506
+      },
+      "residualViewMs": {
+        "count": 12,
+        "min": 118.12965434187754,
+        "mean": 135.0621675030749,
+        "max": 149.58339366307337
+      },
+      "acceptedTransitMs": {
+        "count": 12,
+        "min": 100.3500000005588,
+        "mean": 108.72499999954987,
+        "max": 116.84999999869615
+      },
+      "shotsDetail": [
+        {
+          "seq": 116,
+          "actionSeq": 2,
+          "viewAgeMs": 334.089477228943,
+          "actualRewindAgeMs": 195.09999999962747,
+          "residualViewMs": 138.98947722931553,
+          "acceptedTransitMs": 116.54999999888241,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 14000,
+          "hpAfter": 14000,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 135,
+          "actionSeq": 4,
+          "viewAgeMs": 346.73587722858247,
+          "actualRewindAgeMs": 198.09999999962747,
+          "residualViewMs": 148.635877228955,
+          "acceptedTransitMs": 113.44999999925494,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 14000,
+          "hpAfter": 13900,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 153,
+          "actionSeq": 6,
+          "viewAgeMs": 331.6932596188617,
+          "actualRewindAgeMs": 198.40000000037253,
+          "residualViewMs": 133.29325961848917,
+          "acceptedTransitMs": 104.34999999962747,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13900,
+          "hpAfter": 13900,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 171,
+          "actionSeq": 8,
+          "viewAgeMs": 334.5435354373658,
+          "actualRewindAgeMs": 198.80000000074506,
+          "residualViewMs": 135.74353543662073,
+          "acceptedTransitMs": 100.3500000005588,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13900,
+          "hpAfter": 13800,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 191,
+          "actionSeq": 10,
+          "viewAgeMs": 335.9760540307725,
+          "actualRewindAgeMs": 198.30000000074506,
+          "residualViewMs": 137.67605403002744,
+          "acceptedTransitMs": 116.3500000005588,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13800,
+          "hpAfter": 13800,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 209,
+          "actionSeq": 12,
+          "viewAgeMs": 336.10165434038754,
+          "actualRewindAgeMs": 198.90000000037253,
+          "residualViewMs": 137.201654340015,
+          "acceptedTransitMs": 112.95000000018626,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13800,
+          "hpAfter": 13800,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 227,
+          "actionSeq": 14,
+          "viewAgeMs": 317.12965434187754,
+          "actualRewindAgeMs": 199,
+          "residualViewMs": 118.12965434187754,
+          "acceptedTransitMs": 104.74999999906868,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13800,
+          "hpAfter": 13700,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 247,
+          "actionSeq": 16,
+          "viewAgeMs": 332.8060910361128,
+          "actualRewindAgeMs": 198.90000000037253,
+          "residualViewMs": 133.90609103574025,
+          "acceptedTransitMs": 100.74999999906868,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13700,
+          "hpAfter": 13700,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 265,
+          "actionSeq": 18,
+          "viewAgeMs": 332.75259866230044,
+          "actualRewindAgeMs": 199.09999999962747,
+          "residualViewMs": 133.65259866267297,
+          "acceptedTransitMs": 116.84999999869615,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13700,
+          "hpAfter": 13700,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 285,
+          "actionSeq": 20,
+          "viewAgeMs": 348.6833936645635,
+          "actualRewindAgeMs": 199.10000000149012,
+          "residualViewMs": 149.58339366307337,
+          "acceptedTransitMs": 113.04999999981374,
+          "hit": false,
+          "damageCalls": 0,
+          "hpBefore": 13700,
+          "hpAfter": 13700,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 303,
+          "actionSeq": 22,
+          "viewAgeMs": 333.59732675165105,
+          "actualRewindAgeMs": 198.40000000037253,
+          "residualViewMs": 135.19732675127852,
+          "acceptedTransitMs": 104.74999999906868,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13700,
+          "hpAfter": 13600,
+          "rewindDelta": 1
+        },
+        {
+          "seq": 321,
+          "actionSeq": 24,
+          "viewAgeMs": 318.0370876995785,
+          "actualRewindAgeMs": 199.30000000074506,
+          "residualViewMs": 118.73708769883342,
+          "acceptedTransitMs": 100.54999999981374,
+          "hit": true,
+          "damageCalls": 1,
+          "hpBefore": 13600,
+          "hpAfter": 13500,
+          "rewindDelta": 1
+        }
+      ]
+    }
+  ]
+}

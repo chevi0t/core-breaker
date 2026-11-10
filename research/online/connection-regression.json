@@ -1,0 +1,93 @@
+{
+  "baseCommit": "b70512a5a528da9e3c5cc5e119552e7652277935",
+  "sourceHashes": {
+    "prototype/online/game.js": "91adfe5c407dd3909c5ceb8f8ce59805c6f1454cd2e0f7200bc859b528963edd",
+    "tools/test/online_check.js": "3cc397cd103d447ac755c27bc907266f90dc76aa00bee78d36de48bbe2b9cdc8"
+  },
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）・固定コマ送り・描画省略。性能測定ではない",
+  "result": "15項目成功・ブラウザエラーなし",
+  "checks": [
+    "版違いを理由付きで拒否",
+    "先行ゲストのready受信と後続ゲストの準備完了を確認",
+    "全員のreadyまではホストが試合を進めない",
+    "後続ゲストのready送信を3.5秒遅延",
+    "準備が遅れても開始直後に先行ゲストをBotへ替えず両接続を維持",
+    "準備差のあるゲストもplayingに到達",
+    "準備差のあるゲストもplayingに到達",
+    "開始後に両ゲストの入力受信番号・適用番号が進む",
+    "試合開始後の新規参加を理由付きで拒否",
+    "切断機を回復・再出撃させずBotへ引継ぎ",
+    "通信が生きた入力途絶でも理由付き終了し接続を閉じる",
+    "入力途絶機も状態を保ってBotへ引継ぐ",
+    "入力途絶したゲスト以外の対戦接続は継続",
+    "ホスト切断でゲストも中断",
+    "ブラウザのエラーなし"
+  ],
+  "preparationSkew": {
+    "readyDelayMs": 3500,
+    "observedWaitMs": 3535,
+    "before": [
+      {
+        "id": "33798b98-6a35-414b-a077-4429d4ade6b8",
+        "receivedSeq": 19,
+        "appliedSeq": 18
+      },
+      {
+        "id": "fd0ea53c-a612-4b3f-861c-76a926dafc48",
+        "receivedSeq": 19,
+        "appliedSeq": 18
+      }
+    ],
+    "after": {
+      "phase": "playing",
+      "connected": 2,
+      "peers": [
+        {
+          "id": "33798b98-6a35-414b-a077-4429d4ade6b8",
+          "receivedSeq": 59,
+          "appliedSeq": 57,
+          "controller": "remoteHuman"
+        },
+        {
+          "id": "fd0ea53c-a612-4b3f-861c-76a926dafc48",
+          "receivedSeq": 59,
+          "appliedSeq": 58,
+          "controller": "remoteHuman"
+        }
+      ],
+      "disconnected": []
+    }
+  },
+  "inputTimeout": {
+    "guest": {
+      "phase": "ended",
+      "running": false,
+      "reason": "入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます",
+      "peers": 0
+    },
+    "before": {
+      "hp": 4321,
+      "lifeId": 1,
+      "pos": [
+        -11.52298069981484,
+        0,
+        -194.21576625416358
+      ]
+    },
+    "after": {
+      "controller": "bot",
+      "hp": 4321,
+      "lifeId": 1,
+      "pos": [
+        -11.52298069981484,
+        0,
+        -194.21576625416358
+      ],
+      "count": 10,
+      "actionHeld": false,
+      "actionBlockBoost": false,
+      "target": false
+    }
+  },
+  "limits": "準備差修正後の通信代替による対象限定再試験。実WebRTC成立の証明ではない。"
+}

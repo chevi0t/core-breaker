@@ -1,0 +1,2838 @@
+{
+  "stage": 4,
+  "status": "固定枠の機能・サイズ比較・既存回帰を完了。実回線と画像段階は未検証。",
+  "baseCommit": "0a0ba66213ccc9a984f91d1142d733bedf45bd4f",
+  "usesRealWebRTC": false,
+  "method": "機能試験は成功sendのraw wireを独立復号。サイズは同一決定fixtureを旧全体snapshot/OFFと本体privacy+priority/ONへ通した見積り。実時間throughputではない。",
+  "directViewLimit": "通常敵の直接視認例外はhost固定の縦100度・32:9外接円をscope倍率で縮小しLOSを必須にする。実client画面より広い領域を許す保守的範囲で、最小実画角と同一ではない。clientの画角申告は使わず、迷彩noticed hard gateは迂回しない。",
+  "sourceHashes": {
+    "prototype/index.html": "b7f5009aa4057764277e49d3c88e3966aed0bcfa8a7d4f3c9e1ff25a0a69e847",
+    "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8",
+    "prototype/online/game.js": "7bdf8244a1faa8afda7fc24298f1d27c15a9d0f52a836eb792a41dc047f7e335",
+    "prototype/online/lag-compensation.js": "6f8fede1a6b30734c74ea0f26ac043f3fed163d6c44c36fd62cc7518d5f39e22",
+    "prototype/online/transport.js": "4284569f11f7d58998903c6fc151f0a4d183c458cdbad23ba750d37a63bbe8de",
+    "prototype/online/ui.js": "775a82253843e52a9641a0860c97d2471a669616b48b973af2d9b0bc5c28c99a",
+    "prototype/online/visibility.js": "0b102df4b2133cef3ec90d021457dd0223c6beb36349e6ece41f804d503647e7",
+    "tools/test/online_visibility_boundary_fixture.js": "6529b3299a409ce1b4c7be12d4cc2c7ff77b701f4e4e8839fddbe5d57ae19341",
+    "tools/test/online_visibility_check.js": "0c2ce3761a3b93f28067129a8d24dc00a93770a94fa4d08b118f624df9127f8f",
+    "tools/test/online_visibility_fixture.js": "aeaa7211109a3a39c94e6250f1c621f06c19bd8d2a7d29fbbe86b71968c52779"
+  },
+  "checks": {
+    "functional": 795,
+    "size": 191,
+    "nodeVisibility": 154,
+    "errors": []
+  },
+  "size": [
+    {
+      "units": 10,
+      "frames": 245,
+      "guestCount": 1,
+      "method": "決定的fixtureの同一完全状態を旧全体codecと本体peer別codecへ通す。fragmentは本体transportで作成するが送信しない。実時間throughputではない。",
+      "assumptions": "入力ackは部屋の実ゲスト一人分・8stepの決定値。10/20機はBot込み。20人接続、19peerのCPU、SCTP/DTLS/IPヘッダー・再送は未測定。2KBは合格条件にしない。",
+      "peers": [
+        {
+          "peerId": "577866b0-78d4-48e9-81b8-fb6fe2c5ff66",
+          "unitId": "R:0",
+          "phases": [
+            {
+              "phase": "initial",
+              "mode": "off",
+              "frames": 1,
+              "snapshotBytes": 247,
+              "baselineBytes": 101282,
+              "eventBytes": 358,
+              "fragmentBase64ExpansionBytes": 24722,
+              "fragmentEnvelopeBytes": 2394,
+              "totalBytes": 101887,
+              "snapshotSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 101282,
+                "max": 101282
+              },
+              "eventSizes": {
+                "count": 1,
+                "mean": 358,
+                "max": 358
+              },
+              "datagramMax": 12266,
+              "fixtureSeconds": 0.05,
+              "estimatedKBpsAt20Hz": 2037.74
+            },
+            {
+              "phase": "initial",
+              "mode": "on",
+              "frames": 1,
+              "snapshotBytes": 247,
+              "baselineBytes": 100374,
+              "eventBytes": 247,
+              "fragmentBase64ExpansionBytes": 24497,
+              "fragmentEnvelopeBytes": 2394,
+              "totalBytes": 100868,
+              "snapshotSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 100374,
+                "max": 100374
+              },
+              "eventSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "datagramMax": 12266,
+              "fixtureSeconds": 0.05,
+              "estimatedKBpsAt20Hz": 2017.36
+            },
+            {
+              "phase": "steady-visible",
+              "mode": "off",
+              "frames": 80,
+              "snapshotBytes": 122156,
+              "baselineBytes": 0,
+              "eventBytes": 29103,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 151259,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1526.95,
+                "max": 1536
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 363.7875,
+                "max": 366
+              },
+              "datagramMax": 1536,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 37.81475
+            },
+            {
+              "phase": "steady-visible",
+              "mode": "on",
+              "frames": 80,
+              "snapshotBytes": 118692,
+              "baselineBytes": 0,
+              "eventBytes": 23739,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 142431,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1483.65,
+                "max": 1500
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 296.7375,
+                "max": 366
+              },
+              "datagramMax": 1500,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 35.60775
+            },
+            {
+              "phase": "hidden-set",
+              "mode": "off",
+              "frames": 80,
+              "snapshotBytes": 125862,
+              "baselineBytes": 0,
+              "eventBytes": 29494,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 155356,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1573.275,
+                "max": 1585
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 368.675,
+                "max": 380
+              },
+              "datagramMax": 1585,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 38.839
+            },
+            {
+              "phase": "hidden-set",
+              "mode": "on",
+              "frames": 80,
+              "snapshotBytes": 311806,
+              "baselineBytes": 0,
+              "eventBytes": 21576,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 333382,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 3897.575,
+                "max": 3925
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 269.7,
+                "max": 379
+              },
+              "datagramMax": 3925,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 83.3455
+            },
+            {
+              "phase": "visibility-change",
+              "mode": "off",
+              "frames": 25,
+              "snapshotBytes": 39325,
+              "baselineBytes": 0,
+              "eventBytes": 9256,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 48581,
+              "snapshotSizes": {
+                "count": 25,
+                "mean": 1573,
+                "max": 1585
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 25,
+                "mean": 370.24,
+                "max": 380
+              },
+              "datagramMax": 1585,
+              "fixtureSeconds": 1.25,
+              "estimatedKBpsAt20Hz": 38.8648
+            },
+            {
+              "phase": "visibility-change",
+              "mode": "on",
+              "frames": 25,
+              "snapshotBytes": 66929,
+              "baselineBytes": 0,
+              "eventBytes": 9256,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 76185,
+              "snapshotSizes": {
+                "count": 25,
+                "mean": 2677.16,
+                "max": 3933
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 25,
+                "mean": 370.24,
+                "max": 380
+              },
+              "datagramMax": 3933,
+              "fixtureSeconds": 1.25,
+              "estimatedKBpsAt20Hz": 60.948
+            },
+            {
+              "phase": "steady-hidden",
+              "mode": "off",
+              "frames": 59,
+              "snapshotBytes": 91223,
+              "baselineBytes": 1506,
+              "eventBytes": 21804,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 114533,
+              "snapshotSizes": {
+                "count": 59,
+                "mean": 1546.1525423728813,
+                "max": 1585
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 1506,
+                "max": 1506
+              },
+              "eventSizes": {
+                "count": 59,
+                "mean": 369.5593220338983,
+                "max": 380
+              },
+              "datagramMax": 1585,
+              "fixtureSeconds": 2.95,
+              "estimatedKBpsAt20Hz": 38.82474576271186
+            },
+            {
+              "phase": "steady-hidden",
+              "mode": "on",
+              "frames": 59,
+              "snapshotBytes": 121543,
+              "baselineBytes": 4148,
+              "eventBytes": 15750,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 141441,
+              "snapshotSizes": {
+                "count": 59,
+                "mean": 2060.0508474576272,
+                "max": 3933
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 4148,
+                "max": 4148
+              },
+              "eventSizes": {
+                "count": 59,
+                "mean": 266.9491525423729,
+                "max": 379
+              },
+              "datagramMax": 4148,
+              "fixtureSeconds": 2.95,
+              "estimatedKBpsAt20Hz": 47.94610169491526
+            }
+          ],
+          "changes": [
+            {
+              "phase": "initial",
+              "offBytes": 101887,
+              "onBytes": 100868,
+              "changeBytes": -1019,
+              "changePercent": -1.000127592332678
+            },
+            {
+              "phase": "steady-visible",
+              "offBytes": 151259,
+              "onBytes": 142431,
+              "changeBytes": -8828,
+              "changePercent": -5.836346928116676
+            },
+            {
+              "phase": "hidden-set",
+              "offBytes": 155356,
+              "onBytes": 333382,
+              "changeBytes": 178026,
+              "changePercent": 114.59229125363679
+            },
+            {
+              "phase": "visibility-change",
+              "offBytes": 48581,
+              "onBytes": 76185,
+              "changeBytes": 27604,
+              "changePercent": 56.82056771165682
+            },
+            {
+              "phase": "steady-hidden",
+              "offBytes": 114533,
+              "onBytes": 141441,
+              "changeBytes": 26908,
+              "changePercent": 23.493665581098888
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "units": 20,
+      "frames": 245,
+      "guestCount": 1,
+      "method": "決定的fixtureの同一完全状態を旧全体codecと本体peer別codecへ通す。fragmentは本体transportで作成するが送信しない。実時間throughputではない。",
+      "assumptions": "入力ackは部屋の実ゲスト一人分・8stepの決定値。10/20機はBot込み。20人接続、19peerのCPU、SCTP/DTLS/IPヘッダー・再送は未測定。2KBは合格条件にしない。",
+      "peers": [
+        {
+          "peerId": "3d2430c3-f9d6-45e3-a7c8-2b7a9ee011e2",
+          "unitId": "R:0",
+          "phases": [
+            {
+              "phase": "initial",
+              "mode": "off",
+              "frames": 1,
+              "snapshotBytes": 247,
+              "baselineBytes": 200734,
+              "eventBytes": 358,
+              "fragmentBase64ExpansionBytes": 49047,
+              "fragmentEnvelopeBytes": 4546,
+              "totalBytes": 201339,
+              "snapshotSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 200734,
+                "max": 200734
+              },
+              "eventSizes": {
+                "count": 1,
+                "mean": 358,
+                "max": 358
+              },
+              "datagramMax": 12268,
+              "fixtureSeconds": 0.05,
+              "estimatedKBpsAt20Hz": 4026.78
+            },
+            {
+              "phase": "initial",
+              "mode": "on",
+              "frames": 1,
+              "snapshotBytes": 247,
+              "baselineBytes": 198702,
+              "eventBytes": 247,
+              "fragmentBase64ExpansionBytes": 48539,
+              "fragmentEnvelopeBytes": 4546,
+              "totalBytes": 199196,
+              "snapshotSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 198702,
+                "max": 198702
+              },
+              "eventSizes": {
+                "count": 1,
+                "mean": 247,
+                "max": 247
+              },
+              "datagramMax": 12268,
+              "fixtureSeconds": 0.05,
+              "estimatedKBpsAt20Hz": 3983.92
+            },
+            {
+              "phase": "steady-visible",
+              "mode": "off",
+              "frames": 80,
+              "snapshotBytes": 133776,
+              "baselineBytes": 0,
+              "eventBytes": 29091,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 162867,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1672.2,
+                "max": 1680
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 363.6375,
+                "max": 366
+              },
+              "datagramMax": 1680,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 40.71675
+            },
+            {
+              "phase": "steady-visible",
+              "mode": "on",
+              "frames": 80,
+              "snapshotBytes": 123344,
+              "baselineBytes": 0,
+              "eventBytes": 19941,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 143285,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1541.8,
+                "max": 1552
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 249.2625,
+                "max": 250
+              },
+              "datagramMax": 1552,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 35.82125
+            },
+            {
+              "phase": "hidden-set",
+              "mode": "off",
+              "frames": 80,
+              "snapshotBytes": 140034,
+              "baselineBytes": 0,
+              "eventBytes": 29493,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 169527,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 1750.425,
+                "max": 1765
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 368.6625,
+                "max": 380
+              },
+              "datagramMax": 1765,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 42.38175
+            },
+            {
+              "phase": "hidden-set",
+              "mode": "on",
+              "frames": 80,
+              "snapshotBytes": 595874,
+              "baselineBytes": 0,
+              "eventBytes": 20062,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 615936,
+              "snapshotSizes": {
+                "count": 80,
+                "mean": 7448.425,
+                "max": 7481
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 80,
+                "mean": 250.775,
+                "max": 251
+              },
+              "datagramMax": 7481,
+              "fixtureSeconds": 4,
+              "estimatedKBpsAt20Hz": 153.984
+            },
+            {
+              "phase": "visibility-change",
+              "mode": "off",
+              "frames": 25,
+              "snapshotBytes": 43325,
+              "baselineBytes": 0,
+              "eventBytes": 9253,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 52578,
+              "snapshotSizes": {
+                "count": 25,
+                "mean": 1733,
+                "max": 1761
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 25,
+                "mean": 370.12,
+                "max": 380
+              },
+              "datagramMax": 1761,
+              "fixtureSeconds": 1.25,
+              "estimatedKBpsAt20Hz": 42.062400000000004
+            },
+            {
+              "phase": "visibility-change",
+              "mode": "on",
+              "frames": 25,
+              "snapshotBytes": 110693,
+              "baselineBytes": 0,
+              "eventBytes": 6275,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 116968,
+              "snapshotSizes": {
+                "count": 25,
+                "mean": 4427.72,
+                "max": 7501
+              },
+              "baselineSizes": {
+                "count": 0,
+                "mean": 0,
+                "max": 0
+              },
+              "eventSizes": {
+                "count": 25,
+                "mean": 251,
+                "max": 251
+              },
+              "datagramMax": 7501,
+              "fixtureSeconds": 1.25,
+              "estimatedKBpsAt20Hz": 93.5744
+            },
+            {
+              "phase": "steady-hidden",
+              "mode": "off",
+              "frames": 59,
+              "snapshotBytes": 100087,
+              "baselineBytes": 1913,
+              "eventBytes": 21810,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 123810,
+              "snapshotSizes": {
+                "count": 59,
+                "mean": 1696.3898305084747,
+                "max": 1761
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 1913,
+                "max": 1913
+              },
+              "eventSizes": {
+                "count": 59,
+                "mean": 369.66101694915255,
+                "max": 380
+              },
+              "datagramMax": 1913,
+              "fixtureSeconds": 2.95,
+              "estimatedKBpsAt20Hz": 41.96949152542373
+            },
+            {
+              "phase": "steady-hidden",
+              "mode": "on",
+              "frames": 59,
+              "snapshotBytes": 173463,
+              "baselineBytes": 8956,
+              "eventBytes": 14809,
+              "fragmentBase64ExpansionBytes": 0,
+              "fragmentEnvelopeBytes": 0,
+              "totalBytes": 197228,
+              "snapshotSizes": {
+                "count": 59,
+                "mean": 2940.0508474576272,
+                "max": 7501
+              },
+              "baselineSizes": {
+                "count": 1,
+                "mean": 8956,
+                "max": 8956
+              },
+              "eventSizes": {
+                "count": 59,
+                "mean": 251,
+                "max": 251
+              },
+              "datagramMax": 8956,
+              "fixtureSeconds": 2.95,
+              "estimatedKBpsAt20Hz": 66.85694915254237
+            }
+          ],
+          "changes": [
+            {
+              "phase": "initial",
+              "offBytes": 201339,
+              "onBytes": 199196,
+              "changeBytes": -2143,
+              "changePercent": -1.064374015963132
+            },
+            {
+              "phase": "steady-visible",
+              "offBytes": 162867,
+              "onBytes": 143285,
+              "changeBytes": -19582,
+              "changePercent": -12.023307361221114
+            },
+            {
+              "phase": "hidden-set",
+              "offBytes": 169527,
+              "onBytes": 615936,
+              "changeBytes": 446409,
+              "changePercent": 263.3261958272134
+            },
+            {
+              "phase": "visibility-change",
+              "offBytes": 52578,
+              "onBytes": 116968,
+              "changeBytes": 64390,
+              "changePercent": 122.46567005211304
+            },
+            {
+              "phase": "steady-hidden",
+              "offBytes": 123810,
+              "onBytes": 197228,
+              "changeBytes": 73418,
+              "changePercent": 59.29892577336242
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fixedSlotComparison": [
+    {
+      "units": 10,
+      "unitId": "R:0",
+      "phase": "initial",
+      "frames": 1,
+      "fixtureSeconds": 0.05,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 247,
+        "baselineBytes": 103494,
+        "eventBytes": 247,
+        "fragmentBase64ExpansionBytes": 25275,
+        "fragmentEnvelopeBytes": 2394,
+        "totalBytes": 103988,
+        "estimatedKBpsAt20Hz": 2079.76
+      },
+      "after": {
+        "baselineCount": 1,
+        "snapshotBytes": 247,
+        "baselineBytes": 100374,
+        "eventBytes": 247,
+        "fragmentBase64ExpansionBytes": 24497,
+        "fragmentEnvelopeBytes": 2394,
+        "totalBytes": 100868,
+        "estimatedKBpsAt20Hz": 2017.36
+      },
+      "totalChangeBytes": -3120,
+      "totalChangePercent": -3.000346193791592
+    },
+    {
+      "units": 10,
+      "unitId": "R:0",
+      "phase": "steady-visible",
+      "frames": 80,
+      "fixtureSeconds": 4,
+      "before": {
+        "baselineCount": 0,
+        "snapshotBytes": 118692,
+        "baselineBytes": 0,
+        "eventBytes": 23395,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 142087,
+        "estimatedKBpsAt20Hz": 35.52175
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 118692,
+        "baselineBytes": 0,
+        "eventBytes": 23739,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 142431,
+        "estimatedKBpsAt20Hz": 35.60775
+      },
+      "totalChangeBytes": 344,
+      "totalChangePercent": 0.24210518907430423
+    },
+    {
+      "units": 10,
+      "unitId": "R:0",
+      "phase": "hidden-set",
+      "frames": 80,
+      "fixtureSeconds": 4,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 118682,
+        "baselineBytes": 85078,
+        "eventBytes": 20755,
+        "fragmentBase64ExpansionBytes": 20806,
+        "fragmentEnvelopeBytes": 1862,
+        "totalBytes": 224515,
+        "estimatedKBpsAt20Hz": 56.12875
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 311806,
+        "baselineBytes": 0,
+        "eventBytes": 21576,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 333382,
+        "estimatedKBpsAt20Hz": 83.3455
+      },
+      "totalChangeBytes": 108867,
+      "totalChangePercent": 48.48985591163173
+    },
+    {
+      "units": 10,
+      "unitId": "R:0",
+      "phase": "visibility-change",
+      "frames": 25,
+      "fixtureSeconds": 1.25,
+      "before": {
+        "baselineCount": 9,
+        "snapshotBytes": 26455,
+        "baselineBytes": 858322,
+        "eventBytes": 9256,
+        "fragmentBase64ExpansionBytes": 209729,
+        "fragmentEnvelopeBytes": 19434,
+        "totalBytes": 894033,
+        "estimatedKBpsAt20Hz": 715.2264
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 66929,
+        "baselineBytes": 0,
+        "eventBytes": 9256,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 76185,
+        "estimatedKBpsAt20Hz": 60.948
+      },
+      "totalChangeBytes": -817848,
+      "totalChangePercent": -91.47850247138528
+    },
+    {
+      "units": 10,
+      "unitId": "R:0",
+      "phase": "steady-hidden",
+      "frames": 59,
+      "fixtureSeconds": 2.95,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 87938,
+        "baselineBytes": 85121,
+        "eventBytes": 15286,
+        "fragmentBase64ExpansionBytes": 20814,
+        "fragmentEnvelopeBytes": 1869,
+        "totalBytes": 188345,
+        "estimatedKBpsAt20Hz": 63.8457627118644
+      },
+      "after": {
+        "baselineCount": 1,
+        "snapshotBytes": 121543,
+        "baselineBytes": 4148,
+        "eventBytes": 15750,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 141441,
+        "estimatedKBpsAt20Hz": 47.94610169491526
+      },
+      "totalChangeBytes": -46904,
+      "totalChangePercent": -24.903236082720536
+    },
+    {
+      "units": 20,
+      "unitId": "R:0",
+      "phase": "initial",
+      "frames": 1,
+      "fixtureSeconds": 0.05,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 247,
+        "baselineBytes": 205682,
+        "eventBytes": 358,
+        "fragmentBase64ExpansionBytes": 50285,
+        "fragmentEnvelopeBytes": 4546,
+        "totalBytes": 206287,
+        "estimatedKBpsAt20Hz": 4125.74
+      },
+      "after": {
+        "baselineCount": 1,
+        "snapshotBytes": 247,
+        "baselineBytes": 198702,
+        "eventBytes": 247,
+        "fragmentBase64ExpansionBytes": 48539,
+        "fragmentEnvelopeBytes": 4546,
+        "totalBytes": 199196,
+        "estimatedKBpsAt20Hz": 3983.92
+      },
+      "totalChangeBytes": -7091,
+      "totalChangePercent": -3.4374439494490705
+    },
+    {
+      "units": 20,
+      "unitId": "R:0",
+      "phase": "steady-visible",
+      "frames": 80,
+      "fixtureSeconds": 4,
+      "before": {
+        "baselineCount": 0,
+        "snapshotBytes": 123344,
+        "baselineBytes": 0,
+        "eventBytes": 29091,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 152435,
+        "estimatedKBpsAt20Hz": 38.10875
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 123344,
+        "baselineBytes": 0,
+        "eventBytes": 19941,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 143285,
+        "estimatedKBpsAt20Hz": 35.82125
+      },
+      "totalChangeBytes": -9150,
+      "totalChangePercent": -6.0025584675435395
+    },
+    {
+      "units": 20,
+      "unitId": "R:0",
+      "phase": "hidden-set",
+      "frames": 80,
+      "fixtureSeconds": 4,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 122278,
+        "baselineBytes": 158678,
+        "eventBytes": 29493,
+        "fragmentBase64ExpansionBytes": 38802,
+        "fragmentEnvelopeBytes": 3474,
+        "totalBytes": 310449,
+        "estimatedKBpsAt20Hz": 77.61225
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 595874,
+        "baselineBytes": 0,
+        "eventBytes": 20062,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 615936,
+        "estimatedKBpsAt20Hz": 153.984
+      },
+      "totalChangeBytes": 305487,
+      "totalChangePercent": 98.40166983949055
+    },
+    {
+      "units": 20,
+      "unitId": "R:0",
+      "phase": "visibility-change",
+      "frames": 25,
+      "fixtureSeconds": 1.25,
+      "before": {
+        "baselineCount": 9,
+        "snapshotBytes": 27267,
+        "baselineBytes": 1663688,
+        "eventBytes": 9253,
+        "fragmentBase64ExpansionBytes": 406765,
+        "fragmentEnvelopeBytes": 36656,
+        "totalBytes": 1700208,
+        "estimatedKBpsAt20Hz": 1360.1663999999998
+      },
+      "after": {
+        "baselineCount": 0,
+        "snapshotBytes": 110693,
+        "baselineBytes": 0,
+        "eventBytes": 6275,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 116968,
+        "estimatedKBpsAt20Hz": 93.5744
+      },
+      "totalChangeBytes": -1583240,
+      "totalChangePercent": -93.12037115458814
+    },
+    {
+      "units": 20,
+      "unitId": "R:0",
+      "phase": "steady-hidden",
+      "frames": 59,
+      "fixtureSeconds": 2.95,
+      "before": {
+        "baselineCount": 1,
+        "snapshotBytes": 90534,
+        "baselineBytes": 158727,
+        "eventBytes": 21810,
+        "fragmentBase64ExpansionBytes": 38811,
+        "fragmentEnvelopeBytes": 3487,
+        "totalBytes": 271071,
+        "estimatedKBpsAt20Hz": 91.88847457627118
+      },
+      "after": {
+        "baselineCount": 1,
+        "snapshotBytes": 173463,
+        "baselineBytes": 8956,
+        "eventBytes": 14809,
+        "fragmentBase64ExpansionBytes": 0,
+        "fragmentEnvelopeBytes": 0,
+        "totalBytes": 197228,
+        "estimatedKBpsAt20Hz": 66.85694915254237
+      },
+      "totalChangeBytes": -73843,
+      "totalChangePercent": -27.241202489384698
+    }
+  ],
+  "beforeVariableVisibleArray": {
+    "stage": 4,
+    "status": "固定枠方式への変更前。可視切替時の完全基準再送を伴う旧案の測定。",
+    "baseCommit": "0a0ba66213ccc9a984f91d1142d733bedf45bd4f",
+    "usesRealWebRTC": false,
+    "method": "機能試験は成功sendのraw wireを独立復号。サイズは同一決定fixtureを旧全体snapshot/OFFと本体privacy+priority/ONへ通した見積り。実時間throughputではない。",
+    "sourceHashes": {
+      "prototype/index.html": "b7f5009aa4057764277e49d3c88e3966aed0bcfa8a7d4f3c9e1ff25a0a69e847",
+      "prototype/online/codec.js": "4a3f688ae742fd3fcf8722c2dccc25668f020369b69429392d0b54c05e7e9b4c",
+      "prototype/online/game.js": "f4d924c5e5bd0c50e217fb1dfa172063cd30286173e9375be3c7e1bcc765f6fb",
+      "prototype/online/lag-compensation.js": "6f8fede1a6b30734c74ea0f26ac043f3fed163d6c44c36fd62cc7518d5f39e22",
+      "prototype/online/transport.js": "4284569f11f7d58998903c6fc151f0a4d183c458cdbad23ba750d37a63bbe8de",
+      "prototype/online/ui.js": "775a82253843e52a9641a0860c97d2471a669616b48b973af2d9b0bc5c28c99a",
+      "prototype/online/visibility.js": "0b102df4b2133cef3ec90d021457dd0223c6beb36349e6ece41f804d503647e7",
+      "tools/test/online_visibility_boundary_fixture.js": "e8b11067e8a4588f9c32427fcd400b1b86a03848b965e15433dc77ee1f1cd57e",
+      "tools/test/online_visibility_check.js": "c3cfbef80025fd75ac1f71efd056094926f2651f1b7ee564ebc44fa6f62fca68",
+      "tools/test/online_visibility_fixture.js": "2af9c06f3d55350a1442e65bba24cd373ea178bfb078699b83d31297397943f8"
+    },
+    "functional": {
+      "pure": {
+        "checks": {
+          "count": 76,
+          "failed": []
+        },
+        "observations": [],
+        "boundaries": {
+          "checks": [
+            {
+              "value": true,
+              "name": "同frame/同baseで内容だけ異なる写真を実codecで作成"
+            },
+            {
+              "value": true,
+              "name": "古い異delta完了callbackで未送信recordをsentへ昇格しない"
+            },
+            {
+              "value": true,
+              "name": "一致したdelta完了callbackだけsentへ昇格"
+            },
+            {
+              "value": true,
+              "name": "sample650/anchor950/view900のtuple省略でsample+100超を拒否"
+            },
+            {
+              "value": true,
+              "name": "tuple省略でもsample+100以内の裏付け時刻は保持"
+            },
+            {
+              "value": true,
+              "name": "missing-viewerで許可集合/位置/sourceを空にする"
+            },
+            {
+              "value": true,
+              "name": "missing-viewerでは理由付きでsnapshot/baseの生成自体を拒否"
+            },
+            {
+              "value": true,
+              "name": "missing-moduleで許可集合/位置/sourceを空にする"
+            },
+            {
+              "value": true,
+              "name": "missing-moduleでは理由付きでsnapshot/baseの生成自体を拒否"
+            },
+            {
+              "value": true,
+              "name": "owner50mは可視でもsentry65mは未発見"
+            },
+            {
+              "value": true,
+              "name": "本体sentryTickが基部より3.96m離れた銃口tracerを発生"
+            },
+            {
+              "value": true,
+              "name": "sentryTick→fire→tracerで設置銃sourceをownerへ上書きしない"
+            },
+            {
+              "value": true,
+              "name": "未発見65m sentryの3m近傍外銃口tracerを送信しない"
+            }
+          ],
+          "observations": [],
+          "raw": [
+            {
+              "case": "same-frame",
+              "a": {
+                "frame": 1,
+                "delta": [
+                  1,
+                  1,
+                  ""
+                ]
+              },
+              "b": {
+                "frame": 1,
+                "delta": [
+                  1,
+                  1,
+                  "G/CKDA=="
+                ]
+              },
+              "sent": [
+                1
+              ]
+            },
+            {
+              "case": "omitted-tuple",
+              "input": {
+                "sentAt": 975,
+                "receivedAt": 1000,
+                "view": {
+                  "frame": 2,
+                  "time": 900,
+                  "delayMs": 100
+                }
+              },
+              "result": [],
+              "legal": [
+                [
+                  "R:0",
+                  740
+                ]
+              ]
+            },
+            {
+              "case": "missing-viewer",
+              "viewSize": 0,
+              "rejected": {
+                "snapshotForPeer": {
+                  "name": "Error",
+                  "message": "対戦機体が割り当てられていない参加者へ写真を送れません"
+                },
+                "encodePeerSnapshot": {
+                  "name": "Error",
+                  "message": "対戦機体が割り当てられていない参加者へ写真を送れません"
+                }
+              }
+            },
+            {
+              "case": "missing-module",
+              "viewSize": 0,
+              "rejected": {
+                "snapshotForPeer": {
+                  "name": "Error",
+                  "message": "公開範囲を保護する機能を読み込めないため、ネット対戦を開始できません。ページを再読み込みしてください"
+                },
+                "encodePeerSnapshot": {
+                  "name": "Error",
+                  "message": "公開範囲を保護する機能を読み込めないため、ネット対戦を開始できません。ページを再読み込みしてください"
+                }
+              }
+            },
+            {
+              "case": "sentry",
+              "owner": [
+                50,
+                200,
+                0
+              ],
+              "gadget": [
+                0,
+                200,
+                -65
+              ],
+              "events": [
+                {
+                  "id": 1,
+                  "type": "tracer",
+                  "data": {
+                    "from": [
+                      0,
+                      203.96,
+                      -65
+                    ],
+                    "end": [
+                      0,
+                      202.4,
+                      0
+                    ],
+                    "team": "R",
+                    "energy": false,
+                    "enlarged": true
+                  },
+                  "source": "gadget"
+                },
+                {
+                  "id": 2,
+                  "type": "sfx",
+                  "data": {
+                    "name": "rifle",
+                    "at": [
+                      0,
+                      200,
+                      -65
+                    ],
+                    "rate": 1,
+                    "level": 1
+                  },
+                  "source": "gadget"
+                }
+              ],
+              "filtered": []
+            }
+          ],
+          "failure": false
+        },
+        "inputBatch": {
+          "bytes": 5977,
+          "limit": 8192,
+          "raw": {
+            "protocolVersion": 8,
+            "appVersion": "Ver180",
+            "roomId": "fixture-room-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "matchId": "fixture-match-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+            "sender": "fixture-peer-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+            "type": "inputBatch",
+            "inputSequence": 999999,
+            "connectionToken": "tttttttttttttttttttttttttttttttttttttttttttttttt",
+            "payload": {
+              "inputs": [
+                {
+                  "seq": 9999999,
+                  "lifeId": 100,
+                  "actionSeq": 999999,
+                  "sentAt": 123456789.123,
+                  "view": {
+                    "time": 123456789.123,
+                    "frame": 1900004,
+                    "delayMs": 200,
+                    "units": [
+                      [
+                        0,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        1,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        2,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        3,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        4,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        5,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        6,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        7,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        8,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        9,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        10,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        11,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        12,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        13,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        14,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        15,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        16,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        17,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        18,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        19,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ]
+                    ]
+                  },
+                  "keys": {
+                    "KeyW": true,
+                    "ShiftLeft": true
+                  },
+                  "pressed": {},
+                  "yaw": 3.141592653589793,
+                  "pitch": 1.23456789,
+                  "aimPoint": [
+                    100.123456789,
+                    200.123456789,
+                    300.123456789
+                  ],
+                  "cameraRecoil": 1.23456789,
+                  "cameraRecoilYaw": 1.23456789,
+                  "trigger": true,
+                  "alt": false
+                },
+                {
+                  "seq": 10000000,
+                  "lifeId": 100,
+                  "actionSeq": 999999,
+                  "sentAt": 123456789.123,
+                  "view": {
+                    "time": 123456789.123,
+                    "frame": 1900004,
+                    "delayMs": 200,
+                    "units": [
+                      [
+                        0,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        1,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        2,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        3,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        4,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        5,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        6,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        7,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        8,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        9,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        10,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        11,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        12,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        13,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        14,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        15,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        16,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        17,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        18,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        19,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ]
+                    ]
+                  },
+                  "keys": {
+                    "KeyW": true,
+                    "ShiftLeft": true
+                  },
+                  "pressed": {},
+                  "yaw": 3.141592653589793,
+                  "pitch": 1.23456789,
+                  "aimPoint": [
+                    100.123456789,
+                    200.123456789,
+                    300.123456789
+                  ],
+                  "cameraRecoil": 1.23456789,
+                  "cameraRecoilYaw": 1.23456789,
+                  "trigger": true,
+                  "alt": false
+                },
+                {
+                  "seq": 10000001,
+                  "lifeId": 100,
+                  "actionSeq": 999999,
+                  "sentAt": 123456789.123,
+                  "view": {
+                    "time": 123456789.123,
+                    "frame": 1900004,
+                    "delayMs": 200,
+                    "units": [
+                      [
+                        0,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        1,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        2,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        3,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        4,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        5,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        6,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        7,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        8,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        9,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        10,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        11,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        12,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        13,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        14,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        15,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        16,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        17,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        18,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        19,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ]
+                    ]
+                  },
+                  "keys": {
+                    "KeyW": true,
+                    "ShiftLeft": true
+                  },
+                  "pressed": {},
+                  "yaw": 3.141592653589793,
+                  "pitch": 1.23456789,
+                  "aimPoint": [
+                    100.123456789,
+                    200.123456789,
+                    300.123456789
+                  ],
+                  "cameraRecoil": 1.23456789,
+                  "cameraRecoilYaw": 1.23456789,
+                  "trigger": true,
+                  "alt": false
+                },
+                {
+                  "seq": 10000002,
+                  "lifeId": 100,
+                  "actionSeq": 999999,
+                  "sentAt": 123456789.123,
+                  "view": {
+                    "time": 123456789.123,
+                    "frame": 1900004,
+                    "delayMs": 200,
+                    "units": [
+                      [
+                        0,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        1,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        2,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        3,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        4,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        5,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        6,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        7,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        8,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        9,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        10,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        11,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        12,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        13,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        14,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        15,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        16,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        17,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        18,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        19,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ]
+                    ]
+                  },
+                  "keys": {
+                    "KeyW": true,
+                    "ShiftLeft": true
+                  },
+                  "pressed": {},
+                  "yaw": 3.141592653589793,
+                  "pitch": 1.23456789,
+                  "aimPoint": [
+                    100.123456789,
+                    200.123456789,
+                    300.123456789
+                  ],
+                  "cameraRecoil": 1.23456789,
+                  "cameraRecoilYaw": 1.23456789,
+                  "trigger": true,
+                  "alt": false
+                },
+                {
+                  "seq": 10000003,
+                  "lifeId": 100,
+                  "actionSeq": 999999,
+                  "sentAt": 123456789.123,
+                  "view": {
+                    "time": 123456789.123,
+                    "frame": 1900004,
+                    "delayMs": 200,
+                    "units": [
+                      [
+                        0,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        1,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        2,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        3,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        4,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        5,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        6,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        7,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        8,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        9,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        10,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        11,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        12,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        13,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        14,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        15,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        16,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        17,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        18,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ],
+                      [
+                        19,
+                        1900000,
+                        1900004,
+                        123456789.123,
+                        19
+                      ]
+                    ]
+                  },
+                  "keys": {
+                    "KeyW": true,
+                    "ShiftLeft": true
+                  },
+                  "pressed": {},
+                  "yaw": 3.141592653589793,
+                  "pitch": 1.23456789,
+                  "aimPoint": [
+                    100.123456789,
+                    200.123456789,
+                    300.123456789
+                  ],
+                  "cameraRecoil": 1.23456789,
+                  "cameraRecoilYaw": 1.23456789,
+                  "trigger": true,
+                  "alt": false
+                }
+              ]
+            }
+          }
+        },
+        "failure": false
+      },
+      "checks": {
+        "count": 281,
+        "failed": []
+      },
+      "errors": [],
+      "reportedTotalChecks": 529
+    },
+    "size": [
+      {
+        "units": 10,
+        "frames": 245,
+        "guestCount": 1,
+        "method": "決定的fixtureの同一完全状態を旧全体codecと本体peer別codecへ通す。fragmentは本体transportで作成するが送信しない。実時間throughputではない。",
+        "assumptions": "入力ackは部屋の実ゲスト一人分・8stepの決定値。10/20機はBot込み。20人接続、19peerのCPU、SCTP/DTLS/IPヘッダー・再送は未測定。2KBは合格条件にしない。",
+        "peers": [
+          {
+            "peerId": "020a081a-7e63-41d1-8a68-022e8a4c3a07",
+            "unitId": "R:0",
+            "phases": [
+              {
+                "phase": "initial",
+                "mode": "off",
+                "frames": 1,
+                "snapshotBytes": 247,
+                "baselineBytes": 101126,
+                "eventBytes": 358,
+                "fragmentBase64ExpansionBytes": 24685,
+                "fragmentEnvelopeBytes": 2394,
+                "totalBytes": 101731,
+                "snapshotSizes": {
+                  "count": 1,
+                  "mean": 247,
+                  "max": 247
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 101126,
+                  "max": 101126
+                },
+                "eventSizes": {
+                  "count": 1,
+                  "mean": 358,
+                  "max": 358
+                },
+                "datagramMax": 12266,
+                "fixtureSeconds": 0.05,
+                "estimatedKBpsAt20Hz": 2034.62
+              },
+              {
+                "phase": "initial",
+                "mode": "on",
+                "frames": 1,
+                "snapshotBytes": 247,
+                "baselineBytes": 103494,
+                "eventBytes": 247,
+                "fragmentBase64ExpansionBytes": 25275,
+                "fragmentEnvelopeBytes": 2394,
+                "totalBytes": 103988,
+                "snapshotSizes": {
+                  "count": 1,
+                  "mean": 247,
+                  "max": 247
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 103494,
+                  "max": 103494
+                },
+                "eventSizes": {
+                  "count": 1,
+                  "mean": 247,
+                  "max": 247
+                },
+                "datagramMax": 12266,
+                "fixtureSeconds": 0.05,
+                "estimatedKBpsAt20Hz": 2079.76
+              },
+              {
+                "phase": "steady-visible",
+                "mode": "off",
+                "frames": 80,
+                "snapshotBytes": 122156,
+                "baselineBytes": 0,
+                "eventBytes": 29103,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 151259,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1526.95,
+                  "max": 1536
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 363.7875,
+                  "max": 366
+                },
+                "datagramMax": 1536,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 37.81475
+              },
+              {
+                "phase": "steady-visible",
+                "mode": "on",
+                "frames": 80,
+                "snapshotBytes": 118692,
+                "baselineBytes": 0,
+                "eventBytes": 23395,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 142087,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1483.65,
+                  "max": 1500
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 292.4375,
+                  "max": 366
+                },
+                "datagramMax": 1500,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 35.52175
+              },
+              {
+                "phase": "hidden-set",
+                "mode": "off",
+                "frames": 80,
+                "snapshotBytes": 125862,
+                "baselineBytes": 0,
+                "eventBytes": 29494,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 155356,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1573.275,
+                  "max": 1585
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 368.675,
+                  "max": 380
+                },
+                "datagramMax": 1585,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 38.839
+              },
+              {
+                "phase": "hidden-set",
+                "mode": "on",
+                "frames": 80,
+                "snapshotBytes": 118682,
+                "baselineBytes": 85078,
+                "eventBytes": 20755,
+                "fragmentBase64ExpansionBytes": 20806,
+                "fragmentEnvelopeBytes": 1862,
+                "totalBytes": 224515,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1483.525,
+                  "max": 1513
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 85078,
+                  "max": 85078
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 259.4375,
+                  "max": 368
+                },
+                "datagramMax": 12266,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 56.12875
+              },
+              {
+                "phase": "visibility-change",
+                "mode": "off",
+                "frames": 25,
+                "snapshotBytes": 39325,
+                "baselineBytes": 0,
+                "eventBytes": 9256,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 48581,
+                "snapshotSizes": {
+                  "count": 25,
+                  "mean": 1573,
+                  "max": 1585
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 25,
+                  "mean": 370.24,
+                  "max": 380
+                },
+                "datagramMax": 1585,
+                "fixtureSeconds": 1.25,
+                "estimatedKBpsAt20Hz": 38.8648
+              },
+              {
+                "phase": "visibility-change",
+                "mode": "on",
+                "frames": 25,
+                "snapshotBytes": 26455,
+                "baselineBytes": 858322,
+                "eventBytes": 9256,
+                "fragmentBase64ExpansionBytes": 209729,
+                "fragmentEnvelopeBytes": 19434,
+                "totalBytes": 894033,
+                "snapshotSizes": {
+                  "count": 25,
+                  "mean": 1058.2,
+                  "max": 1530
+                },
+                "baselineSizes": {
+                  "count": 9,
+                  "mean": 95369.11111111111,
+                  "max": 103583
+                },
+                "eventSizes": {
+                  "count": 25,
+                  "mean": 370.24,
+                  "max": 380
+                },
+                "datagramMax": 12267,
+                "fixtureSeconds": 1.25,
+                "estimatedKBpsAt20Hz": 715.2264
+              },
+              {
+                "phase": "steady-hidden",
+                "mode": "off",
+                "frames": 59,
+                "snapshotBytes": 91223,
+                "baselineBytes": 1506,
+                "eventBytes": 21804,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 114533,
+                "snapshotSizes": {
+                  "count": 59,
+                  "mean": 1546.1525423728813,
+                  "max": 1585
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 1506,
+                  "max": 1506
+                },
+                "eventSizes": {
+                  "count": 59,
+                  "mean": 369.5593220338983,
+                  "max": 380
+                },
+                "datagramMax": 1585,
+                "fixtureSeconds": 2.95,
+                "estimatedKBpsAt20Hz": 38.82474576271186
+              },
+              {
+                "phase": "steady-hidden",
+                "mode": "on",
+                "frames": 59,
+                "snapshotBytes": 87938,
+                "baselineBytes": 85121,
+                "eventBytes": 15286,
+                "fragmentBase64ExpansionBytes": 20814,
+                "fragmentEnvelopeBytes": 1869,
+                "totalBytes": 188345,
+                "snapshotSizes": {
+                  "count": 59,
+                  "mean": 1490.4745762711864,
+                  "max": 1518
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 85121,
+                  "max": 85121
+                },
+                "eventSizes": {
+                  "count": 59,
+                  "mean": 259.08474576271186,
+                  "max": 379
+                },
+                "datagramMax": 12267,
+                "fixtureSeconds": 2.95,
+                "estimatedKBpsAt20Hz": 63.8457627118644
+              }
+            ],
+            "changes": [
+              {
+                "phase": "initial",
+                "offBytes": 101731,
+                "onBytes": 103988,
+                "changeBytes": 2257,
+                "changePercent": 2.2185961014833167
+              },
+              {
+                "phase": "steady-visible",
+                "offBytes": 151259,
+                "onBytes": 142087,
+                "changeBytes": -9172,
+                "changePercent": -6.063771411949038
+              },
+              {
+                "phase": "hidden-set",
+                "offBytes": 155356,
+                "onBytes": 224515,
+                "changeBytes": 69159,
+                "changePercent": 44.516465408481174
+              },
+              {
+                "phase": "visibility-change",
+                "offBytes": 48581,
+                "onBytes": 894033,
+                "changeBytes": 845452,
+                "changePercent": 1740.2935303925403
+              },
+              {
+                "phase": "steady-hidden",
+                "offBytes": 114533,
+                "onBytes": 188345,
+                "changeBytes": 73812,
+                "changePercent": 64.44605484882086
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "units": 20,
+        "frames": 245,
+        "guestCount": 1,
+        "method": "決定的fixtureの同一完全状態を旧全体codecと本体peer別codecへ通す。fragmentは本体transportで作成するが送信しない。実時間throughputではない。",
+        "assumptions": "入力ackは部屋の実ゲスト一人分・8stepの決定値。10/20機はBot込み。20人接続、19peerのCPU、SCTP/DTLS/IPヘッダー・再送は未測定。2KBは合格条件にしない。",
+        "peers": [
+          {
+            "peerId": "32ec764b-4e17-4da0-ac4c-5d06a8d1fa7e",
+            "unitId": "R:0",
+            "phases": [
+              {
+                "phase": "initial",
+                "mode": "off",
+                "frames": 1,
+                "snapshotBytes": 247,
+                "baselineBytes": 200910,
+                "eventBytes": 358,
+                "fragmentBase64ExpansionBytes": 49092,
+                "fragmentEnvelopeBytes": 4546,
+                "totalBytes": 201515,
+                "snapshotSizes": {
+                  "count": 1,
+                  "mean": 247,
+                  "max": 247
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 200910,
+                  "max": 200910
+                },
+                "eventSizes": {
+                  "count": 1,
+                  "mean": 358,
+                  "max": 358
+                },
+                "datagramMax": 12268,
+                "fixtureSeconds": 0.05,
+                "estimatedKBpsAt20Hz": 4030.3
+              },
+              {
+                "phase": "initial",
+                "mode": "on",
+                "frames": 1,
+                "snapshotBytes": 247,
+                "baselineBytes": 205682,
+                "eventBytes": 358,
+                "fragmentBase64ExpansionBytes": 50285,
+                "fragmentEnvelopeBytes": 4546,
+                "totalBytes": 206287,
+                "snapshotSizes": {
+                  "count": 1,
+                  "mean": 247,
+                  "max": 247
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 205682,
+                  "max": 205682
+                },
+                "eventSizes": {
+                  "count": 1,
+                  "mean": 358,
+                  "max": 358
+                },
+                "datagramMax": 12268,
+                "fixtureSeconds": 0.05,
+                "estimatedKBpsAt20Hz": 4125.74
+              },
+              {
+                "phase": "steady-visible",
+                "mode": "off",
+                "frames": 80,
+                "snapshotBytes": 133776,
+                "baselineBytes": 0,
+                "eventBytes": 29091,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 162867,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1672.2,
+                  "max": 1680
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 363.6375,
+                  "max": 366
+                },
+                "datagramMax": 1680,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 40.71675
+              },
+              {
+                "phase": "steady-visible",
+                "mode": "on",
+                "frames": 80,
+                "snapshotBytes": 123344,
+                "baselineBytes": 0,
+                "eventBytes": 29091,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 152435,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1541.8,
+                  "max": 1552
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 363.6375,
+                  "max": 366
+                },
+                "datagramMax": 1552,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 38.10875
+              },
+              {
+                "phase": "hidden-set",
+                "mode": "off",
+                "frames": 80,
+                "snapshotBytes": 140034,
+                "baselineBytes": 0,
+                "eventBytes": 29493,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 169527,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1750.425,
+                  "max": 1765
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 368.6625,
+                  "max": 380
+                },
+                "datagramMax": 1765,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 42.38175
+              },
+              {
+                "phase": "hidden-set",
+                "mode": "on",
+                "frames": 80,
+                "snapshotBytes": 122278,
+                "baselineBytes": 158678,
+                "eventBytes": 29493,
+                "fragmentBase64ExpansionBytes": 38802,
+                "fragmentEnvelopeBytes": 3474,
+                "totalBytes": 310449,
+                "snapshotSizes": {
+                  "count": 80,
+                  "mean": 1528.475,
+                  "max": 1565
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 158678,
+                  "max": 158678
+                },
+                "eventSizes": {
+                  "count": 80,
+                  "mean": 368.6625,
+                  "max": 380
+                },
+                "datagramMax": 12268,
+                "fixtureSeconds": 4,
+                "estimatedKBpsAt20Hz": 77.61225
+              },
+              {
+                "phase": "visibility-change",
+                "mode": "off",
+                "frames": 25,
+                "snapshotBytes": 43325,
+                "baselineBytes": 0,
+                "eventBytes": 9253,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 52578,
+                "snapshotSizes": {
+                  "count": 25,
+                  "mean": 1733,
+                  "max": 1761
+                },
+                "baselineSizes": {
+                  "count": 0,
+                  "mean": 0,
+                  "max": 0
+                },
+                "eventSizes": {
+                  "count": 25,
+                  "mean": 370.12,
+                  "max": 380
+                },
+                "datagramMax": 1761,
+                "fixtureSeconds": 1.25,
+                "estimatedKBpsAt20Hz": 42.062400000000004
+              },
+              {
+                "phase": "visibility-change",
+                "mode": "on",
+                "frames": 25,
+                "snapshotBytes": 27267,
+                "baselineBytes": 1663688,
+                "eventBytes": 9253,
+                "fragmentBase64ExpansionBytes": 406765,
+                "fragmentEnvelopeBytes": 36656,
+                "totalBytes": 1700208,
+                "snapshotSizes": {
+                  "count": 25,
+                  "mean": 1090.68,
+                  "max": 1582
+                },
+                "baselineSizes": {
+                  "count": 9,
+                  "mean": 184854.22222222222,
+                  "max": 205783
+                },
+                "eventSizes": {
+                  "count": 25,
+                  "mean": 370.12,
+                  "max": 380
+                },
+                "datagramMax": 12269,
+                "fixtureSeconds": 1.25,
+                "estimatedKBpsAt20Hz": 1360.1663999999998
+              },
+              {
+                "phase": "steady-hidden",
+                "mode": "off",
+                "frames": 59,
+                "snapshotBytes": 100087,
+                "baselineBytes": 1913,
+                "eventBytes": 21810,
+                "fragmentBase64ExpansionBytes": 0,
+                "fragmentEnvelopeBytes": 0,
+                "totalBytes": 123810,
+                "snapshotSizes": {
+                  "count": 59,
+                  "mean": 1696.3898305084747,
+                  "max": 1761
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 1913,
+                  "max": 1913
+                },
+                "eventSizes": {
+                  "count": 59,
+                  "mean": 369.66101694915255,
+                  "max": 380
+                },
+                "datagramMax": 1913,
+                "fixtureSeconds": 2.95,
+                "estimatedKBpsAt20Hz": 41.96949152542373
+              },
+              {
+                "phase": "steady-hidden",
+                "mode": "on",
+                "frames": 59,
+                "snapshotBytes": 90534,
+                "baselineBytes": 158727,
+                "eventBytes": 21810,
+                "fragmentBase64ExpansionBytes": 38811,
+                "fragmentEnvelopeBytes": 3487,
+                "totalBytes": 271071,
+                "snapshotSizes": {
+                  "count": 59,
+                  "mean": 1534.4745762711864,
+                  "max": 1566
+                },
+                "baselineSizes": {
+                  "count": 1,
+                  "mean": 158727,
+                  "max": 158727
+                },
+                "eventSizes": {
+                  "count": 59,
+                  "mean": 369.66101694915255,
+                  "max": 380
+                },
+                "datagramMax": 12269,
+                "fixtureSeconds": 2.95,
+                "estimatedKBpsAt20Hz": 91.88847457627118
+              }
+            ],
+            "changes": [
+              {
+                "phase": "initial",
+                "offBytes": 201515,
+                "onBytes": 206287,
+                "changeBytes": 4772,
+                "changePercent": 2.3680619308736217
+              },
+              {
+                "phase": "steady-visible",
+                "offBytes": 162867,
+                "onBytes": 152435,
+                "changeBytes": -10432,
+                "changePercent": -6.405226350334936
+              },
+              {
+                "phase": "hidden-set",
+                "offBytes": 169527,
+                "onBytes": 310449,
+                "changeBytes": 140922,
+                "changePercent": 83.12658160646977
+              },
+              {
+                "phase": "visibility-change",
+                "offBytes": 52578,
+                "onBytes": 1700208,
+                "changeBytes": 1647630,
+                "changePercent": 3133.6870934611434
+              },
+              {
+                "phase": "steady-hidden",
+                "offBytes": 123810,
+                "onBytes": 271071,
+                "changeBytes": 147261,
+                "changePercent": 118.94111945723287
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "regressions": {
+    "revision": 54,
+    "predictionFunctional": 63,
+    "lag": 200,
+    "lagComparisons": [
+      {
+        "oneWayInjectedMs": 50,
+        "off": {
+          "hits": 0,
+          "shots": 12,
+          "hitRate": 0
+        },
+        "on": {
+          "hits": 12,
+          "shots": 12,
+          "hitRate": 1
+        },
+        "hitRateChange": 1,
+        "percentagePointChange": 100,
+        "clamped": 16,
+        "maxRewindMs": 200
+      },
+      {
+        "oneWayInjectedMs": 100,
+        "off": {
+          "hits": 0,
+          "shots": 12,
+          "hitRate": 0
+        },
+        "on": {
+          "hits": 1,
+          "shots": 12,
+          "hitRate": 0.08333333333333333
+        },
+        "hitRateChange": 0.08333333333333333,
+        "percentagePointChange": 8.333333333333332,
+        "clamped": 16,
+        "maxRewindMs": 200
+      }
+    ],
+    "lagSourceHashes": {
+      "prototype/index.html": "b7f5009aa4057764277e49d3c88e3966aed0bcfa8a7d4f3c9e1ff25a0a69e847",
+      "prototype/online/game.js": "7bdf8244a1faa8afda7fc24298f1d27c15a9d0f52a836eb792a41dc047f7e335",
+      "prototype/online/lag-compensation.js": "6f8fede1a6b30734c74ea0f26ac043f3fed163d6c44c36fd62cc7518d5f39e22"
+    },
+    "lagValidationCompleted": true,
+    "nodeSuites": 7,
+    "realRTCConfiguration": 6,
+    "quickCheck": "passed",
+    "allWeapons": "passed",
+    "botMaps": {
+      "maps": [
+        "city",
+        "wide",
+        "mesa",
+        "dock"
+      ],
+      "secondsSetting": 150,
+      "errors": []
+    },
+    "shapes": {
+      "combinations": 6561,
+      "shots": 32805,
+      "numeric": "passed",
+      "images": "timeout180s",
+      "exitCode": 124
+    },
+    "connections": 16,
+    "lossRecovery": 10
+  }
+}

@@ -1,0 +1,573 @@
+{
+  "scope": "同じ人工30Hz写真/35ms遅延。歩行は線形移動代役。lockは実anglesTo/lockStick/updateLocalHumanAim/updateCamera、選択・命中・施設・輸送は代役。WebGL/実WebRTC/実入力/操作感は未確認。",
+  "versions": [
+    {
+      "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+      "sourceHashes": {
+        "prototype/online/game.js": "b066d4b5f540344e90ffaaee52956e62ec537e87d9546dfeeb9dd867d714b42d",
+        "prototype/index.html": "0c071a2326517c0b194cb00a418e23d8b24c086e552c1f4ecd5f2162cc815887",
+        "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8"
+      },
+      "release": [
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 60,
+          "movement": {
+            "min": 0.17024462734339263,
+            "max": 0.1938888888888889,
+            "mean": 0.17882213077274806,
+            "reverse": 0,
+            "cv": 0.0400673497020144
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 120,
+          "movement": {
+            "min": 0.08313432618944416,
+            "max": 0.09664126403495399,
+            "mean": 0.08620138756910194,
+            "reverse": 0,
+            "cv": 0.04670491072270204
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 144,
+          "movement": {
+            "min": 0.06885673500797829,
+            "max": 0.07583253950109237,
+            "mean": 0.07049269236104229,
+            "reverse": 0,
+            "cv": 0.027445887942210055
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 240,
+          "movement": {
+            "min": 0.041111111111110876,
+            "max": 0.0427777777777778,
+            "mean": 0.041749999999999995,
+            "reverse": 0,
+            "cv": 0.01697584939743556
+          },
+          "releaseAt500": false
+        }
+      ],
+      "lock": [
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 60,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.04714072561433369,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 60,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": 0.00013150575060255631,
+            "max": 0.00039543420775084437,
+            "mean": 0.00023155934089678836,
+            "reverse": 0,
+            "cv": 0.3327160888005472
+          },
+          "maxYawStep": 0.00039543420775084437,
+          "maxPhotoViewShift": 0.04714072561433369,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 120,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.04712785589334345,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 120,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.0003689551250967704,
+            "max": 0.0007919109954108439,
+            "mean": 0.00013573004163196968,
+            "reverse": 26,
+            "cv": 2.0246913804702613
+          },
+          "maxYawStep": 0.0007919109954108439,
+          "maxPhotoViewShift": 0.04712785589334345,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 144,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.15554939083052943,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 144,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.0009209618384720397,
+            "max": 0.001750333259464748,
+            "mean": 0.00011242659982173395,
+            "reverse": 39,
+            "cv": 3.8453811028692972
+          },
+          "maxYawStep": 0.001750333259464748,
+          "maxPhotoViewShift": 0.15554939083052943,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 240,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.046829119806448105,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "ab43ed89a931ad5d7f82787dfabd1d6749952287",
+          "hz": 240,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.0003260095136840835,
+            "max": 0.000830027134645488,
+            "mean": 0.000071610511461572,
+            "reverse": 80,
+            "cv": 2.91985648088845
+          },
+          "maxYawStep": 0.000830027134645488,
+          "maxPhotoViewShift": 0.046829119806448105,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        }
+      ]
+    },
+    {
+      "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+      "sourceHashes": {
+        "prototype/online/game.js": "d89f81a47aba2f4c4940373d9b199e2b12a2eb3d70213008fb249534d7d4acdc",
+        "prototype/index.html": "0c071a2326517c0b194cb00a418e23d8b24c086e552c1f4ecd5f2162cc815887",
+        "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8"
+      },
+      "release": [
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 60,
+          "movement": {
+            "min": 0.16666666666666674,
+            "max": 0.17406691051567225,
+            "mean": 0.16937415535707595,
+            "reverse": 0,
+            "cv": 0.01571377498043899
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 120,
+          "movement": {
+            "min": 0.007515580266900912,
+            "max": 0.16589138401231918,
+            "mean": 0.08550452959452337,
+            "reverse": 0,
+            "cv": 0.890504271043105
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 144,
+          "movement": {
+            "min": 0.0009329798466970463,
+            "max": 0.16791791937704736,
+            "mean": 0.07433998023868212,
+            "reverse": 0,
+            "cv": 1.0253974924390978
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 240,
+          "movement": {
+            "min": -0.000560563255734392,
+            "max": 0.16391036678351656,
+            "mean": 0.04236694617445087,
+            "reverse": 1,
+            "cv": 0.8909212713663999
+          },
+          "releaseAt500": false
+        }
+      ],
+      "lock": [
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 60,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 60,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.00907791386534833,
+            "max": 0.009297876435894928,
+            "mean": -0.0000025399408251211564,
+            "reverse": 13,
+            "cv": 2161.1109668106815
+          },
+          "maxYawStep": 0.009297876435894928,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 120,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 120,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.00769974911006048,
+            "max": 0.011457795411265376,
+            "mean": 0.0001895912444500073,
+            "reverse": 39,
+            "cv": 22.153441851546912
+          },
+          "maxYawStep": 0.011457795411265376,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 144,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 144,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.007082001165330129,
+            "max": 0.010536076146464075,
+            "mean": 0.00010159736586545592,
+            "reverse": 51,
+            "cv": 36.13666958629469
+          },
+          "maxYawStep": 0.010536076146464075,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 240,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "10dda3000311181e16a8baeefa78503ee87c23c9",
+          "hz": 240,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": -0.005128190543563477,
+            "max": 0.00887190835240833,
+            "mean": 0.0000617787834435808,
+            "reverse": 93,
+            "cv": 39.8350618757173
+          },
+          "maxYawStep": 0.00887190835240833,
+          "maxPhotoViewShift": 0.870000000000001,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        }
+      ]
+    },
+    {
+      "revision": "working",
+      "sourceHashes": {
+        "prototype/online/game.js": "3be764279a5c7e328600db6cea7b79b2a7bb877cf0377e7bfa55eb4ffd150f1b",
+        "prototype/index.html": "23fff0eea87f6ef2558716d30c80d55c928adbbd5a818360a48b38fabf5b9b97",
+        "prototype/online/codec.js": "9ff90bee32ff0705391ea3b2397b41130fa73ed4387c1c928ed4f63e8b17c6f8"
+      },
+      "release": [
+        {
+          "revision": "working",
+          "hz": 60,
+          "movement": {
+            "min": 0.16739490457870332,
+            "max": 0.1912169105156723,
+            "mean": 0.17501349243685993,
+            "reverse": 0,
+            "cv": 0.044005282127897685
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "working",
+          "hz": 120,
+          "movement": {
+            "min": 0.08366725183262069,
+            "max": 0.09676474281051706,
+            "mean": 0.08752596894612988,
+            "reverse": 0,
+            "cv": 0.04457709998589896
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "working",
+          "hz": 144,
+          "movement": {
+            "min": 0.06970093514539633,
+            "max": 0.0795003247603463,
+            "mean": 0.0726857106578991,
+            "reverse": 0,
+            "cv": 0.04014251914640259
+          },
+          "releaseAt500": false
+        },
+        {
+          "revision": "working",
+          "hz": 240,
+          "movement": {
+            "min": 0.041826708217414854,
+            "max": 0.04869846398682931,
+            "mean": 0.04376779015498992,
+            "reverse": 0,
+            "cv": 0.04477001873590205
+          },
+          "releaseAt500": false
+        }
+      ],
+      "lock": [
+        {
+          "revision": "working",
+          "hz": 60,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 60,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": 0.00013878999777536954,
+            "max": 0.000408082852455513,
+            "mean": 0.00023890910683632027,
+            "reverse": 0,
+            "cv": 0.32834655195742213
+          },
+          "maxYawStep": 0.000408082852455513,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 120,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 120,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": 0.00007623518400266122,
+            "max": 0.00027254956234787353,
+            "mean": 0.00014396107818619803,
+            "reverse": 0,
+            "cv": 0.3804076546941317
+          },
+          "maxYawStep": 0.00027254956234787353,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 144,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 144,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": 0.00006409171167380545,
+            "max": 0.00024360150659978597,
+            "mean": 0.0001248264835762296,
+            "reverse": 0,
+            "cv": 0.3989179375907641
+          },
+          "maxYawStep": 0.00024360150659978597,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 240,
+          "lockOn": false,
+          "speed": 26,
+          "yaw": {
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "reverse": 0,
+            "cv": 0
+          },
+          "maxYawStep": 0,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        },
+        {
+          "revision": "working",
+          "hz": 240,
+          "lockOn": true,
+          "speed": 26,
+          "yaw": {
+            "min": 0.000039829626331935875,
+            "max": 0.00015660419714845497,
+            "mean": 0.00007883016457644152,
+            "reverse": 0,
+            "cv": 0.40683635221724906
+          },
+          "maxYawStep": 0.00015660419714845497,
+          "maxPhotoViewShift": 0,
+          "photoHash": "0c8e5d0ecca0b25b9e24973a7fa17c6a15af06ca846864b7ce3150fa8ff5163b"
+        }
+      ]
+    }
+  ],
+  "fixtureHashes": {
+    "tools/test/online_melee_transition_fixture.js": "47201846ee18708809817d413296cf23c441f3255c6ac3ee8afb70f5e3b57311",
+    "tools/test/online_melee_transition.test.js": "8d8869cd765b24757dc80cb2c35c42b098e8c9a01ea4eeb147b0190de3eb8fe6"
+  }
+}

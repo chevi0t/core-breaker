@@ -1,0 +1,353 @@
+{
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "commit": "e12278aba75430961729fc0c99985db373a483e4",
+  "method": "mesa・10機・人間2人の入力は中立、Botを通常実行。300秒設定の自然試合を固定50msコマ送り、描画省略。実時間20Hz・回線帯域・人間の操作感の測定ではない。",
+  "accounting": "messageBytesは成功したDataConnection.sendのJSON UTF8量。ネットワークヘッダー・WebRTC再送を含まない。カテゴリencodedBytesはbase64化前の二進数（index差varintを当該項目へ加算）、base64増量とJSON envelopeは別計上。差分は直前snapshotではなく共通基準との比較。",
+  "summary": {
+    "snapshotMessageBytes": {
+      "count": 1304,
+      "mean": 2001.2921779141104,
+      "p50": 2079,
+      "p95": 2716,
+      "max": 3280
+    },
+    "snapshotBinaryBytes": {
+      "count": 1304,
+      "mean": 1347.2530674846626,
+      "p50": 1405,
+      "p95": 1883,
+      "max": 2307
+    },
+    "changedFields": {
+      "count": 1304,
+      "mean": 219.24003067484662,
+      "p50": 234,
+      "p95": 268,
+      "max": 300
+    },
+    "baselineMessageBytes": {
+      "count": 15,
+      "mean": 37865.666666666664,
+      "p50": 60222,
+      "p95": 61560,
+      "max": 61752
+    },
+    "initialPrepare": {
+      "messageBytes": 65145,
+      "payloadBytes": 64951,
+      "baselineBytes": 64850,
+      "schemaBytes": 58105,
+      "valuesBytes": 6721,
+      "deltaBytes": 8,
+      "schemaFields": 1708,
+      "unitCount": 10,
+      "baseId": 1
+    },
+    "maximum": {
+      "messageBytes": 3280,
+      "payloadBytes": 3085,
+      "binaryBytes": 2307,
+      "base64Bytes": 3076,
+      "changedFields": 262,
+      "baseId": 10,
+      "frame": 2678,
+      "gameTimeLeft": 166.1,
+      "shellCount": 2,
+      "unitCount": 10,
+      "categories": {
+        "acks": {
+          "encodedBytes": 5,
+          "changedFields": 1
+        },
+        "cores": {
+          "encodedBytes": 10,
+          "changedFields": 2
+        },
+        "frame": {
+          "encodedBytes": 5,
+          "changedFields": 1
+        },
+        "mobility": {
+          "encodedBytes": 30,
+          "changedFields": 10
+        },
+        "plants": {
+          "encodedBytes": 218,
+          "changedFields": 1
+        },
+        "radars": {
+          "encodedBytes": 142,
+          "changedFields": 1
+        },
+        "shells": {
+          "encodedBytes": 214,
+          "changedFields": 1
+        },
+        "time": {
+          "encodedBytes": 5,
+          "changedFields": 1
+        },
+        "timeLeft": {
+          "encodedBytes": 4,
+          "changedFields": 1
+        },
+        "turrets": {
+          "encodedBytes": 249,
+          "changedFields": 1
+        },
+        "units": {
+          "encodedBytes": 1425,
+          "changedFields": 242
+        }
+      },
+      "envelopeOverheadBytes": 195,
+      "deltaWrapperBytes": 9,
+      "base64ExpansionBytes": 769,
+      "unitFieldGroups": {
+        "boostIdle": {
+          "encodedBytes": 32,
+          "changedFields": 10
+        },
+        "catCd": {
+          "encodedBytes": 39,
+          "changedFields": 10
+        },
+        "slots": {
+          "encodedBytes": 140,
+          "changedFields": 40
+        },
+        "switchT": {
+          "encodedBytes": 33,
+          "changedFields": 10
+        },
+        "actCd": {
+          "encodedBytes": 20,
+          "changedFields": 7
+        },
+        "alive": {
+          "encodedBytes": 8,
+          "changedFields": 4
+        },
+        "boost": {
+          "encodedBytes": 28,
+          "changedFields": 7
+        },
+        "cannonDeploy": {
+          "encodedBytes": 4,
+          "changedFields": 2
+        },
+        "dodgeT": {
+          "encodedBytes": 26,
+          "changedFields": 8
+        },
+        "hp": {
+          "encodedBytes": 24,
+          "changedFields": 6
+        },
+        "lifeId": {
+          "encodedBytes": 12,
+          "changedFields": 4
+        },
+        "onGround": {
+          "encodedBytes": 4,
+          "changedFields": 2
+        },
+        "pos": {
+          "encodedBytes": 72,
+          "changedFields": 23
+        },
+        "prevWeapon": {
+          "encodedBytes": 44,
+          "changedFields": 6
+        },
+        "respawnT": {
+          "encodedBytes": 10,
+          "changedFields": 4
+        },
+        "sc": {
+          "encodedBytes": 123,
+          "changedFields": 36
+        },
+        "stun": {
+          "encodedBytes": 8,
+          "changedFields": 1
+        },
+        "tilt": {
+          "encodedBytes": 3,
+          "changedFields": 1
+        },
+        "vel": {
+          "encodedBytes": 48,
+          "changedFields": 18
+        },
+        "weakT": {
+          "encodedBytes": 4,
+          "changedFields": 2
+        },
+        "weapon": {
+          "encodedBytes": 37,
+          "changedFields": 5
+        },
+        "yaw": {
+          "encodedBytes": 23,
+          "changedFields": 8
+        },
+        "moveInput": {
+          "encodedBytes": 2,
+          "changedFields": 1
+        },
+        "recoil": {
+          "encodedBytes": 8,
+          "changedFields": 4
+        },
+        "recoilRecovery": {
+          "encodedBytes": 6,
+          "changedFields": 3
+        },
+        "downYaw": {
+          "encodedBytes": 12,
+          "changedFields": 4
+        },
+        "recoilWait": {
+          "encodedBytes": 2,
+          "changedFields": 1
+        },
+        "recoilYaw": {
+          "encodedBytes": 4,
+          "changedFields": 2
+        },
+        "dashState": {
+          "encodedBytes": 17,
+          "changedFields": 3
+        },
+        "dashT": {
+          "encodedBytes": 6,
+          "changedFields": 3
+        },
+        "invulCancelOnAttack": {
+          "encodedBytes": 2,
+          "changedFields": 1
+        },
+        "invulT": {
+          "encodedBytes": 2,
+          "changedFields": 1
+        },
+        "lungeT": {
+          "encodedBytes": 6,
+          "changedFields": 2
+        },
+        "swing": {
+          "encodedBytes": 614,
+          "changedFields": 2
+        },
+        "longDash": {
+          "encodedBytes": 2,
+          "changedFields": 1
+        }
+      },
+      "counts": {
+        "units": 10,
+        "shells": 2,
+        "plants": 3,
+        "turrets": 4,
+        "radars": 2,
+        "barricades": 6
+      }
+    }
+  },
+  "categories": {
+    "frame": {
+      "encodedBytes": 6226,
+      "changedFields": 1289,
+      "snapshotsWithChange": 1289
+    },
+    "mobility": {
+      "encodedBytes": 38616,
+      "changedFields": 12872,
+      "snapshotsWithChange": 1288
+    },
+    "radars": {
+      "encodedBytes": 182727,
+      "changedFields": 1289,
+      "snapshotsWithChange": 1289
+    },
+    "running": {
+      "encodedBytes": 156,
+      "changedFields": 78,
+      "snapshotsWithChange": 78
+    },
+    "time": {
+      "encodedBytes": 6445,
+      "changedFields": 1289,
+      "snapshotsWithChange": 1289
+    },
+    "timeLeft": {
+      "encodedBytes": 5119,
+      "changedFields": 1289,
+      "snapshotsWithChange": 1289
+    },
+    "units": {
+      "encodedBytes": 906899,
+      "changedFields": 261618,
+      "snapshotsWithChange": 1289
+    },
+    "acks": {
+      "encodedBytes": 6223,
+      "changedFields": 1288,
+      "snapshotsWithChange": 1288
+    },
+    "plants": {
+      "encodedBytes": 262677,
+      "changedFields": 1203,
+      "snapshotsWithChange": 1203
+    },
+    "shells": {
+      "encodedBytes": 113828,
+      "changedFields": 870,
+      "snapshotsWithChange": 870
+    },
+    "turrets": {
+      "encodedBytes": 213202,
+      "changedFields": 864,
+      "snapshotsWithChange": 864
+    },
+    "cores": {
+      "encodedBytes": 8485,
+      "changedFields": 1697,
+      "snapshotsWithChange": 1058
+    },
+    "spotSrc": {
+      "encodedBytes": 3572,
+      "changedFields": 121,
+      "snapshotsWithChange": 121
+    },
+    "spotted": {
+      "encodedBytes": 2641,
+      "changedFields": 121,
+      "snapshotsWithChange": 121
+    },
+    "ended": {
+      "encodedBytes": 2,
+      "changedFields": 1,
+      "snapshotsWithChange": 1
+    }
+  },
+  "byType": {
+    "match": 220,
+    "prepare": 65145,
+    "ping": 19515,
+    "begin": 252,
+    "pong": 21687,
+    "events": 1786139,
+    "snapshot": 2609685,
+    "snapshotBase": 567985
+  },
+  "final": {
+    "phase": "ended",
+    "timeLeft": -3.396093128937849e-11,
+    "cores": [
+      7087.5,
+      7143.75
+    ]
+  }
+}

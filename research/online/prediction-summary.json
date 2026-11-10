@@ -1,0 +1,471 @@
+{
+  "mode": "WebRTC未検証・通信代替による機能試験（BroadcastChannel）",
+  "usesRealWebRTC": false,
+  "productionNetworkPerformanceVerified": false,
+  "createdAt": "2026-11-08T06:22:27.429Z",
+  "commit": "214d078 + stage2 working tree (sourceHashes identify measured source)",
+  "sourceHashes": {
+    "prototype/index.html": "05be2ffbbc91e63caa212ee88a4fd6fa2164ed803efb586663b8f9307184850f",
+    "prototype/online/game.js": "0fc6c3629f7fe20720873ab245cf332b8e34e9fbb9407a0131284c68a880f2a0",
+    "prototype/online/transport.js": "996b72b7a06801ff7d8da04e1d49f294a9f3da35149ad2bedc2e689a09a2866a"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "memoryBytes": 10451427328,
+    "browser": "141.0.7390.37",
+    "sameComputer": true,
+    "rendering": false,
+    "softwareGpu": true
+  },
+  "method": {
+    "functional": "製品の共有移動/physicsとsnapshot復元を、独立fixture・複数の可変dtで検証。将来host dtは不明なのでゲスト仮dtと確定host履歴を別扱い。",
+    "latency": "人工遅延は各方向50/100ms。実RAF、同一ゲストperformance.nowで入力投入→物理位置/描画groupが2cm超動く最初のframe。各条件5回以上。位置reset期間を補正集計から除く。",
+    "corrections": "snapshot受信直前の予測物理位置とsnapshot復元+replay後の位置の距離を独立観測。単位m。入力開始から停止がhostへ届いた後までを採取。再出撃などfixture resetは除外。",
+    "scope": "BroadcastChannel代替経路の通信機能・人工遅延のみ。WebRTC/NAT/実回線性能は未検証。",
+    "subjective": "描画省略の機能latencyで、GPU描画・ディスプレイ発光時刻・実ユーザーPCの操作感・人による試遊を測ったものではない。"
+  },
+  "functionalCheckCount": 62,
+  "latencyCheckCount": 23,
+  "latency": [
+    {
+      "oneWayInjectedMs": 50,
+      "predictionEnabled": false,
+      "movementMs": {
+        "count": 5,
+        "mean": 172.53999999985098,
+        "p50": 171,
+        "p95": 190.19999999925494,
+        "max": 197.29999999981374
+      },
+      "visibleMovementMs": {
+        "count": 5,
+        "mean": 172.53999999985098,
+        "p50": 171,
+        "p95": 190.19999999925494,
+        "max": 197.29999999981374
+      },
+      "timeouts": 0,
+      "correctionMetres": {
+        "count": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "max": null
+      },
+      "hardSnaps": 0,
+      "hardSnapReasons": {},
+      "frameDtSeconds": {
+        "count": 518,
+        "mean": 0.016762355212355397,
+        "p50": 0.01669999999999891,
+        "p95": 0.016799999999999274,
+        "max": 0.05
+      },
+      "distinctDtValues": 6,
+      "wire": {
+        "batches": 309,
+        "actions": 1,
+        "largestBatch": 5,
+        "batchChannels": {
+          "snapshot": 309
+        },
+        "actionChannels": {
+          "control": 1
+        },
+        "clientDtFields": 0,
+        "obsoleteInput": 0
+      }
+    },
+    {
+      "oneWayInjectedMs": 50,
+      "predictionEnabled": true,
+      "movementMs": {
+        "count": 5,
+        "mean": 9.900000000186264,
+        "p50": 9.799999999813735,
+        "p95": 11.300000000745058,
+        "max": 12.799999999813735
+      },
+      "visibleMovementMs": {
+        "count": 5,
+        "mean": 9.900000000186264,
+        "p50": 9.799999999813735,
+        "p95": 11.300000000745058,
+        "max": 12.799999999813735
+      },
+      "timeouts": 0,
+      "correctionMetres": {
+        "count": 36,
+        "mean": 0.026873348596328443,
+        "p50": 0.00046733921979580373,
+        "p95": 0.1803712069015262,
+        "max": 0.3693452975383025
+      },
+      "hardSnaps": 0,
+      "hardSnapReasons": {},
+      "frameDtSeconds": {
+        "count": 479,
+        "mean": 0.016700626304801805,
+        "p50": 0.01669999999999891,
+        "p95": 0.016799999999999274,
+        "max": 0.033299999999999275
+      },
+      "distinctDtValues": 5,
+      "wire": {
+        "batches": 285,
+        "actions": 1,
+        "largestBatch": 5,
+        "batchChannels": {
+          "snapshot": 285
+        },
+        "actionChannels": {
+          "control": 1
+        },
+        "clientDtFields": 0,
+        "obsoleteInput": 0
+      }
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "predictionEnabled": false,
+      "movementMs": {
+        "count": 5,
+        "mean": 282.89999999981376,
+        "p50": 276.59999999962747,
+        "p95": 287.59999999962747,
+        "max": 330
+      },
+      "visibleMovementMs": {
+        "count": 5,
+        "mean": 282.89999999981376,
+        "p50": 276.59999999962747,
+        "p95": 287.59999999962747,
+        "max": 330
+      },
+      "timeouts": 0,
+      "correctionMetres": {
+        "count": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "max": null
+      },
+      "hardSnaps": 0,
+      "hardSnapReasons": {},
+      "frameDtSeconds": {
+        "count": 669,
+        "mean": 0.016690881913303465,
+        "p50": 0.01669999999999891,
+        "p95": 0.016799999999999274,
+        "max": 0.033299999999999275
+      },
+      "distinctDtValues": 5,
+      "wire": {
+        "batches": 376,
+        "actions": 1,
+        "largestBatch": 5,
+        "batchChannels": {
+          "snapshot": 376
+        },
+        "actionChannels": {
+          "control": 1
+        },
+        "clientDtFields": 0,
+        "obsoleteInput": 0
+      }
+    },
+    {
+      "oneWayInjectedMs": 100,
+      "predictionEnabled": true,
+      "movementMs": {
+        "count": 5,
+        "mean": 10.719999999925495,
+        "p50": 9.799999999813735,
+        "p95": 14.299999999813735,
+        "max": 15.299999999813735
+      },
+      "visibleMovementMs": {
+        "count": 5,
+        "mean": 10.719999999925495,
+        "p50": 9.799999999813735,
+        "p95": 14.299999999813735,
+        "max": 15.299999999813735
+      },
+      "timeouts": 0,
+      "correctionMetres": {
+        "count": 45,
+        "mean": 0.024698361622307,
+        "p50": 0.001667059656000447,
+        "p95": 0.2026892900270525,
+        "max": 0.21842222446306891
+      },
+      "hardSnaps": 0,
+      "hardSnapReasons": {},
+      "frameDtSeconds": {
+        "count": 581,
+        "mean": 0.016752151462994934,
+        "p50": 0.01669999999999891,
+        "p95": 0.016700000000000728,
+        "max": 0.04990000000000146
+      },
+      "distinctDtValues": 6,
+      "wire": {
+        "batches": 330,
+        "actions": 1,
+        "largestBatch": 5,
+        "batchChannels": {
+          "snapshot": 330
+        },
+        "actionChannels": {
+          "control": 1
+        },
+        "clientDtFields": 0,
+        "obsoleteInput": 0
+      }
+    }
+  ],
+  "functional": {
+    "inputDelivery": {
+      "checks": [
+        {
+          "value": true,
+          "name": "入力batchを1通失っても次の5コマで最新番号へ進み、押下・射撃・dtの混入を拒否"
+        },
+        {
+          "value": true,
+          "name": "逆転/重複batchで最新移動入力を巻き戻さない"
+        },
+        {
+          "value": true,
+          "name": "batch内部の逆順も番号順で重複排除"
+        },
+        {
+          "value": true,
+          "name": "control先着時は対応するmovement番号まで一度きり操作を待つ"
+        },
+        {
+          "value": true,
+          "name": "controlの押下はmovement到着後に一度だけ適用し重複actionを捨てる"
+        },
+        {
+          "value": true,
+          "name": "後続control先着だけでは現在の射撃状態を先走って変更しない"
+        },
+        {
+          "value": true,
+          "name": "対応movement後に射撃解除を一度確定"
+        },
+        {
+          "value": true,
+          "name": "movement ack後着のcontrol押下も独立action番号で一度だけ適用"
+        },
+        {
+          "value": true,
+          "name": "再出撃後の古いlife入力/押下/射撃を拒否し番号も進めない"
+        },
+        {
+          "value": true,
+          "name": "新lifeの移動は旧lifeのone-shotを引き継がず再開"
+        },
+        {
+          "value": true,
+          "name": "500ms超遅着/250ms超未来の入力とcontrol操作を失効"
+        },
+        {
+          "value": true,
+          "name": "移動入力が250ms途絶えると古いキー・射撃を継続しない"
+        },
+        {
+          "value": true,
+          "name": "長い欠落後は失効したcontrol押下を再生せず最新移動から再開"
+        }
+      ],
+      "details": {
+        "redundancy": {
+          "receivedSeq": 9,
+          "appliedSeq": 6
+        },
+        "actionOrder": {
+          "lateAppliedSeq": 50,
+          "lateActionSeq": 1
+        },
+        "expiry": {
+          "maxAgeMs": 500,
+          "movementStaleMs": 250,
+          "restoredSeq": 2
+        }
+      }
+    },
+    "checks": [
+      {
+        "value": true,
+        "name": "host写真前に自機の移動だけが進む"
+      },
+      {
+        "value": true,
+        "name": "射撃入力を含む予測でもHP・弾数・弾・命中表示はhost確定前に変えない"
+      },
+      {
+        "value": true,
+        "name": "host snapshotが到着した時点で初めて標的HPを反映"
+      },
+      {
+        "value": true,
+        "name": "部分ackは確定stateから残り仮dtだけ再実行しジャンプ/boost押下を重ねない"
+      },
+      {
+        "value": true,
+        "name": "40ms仮stepの11ms部分ackを29ms残りとして扱い、後続23msを残す"
+      },
+      {
+        "value": true,
+        "name": "確定host dtと未確定仮dtの統計を混同しない"
+      },
+      {
+        "value": true,
+        "name": "同じsnapshotを再受信しても押下・replayを二重適用しない"
+      },
+      {
+        "value": true,
+        "name": "同seqの累積47msで40ms仮stepだけ除去し後続入力を保持"
+      },
+      {
+        "value": true,
+        "name": "movement ack先着でも未ackのcontrol押下を捨てない"
+      },
+      {
+        "value": true,
+        "name": "後続の実在する仮dtへ未ackジャンプを一度だけ合成"
+      },
+      {
+        "value": true,
+        "name": "独立action ack後に保留していた押下を除去"
+      },
+      {
+        "value": true,
+        "name": "逆順の古いsnapshotは位置とackを巻き戻さない"
+      },
+      {
+        "value": true,
+        "name": "基準欠落の差分を誤った過去基準で適用しない"
+      },
+      {
+        "value": true,
+        "name": "欠落基準の復旧後に最新snapshotから再開"
+      },
+      {
+        "value": true,
+        "name": "respawn境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "down境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "transfer境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "equipment境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "同lifeの機体変更は移動用statsを新しい機体から再構築"
+      },
+      {
+        "value": true,
+        "name": "stun境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "electric境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "shock境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "catapult境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "jumpPad境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "repair境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "zip境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "lift境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "melee境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "planted境界で過去入力を捨て、0.5m未満でも補間せず確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "0.2m補正は物理位置を即確定し、見た目だけ旧位置から滑らかにする"
+      },
+      {
+        "value": true,
+        "name": "見た目補正は6frame以内で単調に解消し物理位置を変更しない"
+      },
+      {
+        "value": true,
+        "name": "0.5m以上のずれは見た目も即座に確定位置へ合わせる"
+      },
+      {
+        "value": true,
+        "name": "長い欠落でも予測履歴を240入力・仮dt合計1秒以内へ制限"
+      },
+      {
+        "value": true,
+        "name": "不正な巨大仮dtは自機予測へも適用しない"
+      },
+      {
+        "value": true,
+        "name": "捨てた履歴より前のsnapshotには不完全な末尾をreplayせずhistory snapで捨てる"
+      },
+      {
+        "value": true,
+        "name": "500ms超の未ackジャンプは失効し新しい仮stepで再発火しない"
+      },
+      {
+        "value": true,
+        "name": "描画関数の中だけcameraへ見た目補正を足す"
+      },
+      {
+        "value": true,
+        "name": "描画後はcamera/aimPointを元へ戻し補正を照準・物理・送信値へ混ぜない"
+      },
+      {
+        "value": true,
+        "name": "240Hz仮描画で自機を毎frame予測し入力batch送信だけ60Hz以下へ制限"
+      },
+      {
+        "value": true,
+        "name": "4msのジャンプ/射撃開始/解除を信頼性ありinputActionsへ残す"
+      },
+      {
+        "value": true,
+        "name": "movement batchへ押下/射撃/クライアントdtを混ぜない"
+      },
+      {
+        "value": true,
+        "name": "controlのheld状態が未ackのまま500ms経過したら押下なしのfresh actionで再同期"
+      }
+    ]
+  }
+}

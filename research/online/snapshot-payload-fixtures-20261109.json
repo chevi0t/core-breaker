@@ -1,0 +1,449 @@
+{
+  "mode": "Node固定fixture・ブラウザ/WebRTC未測定",
+  "baseline": "8b49cebcf6b4293c4659bc97c0a7686b4067d422",
+  "current": "8b49cebc の作業ツリーに本変更を適用（製品ファイルのSHA-256はcodeHashes）",
+  "node": "v24.22.1",
+  "codeHashes": {
+    "prototype/online/game.js": "dc15fb76bdf0cf8d09a5b2dcf28ab336de3914e1f86d495bd0ecacdc1b83cb15",
+    "prototype/online/codec.js": "bd852f344716ea2248066e30baef36fdc2c444766e4b19fd4e8ef02c15c51263"
+  },
+  "method": "実game.snapshot/個別公開判定/codec、10機・4兵装・5プラント/4砲台/2レーダー/8バリケード。全機更新を強制し、30コマwarmup後240コマを2回。2回目は前後を逆順で計測。時間は30ms刻み、ACKは両版同条件で毎回8step更新。fixtureの末端模型は代役、Bot/描画/transportは実行しない。",
+  "accounting": "payloadBytesは{frame,delta}のJSON UTF8量。binaryBytesはbase64前の差分長。baseline bytesは初期schema+値のJSON量。CPUはNodeの実snapshot構築/公開判定/encode、およびdecodeのみ。通信envelope、fragment、回線帯域、描画FPSは含まない。",
+  "scenes": {
+    "hidden": {
+      "before": {
+        "initialBaseline": {
+          "bytes": 89668,
+          "fields": 2241
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 4910.5625,
+          "p50": 4918,
+          "p95": 4921,
+          "max": 4922
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 3659.8125,
+          "p50": 3666,
+          "p95": 3667,
+          "max": 3667
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 467,
+          "p50": 467,
+          "p95": 467,
+          "max": 467
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 4.618357524999988,
+          "p50": 4.419836999999461,
+          "p95": 5.894140999999763,
+          "max": 9.92199400000004
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.4714638770833505,
+          "p50": 0.42774500000018634,
+          "p95": 0.6890800000001036,
+          "max": 2.474292000000105
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "time": 5,
+          "units": 2637
+        },
+        "visibleEnemies": [
+          0
+        ]
+      },
+      "after": {
+        "initialBaseline": {
+          "bytes": 58307,
+          "fields": 1552
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 1408.9958333333334,
+          "p50": 1417,
+          "p95": 1418,
+          "max": 1418
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1033.8125,
+          "p50": 1040,
+          "p95": 1041,
+          "max": 1041
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 9,
+          "p50": 9,
+          "p95": 9,
+          "max": 9
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 3.3821845395833297,
+          "p50": 3.1612989999998717,
+          "p95": 4.686979000000065,
+          "max": 10.176478999999745
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.32824820416667394,
+          "p50": 0.27833000000009633,
+          "p95": 0.5166500000000269,
+          "max": 3.7443280000002233
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "time": 5,
+          "units": 11
+        },
+        "visibleEnemies": [
+          0
+        ]
+      }
+    },
+    "remote_fire": {
+      "before": {
+        "initialBaseline": {
+          "bytes": 89668,
+          "fields": 2241
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 1634.3458333333333,
+          "p50": 1650,
+          "p95": 1678,
+          "max": 1682
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1202.6083333333333,
+          "p50": 1213,
+          "p95": 1236,
+          "max": 1237
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 37.24166666666667,
+          "p50": 40,
+          "p95": 40,
+          "max": 40
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 4.521281037500044,
+          "p50": 4.361828999999489,
+          "p95": 5.678444000000127,
+          "max": 8.997991000000184
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.3881147875000143,
+          "p50": 0.3545249999997395,
+          "p95": 0.5584819999994579,
+          "max": 1.1300540000002002
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "time": 5,
+          "units": 179.79583333333332
+        },
+        "visibleEnemies": [
+          5
+        ]
+      },
+      "after": {
+        "initialBaseline": {
+          "bytes": 58307,
+          "fields": 1552
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 1394.5625,
+          "p50": 1402,
+          "p95": 1405,
+          "max": 1406
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1022.8125,
+          "p50": 1029,
+          "p95": 1030,
+          "max": 1030
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 4,
+          "p50": 4,
+          "p95": 4,
+          "max": 4
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 3.4122736208333473,
+          "p50": 3.350572999999713,
+          "p95": 4.074415000000954,
+          "max": 5.302687000000333
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.28450273124998376,
+          "p50": 0.2577689999998256,
+          "p95": 0.4065129999999044,
+          "max": 0.7802070000016101
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "time": 5
+        },
+        "visibleEnemies": [
+          5
+        ]
+      }
+    },
+    "facilities": {
+      "before": {
+        "initialBaseline": {
+          "bytes": 89668,
+          "fields": 2241
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 2634.1125,
+          "p50": 2642,
+          "p95": 2645,
+          "max": 2646
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1952.4791666666667,
+          "p50": 1959,
+          "p95": 1960,
+          "max": 1960
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "max": 8
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 5.084469702083341,
+          "p50": 4.46536500000002,
+          "p95": 6.875500000000102,
+          "max": 22.161305999999968
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.4415299562500233,
+          "p50": 0.36996799999906216,
+          "p95": 0.6239310000000842,
+          "max": 2.695585999999821
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "barricades": 211,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "plants": 350.8833333333333,
+          "radars": 135.89166666666668,
+          "time": 5,
+          "turrets": 231.89166666666668
+        },
+        "visibleEnemies": [
+          5
+        ]
+      },
+      "after": {
+        "initialBaseline": {
+          "bytes": 58307,
+          "fields": 1552
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 1420.6791666666666,
+          "p50": 1429,
+          "p95": 1430,
+          "max": 1430
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1041.7375,
+          "p50": 1048,
+          "p95": 1049,
+          "max": 1049
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 8.991666666666667,
+          "p50": 9,
+          "p95": 9,
+          "max": 9
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 4.127440952083377,
+          "p50": 3.8963169999988168,
+          "p95": 5.130769000001237,
+          "max": 19.288092999999208
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.3386021250000037,
+          "p50": 0.3207039999997505,
+          "p95": 0.4338339999994787,
+          "max": 2.1675500000001193
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "barricades": 5,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "plants": 7.925,
+          "radars": 3,
+          "time": 5,
+          "turrets": 3
+        },
+        "visibleEnemies": [
+          5
+        ]
+      }
+    },
+    "mixed": {
+      "before": {
+        "initialBaseline": {
+          "bytes": 89668,
+          "fields": 2241
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 5511.095833333334,
+          "p50": 6298,
+          "p95": 6414,
+          "max": 6414
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 4110.141666666666,
+          "p50": 4701,
+          "p95": 4788,
+          "max": 4788
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 392.07916666666665,
+          "p50": 498,
+          "p95": 507,
+          "max": 507
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 4.274274641666803,
+          "p50": 4.143980000000738,
+          "p95": 4.994152999999642,
+          "max": 8.755615999998554
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.4159542895831957,
+          "p50": 0.4005040000010922,
+          "p95": 0.5029280000017025,
+          "max": 1.2902959999992163
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "barricades": 211,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "plants": 350.8833333333333,
+          "radars": 135.89166666666668,
+          "time": 5,
+          "turrets": 231.89166666666668,
+          "units": 2157.6625
+        },
+        "visibleEnemies": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "after": {
+        "initialBaseline": {
+          "bytes": 58307,
+          "fields": 1552
+        },
+        "payloadBytes": {
+          "count": 480,
+          "mean": 1598.5458333333333,
+          "p50": 1582,
+          "p95": 1657,
+          "max": 1658
+        },
+        "binaryBytes": {
+          "count": 480,
+          "mean": 1175.7708333333333,
+          "p50": 1163,
+          "p95": 1221,
+          "max": 1221
+        },
+        "changedFields": {
+          "count": 480,
+          "mean": 37.8125,
+          "p50": 34,
+          "p95": 43,
+          "max": 43
+        },
+        "encodeMs": {
+          "count": 480,
+          "mean": 3.1796347395833435,
+          "p50": 3.0984840000019176,
+          "p95": 3.844658999998501,
+          "max": 5.751234999999724
+        },
+        "decodeMs": {
+          "count": 480,
+          "mean": 0.2968997749998683,
+          "p50": 0.26297599999816157,
+          "p95": 0.4513509999997041,
+          "max": 3.4063679999999295
+        },
+        "categoryMeanBytes": {
+          "acks": 4,
+          "barricades": 5,
+          "frame": 4,
+          "inputAcks": 1009.8125,
+          "plants": 7.925,
+          "radars": 3,
+          "time": 5,
+          "turrets": 3,
+          "units": 134.03333333333333
+        },
+        "visibleEnemies": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    }
+  }
+}

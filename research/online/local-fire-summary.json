@@ -1,0 +1,32 @@
+{
+  "scope": "実関数VM・炎/音末端は代役・実browser/RTC/聴感は未実行",
+  "checks": 50,
+  "details": {
+    "autoParity": {
+      "shots": 19,
+      "frames": 120
+    },
+    "semiParity": {
+      "shots": 4,
+      "frames": 120
+    },
+    "lateAuthoritative": {
+      "afterMs": 501,
+      "effects": {
+        "flash": 2,
+        "sound": 2
+      }
+    },
+    "timeWindowIsNotShotIdentity": true,
+    "unconfirmedAmmo": {
+      "authoritativeAmmo": 1,
+      "cosmeticShots": 11
+    }
+  },
+  "sourceHashes": {
+    "prototype/online/game.js": "b63504981a3a43f268cf96ae4af9f15c99c3cd1e5c6d8f3e0b6ce2c8d6083236",
+    "prototype/index.html": "d33a236e47ded33cefe56ac0bc97f2fc9a87beb088a41506e6c85e5926eb9f9c",
+    "tools/test/online_prediction.test.js": "1a790d411fda8dbf64df4640a661d2a991632790799113e918f54e59e79d629c",
+    "tools/test/online_local_fire.test.js": "3f1e2a0da41b1d86ea4b639031bcc36a8f9d5047ba6902f21d9367f3e95f9463"
+  }
+}

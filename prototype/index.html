@@ -388,7 +388,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <script src="sounds.js"></script>
 <script src="music.js"></script>
 <script src="maps.js"></script>
@@ -646,6 +646,7 @@ function soundMix(s, at, level = 1) {
   return { vol, pan };
 }
 function sfx(name, at, src, rate = 1, level = 1) {
+  if(src?.onlineHidden)return;
   const s = SFX[name];
   if (!audio || muted || !s || !sfxBuf[s.file] || !gameOptions.master || !gameOptions.sfx) return;
   const t = audio.currentTime, last = src ? (src.sfxT || (src.sfxT = {})) : uiLast;
@@ -696,6 +697,17 @@ function stopMovementSound(u) {
   u.boostVoice = null; u.boostAudioRetry = 0;
 }
 function stopMovementSounds() { for (const u of units) stopMovementSound(u); }
+// オンライン終了時は、機体に参照が残らなかった複製音もプールから止める。
+function stopLoopingGameSounds() {
+  stopMovementSounds();
+  for (const pool of Object.values(soundVoices)) for (const voice of [...pool]) {
+    if (!SFX[voice.name]?.loop && !SFX[voice.name]?.motion) continue;
+    voice.stopping = true;
+    try { voice.node.stop(); } catch (_) {} // 既に終了した音も安全に掃除する。
+    voice.end();
+  }
+}
+
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopMovementSounds(); });
 function movementAudioTick(u, dt) {
   u.stepQuiet = Math.max(0, (u.stepQuiet || 0) - dt);
@@ -1777,11 +1789,11 @@ function botWetPath(ax,az,bx,bz,ay,by=ay) {
   return false;
 }
 function clearPath(ax, az, bx, bz, ay, unit=null) {
-  if(unit&&!unit.isPlayer&&!botWetAt(ax,az,ay??terrainH(ax,az))&&botWetPath(ax,az,bx,bz,ay??terrainH(ax,az)))return false;
+  if(unit&&!isHumanControlled(unit)&&!botWetAt(ax,az,ay??terrainH(ax,az))&&botWetPath(ax,az,bx,bz,ay??terrainH(ax,az)))return false;
   return walkClearPath(ax,az,bx,bz,ay,unit);
 }
 function walkClearPath(ax, az, bx, bz, ay, unit=null) {
-  if (unit && (hoverLegs(unit) || !unit.isPlayer && cityMap)) return hoverClearPath(unit,ax,az,bx,bz,ay);
+  if (unit && (hoverLegs(unit) || !isHumanControlled(unit) && cityMap)) return hoverClearPath(unit,ax,az,bx,bz,ay);
   if(cityBattle){const result=cityBattle.clearPath(ax,az,bx,bz,ay,obstacles,groundAt);pathEndH=result.y;return result.ok;}
   const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / 0.5)), step = L / n, hs = new Float32Array(n + 1);
   let ph = ay ?? terrainH(ax, az);
@@ -2178,8 +2190,8 @@ function plantUpdate(pl, dt) {
   if (!pl.owner && pl.gauge <= -100) pl.owner = 'R';
   if (prev !== pl.owner) {
     paintPlant(pl);
-    if (pl.owner) { feed(`<span style="color:${TEAM[pl.owner].css}">${TEAM[pl.owner].name}</span> がプラント${pl.id}を占拠`); sfx('capture'); }
-    else feed(`<span style="color:${TEAM[prev].css}">${TEAM[prev].name}</span> のプラント${pl.id}が中立化`);
+    if (pl.owner) { feedAll(`<span style="color:${TEAM[pl.owner].css}">${TEAM[pl.owner].name}</span> がプラント${pl.id}を占拠`); sfx('capture'); }
+    else feedAll(`<span style="color:${TEAM[prev].css}">${TEAM[prev].name}</span> のプラント${pl.id}が中立化`);
     annPlant(pl, prev);
     scoreCapture(pl, prev);
   }
@@ -2247,7 +2259,7 @@ function reviveTurret(tu, hp, by) {
   tu.baseMat.color.setHex(TURRET_BASE);
   tu.base.userData.ref = tu;
   for (const m of tu.parts) if (!hittables.includes(m)) hittables.push(m);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
+  if (by) feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
 }
 function resetTurrets() { for (const tu of turrets) reviveTurret(tu, tu.maxHp); }
 
@@ -2331,7 +2343,7 @@ function reviveRadar(rd, hp, by) {
   rd.baseMat.color.setHex(RADAR_BODY);
   for (const m of rd.body) m.userData.ref = rd;
   if (!hittables.includes(rd.dish)) hittables.push(rd.dish);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
+  if (by) feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
 }
 function destroyRadar(rd, by) {
   Object.assign(rd, { alive: false, hp: 0, revive: 0, intruders: [] });
@@ -2339,9 +2351,9 @@ function destroyRadar(rd, by) {
   rd.baseMat.color.setHex(0x26282b);
   for (const m of rd.body) m.userData.ref = null; // 残骸は遮蔽物として残る
   const i = hittables.indexOf(rd.dish); if (i >= 0) hittables.splice(i, 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
   addScore(by, 'support', SC.radar, 'レーダー破壊');
-  if (by.isPlayer) popup(rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
+  notePopup(by, rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
   boom(rd.pos.clone().setY(rd.pos.y + 8));
 }
 function resetRadars() { for (const rd of radars) reviveRadar(rd, rd.maxHp); }
@@ -2368,9 +2380,9 @@ function destroyTurret(tu, by) {
   tu.baseMat.color.setHex(0x26282b);
   tu.base.userData.ref = null; // 残骸は遮蔽物として残る
   for (const m of tu.parts) { const i = hittables.indexOf(m); if (i >= 0) hittables.splice(i, 1); }
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
   addScore(by, 'support', SC.turret, '防衛砲台破壊');
-  if (by.isPlayer) popup(tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
+  notePopup(by, tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
   boom(tu.pos);
 }
 function turretUpdate(tu, dt) {
@@ -2505,7 +2517,7 @@ function bladeWaveTick(sh, dt) {
     if (hit.barrier) barrierAbsorb(r, S.dmg, hit.point);
     else if (r && r.team !== sh.team && r.kind !== 'umbrella' && r.kind !== 'core') {
       const result = damage(r, sh.owner, S.dmg, false, false, r.kind === 'unit' ? hit.slot : null, sh.pos, true, false, sh.weaponName);
-      if (result && sh.owner.isPlayer) hitMark(false);
+      if (result && isLocalView(sh.owner)) hitMark(false);
     }
     impact(hit.point, hit.barrier ? 'shield' : 'hit', 0);
     return false;
@@ -2709,7 +2721,7 @@ function stunFieldUpdate(dt) {
     for (const e of units) {
       if (!e.alive || e.team === f.team || e.invulT > 0 || !inStunField(f, e)) continue;
       if (f.touched.has(e)) continue;
-      f.touched.add(e); damage(e, f.owner, f.dmg, false, false, null, f.from, false, true, f.name); if (f.owner.isPlayer) hitMark(false);
+      f.touched.add(e); damage(e, f.owner, f.dmg, false, false, null, f.from, false, true, f.name); if (isLocalView(f.owner)) hitMark(false);
       // 行動不能（2026-11-06 オーナー「ちゃんと行動不能なってる？」。アーケード版のスタナーに合わせ、電撃グレネードと同じ硬直を shock 秒。
       // 前は範囲の中にいる間と出てから shock 秒の機動の妨害 shockT だけで、歩きと射撃はできた）。入った時に1回だけで、範囲の中にいても延びない
       if (!e.alive || launchStaggerProtected(e) || e.repairing) continue; // 電撃グレネードと同じく、射出直後とポッド使用中は崩さない
@@ -2825,7 +2837,7 @@ function blast(sh, at, ref) {
     for(const e of units) {
       if(!e.alive || e.team===sh.team || e.invulT>0 || bodyDist(e,at)>S.blast) continue;
       if(S.stunSeconds && (launchStaggerProtected(e) || e.repairing)) continue; // jolt と同じく射出直後とポッド使用中は崩さない。
-      if(S.jamSeconds) {e.jamT=Math.max(e.jamT||0,S.jamSeconds);e.healTarget=null;if(e.isPlayer)releaseLock();e.locked=false;}
+      if(S.jamSeconds) {e.jamT=Math.max(e.jamT||0,S.jamSeconds);e.healTarget=null;if(isLocalView(e))releaseLock();e.locked=false;}
       if(S.stunSeconds) {
         e.electricT=Math.max(e.electricT||0,S.stunSeconds);e.vel.x=e.vel.z=0;e.dashT=e.lungeT=0;e.longDash=false;e.swing=e.meleeRecovery=null;e.healTarget=null;
         if(e.stun!=='down') {e.stun='electric';e.stunT=e.electricT;}
@@ -2833,7 +2845,7 @@ function blast(sh, at, ref) {
       hit=true;
     }
     cloud(at,S.blast,S.jamSeconds?0x7b9eff:0xf2dc88,.5);sfx('gas',at);
-    if(hit && sh.owner.isPlayer)hitMark(false);
+    if(hit && isLocalView(sh.owner))hitMark(false);
     return;
   }
   // 索敵ソナー：炸裂した瞬間に周り（水平に S.scan m）の敵機を味方のミニマップに S.keep 秒映す。ダメージは無い
@@ -2866,11 +2878,11 @@ function blast(sh, at, ref) {
     u.hp -= real;
     noteDmg(u, sh.owner, real);
     cloakHit(u, fall(d));
-    if (u.isPlayer) { flashDamage(at, real); kickBlastShake(real); }
+    if (isLocalView(u)) { flashDamage(at, real); kickBlastShake(real); } else window.CBOnlineGame?.remoteFeedback?.(u, 'hurt', { at: at.toArray(), real, blast: true });
     if (u.hp <= 0) kill(u, sh.owner, false, real, sh.weaponName);
     else jolt(u, at, real * (S.knockMult || 1), false); // 爆風は1つずつ判定（wiki）
   }
-  if (!S.dmg) { if (hitAny && sh.owner.isPlayer) hitMark(false); return; }
+  if (!S.dmg) { if (hitAny && isLocalView(sh.owner)) hitMark(false); return; }
   for (const g of gadgets.slice()) {
     if (g === sh.skip || g.team === sh.team) continue;
     const d = g.pos.distanceTo(at);
@@ -2898,7 +2910,7 @@ function blast(sh, at, ref) {
     if (d > S.blast || !blastVisible(at,new T.Vector3((o.minX+o.maxX)/2,o.top,(o.minZ+o.maxZ)/2),br)) continue;
     damageBarricade(br, fall(d), sh.owner); hitAny = true;
   }
-  if (hitAny && sh.owner.isPlayer) hitMark(false);
+  if (hitAny && isLocalView(sh.owner)) hitMark(false);
 }
 
 // カタパルト：無入力の予測水平飛距離の60%までは移動固定。以後はブーストで延伸・逆噴射できる。
@@ -3206,7 +3218,7 @@ function zipDrop(u, hop = true) {
 function zipRide(u, dt, jumpPressed) {
   if (!u.alive || u.stun || u.electricT > 0) { zipDrop(u, false); return false; }
   // Bot は途中で手を離さない（Bot の跳ぶ判断は地上のためのもの）
-  if (jumpPressed && u.isPlayer) { zipDrop(u); return false; }
+  if (jumpPressed && isHumanControlled(u)) { zipDrop(u); return false; }
   const r = u.zip, z = r.line;
   u.onGround = false;
   u.boostIdle += dt; if (u.boostIdle > 0.5) u.boost = Math.min(u.maxBoost, u.boost + BOOST_REGEN * dt);
@@ -3375,8 +3387,8 @@ function damageBarricade(br, dmg, by) {
   mapRoot.remove(br.mesh);
   hittables.splice(hittables.indexOf(br.mesh), 1);
   obstacles.splice(obstacles.indexOf(br.ob), 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
-  if (by.isPlayer) popup(br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
+  notePopup(by, br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
   boom(br.pos.clone().setY(br.base));
 }
 
@@ -3628,8 +3640,8 @@ function boosterFlameUpdate(u, dt) {
   const a = 1 - Math.exp(-dt * (mode ? 35 : 26));
   f.power += ((mode ? 1 : 0) - f.power) * a;
   f.length += (target - f.length) * a;
-  const distance = camera.position.distanceToSquared(u.pos), near = u.isPlayer || distance < 180 * 180;
-  mesh.visible = f.power > .025 && (u.isPlayer || distance < 350 * 350);
+  const distance = camera.position.distanceToSquared(u.pos), near = isLocalView(u) || distance < 180 * 180;
+  mesh.visible = f.power > .025 && (isLocalView(u) || distance < 350 * 350);
   const U = mesh.material.uniforms;
   const burst = normalBoost ? (f.burst / .22) ** 2 : 0;
   U.ignitionScale.value.set(1 - .55 * burst, 1 + 1.2 * burst);
@@ -4406,8 +4418,8 @@ function mechPose(u, dt) {
   r.landT = Math.max(0, r.landT - dt);
   const impact = r.landT > 0 ? Math.sin(Math.PI * (1 - r.landT / r.landTime)) * r.landPower : 0;
   const low = u.crouching ? ACTIONS.crouch.lower : u.planted || u.transfer || u.stun === 'land' ? .6 : u.repairing ? .15 : 0;
-  r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20));
-  if (dt === 0 && !r.lastPose) r.crouch = low;
+  if (simulationRole === 'guest' && !isLocalView(u) && Number.isFinite(u.onlineRenderCrouch)) r.crouch = u.onlineRenderCrouch;
+  else { r.crouch += (low - r.crouch) * (1 - Math.exp(-dt * 20)); if (dt === 0 && !r.lastPose) r.crouch = low; }
   const melee = u.meleePose;
   const bob = grounded && !blocked ? .045 * Math.cos(r.phase * 2) * r.move : 0;
   // 深い屈みと着地が重なっても脛を床へ押し込まない。歩幅分の腰下げで接地脚の伸び切りも防ぐ。
@@ -4421,7 +4433,7 @@ function mechPose(u, dt) {
   poseChest.multiplyMatrices(B.chest.node.matrixWorld, B.chest.bind);
   // 射撃の銃口も同じ武器メッシュの位置・回転を使う。構えによる揺れで照準を補正しない。
   const cur = u.slots[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? u.slots.main.w : cur;
-  const pitch = (u.isPlayer ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
+  const pitch = (isHumanControlled(u) ? u.pitch || 0 : 0) + (u.recoil || 0), heavy = !!hw.spin || hw.proj?.rocket;
   const dual = !!hw.dual;
   poseChestQ.setFromRotationMatrix(B.chest.node.matrixWorld); poseAimQ.setFromEuler(poseEuler.set(pitch, u.recoilYaw || 0, 0, 'YXZ'));
   posePoint(u.gun.position, dual ? 1.35 : heavy ? .45 : .25, heavy ? 2.35 : hw.scope ? 2.78 : 2.6, dual || heavy ? -.8 : -.85);
@@ -4476,6 +4488,16 @@ function disposeMech(g) {
 }
 
 const units = [];
+// 操作元・この画面の自機・試合の権威を混同しない。isPlayer は既存の試験・プレビューとの互換用。
+let simulationRole = 'offline';
+function setSimulationRole(role) {
+  if (!['offline', 'host', 'guest'].includes(role)) throw new Error('不明な試合の役割');
+  simulationRole = role;
+}
+function isSimulationAuthority() { return simulationRole !== 'guest'; }
+function isHumanControlled(u) { return !!u && (u.controller ? ['localHuman', 'remoteHuman'].includes(u.controller) : !!u.isPlayer); }
+function isLocalView(u) { return !!u && (u.localView != null ? !!u.localView : u.controller ? u.controller === 'localHuman' : !!u.isPlayer); }
+function humanLockTarget(u) { return isLocalView(u) ? lock.target : u.controlTarget || null; }
 function makeUnit(team, isPlayer, idx) {
   const cls = isPlayer ? chosenCls : BOT_CLASS[idx % BOT_CLASS.length], mech = isPlayer ? { ...(tutorial ? MECH_DEFAULT : mechCfg) } : botMech(cls);
   const m = buildMech(TEAM[team].color, mech);
@@ -4553,7 +4575,7 @@ function spawn(u, at = 'base') {
   resetBoosterFlame(u);
   stopMovementSound(u); u.stepQuiet = 0;
   u.lifeId = (u.lifeId || 0) + 1; // 発射済みミサイルが再出撃した同じ機体へ誘導を再開しない。
-  if (u.isPlayer) { incomingShots.clear(); resetBlastShake(); resetCombatFeedback(); }
+  if (isLocalView(u)) { incomingShots.clear(); resetBlastShake(); resetCombatFeedback(); }
   clearAttached(u);
   const t = TEAM[u.team];
   spawnPos(u, at);
@@ -4584,24 +4606,32 @@ function startTransfer(u, at) {
   const base = inOwnBase(u);
   u.transfer = { t: areaTime(u) * (base ? 0.5 : 1), base, at };
   u.dashT = 0; u.longDash = false; u.dashState = ''; u.scoped = false;
-  if (u.isPlayer) { u.spawnChoice = base ? null : 'base'; u.nextCls = null; } // 最初の移動先：ベースの外ならベース、ベースの中なら最前線のプラント
+  if (isHumanControlled(u)) { u.spawnChoice = base ? null : 'base'; u.nextCls = null; } // 最初の移動先：ベースの外ならベース、ベースの中なら最前線のプラント
   u.xferCd = clock() + AREA_CD;
+  globalThis.CBOnlineGame?.startedClassTransfer?.(u);
   return true;
 }
-function cancelTransfer(u) { u.transfer = null; if (u.isPlayer) u.nextCls = null; }
+function cancelTransfer(u) {
+  u.transfer = null;
+  if (isHumanControlled(u)) {
+    u.nextCls = null;
+    // オンラインの兵装予約はcontrolLoadoutも先に変える。取消時は現在の装備へ戻す。
+    if (window.CBOnlineGame?.active()) u.controlLoadout = Object.fromEntries(SLOTS.map(k => [k, u.slots[k].w.key]));
+  }
+}
 function doTransfer(u) {
   u.jumpPad = u.mobilityRoute = u.lift = u.zip = null;
   u.raidRoute = null;
   const x = u.transfer;
   u.transfer = null;
-  spawnPos(u, u.isPlayer ? u.spawnChoice : x.at);
+  spawnPos(u, isHumanControlled(u) ? u.spawnChoice : x.at);
   Object.assign(u, { flying: false, catMomentum: null, catLaunch: null, ctrlLockT: 0, catCd: 0, waypoint: null, order: null, healing: false, target: null, aimTarget: null, navPath: null, navW: null, navVia: null, navRc: 0, dashT: 0, longDash: false, dashState: '' });
   u.vel.set(0, 0, 0);
   u.yaw = TEAM[u.team].dir > 0 ? Math.PI : 0; u.pitch = 0;
   u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
   if (x.base && u.nextCls && u.nextCls !== u.cls) { const hp = u.hp; equip(u, u.nextCls); u.hp = Math.min(hp, u.maxHp); }
   u.nextCls = null;
-  if (u.isPlayer) { releaseLock(); feed('エリア移動しました'); }
+  if (isLocalView(u)) { releaseLock(); feed('エリア移動しました'); }
   sfx('catapult', u.pos, u);
 }
 // Botのエリア移動（v0.17）：守り役は、自軍ベースのレーダーが敵機を見つけていて自分が遠ければベースへ。
@@ -4782,7 +4812,8 @@ function fwdOf(u) { return new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
 const STOP = new T.Vector3();
 const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が始まってから横ダッシュで消せるまで（ユーザー指定）。
 // ブースト短押し：押した瞬間の入力方向へ一気に踏み込む。押し続けるとロングダッシュへ移行
-function shortDash(u, wish) {
+function shortDash(u, wish, movementOnly = false) {
+  if (movementOnly && movementPredictionBlockReason(u)) return false;
   if (u.actionBlockBoost || isArtilleryMode(u) || beamCannonMode(u) || u.zip) return false;
   if (u.overheat || u.boost <= 0 || u.dashT > 0 || u.ctrlLockT > 0 || u.stun || u.shockT > 0 || u.electricT > 0) return false; // 電撃の間も踏めない
   if (u.swing?.dashAttack && !u.swing.stopped) return false; // 構え・斬撃・連撃中は先行入力で回避しない。
@@ -4799,20 +4830,24 @@ function shortDash(u, wish) {
   if (u.boost <= 0) { u.boost = 0; u.overheat = true; }
   u.dashDir.copy(wish.lengthSq() > 0.01 ? wish : fwdOf(u)).setY(0).normalize();
   u.dashT = SHORT_TIME;
-  deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
-  sfx('dash', u.pos, u);
+  if (!movementOnly) {
+    deployMirage(u); // 成功したクイックブーストの出発点。通常移動や不成立では消費しない。
+    sfx('dash', u.pos, u);
+  }
   u.longDash = false;
   if(!(u.flying&&u.catLaunch?.free&&!u.jumpPad)){u.vel.x = u.dashDir.x * u.dashV; u.vel.z = u.dashDir.z * u.dashV;}
   if (u.vel.y < 0 && !(u.flying&&u.catLaunch)) u.vel.y *= 0.3;
   return true;
 }
 const SLIDE_TIME = 0.6, SLIDE_DECEL = 4; // ソードの踏み込みの後に滑る秒と、その間の止まり方（v0.13.1。値は仮）
-function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
+function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movementOnly = false) {
+  // 先読みでも移動の式は共通。施設・武器由来の移動は権威側に残し、再実行する音や設置物を作らない。
+  if (movementOnly && (movementPredictionBlockReason(u) || u.chargerOn && boostHeld)) return;
   actionUpdate(u, u.actionHeld, boostHeld, jumpPressed || jumpHeld);
   if(u.actionBlockBoost)boostHeld=false;
   // 高速のカタパルトだけ細分化し、低FPSで建物角をすり抜けたり衝突先が変わるのを抑える。
   if(u.flying && u.catMomentum && !u.jumpPad && dt>1/120+1e-8){
-    const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld);return;
+    const n=Math.ceil(dt*120);for(let i=0;i<n;i++)physics(u,wish,boostHeld,i===0&&jumpPressed,dt/n,jumpHeld,movementOnly);return;
   }
   const floating=hoverLegs(u), water=hoverOnWater(u);
   // ホバーの急降下（2026-11-04、オーナーの報告「しゃがみ動作を入力しても急降下が発生しない」）：空中でしゃがみ（C）を押している間は、滞空と毎秒 HOVER_FALL の降下上限を止め、二脚と同じ重力で落ちる
@@ -4837,7 +4872,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
     // よろけ・ダウン・着地硬直の間は操作できない。ダウンで吹き飛んでいる間は Space と Shift の同時押しで受け身
     if (u.stun === 'down' && !u.onGround && jumpHeld && boostHeld && !u.overheat && u.boost >= UKEMI_COST) {
       u.boost -= UKEMI_COST; u.boostIdle = 0; u.stun = floating ? '' : 'roll'; u.vel.y = Math.max(u.vel.y, 6);
-      sfx('dash', u.pos, u);
+      if (!movementOnly) sfx('dash', u.pos, u);
     } else if (u.stun === 'roll' ? u.onGround : (u.stun !== 'down' || u.onGround) && (u.stunT -= dt) <= 0) u.stun = '';
     wish = STOP; boostHeld = jumpPressed = jumpHeld = false; u.longDash = false;
   }
@@ -4851,10 +4886,10 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   }
   // 加速装置（強襲の特別装備）：作動中にブーストを押し続けると、ロングダッシュの代わりにSPを使って向いている方へ進む（どの武器を持っていてもよい）。
   // 押した瞬間のショートダッシュはいつもどおりで、それが終わってから加速する
-  if(catFlight&&u.catLaunch?.free&&boostHeld&&!u.dashT&&!u.longDash&&!u.lungeT)shortDash(u,wish);
+  if(catFlight&&u.catLaunch?.free&&boostHeld&&!u.dashT&&!u.longDash&&!u.lungeT)shortDash(u,wish,movementOnly);
   const ch = u.chargerOn ? u.slots.sp : null;
   const charging = !!ch && boostHeld && !ch.overheat && u.dashT <= 0 && u.ctrlLockT <= 0 && u.lungeT <= 0;
-  if (charging && !u.charging) sfx('charge', u.pos, u);
+  if (!movementOnly && charging && !u.charging) sfx('charge', u.pos, u);
   u.charging = charging;
   let speed = u.walkV, dir = wish, accel = floating ? wish.lengthSq()>.01 ? HOVER_ACCEL : HOVER_BRAKE : u.onGround ? 10 : 3, grav = GRAV;
   if (u.crouching) speed *= ACTIONS.crouch.walkScale;
@@ -4953,7 +4988,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   u.vel.z += (dir.z * speed - u.vel.z) * k;
   if (jumpPressed && u.onGround && !u.overheat && u.boost >= JUMP_COST) {
     u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
-    sfx('jump', u.pos, u);
+    if (!movementOnly) sfx('jump', u.pos, u);
   }
   if(catFlight)grav=GRAV;
   u.vel.y -= grav * dt;
@@ -4992,7 +5027,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   // 下り坂では地面に沿って歩く（段差から落ちるときだけ浮く）
   const follow = wasGround && u.vel.y <= 0 && u.pos.y - gh < Math.max(0.3, moved * 1.2);
   if (u.pos.y <= gh || follow) {
-    if (!wasGround) land(u, -u.vel.y);
+    if (!wasGround) land(u, -u.vel.y, movementOnly);
     // 天井や途中の屋根で早く着地しても、飛行中だけ減る操作禁止を残さない。
     u.pos.y = gh; u.vel.y = 0; u.onGround = true; u.flying = false; u.ctrlLockT = 0; u.jumpPad = null; u.catMomentum = null; u.catLaunch=null;
   } else u.onGround = false;
@@ -5001,9 +5036,9 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false) {
   if(u.flying&&u.catLaunch)catapultControl(u);
 }
 // 着地：速く落ちてきたら着地硬直。ダウンで吹き飛んでいたなら倒れる
-function land(u, v) {
-  if (u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
-  if (v >= 3 || u.stun === 'down') {
+function land(u, v, movementOnly = false) {
+  if (!movementOnly && u.rig) Object.assign(u.rig, { landPower: Math.min(1, Math.max(.12, v / 32)), landT: .32, landTime: .32 });
+  if (!movementOnly && (v >= 3 || u.stun === 'down')) {
     const power = Math.min(1, Math.max(.15, v / 32));
     sfx('land', u.pos, u, 1.1 - power * .25, .3 + power * .7); u.stepQuiet = .12;
   }
@@ -5026,7 +5061,7 @@ function jolt(u, from, amount, melee) {
   Object.assign(u, { swing: null, meleeRecovery: null, lungeT: 0, recoverT: 0, dashT: 0, longDash: false, charging: false, scoped: false });
   if (down) {
     if (u.planted) selectWeapon(u, u.prevWeapon); // 重砲や偵察機の構えは解ける
-    Object.assign(u, { stun: 'down', stunT: DOWN_LIE*(hoverLegs(u) ? .5 : 1), onGround: false, ukemiTry: !u.isPlayer && Math.random() < 0.4 });
+    Object.assign(u, { stun: 'down', stunT: DOWN_LIE*(hoverLegs(u) ? .5 : 1), onGround: false, ukemiTry: !isHumanControlled(u) && Math.random() < 0.4 });
     u.vel.set(away.x * DOWN_PUSH, DOWN_UP, away.z * DOWN_PUSH);
   } else {
     u.stun = 'stagger'; u.stunT = STAGGER_TIME;
@@ -5467,7 +5502,8 @@ function fxUpdate(dt) {
 }
 function refOf(obj) { while (obj) { if (obj.userData.ref) return obj.userData.ref; obj = obj.parent; } return null; }
 const barrierCastSphere = new T.Sphere(), barrierCastPoint = new T.Vector3();
-function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
+// passAllies：ignore と同じ軍の機体を素通しする（ロックの見通し。味方が間を横切ってもロックを切らない）
+function castFrom(origin, dir, ignore, far = 400, needNormal = false, passAllies = false) {
   const th = terrainHit(origin, dir, far);
   ray.set(origin, dir); ray.far = th ? th.dist : far;
   const hits = ray.intersectObjects(hittables, false);
@@ -5475,13 +5511,14 @@ function castFrom(origin, dir, ignore, far = 400, needNormal = false) {
   for (const h of hits) {
     if (h.object.userData.weaponModel && (!h.object.visible || h.object.userData.passThrough)) continue; // 持っていない武器の形（二丁目、ソード、背中の装置）。斬馬刀の大きな刃は弾を受けない（盾にしない）
     const r = refOf(h.object);
-    if (r === ignore) continue;
+    if (r === ignore || r?.onlineHidden) continue;
     if (r && r.kind === 'unit' && !r.alive) continue;
+    if (passAllies && r && r.kind === 'unit' && ignore && r.team === ignore.team) continue;
     best = { point: h.point, normal: needNormal && h.face && h.face.normal.clone().transformDirection(h.object.matrixWorld), ref: r, dist: h.distance, wm: !!h.object.userData.weaponModel, slot: h.object.userData.armorSlot || 'body' }; break;
   }
   // 球面を機体とは別に判定する。前面型の裏側と、内側から撃つ弾は通す。
   for (const u of units) {
-    if (u === ignore || (ignore && u.team === ignore.team) || !barrierReady(u)) continue;
+    if (u.onlineHidden || u === ignore || (ignore && u.team === ignore.team) || !barrierReady(u)) continue;
     const center = barrierCastSphere.center.copy(u.pos).addScaledVector(UP, 2.4), radius = u.slots.sp.w.level === 1 ? 2 : 2.8;
     if (origin.distanceTo(center) < radius) continue;
     barrierCastSphere.radius = radius;
@@ -5521,7 +5558,7 @@ function muzzleClamp(u, p) {
   for (const h of muzzleRay.intersectObjects(hittables, false)) {
     if (h.object.userData.weaponModel && (!h.object.visible || h.object.userData.passThrough)) continue;
     const r = refOf(h.object);
-    if (r === u || (r && r.kind === 'unit' && !r.alive)) continue;
+    if (r === u || r?.onlineHidden || (r && r.kind === 'unit' && !r.alive)) continue;
     dist = h.distance; break;
   }
   return dist < len ? p.copy(muzzleFrom).addScaledVector(muzzleDir, Math.max(0, dist - 0.05)) : p;
@@ -5537,7 +5574,8 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
   const dir = aimPoint.clone().sub(from).normalize();
   dir.x += (Math.random() - 0.5) * spread; dir.y += (Math.random() - 0.5) * spread; dir.z += (Math.random() - 0.5) * spread;
   dir.normalize();
-  const hit = castFrom(from, dir, u, w.range || 400);
+  // 手持ちhitscanの射線だけ過去のcolliderへ。返る前に必ず現在へ復元し、damageは下で一度だけ行う。
+  const hit = window.CBOnlineGame?.castHitscan ? window.CBOnlineGame.castHitscan(u, from, dir, w) : castFrom(from, dir, u, w.range || 400);
   const end = hit ? hit.point : from.clone().addScaledVector(dir, w.range || 300);
   const laser = w.laserFade > 0, travel = laser ? laserTrail(from, end, w.laserFade) : tracer(from, end, u.team, w.energy, w, primaryShot(u, w) || BIG_TRACE_SERIES.has(w.series));
   if (w.scope && !laser) smokeTrail(from, end);
@@ -5552,7 +5590,7 @@ function fire(u, aimPoint, spread, w, from = muzzle(u), weaponName = w.name) {
     if (direct) {
       const hp = r.hp;
       res = damage(r,u,w.dmg*(head ? w.head || HEADSHOT_MULT : 1),head,false,hit.slot,from,false,false,weaponName);
-      if (r.isPlayer) kickBlastShake(hp - r.hp); // 直撃対象は重複爆風から除くため、ここで揺らす。
+      if (isLocalView(r)) kickBlastShake(hp - r.hp); // 直撃対象は重複爆風から除くため、ここで揺らす。
     }
     blast({owner:u,team:u.team,weaponName,skip:direct?r:null,spec:{dmg:w.dmg,blast:w.directBlast,energy:!!w.energy,core:false,linear:true,bodyLinear:true,occluded:true,small:true}},hit.point.clone().addScaledVector(dir,-.2),null);
     return res;
@@ -5587,7 +5625,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   noteDmg(r, by, real);
   cloakHit(r, dmg);
   r.hurtT = HURT_TIME; // 装甲が一瞬光る（v0.18）
-  if (r.isPlayer) flashDamage(origin, real);
+  if (isLocalView(r)) flashDamage(origin, real); else window.CBOnlineGame?.remoteFeedback?.(r, 'hurt', { at: origin.toArray(), real, blast: false });
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0), weaponName); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
   else if (!noJolt) jolt(r, melee ? origin : by.pos, real, melee); // 近接は刃が来た向きの逆へ（v0.21）
@@ -5631,20 +5669,20 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   stopBeamCannon(v);
   v.deathWeapon = attackName(by, weaponName);
   scoreKill(v, by, head);
-  if (by.isPlayer && by !== v) popup(v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
+  if (by !== v) notePopup(by, v.pos.clone().setY(v.pos.y + 5), '撃破', (head ? 'HEADSHOT　' : '') + v.name);
   v.flying=false;v.catMomentum=v.catLaunch=null;v.ctrlLockT=0;
   v.alive = false; v.hp = 0; v.downBy = by; v.downYaw = v.yaw; v.reviveAcc = 0; v.transfer = null; v.bombard = null; v.reflect = null;
   if (v.slots.aux.w.chargeWave) v.slots.aux.chargeT = 0;
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
-  if (v.isPlayer) aimMark.visible = false;
-  if (v.isPlayer || v === lock.target) releaseLock();
-  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が${weaponName==='浸水'?'浸水で大破':'自爆'}` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
+  if (isLocalView(v)) aimMark.visible = false;
+  if (isLocalView(v) || v === lock.target) releaseLock();
+  feedAll(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が${weaponName==='浸水'?'浸水で大破':'自爆'}` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
   if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
   v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
   downBurst(v); // 小さな爆発と煙（v0.18）
-  v.downT = !v.isPlayer && !reviverNear(v) ? 1 : REVIVE_WAIT;
+  v.downT = !isHumanControlled(v) && !reviverNear(v) ? 1 : REVIVE_WAIT;
   // 起こせるのがプレイヤーなら、倒れた味方が呼ぶ（印は REVIVE_WAIT 秒で消える）
-  if (!v.isPlayer && player && player.alive && v.team === player.team && v.downT > 1 && canRevive(player) && player.pos.distanceTo(v.pos) < REVIVE_CALL) {
+  if (!isHumanControlled(v) && player && player.alive && v.team === player.team && v.downT > 1 && canRevive(player) && player.pos.distanceTo(v.pos) < REVIVE_CALL) {
     chatLine(v, '救援をたのむ');
     addPing(v.team, v.pos, `行動不能 ${v.name}`);
     v.downPing = pings[pings.length - 1];
@@ -5658,20 +5696,20 @@ function wreck(v) {
   v.downT = 0; v.respawnT = 5; v.group.visible = false;
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
   const by = v.downBy;
-  if (v.isPlayer) killcam = by && by !== v && by.pos ? { by, weaponName: v.deathWeapon, at: v.pos.clone(), end: v.respawnT * (1 - KILLCAM) } : null; // 自爆は映さない
+  if (isLocalView(v)) killcam = by && by !== v && by.pos ? { by, weaponName: v.deathWeapon, at: v.pos.clone(), end: v.respawnT * (1 - KILLCAM) } : null; // 自爆は映さない
   cores[v.team].hp = Math.max(0, cores[v.team].hp - (VS ? VS.death : killCore)); // コスト制では戦力ゲージが vs.death 減る
-  if (v.isPlayer) v.spawnChoice = null; // 再出撃画面で最前線のプラントを初期選択。マウスの固定は外さない（v0.15、ユーザー指摘。兵装はキー、地点はキーかホイール）
+  if (isHumanControlled(v)) v.spawnChoice = null; // 再出撃画面で最前線のプラントを初期選択。マウスの固定は外さない（v0.15、ユーザー指摘。兵装はキー、地点はキーかホイール）
   boom(v.pos);
 }
 // 行動不能の間（毎フレーム）。時間切れか、プレイヤーが F を押すと大破。Botは起こせる味方が近くにいなくなれば1秒で大破
 function downTick(u, dt) {
-  if (u.isPlayer && pressed.KeyF) u.downT = 0;
-  else if (!u.isPlayer && u.downT > 1 && !reviverNear(u)) u.downT = 1;
+  if (isHumanControlled(u) && (isLocalView(u) ? pressed.KeyF : u.controlInput?.pressed?.KeyF)) u.downT = 0;
+  else if (!isHumanControlled(u) && u.downT > 1 && !reviverNear(u)) u.downT = 1;
   if ((u.downT -= dt) <= 0) wreck(u);
 }
 // 起こせる機体：蘇生できる修理装備を持ち、使用可能なゲージがある。
 function canRevive(e) { const sp = e.slots && e.slots.sp; return !meleeOnly() && !!sp && !sp.overheat && (['repair', 'repairPost'].includes(sp.w.type) || sp.w.type === 'field' && sp.heat > 0 && !e.repairing); }
-function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
+function reviverNear(v) { const post = gadgets.find(g => g.kind === 'repairPost' && g.owner && !g.owner.repairing && !g.owner.slots.sp.overheat && g.team === v.team && g.pos.distanceTo(v.pos) <= g.spec.radius); if (post) return post.owner; return units.find(e => e.alive && e.team === v.team && e !== v && canRevive(e) && e.pos.distanceTo(v.pos) < REVIVE_CALL) || null; }
 // 起き上がる（修理装備で REVIVE_NEED 修理されたとき）
 function revive(v, by) {
   if (v.downPing) { if (pings.includes(v.downPing)) dropPing(v.downPing); v.downPing = null; }
@@ -5680,9 +5718,9 @@ function revive(v, by) {
   resetMechPose(v);
   v.group.visible = true;
   scoreRevive(by, v);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
-  if (by.isPlayer) popup(v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
-  if (v.isPlayer) announce('蘇生されました', 'good');
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
+  notePopup(by, v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
+  if (isLocalView(v)) announce('蘇生されました', 'good');
   sfx('pod', v.pos, v);
 }
 // ---- スコア ----
@@ -5717,13 +5755,20 @@ let firstStrike = null, holdNext = SC.holdFirst;
 function addScore(u, cat, pt, label) {
   if (!u || u.kind !== 'unit' || !pt) return;
   u.sc[cat] += pt; u.sc.total += pt;
-  if (u.isPlayer) {
-    const box = $('scorePop'), d = document.createElement('div');
-    d.innerHTML = `<b${pt < 0 ? ' class="neg"' : ''}>${pt < 0 ? '−' + -pt : '+' + pt}</b>${label}`;
-    box.appendChild(d);
-    setTimeout(() => d.remove(), 3000);
-    while (box.children.length > 7) box.firstChild.remove();
-  }
+  if (isLocalView(u)) scorePopShow(pt, label);
+  else window.CBOnlineGame?.remoteFeedback?.(u, 'score', { pt, label });
+}
+function scorePopShow(pt, label) {
+  const box = $('scorePop'), d = document.createElement('div');
+  d.innerHTML = `<b${pt < 0 ? ' class="neg"' : ''}>${pt < 0 ? '−' + -pt : '+' + pt}</b>${label}`;
+  box.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+  while (box.children.length > 7) box.firstChild.remove();
+}
+// 撃破・破壊・蘇生の札。オンラインのホストでは、遠隔の人間が起こした物をその人へ送る（2026-11-08 オーナー「撃破のシンボルとか出なかったり」）
+function notePopup(by, at, label, sub, good = false) {
+  if (isLocalView(by)) popup(at, label, sub, good);
+  else window.CBOnlineGame?.remoteFeedback?.(by, 'popup', { at: at.toArray(), label, sub, good });
 }
 // 味方への誤射（v0.13.1、ユーザー指定）：爆風が味方に与えたはずのダメージを撃った機体ごとに数え、1万ごとに戦闘のスコア −10
 const FF_STEP = 10000, FF_PENALTY = -10;
@@ -5871,7 +5916,7 @@ function scoreTick(dt) {
 }
 // 両軍のスコア表。live：試合中（撃破されている機体を薄く）
 function boardHtml(live) {
-  const row = (u, i) => `<tr class="${u.isPlayer ? 'me' : ''}${live && !u.alive ? ' dead' : ''}"><td>${i + 1}</td><td><span class="sbName">${pilotFace(pilotFor(u), true)}<span>${htmlText(u.name)}</span></span></td><td>${CLASSES[u.cls].name}</td><td>${u.sc.battle}</td><td>${u.sc.plant}</td><td>${u.sc.support}</td><td class="tot">${u.sc.total}</td><td>${u.sc.kills}</td><td>${u.sc.assists}</td><td>${u.sc.deaths}</td></tr>`;
+  const row = (u, i) => `<tr class="${isLocalView(u) ? 'me' : ''}${live && !u.alive ? ' dead' : ''}"><td>${i + 1}</td><td><span class="sbName">${pilotFace(pilotFor(u), true)}<span>${htmlText(u.name)}</span></span></td><td>${CLASSES[u.cls].name}</td><td>${u.sc.battle}</td><td>${u.sc.plant}</td><td>${u.sc.support}</td><td class="tot">${u.sc.total}</td><td>${u.sc.kills}</td><td>${u.sc.assists}</td><td>${u.sc.deaths}</td></tr>`;
   const own = player ? player.team : chosenTeam;
   return '<div class="sb">' + [own, own === 'B' ? 'R' : 'B'].map(k => {
     const us = units.filter(u => u.team === k).sort((a, b) => b.sc.total - a.sc.total || b.sc.kills - a.sc.kills);
@@ -5901,7 +5946,7 @@ function medalList() {
   return out;
 }
 function medalsHtml(list) {
-  return list.length ? '<div class="medals">' + list.map(m => `<div class="medal${m.mvp ? ' mvp' : ''}${m.u.isPlayer ? ' me' : ''}"><small>${m.name}</small><b class="${m.u.team}">${htmlText(m.u.name)}</b><span>${m.val}</span></div>`).join('') + '</div>' : '';
+  return list.length ? '<div class="medals">' + list.map(m => `<div class="medal${m.mvp ? ' mvp' : ''}${isLocalView(m.u) ? ' me' : ''}"><small>${m.name}</small><b class="${m.u.team}">${htmlText(m.u.name)}</b><span>${m.val}</span></div>`).join('') + '</div>' : '';
 }
 
 // 爆発は共有バッファへまとめる。発生ごとのGPU資源生成と、戦闘用乱数の消費を避ける。
@@ -6105,18 +6150,19 @@ function nearestEnemy(u, range) {
 // 光学迷彩中の敵機には、近いか、動いたり撃ったりして見えやすくなっていないと気づけない（Botと防衛砲台。プレイヤーは画面で見る）
 // 距離は画面の濃さ（見えやすさの2乗。cloakLook）に合わせる（2026-11-05、オーナー「光学迷彩時にえらい普通に撃たれる」）
 function noticed(e, d) { return !e.cloak || d < 8 + e.vis * e.vis * 80; }
-function canSee(u, target, tp) {
+// passAllies：味方の機体では遮られない（ロック中の見通しだけに使う。2026-11-10 オーナー「味方が敵との間をすれ違うとロック切れるんはゲーム的にちがう」）
+function canSee(u, target, tp, passAllies = false) {
   const eye = u.pos.clone(); eye.y += 3;
   const dir = tp.clone().sub(eye);
   const dist = dir.length();
-  const hit = castFrom(eye, dir.normalize(), u, dist + 2);
+  const hit = castFrom(eye, dir.normalize(), u, dist + 2, false, passAllies);
   return hit && hit.ref === target;
 }
 
 // 任意の基地守備設定。情報源は通常のレーダーと本人が見ている敵だけ。
 function baseDefenseTask(u) {
   const config = curMap.baseDefense;
-  if (!config || VS || u.isPlayer) return null;
+  if (!config || VS || isHumanControlled(u)) return null;
   const s = u.team === 'B' ? 1 : -1, own = cores[u.team];
   const distance = v => Math.hypot(v.pos.x - own.pos.x, v.pos.z - own.pos.z);
   const radar = radars.find(r => r.team === u.team);
@@ -6132,7 +6178,7 @@ function baseDefenseTask(u) {
     return { pos: new T.Vector3(post[0] * s, terrainH(post[0] * s, post[1] * s), post[1] * s), threat: null };
   }
   if (u.role !== 'plant' || !warnings.length || u.healing) return null;
-  const reserves = units.filter(v => v.team === u.team && !v.isPlayer && v.role === 'plant' && v.alive && !v.healing && v.hp >= v.maxHp * .35 && distance(v) <= config.responseRadius)
+  const reserves = units.filter(v => v.team === u.team && !isHumanControlled(v) && v.role === 'plant' && v.alive && !v.healing && v.hp >= v.maxHp * .35 && distance(v) <= config.responseRadius)
     .sort((a, b) => distance(a) - distance(b) || a.idx - b.idx).slice(0, config.reinforcements);
   if (!reserves.includes(u)) return null;
   const threat = closest(intruders) || closest(warnings);
@@ -6146,7 +6192,7 @@ function raidRange(u) {
   return Math.min(w.range || 400, w.falloff?.[1] || 400); // fireの省略時400m。散弾は減衰距離まで接近。
 }
 function raidGoal(u, coreGoal) {
-  if (!curMap.raidRoutes || u.role !== 'attack' || u.isPlayer) return coreGoal;
+  if (!curMap.raidRoutes || u.role !== 'attack' || isHumanControlled(u)) return coreGoal;
   const spec = curMap.raidRoutes[Math.floor(u.idx / 3) % curMap.raidRoutes.length], s = u.team === 'B' ? 1 : -1;
   const points = s > 0 ? spec.points : spec.pointsR || spec.points.map(p => [-p[0], -p[1], p[2]]);
   const radius = spec.pointRadius?.[u.team] ?? 14;
@@ -6580,7 +6626,7 @@ visualAlloc(() => { for (const arc of [60, 90, 120, 360]) {
   scene.add(batch); reconPulseBatches.set(arc, batch);
 } });
 function reconPulseActive(source) {
-  if (!source) return false;
+  if (!source || source.onlineHidden) return false;
   if (source.kind === 'unit') {
     // 未発見の敵の迷彩を、レーダーの作動表示だけで露見させない。
     if (player && source.team !== player.team && source.cloak && !spotted[player.team].has(source)) return false;
@@ -6690,7 +6736,7 @@ function addGadget(g) {
   return g;
 }
 function removeGadget(g) {
-  if (g.kind === 'repairPost') { if (g.owner.post === g) g.owner.post = null; if (g.field) scene.remove(g.field); }
+  if (g.kind === 'repairPost') { if (g.owner?.post === g) g.owner.post = null; if (g.field) scene.remove(g.field); }
   if (!g.alive) return;
   g.alive = false;
   if (g.kind === 'decoy') {
@@ -6746,10 +6792,10 @@ function placeGadget(sh, at, ref, normal = null) {
   const dir = S.roamSpeed ? sh.vel.clone().setY(0).normalize() : fwdOf(sh.owner);
   if (S.cone || S.planar || S.kind === 'sentry') mesh.rotation.y = sh.owner.yaw;
   const G = S.gun;
-  addGadget({ kind: S.kind, name: S.float ? '浮遊機雷' : GADGET_NAME[S.kind], weaponName: sh.weaponName, team: sh.team, owner: sh.owner, pos, hp: S.hp, maxHp: S.hp, spec: S, mesh, riseLeft:S.riseHeight||0, planarPrev:S.planar?new Map():null, armT: S.kind === 'remote' ? 0.5 : 1, scanT: 0, dir, age: 0,
+  const placed=addGadget({ kind: S.kind, name: S.float ? '浮遊機雷' : GADGET_NAME[S.kind], weaponName: sh.weaponName, team: sh.team, owner: sh.owner, pos, hp: S.hp, maxHp: S.hp, spec: S, mesh, riseLeft:S.riseHeight||0, planarPrev:S.planar?new Map():null, armT: S.kind === 'remote' ? 0.5 : 1, scanT: 0, dir, age: 0,
     attached: S.attachUnit && onUnit ? ref : null, offset: S.attachUnit && onUnit ? pos.clone().sub(ref.pos).applyAxisAngle(UP,-ref.yaw) : null,
     onCore: ref && ref.kind === 'core' && ref.team !== sh.team ? ref : null, face: S.sticky && stick && normal && normal.y < .7 ? normal.clone().normalize() : null, ammo: G ? G.mag : 0, cd: 0, reloadT: 0, target: null });
-  if (S.kind === 'sensor') sfx('sensor', pos);
+  if (S.kind === 'sensor') sfx('sensor', pos, placed);
 }
 // 遠隔爆弾の起爆。敵のコアに貼りついていればコアにも当たる
 function detonate(g) {
@@ -6826,7 +6872,7 @@ function gadgetUpdate(dt) {
       if (S.jumpDelay || S.detDelay) {
         g.armT-=dt;
         if (g.triggerT == null && g.armT<=0 && units.some(e=>e.alive && e.team!==g.team && mineSenses(g,e))) {
-          g.triggerT=0;g.y0=g.pos.y;sfx('sensor',g.pos);flash(g.pos,0xffc46b,1,.15);
+          g.triggerT=0;g.y0=g.pos.y;sfx('sensor',g.pos,g);flash(g.pos,0xffc46b,1,.15);
           continue;
         }
         if (g.triggerT != null) {
@@ -6868,7 +6914,7 @@ function gadgetUpdate(dt) {
       if (g.pos.z * TEAM[g.team].dir < 0 && (g.rearT = (g.rearT || 0) + dt) >= SC.rearGap) { g.rearT -= SC.rearGap; addScore(g.owner, 'support', SC.rear, '後方索敵を継続'); }
     } else if (g.kind === 'remote') {
       // 遠隔爆弾：プレイヤーは右クリックで起爆。Botは置いて0.5秒たてば、敵機が爆風の6割の距離まで来たら起爆する
-      if ((g.armT -= dt) <= 0 && !g.owner.isPlayer && g.owner.pos.distanceTo(g.pos) > g.spec.blast + 2 && units.some(e => e.alive && e.team !== g.team && e.pos.distanceTo(g.pos) < g.spec.blast * 0.6)) detonate(g); // 自分が爆風の外にいるときだけ
+      if ((g.armT -= dt) <= 0 && !isHumanControlled(g.owner) && g.owner.pos.distanceTo(g.pos) > g.spec.blast + 2 && units.some(e => e.alive && e.team !== g.team && e.pos.distanceTo(g.pos) < g.spec.blast * 0.6)) detonate(g); // 自分が爆風の外にいるときだけ
     } else if (g.kind === 'sentry') sentryTick(g, dt);
   }
   for (let i = drones.length - 1; i >= 0; i--) {
@@ -6902,8 +6948,11 @@ function clearGadgets() {
 }
 
 // 追加補助装備。時計は選択中の武器と独立し、Botも同じ判定を使う。
+function movementStatusTick(u,dt){
+  u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
+}
 function auxiliaryStatusTick(u,dt){
-  u.jamT=Math.max(0,(u.jamT||0)-dt);u.electricT=Math.max(0,(u.electricT||0)-dt);u.shockT=Math.max(0,(u.shockT||0)-dt);
+  u.jamT=Math.max(0,(u.jamT||0)-dt);if(!u.onlineFixedMovement)movementStatusTick(u,dt);
 }
 function radarToolTick(u,sl,dt,on){
   if(!on){sl.scanRadius=0;sl.scanT=0;return;}
@@ -7105,10 +7154,10 @@ function equip(u, cls) {
   u.postFlight = null; u.postRecall = false; u.repairBlock = 0; u.jamT=u.electricT=u.shockT=0; u.radarHeading=null;
   const c = CLASSES[cls], A = ARMORY[cls];
   // プレイヤーは機体カスタマイズで選んだ武器、Botは出撃ごとに枠ごとにランダム（v0.11）
-  const pick = k => u.isPlayer ? (tutorial ? c[k] : loadout[cls][k]) : A[k][Math.floor(Math.random() * A[k].length)];
+  const pick = k => u.controlLoadout?.[k] || (isHumanControlled(u) ? (isLocalView(u) && !tutorial ? loadout[cls][k] : c[k]) : A[k][Math.floor(Math.random() * A[k].length)]);
   const keys = Object.fromEntries(SLOTS.map(k => [k, pick(k)]));
   if (meleeOnly()) {
-    keys.aux = u.isPlayer ? arenaMeleeKey : MELEE_WEAPONS[Math.floor(Math.random() * MELEE_WEAPONS.length)];
+    keys.aux = isHumanControlled(u) ? arenaMeleeKey : MELEE_WEAPONS[Math.floor(Math.random() * MELEE_WEAPONS.length)];
   }
   const st = mechStats(u.mech, meleeOnly() ? { aux: keys.aux } : keys), P = st.P;
   // パーツの性能（v0.12）：速さ（重量超過を含む）、ブースト容量、ロック距離、射撃補正、リロード・持ち替え、反動吸収、部位ごとの装甲
@@ -7142,6 +7191,7 @@ function toggleSp(u) {
   return true;
 }
 function selectWeapon(u, w) {
+  if (!isSimulationAuthority()) { if (isLocalView(u)) window.CBOnlineGame?.requestWeapon(w); return; }
   if (meleeOnly() && w !== 'aux') return;
   if (u.swing) return;
   if (w !== 'sp' && beamCannonMode(u)) stopBeamCannon(u);
@@ -7163,13 +7213,13 @@ function selectWeapon(u, w) {
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
   u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
-  if (u.isPlayer && !lockAllowed(u)) releaseLock();
+  if (isLocalView(u) && !lockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
   if (beamCannonMode(u)) { u.dashT=u.lungeT=0;u.longDash=false;u.vel.x=u.vel.z=0; }
   if (isArtilleryMode(u)) {
     u.dashT = 0; u.longDash = false; u.dashState = ''; u.vel.x = u.vel.z = 0;
-    if (u.isPlayer) { releaseLock(); mapOpen = false; const p = u.pos.clone().addScaledVector(fwdOf(u),Math.min(100,u.slots.sp.w.range/2)); mapCur.x = Math.max(-MAP_X,Math.min(MAP_X,p.x)); mapCur.z = Math.max(-MAP_Z,Math.min(MAP_Z,p.z)); mouseDown = rightDown = false; }
+    if (isLocalView(u)) { releaseLock(); mapOpen = false; const p = u.pos.clone().addScaledVector(fwdOf(u),Math.min(100,u.slots.sp.w.range/2)); mapCur.x = Math.max(-MAP_X,Math.min(MAP_X,p.x)); mapCur.z = Math.max(-MAP_Z,Math.min(MAP_Z,p.z)); mouseDown = rightDown = false; }
   } // 重砲と偵察機は構えている間動けない
   sfx('switch', u.pos, u);
 }
@@ -7238,7 +7288,7 @@ function missileLockTick(u, sl, dt, on, cancel) {
   const range = u.lockRange * M.rangeMul;
   // プレイヤーは実際の画面内、Botは自身の向きと追従中の照準を使う。遮蔽は双方とも同じcanSeeで判定。
   const view = e => {
-    if (u.isPlayer) { const s = screenOf(e); return s && Math.abs(s.x) <= 1 && Math.abs(s.y) <= 1 ? Math.max(Math.abs(s.x) * camera.aspect, Math.abs(s.y)) : Infinity; }
+    if (isLocalView(u)) { const s = screenOf(e); return s && Math.abs(s.x) <= 1 && Math.abs(s.y) <= 1 ? Math.max(Math.abs(s.x) * camera.aspect, Math.abs(s.y)) : Infinity; }
     const to = targetPoint(e).sub(u.pos).setY(0).normalize();
     if (to.dot(fwdOf(u)) < .25) return Infinity;
     const eye = u.pos.clone().add(new T.Vector3(0, 2.8, 0));
@@ -7262,13 +7312,13 @@ function missileLockTick(u, sl, dt, on, cancel) {
   sl.missileCandidates = candidates;
   const acquiring = new Set();
   for (const e of candidates.sort((a, b) => get(a).d - get(b).d)) {
-    if (sl.missileLocks.length >= capacity || get(e).d > (u.isPlayer ? .2 : .14)) continue;
+    if (sl.missileLocks.length >= capacity || get(e).d > (isHumanControlled(u) ? .2 : .14)) continue;
     acquiring.add(e);
     const progress = (sl.missileProgress.get(e) || 0) + dt;
     if (progress + 1e-8 >= M.time) {
       sl.missileLocks.push({ target: e, life: e.lifeId || 0, hidden: 0, far: 0 });
       sl.missileProgress.set(e, 0);
-      if (u.isPlayer) sfx('lock');
+      if (isLocalView(u)) sfx('lock');
       if (e.kind === 'unit') spot(u.team, e, 3, u, '誘導弾捕捉');
     } else sl.missileProgress.set(e, progress);
   }
@@ -7276,7 +7326,7 @@ function missileLockTick(u, sl, dt, on, cancel) {
 }
 function missileGunTick(u, sl, trigger, aim, spread) {
   const w = sl.w, M = w.missile;
-  if (!sl.bn && trigger && (!u.isPlayer || !sl.held) && sl.cd <= 0) {
+  if (!sl.bn && trigger && (!isHumanControlled(u) || !sl.held) && sl.cd <= 0) {
     const locks = (sl.missileLocks || []).filter(entry => missileTargetValid(u, entry));
     sl.missileQueue = locks.length ? locks.flatMap(entry => Array.from({ length: M.shots }, () => ({ ...entry }))) : Array.from({ length: Math.min(M.shots, sl.ammo) }, () => null);
     sl.missileQueue.length = Math.min(sl.missileQueue.length, sl.ammo);
@@ -7346,7 +7396,7 @@ function seekerFlight(sh, dt) {
   if (sh.seeking && !seekerGuiding(sh)) sh.seeking = false;
   if (sh.seeking) {
     o.seekHoldT = playT + .2; // Bot は誘導中の弾がある間、持ち替えずに狙い続ける
-    if (o.isPlayer) sfx('seekGuide', null, o);
+    if (isLocalView(o)) sfx('seekGuide', null, o);
     const to = o.seekAim.clone().sub(sh.pos), k = Math.max(0, 1 - sh.pos.distanceTo(o.pos) / S.guideRange);
     if (to.lengthSq() > 1 && k > 0) {
       to.normalize();
@@ -7383,7 +7433,7 @@ function setSeekMode(u, on) {
   on = !!on && seekModeOk(u);
   if (u.seekMode === on) return;
   u.seekMode = on;
-  if (u.isPlayer) { sfx(on ? 'lock' : 'switch', u.pos, u); if (on) releaseLock(); }
+  if (isLocalView(u)) { sfx(on ? 'lock' : 'switch', u.pos, u); if (on) releaseLock(); }
 }
 function gunTick(u, sl, dt, trigger, aim, spread) {
   const w = sl.w;
@@ -7427,7 +7477,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
   }
   // 単発（semi）の武器はプレイヤーが1回押すごとに1発（Botは連射の間隔で撃つ）。3点射（burst）は1回で burst 発撃ち、gap 秒あけて次へ
   if (!trigger) sl.held = false;
-  const go = trigger && !(w.semi && u.isPlayer && sl.held) || sl.bn > 0;
+  const go = trigger && !(w.semi && isHumanControlled(u) && sl.held) || sl.bn > 0;
   if (!go || (w.spin && sl.spin < 1) || sl.overheat) return false;
   let res = false, fired = false;
   while (sl.cd <= 0 && sl.ammo > 0 && !sl.overheat) {
@@ -7436,7 +7486,7 @@ function gunTick(u, sl, dt, trigger, aim, spread) {
     if (r && res !== 'head') res = r;
     if (w.heat && (sl.temp += 100 / w.heat) >= 100) { sl.overheat = true; sl.ohT = w.ohTime; }
     if (w.burst) { if (!sl.bn) sl.bn = w.burst; if (--sl.bn === 0) { sl.cd += w.gap; break; } }
-    if (w.semi && u.isPlayer) { sl.held = true; break; }
+    if (w.semi && isHumanControlled(u)) { sl.held = true; break; }
     if (w.chargeTime) break;
   }
   if (sl.ammo === 0 && sl.reserve > 0) sl.reloadT = w.reload * u.reloadMul;
@@ -7452,7 +7502,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   if (w.stunField) { stunFieldFire(u, w, aim); return false; }
   incomingFire(u, w);
   // プレイヤーのaimには前の視点の反動が含まれる。同じフレームの連射では増えた分だけ加える。
-  const vertical = u.recoil - (u.isPlayer ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (u.isPlayer ? u.cameraRecoilYaw || 0 : 0);
+  const vertical = u.recoil - (isHumanControlled(u) ? u.cameraRecoil || 0 : 0), horizontal = (u.recoilYaw || 0) - (isHumanControlled(u) ? u.cameraRecoilYaw || 0 : 0);
   if (vertical || horizontal) aim = recoilAim(muzzle(u), aim, vertical, horizontal);
   if (w.proj) {
     const P = w.proj, plasma = w.series === 'lp', charge = w.series === 'lq';
@@ -7587,8 +7637,8 @@ function iaiPathCut(u, sw) {
     if (d - size > a.reach || dx * f.x + dz * f.z < -size || y1 < u.pos.y - .5 || y0 > u.pos.y + UNIT_H + 1) return;
     sw.hit.add(t); meleeFrom.set(t, from);
     sfx('slash', t.pos, null, .7); impact(new T.Vector3(t.pos.x, t.pos.y + 2, t.pos.z), 'hit', 0);
-    if (damage(t, u, a.dmg, false, true, null, from, true, false, sw.weaponName) && u.isPlayer) hitMark(false);
-    if (t.kind !== 'barricade') { sw.stopT = Math.max(sw.stopT || 0, .05); if (u.isPlayer) kickBlastShake(1800); sparkBurst(t.pos.clone().setY(t.pos.y + 2.2), 0xdff4ff, 12, 18, .22); }
+    if (damage(t, u, a.dmg, false, true, null, from, true, false, sw.weaponName) && isLocalView(u)) hitMark(false);
+    if (t.kind !== 'barricade') { sw.stopT = Math.max(sw.stopT || 0, .05); if (isLocalView(u)) kickBlastShake(1800); sparkBurst(t.pos.clone().setY(t.pos.y + 2.2), 0xdff4ff, 12, 18, .22); }
   };
   for (const e of [...units, ...mirages]) if (e.alive && e.team !== u.team) cut(e, R, e.pos.y, e.pos.y + UNIT_H);
   for (const t of turrets) if (t.alive && t.team !== u.team) cut(t, 1.5, t.pos.y, t.pos.y + 3.7);
@@ -7656,15 +7706,15 @@ function swordTick(u, sl, dt, trigger, aim) {
     // 斬馬刀の連続技：振っている間に押せば（Bot は押し続けで）、振り切った所から次の段へ。硬直の間に押しても続く
     if (a.combo != null) {
       // プレイヤーは押した瞬間だけ数えるので、振り始めの押しも先行入力として受ける。Bot は押し続けなので振りの途中から
-      const press = u.isPlayer ? trigger && !sl.comboHeld : trigger && sw.t > a.windup * .5;
+      const press = isHumanControlled(u) ? trigger && !sl.comboHeld : trigger && sw.t > a.windup * .5;
       const wasQueued = sw.queued;
       if (press) sw.queued = true;
       const next = sl.w.combo?.[a.combo + 1];
-      if (sw.queued && next && sw.t >= a.windup + a.sweep && !u.stun) { chain = next; carry = u.isPlayer && press && wasQueued; }
+      if (sw.queued && next && sw.t >= a.windup + a.sweep && !u.stun) { chain = next; carry = isHumanControlled(u) && press && wasQueued; }
     }
     // 連閃（強装型）：満タンの居合で抜けた直後（振りの途中から押しておける）にもう一度押すと、続けて満タンの居合をもう一度
     if (a.iai && a.iaiQ >= 1 && sl.w.iai.chain && !a.second) {
-      const press = u.isPlayer ? trigger && !sl.comboHeld : false;
+      const press = isHumanControlled(u) ? trigger && !sl.comboHeld : false;
       if (press && sw.t > a.windup) sw.queued = true;
       if (sw.queued && sw.t >= a.windup + a.sweep - .06 && !u.stun) chain = { ...iaiSwing(sl.w, 1, u), second: true, dashName: '居合・連閃（二の太刀）' };
     }
@@ -7715,7 +7765,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   if(sl.w.meleeCharge)a={...a,dmg:(a===sl.w.strong?sl.w.strongLevels:sl.w.normalLevels)[chargeStage]};
   const dir = fwdOf(u);
   // ロック中の敵（Botは狙っている敵）が踏み込みの届く所にいれば、その敵へ向かって振る（横なぎも。v0.13）
-  let tgt = u.isPlayer ? lock.target : u.target;
+  let tgt = isHumanControlled(u) ? humanLockTarget(u) : u.target;
   const td = tgt && tgt.alive && tgt.kind === 'unit' ? Math.hypot(tgt.pos.x - u.pos.x, tgt.pos.z - u.pos.z) : Infinity;
   // 斬馬刀はロック中の敵へ吸いつく：SABRE_PULL m（居合はその突進距離）まで詰めて、敵の方を向いて斬る（オーナー 2026-11-06）
   const pull = sl.w.combo ? Math.max(a.lunge || 0, SABRE_PULL) : (a.lunge || a.step || 0);
@@ -7736,7 +7786,7 @@ function swordTick(u, sl, dt, trigger, aim) {
   // 通常クイックブースト1回＝当該機体のdashV×SHORT_TIME。最大充填はその80%。
   const pileStep=sl.w.acMelee==='pike' ? u.dashV*SHORT_TIME*.8*(.25+.75*chargeRatio) : 0;
   // 斬馬刀はロック中の敵（30m以内）を止まる目印にする。踏み込みの届かない距離でも、ダッシュの勢いで通り過ぎないように
-  const lk = u.isPlayer ? lock.target : u.target;
+  const lk = isHumanControlled(u) ? humanLockTarget(u) : u.target;
   if (sl.w.combo && !a.iai && lk?.alive && lk.kind === 'unit' && Math.hypot(lk.pos.x - u.pos.x, lk.pos.z - u.pos.z) < 30) u.swing.stopTgt = lk;
   const go = sl.w.acMelee==='pike' ? (tgt&&!dashAttack?Math.min(pileStep,Math.max(0,td-R-a.reach*.6)):pileStep)
     : a.iai ? a.lunge // 居合は止まらず斬り抜ける
@@ -7805,7 +7855,7 @@ function slashSweep(u,sw,strike,hit,k0,k1){
       sfx('slash',p,null,big?.75:1);impact(new T.Vector3(p.x,Math.max(y0,Math.min(y1,slashTip1.y)),p.z),'hit',0);
       if(damage(target,u,strike.dmg,false,true,null,from,true,false,sw.weaponName))res=true;
       if(strike.down&&volley&&target.alive)volley.set(target,Math.max(volley.get(target)||0,DOWN_MELEE)); // 連続技の締めはダウン
-      if(big&&target.kind!=='barricade'){sw.stopT=Math.max(sw.stopT||0,.07);if(u.isPlayer)kickBlastShake(1800);sparkBurst(slashTip1.clone().lerp(slashGrip1,.3),0xdff4ff,10,16,.2);}
+      if(big&&target.kind!=='barricade'){sw.stopT=Math.max(sw.stopT||0,.07);if(isLocalView(u))kickBlastShake(1800);sparkBurst(slashTip1.clone().lerp(slashGrip1,.3),0xdff4ff,10,16,.2);}
     };
     for(const e of [...units,...mirages])if(e.alive&&e.team!==u.team)tryHit(e,e.pos,R,e.pos.y,e.pos.y+UNIT_H);
     for(const t of turrets)if(t.alive&&t.team!==u.team)tryHit(t,t.pos,1.5,t.pos.y,t.pos.y+3.7);
@@ -7815,7 +7865,7 @@ function slashSweep(u,sw,strike,hit,k0,k1){
   }
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(vertices,3));
   const m=new T.Mesh(geo,new T.MeshBasicMaterial({...glow(sw.a.dashMotion==='claw'?0xb8ff32:0xcfefff),side:T.DoubleSide}));addFx(m,.16,{kind:'arc',ownGeo:true});
-  if(res&&u.isPlayer)hitMark(false);
+  if(res&&isLocalView(u))hitMark(false);
 }
 
 function bladeSweep(u, sw, phi0, phi1) {
@@ -7856,7 +7906,7 @@ function bladeSweep(u, sw, phi0, phi1) {
     tryHit(br, new T.Vector3(Math.max(o.minX, Math.min(u.pos.x, o.maxX)), 0, Math.max(o.minZ, Math.min(u.pos.z, o.maxZ))), 0, br.base, o.top);
   }
   // ソードはコアには当たらない（wiki）
-  if (res && u.isPlayer) hitMark(false);
+  if (res && isLocalView(u)) hitMark(false);
 }
 // 右手に今の銃、二丁の武器は左手にも。近接を選ぶと銃を格納して右手（二刀は両手）で構える。
 // 背部装備は胸に追従。重砲は背中に畳んであり、選ぶと右肩へ起こす（CANNON_DEPLOY 秒）
@@ -7906,7 +7956,7 @@ function beamCannonModel(u, t) {
   }
 }
 function weaponLook(u, dt) {
-  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (u.isPlayer ? u.pitch : 0) + (u.recoil || 0);
+  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (isHumanControlled(u) ? u.pitch : 0) + (u.recoil || 0);
   setWeaponGeo(u.gun, hw.key); u.gun.rotation.set(pitch, u.recoilYaw || 0, 0, 'YXZ');
   u.gun2.visible = !!hw.dual;
   if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.copy(u.gun.rotation); }
@@ -8642,7 +8692,7 @@ function stopArtillery(u) {
   if (!isArtilleryMode(u)) return;
   u.bombard=null; u.reflect=null; const back=u.prevWeapon==='sp'?'main':u.prevWeapon;
   selectWeapon(u,back);
-  if (u.isPlayer) { mapOpen=false; mouseDown=rightDown=false; }
+  if (isLocalView(u)) { mapOpen=false; mouseDown=rightDown=false; }
 }
 function artilleryConfirm(u,p) {
   const sl=u.slots.sp;
@@ -8761,12 +8811,12 @@ function reflectorConfirm(u, p) {
 function reflectorTick(u, sl, dt, trigger, aim, on) {
   const w = sl.w;
   if (!isArtilleryMode(u)) { sl.held = false; u.reflect = null; spRegen(sl, dt); return false; }
-  const f = u.reflect, plan = u.isPlayer ? null : u.reflectPlan;
+  const f = u.reflect, plan = isHumanControlled(u) ? null : u.reflectPlan;
   if (u.repairing || u.transfer || u.stun || u.electricT > 0) { stopArtillery(u); sl.held = false; return false; }
   if (!f) {
     if (sl.overheat || sl.heat < 100 - .01) { stopArtillery(u); sl.held = false; return false; } // 満タンでなければ構えない
     sl.held = on && trigger;
-    if (!u.isPlayer && on && trigger && plan) reflectorConfirm(u, plan.a); // プレイヤーの始点は左クリックを押した時に aimPress が決める
+    if (!isHumanControlled(u) && on && trigger && plan) reflectorConfirm(u, plan.a); // プレイヤーの始点は左クリックを押した時に aimPress が決める
     return false;
   }
   sl.held = on && trigger;
@@ -8931,7 +8981,7 @@ function cloakHit(u, dmg) {
   if (!u.cloak) return;
   reveal(u, 0.6);
   spUse(u.slots.sp, dmg / u.slots.sp.w.hitHp * 100);
-  if (u.isPlayer) spHitT = 0.3; // SPゲージを赤く光らせる
+  if (isLocalView(u)) spHitT = 0.3; // SPゲージを赤く光らせる
 }
 // 光学迷彩の見た目：機体の不透明度は見えやすさの2乗×0.8（止まっていればほぼ0、ダッシュで約0.24、撃った直後で約0.5）。揺らいでいる間はちらつかせる。
 // 味方（自機を含む）には最低0.3で薄く見える。ブースターの炎・発砲炎などの光る演出（加算合成）は消えない（wiki）。
@@ -9137,14 +9187,14 @@ function qchatSend(u, i, at) {
   for (const b of units) if (b.order?.by === u) { b.order = null; b.waypoint = null; }
   for (const p of pings.slice()) if (p.by === u) dropPing(p);
   if (q.ping && at) addPing(u.team, at, q.text, u);
-  const bots = units.filter(b => b.alive && !b.isPlayer && b.team === u.team && (q.order !== 'cover' || b.pos.distanceTo(ref) < COVER_RANGE))
+  const bots = units.filter(b => b.alive && !isHumanControlled(b) && b.team === u.team && (q.order !== 'cover' || b.pos.distanceTo(ref) < COVER_RANGE))
     .sort((a, b) => a.pos.distanceTo(ref) - b.pos.distanceTo(ref)).slice(0, q.n);
   bots.forEach((b, k) => {
     b.order = { kind: q.order, pos: at ? at.clone() : null, by: u, until: clock() + q.t };
     b.waypoint = null; // カタパルトへ向かっていても指示を優先
     if (k === 0) chatQ.push({ t: 0.6 + Math.random() * 0.6, u: b, text: '了解' });
   });
-  if (!bots.length && u.isPlayer) feed('指示に従える味方がいません', 'chat');
+  if (!bots.length && isLocalView(u)) feed('指示に従える味方がいません', 'chat');
 }
 // 味方の言葉を右の欄に出す（敵の言葉は出さない）
 function chatLine(u, text) {
@@ -9188,41 +9238,13 @@ function scopePower(u) {
   return w.scopeHigh && u.scopeStep===2 ? w.scopeHigh : w.scope;
 }
 let player;
-function playerUpdate(u, dt) {
-  u.actionHeld = !!keys.KeyC; // 左Ctrlは外した（2026-11-04、オーナー指定。ブラウザの Ctrl+W などと重なるため）
-  const artillery = isArtilleryMode(u);
-  if (!artillery && keys.ArrowLeft) u.yaw += 2.2 * dt;
-  if (!artillery && keys.ArrowRight) u.yaw -= 2.2 * dt;
-  if (!artillery && keys.ArrowUp) u.pitch = Math.min(0.7, u.pitch + 1.5 * dt);
-  if (!artillery && keys.ArrowDown) u.pitch = Math.max(-0.9, u.pitch - 1.5 * dt);
-  beamCannonTurn(u,dt);
-  const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) + pad.fwd + touch.fwd; // pad：コントローラーの左スティック、touch：画面のスティック（向きだけ使う）
-  const s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + pad.side + touch.side;
-  const fwd = new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
-  const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
-  const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
-  if (wish.lengthSq() > 0) wish.normalize();
-  // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）。エリア移動の待機中も（v0.17。動けもしない、H で取り消し）
-  if (pressed.KeyH) { if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます'); }
-  if (u.transfer) wish.set(0, 0, 0);
-  if (pressed.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
-  const busy = u.repairing || !!u.transfer;
-  u.moveInput = wish.lengthSq() > 0.01;
-  const boostHeld = !busy && !artillery && (keys.ShiftLeft || keys.ShiftRight);
-  if (!busy && !artillery && (pressed.ShiftLeft || pressed.ShiftRight)) shortDash(u, wish);
-  physics(u, wish, boostHeld, !busy && !artillery && pressed.Space, dt, !busy && !artillery && keys.Space);
-  if (!u.transfer) SLOTS.forEach((k, i) => { if (pressed['Digit' + (i + 1)]) selectWeapon(u, k); }); // エリア移動の待機中は、数字キーとホイールで移動先を選ぶ
-  if (wheelDir && !u.transfer) {
-    const next = SLOTS[(SLOTS.indexOf(u.wheelSp ? 'sp' : u.weapon) + (wheelDir > 0 ? 1 : 3)) % 4];
-    selectWeapon(u, next);
-    if (next === 'sp' && TOGGLE_SP.includes(u.slots.sp.w.type)) u.wheelSp = true; // 光学迷彩・加速装置は持ち替えないので、次はSPの隣へ
-    wheelDir = 0;
-  }
-  const cur = u.slots[u.weapon];
-  if (keys.KeyR) reload(cur, u);
-  if (pressed.KeyR && cur.w.iai && !u.swing && u.switchT <= 0) { cur.sheathed = !cur.sheathed; cur.chargeT = 0; sfx('switch', u.pos, u, cur.sheathed ? .7 : .9); } // 斬馬刀の納刀・抜刀
-  u.scoped = !!cur.w.scope && (cur.w.scopeHigh ? (u.scopeStep||0)>0 : rightDown) && !busy && u.switchT <= 0;
-  if(cur.w.type==='radarTool' && u.radarHeading!=null){const d=Math.atan2(Math.sin(u.yaw-u.radarHeading),Math.cos(u.yaw-u.radarHeading));u.yaw=u.radarHeading+Math.max(-Math.PI/6,Math.min(Math.PI/6,d));}
+// 入力の採取はローカル画面だけ。送信時には必要な値を JSON 化し、ホストで検証する。
+function collectLocalInput(u = player) {
+  return { keys: { ...keys }, pressed: { ...pressed }, fwd: pad.fwd + touch.fwd, side: pad.side + touch.side,
+    trigger: mouseDown, alt: rightDown, wheel: wheelDir, yaw: u.yaw, pitch: u.pitch,
+    cameraRecoil: u.cameraRecoil || 0, cameraRecoilYaw: u.cameraRecoilYaw || 0 };
+}
+function updateLocalHumanAim(u, dt, artillery) {
   lockUpdate(u, dt);
   if (lock.target && lock.visible) {
     // ロックオン中：目標が動いた角度だけ視点を動かし、照準が機体から外れたら機体の端まで引き戻す（中心へは寄せない）。
@@ -9246,7 +9268,10 @@ function playerUpdate(u, dt) {
   const rayFrom = camera.position.clone().addScaledVector(camDir, u.seekMode ? .5 : CAM.back - 1); // 精密誘導モードは主観視点なので目の前から
   const hit = castFrom(rayFrom, camDir, u);
   const aim = artillery ? mapPoint() : hit ? hit.point : rayFrom.addScaledVector(camDir, 300);
-  const spread = movementSpread(u);
+  return { aim, hit };
+}
+function updateLocalAimMark(u, aim, busy) {
+  const cur = u.slots[u.weapon];
   // 投げる物と重砲は、落ちる所と爆風の範囲を黄色い円で出す
   const P = cur.w.proj;
   aimMark.visible = !!(P && P.grav) && u.switchT <= 0 && !busy;
@@ -9255,16 +9280,124 @@ function playerUpdate(u, dt) {
     aimMark.position.set(at.x, at.y + 0.3, at.z);
     aimMark.scale.setScalar(P.blast || 2);
   }
-  const healOk = !u.transfer && (!busy || cur.w.type === 'repair'); // ポッドの上でもリペアユニットは使える
-  const autoFire = touchAutoTrigger(u, hit, aim);
-  const menuBlocked = TOUCH_INPUT && touch.menu;
-  const res = weaponsTick(u, dt, !menuBlocked && (mouseDown || autoFire) && healOk, menuBlocked ? null : aim, spread, !menuBlocked && healOk && rightDown);
-  if (res) hitMark(res === 'head');
 }
+// 移動以外の状態遷移は写真を待つ。しゃがみ・状態異常の局所的な移動状態は同じ式で進める。
+// inputなしなら写真に載せる停止理由。施設参照や近接の内部オブジェクトをゲストで再実行しない。
+function movementPredictionBlockReason(u, input = null) {
+  if (!u || !u.alive || u.downT > 0) return 'inactive';
+  if (u.transfer) return 'transfer';
+  if (u.zip) return 'zip';
+  if (u.repairing) return 'repair';
+  if (u.flying || u.jumpPad || u.catMomentum || u.catLaunch) return 'launch';
+  if (u.lift || lifts.some(l => u.onGround && Math.abs(u.pos.y-l.pos.y)<.35 && liftContains(l,u))) return 'lift';
+  if (u.swing || u.meleeRecovery || u.lungeT > 0 || u.recoverT > 0 || u.slideT > 0) return 'melee';
+  if (u.planted || isArtilleryMode(u) || beamCannonMode(u) || u.beamFire) return 'planted';
+  if (u.charging) return 'special';
+  if (input) {
+    const held=input.keys||{},edge=input.pressed||{},boost=held.ShiftLeft||held.ShiftRight||edge.ShiftLeft||edge.ShiftRight;
+    if (edge.KeyH) return 'transfer';
+    if (edge.KeyE) return 'zip';
+    // 加速装置のスイッチ自体は写真で確定。ON中でも通常の歩き・ジャンプは先読みできる。
+    if (u.chargerOn && boost) return 'special';
+  }
+  return '';
+}
+// 入力から移動だけを作る共通入口。global player/keysや照準・武器・ダメージは入れ替えない。
+function updateHumanMovement(u, input = {}, dt, { prediction = false, movementOnly = false } = {}) {
+  if (prediction) {
+    if (!(Number.isFinite(dt) && dt > 0) || u.onlinePredictionBlocked || movementPredictionBlockReason(u,input)) return null;
+    // ホストの同じコマではauxiliaryStatusTickが先に進める。巻き直しでも同じ順序にする。
+    movementStatusTick(u,dt);
+  } else if (!isSimulationAuthority()) return null;
+  const held = input.keys || {}, edge = input.pressed || {};
+  if (prediction || !isLocalView(u)) {
+    if (Number.isFinite(input.yaw)) u.yaw = input.yaw;
+    if (Number.isFinite(input.pitch)) u.pitch = Math.max(-.9, Math.min(.7, input.pitch));
+    if (!prediction) {
+      u.cameraRecoil = Number.isFinite(input.cameraRecoil) ? input.cameraRecoil : 0;
+      u.cameraRecoilYaw = Number.isFinite(input.cameraRecoilYaw) ? input.cameraRecoilYaw : 0;
+    }
+  }
+  u.actionHeld = !!held.KeyC; // 左Ctrlは外した（2026-11-04、オーナー指定。ブラウザの Ctrl+W などと重なるため）
+  const artillery = isArtilleryMode(u);
+  if (!artillery && held.ArrowLeft) u.yaw += 2.2 * dt;
+  if (!artillery && held.ArrowRight) u.yaw -= 2.2 * dt;
+  if (!artillery && held.ArrowUp) u.pitch = Math.min(0.7, u.pitch + 1.5 * dt);
+  if (!artillery && held.ArrowDown) u.pitch = Math.max(-0.9, u.pitch - 1.5 * dt);
+  if (!prediction&&!movementOnly) beamCannonTurn(u,dt);
+  const f = (held.KeyW ? 1 : 0) - (held.KeyS ? 1 : 0) + (input.fwd || 0); // pad：コントローラーの左スティック、touch：画面のスティック（向きだけ使う）
+  const s = (held.KeyD ? 1 : 0) - (held.KeyA ? 1 : 0) + (input.side || 0);
+  const fwd = new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw));
+  const right = new T.Vector3(Math.cos(u.yaw), 0, -Math.sin(u.yaw));
+  const wish = fwd.multiplyScalar(f).add(right.multiplyScalar(s));
+  if (wish.lengthSq() > 0) wish.normalize();
+  // リペア中は無防備：撃てず、ダッシュもジャンプもできない（移動キーで中断）。エリア移動の待機中も（v0.17。動けもしない、H で取り消し）
+  if(!prediction&&!movementOnly)humanUtilityInput(u,input);
+  if (u.transfer) wish.set(0, 0, 0);
+  const busy = u.repairing || !!u.transfer;
+  u.moveInput = wish.lengthSq() > 0.01;
+  const boostHeld = !busy && !artillery && (held.ShiftLeft || held.ShiftRight);
+  if (!busy && !artillery && (edge.ShiftLeft || edge.ShiftRight)) shortDash(u, wish, prediction);
+  physics(u, wish, boostHeld, !busy && !artillery && edge.Space, dt, !busy && !artillery && held.Space, prediction);
+  return { busy, artillery };
+}
+function humanUtilityInput(u,input){
+  const edge=input.pressed||{};
+  if (edge.KeyH) {
+    const previous=u.transfer;
+    if (u.transfer) cancelTransfer(u); else if (!startTransfer(u, null) && isLocalView(u)) feed(VS ? 'このマップではエリア移動を使えません' : 'エリア移動は、地上で動けるときだけできます');
+    globalThis.CBOnlineGame?.finishedClassUtility?.(u,input,!previous&&!!u.transfer);
+  }
+  if (edge.KeyE) { if (u.zip) zipDrop(u); else zipGrab(u); } // ジップライン（v0.21）
+}
+function predictHumanMovement(u, input, dt) { return !!updateHumanMovement(u,input,dt,{prediction:true}); }
+// ホストの人間機は、ローカル・遠隔ともこの経路で1コマ1回だけ進む。
+// aimPoint は [x,y,z] または Vector3。遠隔入力にカメラやグローバルキーは使わない。
+function updateHumanUnit(u, input = {}, dt, {movementDone=false,utilityDone=false} = {}) {
+  if (!isSimulationAuthority()) return false;
+  const held = input.keys || {}, edge = input.pressed || {};
+  let wheel = input.wheel || 0;
+  if(movementDone){if(!utilityDone)humanUtilityInput(u,input);beamCannonTurn(u,dt);}
+  const { busy, artillery } = movementDone?{busy:u.repairing||!!u.transfer,artillery:isArtilleryMode(u)}:updateHumanMovement(u, input, dt);
+  if (!u.transfer) SLOTS.forEach((k, i) => { if (edge['Digit' + (i + 1)]) selectWeapon(u, k); }); // エリア移動の待機中は、数字キーとホイールで移動先を選ぶ
+  if (wheel && !u.transfer) {
+    const next = SLOTS[(SLOTS.indexOf(u.wheelSp ? 'sp' : u.weapon) + (wheel > 0 ? 1 : 3)) % 4];
+    selectWeapon(u, next);
+    if (next === 'sp' && TOGGLE_SP.includes(u.slots.sp.w.type)) u.wheelSp = true; // 光学迷彩・加速装置は持ち替えないので、次はSPの隣へ
+    wheel = 0;
+  }
+  if (input.weapon && SLOTS.includes(input.weapon) && !u.transfer) selectWeapon(u, input.weapon);
+  const cur = u.slots[u.weapon];
+  if (held.KeyR) reload(cur, u);
+  if (edge.KeyR && cur.w.iai && !u.swing && u.switchT <= 0) { cur.sheathed = !cur.sheathed; cur.chargeT = 0; sfx('switch', u.pos, u, cur.sheathed ? .7 : .9); } // 斬馬刀の納刀・抜刀
+  u.scoped = !!cur.w.scope && (cur.w.scopeHigh ? (u.scopeStep||0)>0 : isLocalView(u) ? rightDown : !!input.alt) && !busy && u.switchT <= 0;
+  if(cur.w.type==='radarTool' && u.radarHeading!=null){const d=Math.atan2(Math.sin(u.yaw-u.radarHeading),Math.cos(u.yaw-u.radarHeading));u.yaw=u.radarHeading+Math.max(-Math.PI/6,Math.min(Math.PI/6,d));}
+  let aim, hit = null;
+  if (isLocalView(u)) ({ aim, hit } = updateLocalHumanAim(u, dt, artillery));
+  else {
+    const a = input.aimPoint;
+    aim = Array.isArray(a) && a.length === 3 && a.every(Number.isFinite) ? new T.Vector3(...a)
+      : a && Number.isFinite(a.x) && Number.isFinite(a.y) && Number.isFinite(a.z) ? new T.Vector3(a.x, a.y, a.z)
+      : u.pos.clone().addScaledVector(UP, CAM.up).addScaledVector(new T.Vector3(-Math.sin(u.yaw)*Math.cos(u.pitch), Math.sin(u.pitch), -Math.cos(u.yaw)*Math.cos(u.pitch)), 300);
+  }
+  if (isLocalView(u)) updateLocalAimMark(u, aim, busy);
+  const healOk = !u.transfer && (!busy || cur.w.type === 'repair');
+  const autoFire = isLocalView(u) && touchAutoTrigger(u, hit, aim);
+  const menuBlocked = isLocalView(u) && TOUCH_INPUT && touch.menu;
+  const res = weaponsTick(u, dt, !menuBlocked && ((isLocalView(u) ? mouseDown : input.trigger) || autoFire) && healOk, menuBlocked ? null : aim, movementSpread(u), !menuBlocked && healOk && (isLocalView(u) ? rightDown : !!input.alt));
+  if (res && isLocalView(u)) hitMark(res === 'head');
+  if (isLocalView(u)) wheelDir = wheel;
+  return res;
+}
+function playerUpdate(u, dt) { return updateHumanUnit(u, collectLocalInput(u), dt); }
+
 function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
 // 照準（カメラの中心の線）が目標の機体（LOCK_BODY の範囲）から外れていれば、機体の端へ向けて最大 step だけ戻す角度
 function lockStick(u, t, step) {
-  const pv = cameraPivot(u), dx = t.pos.x - pv.x, dz = t.pos.z - pv.z, flat = Math.hypot(dx, dz);
+  const pv = cameraPivot(u), view = onlineViewOffset(u);
+  // 追従角（anglesTo）と同じ描画座標を使う。確定座標との混在で写真ごとに逆向きへ引かない。
+  if (view) pv.add(view);
+  const dx = t.pos.x - pv.x, dz = t.pos.z - pv.z, flat = Math.hypot(dx, dz);
   const off = wrapAngle(Math.atan2(-dx, -dz) - u.yaw - (u.recoilYaw || 0)), half = Math.atan2(LOCK_BODY.w, flat);
   const ey = Math.sign(off) * Math.max(0, Math.abs(off) - half);
   const lo = Math.atan2(t.pos.y + LOCK_BODY.lo - pv.y, flat), hi = Math.atan2(t.pos.y + LOCK_BODY.hi - pv.y, flat), top = Math.atan2(t.pos.y + LOCK_BODY.top - pv.y, flat);
@@ -9277,8 +9410,16 @@ function lockStick(u, t, step) {
   const n = Math.hypot(ey, ep), k = n > step ? step / n : 1;
   return { yaw: ey * k, pitch: ep * k };
 }
+// オンラインのゲストの自機は、描画位置を確定位置から少しずらす（補正のなめらか戻しと、固定命令の刻みの補間）。
+// カメラ・機体の模型・ロック追従の角度は同じずらしで計算する（ずらしが無い機体ではnull）。
+function onlineViewOffset(u) {
+  const a = u.onlineVisualOffset, b = u.onlineRenderOffset;
+  if (!a && !b) return null;
+  const o = new T.Vector3(); if (a) o.add(a); if (b) o.add(b); return o;
+}
 function anglesTo(u, p) {
-  const d = p.clone().sub(u.pos).setY(p.y - u.pos.y - CAM.up);
+  const o = u.onlineVisualOffset || u.onlineRenderOffset ? onlineViewOffset(u).add(u.pos) : u.pos;
+  const d = p.clone().sub(o).setY(p.y - o.y - CAM.up);
   return { yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan2(d.y, Math.hypot(d.x, d.z)) };
 }
 
@@ -9794,6 +9935,7 @@ const lock = { target: null, losT: 0, lostT: 0, visible: false, prevAng: null, d
 const proj = new T.Vector3();
 function targetPoint(e) { return e.gadget && e.kind === 'sentry' ? e.mesh.position.clone() : new T.Vector3(e.pos.x, e.pos.y + (e.kind === 'decoy' ? 2.4 : e.kind === 'radar' && curMap.raidRoutes ? RADAR_HEAD_Y : e.gadget ? 0.2 : e.downT > 0 ? 0.8 : 2.4), e.pos.z); } // 自動銃は本体中心、施設攻略のレーダーはアンテナを狙う。ほかは形の高さ。
 function screenOf(e) {
+  if(e.onlineHidden)return null;
   const p = targetPoint(e);
   const camFwd = camera.getWorldDirection(new T.Vector3());
   if (p.clone().sub(camera.position).dot(camFwd) <= 0) return null;
@@ -9826,7 +9968,7 @@ function lockAllowed(u) {
 function lockCandidates(u) {
   const list = [];
   for (const e of [...units, ...turrets, ...mirages]) {
-    if (!e.alive || e.team === u.team) continue;
+    if (e.onlineHidden || !e.alive || e.team === u.team) continue;
     if (e.cloak && (e !== lock.target || e.cloakT >= 1)) continue; // 光学迷彩はロックできない（ロック中に消えたら1秒後に外れる）
     const dist = e.pos.distanceTo(u.pos);
     if (dist > u.lockRange * spotMul(u.team, e) * (e === lock.target ? 1.15 : 1)) continue; // 頭部のロック距離。索敵を受けている敵は遠くからロックできる
@@ -9848,7 +9990,8 @@ function toggleLock(u) {
 function lockUpdate(u, dt) {
   if (!lockAllowed(u)) { if (lock.target) releaseLock(); return; }
   if (!lock.target) return;
-  const seen = e => canSee(u, e, targetPoint(e)), list = lockCandidates(u);
+  // ロック中の見通しは、味方の機体では遮られない（壁・地形・敵の機体では今までどおり遮られる）。新しく捕捉するときは今までどおり
+  const seen = e => canSee(u, e, targetPoint(e), true), list = lockCandidates(u);
   if (lock.target) {
     const cur = list.find(c => c.e === lock.target);
     lock.losT -= dt;
@@ -10100,6 +10243,8 @@ function feed(html, cls = '') {
   setTimeout(() => d.remove(), 6000);
   while (feedEl.children.length > 6) feedEl.lastChild.remove();
 }
+// 全員に見せる戦況ログ（撃破・蘇生・占拠・破壊）。オンラインのホストではゲストの画面にも出す。自分だけへの知らせは feed のまま
+function feedAll(html, cls = '') { feed(html, cls); window.CBOnlineGame?.shareFeed?.(html, cls); }
 let hitT = 0, hitAge = 0, headTextT = 0;
 let headHit = false;
 function hitMark(head) {
@@ -10183,6 +10328,7 @@ function tagOf(u) {
 }
 // 画面に映っているか：カメラから胴の中心か頭まで、間に何も無い
 function tagSight(p, u) {
+  if(u.onlineHidden)return false;
   for (const h of [2.4, 3.6]) {
     tagV.set(u.pos.x, u.pos.y + h, u.pos.z).sub(camera.position);
     const d = tagV.length(), hit = castFrom(camera.position, tagV.normalize(), p, d + 2);
@@ -10195,7 +10341,7 @@ function tagsHud(p, dt) {
   for (const u of units) {
     if (u === p) continue;
     const el = tagOf(u), ally = u.team === p.team, down = u.downT > 0, d = u.pos.distanceTo(p.pos);
-    let show = on && (u.alive || (ally && down));
+    let show = !u.onlineHidden && on && (u.alive || (ally && down));
     if (show && ally) show = d <= TAG_ALLY;
     else if (show) {
       show = !(p.jamT>0) && !u.cloak && d <= p.lockRange * spotMul(p.team, u);
@@ -10236,7 +10382,7 @@ function spottedHud(p) {
   // 自軍が把握している敵機だけ、壁越しでも胴の中心に◆を出す。距離や迷彩は索敵側の判定に従う。
   // 位置の投影だけで追加の遮蔽レイは使わず、マーカーも最大表示数ぶんを再利用する。
   if (on) for (const [e, left] of spotted[p.team]) {
-    if (!(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
+    if (e.onlineHidden || !(left > 0) || !e.alive || e.kind !== 'unit' || e.team === p.team) continue;
     const s = screenOf(e);
     if (!s || Math.abs(s.x) > 1 || Math.abs(s.y) > 1) continue;
     let el = spottedMarkPool[count];
@@ -10258,8 +10404,13 @@ $('rlist').addEventListener('click', e => {
 });
 // 兵装の選択：出撃前の画面と、撃破後の再出撃画面
 function pickClass(k) {
+  if (window.CBOnlineGame?.active() && !window.CBOnlineGame.roomOptions.classes.some(c=>c.id===k)) return;
+  if (window.CBOnlineGame?.active() && isSimulationAuthority() && player && (!player.alive || player.transfer?.base)) player.controlLoadout = window.CBOnlineGame.respawnLoadout(k);
   chosenCls = k;
-  if (player && (!player.alive || (player.transfer && player.transfer.base))) player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
+  if (player && (!player.alive || (player.transfer && player.transfer.base))) {
+    player.nextCls = k; // エリア移動はベースの中でだけ兵装を変えられる
+    window.CBOnlineGame?.rememberClassChoice?.(player);
+  }
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
@@ -10333,7 +10484,7 @@ $('playerName').value = playerName;
 function updatePlayerName(commit = false) {
   playerName = normalizePlayerName($('playerName').value);
   if (commit) $('playerName').value = playerName;
-  if (player?.isPlayer) player.name = playerName;
+  if (isLocalView(player)) player.name = playerName;
   pilotHud(player); renderPilotNow();
   try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
 }
@@ -11182,15 +11333,16 @@ function drawMapOn(mini, W, H, bg, k, big = false) {
       if (u.downT > 0 && player && u.team === player.team) { mini.strokeStyle = TEAM[u.team].css; mini.lineWidth = 1.2 * k; mini.beginPath(); mini.arc(sx(u.pos.x), sz(u.pos.z), 3 * k, 0, 7); mini.stroke(); } // 行動不能の味方は輪
       continue;
     }
+    if(u.onlineHidden)continue;
     const enemy = player && u.team !== player.team;
     const near = !enemy || (u.pos.distanceTo(player.pos) <= 80 && !u.cloak); // 敵は近くだけ映る（光学迷彩中はセンサーなどで見つけたときだけ）
     if (!near && !spotted[player.team].has(u)) continue;
     mini.fillStyle = TEAM[u.team].css;
     mini.beginPath();
-    if (near) mini.arc(sx(u.pos.x), sz(u.pos.z), (u.isPlayer ? 3.5 : 2.5) * k, 0, 7);
+    if (near) mini.arc(sx(u.pos.x), sz(u.pos.z), (isLocalView(u) ? 3.5 : 2.5) * k, 0, 7);
     else { const x = sx(u.pos.x), y = sz(u.pos.z); mini.moveTo(x, y - 3.5 * k); mini.lineTo(x + 3 * k, y); mini.lineTo(x, y + 3.5 * k); mini.lineTo(x - 3 * k, y); mini.closePath(); } // センサーや偵察機で見つけた敵は◇
     mini.fill();
-    if (u.isPlayer) { // 自機は向いている方へ短い線（v0.15）
+    if (isLocalView(u)) { // 自機は向いている方へ短い線（v0.15）
       mini.strokeStyle = '#ffffff'; mini.lineWidth = k; mini.stroke(); // 青い自機に白い縁を付ける。
       mini.strokeStyle = '#ffffff'; mini.lineWidth = 1.2 * k; mini.beginPath();
       mini.moveTo(sx(u.pos.x), sz(u.pos.z)); mini.lineTo(sx(u.pos.x - Math.sin(u.yaw) * 14 * MAP_X / 120), sz(u.pos.z - Math.cos(u.yaw) * 14 * MAP_X / 120)); mini.stroke();
@@ -11218,7 +11370,7 @@ let boardAt = 0;
 // ロックしない武器（狙撃銃・重砲・偵察機）で狙っている敵と、光学迷彩中の自分は数えない
 const LOCK_DIRS = ['前', '右前', '右', '右後', '後', '左後', '左', '左前']; // 読み上げ用。画面には文字を出さない
 const incomingShots = new Map();
-const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => e.alive && e.team !== p.team && (w?.missile
+const locksPlayer = (e, p, w = e.slots?.[e.weapon]?.w) => !e.onlineHidden && e.alive && e.team !== p.team && (w?.missile
   ? !e.transfer && !e.repairing && !e.stun && !(e.jamT > 0) && !(e.electricT > 0) && (e.slots[e.weapon].missileLocks || []).some(entry => entry.target === p && missileTargetValid(e, entry))
   : e.target === p && e.locked && !w?.noLock);
 function incomingFire(e, w) {
@@ -11679,7 +11831,7 @@ function hud(timeLeft, dt) {
     el.className = 'pl' + (pl.owner ? ' ' + pl.owner : '') + (pl.capturing ? ' cap' : '');
     const bar = el.querySelector('i');
     bar.style.width = Math.abs(pl.gauge) + '%';
-    bar.style.background = pl.gauge >= 0 ? 'var(--blue)' : 'var(--orange)';
+    bar.style.background = pl.gauge >= 0 ? 'var(--team-b)' : 'var(--team-r)'; // 正はB陣営のゲージ。色は見る側の自軍が青（北側・オンラインのR側でも。2026-11-10 オーナー報告）
   }
   respawnPanel(p);
   missileHud(p);
@@ -12083,8 +12235,8 @@ function setup() {
     const e = makeUnit(chosenTeam === 'B' ? 'R' : 'B', false, i), a = range && RANGE_ATTACKERS[i - RANGE_TARGETS.length];
     if (a) { e.cls = a.cls; e.rangeA = a; }
   }
-  if (tutorial) tutorial.target = units.find(u => !u.isPlayer);
-  if (range) range.targets = units.filter(u => !u.isPlayer);
+  if (tutorial) tutorial.target = units.find(u => !isLocalView(u));
+  if (range) range.targets = units.filter(u => !isLocalView(u));
   applyAudioSettings();
   MATCH = curMap.time;
   timeLeft = MATCH; ended = false;
@@ -12103,7 +12255,7 @@ function finish() {
   const win = enemy <= 0 || (own > 0 && own > enemy);
   const draw = own === enemy;
   $('ovTitle').innerHTML = draw ? '引き分け' : win ? `<span style="color:${TEAM[player.team].css}">勝利</span>` : '<span>敗北</span>';
-  const medals = medalList(), mine = medals.filter(m => m.u.isPlayer).map(m => m.name);
+  const medals = medalList(), mine = medals.filter(m => isLocalView(m.u)).map(m => m.name);
   $('ovText').textContent = (VS ? `自軍戦力 ${Math.max(0, Math.round(own))}　敵軍戦力 ${Math.max(0, Math.round(enemy))}` : `自軍コア ${(own / CORE_MAX * 100).toFixed(1)}%　敵軍コア ${(enemy / CORE_MAX * 100).toFixed(1)}%`) + `　あなたのスコア ${player.sc.total}` + (mine.length ? `　あなたの表彰：${mine.join('・')}` : '');
   $('ovBoard').innerHTML = medalsHtml(medals) + boardHtml(false);
   $('announce').innerHTML = ''; // 結果画面の上にアナウンスを残さない
@@ -12186,18 +12338,19 @@ function loop(now) {
 function gameFrame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   padTick(dt); // コントローラーのボタンとスティック（キーとマウスに置き換える）
+  window.CBOnlineGame?.beforeFrame(dt, now);
   touchTick(); // タッチ操作のボタンを出す・しまう
   bgmTick();
-  if (running) {
+  if (running && isSimulationAuthority()) {
     if (!tutorial && !range) timeLeft -= dt;
     playT += dt;
     liftUpdate(dt);
     for (const u of units) {
-      if (tutorial && u === tutorial.target || range && !u.isPlayer) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。
+      if (tutorial && u === tutorial.target || range && !isLocalView(u)) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。
       if (!u.alive) {
         if (u.downT > 0) { downTick(u, dt); continue; }
         u.respawnT -= dt;
-        if (u.respawnT <= 0) { if (u.isPlayer) spawn(u, u.spawnChoice); else botSpawn(u); }
+        if (u.respawnT <= 0) { if (isHumanControlled(u)) spawn(u, u.spawnChoice); else botSpawn(u); }
         continue;
       }
       if (u.invulT > 0) u.invulT = Math.max(0, u.invulT - dt);
@@ -12205,7 +12358,10 @@ function gameFrame(now) {
       auxiliaryStatusTick(u,dt);
       specialTick(u, dt); // 背部装備はダウン・エリア移動待機中も進める
       if (u.transfer) { if (u.stun === 'down') cancelTransfer(u); else if ((u.transfer.t -= dt) <= 0) doTransfer(u); } // エリア移動の待機（v0.17）
-      if (u.isPlayer) playerUpdate(u, dt); else botUpdate(u, dt);
+      if (isHumanControlled(u)) {
+        if (isLocalView(u)) playerUpdate(u, dt);
+        else updateHumanUnit(u, u.controlInput || {}, dt);
+      } else botUpdate(u, dt);
       waterDamageTick(u,dt);
     }
     for (const pl of plants) plantUpdate(pl, dt);
@@ -12226,12 +12382,20 @@ function gameFrame(now) {
     if (!tutorial && !range && (cores.B.hp <= 0 || cores.R.hp <= 0 || timeLeft <= 0)) finish();
   }
   for (const u of units) {
+    // guestの省略機は描画・音・独立meshを作らない。alive値はスコア等へ流用せずそのまま保つ。
+    if(u.onlineHidden){
+      u.group.visible=false;stopMovementSound(u);
+      for(const mesh of [u.barrierMesh,u.fieldMesh,u.beam,u.shockFx?.root])if(mesh)mesh.visible=false;
+      continue;
+    }
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
     const down = u.downT > 0; // 行動不能（v0.17）：倒れたまま。煙と火は damageLook
     u.group.position.copy(u.pos);
+    // 小さい巻き直し補正はモデルだけへ。pos/vel/当たり判定の確定値には混ぜない。
+    if (u.onlineVisualOffset || u.onlineRenderOffset) u.group.position.add(onlineViewOffset(u));
     if (u.transfer && running && Math.random() < 0.35) flash(u.pos.clone().setY(u.pos.y + 0.5 + Math.random() * 3.5), 0x9fd8ff, 1.2, 0.25);
     const tilt = down ? 1.45 : u.stun === 'down' ? (!u.onGround ? 1.0 : u.stunT > 0.35 ? 1.45 : 0) : u.stun === 'stagger' ? 0.3 * Math.sin(u.stunT / STAGGER_TIME * Math.PI) : 0;
-    u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
+    if (!(simulationRole === 'guest' && !isLocalView(u))) u.tilt += (tilt - u.tilt) * Math.min(1, dt * 12);
     u.group.rotation.x = u.tilt; // よろけでのけぞり、ダウンで後ろへ倒れる
     u.group.rotation.y = down ? u.downYaw : u.yaw; // 倒れている間は視点を回しても機体は回らない
     damageLook(u, dt, now); // 装甲の光り方と、損傷の煙・火（v0.18）
@@ -12278,6 +12442,7 @@ function gameFrame(now) {
   else { const a = now / 6000, r = Math.max(MAP_X, MAP_Z) * 0.8; camera.position.set(Math.sin(a) * r, r * 0.45, Math.cos(a) * r); camera.lookAt(0, 0, 0); }
   for (const k in pressed) delete pressed[k];
   renderView();
+  window.CBOnlineGame?.afterFrame(dt, now);
   mechPreview(dt);
 }
 if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
@@ -12288,3 +12453,12 @@ if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
 { let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; buildMap(saved); renderPlantBar(); renderMapList(); }
 requestAnimationFrame(loop);
 </script>
+
+<!-- #212: 試作ブランチ専用。PeerJSは版を固定。映像・音声接続は使用しない。 -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js" integrity="sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu" crossorigin="anonymous"></script>
+<script src="online/transport.js"></script>
+<script src="online/codec.js"></script>
+<script src="online/lag-compensation.js"></script>
+<script src="online/visibility.js"></script>
+<script src="online/game.js"></script>
+<script src="online/ui.js"></script>
