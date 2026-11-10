@@ -42,15 +42,16 @@ check('オンラインの全兵装・装備同期',async({browser,dir,out,ok,err
     const catalog=await host.evaluate(()=>({rows:Object.entries(__g.ARMORY).flatMap(([cls,slots])=>Object.entries(slots).flatMap(([slot,keys])=>keys.map(key=>({cls,slot,key})))),keys:Object.keys(__g.WEAPONS)}));
     const unique=new Set(catalog.rows.map(x=>x.key));
     ok(unique.size>=323&&catalog.keys.every(k=>unique.has(k)),'現在の全武器（323種以上）がARMORY走査対象に含まれる');
+    // 残弾・予備・SPの写真は本人の機体にだけ届く（他機の分は b733504 で送らなくなった）ので、ゲスト自身の機体で往復を確かめる。
     for(const entry of catalog.rows){
       const boundary=await host.evaluate(({entry,id})=>{
         const u=__g.units.find(x=>x.entityId===id);u.controlLoadout={...__g.CLASSES[entry.cls],[entry.slot]:entry.key};__g.equip(u,entry.cls);
         u.weapon='main';u.switchT=0;window.__equipmentSentinel={id,slot:entry.slot};return CBOnlineGame.state.frame;
-      },{entry,id:ids[0]});
+      },{entry,id:ids[1]});
       await until(()=>guest.evaluate(({entry,id,boundary})=>{
         const s=CBOnlineGame.state.lastSnapshot,u=__g.units.find(x=>x.entityId===id),sl=u?.slots[entry.slot];
         return s?.frame>boundary&&u.cls===entry.cls&&sl.w.key===entry.key&&sl.ammo===3&&sl.reserve===11&&Math.abs(sl.heat-37)<.11&&!sl.overheat;
-      },{entry,id:ids[0],boundary}),entry.key+'：装備値往復');
+      },{entry,id:ids[1],boundary}),entry.key+'：装備値往復');
       report.roundtrips.push(entry);
     }
     ok(report.roundtrips.length===catalog.rows.length,'全ARMORYのkey・兵装・残弾3・予備11・SP37・非過熱をゲストで検証');
@@ -76,6 +77,8 @@ check('オンラインの全兵装・装備同期',async({browser,dir,out,ok,err
     for(const kind of ['barrier','field']){
       const e=await equipRepresentative(kind);
       await until(()=>pair(id=>{const u=__g.units.find(x=>x.entityId===id),kind=u.slots.sp.w.type;return !!u[kind+'On']&&!!u[kind==='barrier'?'barrierMesh':'fieldMesh'].visible&&u.slots.sp.heat>0&&u.slots.sp.heat<100;}),kind+'：入力・SP消費・表示');
+      // 切り替えた直後の0.5秒は次の切り替えを受け付けない（toggleSp の sl.cd。オフラインと同じ）。明けてから押す。
+      await until(()=>host.evaluate(id=>__g.units.find(x=>x.entityId===id).slots.sp.cd<=0,target),kind+'：切り替えの待ち時間');
       await guest.evaluate(()=>CBOnlineGame.requestWeapon('sp'));
       await until(()=>pair(id=>{const u=__g.units.find(x=>x.entityId===id),kind=u.slots.sp.w.type;return !u[kind+'On']&&!u[kind==='barrier'?'barrierMesh':'fieldMesh'].visible;}),kind+'：再押下で停止');
       report.representatives.push({kind,key:e.key});ok(true,kind+'：ゲスト押下→ホスト確定→両画面の作動/停止/SP消費');

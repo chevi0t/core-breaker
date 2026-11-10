@@ -39,12 +39,18 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
       const current=await select.inputValue(),other=options.find(value=>value!==current);if(other)await select.selectOption(other);
     }
     await guest.screenshot({path:path.join(out,'online-ready-equipment.png')});
+    const hostEquipment=await host.evaluate(()=>JSON.stringify(CBOnlineGame.state.equipment));
     await guest.locator('#onlineEquipmentSave').click();
     await wait(guest,()=>!CBOnlineGame.state.editing&&!CBOnlineGame.state.equipmentPending&&CBOnlineGame.state.equipment.cls==='heavy');
     const expected=await guest.evaluate(()=>JSON.parse(JSON.stringify(CBOnlineGame.state.equipment)));
     ok(await host.evaluate(()=>CBOnlineGame.state.roster.find(p=>p.host).ready&&!CBOnlineGame.state.roster.find(p=>!p.host).ready),'個人装備変更で自分だけReady解除');
-    ok(await guest.evaluate(()=>window.__savedBuild!==window.__offlineBuild()),'本人の保存操作でオフラインと共通の保存構成へ反映する');
-    await guest.evaluate(()=>window.__savedBuild=window.__offlineBuild());
+    // 2026-11-10 から、本人が「保存して部屋に戻る」で保存した変更はオフラインと共通の3構成へ反映する（saveEquipmentBuilds）。
+    // 通信で届いた他人の装備は、誰の保存も変えない。
+    ok(await guest.evaluate(e=>window.__savedBuild!==window.__offlineBuild()&&Object.entries(e.mech).every(([k,v])=>__g.mechCfg[k]===v),expected),'本人が保存した装備は共通の構成（オフラインの保存）へ反映');
+    // この試験の2ページは同じブラウザの保存領域を共有する（別タブと同じ）。保存データはホスト側にも見えるので、
+    // 「ほかの人の変更で変わらない」はホストの部屋用装備で確かめ、保存データの基準は両方ここで取り直す。
+    ok(await host.evaluate(e=>JSON.stringify(CBOnlineGame.state.equipment)===e,hostEquipment),'ほかの人の装備変更は自分の部屋用装備を変えない');
+    for(const p of pages)await p.evaluate(()=>{window.__savedBuild=window.__offlineBuild();});
     await guest.locator('#onlineReady').click();await wait(host,()=>CBOnlineGame.canStart());
     ok(await host.locator('#onlineStart').isEnabled()&&await host.evaluate(()=>CBOnlineGame.state.phase==='lobby'),'全員Readyでも自動開始せずホストの出撃を待つ');
     await host.evaluate(()=>CBOnlineGame.updateSettings({teamSize:3}));
@@ -75,6 +81,6 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
     await readyAll(pages,host);await guest.locator('#onlineClose').click();await guest.locator('#onlineLeaveConfirm').click();
     await wait(host,()=>CBOnlineGame.state.roster.length===1);
     ok(await host.locator('#onlineStart').isDisabled()&&!await host.evaluate(()=>CBOnlineGame.state.lobbyReady),'退出時もReadyを解除し一人だけでは出撃しない');
-    for(const p of pages)ok(await p.evaluate(()=>window.__savedBuild===window.__offlineBuild()),'試合後・退出後もオフライン保存は不変');
+    for(const p of pages)ok(await p.evaluate(()=>window.__savedBuild===window.__offlineBuild()),'試合後・退出後も、本人が保存した時点からオフライン保存は不変');
   }finally{for(const p of pages)if(!p.isClosed())await p.evaluate(()=>CBOnlineGame.leave('Ready試験終了')).catch(()=>{});await h.close();}
 },{page:false});

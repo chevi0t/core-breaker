@@ -2190,8 +2190,8 @@ function plantUpdate(pl, dt) {
   if (!pl.owner && pl.gauge <= -100) pl.owner = 'R';
   if (prev !== pl.owner) {
     paintPlant(pl);
-    if (pl.owner) { feed(`<span style="color:${TEAM[pl.owner].css}">${TEAM[pl.owner].name}</span> がプラント${pl.id}を占拠`); sfx('capture'); }
-    else feed(`<span style="color:${TEAM[prev].css}">${TEAM[prev].name}</span> のプラント${pl.id}が中立化`);
+    if (pl.owner) { feedAll(`<span style="color:${TEAM[pl.owner].css}">${TEAM[pl.owner].name}</span> がプラント${pl.id}を占拠`); sfx('capture'); }
+    else feedAll(`<span style="color:${TEAM[prev].css}">${TEAM[prev].name}</span> のプラント${pl.id}が中立化`);
     annPlant(pl, prev);
     scoreCapture(pl, prev);
   }
@@ -2259,7 +2259,7 @@ function reviveTurret(tu, hp, by) {
   tu.baseMat.color.setHex(TURRET_BASE);
   tu.base.userData.ref = tu;
   for (const m of tu.parts) if (!hittables.includes(m)) hittables.push(m);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
+  if (by) feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を再始動`);
 }
 function resetTurrets() { for (const tu of turrets) reviveTurret(tu, tu.maxHp); }
 
@@ -2343,7 +2343,7 @@ function reviveRadar(rd, hp, by) {
   rd.baseMat.color.setHex(RADAR_BODY);
   for (const m of rd.body) m.userData.ref = rd;
   if (!hittables.includes(rd.dish)) hittables.push(rd.dish);
-  if (by) feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
+  if (by) feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を再始動`);
 }
 function destroyRadar(rd, by) {
   Object.assign(rd, { alive: false, hp: 0, revive: 0, intruders: [] });
@@ -2351,7 +2351,7 @@ function destroyRadar(rd, by) {
   rd.baseMat.color.setHex(0x26282b);
   for (const m of rd.body) m.userData.ref = null; // 残骸は遮蔽物として残る
   const i = hittables.indexOf(rd.dish); if (i >= 0) hittables.splice(i, 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[rd.team].css}">${TEAM[rd.team].name}のレーダー</span> を破壊`);
   addScore(by, 'support', SC.radar, 'レーダー破壊');
   notePopup(by, rd.pos.clone().setY(rd.pos.y + 12), '破壊', 'レーダー');
   boom(rd.pos.clone().setY(rd.pos.y + 8));
@@ -2380,7 +2380,7 @@ function destroyTurret(tu, by) {
   tu.baseMat.color.setHex(0x26282b);
   tu.base.userData.ref = null; // 残骸は遮蔽物として残る
   for (const m of tu.parts) { const i = hittables.indexOf(m); if (i >= 0) hittables.splice(i, 1); }
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[tu.team].css}">${TEAM[tu.team].name}の防衛砲台</span> を破壊`);
   addScore(by, 'support', SC.turret, '防衛砲台破壊');
   notePopup(by, tu.pos.clone().setY(tu.pos.y + 5), '破壊', '防衛砲台');
   boom(tu.pos);
@@ -3387,7 +3387,7 @@ function damageBarricade(br, dmg, by) {
   mapRoot.remove(br.mesh);
   hittables.splice(hittables.indexOf(br.mesh), 1);
   obstacles.splice(obstacles.indexOf(br.ob), 1);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> がバリケードを破壊`);
   notePopup(by, br.pos.clone().setY(br.ob.top + 2), '破壊', 'バリケード');
   boom(br.pos.clone().setY(br.base));
 }
@@ -5674,7 +5674,7 @@ function kill(v, by, head, hit = Infinity, weaponName = null) {
   v.cloak = v.chargerOn = v.fieldOn = v.barrierOn = v.escortOn = false; v.stun = ''; v.swing = null; v.planted = false; v.healTarget = null; v.zip = null;
   if (isLocalView(v)) aimMark.visible = false;
   if (isLocalView(v) || v === lock.target) releaseLock();
-  feed(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が${weaponName==='浸水'?'浸水で大破':'自爆'}` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
+  feedAll(by === v ? `<span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> が${weaponName==='浸水'?'浸水で大破':'自爆'}` : `<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を撃破${head ? '（ヘッドショット）' : ''}`);
   if (by === v || hit >= REVIVE_BIG) { wreck(v); return; }
   v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + 0.5); v.vel.set(0, 0, 0); // 空中で撃破されたら、その下の地面に倒れる
   downBurst(v); // 小さな爆発と煙（v0.18）
@@ -5716,7 +5716,7 @@ function revive(v, by) {
   resetMechPose(v);
   v.group.visible = true;
   scoreRevive(by, v);
-  feed(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
+  feedAll(`<span style="color:${TEAM[by.team].css}">${htmlText(by.name)}</span> が <span style="color:${TEAM[v.team].css}">${htmlText(v.name)}</span> を蘇生`);
   notePopup(by, v.pos.clone().setY(v.pos.y + 4), '蘇生', v.name, true);
   if (isLocalView(v)) announce('蘇生されました', 'good');
   sfx('pod', v.pos, v);
@@ -10239,6 +10239,8 @@ function feed(html, cls = '') {
   setTimeout(() => d.remove(), 6000);
   while (feedEl.children.length > 6) feedEl.lastChild.remove();
 }
+// 全員に見せる戦況ログ（撃破・蘇生・占拠・破壊）。オンラインのホストではゲストの画面にも出す。自分だけへの知らせは feed のまま
+function feedAll(html, cls = '') { feed(html, cls); window.CBOnlineGame?.shareFeed?.(html, cls); }
 let hitT = 0, hitAge = 0, headTextT = 0;
 let headHit = false;
 function hitMark(head) {
@@ -11825,7 +11827,7 @@ function hud(timeLeft, dt) {
     el.className = 'pl' + (pl.owner ? ' ' + pl.owner : '') + (pl.capturing ? ' cap' : '');
     const bar = el.querySelector('i');
     bar.style.width = Math.abs(pl.gauge) + '%';
-    bar.style.background = pl.gauge >= 0 ? 'var(--blue)' : 'var(--orange)';
+    bar.style.background = pl.gauge >= 0 ? 'var(--team-b)' : 'var(--team-r)'; // 正はB陣営のゲージ。色は見る側の自軍が青（北側・オンラインのR側でも。2026-11-10 オーナー報告）
   }
   respawnPanel(p);
   missileHud(p);
