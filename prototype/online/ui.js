@@ -4,7 +4,7 @@
   const button = document.createElement('button'); button.type = 'button'; button.id = 'menuOnline';
   button.textContent = 'オンライン（試作）'; menu.insertAdjacentElement('afterend', button);
   // スマホ・タブレット（指が主な操作）ではオンラインを出さない（オーナーの指定 2026-11-10）。本体の TOUCH と同じ判定。
-  const PHONE = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const PHONE = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
   if (PHONE) button.style.display = 'none';
   const panel = document.createElement('section'); panel.id = 'onlinePanel'; panel.hidden = true;
   // スクリプトと同じ場所から読むので、dbg と公開サイトでも同じ見た目になる。
@@ -322,7 +322,7 @@
     dialog.showModal();el('onlineLogClose').focus();
   }
   function addButton(id,label,target){const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;b.onclick=open;target.append(b);return b;}
-  const menu=addButton('menuOnlineLog','不具合のログ（F8でコピー）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);if(matchMedia('(hover: none) and (pointer: coarse)').matches)menu.style.display='none';
+  const menu=addButton('menuOnlineLog','不具合のログ（F8でコピー）',el('menuOnline').parentElement);el('menuOnline').insertAdjacentElement('afterend',menu);if(typeof matchMedia==='function'&&matchMedia('(hover: none) and (pointer: coarse)').matches)menu.style.display='none';
   const measure=document.querySelector('#onlinePanel .online-measure');
   if(measure){const note=document.createElement('p');note.textContent='不具合が起きたらF8を押して、コピーされたログを投稿してください（任意）。現試合だけ・241字以内。自動投稿はしません。入力欄では無効です。';measure.append(note);addButton('onlineLogOpen','診断ログを確認',measure);}
   const result=addButton('onlineLogResult','試験ログを確認・保存（F8で圧縮）',el('onlineReturn').parentElement);el('onlineReturn').insertAdjacentElement('afterend',result);result.hidden=true;
