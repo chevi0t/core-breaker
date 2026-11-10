@@ -39,6 +39,7 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
       const current=await select.inputValue(),other=options.find(value=>value!==current);if(other)await select.selectOption(other);
     }
     await guest.screenshot({path:path.join(out,'online-ready-equipment.png')});
+    const hostEquipment=await host.evaluate(()=>JSON.stringify(CBOnlineGame.state.equipment));
     await guest.locator('#onlineEquipmentSave').click();
     await wait(guest,()=>!CBOnlineGame.state.editing&&!CBOnlineGame.state.equipmentPending&&CBOnlineGame.state.equipment.cls==='heavy');
     const expected=await guest.evaluate(()=>JSON.parse(JSON.stringify(CBOnlineGame.state.equipment)));
@@ -46,8 +47,10 @@ check('オンラインのReadyと装備変更',async({browser,dir,out,ok,errors}
     // 2026-11-10 から、本人が「この装備で戻る」で保存した変更はオフラインと共通の3構成へ反映する（saveEquipmentBuilds）。
     // 通信で届いた他人の装備は、誰の保存も変えない。
     ok(await guest.evaluate(e=>window.__savedBuild!==window.__offlineBuild()&&Object.entries(e.mech).every(([k,v])=>__g.mechCfg[k]===v),expected),'本人が保存した装備は共通の構成（オフラインの保存）へ反映');
-    await guest.evaluate(()=>{window.__savedBuild=window.__offlineBuild();});
-    ok(await host.evaluate(()=>window.__savedBuild===window.__offlineBuild()),'ほかの人の装備変更は自分の保存データを変えない');
+    // この試験の2ページは同じブラウザの保存領域を共有する（別タブと同じ）。保存データはホスト側にも見えるので、
+    // 「ほかの人の変更で変わらない」はホストの部屋用装備で確かめ、保存データの基準は両方ここで取り直す。
+    ok(await host.evaluate(e=>JSON.stringify(CBOnlineGame.state.equipment)===e,hostEquipment),'ほかの人の装備変更は自分の部屋用装備を変えない');
+    for(const p of pages)await p.evaluate(()=>{window.__savedBuild=window.__offlineBuild();});
     await guest.locator('#onlineReady').click();await wait(host,()=>CBOnlineGame.canStart());
     ok(await host.locator('#onlineStart').isEnabled()&&await host.evaluate(()=>CBOnlineGame.state.phase==='lobby'),'全員Readyでも自動開始せずホストの出撃を待つ');
     await host.evaluate(()=>CBOnlineGame.updateSettings({teamSize:3}));
