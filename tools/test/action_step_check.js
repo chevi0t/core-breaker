@@ -1,4 +1,4 @@
-// ユーザー報告：至近距離でもタックルで踏み込み、地上の蹴りはさらに半歩進む。
+// 最新指定：タックルは公開版の8m、蹴りは通常ダッシュの半分。
 const { check } = require('./lib');
 check('Cアクションの踏み込み', async ({ ev, ok, sortie }) => {
   await sortie('dock');
@@ -20,10 +20,10 @@ check('Cアクションの踏み込み', async ({ ev, ok, sortie }) => {
     for(const hz of [30,60,120])for(const id of ['tackle','kick']){
       reset(id);g.actionMoveStart(p);tick(.9,hz);
       distances[id]=20-p.pos.z;
-      yes(near(distances[id],id==='tackle'?1:2),hz+'Hz：'+id+'の空振りでも所定の距離へ踏み込む');
+      yes(near(distances[id],id==='tackle'?8:p.dashV*g.SHORT_TIME*.5),hz+'Hz：'+id+'の空振りでも所定の距離へ踏み込む');
       yes(!p.actionMove&&p.actionRecoverT>0,id+'は踏み込み後に硬直する');
     }
-    yes(near(distances.kick-distances.tackle,1),'蹴りはタックルよりさらに半歩（1m）進む');
+    yes(near(distances.tackle,8)&&near(distances.kick,p.dashV*g.SHORT_TIME*.5),'タックルは公開版8mを維持し、蹴りはダッシュの半分');
     reset();const close=target(enemies[0],0,18),hp=close.hp;g.actionMoveStart(p);tick(.02);
     yes(p.pos.z<20&&p.actionMove,'至近距離のタックルは命中だけで即座に動作を消さない');
     tick(.15);yes(close.hp===hp,'タックルは肩を出す前の0.17秒では当てない');
@@ -42,15 +42,15 @@ check('Cアクションの踏み込み', async ({ ev, ok, sortie }) => {
       const behind=target(enemies[0],0,16.5),before=behind.hp;g.actionMoveStart(p);tick(.9);
       yes(p.pos.z>=18+g.R-.025&&behind.hp===before,id+'は薄い壁で止まり、壁越しに当てない');g.obstacles.pop();
       reset(id,'standard',Math.PI/2);g.actionMoveStart(p);tick(.9);
-      yes(near(p.pos.x,-(id==='tackle'?1:2))&&near(p.pos.z,20),id+'は発動時の向きへ進む');
+      yes(near(p.pos.x,-(id==='tackle'?8:p.dashV*g.SHORT_TIME*.5))&&near(p.pos.z,20),id+'は発動時の向きへ進む');
       reset(id);floor.minZ=20.4;g.actionMoveStart(p);tick(.9);
       yes(!p.actionMove&&p.pos.y<200,id+'は崖を歩いて浮かずに動作を終えて落ちる');floor.minZ=-150;
     }
-    reset('kick');const swept=target(enemies[0],0,15.5),before=swept.hp;g.actionMoveStart(p);tick(.3);
-    yes(swept.hp===before&&near(p.pos.z,20)&&p.actionMove?.phase==='move','蹴りは0.3秒の予備動作後に踏み込みを開始');
-    tick(.1);yes(swept.hp===before&&p.pos.z<20,'蹴りの判定は開始地点から遠い敵へ先に飛ばない');
-    tick(.26);yes(swept.hp<before&&near(p.pos.z,18),'蹴りは前進して射程に入った敵に当たる');
-    reset('tackle','skimmer');g.actionMoveStart(p);tick(.9);yes(near(20-p.pos.z,1.3),'ホバーのタックル距離1.3倍を維持');
+    reset('kick');const swept=target(enemies[0],0,15.5),before=swept.hp;g.actionMoveStart(p);tick(.2);
+    yes(swept.hp===before&&near(p.pos.z,20)&&p.actionMove?.phase==='move','蹴りは0.2秒の予備動作後に踏み込みを開始');
+    tick(.05);yes(swept.hp===before&&p.pos.z<20,'蹴りの判定は開始地点から遠い敵へ先に飛ばない');
+    tick(.31);yes(swept.hp<before&&near(20-p.pos.z,p.dashV*g.SHORT_TIME*.5),'蹴りは前進して射程に入った敵に当たる');
+    reset('tackle','skimmer');g.actionMoveStart(p);tick(.9);yes(near(20-p.pos.z,10.4),'ホバーのタックル距離1.3倍を維持');
     for(const hz of [30,60,120]) {
       reset();target(enemies[0],0,18);g.actionMoveStart(p);tick(.79,hz);
       yes(!!p.actionMove&&p.actionMove.phase==='hold',hz+'Hz：至近命中で位置が止まっても突撃0.8秒を省略しない');
@@ -60,12 +60,21 @@ check('Cアクションの踏み込み', async ({ ev, ok, sortie }) => {
       reset(id);floor.minZ=-g.MAP_Z;p.pos.z=-g.MAP_Z+g.R+.4;g.actionMoveStart(p);tick(.9);
       yes(p.pos.z>=-g.MAP_Z+g.R-.001,id+'は外周の内側で止まる');floor.minZ=-150;
     }
-    yes(g.ACTIONS.kick.damage>g.ACTIONS.tackle.damage*g.ACTIONS.tackle.maxWeight&&
-      g.ACTIONS.kick.boost>g.ACTIONS.tackle.boost&&g.ACTIONS.kick.recovery>g.ACTIONS.tackle.hitRecovery&&
-      g.ACTIONS.kick.cooldown>g.ACTIONS.tackle.cooldown,'蹴りは威力と費用・硬直・再使用時間をともに高くする');
+    yes(g.ACTIONS.kick.staggerTime>g.ACTIONS.tackle.staggerTime&&
+      g.ACTIONS.kick.boost===15&&g.ACTIONS.kick.recovery>g.ACTIONS.tackle.hitRecovery&&
+      g.ACTIONS.kick.cooldown>g.ACTIONS.tackle.cooldown,'蹴りは少量の追加ブースト消費と長いよろけ・硬直・再使用で調整');
 
-    return {checks,distances};
+    const dashMeasurements=[];
+    for(const legs of ['standard','heavy','skimmer','light']) {
+      reset('crouch',legs);const dashV=p.dashV;g.shortDash(p,new T.Vector3(0,0,-1));tick(g.SHORT_TIME);const dash=20-p.pos.z;
+      reset('kick',legs);g.actionMoveStart(p);tick(.9);const kick=20-p.pos.z;
+      yes(near(kick,dash*.5,.025),legs+'：実測した通常ダッシュ1回の半分を蹴りで進む');dashMeasurements.push({legs,dashV,dash,kick});
+    }
+    reset();const overlapping=target(enemies[0],0,19.9),hpNear=overlapping.hp;g.actionMoveStart(p);tick(.9);
+    yes(overlapping.hp<hpNear&&p.pos.z>=overlapping.pos.z,'極端な密着でも肩当て前に敵を追い越さず命中する');
+    yes(g.ACTIONS.tackle.cooldown===1.5&&g.ACTIONS.kick.cooldown===1.8,'再使用はタックル1.5秒、蹴り1.8秒');
+    return {checks,distances,dashMeasurements};
   });
-  console.log('移動距離',JSON.stringify(result.distances));
+  console.log('移動距離',JSON.stringify(result.distances));console.log('ダッシュ実測',JSON.stringify(result.dashMeasurements));
   for(const name of result.checks)ok(true,name);
 });

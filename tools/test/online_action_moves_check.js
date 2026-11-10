@@ -54,6 +54,21 @@ check('オンラインCアクション',async({browser,dir,ok,errors})=>{
    // 30Hz写真の境界を一度だけ進め、技が短くても姿勢写真を得る。
    if(!shown){await frames(r.pages,1,1000/60);await sleep(80);await frames([guest],2,1000/60);shown=await guest.evaluate(id=>__g.player.actionMove?.id===id&&__g.player.actionCd>0,actionId);}
    ok(shown,actionId+'：ゲストへ動作姿勢と再使用時間を同期');
+   let hit=false;
+   for(let i=0;i<80&&!hit;i++){
+    await frames(r.pages,1,1000/60);
+    hit=await r.host.evaluate(hp=>__actionTarget.hp<hp,fixture.hp);
+   }
+   ok(hit,actionId+'：実際の命中まで進む');
+   ok(await r.host.evaluate(()=>{
+    const g=__g,v=__actionTarget,a=g.ACTIONS[__actionActor.actionId],ammo=v.slots.main.ammo;
+    g.weaponsTick(v,.02,true,g.targetPoint(__actionActor),0,false);
+    return v.stun==='stagger'&&v.stunT>a.staggerTime-.15&&v.slots.main.ammo===ammo&&!g.shortDash(v,g.fwdOf(v));
+   }),actionId+'：ホストの被弾プレイヤーは長いよろけ中に射撃・ダッシュできない');
+   await sleep(80);await frames([guest],3,1000/60);
+   ok(await guest.evaluate(id=>{
+    const v=__g.units.find(u=>u.entityId===id);return v?.stun==='stagger'&&v.stunT>.5;
+   },fixture.targetId),actionId+'：被弾側のよろけと残り時間をゲストにも同期');
    await input(guest,neutral);
    await frames(r.pages,70,1000/60);await sleep(80);await frames([guest],3,1000/60);
    const result=await r.host.evaluate(()=>({hp:__actionTarget.hp,cd:__actionActor.actionCd,move:__actionActor.actionMove,recover:__actionActor.actionRecoverT,pos:__actionActor.pos.toArray(),target:__actionTarget.pos.toArray(),stun:__actionTarget.stun,yaw:__actionActor.yaw}));

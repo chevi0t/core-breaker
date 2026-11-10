@@ -67,18 +67,18 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     yes(g.normalizeAction(undefined) === 'crouch' && g.normalizeAction('unknown') === 'crouch' && g.normalizeAction('__proto__') === 'crouch', '未設定・不正なアクションはしゃがみ');
     for (const hz of [30, 60, 120]) {
       reset(); const initial = p.boost;
-      yes(g.actionMoveStart(p) && near(initial - p.boost, 20) && near(p.actionCd, 3), hz + 'Hz：タックルは20消費・再使用3秒');
+      yes(g.actionMoveStart(p) && near(initial - p.boost, 20) && near(p.actionCd, 1.5), hz + 'Hz：タックルは20消費・再使用1.5秒');
       tick(.8, hz);
-      yes(near(p.pos.z, 19) && near(p.pos.x, 0) && !p.actionMove, hz + 'Hz：0.8秒で1m進む');
+      yes(near(p.pos.z, 12) && near(p.pos.x, 0) && !p.actionMove, hz + 'Hz：0.8秒で公開版と同じ8m進む');
       yes(near(p.actionRecoverT, .3, 1 / hz + .01), hz + 'Hz：空振り硬直0.3秒');
       const at = p.pos.clone(); tick(.2, hz, p, new T.Vector3(1, 0, 0));
       yes(p.pos.distanceTo(at) < .01, hz + 'Hz：硬直中は移動しない');
     }
     reset(); g.actionMoveStart(p); p.yaw = Math.PI / 2; tick(.8);
-    yes(near(p.pos.x, 0) && near(p.pos.z, 19), 'タックルは発動時の方向を維持');
+    yes(near(p.pos.x, 0) && near(p.pos.z, 12), 'タックルは発動時の方向を維持');
     for (const ratio of [.1, .81, 1, 1.249, 1.25, 4]) {
       reset(); p.stats.weight = 5000 * ratio; const e = target(enemies[0], 0, 17);
-      const hp = e.hp, expected = 2000 * Math.max(.7, Math.min(1.4, Math.sqrt(ratio))) * g.armorMult(e);
+      const hp = e.hp, expected = 600 * Math.max(.7, Math.min(1.4, Math.sqrt(ratio))) * g.armorMult(e);
       g.actionMoveStart(p); finish();
       yes(near(hp - e.hp, expected), 'タックル重量比 ' + ratio + '：平方根と0.7〜1.4倍の威力');
       yes(e.stun === (ratio >= 1.25 ? 'down' : 'stagger'), 'タックル重量比 ' + ratio + '：よろけ／ダウン');
@@ -94,7 +94,7 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     reset(); g.obstacles.push({ minX: -10, maxX: 10, minZ: 17.9, maxZ: 18, top: 220 });
     g.actionMoveStart(p); finish(); yes(p.pos.z >= 19.3 - .025, 'タックルは壁を通り抜けない'); g.obstacles.pop();
     for (const id of ['tackle', 'kick']) {
-      for (const state of [{ boost: id === 'tackle' ? 19 : 29 }, { overheat: true }, { repairing: true },
+      for (const state of [{ boost: id === 'tackle' ? 19 : 14 }, { overheat: true }, { repairing: true },
         { planted: true }, { transfer: {} }, { downT: 1 }, { alive: false }, { stun: 'stagger' },
         { electricT: 1 }, { swing: {} }, { recoverT: .5 }, { lungeT: 1 }, { flying: true }, { zip: {} }, { actionCd: 1 }]) {
         reset(id); Object.assign(p, state); const fuel = p.boost;
@@ -113,31 +113,31 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     }
     reset(); p.onGround = false; p.pos.y = 230; yes(!g.actionMoveStart(p), '空中ではタックル不可');
     reset('kick'); const e = target(enemies[0], 0, 17.5), hp = e.hp, z = e.pos.z, fuel = p.boost;
-    yes(g.actionMoveStart(p) && near(fuel - p.boost, 30) && near(p.actionCd, 4), '蹴りは30消費・再使用4秒');
-    tick(.29); yes(e.hp === hp, '蹴りの発生前0.29秒では当たらない'); tick(.02);
-    yes(near(hp - e.hp, 3000 * g.armorMult(e)) && e.stun === 'stagger', '蹴りは0.3秒で3000・必ずよろけ');
+    yes(g.actionMoveStart(p) && near(fuel - p.boost, 15) && near(p.actionCd, 1.8), '蹴りは15消費・再使用1.8秒');
+    tick(.19); yes(e.hp === hp, '蹴りの発生前0.19秒では当たらない'); tick(.02);
+    yes(near(hp - e.hp, 800 * g.armorMult(e)) && e.stun === 'stagger', '蹴りは0.2秒で800・必ずよろけ');
     tick(.3, 120, e);
     yes(near(z - e.pos.z, 6), '蹴りは6m押し出す');
-    finish(); yes(near(p.actionRecoverT, .8, .02), '蹴りの硬直0.8秒');
+    finish(); yes(near(p.actionRecoverT, .6, .02), '蹴りの硬直0.6秒');
     reset('kick'); const hit = [target(enemies[0], -1, 18), target(enemies[1], 1, 18)], friendly = target(ally, 0, 18);
     const all = [...hit, friendly], before = all.map(u => u.hp); g.actionMoveStart(p); tick(.66);
     yes(hit.every((u, i) => u.hp < before[i]) && friendly.hp === before[2], '蹴りの扇は複数の前方敵に当たり、味方には当たらない');
-    for (const [x, z, label] of [[0, 22, '後方'], [0, 14, '3mより遠方'], [2.5, 19, '全幅90度の扇の外']]) {
+    for (const [x, z, label] of [[0, 22, '後方'], [0, 10, '踏み込みを含めた射程より遠方'], [2.5, 19, '全幅90度の扇の外']]) {
       reset('kick'); const outside = target(enemies[0], x, z), outsideHp = outside.hp;
       g.actionMoveStart(p); tick(.66); yes(outside.hp === outsideHp, '蹴りは' + label + 'に当たらない');
     }
     for (const id of ['tackle', 'kick']) {
       reset(id, 'skimmer'); const e = target(enemies[0], 0, id === 'kick' ? 18 : 17), hp = e.hp;
       g.actionMoveStart(p); finish();
-      yes(near(hp - e.hp, (id === 'tackle' ? 2000 : 3000) * .8 * g.armorMult(e)), 'ホバーの' + id + 'は威力0.8倍');
+      yes(near(hp - e.hp, (id === 'tackle' ? 600 : 800) * .8 * g.armorMult(e)), 'ホバーの' + id + 'は威力0.8倍');
     }
-    reset('tackle', 'skimmer'); g.actionMoveStart(p); tick(.8); yes(near(20 - p.pos.z, 1.3), 'ホバーのタックルは距離1.3倍');
-    reset('kick'); p.onGround = false; p.pos.y = 230; g.actionMoveStart(p); tick(.3); const from = p.pos.clone(); finish();
+    reset('tackle', 'skimmer'); g.actionMoveStart(p); tick(.8); yes(near(20 - p.pos.z, 10.4), 'ホバーのタックルは距離1.3倍');
+    reset('kick'); p.onGround = false; p.pos.y = 230; g.actionMoveStart(p); tick(.2); const from = p.pos.clone(); finish();
     const delta = p.pos.clone().sub(from);
     yes(near(delta.length(), 6, .12) && near(-delta.y, -delta.z, .12), '空中蹴りは約45度下へ6m進む');
     yes(p.actionLandMiss, '空中蹴りの空振りは着地待ち');
     let landed = false; for (let i = 0; i < 500; i++) { tick(1 / 120); if (p.onGround) { landed = true; break; } }
-    yes(landed && near(p.actionRecoverT, 1, .03), '空振り着地で1秒の硬直');
+    yes(landed && near(p.actionRecoverT, .6, .03), '空振り着地で0.6秒の硬直');
     reset('kick'); p.onGround = false; p.pos.y = 206; const airEnemy = target(enemies[0], 0, 16, 5000, 202);
     g.actionMoveStart(p); finish(); yes(airEnemy.stun === 'down' && !p.actionLandMiss, '空中蹴りの命中はダウン、着地失敗硬直なし');
     reset(); p.actionHeld = true; tick(.01); yes(!!p.actionMove, 'Cの押下から物理処理で発動');
@@ -196,7 +196,7 @@ check('タックルと蹴り', async ({ page, ev, ok, sortie }) => {
     p.jumpBuf = .3;
     let bufferedLanding = false;
     for (let i = 0; i < 500; i++) { tick(1 / 120); if (p.onGround) { bufferedLanding = true; break; } }
-    yes(bufferedLanding && near(p.actionRecoverT, 1, .03), 'ジャンプ先行入力があっても空振り着地の1秒硬直は消えない');
+    yes(bufferedLanding && near(p.actionRecoverT, .6, .03), 'ジャンプ先行入力があっても空振り着地の0.6秒硬直は消えない');
     for (const id of ['tackle', 'kick']) {
       reset(id); const e = target(enemies[0], 0, 17);
       p.slots.sub = g.slotOf('missile'); p.weapon = 'sub';

@@ -22,13 +22,13 @@ check('タックルの肩当て',async({page,ev,ok,sortie,out})=>{
   await ev(()=>__poseTick(.18));
   ok(await ev(()=>{
     const g=__g,p=g.player,b=p.rig.bones;
-    return b.armR.node.getWorldPosition(new g.T.Vector3()).z-p.pos.z<__neutralShoulder-.3&&b.chest.node.rotation.x<-.3&&b.chest.node.rotation.y>.5;
+    return b.armR.node.getWorldPosition(new g.T.Vector3()).z<b.armL.node.getWorldPosition(new g.T.Vector3()).z-.5&&b.chest.node.rotation.x<-.3&&b.chest.node.rotation.y>.5;
   }),'右肩が前へ出て、胴を前傾・ひねりする');
   await page.screenshot({path:path.join(out,'tackle-shoulder.png')});
   await ev(()=>__poseTick(.61));
   ok(await ev(()=>!!__g.player.actionMove&&Math.abs(__g.player.actionMove.elapsed-.79)<.001),'0.79秒では突撃モーションが続く');
   await ev(()=>__poseTick(.01));
-  ok(await ev(()=>!__g.player.actionMove&&Math.abs(__g.player.actionRecoverT-.3)<.001&&Math.abs(__g.player.pos.z-19)<.001),'0.8秒で1mの踏み込みが終わり、硬直0.3秒へ移る');
+  ok(await ev(()=>!__g.player.actionMove&&Math.abs(__g.player.actionRecoverT-.3)<.001&&Math.abs(__g.player.pos.z-12)<.001),'0.8秒で8mの踏み込みが終わり、硬直0.3秒へ移る');
   await ev(()=>__poseTick(.15));
   ok(await ev(()=>Math.abs(__g.player.rig.bones.chest.node.rotation.y-.325)<.03),'硬直中に肩を滑らかに元へ戻す');
   await page.screenshot({path:path.join(out,'tackle-recovery.png')});
