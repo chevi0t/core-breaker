@@ -3,7 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const source=fs.readFileSync(require.resolve('../../prototype/online/game.js'),'utf8'),Transport=require('../../prototype/online/transport');
 const part=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 function setup(){
- const events=[],stats={corrections:7},state={role:'host',phase:'playing',peers:new Map([['private-id',{}]]),requests:new Map(),roster:[],prepareTimer:null};
+ const events=[],stats={corrections:7},state={role:'host',phase:'playing',peers:new Map([['private-id',{}]]),requests:new Map(),resumePeers:new Map(),roster:[],prepareTimer:null};
  const element={querySelector:()=>null};const c={state,events,stats,diagnosticLog:{end:(reason,data)=>events.push({code:'end',reason,...data})},logSample:()=>({corrections:stats.corrections,phase:state.phase,humans:state.peers.size+1}),logCheckpoint:code=>events.push({code,corrections:stats.corrections,phase:state.phase,humans:state.peers.size+1}),
  clearRemoteEquipment(){},clearRemoteShells(){},equipmentActions:[],resetQuickChat(){},resetLobbyReady(){},clearStartReservation(){},clearPrediction(){stats.corrections=0;},resetLagCompensation(){},stopSessionAudio(){},clearTimeout(){},preferenceTimer:null,preferenceReject:null,preferenceResolve:null,
  requestsChanged(){},lobbyChanged(){},remoteUnitHistory:new Map(),remoteShells:new Map(),setSimulationRole(){},saved:null,running:true,ended:false,tutorialClearInput(){},status(){},callbacks:{},$:()=>element,showPage(){},document:{exitPointerLock(){}},resetMeasurements(){stats.corrections=0;},unit:()=>null,now:()=>0};

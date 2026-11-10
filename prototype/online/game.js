@@ -10,6 +10,7 @@
   const reasonMessages={
     '退出':'local_leave','試合結果から退出':'local_leave','部屋を閉じました':'local_leave','部屋を作り直す':'reconnect','接続を作り直す':'reconnect',
     'ホストが退出しました':'host_left','相手が退出しました':'local_leave','対戦接続が切れました':'channel_closed','状態用チャネルが切れました':'channel_closed','ホストがロビーから退出させました':'kicked','ホストが入室を拒否しました':'rejected',
+    '部屋が見つかりません。部屋IDとホストが待機中か確認してください':'peer_unavailable',
     'ゲームの版が一致しません':'version_mismatch','通信の版が一致しません':'protocol_mismatch',
     '接続サービスが終了しました':'signaling_closed','対戦通信の応答がありません':'response_timeout','ホストから5秒間応答がありません':'host_timeout',
     '入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます':'input_timeout',
@@ -872,7 +873,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   const roomTeamSizes = Array.from({length:9},(_,i)=>i+2); // 本体2〜50のうち、通信試作は合計20機まで。
   const roomClasses=Object.keys(CLASSES);
   const defaultSettings = {capacity:4,teamSize:5,mapId:'mesa',teamMode:'random'};
-  const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), requests: new Map(), localUnitId: null,
+  const state = { role: 'offline', phase: 'idle', transport: null, peers: new Map(), requests: new Map(), resumePeers: new Map(), reconnecting:false, localUnitId: null,
     settings:null, roster:[], hostTeam:'B', resolvedMapId:null, roomId:null,
     lobbyRevision:0, lobbyReady:false, editing:false, equipment:null, equipmentVersion:0, equipmentPending:false,
     matchId: null, frame: 0, seq: 0, lastSnapshot: null, events: [], history: [], receivedEvents: new Set(),
@@ -956,7 +957,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   const commandLimits={dt:1/60,queue:30,sequenceJump:120,catchupSeconds:.1,catchupBacklog:6,maxFrameSteps:4,maxAheadSteps:2};
   let localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:null};
   const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:0,visualFrames:6};
-  const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,futureMs:250,actions:64};
+  const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,activeMs:250,futureMs:250,actions:64};
   const movementKeys=['KeyW','KeyS','KeyA','KeyD','KeyC','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   const movementEdges=['ShiftLeft','ShiftRight','Space'];
   const movementMask=pressed=>movementEdges.reduce((mask,key,i)=>mask|(pressed?.[key]?1<<i:0),0);
@@ -1269,16 +1270,57 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     return {weapons:Object.fromEntries(SLOTS.map(slot=>[slot,ARMORY[cls][slot].filter(onlineWeapon).map(key=>({id:key,name:WEAPONS[key].name}))])),
       parts:Object.fromEntries(PART_SLOTS.map(slot=>[slot,Object.entries(PARTS[slot]).map(([id,p])=>({id,name:p.model||p.name||id}))])),paints:PAINTS.map(p=>({id:p.id,name:p.name}))};
   }
-  function checkedEquipment(input){
+  function checkedEquipment(input,previous=null){
     if(!input||!roomClasses.includes(input.cls))throw Error('オンラインの兵装を選んでください');
-    const cls=input.cls,loadout=input.loadout||preset(cls),mech=input.mech||MECH_DEFAULT;
-    if(!SLOTS.every(k=>typeof loadout[k]==='string'&&ARMORY[cls][k].includes(loadout[k])&&onlineWeapon(loadout[k])))throw Error('オンライン未対応の武器、または兵装に合わない武器です');
+    const cls=input.cls,mech=input.mech||previous?.mech||MECH_DEFAULT;
+    if(input.loadouts!==undefined&&(!input.loadouts||typeof input.loadouts!=='object'||Array.isArray(input.loadouts)||Object.entries(input.loadouts).some(([k,v])=>!roomClasses.includes(k)||!v||typeof v!=='object'||Array.isArray(v))))throw Error('兵装ごとの装備が正しくありません');
+    // 通信用の独立スナップショット。旧形式の単一loadout更新も、ほかの兵装を消さない。
+    const loadouts=Object.fromEntries(roomClasses.map(key=>{
+      const loadout=(key===cls&&input.loadout!==undefined)?input.loadout:input.loadouts?.[key]??previous?.loadouts?.[key]??(previous?.cls===key?previous.loadout:preset(key));
+      if(!loadout||!SLOTS.every(k=>typeof loadout[k]==='string'&&ARMORY[key][k].includes(loadout[k])&&onlineWeapon(loadout[k])))throw Error('オンライン未対応の武器、または兵装に合わない武器です');
+      return [key,Object.fromEntries(SLOTS.map(k=>[k,loadout[k]]))];
+    }));
     if(!PART_SLOTS.every(k=>typeof mech[k]==='string'&&Object.hasOwn(PARTS[k],mech[k]))||!PAINTS.some(p=>p.id===mech.color))throw Error('機体パーツが正しくありません');
-    return {cls,loadout:Object.fromEntries(SLOTS.map(k=>[k,loadout[k]])),mech:Object.fromEntries([...PART_SLOTS,'color'].map(k=>[k,mech[k]]))};
+    return {cls,loadout:{...loadouts[cls]},loadouts,mech:Object.fromEntries([...PART_SLOTS,'color'].map(k=>[k,mech[k]]))};
   }
+  // オフラインと同じ3構成を使う。通信から保存先へは書かず、本人の保存操作だけを反映する。
+  function savedBuilds(){
+    const record=buildRecord();return {cur:record.cur,list:record.list};
+  }
+  function savedEquipment(cls){
+    const record=savedBuilds(),build=record.list[record.cur];
+    return checkedEquipment({cls:roomClasses.includes(cls)?cls:'assault',mech:build.mech,loadouts:build.loadout});
+  }
+  function savedBuildStatus(){return {failed:buildSaveState.failed,text:buildSaveState.text};}
+  function refreshSavedBuilds(){renderBuildTabs();renderClsButtons();}
+  function chooseSavedBuild(index){
+    if(state.role!=='offline'||state.phase!=='idle')throw Error('入室後の構成変更は「装備を変更」から行ってください');
+    if(![0,1,2].includes(index))throw Error('構成1〜3から選んでください');
+    switchBuild(index);refreshSavedBuilds();return savedBuilds();
+  }
+  function saveEquipmentBuilds(draft,baseline,cls){
+    if(state.phase!=='lobby'||!['host','guest'].includes(state.role))throw Error('装備はロビーで変更してください');
+    if(state.equipmentPending)throw Error('装備の確定を待ってください');
+    const valid=record=>validBuildImport({...record,format:'core-breaker-settings',version:2,revision:'online-draft'});
+    if(!valid(draft)||!valid(baseline))throw Error('保存する3構成が正しくありません');
+    // 全構成を先に検査。不正な兵装・部品が一つでもあれば何も書き換えない。
+    for(const build of draft.list)checkedEquipment({cls,mech:build.mech,loadouts:build.loadout});
+    const next=buildRecord();next.cur=draft.cur;
+    for(let i=0;i<3;i++){
+      const before=baseline.list[i],after=draft.list[i],merged=next.list[i];
+      for(const key of [...PART_SLOTS,'color'])if(before.mech[key]!==after.mech[key])merged.mech[key]=after.mech[key];
+      for(const c of roomClasses)for(const key of SLOTS)if(before.loadout[c][key]!==after.loadout[c][key])merged.loadout[c][key]=after.loadout[c][key];
+    }
+    applyBuildRecord(next,false);const saved=saveBuilds();refreshSavedBuilds();
+    // 別タブとの統合後の値を送る。保存禁止でもオフラインと同じく画面内の構成は保持する。
+    try{setEquipment(savedEquipment(cls));}
+    catch(error){throw Error((saved?'共通構成は保存しました。':'共通構成は画面内に保持しています。')+error.message);}
+    return {saved,pending:state.equipmentPending};
+  }
+  function pilotNameForOnline(){return typeof playerName==='string'&&playerName.trim()?playerName:'あなた';}
   function setEquipment(input){
     if(state.phase!=='lobby')throw Error('装備はロビーで変更してください');
-    const equipment=checkedEquipment(input);
+    const equipment=checkedEquipment(input,state.equipment);
     if(JSON.stringify(equipment)===JSON.stringify(state.equipment))return true;
     if(state.role==='host'){state.equipment=equipment;state.equipmentVersion++;state.lobbyReady=false;lobbyChanged();return true;}
     if(state.role==='guest'){
@@ -1290,7 +1332,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function setEditing(editing){
     if(state.phase!=='lobby'||typeof editing!=='boolean')throw Error('装備はロビーで変更してください');
     if(state.role==='host'){state.editing=editing;if(editing)state.lobbyReady=false;lobbyChanged();return true;}
-    if(state.role==='guest')return state.transport.send('lobbyEditing',{editing});
+    if(state.role==='guest'){if(!state.transport.send('lobbyEditing',{editing}))throw Error(editing?'装備編集の開始を送信できませんでした。もう一度開いてください':'装備編集の終了を送信できませんでした。もう一度戻る操作をしてください');return true;}
     return false;
   }
   function setReady(ready){
@@ -1405,8 +1447,10 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   }
   function reserveStart() {
     // 3秒の表示に加え1秒の配信猶予。ゲストはNTP式の時刻差で自分の時計へ変換する。
-    const startAtHost=now()+4000;
-    state.transport.broadcast('begin',{matchId:state.matchId,startAtHost});
+    const startAtHost=now()+4000,transport=state.transport,startingMatchId=state.matchId;
+    transport.broadcast('begin',{matchId:startingMatchId,startAtHost});
+    // beginの配信中にも同期切断からロビーへ戻る。中止済みのカウントダウンを復活させない。
+    if(state.transport!==transport||state.role!=='host'||state.phase!=='preparing'||state.matchId!==startingMatchId||transport.closed||!transport.started||transport.matchId!==startingMatchId)return;
     countdown(startAtHost);
   }
   function saveSettings() { if (!saved) saved = { mapId, chosenCls, chosenTeam, selectedTeamSize }; }
@@ -1444,7 +1488,9 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   function logCheckpoint(code,reason='none'){diagnosticLog?.checkpoint(code,reason,logSample());}
   function transportOptions(opts) {
     state.onStatus = opts.onStatus || null; callbacks = opts;prediction.enabled=opts.predictionEnabled!==false;
-    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1', peerOptions: opts.peerOptions, iceServersUrl: opts.iceServersUrl ?? CBOnlineTransport.ICE_URL, latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: opts.displayName, capacity:state.settings?.capacity||4,
+    return { appVersion: (opts.appVersion || localVersion()) + ' / lobby-ready-1 / all-equipment-1 / snapshot-payload-1 / class-loadouts-1 / reconnect-1', reconnect:true, peerOptions: opts.peerOptions, iceServersUrl: opts.iceServersUrl ?? (typeof CBOnlineTransport==='undefined'?'':CBOnlineTransport.ICE_URL), latencyMs: opts.latencyMs || 0, snapshotDropRate:opts.snapshotDropRate || 0, inputDropRate:opts.inputDropRate||0,inputRandom:opts.inputRandom,displayName: (typeof opts.displayName==='string'&&opts.displayName.trim())||pilotNameForOnline(), capacity:state.settings?.capacity||4,
+      canResumePeer:id=>state.role==='host'&&state.phase==='playing'&&!!unit((state.peers.get(id)||state.resumePeers.get(id))?.unitId),
+      onReconnectFailed:reason=>{if(state.reconnecting)endGuest(reason);},
       onDiagnostic:(code,reason)=>logCheckpoint(code,reason),
       onSnapshotSent:(id,payload)=>rememberPeerSnapshot(id,payload),
       filterEvents:(id,payload)=>filterQueuedEvents(id,payload),
@@ -1455,7 +1501,14 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
         if(approveGuest(id))status('「'+(name||'ゲスト')+'」が入室しました');
       },
       onRequestClosed: id => {state.requests.delete(id);requestsChanged();},
-      onPeerJoin: (id,name) => {
+      onPeerJoin: (id,name,detail) => {
+        if(detail?.reconnected){
+          if(state.role==='host'){resumeGuest(id);return;}
+          const transport=state.transport,link=transport.links.get(id);
+          transport.waitForClock().then(()=>{
+            if(state.transport===transport&&transport.links.get(id)===link&&state.reconnecting){state.resumeClockReady=true;sendResumeReady();}
+          }).catch(e=>{if(state.transport===transport&&transport.links.get(id)===link&&state.reconnecting)endGuest(e.message);});return;
+        }
         if (state.role !== 'host') return;
         if (state.phase !== 'lobby') { state.transport.disconnectPeer(id,'試合中は参加できません'); return; }
         state.requests.delete(id);requestsChanged();
@@ -1464,11 +1517,11 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
         logCheckpoint('peer_joined');
         resetLobbyReady();status(`参加者 ${state.peers.size + 1} 人`); lobbyChanged();
       },
-      onPeerLeave: (id, reason) => peerLeft(id, reason), onMessage: onMessage };
+      onPeerLeave: (id, reason, detail) => peerLeft(id, reason, detail), onMessage: onMessage };
   }
   async function create(opts = {}) {
     requireVisibilitySupport();
-    const settings=checkedSettings({...defaultSettings,...opts.settings}),equipment=checkedEquipment(opts.equipment||{cls:roomClasses.includes(opts.cls)?opts.cls:'assault'});
+    const settings=checkedSettings({...defaultSettings,...opts.settings}),equipment=opts.equipment?checkedEquipment(opts.equipment):savedEquipment(opts.cls);
     leave('部屋を作り直す'); saveSettings(); resetMeasurements(); state.role = 'host'; state.phase = 'lobby'; running=false; stopSessionAudio();
     lagEnabled=opts.lagCompensationEnabled!==false;predictionLimits.wireSteps=opts.ackStepHistory?8:0;
     state.settings=settings;state.resolvedMapId=resolveMap(settings.mapId);state.hostTeam='B';state.equipment=equipment;
@@ -1493,10 +1546,41 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(state.transport!==transport||state.phase!=='lobby')throw Error('入室を取り消しました');
     await new Promise((resolve,reject)=>{
       preferenceResolve=resolve;preferenceReject=reject;preferenceTimer=setTimeout(()=>{preferenceResolve=preferenceReject=null;preferenceTimer=null;reject(Error('兵装の確認が時間切れになりました'));},10000);
-      transport.send('preference', checkedEquipment(opts.equipment||{cls:roomClasses.includes(opts.cls)?opts.cls:'assault'}));
+      transport.send('preference', opts.equipment?checkedEquipment(opts.equipment):savedEquipment(opts.cls));
     });
     if(state.transport!==transport||['ended','leaving','idle'].includes(state.phase))throw Error('入室を取り消しました');
     if(state.phase==='lobby')status('ホストの開始を待っています');
+  }
+  function resetPeerCommands(p){
+    Object.assign(p,{fixedCommands:true,commandStartAt:now(),commandQueue:[],lastCommand:null,expiredCommandSeq:0,fixedStarted:false,fixedClock:0,catchupClock:0,fixedElapsed:0,fixedSteps:0,fixedReplaySeq:0,fixedNeedsResync:false,lastCommandArrival:null,movementActions:[],utilityActions:[],appliedMovementIds:new Set(),appliedMovementActionSeq:0,repeatedCommands:0,droppedCommands:0,inputLifeId:null,input:null,receivedSeq:0,appliedSeq:0,appliedSeqDt:0,appliedTotalDt:0,appliedStep:0,appliedSteps:[],receivedActionSeq:0,appliedActionSeq:0,actions:[]});
+    Object.assign(p,{pendingEdges:{},inputTimes:[],inputHistoryTruncated:false,firstInputAt:null,actionState:null,activeAction:null,frameAction:null,pendingShot:null,shotActionSeq:0});
+  }
+  function resumeGuest(id){
+    const old=state.resumePeers.get(id),u=unit(old?.unitId);
+    if(state.phase!=='playing'||!old||!u){state.transport.disconnectPeer(id,'元の試合へ復帰できません');return;}
+    const p={id:old.id,name:old.name,team:old.team,equipment:old.equipment,cls:old.cls,preferred:true,equipmentVersion:old.equipmentVersion,
+      unitId:old.unitId,resuming:true,ready:false,last:now(),joinedAt:now(),lastResync:-Infinity,resumeDeadline:now()+15000};
+    resetPeerCommands(p);state.resumePeers.delete(id);state.peers.set(id,p);logCheckpoint('peer_joined','reconnect');
+    // ホストの機体/命/装備/得点は作り直さない。同期完了までは切断時のBotのまま。
+    const initial=encodePeerSnapshot(p,snapshot(),true,true);p.resumeFrame=initial.wire.frame;
+    if(!state.transport.send('resumePrepare',{matchId:state.matchId,teamSize:state.teamSize,mapId:state.resolvedMapId,localId:p.unitId},id)||
+      !state.transport.send('snapshotBase',initial.baseline,id)||!state.transport.send('snapshot',initial.wire,id)){
+      state.transport.disconnectPeer(id,'復帰用の状態を送信できません');return;
+    }
+    status('ゲストの再接続を確認しました。状態の同期を待っています');
+  }
+  function sendResumeReady(){
+    if(state.reconnecting&&state.phase==='preparing'&&prepared&&state.resumeClockReady&&state.lastSnapshot)
+      state.transport.send('resumeReady',{matchId:state.matchId,frame:state.lastSnapshot.frame});
+  }
+  function reconnectGuest(reason){
+    if(state.role!=='guest'||!['playing','preparing'].includes(state.phase)||!state.matchId)return false;
+    if(!state.reconnecting&&state.phase!=='playing')return false;
+    clearStartReservation();clearTimeout(state.prepareTimer);state.prepareTimer=null;
+    resetMeasurements();state.reconnecting=true;state.resumeClockReady=false;state.phase='preparing';running=false;ended=false;tutorialClearInput();stopSessionAudio();
+    $('ovTitle').textContent='再接続中';$('ovText').textContent='元の機体への復帰を試しています（30秒まで）。同期が終わるまでBotが引き継ぎます。';
+    showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();status('通信が切れました。元の試合へ再接続しています');
+    return true;
   }
   function start(options = {}) {
     requireVisibilitySupport();
@@ -1516,10 +1600,14 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     state.phase = 'preparing';
     clearTimeout(state.prepareTimer);state.prepareTimer=setTimeout(()=>{if(state.role==='host'&&state.phase==='preparing')abortPreparation('ゲストの読み込みが15秒以内に完了しなかったため、開始を中止しました');},15000);
     state.matchId = 'match-' + Date.now().toString(36); state.teamSize = teamSize;resetLagCompensation();
-    state.transport.startMatch(state.matchId); setupWorld(teamSize,host.unitId,state.resolvedMapId); player.controller = 'localHuman'; player.name = host.name; applyEquipment(player,host.equipment);
+    const transport=state.transport,startingMatchId=state.matchId,startedMatchId=transport.startMatch(startingMatchId);
+    // startMatchは同期の切断通知から開始を取り消すことがある。別の部屋・試合やロビーを上書きしない。
+    if(state.transport!==transport||state.role!=='host'||state.phase!=='preparing'||state.matchId!==startingMatchId)return;
+    if(startedMatchId!==startingMatchId||transport.closed||!transport.started||transport.matchId!==startingMatchId){abortPreparation('試合開始の通信を準備できなかったため、開始を中止しました');return;}
+    setupWorld(teamSize,host.unitId,state.resolvedMapId); player.controller = 'localHuman'; player.name = host.name; applyEquipment(player,host.equipment);
     for (const p of state.peers.values()) {
-      p.unitId = assignments.find(r=>r.id===p.id).unitId; p.ready = false; p.last = now(); p.joinedAt = now();
-      Object.assign(p,{fixedCommands:true,commandQueue:[],lastCommand:null,fixedStarted:false,fixedClock:0,catchupClock:0,fixedElapsed:0,fixedSteps:0,fixedReplaySeq:0,fixedNeedsResync:false,lastCommandArrival:null,movementActions:[],utilityActions:[],appliedMovementIds:new Set(),appliedMovementActionSeq:0,repeatedCommands:0,droppedCommands:0,inputLifeId:null,input:null,receivedSeq:0,appliedSeq:0,appliedSeqDt:0,appliedTotalDt:0,appliedStep:0,appliedSteps:[],receivedActionSeq:0,appliedActionSeq:0,actions:[]});
+      p.unitId = assignments.find(r=>r.id===p.id).unitId; p.ready = false;p.resuming=false; p.last = now(); p.joinedAt = now();
+      resetPeerCommands(p);
       const u = unit(p.unitId); u.controller = 'remoteHuman'; u.onlineFixedMovement=true;u.ownerPeerId = p.id;
       u.name = p.name;applyEquipment(u,p.equipment);
     }
@@ -1535,20 +1623,20 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     }
     status('ゲストの読み込みを待っています');
   }
-  function begin() {
+  function begin(resumed=false) {
     if(state.phase!=='countdown')return;
-    state.actualStartAt=now();state.countdownNumber=0;$('announce').querySelector('[data-online-countdown]')?.remove();tutorialClearInput();
+    if(!resumed)state.actualStartAt=now();state.countdownNumber=0;$('announce').querySelector('[data-online-countdown]')?.remove();tutorialClearInput();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     state.phase = 'playing'; running = true; ended = false; state.lastHost = now();state.nextSnapshotAt=0;
-    logCheckpoint('match_started');
+    logCheckpoint(resumed?'connection_ready':'match_started',resumed?'reconnect':'none');
     // 読み込み＋4秒の開始待ちを回線jitterに数えない。初期状態は残し、対戦中の写真で描画時計を始める。
     if(state.role==='guest'){
       lastRenderedView=null;
       state.history=[];Object.assign(interpolation,{delayMs:100,targetDelayMs:100,intervalMs:SNAPSHOT_INTERVAL_MS,jitterMs:0,lastArrival:null,lastRender:null,renderTime:null,localOffset:null});
     }
     // 早く準備できたゲストも、全員の開始時点から入力待機の猶予を持つ。
-    if (state.role === 'host') for (const p of state.peers.values()) p.last = state.lastHost;
-    $('overlay').hidden = true; annReset(); announce('作戦開始', 'info'); callbacks.onStarted?.();
+    if (state.role === 'host') for (const p of state.peers.values()) {p.last=state.lastHost;if(p.lastCommandArrival===null)p.commandStartAt=state.lastHost;}
+    $('overlay').hidden = true; annReset(); announce(resumed?'対戦に復帰しました':'作戦開始', 'info'); callbacks.onStarted?.();
   }
   function onMessage(type, data, peerId) {
     if(handleSnapshotControl(type,data,peerId))return;
@@ -1556,7 +1644,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       const p = state.peers.get(peerId); if (!p) return;
       if(type==='quickChatRequest'){acceptQuickChat(data,peerId);return;}
       if(type==='preference'&&state.phase==='lobby'){
-        try{const equipment=checkedEquipment(data),changed=JSON.stringify(equipment)!==JSON.stringify(p.equipment);
+        try{const equipment=checkedEquipment(data,p.equipment),changed=JSON.stringify(equipment)!==JSON.stringify(p.equipment);
           if(changed){p.equipment=equipment;p.cls=equipment.cls;p.equipmentVersion=(p.equipmentVersion||0)+1;p.lobbyReady=false;}
           p.preferred=true;state.transport.send('preferenceAck',{ok:true,equipment:p.equipment,equipmentVersion:p.equipmentVersion},peerId);lobbyChanged();
         }catch(e){state.transport.send('preferenceAck',{ok:false,reason:e.message},peerId);}return;
@@ -1578,9 +1666,16 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
         p.ready = true; p.last = now();
         if ([...state.peers.values()].every(x => x.ready)) reserveStart();
       }
+      if(type==='resumeReady'&&state.phase==='playing'&&p.resuming&&data?.matchId===state.matchId&&Number.isSafeInteger(data.frame)&&data.frame>=p.resumeFrame&&data.frame<=state.frame){
+        const u=unit(p.unitId);if(!u)return;
+        p.resuming=false;p.ready=true;p.last=p.commandStartAt=now();u.controller='remoteHuman';u.onlineFixedMovement=true;u.ownerPeerId=p.id;
+        u.controlInput={};u.controlTarget=null;u.actionHeld=false;u.actionBlockBoost=false;u.onlineInputSeq=0;
+        state.transport.send('resumeGo',{matchId:state.matchId},peerId);lobbyChanged();status('ゲストが元の機体へ復帰しました');return;
+      }
+      if(p.resuming&&['inputBatch','inputActions'].includes(type))return;
       if(type==='inputBatch'&&state.phase==='playing')acceptInputBatch(p,data);
       if(type==='inputActions'&&state.phase==='playing')acceptInputActions(p,data);
-      if (type === 'leave') peerLeft(peerId, data?.reason || '退出');
+      if (type === 'leave') {state.resumePeers.delete(peerId);peerLeft(peerId, data?.reason || '退出');}
       return;
     }
     if (state.role !== 'guest') return;
@@ -1602,18 +1697,27 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       preferenceResolve=preferenceReject=null;return;
     }
     if (type === 'reject' || type === 'endHost') { endGuest(data?.reason || 'ホストが退出しました'); return; }
-    if (type === 'prepare' && state.phase === 'lobby') {
+    if(type==='resumeGo'&&state.reconnecting&&state.phase==='preparing'&&prepared&&state.resumeClockReady&&data?.matchId===state.matchId){
+      clearTimeout(state.prepareTimer);state.prepareTimer=null;state.reconnecting=false;state.phase='countdown';begin(true);status('元の機体で対戦に復帰しました');return;
+    }
+    if (type === 'prepare' && state.phase === 'lobby' || type==='resumePrepare'&&state.reconnecting&&state.phase==='preparing') {
+      if(type==='resumePrepare'&&(data?.matchId!==state.matchId||data?.localId!==state.localUnitId)){endGuest('元の試合・機体と復帰情報が一致しません');return;}
       if(!visibilitySupport){endGuest('公開範囲を保護する機能を読み込めないため、ネット対戦を開始できません。ページを再読み込みしてください');return;}
       if(!data||typeof data!=='object'||Array.isArray(data)||!state.settings||typeof data.matchId!=='string'||!data.matchId||data.matchId.length>128||data.teamSize!==state.settings.teamSize||data.mapId!==state.resolvedMapId||!roomMaps.some(m=>m.id===data.mapId)||typeof data.localId!=='string'||!/^[BR]:(0|[1-9][0-9]*)$/.test(data.localId)||Number(data.localId.slice(2))>=data.teamSize){endGuest('開始するマップ・人数が部屋の設定と一致しません');return;}
       state.matchId = data.matchId; state.teamSize = data.teamSize;pendingPrepare=data;state.phase='preparing';
+      if(type==='resumePrepare'){clearTimeout(state.prepareTimer);state.prepareTimer=setTimeout(()=>{if(state.reconnecting)endGuest('復帰用の状態同期が時間切れになりました');},15000);}
       // 制御線だけ先着しても正常な初回写真を重複要求しない。最初の250msは待つ。
       lastResync=now();resyncBackoff=250;retryPendingSnapshots();
     } else if (type === 'begin' && state.phase==='preparing' && prepared && data?.matchId === state.matchId) { countdown(data.startAtHost); }
     else if (type === 'snapshot' && ['lobby','preparing','countdown','playing'].includes(state.phase)) receiveSnapshot(data);
     else if (type === 'matchEnded') receiveMatchEnded(data);
-    else if (type === 'lobbyReturn' && ['ended','playing','countdown','preparing'].includes(state.phase) && data?.matchId === state.matchId) {
-      if(state.phase!=='ended'){showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();}
+    else if (type === 'lobbyReturn' && ['lobby','ended','playing','countdown','preparing'].includes(state.phase) && data?.matchId && data.matchId === (state.matchId||state.transport?.matchId)) {
+      // 初期prepareの送信自体が失敗した相手も、transportが受け取った試合番号で取消を確認できる。
+      const reason=typeof data.reason==='string'?data.reason.slice(0,200):'';
+      if(reason)endGuest(reason);
+      else if(state.phase!=='ended'){showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();}
       backToLobby();
+      if(reason)status(reason);
     }
     else if (type === 'events' && state.phase === 'playing') playEvents(data);
   }
@@ -1637,7 +1741,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     const u=unit(p.unitId),age=now()-v?.sentAt;
     if(!u||v.lifeId!==u.lifeId||!Number.isFinite(v.sentAt)||age>inputLimits.maxAgeMs||age< -inputLimits.futureMs)return null;
     if(p.inputLifeId!==u.lifeId){
-      p.inputLifeId=u.lifeId;p.input=null;p.commandQueue=[];p.lastCommand=null;p.fixedStarted=false;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;p.fixedReplaySeq=0;p.fixedNeedsResync=false;p.movementActions=[];p.utilityActions=[];p.appliedMovementActionSeq=0;p.appliedMovementIds=new Set();p.appliedSeq=0;p.appliedSeqDt=0;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
+      p.inputLifeId=u.lifeId;p.input=null;p.commandQueue=[];p.lastCommand=null;p.expiredCommandSeq=0;p.fixedStarted=false;p.fixedClock=0;p.catchupClock=0;p.fixedElapsed=0;p.fixedSteps=0;p.fixedReplaySeq=0;p.fixedNeedsResync=false;p.movementActions=[];p.utilityActions=[];p.appliedMovementActionSeq=0;p.appliedMovementIds=new Set();p.appliedSeq=0;p.appliedSeqDt=0;p.inputTimes=[];p.inputHistoryTruncated=false;p.firstInputAt=null;p.pendingEdges={};p.actions=[];p.actionState=null;p.activeAction=null;p.pendingShot=null;p.shotActionSeq=0;
     }
     return u;
   }
@@ -1646,8 +1750,11 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     const fixed=v.command===true,queue=p.commandQueue||=[];
     if(p.fixedCommands&&!fixed)return;
     if(fixed){
+      // 初回移動が欠けても試合開始から番号の許容窓を進める。受信なしを毎回nowへ戻すと、
+      // 最初の120命令を逃したゲストは以後の正常な命令まで永久に拒否される。
+      const since=p.lastCommandArrival??p.commandStartAt??now();
       if(v.seq<=(p.appliedSeq||0)||queue.some(x=>x.seq===v.seq)||
-        v.seq>(p.receivedSeq||0)+commandLimits.sequenceJump+Math.floor(Math.max(0,now()-(p.lastCommandArrival??now()))/1000/commandLimits.dt))return;
+        v.seq>(p.receivedSeq||0)+commandLimits.sequenceJump+Math.floor(Math.max(0,now()-since)/1000/commandLimits.dt))return;
     }else if(v.seq<=p.receivedSeq)return;
     p.receivedSeq=Math.max(p.receivedSeq||0,v.seq);p.last=now();p.lastCommandArrival=now();
     p.firstInputAt??=now();(p.inputTimes||=[]).push({seq:v.seq,at:now()});p.inputTimes.sort((a,b)=>a.seq-b.seq);
@@ -1716,18 +1823,30 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     input.lifeId=player.lifeId;input.sentAt=sentAt;
     // 入力を取った時点で既に描き終わっている写真。今frameの未描画renderTimeとは区別する。
     input.view=copyView(lastRenderedView);
-    if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.lifeId=input.lifeId;}
+    if(inputSending.lifeId!==input.lifeId){inputSending.history=[];inputSending.signature=null;inputSending.classActionSeq=0;inputSending.lifeId=input.lifeId;}
     const actionKeys=pickedKeys(input.keys,inputKeys.filter(k=>!movementKeys.includes(k))),edges=pickedKeys(input.pressed);
+    // 同じlifeでも大破/エリア移動の開始でhostの地点選択はリセットされる。
+    // 表示中の地点が前回と同じでも、選択画面の切替時は必ず送り直す。
+    const selectionMode=player.alive?(player.transfer?(player.transfer.base?'transferBase':'transfer'):'alive'):(player.downT>0?'down':'respawn');
+    const selecting=selectionMode==='respawn'||selectionMode==='transferBase'||selectionMode==='transfer';
     const signature=JSON.stringify([input.lifeId,!!input.trigger,!!input.alt,actionKeys,input.spawnChoice,input.nextCls]);
     // 古いcontrolが期限切れなら、現在のheld状態だけを新番号で再送する。失効した押下は複製しない。
     const refresh=inputSending.actionSeq>prediction.lastAckActionSeq&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
-    if(!skipActions&&(signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||input.equipmentActions?.length||refresh)){
+    const actionChanged=signature!==inputSending.signature||Object.keys(edges).length||input.wheel||input.weapon||input.equipmentActions?.length;
+    const selectionChanged=selectionMode!==inputSending.selectionMode;
+    // 選択中は確認済みでも低頻度で再送。写真欠落やhostのリセット直前に受理された場合も回復する。
+    const selectionRefresh=selecting&&now()-inputSending.lastActionAt>=inputLimits.maxAgeMs;
+    if(!skipActions&&(actionChanged||refresh||selectionChanged||selectionRefresh)){
+      // 未確認の新しい兵装予約は途中の地点送信にも載せ、後の累積ACKに隠されて失われるのを防ぐ。
+      const sendClass=actionChanged||inputSending.classActionSeq>prediction.lastAckActionSeq;
       const action={seq:input.seq,lifeId:input.lifeId,sentAt,actionSeq:++inputSending.actionSeq,trigger:!!input.trigger,alt:!!input.alt,keys:actionKeys,pressed:edges,
-        wheel:Math.sign(input.wheel||0),weapon:input.weapon,equipmentActions:input.equipmentActions,spawnChoice:input.spawnChoice,nextCls:input.nextCls,
+        // 地点だけの再確認では取消済みかもしれない兵装予約を再採用させない。通常の選択変更/未確認再送は従来どおり。
+        wheel:Math.sign(input.wheel||0),weapon:input.weapon,equipmentActions:input.equipmentActions,spawnChoice:input.spawnChoice,nextCls:sendClass?input.nextCls:undefined,
         ...safe(input,['yaw','pitch','cameraRecoil','cameraRecoilYaw']),aimPoint:input.aimPoint.slice(),view:copyView(input.view)};
       input.actionSeq=action.actionSeq;
-      if(!state.transport.send('inputActions',action)){endGuest('操作の送信ができないため対戦を中断しました');return false;}
-      inputSending.signature=signature;inputSending.lastActionAt=now();
+      if(!state.transport.send('inputActions',action)){if(!state.transport.reconnect('操作の送信ができないため対戦を中断しました'))endGuest('操作の送信ができないため対戦を中断しました');return false;}
+      if(sendClass)inputSending.classActionSeq=input.nextCls?action.actionSeq:0;
+      inputSending.signature=signature;inputSending.selectionMode=selectionMode;inputSending.lastActionAt=now();
     }
     input.actionSeq=inputSending.actionSeq;
     if(actionsOnly)return true;
@@ -1813,6 +1932,8 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     return {...sw,t};
   }
   function stepLocalCommands(input,dt){
+    // H取消は送信前に手元の兵装予約も消す。移動状態自体はホスト確定を待つ。
+    if(player.alive&&player.transfer&&input.pressed?.KeyH)player.nextCls=null;
     if(localCommands.lifeId!==player.lifeId){localStepDelta=null;delete player.onlineRenderOffset;}
     if(localCommands.lifeId!==player.lifeId)localCommands={accumulator:0,pressed:{},wheel:0,weapon:null,movementActionSeq:0,moveActions:[],lifeId:player.lifeId};
     // 描画間の短い押下/射撃端もcontrolへ直ちに残す。移動命令自体はまだ作らない。
@@ -1849,7 +1970,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   }
   function remoteInput(u) {
     const p=state.peers.get(u.ownerPeerId);
-    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.commandQueue=[];p.lastCommand=null;p.fixedStarted=false;p.fixedClock=0;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;p.pendingShot=null;p.shotActionSeq=0;}
+    if(p&&p.inputLifeId!==u.lifeId){p.input=null;p.commandQueue=[];p.lastCommand=null;p.expiredCommandSeq=0;p.fixedStarted=false;p.fixedClock=0;p.pendingEdges={};p.actions=[];p.activeAction=null;p.actionState=null;p.pendingShot=null;p.shotActionSeq=0;}
     // 行動不能中は移動schedulerが止まる。Fだけはreliable操作から取り出し、downTickの後でACKする。
     // 移動番号の到着/消化は待たず、生命・有効期限・独立action番号の検査は通常どおり使う。
     if(p&&!u.alive&&u.downT>0){
@@ -1857,7 +1978,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       p.activeAction=p.actions[0]||null;p.pendingShot=null;u.controlTarget=null;
       return {keys:{},pressed:pickedKeys(p.activeAction?.pressed,['KeyF']),trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch};
     }
-    if(!p||!p.input||now()-p.input.sentAt>250||now()-p.last>250){
+    if(!p||!p.input||now()-p.input.sentAt>inputLimits.activeMs||now()-p.last>inputLimits.activeMs){
       if(p){p.pendingEdges={};p.activeAction=null;p.actions=(p.actions||[]).filter(a=>actionIsRecent(p,a));}
       u.controlTarget=null;return {keys:{},pressed:{},trigger:false,alt:false,yaw:u.yaw,pitch:u.pitch,aimPoint:u.aimPos?.toArray()||u.pos.clone().addScaledVector(fwdOf(u),100).toArray()};
     }
@@ -1879,23 +2000,30 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     u.onlineInputSeq=p.input.seq;return result;
   }
   function abortPreparation(reason) {
+    if(state.role!=='host'||!['preparing','countdown'].includes(state.phase))return;
     logCheckpoint('preparation_aborted',reason);
     clearStartReservation();
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
-    state.transport?.broadcast('endHost',{reason});
     clearPrediction();state.phase='ended';running=false;ended=true;tutorialClearInput();stopSessionAudio();
+    // 取消は部屋の終了ではない。旧試合番号で通知を積んでから、両側を同じ部屋のロビーへ戻す。
+    state.transport?.broadcast('lobbyReturn',{matchId:state.matchId,reason});
     $('ovTitle').textContent='オンライン対戦を中断';$('ovText').textContent=reason;showPage('pgMenu');$('overlay').hidden=false;document.exitPointerLock?.();
-    status(reason);callbacks.onEnded?.(reason);
+    callbacks.onEnded?.(reason);backToLobby();status(reason);
   }
-  function peerLeft(id, reason) {
-    if (state.role === 'guest') { if (!['ended','leaving'].includes(state.phase)) endGuest(reason || 'ホストとの通信が切れました'); return; }
-    const p = state.peers.get(id); if (!p) return;
+  function peerLeft(id, reason, detail={}) {
+    if (state.role === 'guest') { if (!['ended','leaving'].includes(state.phase)) {
+      if(detail.reconnecting&&state.transport?.resumeToken&&reconnectGuest(reason))return;
+      endGuest(reason || 'ホストとの通信が切れました');
+    } return; }
+    const p = state.peers.get(id); if (!p) {if(!detail.reconnecting)state.resumePeers.delete(id);return;}
+    if(detail.reconnecting&&state.phase==='playing')state.resumePeers.set(id,p);else state.resumePeers.delete(id);
     logCheckpoint('peer_departed',reason);
     const preparing=['preparing','countdown'].includes(state.phase);
-    if(preparing)abortPreparation('準備中にゲストが退出したため、開始を中止しました');
     const u = unit(p.unitId);
     if (u) { u.controller = 'bot';delete u.onlineFixedMovement; u.ownerPeerId = null; u.controlInput = {}; u.controlTarget = null; u.actionHeld = false; u.actionBlockBoost = false; u.onlineInputSeq = 0; }
-    quickChatBudgets.delete(id);state.peers.delete(id);if(state.phase==='lobby')resetLobbyReady(); lobbyChanged(); state.disconnected.push({peer:id,reason,time:now()}); if(!preparing)status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
+    quickChatBudgets.delete(id);state.peers.delete(id);state.disconnected.push({peer:id,reason,time:now()});
+    if(preparing){abortPreparation('準備中にゲストが退出したため、開始を中止しました');return;}
+    if(state.phase==='lobby')resetLobbyReady();lobbyChanged();status(state.phase==='lobby'?'参加者がロビーから退出しました':'ゲストが退出しました。Botが引き継ぎます');
   }
   // 試合の後、同じ部屋の待機へ戻る。ホストは試合終了の通知の直後に全員へ知らせ、ゲストはそれを受けて戻る。
   // 参加者・兵装の確認・部屋の設定はそのまま。結果画面はそのまま見られ、次の試合はホストがロビーから始める。
@@ -1903,10 +2031,10 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     logCheckpoint('lobby_returned');
     clearStartReservation();clearTimeout(state.prepareTimer);state.prepareTimer=null;
     if(state.phase!=='ended'){clearPrediction();running=false;ended=true;tutorialClearInput();stopSessionAudio();}
-    state.transport?.returnToLobby?.();
+    state.reconnecting=false;state.resumePeers.clear();state.transport?.returnToLobby?.();
     // 試合の番号（frame）は戻さない。終わった試合の最終frameを後から照合でき、次の試合も番号が増え続ける。
     const lastFrame=state.frame;resetMeasurements();state.frame=lastFrame;
-    for(const p of state.peers.values())Object.assign(p,{ready:false,unitId:null,input:null});
+    for(const p of state.peers.values())Object.assign(p,{ready:false,resuming:false,unitId:null,input:null});
     resetLobbyReady();state.editing=false;state.equipmentPending=false;for(const p of state.peers.values())p.editing=false;
     state.roster=state.roster.map(p=>({...p,ready:false,editing:false}));state.nudgeActive=false;state.lastNudgeAt=null;
     state.phase='lobby';state.matchId=null;running=false;ended=true;
@@ -1917,6 +2045,8 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     logCheckpoint('match_interrupted',reason);
     clearStartReservation();
     clearPrediction();state.phase = 'ended'; running = false; ended = true; tutorialClearInput();stopSessionAudio();
+    clearTimeout(state.prepareTimer);state.prepareTimer=null;
+    if(state.reconnecting){state.reconnecting=false;state.transport?.close(reason);}
     status(reason); callbacks.onEnded?.(reason); $('ovTitle').textContent = 'オンライン対戦を中断'; $('ovText').textContent = reason;
     showPage('pgMenu'); $('overlay').hidden = false; document.exitPointerLock?.();
   }
@@ -1928,8 +2058,13 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     clearTimeout(state.prepareTimer);state.prepareTimer=null;
     clearTimeout(preferenceTimer);preferenceTimer=null;preferenceReject?.(Error(reason));preferenceResolve=preferenceReject=null;
     const t = state.transport;
-    state.phase = 'leaving';
-    if (t) { if (state.role === 'host') t.broadcast('endHost',{reason}); else t.send('leave',{reason}); t.close(reason); }
+    state.phase = 'leaving';state.reconnecting=false;state.resumePeers.clear();
+    if (t) {
+      // 自分側の退出理由と、ゲストへ伝えるホスト退出を分ける。closeのbyeも同じ理由にする。
+      const remoteReason=state.role==='host'?'ホストが退出しました':reason;
+      if (state.role === 'host') t.broadcast('endHost',{reason:remoteReason}); else t.send('leave',{reason});
+      t.close(remoteReason);
+    }
     Object.assign(state,{lobbyReady:false,lobbyRevision:0,editing:false,equipment:null,equipmentVersion:0,equipmentPending:false,nudgeActive:false,lastNudgeAt:null});
     state.transport = null; state.role = 'offline'; state.phase = 'idle'; state.matchId=null; state.peers.clear();state.requests.clear();state.settings=null;state.roster=[];state.resolvedMapId=null;state.roomId=null;requestsChanged();lobbyChanged(); state.events=[]; state.history=[];remoteUnitHistory.clear();
     clearRemoteShells();
@@ -1972,8 +2107,12 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       sl.missileProgress=new Map((m?.progress||[]).map(([id,n])=>[equipmentEntity(id),n]).filter(([e])=>e));
       sl.missileCandidates=(m?.candidates||[]).map(equipmentEntity).filter(Boolean);}
   }
-  function respawnLoadout(cls,p=null){const e=p?.equipment||state.equipment;return {...(e?.cls===cls?e.loadout:preset(cls))};}
-  function matchEquipmentLoadouts(){return [...Object.keys(CLASSES).map(preset),...units.map(u=>Object.fromEntries(SLOTS.map(k=>[k,u.slots[k].w.key])))];}
+  function respawnLoadout(cls,p=null){const e=p?.equipment||state.equipment;return {...(e?.loadouts?.[cls]||(e?.cls===cls?e.loadout:preset(cls)))};}
+  function matchEquipmentLoadouts(){
+    // 復帰待ちの人が後から別兵装で使う設置物も、新しい写真の固定秘匿枠へ含める。
+    const equipment=[state.equipment,...[...state.peers.values(),...state.resumePeers.values()].map(p=>p.equipment)].filter(Boolean);
+    return [...Object.keys(CLASSES).map(preset),...equipment.flatMap(e=>Object.values(e.loadouts||{[e.cls]:e.loadout})),...units.map(u=>Object.fromEntries(SLOTS.map(k=>[k,u.slots[k].w.key])))];
+  }
   let gadgetKeyCache=null;
   const gadgetWeaponKey=g=>{gadgetKeyCache||=new Map(Object.entries(WEAPONS).flatMap(([k,w])=>[[w,k],...(w.proj?[[w.proj,k]]:[])]));return gadgetKeyCache.get(g.spec)||'';};
   function visibleEquipmentSources(view){
@@ -2131,6 +2270,9 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
         // 写真以前のdtをもう一度適用しない。写真欠落後も累積境界だけで復元できる。
         // 最近のstep一覧は診断用で、巻き直しには使わない。毎回約1KBになるので既定では送らない（create の ackStepHistory で8件を送る）。
         ...(predictionLimits.wireSteps>0?{steps:(p.appliedSteps||[]).slice(-predictionLimits.wireSteps)}:{})}]))};
+    // 自機の予測再生はcm丸めで地形の境界を跨がないよう、同じ写真の確定位置をACKへ保持する。
+    // inputAcksはcodecで丸めず、送信時には受信者自身の項目だけに絞る。
+    for(const v of s.units)if(s.inputAcks[v.id])s.inputAcks[v.id].pos=v.pos.slice();
     if(state.role==='host')rememberLagSnapshot(s);return s;
   }
   function replicationFor(p){
@@ -2231,7 +2373,13 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   }
   function encodePeerSnapshot(p,full=null,forceAll=false,forceBaseline=false){
     const r=replicationFor(p),s=snapshotForPeer(p,full,forceAll),publicUnits=s.units.filter(v=>!v.hidden),signature=publicUnits.map(v=>v.id+':'+v.visibilityEpoch).join('|')+';'+s.gadgets.map((v,i)=>v[0]===0?i+':'+v[1]:'').join('|')+';'+s.equipmentObjects.map(v=>v.id).join('|'),changed=signature!==r.signature;
-    if(changed){state.transport?.dropPendingSnapshots?.(p.id);r.queued.clear();}
+    if(changed){
+      const dropped=state.transport?.dropPendingSnapshots?.(p.id,{details:true});r.queued.clear();
+      // 未送信の基準（残り断片を含む）を捨てた時だけ、現在の公開範囲で独立基準を作る。
+      // send済みは送達保証ではない。回線上の欠落は従来の再同期、通常のhide/showは差分で扱う。
+      // 件数だけ返す旧transport・fixtureでは安全側に完全基準へ切り替える。
+      if(typeof dropped!=='object'||dropped===null||dropped.baselines>0)forceBaseline=true;
+    }
     const rebase=r.encoder.willRebase?.(s,{forceBaseline})??(!r.encoder.currentBase()||forceBaseline);
     if(rebase||forceAll)s.unitUpdates=(1<<s.units.length)-1;
     const encoded=r.encoder.encode(s,{forceBaseline,includePath:path=>path[0]!=='units'||['id','fixedUnit','hidden','visibilityEpoch'].includes(path[2])||s.units[path[1]]?.hidden||!!(s.unitUpdates&(1<<path[1]))});
@@ -2328,6 +2476,8 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
   }
   function applyEquipment(u,equipment){replaceMech(u,equipment.mech);u.controlLoadout={...equipment.loadout};equip(u,equipment.cls);}
   function applyUnit(u,s) {
+    // 新lifeで前の予約を消す。同じlifeの写真では未確認の新しい選択を上書きしない。
+    if(u===player&&u.lifeId!==s.lifeId)u.nextCls=null;
     if(u===player&&(!s.swing||u.lifeId!==s.lifeId||u.onlineMotionEpoch!==(s.motionEpoch||0)||u.onlineLagEpoch!==(s.lagEpoch||0)||u.cls!==s.cls))localMeleeSwing=null;
     const mechChanged=!!s.mech&&Object.keys(s.mech).some(k=>s.mech[k]!==u.mech?.[k]);
     if(mechChanged)replaceMech(u,s.mech);
@@ -2374,7 +2524,10 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     for (const [i,v] of s.units.entries()) {
       const u=unit(v.id);if(v.hidden){if(u)hideRemoteUnit(u);continue;}if(!u||sparse&&!(s.unitUpdates&(1<<i)))continue;
       const previous=remoteUnitHistory.get(v.id),snap=!previous||previous.snap||u.onlineHidden||u.lifeId!==v.lifeId||u.onlineMotionEpoch!==(v.motionEpoch||0)||(u.onlineLagEpoch||0)!==(v.lagEpoch||0)||u.onlineVisibilityEpoch!==(v.visibilityEpoch||0)||u.alive!==v.alive;
-      applyUnit(u,v);if(u===player)ownSnapshotTime=s.time;
+      const ownPos=u===player?s.inputAcks?.[v.id]?.pos:null;
+      // 他機の表示は従来のcm単位。旧写真/不正な追加座標は通常の位置へ戻す。
+      applyUnit(u,Array.isArray(ownPos)&&ownPos.length===3&&ownPos.every(Number.isFinite)?{...v,pos:ownPos}:v);
+      if(u===player)ownSnapshotTime=s.time;
       if(sparse&&u!==player){
         const samples=snap?[]:previous.samples,before=samples.at(-1);
         // 止まっていた機体は変化が無いので写真に載らず、前の記録が古いまま残る。そのまま新しい写真と補間すると、
@@ -2486,7 +2639,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     applySnapshot(s);reconcilePrediction(s,previousView);
     const ack=s.acks?.[state.localUnitId]||0;
     for(const [seq,p]of state.pendingInputs){if(seq<=ack){if(p.move&&player.pos.distanceToSquared(vector(p.pos))>0.0001)displayedLatencies.push({kind:'input',time:p.time});state.pendingInputs.delete(seq);}}
-    if(state.phase==='preparing')state.transport.send('ready',{matchId:state.matchId});
+    if(state.reconnecting)sendResumeReady();else if(state.phase==='preparing')state.transport.send('ready',{matchId:state.matchId});
     // 終了写真は落ち得る。終了・最終コア・表彰は必ず制御線のmatchEndedで確定する。
   }
   function matchResult() {
@@ -2494,7 +2647,8 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       units:units.map(u=>({id:u.entityId,name:u.name,cls:u.cls,sc:{...u.sc}}))};
   }
   function receiveMatchEnded(result) {
-    if(!prepared||finalFrame!==null||!['playing','countdown'].includes(state.phase)||!result||typeof result!=='object'||Array.isArray(result)||result.matchId!==state.matchId||
+    // 復帰開始で写真のpreparedを戻しても、元の試合の機体は残る。再同期より先に来る終了結果を失わない。
+    if((!prepared&&!state.reconnecting)||finalFrame!==null||!['playing','countdown','preparing'].includes(state.phase)||!result||typeof result!=='object'||Array.isArray(result)||result.matchId!==state.matchId||
       !Number.isSafeInteger(result.frame)||result.frame<(state.lastSnapshot?.frame??0)||!Number.isFinite(result.timeLeft)||
       !['B','R'].every(k=>Number.isFinite(result.cores?.[k]))||!Array.isArray(result.units)||result.units.length!==units.length)return;
     const ids=new Set();
@@ -2505,6 +2659,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       ids.add(v.id);
     }
     logCheckpoint('match_finished');
+    state.reconnecting=false;clearTimeout(state.prepareTimer);state.prepareTimer=null;
     clearPrediction();finalFrame=result.frame;pendingSnapshotWires.clear();pendingSnapshotBases.clear();state.history=[];
     cores.B.hp=result.cores.B;cores.R.hp=result.cores.R;timeLeft=result.timeLeft;
     for(const v of result.units){const u=unit(v.id);u.name=v.name;u.cls=v.cls;Object.assign(u.sc,v.sc);}
@@ -2648,10 +2803,10 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(state.role!=='offline'&&state.phase!=='playing'){running=false;stopSessionAudio();}
     countdownTick();requestSnapshotResync();
     if(state.role==='host'&&state.phase==='playing'){
-      for(const p of [...state.peers.values()]){if(now()-p.last>3000){const reason='入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます';peerLeft(p.id,reason);state.transport.disconnectPeer(p.id,reason);continue;}const u=unit(p.unitId);if(u)u.controlInput=remoteInput(u);}
+      for(const p of [...state.peers.values()]){if(p.resuming){if(now()>p.resumeDeadline)state.transport.disconnectPeer(p.id,'復帰用の状態同期が時間切れになりました');continue;}if(now()-p.last>3000){const reason='入力が3秒途絶えたため、対戦から退出しました。機体はBotが引き継ぎます';peerLeft(p.id,reason,{reconnecting:true});state.transport.disconnectPeer(p.id,reason,{reconnect:true});continue;}const u=unit(p.unitId);if(u)u.controlInput=remoteInput(u);}
     }
     if(state.role!=='guest'||state.phase!=='playing')return;
-    if(now()-state.lastHost>5000){endGuest('ホストから5秒間応答がありません');return;}
+    if(now()-state.lastHost>5000){if(!state.transport.reconnect('ホストから5秒間応答がありません'))endGuest('ホストから5秒間応答がありません');return;}
     if(now()-state.lastHost>500)status('通信遅延：ホストの状態を待っています');
     interpolate(now());decayPredictionVisual();guestPodVisuals();if(typeof reflectorUpdate==='function')guestEquipmentVisuals(dt);
     if(!player)return;
@@ -2746,10 +2901,15 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
     if(queue.length>commandLimits.catchupBacklog&&p.catchupClock>=commandLimits.catchupSeconds&&count<commandLimits.maxFrameSteps&&
       (p.fixedSteps||0)+count<Math.floor((p.fixedElapsed+1e-9)/commandLimits.dt)+commandLimits.maxAheadSteps){count++;p.catchupClock=0;}
     for(let i=0;i<count;i++){
-      while(queue.length&&(queue[0].lifeId!==u.lifeId||queue[0].seq<=(p.appliedSeq||0)||now()-queue[0].sentAt>inputLimits.maxAgeMs))queue.shift();
+      // 適用時に中立化する期限切れ命令は先に捨てる。500msまで消化待ちすると、
+      // 一時的な処理落ち後も古いqueueが毎stepを占め、正常入力へ永久に追いつけない。
+      while(queue.length&&(queue[0].lifeId!==u.lifeId||queue[0].seq<=(p.appliedSeq||0)||now()-queue[0].sentAt>inputLimits.activeMs)){
+        const expired=queue.shift();if(expired.lifeId===u.lifeId)p.expiredCommandSeq=Math.max(p.expiredCommandSeq||0,expired.seq);
+      }
       let command=queue[0],fresh=false;
       // 欠番は短く待って冗長再送で埋める。それでも来なければ最新の既知入力へ進む。
-      if(command&&p.lastCommand&&command.seq>p.lastCommand.seq+1&&now()-command.receivedAt<50)command=null;
+      // 自分で期限切れにした番号の再送は待たない。本当に欠けた番号の猶予は残す。
+      if(command&&p.lastCommand&&command.seq>Math.max(p.lastCommand.seq,p.expiredCommandSeq||0)+1&&now()-command.receivedAt<50)command=null;
       if(command){queue.shift();p.lastCommand=command;p.input=command;fresh=true;}
       else command=p.lastCommand;
       if(!p.frameAction){
@@ -2765,7 +2925,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       p.movementActions=(p.movementActions||[]).filter(a=>a.lifeId===u.lifeId&&!p.appliedMovementIds?.has(a.actionSeq)&&actionIsRecent(p,a));
       const edges=p.movementActions.filter(a=>a.seq<=(command?.seq||0));
       const pressed=edges.length?Object.assign({},...edges.map(edge=>edge.pressed)):fresh&&!command.moveActionSeq&&!command.moveActions?.length?{...command.movePressed}:{};
-      const active=command&&now()-command.sentAt<=250&&now()-p.last<=250;
+      const active=command&&now()-command.sentAt<=inputLimits.activeMs&&now()-p.last<=inputLimits.activeMs;
       // 250msの中立化を跨いだ復帰は予測時計だけ再基準化。host移動時間budget・未適用queueは戻さない。
       if(!active)p.fixedNeedsResync=true;
       else if(fresh&&p.fixedNeedsResync){p.fixedReplaySeq=command.seq-1;p.fixedNeedsResync=false;}
@@ -2943,6 +3103,7 @@ return {deflate:data=>deflateSync(data,{level:9,mem:8}),crc32:data=>{const c=crc
       pendingInputs:prediction.pending.length,visibility:typeof document!=='undefined'?document.visibilityState:'unknown'};
   }
   window.CBOnlineGame={create,join,start,leave,setReady,setEditing,setEquipment,equipmentOptions,canStart,
+    savedBuilds,chooseSavedBuild,saveEquipmentBuilds,savedBuildStatus,pilotNameForOnline,
     quickChat:{categories:quickChatCategories,limits:quickChatLimits,allowed:quickChatAllowed,send:sendQuickChat,lines:()=>quickChatLines.filter(line=>line.phase===state.phase&&line.matchId===(state.matchId||null)&&now()-line.at<quickChatLimits.visibleMs).map(line=>({...line})),subscribe:fn=>{quickChatListeners.add(fn);return ()=>quickChatListeners.delete(fn);}},approveGuest,rejectGuest,kickGuest,updateSettings,chooseTeam,shuffleTeams,state,stopSessionAudio,beforeFrame,afterFrame,remoteInput,emit,snapshot,castHitscan,diagnostics,logs,respawnLoadout,
     roomOptions:{classes:roomClasses.map(id=>({id,name:CLASSES[id].name||id})),maps:roomMaps.map(m=>({...m})),teamSizes:roomTeamSizes.slice(),capacities:[2,3,4]},
     active:()=>state.role!=='offline',requestWeapon:slot=>{if(SLOTS.includes(slot))requestedWeapon=slot;},testInput:v=>{overrideInput=v;},metrics:()=>({role:state.role,phase:state.phase,localEntityId:state.localUnitId,peers:state.peers.size,frame:state.frame,

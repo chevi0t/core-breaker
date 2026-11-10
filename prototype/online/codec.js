@@ -59,7 +59,7 @@
     if(path.length===3&&facilities.has(path[0])&&!facilityNumbers.has(key)&&!facilityFlags.has(key)){out.push([path,'j',rounded(value)]);return out;}
     // 設置物は固定スロットのtupleごとに置換し、空/秘匿/公開で長さが変わっても道筋を保つ。
     if(path.length===2&&path[0]==='gadgets'){out.push([path,'j',rounded(value)]);return out;}
-    // hostが実適用した可変dt/累積dtは丸めずIEEE値をJSON roundtripで保つ。
+    // hostが実適用したdtと自機の確定位置は丸めずIEEE値をJSON roundtripで保つ。
     if(key==='inputAcks'){out.push([path,'j',clone(value)]);return out;}
     if(atoms.has(key)||value===null||(typeof value==='object'&&Object.keys(value).filter(k=>value[k]!==undefined).length===0)){out.push([path,'j',rounded(value)]);return out;}
     if(typeof value==='object'){

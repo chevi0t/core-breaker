@@ -8,7 +8,7 @@ assert(fixtureEnd>0,'部屋試験の初期化境界');const suite=fixture.slice(
 const seed={require:createRequire(root+'/tools/test/online_rooms.test.js'),console,setTimeout,clearTimeout};vm.createContext(seed);vm.runInContext(suite+'\nthis.review={c,game,join};',seed);
 const {c,game,join}=seed.review,els=new Map(),events=new Map(),intervals=[];
 class E{
- constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.hidden=false;this.value='';this.textContent='';this.handlers={};this.className='';this.disabled=false;}
+ constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attrs={};this.hidden=false;this.value='';this.textContent='';this.handlers={};this.className='';this.disabled=false;this.style={};}
  set id(v){this._id=v;els.set(v,this);}get id(){return this._id;}
  setAttribute(k,v){this.attrs[k]=String(v);if(k==='id')this.id=v;}
  getAttribute(k){return this.attrs[k]??null;}

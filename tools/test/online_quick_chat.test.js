@@ -17,6 +17,7 @@ function harness(){
     document:{exitPointerLock:empty},$:id=>{if(!elements.has(id))elements.set(id,{textContent:'test-v1',querySelector:()=>null});return elements.get(id);},
     stopLoopingGameSounds:empty,bgmTick:empty,tutorialClearInput:empty,setSimulationRole:empty,selectMap:empty,addEventListener:empty,
     weaponLook:empty,tracer:empty,boom:empty,impact:empty,sfx:empty,finish:empty,shot:empty,shoot:empty,blast:empty,damage:empty};
+  const savedBuildFixture=require('./online_saved_build_fixture')(c);
   vm.createContext(c);vm.runInContext(fs.readFileSync(require.resolve('../../prototype/online/game.js'),'utf8'),c);
   const game=c.window.CBOnlineGame;
   const join=(id)=>{game.state.transport.options.onPeerJoin(id,id);game.state.transport.options.onMessage('preference',{cls:'assault'},id);};

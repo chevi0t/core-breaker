@@ -2,13 +2,19 @@
 const assert=require('node:assert/strict');
 const fixture=require('./online_equipment_fixture');
 const f=fixture(),{c,game,test,codec,own,enemy,peer,copy,T}=f;
+// この試験では写真は直ちに渡し、未送信キューは存在しない。基準破棄はonline_site_visibility系で検証。
+game.state.transport.dropPendingSnapshots=(_id,options)=>{assert.equal(options.details,true);return {count:0,baselines:0};};
 c.canSee=(_u,e)=>!e.testHidden;
 function snapshot(){return test.encodePeerSnapshot(peer,null,true);}
 function decode(w,d){if(w.baseline)assert(d.seed(w.baseline));const s=d.decode(w.wire.delta);assert(s);return s;}
 function remote(s){return s.units.find(u=>u.id===enemy.entityId);}
 const d=new codec.Decoder();enemy.pos.set(0,0,-100);
+// 自機の確定座標は表示用unitの量子化から独立し、ACKでIEEE精度を保持する。
+own.pos.set(1/3,Math.PI,-123.456789123);
 let w=snapshot(),s=decode(w,d);const visibleBase=copy(peer.replication.encoder.currentBase());
 assert.equal(remote(s).hidden,false);
+assert.deepEqual(s.inputAcks[own.entityId].pos,own.pos.toArray(),'自機の確定座標を丸めない');
+assert.deepEqual(Object.keys(s.inputAcks),[own.entityId],'他機の精密座標ACKを公開しない');
 assert(Object.hasOwn(s.units.find(u=>u.id===own.entityId).slots.main,'ammo'));
 assert(!Object.hasOwn(remote(s).slots.main,'ammo'));
 assert.equal(remote(s).slots.aux.chargeT,enemy.slots.aux.chargeT??null);
