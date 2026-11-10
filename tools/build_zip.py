@@ -20,7 +20,7 @@ VENDOR = ROOT / "vendor" / "three-r128"
 DOCS = ROOT / "docs"  # 設計書とAIエージェント向けの説明。zipの直下に入れる
 CDN_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
 THREE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-ONLINE_FILES = ("transport.js", "codec.js", "lag-compensation.js", "visibility.js", "game.js", "ui.js", "ui.css")
+ONLINE_FILES = ("transport.js", "codec.js", "lag-compensation.js", "visibility.js", "diagnostics.js", "game.js", "ui.js", "ui.css")
 
 
 def bundled_three(src):
