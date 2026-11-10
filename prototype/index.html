@@ -1713,7 +1713,7 @@ function buildBridges(list = []) {
 // 節点の3番目（任意）は歩く高さ（海抜）。橋の上の節点に書く（無ければ地面の高さ。橋の下の通りの節点は書かない）。
 // Botは目標までまっすぐ歩けない（clearPath）と、自分と目標それぞれから見通せる近い節点を結ぶ最短路をたどる。迂回路も使うよう、
 // リンクの長さに機体ごとの1〜1.4倍のばらつきを出撃ごとに掛ける（navW）。nav の無いマップでは今まで通りまっすぐ向かう
-const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80;
+const NAV_REACH = 5, NAV_REPLAN = 5, NAV_NEAR = 6, NAV_SHORT = 80, NAV_FAR = 40, NAV_FAR_RANGE = 150;
 let NAV = null;
 function buildNav(nav) {
   NAV = null;
@@ -1841,7 +1841,8 @@ function navEntry(x, z, y, u=null) {
     const cy = pathEndH;
     for (const [, i] of near(cx, cz, cy).slice(0, NAV_NEAR)) if (clearPath(cx, cz, P[i].x, P[i].z, cy,u)) return { i, via: { x: cx, z: cz } };
   }
-  for (const [, i] of order.slice(NAV_NEAR)) if (clearPath(x, z, P[i].x, P[i].z, y,u)) return { i };
+  // 遠くの節点まで全部試すと、屋上や高架に取り残されたBotの引き直しで1秒ほど止まる（広い都市マップ。2026-11-10）。近い順に NAV_FAR 個だけ試す。
+  for (const [d, i] of order.slice(NAV_NEAR, NAV_FAR)) if (d < NAV_FAR_RANGE && clearPath(x, z, P[i].x, P[i].z, y,u)) return { i };
   return { i: order[0][1], stuck: true };
 }
 // 機体 u のリンクの重みで、from から to への最短路（節点の番号の列）。つながっていなければ null
