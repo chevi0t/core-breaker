@@ -178,7 +178,9 @@ check('ブラウザホスト対戦',async({browser,dir,out,ok,errors})=>{
       }
       await host.waitForFunction(()=>CBOnlineGame.state.transport.metrics().connectedPeers===1,{}, {polling:50,timeout:2000});
       const lost=await silent.evaluate(()=>({phase:CBOnlineGame.state.phase,running:__g.running,reason:document.getElementById('ovText').textContent,peers:CBOnlineGame.state.transport.metrics().connectedPeers}));
-      ok(lost.phase==='ended'&&!lost.running&&/入力が3秒途絶え/.test(lost.reason)&&lost.peers===0,'通信が生きた入力途絶でも理由付き終了し接続を閉じる');
+      // ab5c0ce から、入力途絶で外されたゲストは終了せず、元の機体への復帰を試す（再接続中の画面、30秒まで。その間はBot）。
+      console.log('入力途絶後のゲスト',JSON.stringify(lost));
+      ok(lost.phase==='preparing'&&!lost.running&&/復帰を試しています/.test(lost.reason),'通信が生きた入力途絶では試合を止めて再接続中の画面にする');
       const after=await host.evaluate(id=>{const u=__g.units.find(x=>x.entityId===id);return {controller:u.controller,hp:u.hp,lifeId:u.lifeId,pos:u.pos.toArray(),count:__g.units.length,actionHeld:u.actionHeld,actionBlockBoost:u.actionBlockBoost,target:!!u.controlTarget};},id);
       ok(after.controller==='bot'&&after.hp===before.hp&&after.lifeId===before.lifeId&&JSON.stringify(after.pos)===JSON.stringify(before.pos)&&after.count===10&&!after.actionHeld&&!after.actionBlockBoost&&!after.target,'入力途絶機も状態を保ってBotへ引継ぐ');
       ok(await other.evaluate(()=>CBOnlineGame.state.phase==='playing'&&CBOnlineGame.state.transport.metrics().connectedPeers===1),'入力途絶したゲスト以外の対戦接続は継続');
