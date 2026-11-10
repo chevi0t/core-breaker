@@ -3,7 +3,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {EventEmitter}=require('node:events');
 const root=path.resolve(process.env.CB_SOURCE||path.join(__dirname,'../../prototype'));
-const transportSource=fs.readFileSync(root+'/online/transport.js','utf8'),gameSource=fs.readFileSync(root+'/online/game.js','utf8');
+const transportSource=fs.readFileSync(root+'/online/transport.js','utf8'),gameSource=fs.readFileSync(root+'/online/game.js','utf8'),defaultGameSource=gameSource;
+// 診断ログ（Recorder）は 2026-11-10 に game.js の冒頭から diagnostics.js へ分けた。分ける前の版（CB_SOURCE）では game.js を読む。
+const diagnosticsSource=fs.existsSync(root+'/online/diagnostics.js')?fs.readFileSync(root+'/online/diagnostics.js','utf8'):gameSource;
 const unavailable='部屋が見つかりません。部屋IDとホストが待機中か確認してください';
 const flush=async()=>{for(let n=0;n<8;n++)await Promise.resolve();};
 function runtime(){
@@ -33,7 +35,7 @@ function runtime(){
  const make=options=>new Transport({appVersion:'connection-reasons',Peer,onStatus:(text,detail)=>statuses.push({at:clock,text,detail}),onDiagnostic:(...event)=>diagnostics.push(event),...options});
  return {Transport,Peer,Connection,make,advance,timers,statuses,diagnostics};
 }
-function extract(name){
+function extract(name,gameSource=defaultGameSource){
  const start=gameSource.indexOf('  function '+name+'(');assert(start>=0,name);
  const body=gameSource.indexOf('{',start+gameSource.slice(start).search(/\)\s*\{/));
  let depth=0,quote=null,comment=null,escaped=false;
@@ -67,7 +69,7 @@ test('初回入室の相手不在は5.5秒の通知直後に終了し、STUNの�
 });
 test('相手不在の専用理由は既存のpeer_unavailable診断コードへ保存する',()=>{
  const c={};vm.createContext(c);
- vm.runInContext(gameSource.slice(gameSource.indexOf('  const reasons='),gameSource.indexOf('  const value='))+extract('reasonCode'),c);
+ vm.runInContext(diagnosticsSource.slice(diagnosticsSource.indexOf('  const reasons='),diagnosticsSource.indexOf('  const value='))+extract('reasonCode',diagnosticsSource),c);
  assert.equal(c.reasonCode(unavailable),'peer_unavailable');assert.equal(c.reasonCode('ホストが退出しました'),'host_left');
 });
 test('networkエラーだけでは部屋不在と決めつけず、取消で待ちを終了する',async()=>{

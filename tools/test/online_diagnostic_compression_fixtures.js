@@ -19,7 +19,7 @@ function fixtures(){
 
 function heavy(){
  const fs=require('node:fs'),{Recorder,safeSample,Pack}=require('./online_diagnostic_fixture');
- const source=fs.readFileSync(require.resolve('../../prototype/online/game.js'),'utf8');
+ const source=fs.readFileSync(require.resolve('../../prototype/online/diagnostics.js'),'utf8');
  const schema=JSON.parse(source.match(/const SCHEMA=(.*);/)[1]);const field=(d,k)=>d[1].find(f=>f[0]===k)[1];const session=field(schema,'sessions')[1],sample=field(field(session,'samples')[1],'data');
  let seed=99,clock=Date.parse('2026-11-09T12:00:00Z'),mono=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/2**32;};
  function make(d){switch(d[0]){case 'object':return Object.fromEntries(d[1].map(([k,s])=>[k,make(s)]));case 'number':return d[2]&&rnd()<.2?null:[0,Math.round(rnd()*d[1]*1000)/1000,d[1]][Math.floor(rnd()*3)];case 'counter':return Object.fromEntries(d[1].filter(()=>rnd()<.4).map(k=>[k,rnd()<.3?0:Math.round(rnd()*1000000)/1000]));case 'enum':return d[1][Math.floor(rnd()*d[1].length)];case 'map':return Pack.DEFAULT_MAPS[Math.floor(rnd()*Pack.DEFAULT_MAPS.length)];default:throw Error(d[0]);}}

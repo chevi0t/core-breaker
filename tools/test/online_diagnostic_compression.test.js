@@ -26,7 +26,7 @@ test('期限をまたいでも圧縮と詳細は単一snapshot・7日超の解�
  const h=setup();h.begin(playing());h.r.end('local_leave',playing());const capture=h.r.capture(),packed=decodePython(capture.compressed),detail=JSON.parse(capture.detail.slice(capture.detail.indexOf('{')));for(const s of detail.sessions)delete s.startedUtc;assert.equal(packed.role,detail.sessions[0].role);assert.equal(packed.representative.fps,detail.sessions[0].samples.at(-1).data.fps);h.tick(8*86400000);assert.equal(h.r.sessions.length,1);assert.deepEqual(decodePython(capture.compressed),packed);assert.equal(decodeJS(h.r.compressed()).sessions.length,0);
 });
 test('ネイティブCompressionStream・btoa・cryptoなしでも同期圧縮',()=>{
- const vm=require('node:vm'),src=fs.readFileSync(path.join(root,'prototype/online/game.js'),'utf8').split('/* #212 ブラウザホスト試作。')[0],c={module:{exports:{}},TextEncoder,performance,Date};vm.runInNewContext(src,c);const r=new c.module.exports.Recorder({maps:['mesa'],now:()=>1800000000000,monotonic:()=>0});r.begin({role:'host',version:'Ver179',protocol:9},lobby());const result=r.compressed();assert.equal(typeof result,'string');assert.equal(decodeJS(result).sessions[0].role,'host');
+ const vm=require('node:vm'),src=fs.readFileSync(path.join(root,'prototype/online/diagnostics.js'),'utf8'),c={module:{exports:{}},TextEncoder,performance,Date};vm.runInNewContext(src,c);const r=new c.module.exports.Recorder({maps:['mesa'],now:()=>1800000000000,monotonic:()=>0});r.begin({role:'host',version:'Ver179',protocol:9},lobby());const result=r.compressed();assert.equal(typeof result,'string');assert.equal(decodeJS(result).sessions[0].role,'host');
 });
 test('Python CLIの入力/展開/型/破損/出力ファイル安全性を検査',()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cb-log-')),r=fixtures().playing,text=r.compressed();try{

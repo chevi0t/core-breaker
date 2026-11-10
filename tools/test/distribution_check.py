@@ -69,7 +69,7 @@ def unit_checks():
     check(THREE_CDN not in result, "実index.htmlも同梱three.jsへ置換")
     check(Scripts(result).sources.count("three.min.js") == 1, "同梱three.js参照は1つ")
     online = online_files()
-    expected = {"online/" + name for name in ("transport.js", "codec.js", "lag-compensation.js", "visibility.js", "game.js", "ui.js", "ui.css")}
+    expected = {"online/" + name for name in ("transport.js", "codec.js", "lag-compensation.js", "visibility.js", "diagnostics.js", "game.js", "ui.js", "ui.css")}
     check(set(online) == expected, "配布対象7資材だけを収録し、作業用JS/CSSを含めない")
     check("online/ui.css" in online, "スクリプトが動的に読むオンラインCSSを収録")
     for name in Scripts(src).sources:
