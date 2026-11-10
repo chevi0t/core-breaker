@@ -577,7 +577,8 @@ def battle(data, solids, walkable, boundary, footprints, walk):
             at = locate([base[0] + off, base[1] - 22], 3, 18)
             to = locate([target[0] + off * 0.8, target[1] + 30], 6)
             if tuple(at) in CAT_FIT:
-                to = locate(CAT_FIT[tuple(at)], 6, 9) or to
+                fit = CAT_FIT[tuple(at)]
+                to = fit if streets.free(fit, 2) else (locate(fit, 4, 9) or to)
             assert at and to, (t, off, at, to)
             cats[t].append([*at, *to, 30])
             anchors.extend([(f"cat-{t}", at), (f"land-{t}", to)])
@@ -635,7 +636,8 @@ def battle(data, solids, walkable, boundary, footprints, walk):
         at = locate([start[1], start[2] - 26], 4)
         to = locate([end[1], end[2] + 26], 6)
         if tuple(at) in CAT_FIT:
-            to = locate(CAT_FIT[tuple(at)], 6, 9) or to
+            fit = CAT_FIT[tuple(at)]
+            to = fit if streets.free(fit, 2) else (locate(fit, 4, 9) or to)
         assert at and to
         routes.append({"at": at, "exit": to, "plant": start[0], "targetPlant": end[0], "angle": 30})
         anchors.extend([(f"cat-{start[0]}", at), (f"land-{end[0]}", to)])
