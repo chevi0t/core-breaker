@@ -130,18 +130,19 @@ async function frames(pages,n=1,ms=50){
 }
 // 明示Readyを試験操作として押す。部屋/装備変更の配信が到着してから操作する。
 async function readyAll(pages,host=pages[0]){
-  // 直前の装備・陣営の変更や、前の人のReadyでロビーの版が進み続ける。版を1度だけ読むと追い付けない人が出るので、毎回ホストの今の版と比べる。
-  for(const p of pages){
-    const end=Date.now()+30000;
-    for(;;){
-      const revision=await host.evaluate(()=>CBOnlineGame.state.lobbyRevision);
-      if(await p.evaluate(rev=>CBOnlineGame.state.lobbyRevision===rev&&!!CBOnlineGame.state.equipment&&!CBOnlineGame.state.equipmentPending&&!CBOnlineGame.state.editing,revision))break;
-      if(Date.now()>end)throw Error('readyAll：ロビーの版がホストに追い付きません');
-      await sleep(20);
+  // 直前の装備・陣営の変更がホストへ届くたびにロビーの版が進み、全員のReadyが外れる。版を1度だけ読んで待つと、
+  // 追い付けない人や、Readyの後で外された人が出る。開始できるまで、版が揃っていてReadyでない人を押し直す。
+  const end=Date.now()+30000;
+  for(;;){
+    if(await host.evaluate(()=>CBOnlineGame.canStart()))return;
+    if(Date.now()>end)throw Error('readyAll：全員のReadyが揃いません '+JSON.stringify(await host.evaluate(()=>CBOnlineGame.state.roster.map(p=>[p.ready,p.editing]))));
+    const {revision,ready}=await host.evaluate(()=>({revision:CBOnlineGame.state.lobbyRevision,ready:CBOnlineGame.state.roster.map(p=>p.ready)}));
+    for(const [i,p]of pages.entries()){
+      if(ready[i])continue; // 名簿はホスト、参加順（pages と同じ並び）
+      if(await p.evaluate(rev=>CBOnlineGame.state.lobbyRevision===rev&&!!CBOnlineGame.state.equipment&&!CBOnlineGame.state.equipmentPending&&!CBOnlineGame.state.editing,revision))await p.evaluate(()=>CBOnlineGame.setReady(true));
     }
-    await p.evaluate(()=>CBOnlineGame.setReady(true));
+    await sleep(40);
   }
-  await host.waitForFunction(()=>CBOnlineGame.canStart(),{},{polling:20});
 }
 async function room(browser,h,errors,{guests=1,teamSize=5,latencyMs=0,frozen=true,render=false,guestClasses=[],beforeStart,predictionEnabled=true}={}){
   const pages=[];

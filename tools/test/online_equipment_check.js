@@ -77,6 +77,8 @@ check('オンラインの全兵装・装備同期',async({browser,dir,out,ok,err
     for(const kind of ['barrier','field']){
       const e=await equipRepresentative(kind);
       await until(()=>pair(id=>{const u=__g.units.find(x=>x.entityId===id),kind=u.slots.sp.w.type;return !!u[kind+'On']&&!!u[kind==='barrier'?'barrierMesh':'fieldMesh'].visible&&u.slots.sp.heat>0&&u.slots.sp.heat<100;}),kind+'：入力・SP消費・表示');
+      // 切り替えた直後の0.5秒は次の切り替えを受け付けない（toggleSp の sl.cd。オフラインと同じ）。明けてから押す。
+      await until(()=>host.evaluate(id=>__g.units.find(x=>x.entityId===id).slots.sp.cd<=0,target),kind+'：切り替えの待ち時間');
       await guest.evaluate(()=>CBOnlineGame.requestWeapon('sp'));
       await until(()=>pair(id=>{const u=__g.units.find(x=>x.entityId===id),kind=u.slots.sp.w.type;return !u[kind+'On']&&!u[kind==='barrier'?'barrierMesh':'fieldMesh'].visible;}),kind+'：再押下で停止');
       report.representatives.push({kind,key:e.key});ok(true,kind+'：ゲスト押下→ホスト確定→両画面の作動/停止/SP消費');
