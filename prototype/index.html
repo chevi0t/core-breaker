@@ -7169,7 +7169,9 @@ const loadout = (() => {
   try { saved = JSON.parse(localStorage.getItem(LOADOUT_KEY)) || {}; } catch (_) {}
   return normLoadout(saved);
 })();
-let selectedAction = normalizeAction((buildBoot.record || buildBoot.legacy)?.list[(buildBoot.record || buildBoot.legacy)?.cur]?.actionId);
+// JSONとして読める旧保存でも、listが無い形なら初期アクションで起動する。
+const bootBuild = buildBoot.record || buildBoot.legacy;
+let selectedAction = normalizeAction(Array.isArray(bootBuild?.list) ? bootBuild.list[bootBuild.cur]?.actionId : undefined);
 const MELEE_WEAPONS = Object.keys(WEAPONS).filter(key => WEAPONS[key].type === 'sword');
 let arenaMeleeKey = loadout.assault.aux;
 function saveLoadout() { return saveBuilds(); }
