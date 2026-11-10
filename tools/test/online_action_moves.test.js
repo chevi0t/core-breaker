@@ -16,6 +16,10 @@ assert.equal(hidden.actionId,null);assert.equal(hidden.actionCd,null);assert.equ
 const encoder=new codec.Encoder(),decoder=new codec.Decoder();let wire=encoder.encode({units:[visible]});assert(decoder.seed(wire.baseline));
 let snapshot=decoder.decode(wire.delta);test.applyUnit(enemy,snapshot.units[0]);
 assert.equal(enemy.actionId,'tackle');assert.equal(enemy.actionCd,2.5);assert.deepEqual(copy(enemy.actionMove),copy(own.actionMove));assert.deepEqual(copy(enemy.actionPush),copy(own.actionPush));
+own.actionMove={id:'tackle',phase:'hold',elapsed:.7,yaw:.2,air:false,hit:true,distance:.7};
+wire=encoder.encode({units:[test.fixedUnitForPeer(test.packUnit(own),false,1)]});if(wire.baseline)decoder.seed(wire.baseline);
+snapshot=decoder.decode(wire.delta);assert(snapshot);test.applyUnit(enemy,snapshot.units[0]);
+assert.deepEqual(copy(enemy.actionMove),copy(own.actionMove),'衝突後も0.8秒まで肩当てを続けるhold写真を保持');
 own.actionMove=null;own.actionPush=null;own.actionCd=1;
 wire=encoder.encode({units:[test.fixedUnitForPeer(test.packUnit(own),false,1)]});if(wire.baseline)decoder.seed(wire.baseline);
 snapshot=decoder.decode(wire.delta);assert(snapshot);test.applyUnit(enemy,snapshot.units[0]);assert.equal(enemy.actionMove,null);assert.equal(enemy.actionPush,null);assert.equal(enemy.actionCd,1);

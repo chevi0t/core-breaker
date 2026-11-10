@@ -20,7 +20,7 @@ check('オンラインCアクション',async({browser,dir,ok,errors})=>{
      g.resetLifeState(v);Object.assign(v,{alive:true,hp:v.maxHp,invulT:0,boost:v.maxBoost,overheat:false,onGround:true,yaw:0,pitch:0,switchT:0,weapon:'main'});
      v.vel.set(0,0,0);
     }
-    u.pos.set(0,200,20);target.pos.set(0,200,u.actionId==='tackle'?16:18);
+    u.pos.set(0,200,20);target.pos.set(0,200,u.actionId==='tackle'?18:16);
     for(const v of [u,target]){v.group.position.copy(v.pos);g.weaponLook(v,0);}g.scene.updateMatrixWorld(true);
     window.__actionActor=u;window.__actionTarget=target;
     return {id:u.entityId,actionId:u.actionId,targetId:target.entityId,hp:target.hp};
@@ -55,9 +55,11 @@ check('オンラインCアクション',async({browser,dir,ok,errors})=>{
    if(!shown){await frames(r.pages,1,1000/60);await sleep(80);await frames([guest],2,1000/60);shown=await guest.evaluate(id=>__g.player.actionMove?.id===id&&__g.player.actionCd>0,actionId);}
    ok(shown,actionId+'：ゲストへ動作姿勢と再使用時間を同期');
    await input(guest,neutral);
-   await frames(r.pages,35,1000/60);await sleep(80);await frames([guest],3,1000/60);
+   await frames(r.pages,70,1000/60);await sleep(80);await frames([guest],3,1000/60);
    const result=await r.host.evaluate(()=>({hp:__actionTarget.hp,cd:__actionActor.actionCd,move:__actionActor.actionMove,recover:__actionActor.actionRecoverT,pos:__actionActor.pos.toArray(),target:__actionTarget.pos.toArray(),stun:__actionTarget.stun,yaw:__actionActor.yaw}));
    console.log(actionId+' 結果',JSON.stringify(result));
+   ok(result.pos[2]<19.5,actionId+'：至近命中でもホスト側の機体が前へ踏み込む');
+   ok(await guest.evaluate(z=>Math.abs(__g.player.pos.z-z)<.15,result.pos[2]),actionId+'：踏み込んだ位置をゲストへ同期');
    ok(result.hp<fixture.hp&&!result.move,actionId+'：ホストだけが命中を判定して動作終了');
    ok(await guest.evaluate(([id,hp])=>__g.units.find(u=>u.entityId===id)?.hp===hp,[fixture.targetId,result.hp]),actionId+'：ホストのダメージ結果をゲストへ同期');
    await r.close();r=null;
