@@ -1400,6 +1400,8 @@ BOTのcity/legacy/hover直線経路判定にも同じ最大勾配と中間点判
 | ゲスト：表示の関数を包む（カメラのずらし、ロックの枠、名札） | ゲスト |
 | 診断ログへ渡す数値 | 両方 |
 
+部屋IDの入力（2026-11-10 オーナー「コピペのときに半角スペース混じって入れなかった人居る疑惑」）：`transport.js` の `cleanRoomId` が、前後と途中の空白・改行・見えない文字を取り、全角の英数字と横棒を半角へ直し、文ごと貼られたときは中の UUID の形だけを拾う。入室のボタン（`ui.js`）と `connect` の両方で通す。試験 `online_room_id.test.js`。
+
 変えるときの注意：
 
 - Node の試験（`tools/test/online_*.test.js`）の多くは、`game.js` の文字列から関数を名前で切り出して動かす（`  function 名前(` で始まる行を探す）。関数の名前と行頭の書き方（字下げ2つ）を変えると、試験が切り出せなくなる。`  window.CBOnlineGame={create` や `  const equipmentActionKinds=` のように、行の頭の文字列を目印にしている試験もある。関数を別のファイルへ移すときは、切り出している試験（`grep -l "extract(" tools/test/`）も一緒に直す。

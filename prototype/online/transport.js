@@ -10,6 +10,17 @@
   const ICE_URL = '';
   const STUN_ONLY = [{ urls: 'stun:stun.l.google.com:19302' }];
   const ICE_FETCH_MS = 5000;
+  // 貼り付けた部屋IDの掃除（2026-11-10 オーナー「コピペのときに半角スペース混じって入れなかった人居る疑惑」）。
+  // 前後だけでなく途中の空白・改行・見えない文字（ゼロ幅）を取り、全角の英数字と記号は半角へ直す。
+  // 「部屋ID: xxxx　ゲストの…」のように文ごと貼られたときは、中の UUID の形だけを拾う。
+  const ROOM_UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  function cleanRoomId(value) {
+    if (typeof value !== 'string') return '';
+    const text = value.normalize('NFKC').replace(/[\u2010-\u2015\u2212\u30fc\uff0d]/g, '-');
+    const spaced = text.replace(/[\s\u200b-\u200d\u2060\ufeff\u00ad]/g, '');
+    const found = ROOM_UUID.exec(spaced) || ROOM_UUID.exec(text);
+    return found ? found[0].toLowerCase() : spaced;
+  }
   const iceUrls = s => Array.isArray(s?.urls) ? s.urls : [s?.urls];
   // stun:/turn:/turns: だけ。TURN には合言葉が要る。ブラウザが待たされる53番ポートは外す（Cloudflare の案内）。
   const cleanIceServers = list => {
@@ -227,8 +238,10 @@
     }
     async connect(roomId) {
       if (this.peer || this.closed) throw new Error('新しい通信インスタンスで接続してください');
-      if (typeof roomId !== 'string' || !roomId.trim() || roomId.length > 128) throw new Error('部屋 ID が正しくありません');
-      this.role = 'guest'; this.roomId = roomId.trim();
+      if (typeof roomId !== 'string' || roomId.length > 512) throw new Error('部屋 ID が正しくありません');
+      roomId = cleanRoomId(roomId);
+      if (!roomId || roomId.length > 128) throw new Error('部屋 ID が正しくありません');
+      this.role = 'guest'; this.roomId = roomId;
       try {
         await this._openPeer();
         if(this.closed)throw new Error('接続を取り消しました');
@@ -847,6 +860,7 @@
   CBOnlineTransport.PEERJS_VERSION = '1.5.5';
   CBOnlineTransport.ICE_URL = ICE_URL;
   CBOnlineTransport.cleanIceServers = cleanIceServers;
+  CBOnlineTransport.cleanRoomId = cleanRoomId;
   root.CBOnlineTransport = CBOnlineTransport;
   if (typeof module !== 'undefined' && module.exports) module.exports = CBOnlineTransport;
 })(typeof window !== 'undefined' ? window : globalThis);
