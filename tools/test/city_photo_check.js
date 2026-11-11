@@ -44,7 +44,7 @@ const lookDown = () => {
 const census = () => {
   const out = { trees: 0, crowns: 0, sky: 0, seaOpaque: null, photo: !!__g.cityMap.district.photo };
   __g.scene.traverse(m => {
-    if (m.name === 'city-trees') { out.trees++; if (m.geometry.type === 'IcosahedronGeometry') out.crowns += m.count; }
+    if (m.name === 'city-trees') { out.trees++; if (m.geometry.name === 'city-tree-crown') out.crowns += m.count; }
     if (m.name === 'city-sky') out.sky++;
     if (m.name === 'city-water') out.seaOpaque = !m.material.transparent;
   });
