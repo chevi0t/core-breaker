@@ -250,10 +250,72 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #damageDirections .tip { fill: #ffe0c9; stroke: #7a1d0c; stroke-width: 1; }
 #jamView { inset:0; background:repeating-linear-gradient(3deg,rgba(80,110,190,.25) 0 2px,rgba(145,170,220,.12) 3px 5px); pointer-events:none; }
 #jamView b { position:absolute; top:24%; left:50%; transform:translateX(-50%); color:#d8e4ff; letter-spacing:.2em; }
-#scope { box-sizing: border-box; padding: calc(12 * var(--vh, 1vh)) calc(8 * var(--vw, 1vw)); text-align: right; font-size: 24px; inset: 0; background: radial-gradient(circle at 50% 50%, transparent 0 34vmin, rgba(0, 0, 0, .9) 34.4vmin); }
-#scope::before, #scope::after { content: ""; position: absolute; background: rgba(0, 0, 0, .75); }
-#scope::before { left: 50%; top: calc(50% - 34vmin); width: 1px; height: 68vmin; }
-#scope::after { top: 50%; left: calc(50% - 34vmin); height: 1px; width: 68vmin; }
+/* 狙撃照準：金属製の光学筐体。照準の中央は無着色、実際の散りだけを細い輪郭で示す。 */
+#scope { --scope-ink: #ffd18b; --scope-accent: #ffbb53; --scope-muted: #d6c7ab; inset: 0; background: none; }
+#scope[hidden] { display: none; }
+#scope[data-settled="true"] { --scope-ink: #c9f5c6; }
+/* 外側は暗幕ではなく周辺ぼけ。中央の穴にはフィルターを掛けず、再描画用の3Dパスも増やさない。 */
+#game::after { content: ""; display: none; pointer-events: none; position: absolute; inset: 0; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); mask-image: radial-gradient(circle at center, transparent 0 42vmin, #000 42.2vmin); -webkit-mask-image: radial-gradient(circle at center, transparent 0 42vmin, #000 42.2vmin); }
+body:has(#scope:not([hidden])):has(#overlay[hidden]) #game::after { display: block; }
+#scopeReticle { position: relative; width: 100%; height: 100%; overflow: visible; }
+#scopeReticle path, #scopeReticle circle { fill: none; vector-effect: non-scaling-stroke; }
+/* 筐体のみ線幅も拡縮する。中央の目盛りや散布線は画面上の太さを保つ。 */
+#scopeReticle #scopeBody :is(path,circle) { vector-effect: none; }
+#scopeReticle .scope-shell { stroke: url(#scopeMetal); stroke-width: 58; }
+#scopeReticle .scope-shell-bevel { stroke: url(#scopeBevel); stroke-width: 4; }
+#scopeReticle .scope-plates { fill: url(#scopePlate); stroke: #11161e; stroke-width: 3; }
+#scopeReticle .scope-seams { stroke: #c6d1d6; stroke-width: 1; opacity: .45; }
+#scopeReticle .scope-seat { stroke: #060a10; stroke-width: 21; }
+#scopeReticle .scope-bevel { stroke: url(#scopeBevel); stroke-width: 8; }
+#scopeReticle .scope-groove { stroke: #242e37; stroke-width: 2; }
+#scopeReticle .scope-inner-rim { stroke: #b39360; stroke-width: 1.5; }
+#scopeReticle .scope-screws { fill: #060a0f; stroke: #89919b; stroke-width: 2; }
+#scopeReticle .scope-screw-slots { stroke: #65717a; stroke-width: 2; }
+#scopeReticle .scope-housing-marks { stroke: var(--scope-accent); stroke-width: 1; opacity: .9; }
+#scopeReticle .scope-led-seat { fill: #0b1018; stroke: #79848c; stroke-width: 1; }
+#scopeReticle .scope-led { fill: var(--scope-accent); filter: drop-shadow(0 0 5px var(--scope-accent)); }
+#scopeReticle .scope-rim { stroke: #191d23; stroke-width: 2; }
+#scopeReticle .scope-index { stroke: var(--scope-accent); stroke-width: 2; }
+#scopeReticle .scope-lines, #scopeReticle .scope-ticks { stroke: #ffe1ae; stroke-width: 1; opacity: .65; filter: drop-shadow(0 1px 1px #000); }
+#scopeReticle .scope-ticks { opacity: .5; }
+#scopeReticle .scope-spread-edge { stroke: #06121c; stroke-width: 3.5; stroke-linejoin: round; opacity: .65; }
+#scopeReticle .scope-spread { stroke: var(--scope-ink); stroke-width: 1.25; stroke-linejoin: round; }
+#scopeReticle .scope-dot { fill: var(--scope-ink); stroke: #07131b; stroke-width: .5; }
+.scope-top, .scope-readout, .scope-side { position: absolute; color: #e4e4dd; font-size: clamp(10px, 1.45vmin, 14px); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.scope-top, .scope-readout { left: 50%; transform: translateX(-50%); width: clamp(150px, 30vmin, 270px); }
+.scope-top { top: calc(50% - 34vmin); display: flex; align-items: baseline; justify-content: space-between; letter-spacing: .23em; color: var(--scope-accent); border-bottom: 1px solid #c9a96e60; padding-bottom: 6px; }
+.scope-top b { font-size: 1.4em; letter-spacing: .04em; }
+.scope-readout { top: calc(50% + 29vmin); padding: 8px 13px; box-sizing: border-box; background: linear-gradient(90deg, transparent, #090f16e0 15% 85%, transparent); border-top: 1px solid #c9a96e80; }
+.scope-state { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; color: var(--scope-ink); }
+.scope-state b { font-size: 1.25em; }
+#scopeMeter { height: 3px; margin: 6px 0; background: #a0bbc633; }
+#scopeMeter i { display: block; height: 100%; width: 0; background: var(--scope-ink); }
+.scope-readout small { display: block; text-align: center; font-size: .85em; color: var(--scope-muted); }
+.scope-side { top: calc(50% - 5vmin); width: 13vmin; min-width: 62px; padding: 7px 8px; box-sizing: border-box; background: linear-gradient(90deg,#0c131ccd,#0c131c55); border-left: 1px solid var(--scope-accent); }
+.scope-side span { display: block; font-size: .8em; letter-spacing: .08em; color: var(--scope-accent); }
+.scope-side b { display: block; margin: 3px 0; font-size: 1.3em; font-weight: 500; white-space: nowrap; }
+.scope-side small { display: block; font-size: .65em; color: var(--scope-muted); }
+.scope-range { left: calc(50% - 36vmin); }
+.scope-ammo { right: calc(50% - 36vmin); border-left: 0; border-right: 1px solid var(--scope-accent); text-align: right; background: linear-gradient(270deg,#0c131ccd,#0c131c55); }
+/* 同じ光学筐体にシアンと紫の回路を重ねた光学銃。点滅・偽の充電/ロック表示は付けない。 */
+.scope-laser-rings, .scope-laser-circuit, .scope-laser-center, .scope-overflow { display: none; }
+#scope[data-overflow="true"] .scope-overflow { display: initial; stroke: var(--scope-ink); stroke-width: 1.5; }
+#scope[data-optic="laser"] { --scope-ink: #72f5ff; --scope-accent: #58ecff; --scope-muted: #b0dbe8; }
+#scope[data-optic="laser"][data-settled="true"] { --scope-ink: #b1ffd9; }
+#scope[data-optic="laser"] :is(.scope-laser-rings, .scope-laser-circuit, .scope-laser-center) { display: initial; }
+#scopeReticle .scope-laser-rings { stroke: #35e8ff; stroke-width: 4; filter: drop-shadow(0 0 5px #00baff); }
+#scopeReticle .scope-laser-circuit { stroke: #c58aff; stroke-width: 2; filter: drop-shadow(0 0 4px #9d4fff); }
+#scope[data-optic="laser"] .scope-inner-rim { stroke: #59bbd9; }
+#scope[data-optic="laser"] .scope-lines { stroke: #92f7ff; opacity: .7; }
+#scope[data-optic="laser"] .scope-ticks { stroke: #b6eefb; opacity: .6; }
+#scope[data-optic="laser"] .scope-spread { filter: drop-shadow(0 0 2px #36bbdf70); }
+#scopeReticle .scope-laser-center { stroke: #c2baff; stroke-width: 1; opacity: .8; }
+#scope[data-optic="laser"] .scope-top { border-color: #6feaff80; }
+#scope[data-optic="laser"] .scope-readout { border-color: #68d5efb0; background: linear-gradient(90deg, #071625e0, #0a1826a0, #071625e0); clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px); }
+#scope[data-optic="laser"] #scopeMeter { height: 4px; background: #85dfff26; }
+#scope[data-optic="laser"] #scopeMeter i { background: repeating-linear-gradient(90deg,var(--scope-ink) 0 2px, transparent 2px 4px); box-shadow: 0 0 7px #7fdfff60; }
+#scope[data-optic="laser"] .scope-side { border-color: #76eaff; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+@media (max-height: 480px), (max-width: 480px) { .scope-top { top: calc(50% - 35vmin); padding-bottom: 3px; } .scope-readout { top: calc(50% + 26vmin); padding: 5px 8px; } #scopeMeter { margin: 4px 0; } .scope-side { padding: 4px; } .scope-side small { display: none; } .scope-side b { font-size: 1.1em; } }
 /* レーザー誘導ロケットの精密誘導モード（2026-11-06）：半透明の紫のレティクル。外の円と四方の刻み、中心の点、画面の縁を薄く紫に */
 #seekRet { inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 0 46vmin, rgba(90, 30, 140, .22) 70vmin); }
 #seekRet i { position: absolute; left: 50%; top: 50%; width: 18vmin; height: 18vmin; transform: translate(-50%, -50%); border: 2px solid rgba(197, 140, 255, .6); border-radius: 50%; box-shadow: 0 0 8px rgba(197, 140, 255, .35); }
