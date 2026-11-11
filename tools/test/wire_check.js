@@ -212,4 +212,19 @@ check('ワイヤーアンカー', async ({ ev, step, ok, sortie }) => {
     const end = await ev(() => { const u = __g.player; return { y: u.pos.y, ground: u.onGround }; });
     ok(end.y > wall.y + wall.top - 1 && end.ground, `巻き取って縁を越え、建物の上に乗る（足の高さ ${(end.y - wall.y).toFixed(1)}m、壁 ${wall.top.toFixed(1)}m）`);
   }
+
+  // 9. Bot 同士の試合：強襲の Bot に全部ワイヤーとソードを持たせて30秒。撃って寄り、エラーが出ない
+  await sortie('wide');
+  await ev(() => {
+    const g = __g;
+    for (const u of g.units) if (u !== g.player && u.cls === 'assault') { u.slots.sp = g.slotOf('wire'); u.slots.aux = g.slotOf('sword'); }
+    g.player.pos.set(0, -500, 0); g.player.alive = false; g.player.respawnT = 1e9; g.timeLeft = 1e6;
+  });
+  let pulled = 0;
+  for (let i = 0; i < 60; i++) {
+    await step(10);
+    const q = await ev(() => { const g = __g; return g.units.filter(u => u.wire && u !== g.player).map(u => u.lifeId + ':' + u.idx + ':' + u.team + ':' + u.wire.t.toFixed(1)); });
+    pulled += q.length;
+  }
+  ok(pulled > 0, `Bot 同士の試合で強襲の Bot がワイヤーを使う（30秒で巻き取り中を ${pulled} 回見た）`);
 }, { errorsOk: /PeerJS|peerjs|ERR_TUNNEL/ });
