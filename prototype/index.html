@@ -3661,7 +3661,8 @@ for (const k of ['B', 'R']) {
 const mapRoot = new T.Group();
 scene.add(mapRoot);
 let miniBg = null, bigBg = null; // ミニマップと全体マップの地形（マップを替えたら作り直す）
-function buildMap(id) {
+function buildMap(id) { menuDrawn = false; return buildMapNow(id); } // メニュー中でも作り直したマップを1コマ描く
+function buildMapNow(id) {
   clearBeamCannons();
   resetCombatFeedback();
   clearBooms();
@@ -13209,6 +13210,9 @@ let playT = 0; // 出撃中に進む秒。clock() は試合の残り時間から
 // 1コマ。中の処理で例外が出ても次のコマを必ず頼む（2026-11-06：例外1つで requestAnimationFrame が止まり、試合が固まって戻れなかった）。
 // 例外はコンソールへ出す（試験は console.error を拾う）。毎コマ同じ例外が出ても、出すのは最初の数回だけ
 let loopErrors = 0;
+const overlayEl = $('overlay');
+let menuDrawn = false;
+function menuIdle() { return !running && !overlayEl.hidden && simulationRole === 'offline' && !hudPreview; }
 function loop(now) {
   try { gameFrame(now); }
   catch (e) {
@@ -13224,6 +13228,11 @@ function gameFrame(now) {
   window.CBOnlineGame?.beforeFrame(dt, now);
   touchTick(); // タッチ操作のボタンを出す・しまう
   bgmTick();
+  // メニューを開いている間（一人用で試合が止まっているとき）は、裏の戦闘画面を描かない（2026-11-11 メニューの再設計：軽く動かす）。
+  // 画面には最後に描いたコマが残る。機体カスタマイズの小さなプレビューだけは動かす
+  // 開いた直後とマップを作り直した後は1コマだけ描く（menuDrawn）
+  if (menuIdle()) { if (menuDrawn) { for (const k in pressed) delete pressed[k]; mechPreview(dt); return; } menuDrawn = true; }
+  else menuDrawn = false;
   if (running && isSimulationAuthority()) {
     if (!tutorial && !range) timeLeft -= dt;
     playT += dt;
