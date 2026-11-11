@@ -47,7 +47,7 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             const legacy=slots.every(slot=>legacyTypes.includes(cfg[slot]));
             // 腰ポッド24面＋肩口8面−撤去した背面箱12面＝20三角形。
             const joints = model.rig ? 10 * 2 + 4 + 10 + 20 / 12 : 0;
-            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 66) + joints; // ドーザーの頭・胴・腕が入った混成のぶん、60 から 66 へ（#228）
+            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 70) + joints; // ドーザーの頭・胴・腕が入った混成のぶん、60 から 70 へ（#228。胴の正面を塊で作ったぶんを含む）
             // 四脚は脚が4本なので、脚2本ぶん（30箱）を足す（#228）
             check(boxes <= budget + (g.PARTS.legs[cfg.legs].kind === 'quad' ? 30 : 0), label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);

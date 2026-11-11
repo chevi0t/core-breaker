@@ -3815,13 +3815,15 @@ const SERIES_BODY_SHAPES={
       h(.44,.19,.16,'frame',0,3.55,-.43,{bottom:.8});h(.50,.085,.20,'trim',0,3.40,-.22,{bottom:1});
       h(.12,.30,.12,'metal',.34,3.79,.34,{bottom:1});
     },
-    // 胸：砲塔のような八角の箱、下の防盾、前の2枚の傾いた装甲
+    // 胸：八角の箱の前へ、角を落とした操縦席の塊が突き出し、左右に一段下がった箱、その間は奥まった吸気口（正面を平らにしない。オーナーの希望 2026-11-11）
     chest(a,p,O){const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
-      c(2.14,.62,1.34,'armor',0,2.92,.08,{outline:O.octagon,rake:.04});
+      c(2.14,.62,1.16,'armor',0,2.92,.18,{outline:O.octagon,rake:.04});
       c(1.46,.42,.96,'metal',0,2.56,.12,{bottom:.84});
-      for(const sd of[-1,1])c(.74,.46,.20,'armor',sd*.50,2.88,-.66,{bottom:.7,sweep:-.10},sd*-.10);
-      c(.30,.34,.16,'frame',0,2.86,-.66,{bottom:1});c(.56,.09,.06,'trim',0,3.08,-.70,{bottom:1});
-      c(1.60,.12,1.0,'armor',0,3.26,.10,{bottom:.9});
+      c(.76,.66,.60,'armor',0,2.92,-.62,{facet:1,top:.70,bottom:1,depth:1,sweep:-.12});
+      for(const sd of[-1,1]){c(.50,.50,.42,'armor',sd*.74,2.96,-.50,{facet:1,top:1,bottom:.78,depth:.8,sweep:.06},sd*-.08);c(.20,.40,.24,'frame',sd*.44,2.92,-.44,{bottom:1,depth:1,sweep:0});}
+      c(1.16,.32,.50,'metal',0,2.50,-.50,{top:1,bottom:.6,depth:.5,sweep:.22});
+      c(.84,.10,.18,'trim',0,3.25,-.44,{bottom:1,depth:1,sweep:0});
+      c(1.60,.12,.90,'armor',0,3.26,.16,{bottom:.9});
     },
     // 肩：厚い板の肩当てと、外側の当て板
     shoulder(a,p,sd,O){const bone='arm'+(sd<0?'L':'R');
@@ -3839,12 +3841,13 @@ const SERIES_BODY_SHAPES={
       h(.10,.36,.62,'trim',0,3.76,.22,{top:.3,bottom:1,sweep:.26});
       for(const sd of[-1,1])h(.13,.20,.44,'metal',sd*.31,3.55,.12,{bottom:.6},sd*-.2);
     },
-    // 胸：前へ傾いた翼形の板と細い芯、背の小さな尾
+    // 胸：細い芯の前へ、鳥の胸のように突き出して下が引っ込む塊、左右に一段下がった吸気口の箱、背の小さな尾（正面を平らにしない。オーナーの希望 2026-11-11）
     chest(a,p,O){const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
-      c(1.44,.62,.86,'armor',0,2.90,.02,{outline:O.wing,rake:.20});
-      c(.48,.56,.52,'metal',0,2.62,.04,{bottom:.42,sweep:-.14});
-      for(const sd of[-1,1])c(.22,.44,.15,'metal',sd*.38,2.80,-.36,{bottom:.3},sd*-.22);
-      c(.86,.08,.08,'trim',0,3.00,-.42,{bottom:.75});
+      c(.92,.58,.70,'metal',0,2.90,.12,{facet:1,top:1,bottom:.6,depth:.8,sweep:0});
+      c(.48,.50,.52,'metal',0,2.56,.04,{bottom:.42,sweep:-.14});
+      c(.62,.62,.80,'armor',0,2.92,-.40,{facet:1,top:1,bottom:.34,depth:.45,sweep:.30});
+      for(const sd of[-1,1]){c(.40,.40,.62,'armor',sd*.54,3.00,.0,{facet:1,top:1,bottom:.6,depth:.8,sweep:.1},sd*-.18);c(.24,.22,.12,'frame',sd*.54,3.02,-.34,{bottom:.8,depth:1,sweep:0},sd*-.18);}
+      c(.12,.10,.70,'trim',0,3.26,-.38,{bottom:1,depth:1,sweep:0});
       c(.18,.26,.5,'armor',0,3.04,.52,{top:.4,bottom:1,sweep:.3});
     },
     // 肩：後ろへ流れる細い羽根
