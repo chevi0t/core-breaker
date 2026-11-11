@@ -267,6 +267,10 @@ def landmark_meshes():
 WALLS = OUT / "walls.json"
 WALL_OVERRIDES = OUT / "wall-overrides.json"
 WALL_GAIN = 1.3
+# 色味の差を強める倍率（灰色からの離れ具合に掛ける）。PLATEAU の写真は遠くからの撮影で色が薄く、赤茶のれんがの塔も
+# 桃色がかった灰色にしか写っていない。そのままだと街じゅうが同じ灰色に見えるので、建物ごとの色味の差を広げる。
+# 色の向き（赤っぽい・青っぽい）は測った値のままで、濃さだけを変える。
+WALL_SATURATION = 2.5
 
 
 def rgb(color):
@@ -285,6 +289,9 @@ def wall_colors(volumes, palette):
     known = [k for k, c in enumerate(measured) if c]
     ratio = np.median([rgb(measured[k]) / roofs[k] for k in known], axis=0) if known else np.ones(3)
     colors = [rgb(c) if c else roofs[k] * ratio for k, c in enumerate(measured)]
+    # 測った建物の色味の中央値を灰色に合わせる（ふつうの建物は灰色という前提。写真に残った薄い色かぶりを、強める前に取る）。
+    cast = np.median([colors[k] - colors[k].mean() for k in known], axis=0) if known else np.zeros(3)
+    colors = [c.mean() + (c - c.mean() - cast) * WALL_SATURATION if measured[k] else c for k, c in enumerate(colors)]
     for entry in json.loads(WALL_OVERRIDES.read_text()) if WALL_OVERRIDES.exists() else []:
         at = Point(*entry["at"]).buffer(1)
         hit = [k for k, v in enumerate(volumes) if Polygon(decode2(v[2])).intersects(at)]

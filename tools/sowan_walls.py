@@ -15,11 +15,14 @@
   1. 範囲に掛かる区画（b3dm）を読む。形は Draco 圧縮、写真は区画ごとに1枚の WebP。
   2. 立っている面（壁）だけを選び、面積4m²につき1点の割合で写真の色を拾う。
   3. 拾った点を、位置と高さでゲームの建物（terrain.json の volumes）へ割り当てる。
-  4. 写真の色かぶり（遠くからの斜めの写真で、全体が青くかすんでいる）を直す。同じ屋根を地面の写真（点群の色）と比べて
-     式を決め、壁にも同じ式を使う。
-  5. 建物ごとに、明るさの順で55〜95%の所（影の面と窓を除いた、日の当たった外装）を、面積で重みを付けて平均する
-     （sRGB を線形に直してから）。窓の並びや模様は取らない（オーナーの指定 2026-11-12）。
-  6. 壁を拾えなかった建物（PLATEAU に写真付きの形が無い倉庫など）は null のままにする（マップ側が屋根の色から塗る）。
+  4. 日の当たった向きの壁だけを使う。日陰の面は青黒く写っていて、混ぜると赤茶の建物も青っぽい灰色になる。
+     明るい側だけを選ぶ方法（明るさの順で上の方を平均）は、白いバルコニーや帯に引っ張られるので使わない。
+  5. かすみを引く。遠くから撮った写真には空気の白っぽい光が乗り、色が薄まっている。いちばん暗い所（窓の奥など）の
+     色をかすみとみなして全体から引く。
+  6. 色かぶりを直す。同じ屋根を地面の写真（点群の色）と比べて倍率を決め、壁にも同じ倍率を使う。
+  7. 建物ごとに、暗い方の2割（窓の奥・へこみの影）を除き、面積で重みを付けた色の平均を出す（sRGB を線形に直してから）。
+     窓の並びや模様は取らない（オーナーの指定 2026-11-12）。
+  8. 壁を拾えなかった建物（PLATEAU に写真付きの形が無い倉庫など）は null のままにする（マップ側が屋根の色から塗る）。
 
 マップに入るのは建物ごとの色1つだけで、PLATEAU の形・写真そのものは入れない。
 道具：numpy・shapely・pyproj・Pillow・DracoPy。
@@ -49,7 +52,9 @@ SAMPLE_AREA = 4.0  # 壁の面積（実寸m²）あたり1点
 ROOF_SAMPLE_AREA = 16.0  # 屋根は色合わせに使うだけなので粗く
 NEAR = 1.5  # 建物の輪郭からこの距離（ゲームm）までの壁を、その建物の壁とみなす
 MIN_AREA = 60.0  # これより壁の面積（実寸m²）が少ない建物は、色を決めない
-BAND = (0.55, 0.95)  # 明るさの順でこの範囲だけを平均する（暗い側＝影の面と窓、明るすぎる側＝反射を除く）
+DARK_CUT = 0.2  # 建物ごとに、暗い方からこの割合（窓の奥・へこみの影）を平均から除く
+MIN_LIT_AREA = 40.0  # 日なたの壁がこれ（実寸m²）以上写っていれば、日なたの面だけから色を出す
+VEIL_PERCENT = 1.0  # かすみの色：暗い方からこの百分位の色
 
 
 def transformers():
@@ -171,8 +176,9 @@ def read_tile(path):
             # glTF の v は上が0。DracoPy は圧縮前の値をそのまま返す。
             px = image[np.clip((st[:, 1] * hh).astype(int), 0, hh - 1), np.clip((st[:, 0] * ww).astype(int), 0, ww - 1)]
             linear = (px / 255.0) ** 2.2
-            out.append(np.column_stack([pos, linear, (area / count)[tri], batch[f[tri, 0]], roof[tri]]))
-    return np.concatenate(out) if out else np.empty((0, 9))
+            facing = np.arctan2(normal[keep, 0], normal[keep, 1])  # 面の向き（北から東回り、ラジアン）
+            out.append(np.column_stack([pos, linear, (area / count)[tri], batch[f[tri, 0]], roof[tri], facing[tri]]))
+    return np.concatenate(out) if out else np.empty((0, 10))
 
 
 def collect():
@@ -192,29 +198,43 @@ def collect():
     return np.concatenate(out), record
 
 
-def calibrate(samples):
-    """航空写真の色かぶりを直す倍率（色ごと、線形の値に掛ける）。
+def lit_faces(walls):
+    """日の当たった向きの壁かどうか（点ごと）。壁の明るさを向き15度ごとに平均し、最も明るい向きと最も暗い向きの中間より
+    明るい向きを「日なた」とする（撮影は午前で、東〜南東を向いた壁が明るい）。"""
+    luma = walls[:, 3:6] @ [0.2126, 0.7152, 0.0722]
+    sector = (np.degrees(walls[:, 8]) % 360 // 15).astype(int)
+    mean = np.bincount(sector, weights=luma * walls[:, 6], minlength=24) / np.maximum(np.bincount(sector, weights=walls[:, 6], minlength=24), 1e-9)
+    above = mean > (mean.max() + mean.min()) / 2
+    bright = np.zeros(24, bool)
+    for step in (1, -1):  # 最も明るい向きからつながっている向きだけ（離れた向きがたまたま明るくても入れない）
+        k = int(mean.argmax())
+        while above[k % 24] and not (bright[k % 24] and k != int(mean.argmax())):
+            bright[k % 24] = True
+            k += step
+    return bright[sector], [int(k * 15) for k in np.flatnonzero(bright)]
 
-    PLATEAU の写真は遠くから撮った斜めの写真で、全体が青く、薄くかすんでいる。同じ屋根を、ゲームの地面の写真
-    （mapdesign/sowan/photo.webp。点群の色）と比べ、屋根の色が合うように直す。壁にも同じ式を使う。
+
+def calibrate(roof, veil):
+    """航空写真の色かぶりを直す倍率（色ごと、かすみを引いた線形の値に掛ける）。
+
+    PLATEAU の写真は遠くから撮ってあり、全体が青い。同じ屋根を、ゲームの地面の写真（mapdesign/sowan/photo.webp。点群の色）と
+    比べ、屋根の色が合う倍率を出す。壁にも同じ倍率を使う。
     2つの写真は撮った日も影も違うので、6m 四方ごとの平均で比べ、外れた所を除いた平均の比を倍率にする。
-    （切片は付けない。地面の写真は影を消してあるので、切片を付けると壁の暗い色まで持ち上がり、建物ごとの差が縮む。）
     """
     from PIL import Image
 
-    roof = samples[samples[:, 7] > 0]
     gx, gz = sp.real_to_game(roof[:, 0], roof[:, 1])
     photo = np.asarray(Image.open(ROOT / "mapdesign/sowan/photo.webp").convert("RGB"))
     h, w = photo.shape[:2]
     x0, z0, x1, z1 = BOUNDS
     u, v = ((gx - x0) / (x1 - x0) * w).astype(int), ((gz - z0) / (z1 - z0) * h).astype(int)
     ok = (u >= 0) & (u < w) & (v >= 0) & (v < h)
-    gx, gz, roof, target = gx[ok], gz[ok], roof[ok, 3:6], (photo[v[ok], u[ok]] / 255.0) ** 2.2
+    gx, gz, source, target = gx[ok], gz[ok], np.clip(roof[ok, 3:6] - veil, 0, 1), (photo[v[ok], u[ok]] / 255.0) ** 2.2
     _, cell = np.unique(np.floor(gx / 6).astype(int) * 4096 + np.floor(gz / 6).astype(int), return_inverse=True)
     n = np.bincount(cell)
     fit = []
     for c in range(3):
-        x, y = (np.bincount(cell, weights=roof[:, c]) / n)[n >= 8], (np.bincount(cell, weights=target[:, c]) / n)[n >= 8]
+        x, y = (np.bincount(cell, weights=source[:, c]) / n)[n >= 8], (np.bincount(cell, weights=target[:, c]) / n)[n >= 8]
         keep = np.ones(len(x), bool)
         for _ in range(10):
             gain = y[keep].mean() / x[keep].mean()
@@ -224,7 +244,7 @@ def calibrate(samples):
     return fit
 
 
-def assign(samples, fit):
+def assign(samples):
     """壁の点を、輪郭に近くて高さの合うゲームの建物へ割り当て、建物ごとの色を出す。"""
     import shapely
     from shapely.geometry import Polygon
@@ -234,11 +254,15 @@ def assign(samples, fit):
     for lo, hi, ring, _paint, _kind in volumes:
         q = sp.decode2(ring)
         rings.append(shapely.make_valid(Polygon(np.column_stack([q[:, 0], q[:, 1] + sp.DZ]))))
-    samples = samples[samples[:, 7] == 0]
+    roof, samples = samples[samples[:, 7] > 0], samples[samples[:, 7] == 0]
+    lit, lit_sectors = lit_faces(samples)
+    # かすみ（空気の白っぽい光）：いちばん暗い所（窓の奥など、本当は黒に近い所）に乗っている色を、全体から引く。
+    veil = {"walls": np.percentile(samples[lit, 3:6], VEIL_PERCENT, axis=0), "roofs": np.percentile(roof[:, 3:6], VEIL_PERCENT, axis=0)}
+    fit = calibrate(roof, veil["roofs"])
     gx, gz = sp.real_to_game(samples[:, 0], samples[:, 1])
     height = samples[:, 2] / sp.SCALE
     inside = (gx > BOUNDS[0]) & (gx < BOUNDS[2]) & (gz > BOUNDS[1]) & (gz < BOUNDS[3])
-    gx, gz, height, samples = gx[inside], gz[inside], height[inside], samples[inside]
+    gx, gz, height, samples, lit = gx[inside], gz[inside], height[inside], samples[inside], lit[inside]
     points = shapely.points(gx, gz)
     edges = np.array([shapely.boundary(r) for r in rings])
     tree = shapely.STRtree(edges)
@@ -252,21 +276,29 @@ def assign(samples, fit):
     pi, vi = pi[order], vi[order]
     first = np.r_[True, pi[1:] != pi[:-1]]  # 点ごとに、最も近い建物だけ
     pi, vi = pi[first], vi[first]
-    weight = samples[pi, 6]
-    linear = np.clip(samples[pi, 3:6] * fit, 0, 1)
+    weight, lit = samples[pi, 6], lit[pi]
+    linear = np.clip((samples[pi, 3:6] - veil["walls"]) * fit, 0, 1)
     luma = linear @ [0.2126, 0.7152, 0.0722]
-    area = np.bincount(vi, weights=weight, minlength=len(volumes))
-    colors = []
-    for k in range(len(volumes)):
-        if area[k] < MIN_AREA:
-            colors.append(None)
-            continue
-        m = np.flatnonzero(vi == k)
+
+    def mean(m):  # 暗い方の DARK_CUT（窓の奥・へこみの影）を除いた、面積で重みを付けた平均
         m = m[np.argsort(luma[m])]
-        share = np.cumsum(weight[m]) / weight[m].sum()
-        m = m[(share >= BAND[0]) & (share <= BAND[1])]  # 影の面・窓と、白く飛んだ所を除く
-        mean = (linear[m] * weight[m, None]).sum(0) / weight[m].sum()
-        colors.append("#" + "".join(f"{v:02x}" for v in np.clip(np.rint(mean ** (1 / 2.2) * 255), 0, 255).astype(int)))
+        m = m[np.cumsum(weight[m]) / weight[m].sum() >= DARK_CUT]
+        return (linear[m] * weight[m, None]).sum(0) / weight[m].sum()
+
+    area = np.bincount(vi, weights=weight, minlength=len(volumes))
+    lit_area = np.bincount(vi, weights=weight * lit, minlength=len(volumes))
+    sunny, whole = {}, {}
+    for k in np.flatnonzero(area >= MIN_AREA):
+        m = np.flatnonzero(vi == k)
+        whole[k] = mean(m)
+        if lit_area[k] >= MIN_LIT_AREA:
+            sunny[k] = mean(m[lit[m]])
+    # 日なたの壁が写っていない建物は、全部の面の平均に「日なた÷全部」の中央値を掛ける。
+    ratio = np.median([sunny[k] / whole[k] for k in sunny], axis=0) if sunny else np.ones(3)
+    colors = [None] * len(volumes)
+    for k, c in whole.items():
+        c = sunny.get(k, c * ratio)
+        colors[k] = "#" + "".join(f"{v:02x}" for v in np.clip(np.rint(np.clip(c, 0, 1) ** (1 / 2.2) * 255), 0, 255).astype(int))
     # 上に載った部分で壁を拾えなかった物は、同じ建物（輪郭が最も重なる、色の決まった部分）の色を使う。
     borrowed = 0
     for k in range(len(volumes)):
@@ -274,14 +306,19 @@ def assign(samples, fit):
             continue
         best, share = None, 0.5
         for j in tree.query(rings[k], predicate="intersects"):
-            if j != k and colors[j] is not None and area[j] >= MIN_AREA:
+            if j != k and j in whole:
                 overlap = rings[k].intersection(rings[j]).area / rings[k].area
                 if overlap > share:
                     best, share = j, overlap
         if best is not None:
             colors[k] = colors[best]
             borrowed += 1
-    return colors, area, len(pi), len(samples), borrowed
+    stats = {
+        "walls": int(len(samples)), "assigned": int(len(pi)), "litSectorsDegrees": lit_sectors, "fromLitFaces": len(sunny), "borrowed": borrowed,
+        "veil": {k: [round(float(v), 4) for v in a] for k, a in veil.items()}, "colorGain": [round(v, 4) for v in fit],
+        "litOverWhole": [round(float(v), 3) for v in ratio], "wallAreaHa": round(float(area.sum()) / 1e4, 1),
+    }
+    return colors, stats
 
 
 def main():
@@ -289,20 +326,18 @@ def main():
         fetch()
         return
     samples, record = collect()
-    fit = calibrate(samples)
-    colors, area, used, total, borrowed = assign(samples, fit)
+    colors, stats = assign(samples)
     found = sum(c is not None for c in colors)
     OUT.write_text(json.dumps({
         "source": "国土交通省 3D都市モデル（Project PLATEAU）建築物モデル LOD2 テクスチャ付き（CC BY 4.0）",
         "datasets": [{k: d[k] for k in ("id", "name", "year", "url")} | {"tiles": len(d["tiles"])} for d in record],
-        "note": "建物ごとの壁の色（地面の写真の色合いへ直し、明るさの順で55〜95%の所を、面積で重みを付けて平均）。terrain.json の volumes と同じ順。null は壁を拾えなかった建物。",
-        "samples": {"walls": int(total), "assigned": int(used)},
-        "colorGain": [round(v, 4) for v in fit],
+        "note": "建物ごとの壁の色（日の当たった面から。かすみを引き、地面の写真の色合いへ直し、暗い方の2割を除いた、面積で重みを付けた平均）。terrain.json の volumes と同じ順。null は壁を拾えなかった建物。",
+        "stats": stats,
         "found": found,
-        "borrowed": borrowed,
         "colors": colors,
     }, ensure_ascii=False, indent=1) + "\n")
-    print(f"壁の色：{found} / {len(colors)} 棟（うち同じ建物から借りた色 {borrowed}。点 {used} / {total}、壁の面積 {area.sum() / 1e4:.1f} ha）→ {OUT.relative_to(ROOT)}")
+    print(f"壁の色：{found} / {len(colors)} 棟（日なたの面から {stats['fromLitFaces']}、同じ建物から借りた色 {stats['borrowed']}）→ {OUT.relative_to(ROOT)}")
+    print(stats)
 
 
 if __name__ == "__main__":
