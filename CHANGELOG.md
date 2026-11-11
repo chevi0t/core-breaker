@@ -6,6 +6,7 @@
 
 ## 2026-11-11
 
+- 狙撃銃のスコープを作り直しました。実弾の狙撃銃は金属の枠と琥珀色、レーザーの狙撃銃は水色と紫の光る輪になり、弾が散る範囲を菱形で出します（収束するほど縮みます）。スコープの外側は黒く覆う代わりにぼかします。武器の性能は変えていません。
 - 敵の頭上を飛び越えた（飛び越えられた）ときにロックオンが外れた後、約1.5秒以内に振り返ってその敵を照準の近くへ入れると、右クリック無しでロックが戻るようにしました。視点が勝手に回ることはありません。
 - タックルと蹴りを当てやすくしました。当たり判定を約1.5倍に広げています（タックルは前 4m・左右 2m ずつ、蹴りは 4.2m・前 120度）。威力や踏み込む距離は同じです。
 - 火薬の爆発を重く見えるようにしました。火の玉は白く光ってから橙、焦げた茶色へ変わって黒い煙に溶け、大きな爆発ほど黒煙が高く昇ります。破片が飛んで落ち、半径15m以上の爆発は地面に土煙が広がります。描く手間は前と同じくらいに抑え、毎コマ画面へ送るデータは減らしました（スマホは近くの爆発でも粒を少なめにしています）。
@@ -18,7 +19,7 @@
 - フルオートでない単発の銃（マークスマンライフル、単発の二丁拳銃、マグナム）は、ロックオン中のズームを 1.5倍にしました。スコープ付きの銃と、ショットガン・3点射・溜め撃ちの銃は 1.3倍のままです。
 - オンライン対戦は通信の版が変わったので、全員がページを読み込み直してから入ってください。
 
-関連：[四脚と逆脚 #242](https://github.com/chevi0t/core-breaker/pull/242)、[タックルと蹴り #232](https://github.com/chevi0t/core-breaker/pull/232)、[カスタマイズの並べ替え #240](https://github.com/chevi0t/core-breaker/pull/240)、[単発の銃のズーム #241](https://github.com/chevi0t/core-breaker/pull/241)、[重厚な爆発 #243](https://github.com/chevi0t/core-breaker/pull/243)、[タックルと蹴りの当たり判定 #244](https://github.com/chevi0t/core-breaker/pull/244)
+関連：[四脚と逆脚 #242](https://github.com/chevi0t/core-breaker/pull/242)、[タックルと蹴り #232](https://github.com/chevi0t/core-breaker/pull/232)、[カスタマイズの並べ替え #240](https://github.com/chevi0t/core-breaker/pull/240)、[単発の銃のズーム #241](https://github.com/chevi0t/core-breaker/pull/241)、[重厚な爆発 #243](https://github.com/chevi0t/core-breaker/pull/243)、[タックルと蹴りの当たり判定 #244](https://github.com/chevi0t/core-breaker/pull/244)、[頭上を越えた後のロックの戻り #246](https://github.com/chevi0t/core-breaker/pull/246)、[狙撃スコープ #247](https://github.com/chevi0t/core-breaker/pull/247)
 
 ## 2026-11-10
 
