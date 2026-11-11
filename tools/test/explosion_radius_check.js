@@ -1,10 +1,11 @@
 // 武器の実blastから描画へ渡る半径と、既存の大小・寿命・粒数の独立性を確認する。
+// 2026-11-11（重厚な爆発）：大きな爆発は時間が延びる（#208）ので、輪は「広がり切った最大」で比べ、火は「半径に比例以上・1.3倍以内」、煙は1.5倍以内で比べる。
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{chromium}=require('playwright');
 (async()=>{
  const browser=await chromium.launch({args:['--no-sandbox','--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
  try{
   const p=await browser.newPage(),errors=[];
-  p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errors.push(m.text());}); // 読み込み失敗（ネットに出られない環境の外部ファイル）は数えない
   await p.route('**fonts.g*/**',r=>r.fulfill({body:'',contentType:'text/css'}));
   await p.addInitScript(()=>{requestAnimationFrame=()=>0;AudioContext=undefined;});
   await p.goto('file://'+path.resolve(process.argv[2]||'dbg/radius','dbg.html'));
@@ -20,16 +21,19 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    };
    const maxSize=b=>Math.max(...b.attributes.size.array.slice(0,b.count));
    function ringRadius(){const a=g.boomVisuals.rings.attributes.position.array;let max=0;for(let i=0;i<g.boomVisuals.rings.count*3;i+=3)max=Math.max(max,Math.hypot(a[i]-at.x,a[i+2]-at.z));return max;}
+   // 輪が広がり切るまで細かく進めて、いちばん大きかった半径
+   function ringMax(){let max=0;for(let i=0;i<60;i++){g.boomUpdate(.012);max=Math.max(max,ringRadius());}return max;}
    for(const radius of [2.5,8,16,32,40]){
     spawn(radius);g.boomUpdate(.08);const fire=maxSize(g.boomVisuals.fire),spark=g.boomVisuals.sparks.count;
-    g.boomUpdate(.419-.08);const ring=ringRadius();
-    yes(Math.abs(ring-radius)<.001,'半径'+radius+'m：衝撃波の最大径を実際の爆風へ合わせる');
-    g.boomUpdate(.6-.419);const smoke=maxSize(g.boomVisuals.smoke);
+    const ring=ringMax();
+    yes(Math.abs(ring-radius)<.02*radius,'半径'+radius+'m：衝撃波の最大径を実際の爆風へ合わせる');
+    spawn(radius);let smoke=0;for(let i=0;i<120;i++){g.boomUpdate(.05);if(g.boomVisuals.smoke.count)smoke=Math.max(smoke,maxSize(g.boomVisuals.smoke));} // 一生のうちいちばん大きい煙
     samples.push({radius,fire,smoke,ring,spark});
    }
    for(const s of samples){
-    yes(Math.abs(s.fire/samples[0].fire-s.radius/samples[0].radius)<1e-5,s.radius+'m：火球は爆風半径に比例');
-    yes(Math.abs(s.smoke/samples[0].smoke-s.radius/samples[0].radius)<1e-5,s.radius+'m：煙は爆風半径に比例');
+    const r=s.radius/samples[0].radius,f=s.fire/samples[0].fire/r,m=s.smoke/samples[0].smoke/r;
+    yes(f>=1-1e-5&&f<=1.3,s.radius+'m：火球は爆風半径に比例以上（大きいほど少し厚く、1.3倍まで）');
+    yes(m>=1-1e-5&&m<=1.5,s.radius+'m：煙は爆風半径に比例以上（大きいほど広がる。1.5倍まで）');
     yes(s.spark===20,s.radius+'m：サイズで火花の粒数を増やさない');
    }
    spawn(16,true);g.boomUpdate(.08);
@@ -44,8 +48,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    let weapons=0;
    for(const [key,w]of Object.entries(g.WEAPONS)){
     const spec=w.proj;if(!spec?.blast||spec.weak||spec.scan)continue;
-    spawn(spec.blast,!!spec.small);g.boomUpdate(.419);
-    yes(Math.abs(ringRadius()-spec.blast)<.001,key+'の実爆風半径を描画へ渡す');weapons++;
+    spawn(spec.blast,!!spec.small);
+    yes(Math.abs(ringMax()-spec.blast)<.02*spec.blast,key+'の実爆風半径を描画へ渡す');weapons++;
    }
    g.clearBooms();return {checks,samples,weapons};
   });
