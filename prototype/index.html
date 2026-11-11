@@ -1,7 +1,7 @@
 <title>コアブレイカー試作</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Dela+Gothic+One&family=M+PLUS+1p:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Dela+Gothic+One&family=M+PLUS+1p:wght@400;700;800&family=Anton&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="style.css">
 
 <div id="game"><canvas id="view"></canvas></div>
@@ -143,46 +143,70 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver194</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver195</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
-      <header class="menuHead">
-        <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
-        <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
-      </header>
-      <div id="ovBoard"></div>
-      <div class="menuCols">
-        <div class="menu menuMain" role="group" aria-labelledby="menuMainHead">
-          <h2 class="colHead" id="menuMainHead">出撃の準備</h2>
-          <button type="button" data-page="pgMap">マップ<small id="mapNow"></small></button>
-          <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
-          <fieldset class="battleSize" id="battleSizeControl">
-            <legend>参加人数</legend>
-            <label>片軍の人数<select id="teamSize" aria-label="片軍の人数"></select></label>
-            <button type="button" id="resetBattleSize">推奨に戻す</button>
-            <small id="battleSizeHint" aria-live="polite"></small>
-          </fieldset>
-          <fieldset class="teamChoice" id="teamChoice">
-            <legend>出撃側<small>自軍は青、敵軍は橙。地図の上が北</small></legend>
-            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="B" checked>南側</label>
-            <label style="--team-color:var(--blue)"><input type="radio" name="team" value="R">北側</label>
-          </fieldset>
-          <div class="ctabs" id="ovBuild" role="group" aria-label="保存した構成"></div>
-          <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
-          <button id="start" type="button">出撃する</button>
-        </div>
-        <nav class="menu menuSide" aria-labelledby="menuSideHead">
-          <h2 class="colHead" id="menuSideHead">メニュー</h2>
+      <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
+           左に目次、真ん中に大きな兵装名と機体と注釈、右に「1 マップ → 2 兵装 → 3 出撃」。試合の結果は真ん中に出す -->
+      <div class="mx">
+        <header class="mxHead">
+          <div class="mxBrand"><b>コア<em>ブレイカー</em></b><span class="mxM">CORE BREAKER ／ 試作</span></div>
+          <button type="button" class="mxPilot" data-page="pgPilot" aria-label="パイロットを選ぶ"><i aria-hidden="true"></i><span id="pilotNow"></span></button>
+        </header>
+        <nav class="mxNav" aria-label="メニュー">
+          <span class="mxM">INDEX</span>
+          <button type="button" class="on" id="menuSortie" aria-current="page">出撃</button>
+          <button type="button" data-page="pgCustom">機体カスタマイズ<small>パーツ・色と兵装ごとの武器（構成を3つ保存）</small></button>
+          <button type="button" data-page="pgPilot">パイロット<small>パイロットの絵と名前</small></button>
+          <span class="mxM mxGrp">TRAINING</span>
           <button type="button" data-page="pgTutorialIntro">チュートリアル<small>はじめての方へ。実際に動かして練習</small></button>
           <button type="button" id="menuRange">射撃場<small>選んでいる兵装で試し撃ち</small></button>
-          <button type="button" data-page="pgCustom">機体カスタマイズ<small>パーツ・色と兵装ごとの武器（構成を3つ保存）</small></button>
-          <button type="button" data-page="pgPilot">パイロット<small id="pilotNow"></small></button>
-          <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作・謝辞</small></button>
+          <span class="mxM mxGrp">SYSTEM</span>
           <button type="button" data-page="pgOptions">オプション<small>音・画面・コンソール・コントローラー（戦闘中はF3）</small></button>
-          <a id="changelogLink" tabindex="0" href="https://github.com/chevi0t/core-breaker/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">アップデート履歴<small>変更点をGitHubで読む（別タブ）</small></a>
+          <button type="button" data-page="pgHelp">操作説明<small>ルールとキー操作・謝辞</small></button>
+          <a id="changelogLink" href="https://github.com/chevi0t/core-breaker/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">アップデート履歴 ↗<small>変更点をGitHubで読む（別タブ）</small></a>
         </nav>
+        <main class="mxStage">
+          <div class="mxResult">
+            <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
+            <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
+            <div id="ovBoard"></div>
+          </div>
+          <div class="mxKey">
+            <div class="mxMega" id="mxMega" aria-hidden="true"></div>
+            <div class="mxSub"><span class="mxChip" id="mxChip"></span><span class="mxM" id="mxLoadout"></span></div>
+            <div class="ctabs mxBuilds" id="ovBuild" role="group" aria-label="保存した構成"></div>
+            <div class="mxVert" id="mxVert" aria-hidden="true"></div>
+            <canvas id="menuMech" aria-label="選んでいる兵装の機体。ドラッグで回せます"></canvas>
+            <div class="mxCalls" id="mxCalls" aria-hidden="true"></div>
+            <div class="mxStats" id="mxStats"></div>
+          </div>
+        </main>
+        <div class="menuMain mxSortie" role="group" aria-label="出撃の準備">
+          <button type="button" class="mxMap" data-page="pgMap"><span class="mxSign"><span class="n">1</span><b>マップ</b><span class="ar">→</span></span><span id="mapNow"></span></button>
+          <label class="arenaWeapon" id="arenaWeaponControl" hidden>近接限定の武器<select id="arenaWeapon" aria-label="近接限定の武器"></select><small>光波も使用可能・10機先取</small></label>
+          <div class="mxKv">
+            <span class="mxM" id="battleSizeLabel">人数</span>
+            <div class="mxSeg" id="battleSizeControl" role="group" aria-labelledby="battleSizeLabel">
+              <button type="button" data-size="5">5</button><button type="button" data-size="10">10</button>
+              <label class="mxFree"><span>自由</span><input type="number" id="teamSize" min="2" max="50" step="1" inputmode="numeric" aria-label="片軍の人数（自由入力、2〜50）"></label>
+            </div>
+            <span class="mxM" id="teamLabel">出撃側</span>
+            <div class="mxSeg" id="teamChoice" role="radiogroup" aria-labelledby="teamLabel">
+              <label><input type="radio" name="team" value="B" checked>南</label>
+              <label><input type="radio" name="team" value="R">北</label>
+            </div>
+          </div>
+          <small class="mxHint" id="battleSizeHint" aria-live="polite"></small>
+          <div class="mxSign"><span class="n">2</span><b>兵装</b><span class="ar">↓</span></div>
+          <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
+          <button id="start" type="button"><span class="mxM">3 — SORTIE ／ ENTER</span><b>出撃する</b><span class="ar" aria-hidden="true">→</span></button>
+        </div>
+        <footer class="mxFoot">
+          <span class="mxM">GRID 04-B ／ <b>交戦規定 B-2</b></span><span class="mxM">SEC 7F-3A</span><span class="mxM">UNIT CB-07</span>
+          <p class="note">効果音 Freesound（CC0）・BGM OpenGameArt.org。謝辞は操作説明に。</p>
+        </footer>
       </div>
-      <p class="note">PCのキーボードとマウスか、コントローラー（PS5 など）で遊べます。スマホ・タブレットでは横向きにして、画面のボタンで操作します。グラフィックはオリジナルの仮素材、効果音は Freesound の CC0 の音、BGM は OpenGameArt.org の曲です（操作説明の謝辞と SOUND-CREDITS.md）。</p>
     </section>
     <section class="page" id="pgOptions" hidden>
       <div class="pgh"><h2>オプション</h2><button type="button" class="back">戻る</button></div>
@@ -212,6 +236,9 @@
             <label for="optUiSize">UIの大きさ <output id="optUiSizeValue" for="optUiSize"></output></label>
             <input id="optUiSize" type="range" min="0" max="100" step="1">
           </div>
+          <label class="aimStyle" for="optMenuStyle"><b>メニューの見た目</b>
+            <select id="optMenuStyle"><option value="0">新しい形（大きな兵装名と機体）</option><option value="1">前の形（2列）</option></select>
+            <small>出撃前のメニュー画面の見た目だけが変わります。できることは同じです。</small></label>
           <section id="hudSizeOptions">
             <h3 class="optionHead">HUD</h3>
             <label class="aimStyle" for="optAimStyle"><b>照準の形</b>
@@ -511,10 +538,10 @@ const SFX = {
 // padLook・padInvert・padRumble はコントローラーの右スティックの速さ（0〜100）、上下反転と振動（0か1。スイッチ）。
 // touchLook・touchSize はタッチ操作の視点の速さ（0〜100）と、ボタンの大きさ（0〜100。50で標準、0で0.75倍、100で1.25倍）。
 let hudPreview = false, hudPreviewFresh = false;
-const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, aimStyle: 0, aimClassic: 0, aimX: 0, hudTriangle: 100, hudPilot: 100, swayHair: 100, swayChest: 100 };
+const OPTIONS_KEY = 'coreBreakerOptions', OPTION_DEFAULTS = { master: 100, sfx: 100, music: 100, fov: 70, padLook: 50, padInvert: 0, padRumble: 1, touchLook: 50, touchSize: 50, touchAuto: 1, uiFit: 1, uiSize: 50, aimStyle: 0, aimClassic: 0, aimX: 0, hudTriangle: 100, hudPilot: 100, swayHair: 100, swayChest: 100, menuStyle: 0 };
 // swayHair・swayChest：保存済みの揺れ倍率との互換用。新規はキャラの規定値どおりの100%。設定画面には出さない。
 const OPTION_MIN = { fov: 60, hudTriangle: 100, hudPilot: 100 };
-const OPTION_MAX = { aimStyle: 2, hudTriangle: 200, hudPilot: 200, swayHair: 300, swayChest: 300 };
+const OPTION_MAX = { aimStyle: 2, menuStyle: 1, hudTriangle: 200, hudPilot: 200, swayHair: 300, swayChest: 300 };
 const OPTION_UNIT = { fov: '°', padLook: '', touchLook: '', touchSize: '' }; // ほかは %
 // uiFit：UIを画面の大きさに比例させる（1280×720 で等倍）。uiSize：UIの倍率（0〜100。50で等倍、0で0.7倍、100で1.3倍）。
 const uiSizeScale = v => .7 + v * .006;
@@ -553,6 +580,7 @@ function renderOptions() {
   }
   document.body.classList.toggle('aimClassic', !!gameOptions.aimClassic); // 旧い照準（三角ゲージの前の中央計器）
   document.body.classList.toggle('aimX', !!gameOptions.aimX); // X字の照準（2026-11-05 オーナーのスケッチ）
+  document.body.classList.toggle('menuClassic', gameOptions.menuStyle === 1); // メニューの見た目：0 新しい形（2026-11-12）・1 前の形（オーナー「現行のメニュー画面もオプションで選べるように」）
   try { triangleAimResize(); } catch (_) {} // 起動直後（まだ照準の定数が無い）は resize() で作る
   document.documentElement.style.setProperty('--tc-scale', (.75 + gameOptions.touchSize / 200).toFixed(3)); // タッチのボタンの大きさ
   applyHudScale();
@@ -3661,7 +3689,8 @@ for (const k of ['B', 'R']) {
 const mapRoot = new T.Group();
 scene.add(mapRoot);
 let miniBg = null, bigBg = null; // ミニマップと全体マップの地形（マップを替えたら作り直す）
-function buildMap(id) {
+function buildMap(id) { menuDrawn = false; return buildMapNow(id); } // メニュー中でも作り直したマップを1コマ描く
+function buildMapNow(id) {
   clearBeamCannons();
   resetCombatFeedback();
   clearBooms();
@@ -11248,10 +11277,11 @@ function pickClass(k) {
     window.CBOnlineGame?.rememberClassChoice?.(player);
   }
   for (const b of document.querySelectorAll('.cls button')) b.classList.toggle('sel', b.dataset.cls === k);
+  menuRigDirty = true;
 }
 const clsButtons = withKey => CLASS_KEYS.map((k, i) => {
   const c = CLASSES[k];
-  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}"${withKey ? '' : ' title="この兵装で出撃します。右上の「カスタマイズ ›」でカスタマイズを開きます"'}>${withKey ? 'ZXCV'[i] + '　' : `<em class="toCu" title="${c.name}のカスタマイズを開きます">カスタマイズ ›</em>`}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／')}</small>${overNote(k)}</button>`;
+  return `<button type="button" data-cls="${k}" class="${k === chosenCls ? 'sel' : ''}"${withKey ? '' : ' title="この兵装で出撃します。右上の「カスタマイズ ›」でカスタマイズを開きます"'}>${withKey ? 'ZXCV'[i] + '　' : `<em class="toCu" title="${c.name}のカスタマイズを開きます">カスタマイズ ›</em>`}${classMark(k)}${c.name}<small>${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : withKey ? SLOTS.map(s => WEAPONS[loadout[k][s]].name).join('／') : SLOTS.map(s => `<span>${WEAPONS[loadout[k][s]].name}</span>`).join('')}</small>${overNote(k)}</button>`;
 }).join('');
 // 重量超過の注記（パーツと選んだ武器で。v0.12）
 function overNote(k) { const st = mechStats(mechCfg, meleeOnly() ? { aux: arenaMeleeKey } : loadout[k]); return st.excess > 0 ? `<small class="over">重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）</small>` : ''; }
@@ -11932,6 +11962,103 @@ function mechPreview(dt) {
     r.ren.render(r.sc, r.cam);
   } catch (_) {}
 }
+// ---- メニューの機体と注釈（2026-11-12 メニューの作り直し） ----
+// 選んでいる兵装の機体を真ん中に描き、頭・胴・腕・主武器・脚へ引き出し線で名前と重さを添える。
+// 軽く動かすため、描くのは中身（兵装・構成・パーツ）か画面の大きさが変わったときと、ドラッグで回したときだけ
+const CLASS_EN = { assault: 'ASSAULT', heavy: 'HEAVY', raid: 'RAID', support: 'SUPPORT' };
+let menuRig = null, menuRigKey = '', menuRigDirty = true;
+function menuResultMode() {
+  // 試合の結果・通信の知らせ（ovTitle と ovText が初めの文と違う、または表がある）は真ん中に出す
+  const t = $('ovTitle').textContent, x = $('ovText').textContent;
+  $('pgMenu').classList.toggle('hasResult', !!$('ovBoard').children.length || t !== 'コアブレイカー 試作' || !x.startsWith('ボーダーブレイクの遊びを再現する'));
+  menuRigDirty = true;
+}
+{ const mo = new MutationObserver(menuResultMode); for (const id of ['ovTitle', 'ovText', 'ovBoard']) mo.observe($(id), { childList: true, subtree: true, characterData: true }); }
+function menuKeyText() {
+  const k = chosenCls, c = CLASSES[k], ld = loadout[k], st = mechStats(mechCfg, meleeOnly() ? { aux: arenaMeleeKey } : ld), i = CLASS_KEYS.indexOf(k) + 1;
+  $('mxMega').textContent = c.name; $('mxMega').style.setProperty('--n', [...c.name].length);
+  $('mxVert').textContent = `${CLASS_EN[k] || ''}—0${i}`;
+  $('mxChip').textContent = `CLASS 0${i} ／ ${CLASS_EN[k] || ''}`;
+  $('mxLoadout').textContent = `構成${builds.cur + 1} — ${meleeOnly() ? WEAPONS[arenaMeleeKey].name + '（近接限定）' : SLOTS.map(s => WEAPONS[ld[s]].name).join(' ／ ')}`;
+  const over = st.excess > 0 ? ` class="over" title="重量超過 +${st.excess}kg（速さ −${Math.round(st.slow * 100)}%）"` : '';
+  $('mxStats').innerHTML = `<div><span class="mxM">ARMOR 耐久</span><b>${c.hp || 10000}</b></div><div${over}><span class="mxM">WEIGHT 重量</span><b>${st.weight}<small>/${st.cap}</small></b></div><div><span class="mxM">DASH ダッシュ</span><b>${(st.P.legs.dash * (1 - st.slow)).toFixed(1)}<small>km/h</small></b></div>`;
+}
+function menuMechTick() {
+  const cv = $('menuMech');
+  if ($('overlay').hidden || $('pgMenu').hidden || $('pgMenu').classList.contains('hasResult') || !cv.offsetWidth) return;
+  try {
+    const w = cv.clientWidth, h = cv.clientHeight, pr = Math.min(2, devicePixelRatio || 1);
+    if (!menuRig) {
+      const ren = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+      const sc = new T.Scene(), cam = new T.PerspectiveCamera(26, 1, 0.1, 80);
+      sc.add(new T.HemisphereLight(0xe8f8ff, 0x344555, 1.3));
+      const light = new T.DirectionalLight(0xffffff, 1.1); light.position.set(-3, 6, -5); sc.add(light);
+      const floor = new T.Mesh(new T.CircleGeometry(2.6, 48), new T.MeshBasicMaterial({ color: 0x3ea6ff, transparent: true, opacity: 0.16 }));
+      floor.rotation.x = -Math.PI / 2; sc.add(floor);
+      const r = menuRig = { ren, sc, cam, m: null, yaw: -0.5, drag: null, w: 0, h: 0 };
+      cv.addEventListener('pointerdown', e => { r.drag = e.clientX; cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener('pointermove', e => { if (r.drag === null) return; r.yaw += (e.clientX - r.drag) * 0.012; r.drag = e.clientX; menuRigDirty = true; });
+      for (const ev of ['pointerup', 'pointercancel']) cv.addEventListener(ev, () => { r.drag = null; });
+    }
+    const r = menuRig, ld = loadout[chosenCls], key = JSON.stringify([mechCfg, ld, chosenCls, builds.cur, meleeOnly() && arenaMeleeKey]);
+    if (key !== menuRigKey) {
+      menuRigKey = key; menuRigDirty = true; menuKeyText();
+      if (r.m) { r.sc.remove(r.m.g); disposeMech(r.m.g); }
+      r.m = buildMech(ALLY_COLORS.color, mechCfg);
+      weaponLook({ ...r.m, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(ld[k])])), weapon: 'main', isPlayer: false, recoil: 0, cannonDeploy: 0, swing: null }, 0);
+      r.sc.add(r.m.g); r.m.g.rotation.y = 0; r.m.g.updateMatrixWorld(true);
+      const b = new T.Box3();
+      r.m.g.traverse(m => { if (m.isMesh && m.visible) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } });
+      r.center = b.getCenter(new T.Vector3()); r.height = b.getSize(new T.Vector3()).y;
+    }
+    if (w !== r.w || h !== r.h) { r.w = w; r.h = h; r.ren.setPixelRatio(pr); r.ren.setSize(w, h, false); r.cam.aspect = w / h; r.cam.updateProjectionMatrix(); menuRigDirty = true; }
+    if (!menuRigDirty) return;
+    menuRigDirty = false;
+    r.m.g.rotation.y = r.yaw; r.m.g.updateMatrixWorld(true);
+    // 機体の高さが画面の8割ほどに収まる距離。上を少し空ける
+    const dist = r.height * 0.54 / Math.tan(r.cam.fov * Math.PI / 360) / Math.min(1, r.cam.aspect) + 3;
+    r.cam.position.set(r.center.x, r.center.y + 1.2, r.center.z - dist); r.cam.lookAt(r.center.x, r.center.y - 0.15, r.center.z);
+    r.cam.updateMatrixWorld();
+    r.ren.render(r.sc, r.cam);
+    menuCallouts(r, w, h);
+  } catch (e) { console.warn('メニューの機体', e); }
+}
+// 部位の箱の中心（腕と脚は画面の右寄りの側）を画面に写し、右へ引き出し線を伸ばす
+function menuCallouts(r, w, h) {
+  const box = {}, v = new T.Vector3(), mainKey = loadout[chosenCls].main;
+  r.m.g.traverse(m => {
+    if (!m.isMesh || !m.visible || !m.geometry) return;
+    const slot = m === r.m.gun ? 'main' : m.userData.weaponModel ? null : m.userData.armorSlot && m.userData.own ? m.userData.armorSlot : null;
+    if (!slot) return;
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    (box[slot] ||= new T.Box3()).union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld));
+  });
+  const scr = p => { v.copy(p).project(r.cam); return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h }; };
+  const anchor = (b, k) => {
+    const c = b.getCenter(new T.Vector3());
+    if (k !== 'arms' && k !== 'legs') return scr(c);
+    // 左右の端のうち、画面で右にある方の真ん中あたり
+    const a = scr(new T.Vector3(b.min.x * .8 + c.x * .2, c.y, c.z)), d = scr(new T.Vector3(b.max.x * .8 + c.x * .2, c.y, c.z));
+    return a.x > d.x ? a : d;
+  };
+  const P = mechStats(mechCfg, loadout[chosenCls]).P;
+  const rows = [
+    ['head', 'HEAD 頭部', P.head], ['body', 'BODY 胴部', P.body], ['arms', 'ARMS 腕部', P.arms],
+    ['main', 'MAIN 主武器', { model: WEAPONS[mainKey].name, weight: WEAPON_KG[mainKey] || 0 }], ['legs', 'LEGS 脚部', P.legs],
+  ].filter(([k]) => box[k]).map(([k, label, x]) => ({ k, label, name: x.model || x.name, kg: x.weight, ...anchor(box[k], k) }));
+  rows.sort((a, b) => a.y - b.y);
+  // ラベルは機体の右の列にそろえ、重ならないよう縦に間をあける
+  const right = Math.max(...rows.map(o => o.x)), lx = Math.min(w + 60, right + 40), gap = Math.max(30, Math.min(44, h / 12));
+  let y = -1e9;
+  for (const o of rows) { o.ly = Math.max(o.y, y + gap); y = o.ly; }
+  const over = y - (h - 20); if (over > 0) for (const o of rows) o.ly -= over;
+  $('mxCalls').innerHTML = rows.map(o => {
+    const dx = lx - o.x, dy = o.ly - o.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+    return `<i class="ln" style="left:${o.x.toFixed(1)}px;top:${o.y.toFixed(1)}px;width:${len.toFixed(1)}px;transform:rotate(${ang.toFixed(2)}deg)"></i>`
+      + `<span class="lb" style="left:${(lx + 6).toFixed(1)}px;top:${o.ly.toFixed(1)}px">${o.label}<b>${o.name} ${o.kg}KG</b></span>`;
+  }).join('');
+}
+addEventListener('resize', () => { menuRigDirty = true; });
 const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
 // マップ選択の小さな見取り図：起伏（明るいほど高い）、障害物、ベース、プラント（最初の持ち主の色）
 function drawMapPreview(cv, d) {
@@ -11976,9 +12103,13 @@ function mapCardHtml(id, d, label) {
 function renderMapList() {
   $('mapAttribution').textContent=curMap?.attribution||'';
   const count = battleTeamSize();
-  $('teamSize').innerHTML = TEAM_SIZES.map(n=>`<option value="${n}">${n}対${n}${n===curMap.team?'（推奨）':''}</option>`).join('');
-  $('teamSize').value = count;
-  $('battleSizeHint').textContent = `自分1機＋味方BOT${count-1}機 対 敵BOT${count}機。人数はマップ変更後も維持します。`;
+  // 人数は「5」「10」「自由入力」の3つ（オーナーの指定 2026-11-12。50対50で遊ぶ人もいるので2を外し、自由入力で2〜50）。スマホは5と10だけ
+  $('teamSize').value = count; $('teamSize').min = TEAM_SIZES[0]; $('teamSize').max = TEAM_SIZES[TEAM_SIZES.length - 1];
+  for (const b of $('battleSizeControl').querySelectorAll('[data-size]')) { const n = +b.dataset.size; b.setAttribute('aria-pressed', n === count); b.classList.toggle('rec', n === curMap.team); }
+  $('battleSizeControl').querySelector('.mxFree').classList.toggle('on', count !== 5 && count !== 10);
+  $('battleSizeControl').querySelector('.mxFree').classList.toggle('rec', curMap.team !== 5 && curMap.team !== 10);
+  $('battleSizeControl').querySelector('.mxFree').hidden = TOUCH;
+  $('battleSizeHint').textContent = `${count}対${count}${count === curMap.team ? '（推奨）' : `（推奨は${curMap.team}対${curMap.team}）`}：自分＋味方BOT${count-1}機 対 敵BOT${count}機`;
   // testOnly のマップ（昇降設備試験場など）は試験用で、プレイヤーの選択には出さない
   const list = Object.entries(MAPS).filter(([, d]) => !d.testOnly && mobileOk(d)).sort((x,y) => (x[1].order ?? 99) - (y[1].order ?? 99)), done = new Set(), rows = [];
   for (const [id, d] of list) {
@@ -11999,18 +12130,23 @@ function renderMapList() {
   }
   $('mapList').innerHTML = rows.join('');
   for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map || b.dataset.preview]);
-  $('mapNow').textContent = `${curMap.name}（${mapInfo(curMap)}）`;
+  $('mapNow').innerHTML = `<b>${curMap.name}</b><small>${mapInfo(curMap)}</small>`;
   $('arenaWeaponControl').hidden = !meleeOnly();
   $('arenaWeapon').innerHTML = MELEE_WEAPONS.map(key => `<option value="${key}"${key === arenaMeleeKey ? ' selected' : ''}>${WEAPONS[key].name}</option>`).join('');
   renderClsButtons();
 }
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
 $('teamSize').addEventListener('change',e=>{
-  const n=Number(e.target.value);
+  const n=Math.round(Number(e.target.value));
   if(TEAM_SIZES.includes(n))selectedTeamSize=n;
   renderMapList();
 });
-$('resetBattleSize').addEventListener('click',()=>{selectedTeamSize=null;renderMapList();});
+$('battleSizeControl').addEventListener('click',e=>{
+  const b=e.target.closest('[data-size]');
+  if(b){selectedTeamSize=+b.dataset.size;renderMapList();}
+  else if(e.target.closest('.mxFree')&&e.target.tagName!=='INPUT')$('teamSize').focus();
+});
+$('menuSortie').addEventListener('click',()=>$('start').focus());
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id, persist = true) {
@@ -13209,6 +13345,9 @@ let playT = 0; // 出撃中に進む秒。clock() は試合の残り時間から
 // 1コマ。中の処理で例外が出ても次のコマを必ず頼む（2026-11-06：例外1つで requestAnimationFrame が止まり、試合が固まって戻れなかった）。
 // 例外はコンソールへ出す（試験は console.error を拾う）。毎コマ同じ例外が出ても、出すのは最初の数回だけ
 let loopErrors = 0;
+const overlayEl = $('overlay');
+let menuDrawn = false;
+function menuIdle() { return !running && !overlayEl.hidden && simulationRole === 'offline' && !hudPreview; }
 function loop(now) {
   try { gameFrame(now); }
   catch (e) {
@@ -13224,6 +13363,11 @@ function gameFrame(now) {
   window.CBOnlineGame?.beforeFrame(dt, now);
   touchTick(); // タッチ操作のボタンを出す・しまう
   bgmTick();
+  // メニューを開いている間（一人用で試合が止まっているとき）は、裏の戦闘画面を描かない（2026-11-11 メニューの再設計：軽く動かす）。
+  // 画面には最後に描いたコマが残る。機体カスタマイズの小さなプレビューだけは動かす
+  // 開いた直後とマップを作り直した後は1コマだけ描く（menuDrawn）
+  if (menuIdle()) { if (menuDrawn) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } menuDrawn = true; }
+  else menuDrawn = false;
   if (running && isSimulationAuthority()) {
     if (!tutorial && !range) timeLeft -= dt;
     playT += dt;
@@ -13328,6 +13472,7 @@ function gameFrame(now) {
   renderView();
   window.CBOnlineGame?.afterFrame(dt, now);
   mechPreview(dt);
+  menuMechTick();
 }
 if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('ovText').textContent = 'マップのデータ（maps.js）が読めないため遊べません。index.html と同じフォルダに maps.js があるか確かめてください。';
