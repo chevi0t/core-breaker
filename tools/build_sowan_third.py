@@ -262,6 +262,71 @@ def landmark_meshes():
     return tris
 
 
+# ---- 外壁の種類 ----
+# 点群の色は真上からの写真なので、壁の色や窓は分からない。高さと広さから種類を決める（実物の建物ごとの再現ではない）。
+# 60m以上（ゲームで20m）の高層は全面ガラスか横連窓、低くて広い建物（倉庫・展示棟）は窓の無い板張り、ほかは格子の窓。
+GLASS = {"facade": "glass", "landmarkColor": "#8499ad"}  # 本体のガラスの色（青緑）を、青みのある灰色へ寄せる
+
+
+def facade(poly, top):
+    if poly.is_empty:
+        return {}
+    c = poly.representative_point()
+    h = math.sin(round(c.x / 12) * 127.1 + round(c.y / 12) * 311.7) * 43758.5453
+    h -= math.floor(h)
+    if top >= 20:
+        return GLASS if h < 0.45 else {"facade": "bands"}
+    if top < 6 and poly.area >= 350:
+        return {"facade": "plain"}
+    if top >= 8:
+        return GLASS if h < 0.22 else {"facade": "bands"} if h < 0.5 else {}
+    return {}
+
+
+# ---- 写真の地面 ----
+# 点群の撮影色（CC BY）を真上から見た画像にした物（tools/sowan_photo.py が作る mapdesign/sowan/photo.webp）。
+# 本体は地面・屋上・橋の床など上を向いた面へ、水平位置で貼る。画像が無ければ無地の色のまま。
+PHOTO = OUT / "photo.webp"
+PHOTO_BOUNDS = [-668, -356, 668, 356]
+PHOTO_GAIN = 0.7
+
+
+def photo():
+    if not PHOTO.exists():
+        return {}
+    image = "data:image/webp;base64," + base64.b64encode(PHOTO.read_bytes()).decode()
+    return {"photo": {"image": image, "bounds": PHOTO_BOUNDS, "gain": PHOTO_GAIN}}
+
+
+# ---- 木 ----
+# 点群で、複数リターンが多く地面から2m以上・建物と交通構造の外のかたまりを木とした（tools/sowan_photo.py が作る trees.npz）。
+# 当たり判定の無い見た目だけの物。基地・プラントの占拠円・水・マップの外は除く。
+TREES = OUT / "trees.npz"
+TREE_GREEN = np.array([0x35, 0x52, 0x2E])  # 濃い緑（撮影は春先で枝の色が多いので、色は独自に選び、明るさだけ写真から取る）
+TREE_PINK = np.array([0xD8, 0xB4, 0xC2])  # 桜（写真で薄い桃色に写っている木）
+
+
+def trees(boundary, water, clear):
+    if not TREES.exists():
+        return {}
+    t = np.load(TREES)["trees"].astype(float)
+    x, z, h, r, c = t[:, 0] * 0.04, t[:, 1] * 0.04, t[:, 2] / 100, t[:, 3] / 100, t[:, 4:7]
+    keep = shapely.contains_xy(boundary.buffer(-1), x, z) & ~shapely.contains_xy(water.buffer(0.5), x, z) & ~shapely.contains_xy(clear, x, z)
+    lum = c @ np.array([0.299, 0.587, 0.114])
+    k = np.clip(lum / np.median(lum), 0.7, 1.35)[:, None]
+    pink = (c[:, 0] > c[:, 1] * 1.05) & (c[:, 2] > c[:, 1] * 0.93) & (lum > np.median(lum))
+    rng = np.random.default_rng(83)
+    green = TREE_GREEN * k * (1 + rng.normal(0, 0.06, (len(c), 3)))
+    color = np.where(pink[:, None], TREE_PINK * np.clip(k, 0.8, 1.1), green)
+    rows = np.zeros(int(keep.sum()), dtype=[("x", "<i2"), ("z", "<i2"), ("h", "u1"), ("r", "u1"), ("c", "u1", 3)])
+    rows["x"] = np.rint(x[keep] / STEP)
+    rows["z"] = np.rint(z[keep] / STEP)
+    rows["h"] = np.clip(np.rint(h[keep] / 0.05), 20, 255)
+    rows["r"] = np.clip(np.rint(r[keep] / 0.02), 20, 255)
+    rows["c"] = np.clip(np.rint(color[keep]), 0, 255)
+    return {"trees": {"step": STEP, "count": len(rows), "data": base64.b64encode(rows.tobytes()).decode()}}
+
+
 def terrain():
     d = SRC_DATA
     boundary = Polygon(decode2(d["boundary"][0][0]))
@@ -294,7 +359,7 @@ def terrain():
             p = shapely.make_valid(p)
         if lo < 0.3:
             p = p.difference(clearings)
-        emit(p, lo, hi, {"paint": paint})
+        emit(p, lo, hi, {"paint": paint, **facade(p, hi)})
 
     tris, footprints, walk, piers, tstats = transport(ground)
     for p, lo, hi in piers:
@@ -340,8 +405,11 @@ def terrain():
             "buildingPalette": [lift(c) for c in d["palette"]],
             "roadColor": ROAD_COLOR,
             "lawns": lawns,
+            **photo(),
             "facadeScale": 1 / 3,
             "glassTint": True,
+            "bridgeColor": "#8f9290",
+            "sky": {"zenith": "#4d82c4", "clouds": 0.55, "below": "#5d7689"},
         },
         "landmarks": [],
         "streetRepairs": [],
@@ -350,6 +418,8 @@ def terrain():
             "bed": -4,
             "water": -1.2,
             "color": WATER_COLOR,
+            "mapColor": "#1d3f5c",
+            "sea": {"sky": "#9fb4c4"},
             "rings": [[list(map(lambda q: [round(q[0], 2), round(q[1], 2)], r.coords[:-1])) for r in [p.exterior, *p.interiors]] for p in parts(water)],
             "exits": [],
         },
@@ -703,12 +773,19 @@ def main():
     data, solids, walkable, boundary, footprints, walk, report = terrain()
     print("terrain", len(compact(data)), report, flush=True)
     definition, stats = battle(data, solids, walkable, boundary, footprints, walk)
+    clear = shapely.union_all(
+        [Point(*b["at"]).buffer(BASE_RADIUS + 6) for b in definition["bases"].values()]
+        + [Point(*p[1:3]).buffer(17) for p in definition["plants"]]
+    )
+    water = shapely.union_all([Polygon(r[0], r[1:]) for r in data["river"]["rings"]])
+    data["district"].update(trees(boundary, water, clear))
     js = (
         "// 点群・地理院・PLATEAU由来。出典・加工：mapdesign/sowan/CREDITS.md\n(window.MAP_DATA=window.MAP_DATA||{}).sowan=".encode()
         + compact(definition)
         + b";\n"
     )
-    assert len(js) <= 500000, ("500KB超過", len(js))
+    geometry = len(js) - len(data["district"].get("photo", {}).get("image", "")) - len(data["district"].get("trees", {}).get("data", ""))
+    assert geometry <= 500000, ("写真と木を除いて500KB超過", geometry)
     (ROOT / "prototype/maps/sowan.js").write_bytes(js)
     report.update(mapFileBytes=len(js), **stats, plants=definition["plants"], plantPods=definition["plantPods"],
                   bases={k: {"at": v["at"], "catapults": v["catapults"]} for k, v in definition["bases"].items()},
