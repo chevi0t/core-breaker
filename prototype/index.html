@@ -817,10 +817,11 @@ function expandCityLayout(T,data){
     const center=v.rings[0].reduce((a,p)=>[a[0]+p[0]/v.rings[0].length,a[1]+p[1]/v.rings[0].length],[0,0]);
     const color=building?(v.landmarkColor||(Number.isInteger(v.paint)?palette[v.paint]:v.top>50?'#7b94a0':palette[Math.abs(Math.round(center[0]*7)+Math.round(center[1]*13))%palette.length])):
       v.kind==='barrier'?'#768079':v.kind==='rail-shop'?'#89918e':v.kind==='station-roof'?'#c2cbd0':v.kind==='station-support'?'#74858e':'#b4bbc2';
-    add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,v.facade==='glass');
+    add(layer,extrude(v,!['grounded','infill'].includes(v.kind)),color,({glass:1,bands:2,plain:3})[v.facade]||0); // 外壁の種類：無指定は格子の窓、glass は全面ガラス、bands は横連窓、plain は窓の無い板張り
   }
   for(const d of data.decorations)add('rail',faces(d.rings,d.height),d.color);
-  for(const lawn of data.district.lawns||[])add('grass',faces(lawn.rings,.06),lawn.color);
+  // 写真の地面（district.photo）があるマップは、芝も写真に写っているので無地の芝を重ねない。
+  if(!data.district.photo)for(const lawn of data.district.lawns||[])add('grass',faces(lawn.rings,.06),lawn.color);
   for(const rings of data.river.rings){
     // 生成地形は川床も連続地面に含むため、同一高さの床を重ねない。
     if(!data.smoothTerrain)add('bed',extrude({rings,bottom:data.river.bed-.5,top:data.river.bed},true));
@@ -1164,17 +1165,25 @@ function createCityMap(T,layout) {
         for(let i=0;i<a.length;i+=9){path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);const h=(a[i+1]+a[i+4]+a[i+7])/3;c.fillStyle=`hsl(35,24%,${32+Math.min(32,h*.6)}%)`;c.fill();}
         path(boundary.rings);c.strokeStyle='#b8e2ea';c.lineWidth=1.5;c.stroke();
       }
-      for (const rings of data.river.rings) { path(rings); c.fillStyle = '#34789a'; c.fill('evenodd'); }
+      // 写真の地面があるマップは、出撃して写真を読み込んだ後は写真を下地にする（それまでは塗り分けの図。
+      // メニューのマップ一覧を描くだけで大きな写真を読み込まないよう、ここからは読み込みを始めない）。
+      const photoReady=!!(photo&&photoImage&&photoImage.complete&&photoImage.naturalWidth);
+      if(photoReady){
+        const [x0,z0,x1,z1]=photo.bounds;
+        c.save();if(boundary){path(boundary.rings);c.clip();}
+        c.drawImage(photoImage,x0+half,z0+half,x1-x0,z1-z0);c.restore();
+      }
+      for (const rings of data.river.rings) { path(rings); c.fillStyle = data.river.mapColor||'#34789a'; c.fill('evenodd'); }
       for(const rings of data.heritage?.rings||[]){path(rings);c.fillStyle=data.heritage.surfaceColor;c.fill('evenodd');}
-      for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
-      if(data.district.roadColor){
+      if(!photoReady)for(const lawn of data.district.lawns||[]){path(lawn.rings);c.fillStyle=lawn.color;c.fill('evenodd');}
+      if(data.district.roadColor&&!photoReady){
         c.fillStyle=data.district.roadColor;
         for(let i=0;i<arrays.tran.length;i+=9){const a=arrays.tran;path([[[a[i],a[i+2]],[a[i+3],a[i+5]],[a[i+6],a[i+8]]]]);c.fill();}
       }
       if(data.district.railGap){path([data.district.railGap.rings[0]]);c.fillStyle='#9eafb2';c.fill();}
       const mapVolumes=[...volumes],canopy=data.district.stationCanopy;
       if(canopy)mapVolumes.push({rings:[canopy.ring],top:canopy.top,landmarkColor:canopy.color});
-      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); c.fill('evenodd');c.strokeStyle='#7a8584';c.lineWidth=.35;c.stroke(); }
+      for (const v of mapVolumes.sort((a,b)=>a.top-b.top)) { path(v.rings); c.fillStyle = v.landmarkColor || (Number.isInteger(v.paint)?(data.district.buildingPalette?.[v.paint]||'#bbc0ba'):v.kind === 'rail-deck' ? '#a0c8d3' : v.kind==='rail-shop'?'#b09d81':v.top>50?'#6c8b9c':'#bbc0ba'); if(!photoReady)c.fill('evenodd');c.strokeStyle=photoReady?'rgba(20,30,36,.55)':'#7a8584';c.lineWidth=.35;c.stroke(); }
 
       // 観覧車を真上から見た位置。円盤で街路を覆わず、細い赤い目印にする。
       const wheel=data.district.ferrisWheel;
@@ -1206,7 +1215,51 @@ function createCityMap(T,layout) {
     }
   }
   const ownedMaterials=new Set();
+  // 真上から撮った写真（district.photo）。地面・屋上・橋の床など上を向いた面へ、水平位置で貼る。
+  // image：画像（data URI）、bounds：[x0,z0,x1,z1]、gain：明るさ（本体の光で白く飛ぶ分を引く。省略 0.7）。
+  const photo=data.district.photo;let photoTexture=null,photoImage=null;
+  if(photo&&!(typeof photo.image==='string'&&Array.isArray(photo.bounds)&&photo.bounds.length===4&&photo.bounds.every(Number.isFinite)))throw Error('都市の写真の地面の指定が不正です');
+  const photoLayers=new Set(['dem','tran','fill','plazas','ramps','aprons','streets','brid','bldg']);
+  function loadPhoto(){
+    if(photoTexture)return photoTexture;
+    photoImage=new Image();photoTexture=new T.Texture(photoImage);
+    photoTexture.flipY=false;photoTexture.format=T.RGBFormat;photoTexture.type=T.UnsignedShort565Type; // 8192×4096 でも GPU のメモリを半分にする（色の段はざらつきで隠れる）
+    photoTexture.wrapS=photoTexture.wrapT=T.ClampToEdgeWrapping;
+    photoTexture.minFilter=T.LinearMipmapLinearFilter;photoTexture.magFilter=T.LinearFilter;
+    photoTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    photoImage.onload=()=>{if(photoTexture)photoTexture.needsUpdate=true;mapCanvas=null;miniBg=bigBg=null;}; // 図も写真で描き直す
+    photoImage.src=photo.image;
+    return photoTexture;
+  }
+  function applyPhoto(shader,declared){
+    const [x0,z0,x1,z1]=photo.bounds;
+    shader.uniforms.cityPhoto={value:loadPhoto()};
+    shader.uniforms.cityPhotoBox={value:new T.Vector4(x0,z0,1/(x1-x0),1/(z1-z0))};
+    shader.uniforms.cityPhotoGain={value:photo.gain??.7};
+    const varyings=declared?'':'varying vec3 cityPoint; varying vec3 cityNormal;\n';
+    if(!declared)shader.vertexShader=varyings+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;cityNormal=normalize(mat3(modelMatrix)*normal);');
+    const code=`
+      float photoUp=cityNormal.y*(gl_FrontFacing?1.0:-1.0);
+      vec2 photoUv=(cityPoint.xz-cityPhotoBox.xy)*cityPhotoBox.zw;
+      if(photoUp>0.6&&photoUv.x>0.0&&photoUv.x<1.0&&photoUv.y>0.0&&photoUv.y<1.0){
+        vec3 photoColor=texture2D(cityPhoto,photoUv).rgb*cityPhotoGain;
+        // 近くでは写真の画素が大きく見えるので、細かいざらつきを重ねる（遠くでは消す）。
+        float photoNear=1.0-smoothstep(25.0,90.0,distance(cameraPosition,cityPoint));
+        float grain=(cityPhotoNoise(cityPoint.xz*2.7)+0.6*cityPhotoNoise(cityPoint.xz*8.3)+0.35*cityPhotoNoise(cityPoint.xz*23.0))/1.95;
+        diffuseColor.rgb=photoColor*(1.0+(grain-0.5)*0.22*photoNear);
+      }
+    `;
+    const functions=`uniform sampler2D cityPhoto; uniform vec4 cityPhotoBox; uniform float cityPhotoGain;
+      float cityPhotoHash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+      float cityPhotoNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(cityPhotoHash(i),cityPhotoHash(i+vec2(1.0,0.0)),f.x),mix(cityPhotoHash(i+vec2(0.0,1.0)),cityPhotoHash(i+vec2(1.0,1.0)),f.x),f.y);}
+    `;
+    shader.fragmentShader=varyings+functions+(shader.fragmentShader.includes('//cityPhotoHook')?shader.fragmentShader.replace('//cityPhotoHook',code):shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>'+code));
+  }
+  const ownedGeometries=[],cityClock={value:0};
   function dispose(){
+    for(const geometry of ownedGeometries)geometry.dispose();ownedGeometries.length=0;
+    if(photoTexture){photoTexture.dispose();photoTexture=null;if(photoImage)photoImage.onload=null;photoImage=null;}
     for(const proxy of cameraSolids)proxy.geometry.dispose();cameraSolids.length=0;
     for(const material of ownedMaterials)material.dispose();ownedMaterials.clear();
     cameraController.reset();
@@ -1233,14 +1286,15 @@ function createCityMap(T,layout) {
         geo.setAttribute('color',new T.BufferAttribute(c,3));
         if(k==='bldg'){
           const glass=new Float32Array(a.length/3);
-          for(const range of data.colors[k])if(range.glass)glass.fill(1,range.start,range.start+range.count);
+          for(const range of data.colors[k])if(range.glass)glass.fill(Number(range.glass),range.start,range.start+range.count);
           geo.setAttribute('cityGlass',new T.BufferAttribute(glass,1));
         }
       }
       compactGeometry(geo,'render');
-      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='grass'?0xffffff:colors[k];
+      const color=['dem','historicGround'].includes(k)?data.district.unifiedGround.color:k==='brid'&&data.district.stationCanopy?data.district.stationCanopy.color:k==='brid'&&data.district.bridgeColor?data.district.bridgeColor:k==='grass'?0xffffff:colors[k];
+      const sea=k==='water'&&data.river.sea;
       const mesh=new T.Mesh(geo,new T.MeshLambertMaterial({color,vertexColors:!!data.colors[k],side:T.DoubleSide,
-        transparent:k==='water',opacity:k==='water'?.68:1,depthWrite:k!=='water',polygonOffset:k==='tran'||data.smoothTerrain&&k==='streets',polygonOffsetFactor:data.smoothTerrain&&k==='streets'?-4:-1,polygonOffsetUnits:data.smoothTerrain&&k==='streets'?-4:-1}));
+        transparent:k==='water'&&!sea,opacity:k==='water'&&!sea?.68:1,depthWrite:k!=='water'||!!sea,polygonOffset:k==='tran'||data.smoothTerrain&&k==='streets',polygonOffsetFactor:data.smoothTerrain&&k==='streets'?-4:-1,polygonOffsetUnits:data.smoothTerrain&&k==='streets'?-4:-1}));
       if(k==='bldg'){
         // 都市の縮尺に合わせる。未指定の都市は従来の窓間隔を保つ。
         const facadeScale=data.district.facadeScale??1;
@@ -1256,17 +1310,64 @@ function createCityMap(T,layout) {
             float horizontal=abs(cityNormal.x)>abs(cityNormal.z)?cityPoint.z:cityPoint.x;
             vec2 pane=fract(vec2(horizontal/(2.8*cityFacadeScale),cityPoint.y/(3.5*cityFacadeScale)));
             float window=side*step(0.18,pane.x)*(1.0-step(0.82,pane.x))*step(0.24,pane.y)*(1.0-step(0.82,pane.y))*step(2.0*cityFacadeScale,cityPoint.y);
-            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68);
+            float facadeGlass=step(0.5,glassFacade)*(1.0-step(1.5,glassFacade)),facadeBands=step(1.5,glassFacade)*(1.0-step(2.5,glassFacade)),facadePlain=step(2.5,glassFacade);
+            diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.22,0.34,0.40),window*0.68*(1.0-step(0.5,glassFacade)));
+            // 横連窓：階ごとに暗い窓の帯と明るい腰壁。板張り：縦の継ぎ目と、足元の暗い帯だけ。
+            float ribbon=side*step(0.34,pane.y)*(1.0-step(0.84,pane.y))*step(2.0*cityFacadeScale,cityPoint.y);
+            float mullion=1.0-step(0.06,fract(horizontal/(1.4*cityFacadeScale)));
+            diffuseColor.rgb=mix(diffuseColor.rgb,mix(vec3(0.20,0.30,0.36),vec3(0.36,0.44,0.48),mullion),ribbon*0.74*facadeBands);
+            float seam=1.0-step(0.03,fract(horizontal/(4.2*cityFacadeScale)));
+            diffuseColor.rgb*=1.0-facadePlain*side*(0.10*seam+0.16*(1.0-step(1.6*cityFacadeScale,cityPoint.y)));
             diffuseColor.rgb*=mix(0.70,1.0,side);
             float fresnel=pow(1.0-abs(dot(normalize(cityNormal),normalize(cameraPosition-cityPoint))),3.0);
             float reflection=0.5+0.5*sin((cityPoint.y*0.11+horizontal*0.012)/cityFacadeScale);
             vec3 glassColor=mix(vec3(0.22,0.40,0.49),vec3(0.72,0.88,0.93),fresnel*0.55+reflection*0.24);
             ${data.district.glassTint?'glassColor*=clamp(facadeColor/vec3(0.48,0.58,0.62),vec3(0.35),vec3(1.4));':''}
             float frame=max(1.0-step(0.045,pane.x),1.0-step(0.045,pane.y));
-            diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame),glassFacade*side);
+            float frameNear=1.0-smoothstep(30.0,110.0,distance(cameraPosition,cityPoint)/cityFacadeScale*0.33); // 遠くの細い枠は点線に化けるので消す
+            diffuseColor.rgb=mix(diffuseColor.rgb,glassColor*mix(1.0,0.47,frame*frameNear),facadeGlass*side);
+            //cityPhotoHook
+          `);
+          if(photo)applyPhoto(shader,true);
+        };
+        mesh.material.customProgramCacheKey=()=> 'city-facade-v5-'+!!data.district.glassTint+'-'+facadeScale+(photo?'-photo':'');
+      }
+      if(sea){
+        // 海（river.sea）。波の向きで空の映り込みと太陽のきらめきを変える。色は river.color、空の色は sea.sky。
+        mesh.material.onBeforeCompile=shader=>{
+          shader.uniforms.cityClock=cityClock;
+          shader.uniforms.citySeaSky={value:new T.Color(data.river.sea.sky||'#9fb4c4')};
+          shader.uniforms.citySun={value:sun.position.clone().normalize()};
+          const d='varying vec3 cityPoint;\n';
+          shader.vertexShader=d+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncityPoint=(modelMatrix*vec4(transformed,1.0)).xyz;');
+          shader.fragmentShader=d+`uniform float cityClock; uniform vec3 citySeaSky; uniform vec3 citySun;
+            vec2 citySeaWave(vec2 p,float t){
+              vec2 g=vec2(0.0);
+              g+=vec2(0.80,0.60)*cos(dot(p,vec2(0.80,0.60))*0.55+t*0.9)*0.50;
+              g+=vec2(-0.45,0.89)*cos(dot(p,vec2(-0.45,0.89))*0.93+t*1.3)*0.34;
+              g+=vec2(0.97,-0.26)*cos(dot(p,vec2(0.97,-0.26))*1.71+t*1.9)*0.22;
+              g+=vec2(0.28,0.96)*cos(dot(p,vec2(0.28,0.96))*2.37+t*2.6+1.7*sin(p.x*0.13))*0.15;
+              g+=vec2(-0.71,-0.70)*cos(dot(p,vec2(-0.71,-0.70))*3.91+t*3.4+1.3*sin(p.y*0.17))*0.10;
+              return g;
+            }
+          `+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+            vec3 seaView=normalize(cameraPosition-cityPoint);
+            float seaFar=smoothstep(40.0,300.0,distance(cameraPosition,cityPoint));
+            vec2 seaSlope=citySeaWave(cityPoint.xz,cityClock)*mix(0.15,0.0,seaFar);
+            vec3 seaNormal=normalize(vec3(-seaSlope.x,1.0,-seaSlope.y));
+            float seaFresnel=0.03+0.97*pow(1.0-max(dot(seaView,seaNormal),0.0),5.0);
+            vec3 seaMirror=reflect(-seaView,seaNormal);
+            vec3 seaSkyColor=mix(citySeaSky,citySeaSky*vec3(0.55,0.72,1.0),clamp(seaMirror.y*1.4,0.0,1.0));
+            diffuseColor.rgb=mix(diffuseColor.rgb*(0.9+1.6*seaNormal.x+0.9*seaNormal.z),seaSkyColor*0.5,clamp(seaFresnel,0.0,0.42));
+            totalEmissiveRadiance+=vec3(1.0,0.96,0.86)*pow(max(dot(seaMirror,citySun),0.0),160.0)*0.5*(1.0-seaFar);
           `);
         };
-        mesh.material.customProgramCacheKey=()=> 'city-facade-v4-'+!!data.district.glassTint+'-'+facadeScale;
+        mesh.material.customProgramCacheKey=()=> 'city-sea-v1';
+        mesh.onBeforeRender=()=>{cityClock.value=performance.now()/1000%3600;};
+      }
+      if(photo&&photoLayers.has(k)&&k!=='bldg'){
+        mesh.material.onBeforeCompile=shader=>applyPhoto(shader,false);
+        mesh.material.customProgramCacheKey=()=> 'city-photo-v1';
       }
       if(k==='historicWall'){
         mesh.material.onBeforeCompile=shader=>{
@@ -1299,6 +1400,78 @@ function createCityMap(T,layout) {
           const m=new T.Mesh(collider,mesh.material);m.name='city-collision-'+k;m.updateMatrixWorld(true);hittables.push(m);cameraSolids.push(m);
         }
       }
+    }
+    // 木（district.trees）。見た目だけで当たり判定は無い。96m の区画ごとにまとめて描き、見えない区画は描かない。
+    // data は1本9バイト：x・z（int16、step 刻み）、高さ（0.05m 刻み）、枝の半径（0.02m 刻み）、色（RGB）。
+    const trees=data.district.trees;
+    if(trees){
+      const raw=decode(trees.data),view=new DataView(raw.buffer),count=Math.floor(raw.length/9),step=trees.step??.04,cellSize=96;
+      if(!Number.isFinite(step)||step<=0||trees.count!==count)throw Error('都市の木のデータが不正です');
+      const crown=new T.IcosahedronGeometry(1,0),trunk=new T.CylinderGeometry(.5,.8,1,3,1,true);
+      // 枝の下側を暗くして、丸い影の代わりにする。
+      crown.setAttribute('normal',crown.attributes.position.clone()); // 面ごとの角を消して丸く見せる
+      const shade=new Float32Array(crown.attributes.position.count*3);
+      for(let i=0;i<shade.length/3;i++)shade.fill(.62+.38*(crown.attributes.position.getY(i)*.5+.5),i*3,i*3+3);
+      crown.setAttribute('color',new T.BufferAttribute(shade,3));
+      const reach=Math.hypot(cellSize,cellSize)/2+8;
+      crown.boundingSphere=new T.Sphere(new T.Vector3(0,6,0),reach);trunk.boundingSphere=new T.Sphere(new T.Vector3(0,3,0),reach);
+      const crownMaterial=new T.MeshLambertMaterial({vertexColors:true}),trunkMaterial=new T.MeshLambertMaterial({color:0x54493f});
+      const cells=new Map(),groves=[];
+      for(let i=0;i<count;i++){
+        const x=view.getInt16(i*9,true)*step,z=view.getInt16(i*9+2,true)*step,key=Math.floor(x/cellSize)+','+Math.floor(z/cellSize);
+        if(!cells.has(key))cells.set(key,[]);
+        cells.get(key).push([x,z,raw[i*9+4]*.05,raw[i*9+5]*.02,raw[i*9+6]/255,raw[i*9+7]/255,raw[i*9+8]/255]);
+      }
+      const matrix=new T.Matrix4(),turn=new T.Quaternion(),up=new T.Vector3(0,1,0),at=new T.Vector3(),size=new T.Vector3(),color=new T.Color();
+      for(const [key,list] of cells){
+        const [cx,cz]=key.split(',').map(v=>(Number(v)+.5)*cellSize);
+        const crowns=new T.InstancedMesh(crown,crownMaterial,list.length),trunks=new T.InstancedMesh(trunk,trunkMaterial,list.length);
+        list.forEach(([x,z,h,r,red,green,blue],i)=>{
+          // 位置から決まる乱数で、向きと太さを少しずつ変える（同じ形が並んで見えないように）。
+          const seed=Math.abs(Math.sin(x*12.9898+z*78.233)*43758.5453)%1,tall=Math.max(h*.62,r*1.1),wide=r*(.92+seed*.3);
+          turn.setFromAxisAngle(up,seed*Math.PI*2);
+          matrix.compose(at.set(x-cx,h-tall/2,z-cz),turn,size.set(wide,tall/2,wide*(.85+((seed*7)%1)*.3)));crowns.setMatrixAt(i,matrix);
+          crowns.setColorAt(i,color.setRGB(red,green,blue));
+          const stem=Math.max(.3,h-tall*.8);
+          matrix.compose(at.set(x-cx,stem/2,z-cz),turn,size.set(Math.max(.12,h*.045),stem,Math.max(.12,h*.045)));trunks.setMatrixAt(i,matrix);
+        });
+        for(const m of [crowns,trunks]){m.position.set(cx,0,cz);m.name='city-trees';m.receiveShadow=true;m.instanceMatrix.needsUpdate=true;root.add(m);}
+        crowns.instanceColor.needsUpdate=true;groves.push({x:cx,z:cz,crowns,trunks});
+      }
+      // 遠い区画は描かない（遠くでは写真に写った木だけになる）。幹は近くだけ。毎コマ1回、空のメッシュの描画前に決める。
+      const ticker=new T.Mesh(new T.BufferGeometry(),crownMaterial);ticker.frustumCulled=false;ticker.name='city-tree-ticker';
+      ticker.onBeforeRender=(renderer,scene,view)=>{
+        if(view!==camera)return;
+        for(const g of groves){const d=Math.hypot(g.x-view.position.x,g.z-view.position.z);g.crowns.visible=d<(trees.far??420)+reach;g.trunks.visible=d<170+reach;}
+      };
+      root.add(ticker);
+      ownedGeometries.push(crown,trunk,ticker.geometry);
+    }
+    // 空（district.sky）。地平線は霧の色、上は zenith の色へ変わり、薄い雲を描く。視点と一緒に動く半球で、霧は掛けない。
+    const sky=data.district.sky;
+    if(sky){
+      const dome=new T.Mesh(new T.SphereGeometry(1,32,16),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,depthTest:false,fog:false,
+        uniforms:{horizon:{value:new T.Color(sky.horizon||scene.fog.color)},zenith:{value:new T.Color(sky.zenith||'#5f8fca')},below:{value:new T.Color(sky.below||sky.horizon||scene.fog.color)},
+          cloud:{value:sky.clouds??.5},sunDir:{value:sun.position.clone().normalize()},cityClock},
+        vertexShader:'varying vec3 skyDir;void main(){skyDir=position;vec4 p=projectionMatrix*vec4(mat3(viewMatrix)*position*400.0,1.0);gl_Position=p.xyww;}',
+        fragmentShader:`uniform vec3 horizon; uniform vec3 zenith; uniform vec3 below; uniform float cloud; uniform vec3 sunDir; uniform float cityClock; varying vec3 skyDir;
+          float skyHash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+          float skyNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+            return mix(mix(skyHash(i),skyHash(i+vec2(1.0,0.0)),f.x),mix(skyHash(i+vec2(0.0,1.0)),skyHash(i+vec2(1.0,1.0)),f.x),f.y);}
+          float skyFbm(vec2 p){float a=0.5,s=0.0;for(int i=0;i<5;i++){s+=a*skyNoise(p);p=p*2.03+vec2(17.0,9.0);a*=0.5;}return s;}
+          void main(){
+            vec3 d=normalize(skyDir);float up=max(d.y,0.0);
+            vec3 color=mix(horizon,zenith,pow(up,0.55));
+            float glow=max(dot(d,sunDir),0.0);
+            color+=vec3(1.0,0.93,0.80)*(pow(glow,24.0)*0.18+pow(glow,900.0)*1.6);
+            if(d.y>0.0){
+              vec2 uv=d.xz/(d.y+0.12)*1.3+vec2(cityClock*0.004,0.0);
+              float c=smoothstep(0.52,0.86,skyFbm(uv)+0.18*skyFbm(uv*3.1))*cloud*smoothstep(0.0,0.18,d.y);
+              color=mix(color,vec3(1.0,1.0,0.99),c*0.85);
+            }else color=mix(horizon,below,smoothstep(0.0,0.25,-d.y));
+            gl_FragColor=vec4(color,1.0);
+          }`}));
+      dome.name='city-sky';dome.frustumCulled=false;dome.renderOrder=-10;root.add(dome);ownedGeometries.push(dome.geometry);
     }
     // 当たり判定は無限の高さで四辺を制限し、見た目にも範囲を示す。
     const barrier=new T.MeshBasicMaterial({color:0x7bd8e8,transparent:true,opacity:.055,side:T.DoubleSide,depthWrite:false});
