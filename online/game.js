@@ -290,7 +290,7 @@
   const equipmentActions=[];
   const equipmentVectors=['escortAim','bombard','seekAim'];
   const equipmentScalars='fieldOn fieldN barrierOn escortOn escortT escortCd mirageOn mirageWait postRecall radarHeading radarScanT seekMode repairBlock'.split(' ');
-  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult actionId actionCd actionRecoverT actionHeldTime actionWasHeld actionLandMiss crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
+  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult actionId actionCd actionRecoverT actionHeldTime actionWasHeld actionLandMiss crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf crouchT chargeJumpT actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
   // ---- 状態の表示と定型通信 ----
   // 他機の武器枠は外見だけ。残弾/CD等は自機へだけ送り、装備が変わっても枠の形を固定する。
   const remoteSlotKeys={main:['scanRadius'],sub:['scanRadius'],aux:['chargeT','sheathed','scanRadius'],sp:['heat','overheat','scanRadius']};
@@ -2025,7 +2025,7 @@
     const offset=viewOffsetOf(player);
     let sp=movementSpread(player)+(w.spread||0);
     if(w.scope)sp+=player.scoped?(w.sway||0)*(1-(sl.conv||0)):(w.hip||0)*(Math.hypot(player.vel.x,player.vel.z)>3||!player.onGround?w.hipMove||1:1);
-    sp*=player.aimMul||1;
+    sp*=aimSpread(player)||1;
     const aim=vector(aimPoint),froms=w.dual?[muzzle(player),muzzle(player,true)]:[muzzle(player)];let n=0;
     for(const from of froms)for(let i=0;i<(w.pellets||1);i++){
       const to=w.fan?aim.clone().sub(from).applyAxisAngle(UP,(i-((w.pellets||1)-1)/2)*w.fan).add(from):aim;
