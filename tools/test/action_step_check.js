@@ -46,7 +46,7 @@ check('Cアクションの踏み込み', async ({ ev, ok, sortie }) => {
       reset(id);floor.minZ=20.4;g.actionMoveStart(p);tick(.9);
       yes(!p.actionMove&&p.pos.y<200,id+'は崖を歩いて浮かずに動作を終えて落ちる');floor.minZ=-150;
     }
-    reset('kick');const swept=target(enemies[0],0,15.5),before=swept.hp;g.actionMoveStart(p);tick(.2);
+    reset('kick');const swept=target(enemies[0],0,14.3),before=swept.hp;g.actionMoveStart(p);tick(.2);
     yes(swept.hp===before&&near(p.pos.z,20)&&p.actionMove?.phase==='move','蹴りは0.2秒の予備動作後に踏み込みを開始');
     tick(.05);yes(swept.hp===before&&p.pos.z<20,'蹴りの判定は開始地点から遠い敵へ先に飛ばない');
     tick(.31);yes(swept.hp<before&&near(20-p.pos.z,p.dashV*g.SHORT_TIME*.5),'蹴りは前進して射程に入った敵に当たる');
