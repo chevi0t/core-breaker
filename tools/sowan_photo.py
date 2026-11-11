@@ -17,6 +17,7 @@
      計算した影のうち、写真でも実際に暗い所だけを、日なたと影の明るさの比（赤1.84・緑1.71・青1.55）で戻す。
      木の影は消さない（木の足元の影として残す）。
   3. ゲームの座標（40.7度回して1/3）へ写し、彩度と明暗を少し上げて WebP にする。
+     写真が貼られない所（点もゲームの建物・橋も無い所。海など）は、ぼかした色にしてファイルを小さくする。
   4. 木は、複数リターンが多く地面から2m以上で、ゲームの建物と交通構造の外にある4m²以上のかたまり。梢を極大点で分ける。
 
 道具：numpy・scipy・laspy・Pillow（tools/requirements-pointcloud-map.txt）。4コアで3〜4分。
@@ -301,9 +302,10 @@ def fit_sun(g, valid, z):
 # ---- 3. ゲームの座標の画像 ----
 PHOTO_BOUNDS = [-668, -356, 668, 356]  # build_sowan_third.py の PHOTO_BOUNDS と同じ
 PHOTO_SIZE = (8192, 4096)
+PHOTO_QUALITY = 60  # WebP の品質
 
 
-def write_photo(rgb, valid):
+def write_photo(rgb, valid, structures):
     from PIL import Image, ImageEnhance
     from scipy import ndimage as ndi
 
@@ -314,16 +316,27 @@ def write_photo(rgb, valid):
     xs = bx0 + (np.arange(tw) + 0.5) * (bx1 - bx0) / tw
     zs = bz0 + (np.arange(th) + 0.5) * (bz1 - bz0) / th
     out = np.zeros((th, tw, 3), np.float32)
+    shown = np.zeros((th, tw), bool)  # 写真が見える所：点のある所と、ゲームの建物・橋・高架のある所
+    seen = (valid | structures).astype(np.float32)
     for r0 in range(0, th, 512):
         gx, gz = np.meshgrid(xs, zs[r0 : r0 + 512])
         x, y = game_to_real(gx, gz)
         cx, cy = (x - X0) / STEP - 0.5, (y - Y0) / STEP - 0.5
         for k in range(3):
             out[r0 : r0 + 512, :, k] = ndi.map_coordinates(rgb[..., k].astype(np.float32), [cy, cx], order=1, mode="nearest")
+        shown[r0 : r0 + 512] = ndi.map_coordinates(seen, [cy, cx], order=0, mode="constant", cval=0) > 0.5
     Image.MAX_IMAGE_PIXELS = None
     img = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
     img = ImageEnhance.Contrast(ImageEnhance.Color(img).enhance(1.28)).enhance(1.08)  # 霞んだ写真なので彩度と明暗を少し上げる
-    img.save(OUT / "photo.webp", quality=60, method=4)
+    # それ以外（海など。写真は貼られない）は、最寄りの色を引き延ばした筋になっていて、見えないのにファイルを大きくする。
+    # 岸から 24 画素までは今のまま（遠くで縮小されても岸の色が変わらないように）、64 画素より先はぼかした色にする。
+    base = np.asarray(img).astype(np.float32)
+    small = np.asarray(img.resize((tw // 8, th // 8), Image.BOX)).astype(np.float32)
+    blur = np.stack([ndi.gaussian_filter(small[..., k], 12) for k in range(3)], -1)
+    blur = np.asarray(Image.fromarray(np.clip(blur, 0, 255).astype(np.uint8)).resize((tw, th), Image.BICUBIC)).astype(np.float32)
+    far = np.clip((ndi.distance_transform_edt(~shown) - 24) / 40, 0, 1)[..., None]
+    img = Image.fromarray(np.clip(base * (1 - far) + blur * far, 0, 255).astype(np.uint8))
+    img.save(OUT / "photo.webp", quality=PHOTO_QUALITY, method=6)
     print("photo.webp", (OUT / "photo.webp").stat().st_size, flush=True)
 
 
@@ -365,7 +378,7 @@ def main():
         return fit_sun(g, valid, z)
     buildings, transport = structure_masks()
     rgb = remove_shadows(g, valid, ground, z, above, multi_ratio, buildings, transport)
-    write_photo(rgb, valid)
+    write_photo(rgb, valid, buildings | transport)
     write_trees(rgb, valid, above, multi_ratio, buildings, transport)
 
 
