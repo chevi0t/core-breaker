@@ -6,7 +6,7 @@
   python3 tools/build_sowan_third.py && python3 tools/build_maps.py            # マップへ入れる
 
 書く物（mapdesign/sowan/）：
-  photo.webp  真上から見た色（8192×4096、ゲームの x -668〜668・z -356〜356）。本体が地面・屋上・橋の床へ貼る。
+  photo.webp  真上から見た色（4096×2048、ゲームの x -668〜668・z -356〜356）。本体が地面・屋上・橋の床へ貼る。
   trees.npz   木の位置・高さ・枝の半径・写真の色（int16：x・z は0.04m刻み、高さ・半径は0.01m刻み）。
 
 していること：
@@ -301,8 +301,8 @@ def fit_sun(g, valid, z):
 
 # ---- 3. ゲームの座標の画像 ----
 PHOTO_BOUNDS = [-668, -356, 668, 356]  # build_sowan_third.py の PHOTO_BOUNDS と同じ
-PHOTO_SIZE = (8192, 4096)
-PHOTO_QUALITY = 60  # WebP の品質
+PHOTO_SIZE = (4096, 2048)  # 半分の細かさ（オーナー 2026-11-12「色とランドマーク形状がそれっぽかったらオッケー」。8192×4096 だと白線まで写るが約1.8MB）
+PHOTO_QUALITY = 75  # WebP の品質
 
 
 def write_photo(rgb, valid, structures):
