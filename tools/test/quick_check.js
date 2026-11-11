@@ -97,7 +97,7 @@ async function catalog(browser, dir) {
             // 被弾：前から各部位を撃ち、その部位の装甲でダメージが変わる
             g.hittables.length = 0; for (const o of armor) { o.userData.ref = target; g.hittables.push(o); }
             Object.assign(target, { hp: 1e6, maxHp: 1e6, invulT: 0, weakT: 0, partArmor: st.armor, armorAvg: st.avg }); target.pos.set(0, 20, 0);
-            for (const [part, x, y] of [['head', 0, 3.7], ['body', 0, 2.65], ['arms', 1.48, 2.24], ['legs', 0.62, 0.67]]) {
+            for (const [part, x, y] of [['head', 0, 3.7], ['body', 0, 2.65], ['arms', 1.48, 2.24], ['legs', m.rig.legKind === 'quad' ? 1.0 : 0.62, 0.67]]) { // 四脚の脚は外へ張っている（#228）
               const from = v([x, 20 + y, -10]), aim = v([x, 20 + y, 0]), hit = g.castFrom(from, aim.clone().sub(from).normalize(), shooter, 20);
               check(hit && hit.ref === target && hit.slot === part, '前から撃って ' + part + ' に当たらない（' + (hit && hit.slot) + '）');
               const before = target.hp; g.fire(shooter, aim, 0, { dmg: 100, range: 20, head: 1.3 }, from);

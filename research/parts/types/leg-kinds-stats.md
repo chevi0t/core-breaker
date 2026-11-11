@@ -1,6 +1,6 @@
 # ドーザー（四脚）とホッパー（逆脚）の性能（#227）
 
-取得日：2026-11-11。機械で読む形は `leg-kinds.json`、定義は `prototype/parts.js` の `WIP_PARTS`・`WIP_SERIES`（まだ `PARTS` には入れていない）。
+取得日：2026-11-11。機械で読む形は `leg-kinds.json`、定義は `prototype/parts.js` の `LEG_SERIES`（#228 で `PARTS`・`PART_SERIES` に入れた）。
 
 - 頭・胴・腕：アーケード版 wiki の表を換算した値（オーナーの指定 2026-11-11）。ドーザー＝ランドバルク（Ⅰ型・Ⅱ型・Ⅳ型・AT）、ホッパー＝フォーミュラ（Ⅱ型・Ⅱ型C・F型・MST）。原表は `research/arcade/parts/quad-reverse-sources.md`。換算は「本作の標準Ⅰ型 × AC の値 ÷ AC クーガーⅠ型」で、SP回復の基準値（100）は AC の表に無いので標準のまま。
 - 脚：本作オリジナルの仮置き（オーナーの指定「脚性能はオリジナルで」）。ブルワーク（重装二脚）・スウィフト（軽量二脚）と比べて決めた。試遊と Bot 戦で直す。
