@@ -105,15 +105,6 @@ GROUND_COLOR = "#83877f"  # 点群のコンクリート [146,151,143] を1割暗
 ROAD_COLOR = "#43494a"  # 点群のアスファルト [67,73,74]（3D の道路は本体の色 #424d58）
 GRASS_COLOR = "#435d37"  # 点群の芝 [84,112,68] を2割暗く
 WATER_COLOR = "#0f2538"  # 点群に海面の色は無いので、暗い紺を選んだ（本体は透明度0.68で川床に重ねる）
-LIFT_TO = np.array([0xe6, 0xe7, 0xe3])
-
-
-def lift(color):
-    """点群の屋根色を白〜明るい灰へ寄せる。暗い色（ガラス・濃い外装）は差し色として少しだけ。"""
-    c = np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)])
-    k = 0.45 if c.mean() > 110 else 0.15
-    m = np.rint(c + (LIFT_TO - c) * k).astype(int)
-    return "#" + "".join(f"{v:02x}" for v in m)
 
 
 # ---- 交通構造（橋・歩道橋・高速道路・新交通） ----
@@ -262,25 +253,45 @@ def landmark_meshes():
     return tris
 
 
-# ---- 外壁の種類 ----
-# 点群の色は真上からの写真なので、壁の色や窓は分からない。高さと広さから種類を決める（実物の建物ごとの再現ではない）。
-# 60m以上（ゲームで20m）の高層は全面ガラスか横連窓、低くて広い建物（倉庫・展示棟）は窓の無い板張り、ほかは格子の窓。
-GLASS = {"facade": "glass", "landmarkColor": "#8499ad"}  # 本体のガラスの色（青緑）を、青みのある灰色へ寄せる
+# ---- 外壁の色 ----
+# 壁は窓の模様の無い板張り（facade:'plain'）にし、建物ごとの実物の壁の色で塗る（オーナーの指定 2026-11-12：
+# 「窓はなくていい 色が似てればいい」）。色は tools/sowan_walls.py が PLATEAU の写真付きの建物モデル（CC BY 4.0）から
+# 取った mapdesign/sowan/walls.json。点群の色は真上からの写真なので、壁の色は入っていない。
+# 本体が壁へ当てる光は、日の当たる2面が約0.83倍と0.70倍、日陰の2面が約0.45倍（半球光0.75＋太陽0.9、向き 90,180,60）。
+# 実物の壁は、日の当たった外装が中央値で153、影の側が94（walls.json と同じ直し方、0〜255）。
+# 1.3倍すると、日なた 153×1.3×0.765≒152、日陰 153×1.3×0.45≒90 で、どちらも実物に合う。
+# 壁を拾えなかった建物（PLATEAU に写真付きの形が無い倉庫など）は、点群の屋根の色に「壁の色÷屋根の色」の中央値を掛けた色。
+# 実物と違う建物は、オーナーが開発者用ページ（tools/make_dev_page.py）で指して言葉で教えてくれた色を
+# mapdesign/sowan/wall-overrides.json に書く（[{"at":[x,z],"color":"#rrggbb","note":"..."}]）。その場所に建つ建物
+# （上に載った部分も含む）を、その色（日なたで見える色）で塗る。
+WALLS = OUT / "walls.json"
+WALL_OVERRIDES = OUT / "wall-overrides.json"
+WALL_GAIN = 1.3
 
 
-def facade(poly, top):
-    if poly.is_empty:
-        return {}
-    c = poly.representative_point()
-    h = math.sin(round(c.x / 12) * 127.1 + round(c.y / 12) * 311.7) * 43758.5453
-    h -= math.floor(h)
-    if top >= 20:
-        return GLASS if h < 0.45 else {"facade": "bands"}
-    if top < 6 and poly.area >= 350:
-        return {"facade": "plain"}
-    if top >= 8:
-        return GLASS if h < 0.22 else {"facade": "bands"} if h < 0.5 else {}
-    return {}
+def rgb(color):
+    return np.array([int(color[i:i + 2], 16) for i in (1, 3, 5)], float)
+
+
+def hexcolor(c):
+    return "#" + "".join(f"{int(v):02x}" for v in np.clip(np.rint(c), 0, 255))
+
+
+def wall_colors(volumes, palette):
+    """volumes と同じ順の、壁の色（本体へ渡す色）。"""
+    measured = json.loads(WALLS.read_text())["colors"] if WALLS.exists() else [None] * len(volumes)
+    assert len(measured) == len(volumes), "walls.json が terrain.json と合いません（tools/sowan_walls.py を回す）"
+    roofs = np.array([rgb(palette[v[3]]) for v in volumes])
+    known = [k for k, c in enumerate(measured) if c]
+    ratio = np.median([rgb(measured[k]) / roofs[k] for k in known], axis=0) if known else np.ones(3)
+    colors = [rgb(c) if c else roofs[k] * ratio for k, c in enumerate(measured)]
+    for entry in json.loads(WALL_OVERRIDES.read_text()) if WALL_OVERRIDES.exists() else []:
+        at = Point(*entry["at"]).buffer(1)
+        hit = [k for k, v in enumerate(volumes) if Polygon(decode2(v[2])).intersects(at)]
+        assert hit, f"wall-overrides.json の {entry['at']} に建物がありません"
+        for k in hit:
+            colors[k] = rgb(entry["color"])
+    return [hexcolor(c * WALL_GAIN) for c in colors]
 
 
 # ---- 写真の地面 ----
@@ -353,13 +364,14 @@ def terrain():
                 volume_rows.append([k, round(lo, 2), round(hi, 2), rr, meta])
             solids.append((q, lo, hi, meta))
 
-    for lo, hi, ring, paint, kind in d["volumes"]:
+    walls = wall_colors(d["volumes"], d["palette"])
+    for (lo, hi, ring, paint, kind), wall in zip(d["volumes"], walls):
         p = Polygon(decode2(ring))
         if not p.is_valid:
             p = shapely.make_valid(p)
         if lo < 0.3:
             p = p.difference(clearings)
-        emit(p, lo, hi, {"paint": paint, **facade(p, hi)})
+        emit(p, lo, hi, {"landmarkColor": wall, "facade": "plain"})
 
     tris, footprints, walk, piers, tstats = transport(ground)
     for p, lo, hi in piers:
@@ -402,12 +414,10 @@ def terrain():
             "bases": [{"team": t, "at": shift(p), "height": 0} for t, p in BASE_SITES.items()],
             "roofPads": [],
             "unifiedGround": {"color": GROUND_COLOR},
-            "buildingPalette": [lift(c) for c in d["palette"]],
             "roadColor": ROAD_COLOR,
             "lawns": lawns,
             **photo(),
             "facadeScale": 1 / 3,
-            "glassTint": True,
             "bridgeColor": "#8f9290",
             "sky": {"zenith": "#4d82c4", "clouds": 0.55, "below": "#5d7689"},
         },
