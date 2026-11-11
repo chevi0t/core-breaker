@@ -5200,6 +5200,8 @@ const LEG_TRAITS_BASE = Object.freeze({ spread: 1, recoil: 1, stagger: 1, hoverC
 function legTraits(u) { return u.stats?.P.legs.traits || LEG_TRAITS_BASE; }
 // 踏ん張り（四脚のしゃがみ）：止まり、ばらつきが減り、射撃・爆発ではよろけにくく押されない。格闘には効かない
 function legBraced(u) { return !!u.crouching && legTraits(u).crouch?.type === 'brace'; }
+// 要塞化：踏ん張って damageAfter 秒（1秒）たってから効く（オーナー「ダメージ受ける瞬間だけしゃがむの都合よすぎる」2026-11-11）
+function legFortified(u) { const c = legTraits(u).crouch; return legBraced(u) && c.damage != null && (u.crouchT || 0) >= (c.damageAfter || 0) - 1e-8; }
 function aimSpread(u) { const t = legTraits(u); return u.aimMul * t.spread * (legBraced(u) ? t.crouch.spread : 1); }
 function fwdOf(u) { return new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw)); }
 const STOP = new T.Vector3();
@@ -6027,7 +6029,8 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (r.kind === 'radar') { r.hp -= dmg; if (r.hp <= 0) destroyRadar(r, by); return true; }
   if (r.invulT > 0) return false; // 出撃直後の無敵
   if (!melee && shieldTest && origin && barrierAbsorb(r, dmg, origin)) return false;
-  const real = dmg * armorMult(r, slot);
+  // 要塞化（四脚が踏ん張って1秒たった後。オーナーの指定 2026-11-11）：射撃・爆発のダメージを crouch.damage 倍（半分）にする。格闘・タックル・蹴りには効かない。よろけ・ダウンは減らす前の値で決める
+  const fort = !melee && legFortified(r) ? legTraits(r).crouch.damage : 1, real = dmg * armorMult(r, slot) * fort;
   r.hp -= real;
   noteDmg(r, by, real);
   cloakHit(r, dmg);
@@ -6035,7 +6038,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (isLocalView(r)) flashDamage(origin, real); else window.CBOnlineGame?.remoteFeedback?.(r, 'hurt', { at: origin.toArray(), real, blast: false });
   if (r.hp <= 0) kill(r, by, head, real + (volley && volley.get(r) || 0), weaponName); // 散弾・二丁拳銃は1回の射撃の合計
   else if (volley) volley.set(r, (volley.get(r) || 0) + real);
-  else if (!noJolt) jolt(r, melee ? origin : by.pos, real, melee); // 近接は刃が来た向きの逆へ（v0.21）
+  else if (!noJolt) jolt(r, melee ? origin : by.pos, real / fort, melee); // 近接は刃が来た向きの逆へ（v0.21）
   return head ? 'head' : true;
 }
 // 自分が撃破・破壊した対象の頭上に大きく表示する
@@ -8416,7 +8419,8 @@ function beamCannonModel(u, t) {
   }
 }
 function weaponLook(u, dt) {
-  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (isHumanControlled(u) ? u.pitch : 0) + (u.recoil || 0);
+  // 背負う装備（重砲・榴弾砲・起動するだけの特別装備など）を選んでいる間、手には主武器を持つ。カスタマイズの絵で特別装備の枠を選ぶと、背中の装置が手にも出ていた（2026-11-11）
+  const S = u.slots, cur = S[u.weapon].w, hw = cur.type === 'sword' || cur.type === 'cannon' || MAP_SP.includes(cur.type) || TOGGLE_SP.includes(cur.type) || cur.type === 'beamCannon' ? S.main.w : cur, pitch = (isHumanControlled(u) ? u.pitch : 0) + (u.recoil || 0);
   setWeaponGeo(u.gun, hw.key); u.gun.rotation.set(pitch, u.recoilYaw || 0, 0, 'YXZ');
   u.gun2.visible = !!hw.dual;
   if (hw.dual) { setWeaponGeo(u.gun2, hw.key); u.gun2.rotation.copy(u.gun.rotation); }
@@ -11470,6 +11474,7 @@ function itemNums(sl, key) {
     if (sl==='legs' && x.kind==='hover') r.push(['巡航加速',x.accelTime,u('秒'),false]);
     // 四脚・逆脚の特性（#228）。ジャンプは高さ（初速の2乗）で出す
     if (sl==='legs' && x.traits) r.push(['ジャンプの高さ', x.traits.jump ** 2, pct, true], ['脚：弾のばらつき', x.traits.spread, pct, false], ['脚：反動', x.traits.recoil, pct, false], ['よろけにくさ', x.traits.stagger, pct, true]);
+    if (sl==='legs' && x.traits?.crouch?.damage) r.push(['要塞化中の被ダメージ', x.traits.crouch.damage, pct, false]);
     r.push(['重量', x.weight, u('kg'), false]);
     return r;
   }
@@ -11646,7 +11651,7 @@ $('cuSeries').addEventListener('keydown', e => {
   if (bs[k]) { bs[k].focus(); e.preventDefault(); }
 });
 // 脚の種類の説明（#228）。しゃがみ（Cアクション）の中身が変わる
-const LEG_KIND_NOTES = { quad: '四脚（踏ん張り：しゃがみで止まり、射撃が安定してよろけにくい。跳躍は低い）', reverse: '逆脚（溜め：しゃがんでからジャンプで大ジャンプ。着地の隙が短い）' };
+const LEG_KIND_NOTES = { quad: '四脚（踏ん張りで要塞化：しゃがみで止まり、1秒後から射撃・爆発のダメージ半減、射撃が安定してよろけにくい。跳躍は低い）', reverse: '逆脚（溜め：しゃがんでからジャンプで大ジャンプ。着地の隙が短い）' };
 // パーツの数値（v0.12。古いパーツのカードと renderMech は v0.13 で消した）
 function partStats(slot, p) {
   const a = [`重量 ${p.weight}kg`, `被ダメージ ${pct(p.armor)}`];
@@ -12518,7 +12523,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.crouching) centerEl.textContent = legBraced(p) ? '踏ん張り：射撃が安定（動けない）。C を離すと歩ける' : legTraits(p).crouch?.type === 'charge' ? (p.crouchT >= legTraits(p).crouch.time ? '溜め：ジャンプで大ジャンプ' : '溜め中…') : 'しゃがみ：C を離すと立ち上がる';
+  else if (p.crouching) centerEl.textContent = legBraced(p) ? (legFortified(p) ? '要塞化：被ダメージ半減・' : '踏ん張り（1秒で要塞化）：') + '射撃が安定（動けない）。C を離すと歩ける' : legTraits(p).crouch?.type === 'charge' ? (p.crouchT >= legTraits(p).crouch.time ? '溜め：ジャンプで大ジャンプ' : '溜め中…') : 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。光はカーソルを追う。左クリックを離すと終了` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射まで ${Math.max(0, p.reflect.t).toFixed(1)}秒。離すと中止` : `${p.slots.sp.w.name}：マップで左クリックを押している間、照射（最長${reflectTime(p.slots.sp.w).toFixed(1)}秒）。右クリックで構えを解く`;
