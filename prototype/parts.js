@@ -167,7 +167,7 @@ for (const [id, ps] of Object.entries(PART_SERIES)) ps.types.forEach((t, i) => {
 //   crouch：しゃがみの中身。brace＝踏ん張り（止まる、ばらつき spread 倍、押されない、閾値 stagger 倍）、charge＝溜め（time 秒以上しゃがんでからジャンプで初速 jump 倍、ジャンプのブースト cost 倍）
 const LEG_KIND_TRAITS = {
   quad: { spread: 0.8, recoil: 0.7, stagger: 1.3, hoverCost: 0.6, jump: 0.8, landSpeed: 28, landTime: 1, plantTime: 0.6,
-    action: { tackle: { distance: 0.6, damage: 1.5 }, kick: { damage: 1.2 } }, crouch: { type: 'brace', spread: 0.6, stagger: 1.5 } },
+    action: { tackle: { distance: 0.6, damage: 1.5 }, kick: { damage: 1.2 } }, crouch: { type: 'brace', spread: 0.6, stagger: 1.5, damage: 0.5, damageAfter: 1 } },
   reverse: { spread: 1, recoil: 1, stagger: 0.9, hoverCost: 1, jump: 1.15, landSpeed: 34, landTime: 0.5, plantTime: 1,
     action: { tackle: { damage: 0.8 }, kick: { damage: 1.5, airReach: 2 } }, crouch: { type: 'charge', time: 0.3, jump: 1.33, cost: 2 } }, // 溜め：1.33²×約6.8m ≒ 12m
 };
