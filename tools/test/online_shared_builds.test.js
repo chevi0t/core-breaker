@@ -21,3 +21,10 @@ test('不正構成・確認待ちは保存しない。保存禁止時は画面�
  game.state.equipmentPending=true;assert.throws(()=>game.saveEquipmentBuilds(baseline,baseline,'assault'),/確定/);assert.equal(f.writes(),0);game.state.equipmentPending=false;
  c.buildSaveState.failed=true;const draft=copy(baseline);draft.list[0].loadout.assault.main='alternate';assert.equal(game.saveEquipmentBuilds(draft,baseline,'assault').saved,false);assert.equal(game.state.equipment.loadout.main,'alternate');game.leave();
 });
+test('アクションは構成ごとに保存し、兵装切替・別タブの変更でも保持',async()=>{
+ const {c,game,savedBuildFixture:f}=setup();await game.create();assert.equal(game.state.equipment.actionId,'crouch');
+ const baseline=game.savedBuilds(),draft=copy(baseline),newer=f.read();
+ draft.cur=1;draft.list[1].actionId='kick';newer.list[2].actionId='tackle';c.applyBuildRecord(newer);
+ game.saveEquipmentBuilds(draft,baseline,'heavy');assert.equal(f.read().list[1].actionId,'kick');assert.equal(f.read().list[2].actionId,'tackle');assert.equal(game.state.equipment.actionId,'kick');
+ game.setEquipment({cls:'support'});assert.equal(game.state.equipment.actionId,'kick');game.leave();game.chooseSavedBuild(2);await game.create();assert.equal(game.state.equipment.actionId,'tackle');game.leave();
+});

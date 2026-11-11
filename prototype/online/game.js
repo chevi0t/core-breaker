@@ -96,7 +96,7 @@
   const predictionLimits={inputs:240,seconds:1,hostSteps:120,wireSteps:0,visualFrames:6};
   const inputLimits={batch:5,sendMs:1000/60,maxAgeMs:500,activeMs:250,futureMs:250,actions:64};
   const movementKeys=['KeyW','KeyS','KeyA','KeyD','KeyC','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
-  const movementEdges=['ShiftLeft','ShiftRight','Space'];
+  const movementEdges=['ShiftLeft','ShiftRight','Space','KeyC'];
   const movementMask=pressed=>movementEdges.reduce((mask,key,i)=>mask|(pressed?.[key]?1<<i:0),0);
   const movementPressed=mask=>Object.fromEntries(movementEdges.filter((_,i)=>mask&(1<<i)).map(key=>[key,true]));
   let inputSending={history:[],lastBatch:-Infinity,actionSeq:0,lastActionAt:-Infinity,signature:null,lifeId:null};
@@ -290,7 +290,7 @@
   const equipmentActions=[];
   const equipmentVectors=['escortAim','bombard','seekAim'];
   const equipmentScalars='fieldOn fieldN barrierOn escortOn escortT escortCd mirageOn mirageWait postRecall radarHeading radarScanT seekMode repairBlock'.split(' ');
-  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
+  const scalarKeys = ('lifeId hp maxHp alive respawnT downT downYaw reviveAcc yaw pitch boost maxBoost overheat boostIdle onGround dashT longDash dashState dodgeT flying ctrlLockT catCd weapon prevWeapon switchT moveInput scoped scopeStep planted charging chargerOn stun stunT tilt invulT invulCancelOnAttack recoil recoilYaw recoilWait recoilRecovery cameraRecoil cameraRecoilYaw weakT weakMult actionId actionCd actionRecoverT actionHeldTime actionWasHeld actionLandMiss crouching actionHeld kneeSlideT lungeT lungeT0 lungeSpeed slideT recoverT electricT shockT jamT cannonDeploy repairing podT podN cloak vis shimmer cloakT actCd jumpBuf crouchT chargeJumpT actionBlockBoost shockSlow zipCd flightSpeed').split(' ').concat(equipmentScalars);
   // ---- 状態の表示と定型通信 ----
   // 他機の武器枠は外見だけ。残弾/CD等は自機へだけ送り、装備が変わっても枠の形を固定する。
   const remoteSlotKeys={main:['scanRadius'],sub:['scanRadius'],aux:['chargeT','sheathed','scanRadius'],sp:['heat','overheat','scanRadius']};
@@ -407,11 +407,14 @@
   function equipmentOptions(cls='assault'){
     if(!roomClasses.includes(cls))throw Error('オンラインの兵装を選んでください');
     return {weapons:Object.fromEntries(SLOTS.map(slot=>[slot,ARMORY[cls][slot].filter(onlineWeapon).map(key=>({id:key,name:WEAPONS[key].name}))])),
+      actions:Object.entries(ACTIONS).map(([id,a])=>({id,name:a.name})),
       parts:Object.fromEntries(PART_SLOTS.map(slot=>[slot,Object.entries(PARTS[slot]).map(([id,p])=>({id,name:p.model||p.name||id}))])),paints:PAINTS.map(p=>({id:p.id,name:p.name}))};
   }
   function checkedEquipment(input,previous=null){
     if(!input||!roomClasses.includes(input.cls))throw Error('オンラインの兵装を選んでください');
     const cls=input.cls,mech=input.mech||previous?.mech||MECH_DEFAULT;
+    const actionId=input.actionId!==undefined?input.actionId:previous?.actionId??DEFAULT_ACTION;
+    if(typeof actionId!=='string'||!Object.hasOwn(ACTIONS,actionId))throw Error('アクションが正しくありません');
     if(input.loadouts!==undefined&&(!input.loadouts||typeof input.loadouts!=='object'||Array.isArray(input.loadouts)||Object.entries(input.loadouts).some(([k,v])=>!roomClasses.includes(k)||!v||typeof v!=='object'||Array.isArray(v))))throw Error('兵装ごとの装備が正しくありません');
     // 通信用の独立スナップショット。旧形式の単一loadout更新も、ほかの兵装を消さない。
     const loadouts=Object.fromEntries(roomClasses.map(key=>{
@@ -420,7 +423,7 @@
       return [key,Object.fromEntries(SLOTS.map(k=>[k,loadout[k]]))];
     }));
     if(!PART_SLOTS.every(k=>typeof mech[k]==='string'&&Object.hasOwn(PARTS[k],mech[k]))||!PAINTS.some(p=>p.id===mech.color))throw Error('機体パーツが正しくありません');
-    return {cls,loadout:{...loadouts[cls]},loadouts,mech:Object.fromEntries([...PART_SLOTS,'color'].map(k=>[k,mech[k]]))};
+    return {cls,actionId,loadout:{...loadouts[cls]},loadouts,mech:Object.fromEntries([...PART_SLOTS,'color'].map(k=>[k,mech[k]]))};
   }
   // オフラインと同じ3構成を使う。通信から保存先へは書かず、本人の保存操作だけを反映する。
   function savedBuilds(){
@@ -428,7 +431,7 @@
   }
   function savedEquipment(cls){
     const record=savedBuilds(),build=record.list[record.cur];
-    return checkedEquipment({cls:roomClasses.includes(cls)?cls:'assault',mech:build.mech,loadouts:build.loadout});
+    return checkedEquipment({cls:roomClasses.includes(cls)?cls:'assault',actionId:normalizeAction(build.actionId),mech:build.mech,loadouts:build.loadout});
   }
   function savedBuildStatus(){return {failed:buildSaveState.failed,text:buildSaveState.text};}
   function refreshSavedBuilds(){renderBuildTabs();renderClsButtons();}
@@ -443,10 +446,11 @@
     const valid=record=>validBuildImport({...record,format:'core-breaker-settings',version:2,revision:'online-draft'});
     if(!valid(draft)||!valid(baseline))throw Error('保存する3構成が正しくありません');
     // 全構成を先に検査。不正な兵装・部品が一つでもあれば何も書き換えない。
-    for(const build of draft.list)checkedEquipment({cls,mech:build.mech,loadouts:build.loadout});
+    for(const build of draft.list)checkedEquipment({cls,actionId:normalizeAction(build.actionId),mech:build.mech,loadouts:build.loadout});
     const next=buildRecord();next.cur=draft.cur;
     for(let i=0;i<3;i++){
       const before=baseline.list[i],after=draft.list[i],merged=next.list[i];
+      if(normalizeAction(before.actionId)!==normalizeAction(after.actionId))merged.actionId=normalizeAction(after.actionId);
       for(const key of [...PART_SLOTS,'color'])if(before.mech[key]!==after.mech[key])merged.mech[key]=after.mech[key];
       for(const c of roomClasses)for(const key of SLOTS)if(before.loadout[c][key]!==after.loadout[c][key])merged.loadout[c][key]=after.loadout[c][key];
     }
@@ -933,7 +937,7 @@
       (v.equipmentActions===undefined||Array.isArray(v.equipmentActions)&&v.equipmentActions.length<=8&&v.equipmentActions.every(validEquipmentAction)) &&
       (v.moveActionSeq===undefined||Number.isSafeInteger(v.moveActionSeq)&&v.moveActionSeq>=0&&v.moveActionSeq<=v.actionSeq) &&
       (v.moveActions===undefined||Array.isArray(v.moveActions)&&v.moveActions.length<=8&&v.moveActions.every(row=>
-        Array.isArray(row)&&row.length===2&&Number.isSafeInteger(row[0])&&row[0]>=1&&row[0]<=v.actionSeq&&Number.isSafeInteger(row[1])&&row[1]>=1&&row[1]<=7));
+        Array.isArray(row)&&row.length===2&&Number.isSafeInteger(row[0])&&row[0]>=1&&row[0]<=v.actionSeq&&Number.isSafeInteger(row[1])&&row[1]>=1&&row[1]<=15));
   }
   const inputKeys = ['KeyW','KeyS','KeyA','KeyD','KeyR','KeyC','KeyF','KeyH','KeyE','ShiftLeft','ShiftRight','Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Digit1','Digit2','Digit3','Digit4'];
   const pickedKeys=(o,allowed=inputKeys)=>Object.fromEntries(allowed.filter(k=>o?.[k]).map(k=>[k,true]));
@@ -1458,6 +1462,8 @@
       ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),predictionBlocked:typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(u):'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,u[k]?.toArray()||null])),
       healTarget:equipmentRef(u.healTarget),equipment:packEquipmentUnit(u),catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
+      actionMove:u.actionMove?safe(u.actionMove,['id','phase','elapsed','yaw','air','hit','distance']):null,
+      actionPush:u.actionPush?safe(u.actionPush,['x','z','left','time']):null,
       swing:u.swing ? {a:u.swing.a,...safe(u.swing,['t','phi','yaw0','aimed','tilt','slope','pike','chargeStage','chargeRatio','dashAttack','stopped','queued'])} : null,
       transfer:u.transfer ? safe(u.transfer,['t','base','at']) : null,
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:u.slots[k].w.key,...safe(u.slots[k],slotKeys)}]))};
@@ -1505,6 +1511,7 @@
       pos:hidden?[0,0,0]:v.pos,vel:hidden?[0,0,0]:v.vel,predictionBlocked:hidden?'':v.predictionBlocked||'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
       healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
+      actionMove:hidden?null:v.actionMove||null,actionPush:hidden?null:v.actionPush||null,
       swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,classSelection:hidden||!own?null:v.classSelection||{ack:0,pending:'',transferEpoch:0,transferActionSeq:0,processedHSeq:0},
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries((own?slotKeys:remoteSlotKeys[k]).map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
     for(const k of scalarKeys)value[k]=hidden?null:v[k]??null;
@@ -1710,7 +1717,7 @@
     m.g.rotation.order='YXZ';m.g.position.copy(u.pos);m.g.rotation.y=u.yaw;
     m.g.traverse(o=>{if(o.isMesh&&!o.userData.visualOnly){o.userData.ref=u;hittables.push(o);}});
   }
-  function applyEquipment(u,equipment){replaceMech(u,equipment.mech);u.controlLoadout={...equipment.loadout};equip(u,equipment.cls);}
+  function applyEquipment(u,equipment){replaceMech(u,equipment.mech);u.controlLoadout={...equipment.loadout};u.controlActionId=equipment.actionId;equip(u,equipment.cls);}
   function applyUnit(u,s) {
     // 新lifeで前の予約を消す。同じlifeの写真では未確認の新しい選択を上書きしない。
     if(u===player&&u.lifeId!==s.lifeId)u.nextCls=null;
@@ -1722,6 +1729,7 @@
       if(u.onlineClassChoice&&s.classSelection.ack>=u.onlineClassChoice.id&&s.classSelection.pending!==u.nextCls)u.nextCls=null;
     }
     if(u===player&&(!s.swing||u.lifeId!==s.lifeId||u.onlineMotionEpoch!==(s.motionEpoch||0)||u.onlineLagEpoch!==(s.lagEpoch||0)||u.cls!==s.cls))localMeleeSwing=null;
+    u.controlActionId=s.actionId||'crouch';
     const mechChanged=!!s.mech&&Object.keys(s.mech).some(k=>s.mech[k]!==u.mech?.[k]);
     if(mechChanged)replaceMech(u,s.mech);
     if (mechChanged || (u.onlineRenderClass??u.cls) !== s.cls || SLOTS.some(k=>s.slots[k]?.key!==u.slots[k]?.w.key)) {
@@ -1733,6 +1741,7 @@
     u.onlineMotionEpoch=s.motionEpoch||0;u.onlineLagEpoch=s.lagEpoch||0;u.onlinePredictionBlocked=s.predictionBlocked||'';
     u.onlineRenderCrouch=Number.isFinite(s.renderCrouch)?s.renderCrouch:null;
     for(const k of ['dashDir','boostVisualDir','catMomentum','lungeDir'])u[k]=s.motionVectors?.[k]?vector(s.motionVectors[k]):null;
+    u.actionMove=s.actionMove?{...s.actionMove}:null;u.actionPush=s.actionPush?{...s.actionPush}:null;
     u.catLaunch=s.catLaunch?{...s.catLaunch}:null;u.healTarget=equipmentEntity(s.healTarget);applyEquipmentUnit(u,s.equipment);u.jumpPad=s.jumpPadIndex>=0?jumpPads[s.jumpPadIndex]||null:null;
     u.localView=u===player;u.controller=u.localView?'localHuman':s.controller==='bot'?'bot':'remoteHuman';
     for(const k of scalarKeys)if(s[k]==null)delete u[k];
@@ -1949,7 +1958,7 @@
   // 遠隔機の姿勢も位置と同じ写真区間を使う。骨アニメーションの位相までhostと同期するものではない。
   function interpolateRemotePose(u,a,b,f){
     const discrete=f<1?a:b;
-    for(const k of ['crouching','onGround','dashState','lungeT','kneeSlideT','planted','repairing','recoverT','stun','stunT','weapon','pitch','tilt'])if(Object.hasOwn(discrete,k))u[k]=discrete[k];
+    for(const k of ['actionId','actionCd','actionRecoverT','actionMove','crouching','onGround','dashState','lungeT','kneeSlideT','planted','repairing','recoverT','stun','stunT','weapon','pitch','tilt'])if(Object.hasOwn(discrete,k))u[k]=discrete[k];
     for(const k of ['pitch','tilt'])if(Number.isFinite(a[k])&&Number.isFinite(b[k]))u[k]=a[k]+(b[k]-a[k])*f;
     if(Number.isFinite(a.renderCrouch)&&Number.isFinite(b.renderCrouch))u.onlineRenderCrouch=a.renderCrouch+(b.renderCrouch-a.renderCrouch)*f;
     if(a.vel&&b.vel)u.vel.copy(vector(a.vel.map((v,i)=>v+(b.vel[i]-v)*f)));
@@ -2016,7 +2025,7 @@
     const offset=viewOffsetOf(player);
     let sp=movementSpread(player)+(w.spread||0);
     if(w.scope)sp+=player.scoped?(w.sway||0)*(1-(sl.conv||0)):(w.hip||0)*(Math.hypot(player.vel.x,player.vel.z)>3||!player.onGround?w.hipMove||1:1);
-    sp*=player.aimMul||1;
+    sp*=aimSpread(player)||1;
     const aim=vector(aimPoint),froms=w.dual?[muzzle(player),muzzle(player,true)]:[muzzle(player)];let n=0;
     for(const from of froms)for(let i=0;i<(w.pellets||1);i++){
       const to=w.fan?aim.clone().sub(from).applyAxisAngle(UP,(i-((w.pellets||1)-1)/2)*w.fan).add(from):aim;

@@ -43,7 +43,7 @@
   document.body.appendChild(leaveDialog);
   const diagnostic=document.createElement('div');diagnostic.id='onlineDiagnostic';diagnostic.hidden=true;diagnostic.setAttribute('aria-label','オンライン試験の診断');document.body.append(diagnostic);
   const number=(v,digits=0)=>Number.isFinite(v)?v.toFixed(digits):'—';
-  const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF',melee:'近接',special:'加速・特殊動作',zip:'ジップライン',repair:'修理',launch:'射出',lift:'リフト',planted:'構え',inactive:'行動不能'};
+  const diagnosticReasons={distance:'距離',accumulated:'見た目の蓄積',respawn:'再出撃',equipment:'装備',down:'行動不能',transfer:'転送',jumpPad:'ジャンプ台',catapult:'射出台',stun:'よろけ',electric:'電撃',shock:'衝撃',history:'履歴不足',disabled:'予測OFF',melee:'近接',special:'加速・特殊動作',action:'アクション',zip:'ジップライン',repair:'修理',launch:'射出',lift:'リフト',planted:'構え',inactive:'行動不能'};
   const diagnosticStats=s=>s?.count?number(s.meanMs,1)+' / '+number(s.p95Ms,1)+' / '+number(s.maxMs,1)+'ms':'標本待ち';
   function refreshDiagnostic(){
     const d=CBOnlineGame.diagnostics(),show=d.phase==='playing'&&document.getElementById('onlineDiagnostics').checked;
@@ -178,7 +178,7 @@
   let equipmentDraft=null,buildDraft=null,buildBaseline=null;
   function selectDraftBuild(cls){
     const build=buildDraft.list[buildDraft.cur];
-    equipmentDraft={cls,mech:build.mech,loadouts:build.loadout,loadout:build.loadout[cls]};
+    equipmentDraft={cls,actionId:normalizeAction(build.actionId),mech:build.mech,loadouts:build.loadout,loadout:build.loadout[cls]};
   }
   function renderEquipment(){
     const cls=equipmentDraft.cls,options=CBOnlineGame.equipmentOptions(cls),fields=el('onlineEquipmentFields');fields.replaceChildren();
@@ -191,6 +191,7 @@
     const slotNames={main:'主武器',sub:'副武器',aux:'補助装備',sp:'特別装備'};
     for(const slot of SLOTS)add(slotNames[slot],slot,options.weapons[slot],equipmentDraft.loadout[slot],value=>equipmentDraft.loadout[slot]=value);
     for(const slot of PART_SLOTS)add(PART_NAMES[slot]||slot,slot,options.parts[slot],equipmentDraft.mech[slot],value=>equipmentDraft.mech[slot]=value);
+    add('アクション（C）','actionId',options.actions,equipmentDraft.actionId,value=>{equipmentDraft.actionId=value;buildDraft.list[buildDraft.cur].actionId=value;});
     add('塗装','color',options.paints,equipmentDraft.mech.color,value=>equipmentDraft.mech.color=value);equipmentWeight();controls();
   }
   function equipmentWeight(){const st=mechStats(equipmentDraft.mech,equipmentDraft.loadout);el('onlineEquipmentWeight').textContent='総重量 '+st.weight+'kg / 積載 '+st.cap+'kg'+(st.excess>0?'（重量超過 +'+st.excess+'kg、速度 −'+Math.round(st.slow*100)+'%）':'');}

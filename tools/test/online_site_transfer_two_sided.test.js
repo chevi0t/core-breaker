@@ -30,7 +30,7 @@ function extract(s,name,origin){
  if(end<0)throw Error('no end '+name);const text=s.slice(start,end);
  extracted.push({name,origin,line:s.slice(0,start).split('\n').length,sha256:crypto.createHash('sha256').update(text).digest('hex')});return text;
 }
-const c=vm.createContext({console,structuredClone,TextEncoder,TextDecoder,setTimeout,clearTimeout});c.window=c;
+const c=vm.createContext({console,structuredClone,TextEncoder,TextDecoder,setTimeout,clearTimeout});c.window=c;require('./action_fixture')(c,html);
 c.SFX={};c.TEAM={B:{color:0x3366ff,dir:1},R:{color:0xff6633,dir:-1}};
 vm.runInContext(fs.readFileSync(process.env.CB_THREE||path.join(__dirname,'../../vendor/three-r128/three.min.js'),'utf8'),c);c.T=c.THREE;
 vm.runInContext(extract(html,'baseKick','index.html'),c);
