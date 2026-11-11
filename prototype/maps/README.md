@@ -244,4 +244,8 @@ Bot同士の対戦（プラントの取り合いが起きるか、Botが詰ま�
 - Botの通り道：自軍側7節点（ベース前、左右の通り、荷揚げ場の坂の下と上、船だまり）。
 - 確認（2026-10-18）：map_check で通り道は全部つながり、ページのエラーは0。v0.10.9 でも同じ。Botだけの2対2を4回回すと13〜22秒で決着（Botは1機あたり4〜5秒で落ちる。人が入ると延びるはず）。
 
+### 双湾展示区（`sowan.js`）
+
+10対10・10分・6プラントの非対称な都市マップ（2026-11-10、ユーザーが選んだ1/3の新版）。お台場〜有明の湾岸を、東京都区部点群・地理院・PLATEAU（CC BY 4.0）から実寸1/3で組み立てた。2つのベースは南側（西が青、東が橙）、プラントは青のベースに近い順に A〜F（北の道すじが A・C・E・F、南の道すじが B・D。2026-11-12 にオーナーの決定で4つから6つへ増やした）。手で書かず、`python3 tools/build_sowan_third.py` で `mapdesign/sowan/pointcloud-third/terrain.json` から作る。変換の中身・確かめたこと・残りは `mapdesign/sowan/README.md`、出典と謝辞は `mapdesign/sowan/CREDITS.md`。写真の地面と木は `tools/sowan_photo.py` が点群の撮影色から作る（`mapdesign/sowan/photo.webp`・`trees.npz`、2026-11-11）。
+
 白煙循環区と配置違い2種は採用入替により公開一覧から退避済み（`mapdesign/archive/circulation.js`）。上記の生成・検査記録は履歴。風裂山道8対8を表示順5に配置し、再生成は `tools/terrain_recipes/mountain.json` と `tools/terrain_recipe.js` を使う。
