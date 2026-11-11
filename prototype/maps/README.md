@@ -134,8 +134,13 @@ lifts: [{ from: [24, 0, 0], to: [16, 0, 12], size: [8, 8], speed: 5, wait: 2 }],
 - `rooftopTurrets: [{team,plant,at:[x,z,y],yaw?}]`：世界座標で屋上に追加する防衛砲台。陣営は固定で、占拠による所属変更はしない。基地砲台と同じ射程・威力・破壊・修理を使い、障害物に底面の高さを持たせる。環都はAに青2基、Eに橙2基。
 - `cityTerrain.district.ferrisWheel`：`center:[x,y,z]`、`radius`、`roofY`、任意の`yaw`・`color`・`cabins`・`supportHalfWidth`・`supportHalfDepth`で静止観覧車を生成する。輪・スポーク・ゴンドラの描画面を接触・射線にも使う。
 - `cityTerrain.district.facadeScale`：窓模様の寸法倍率。未指定は1、環都は0.5。街を縮めても外壁の階数を保ち、他都市の表示を変えない。
+- `cityTerrain.district.photo: {image, bounds:[x0,z0,x1,z1], gain}`：真上から撮った写真の地面（2026-11-11、双湾展示区）。`image` は画像の data URI、`bounds` は画像が覆う範囲、`gain` は明るさ（本体の光で白く飛ぶ分を引く。省略 0.7）。地面（`dem`・`tran` など）・屋上・`brid` の床など上を向いた面へ水平位置で貼り、近くでは細かいざらつきを重ねる。全体マップも読み込みが済んだら写真を下地にする。写真があるマップは `lawns` の無地の芝を描かない（図の塗り分けには使う）。GPU のメモリを減らすため 16ビット色（565）で持つ。
+- `cityTerrain.district.trees: {step, count, data, far?}`：見た目だけの木（当たり判定・射線に関係しない）。`data` は1本9バイト（x・z：int16 で `step` 刻み、高さ：0.05m刻み、枝の半径：0.02m刻み、色 RGB）の base64。96m の区画ごとにまとめて描き、`far`（省略 420m）より遠い区画は描かない。幹は130m以内だけ、160m より遠い区画は枝の面を減らす。影は落とさない。
+- `cityTerrain.district.sky: {zenith, horizon?, below?, clouds?}`：空。地平線は霧の色（`horizon`）、上は `zenith` へ変わり、`clouds`（0〜1、省略 0.5）の濃さで薄い雲と太陽の光を描く。無いマップは今までどおり1色。
+- `cityTerrain.river.sea: {sky}`：水面を不透明な海にして、波・空の映り込み（`sky` の色）・太陽のきらめきを描く。色は `river.color`。全体マップの水の色は `river.mapColor`（省略は今までの青）。
+- `cityTerrain.district.bridgeColor`：`brid`（橋・高架・岸壁）の色。省略は今までの色。
 
-都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、採用済み500m四方の `kanto` は `.01`（1cm格子、旧1km版は2cm）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade:'glass'`、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
+都市の輪郭はint16のXZ座標をbase64で保存する。`ringCoordinateStep` を省略すると1cm格子、採用済み500m四方の `kanto` は `.01`（1cm格子、旧1km版は2cm）。保存面の `step` も `.01` または `.02`。`volumes` の属性には `landmarkColor`、`facade`（`'glass'` 全面ガラス、`'bands'` 横連窓、`'plain'` 窓の無い板張り。無指定は格子の窓）、または `paint`（`district.buildingPalette` の色番号）を指定でき、建物の形・接触は変えずに本体と地図を着色する。`district.glassTint` はガラスの色にも指定色を反映する。
 
 `kanto` の傾斜大屋根は `surfaces.brid` に厚さ付きの板として保存し、既存の橋と同じ接地・下面・弾判定を使う。`district.stationCanopy` の `ring`・`top`・`color` は地図の投影と板の表示色をそろえるための属性。このマップの `brid` は大屋根だけを含む。
 
