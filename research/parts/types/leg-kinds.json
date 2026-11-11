@@ -2,7 +2,7 @@
   "date": "2026-11-11",
   "issue": "#227",
   "source": "脚は本作オリジナル（アーケード版 wiki に四脚・逆脚は無い。オーナーの了承 2026-11-10 で仮置き）。頭・胴・腕はアーケード版 wiki の表を換算（オーナーの指定 2026-11-11：ドーザー＝ランドバルク https://w.atwiki.jp/borderbreak/pages/501.html 、ホッパー＝フォーミュラ https://w.atwiki.jp/borderbreak/pages/550.html 。原表 research/arcade/parts/quad-reverse-sources.md）",
-  "status": "準備中。prototype/parts.js の WIP_PARTS・WIP_SERIES に置き、PARTS・PART_SERIES には入れていない（#228 で動きと形を入れてから出す）",
+  "status": "ゲームに入っている（#228）。prototype/parts.js の LEG_SERIES から PARTS・PART_SERIES へ入れる",
   "compare": {
     "dozer": {
       "series": "bulwark",
@@ -154,8 +154,7 @@
             "aim": 0.96,
             "series": "dozer",
             "model": "ドーザーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "dozer2": {
             "weight": 712,
@@ -164,8 +163,7 @@
             "aim": 1,
             "series": "dozer",
             "model": "ドーザーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "dozer3": {
             "weight": 763,
@@ -174,8 +172,7 @@
             "aim": 1.08,
             "series": "dozer",
             "model": "ドーザーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "dozer4": {
             "weight": 813,
@@ -184,8 +181,7 @@
             "aim": 0.96,
             "series": "dozer",
             "model": "ドーザーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "body": {
@@ -197,8 +193,7 @@
             "supply": 1,
             "series": "dozer",
             "model": "ドーザーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "dozer2": {
             "weight": 1425,
@@ -208,8 +203,7 @@
             "supply": 0.65,
             "series": "dozer",
             "model": "ドーザーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "dozer3": {
             "weight": 1456,
@@ -219,8 +213,7 @@
             "supply": 1.1,
             "series": "dozer",
             "model": "ドーザーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "dozer4": {
             "weight": 1518,
@@ -230,8 +223,7 @@
             "supply": 1,
             "series": "dozer",
             "model": "ドーザーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "arms": {
@@ -244,8 +236,7 @@
             "ammo": 1.41,
             "series": "dozer",
             "model": "ドーザーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "dozer2": {
             "weight": 889,
@@ -256,8 +247,7 @@
             "ammo": 1.41,
             "series": "dozer",
             "model": "ドーザーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "dozer3": {
             "weight": 939,
@@ -268,8 +258,7 @@
             "ammo": 1.45,
             "series": "dozer",
             "model": "ドーザーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "dozer4": {
             "weight": 1018,
@@ -280,8 +269,7 @@
             "ammo": 1.41,
             "series": "dozer",
             "model": "ドーザーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "legs": {
@@ -295,7 +283,6 @@
             "series": "dozer",
             "model": "ドーザーⅠ",
             "label": "Ⅰ型",
-            "wip": true,
             "kind": "quad",
             "traits": {
               "spread": 0.8,
@@ -332,7 +319,6 @@
             "series": "dozer",
             "model": "ドーザーⅡ",
             "label": "Ⅱ型",
-            "wip": true,
             "kind": "quad",
             "traits": {
               "spread": 0.8,
@@ -369,7 +355,6 @@
             "series": "dozer",
             "model": "ドーザーⅢ",
             "label": "Ⅲ型",
-            "wip": true,
             "kind": "quad",
             "traits": {
               "spread": 0.8,
@@ -406,7 +391,6 @@
             "series": "dozer",
             "model": "ドーザーⅣ",
             "label": "Ⅳ型",
-            "wip": true,
             "kind": "quad",
             "traits": {
               "spread": 0.74,
@@ -556,8 +540,7 @@
             "aim": 1.12,
             "series": "hopper",
             "model": "ホッパーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "hopper2": {
             "weight": 519,
@@ -566,8 +549,7 @@
             "aim": 1.16,
             "series": "hopper",
             "model": "ホッパーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "hopper3": {
             "weight": 559,
@@ -576,8 +558,7 @@
             "aim": 1.16,
             "series": "hopper",
             "model": "ホッパーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "hopper4": {
             "weight": 549,
@@ -586,8 +567,7 @@
             "aim": 1.25,
             "series": "hopper",
             "model": "ホッパーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "body": {
@@ -599,8 +579,7 @@
             "supply": 1.35,
             "series": "hopper",
             "model": "ホッパーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "hopper2": {
             "weight": 1165,
@@ -610,8 +589,7 @@
             "supply": 1,
             "series": "hopper",
             "model": "ホッパーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "hopper3": {
             "weight": 1217,
@@ -621,8 +599,7 @@
             "supply": 1.6,
             "series": "hopper",
             "model": "ホッパーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "hopper4": {
             "weight": 1227,
@@ -632,8 +609,7 @@
             "supply": 1,
             "series": "hopper",
             "model": "ホッパーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "arms": {
@@ -646,8 +622,7 @@
             "ammo": 1.23,
             "series": "hopper",
             "model": "ホッパーⅠ",
-            "label": "Ⅰ型",
-            "wip": true
+            "label": "Ⅰ型"
           },
           "hopper2": {
             "weight": 741,
@@ -658,8 +633,7 @@
             "ammo": 1.27,
             "series": "hopper",
             "model": "ホッパーⅡ",
-            "label": "Ⅱ型",
-            "wip": true
+            "label": "Ⅱ型"
           },
           "hopper3": {
             "weight": 702,
@@ -670,8 +644,7 @@
             "ammo": 1.27,
             "series": "hopper",
             "model": "ホッパーⅢ",
-            "label": "Ⅲ型",
-            "wip": true
+            "label": "Ⅲ型"
           },
           "hopper4": {
             "weight": 721,
@@ -682,8 +655,7 @@
             "ammo": 1.14,
             "series": "hopper",
             "model": "ホッパーⅣ",
-            "label": "Ⅳ型",
-            "wip": true
+            "label": "Ⅳ型"
           }
         },
         "legs": {
@@ -697,7 +669,6 @@
             "series": "hopper",
             "model": "ホッパーⅠ",
             "label": "Ⅰ型",
-            "wip": true,
             "kind": "reverse",
             "traits": {
               "spread": 1,
@@ -735,7 +706,6 @@
             "series": "hopper",
             "model": "ホッパーⅡ",
             "label": "Ⅱ型",
-            "wip": true,
             "kind": "reverse",
             "traits": {
               "spread": 1,
@@ -773,7 +743,6 @@
             "series": "hopper",
             "model": "ホッパーⅢ",
             "label": "Ⅲ型",
-            "wip": true,
             "kind": "reverse",
             "traits": {
               "spread": 1,
@@ -811,7 +780,6 @@
             "series": "hopper",
             "model": "ホッパーⅣ",
             "label": "Ⅳ型",
-            "wip": true,
             "kind": "reverse",
             "traits": {
               "spread": 1,

@@ -157,10 +157,9 @@ const PART_SERIES = {
   bulwark: { maker: 'gard', name: 'ブルワーク', desc: '重く硬いが遅い', types: ['heavy', 'heavy2', 'heavy3'], set: { text: '装甲 +3%（各部位の被ダメージ −3%）', fx: PART_SLOTS.map(k => [k, 'armor', 'add', -0.03]) } },
 };
 for (const [id, ps] of Object.entries(PART_SERIES)) ps.types.forEach((t, i) => { for (const k of PART_SLOTS) Object.assign(PARTS[k][t], { series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' }); });
-// ---- 準備中の機体：四脚ドーザーと逆脚ホッパー（#227、2026-11-11）----
+// ---- 四脚ドーザーと逆脚ホッパー（性能の定義 #227、ゲームに入れたのは #228。2026-11-11）----
 // 脚はアーケード版に無い本作オリジナルで、脚の数値はオリジナルの仮置き（オーナーの了承 2026-11-10。採用記録 research/parts/types/leg-kinds.json）。
-// 動きと形をゲームに入れるのは #228。それまでは PARTS に入れず、この表に置く（機体カスタマイズ・Bot・保存・オンラインの一覧に出ない）。
-// #228 で PARTS と PART_SERIES へ移す。
+// 下の LEG_SERIES から PARTS と PART_SERIES へ入れる（PART_SERIES の kind は脚の種類。profile はホバーの形の印なので付けない）。
 // LEG_KIND_TRAITS は脚の種類ごとの特性の基準。型ごとの traits は、基準に型の差を重ねた物（動きは kind ではなく型の traits を読む）。
 //   spread：射撃のばらつきの倍率、recoil：反動の倍率（腕の反動吸収に掛ける）、stagger：よろけ・ダウンの閾値の倍率、hoverCost：空中で浮くブースト消費の倍率
 //   jump：ジャンプの初速の倍率（高さは2乗。1.15 で約6.8m → 約9m）、landSpeed：着地硬直が出る落下の速さ（二脚は LAND_SPEED 28）、landTime：着地硬直の長さの倍率
@@ -178,7 +177,7 @@ const LEG_KIND_TRAITS = {
 // ac は AC 原表（並びは HOVER_PART_FIELDS：頭＝重量・装甲・射撃補正・ロックオン、胴＝重量・装甲・ブースター・SP供給率、腕＝重量・装甲・反動吸収・リロード・武器変更・予備弾数）。
 // 採用記録：research/parts/types/leg-kinds.json、原表：research/arcade/parts/quad-reverse-sources.md。
 // 脚はオリジナル（Ⅰ基準、Ⅱ〜Ⅳ は1つ良くして1つ悪くする、各値は Ⅰ型の ±10% くらいまで）。特別な動きは脚の traits だけ。
-const WIP_SERIES = {
+const LEG_SERIES = {
   // ドーザー：重量級の四脚。止まって当てる移動砲台。形は重機型（media/legs-proto/）
   // 頭・胴・腕の原表はランドバルク Ⅰ型・Ⅱ型・Ⅳ型・AT：https://w.atwiki.jp/borderbreak/pages/501.html （頭 https://w.atwiki.jp/borderbreak/pages/495.html ）
   // セットボーナスも原表（重量耐性UP +150）
@@ -217,7 +216,7 @@ const WIP_SERIES = {
     ] },
 };
 // AC 原表の1行を本作の値にする（PART_VARIANTS と同じ桁の丸め）
-const wipFromAc = (slot, row) => {
+const legSeriesFromAc = (slot, row) => {
   const p = { ...PARTS[slot].standard };
   HOVER_PART_FIELDS[slot].forEach((field, j) => {
     const digits = field === 'weight' ? 0 : ['lock', 'boost'].includes(field) ? 1 : 4;
@@ -225,21 +224,22 @@ const wipFromAc = (slot, row) => {
   });
   return p;
 };
-// WIP_PARTS[部位][型のキー]：PARTS と同じ形（series・model・label 付き）。脚は kind と traits も持つ。WIP_LEGS は WIP_PARTS.legs の別名
-const WIP_PARTS = { head: {}, body: {}, arms: {}, legs: {} };
-for (const [id, ps] of Object.entries(WIP_SERIES)) ps.types.forEach((key, i) => {
-  for (const slot of PART_SLOTS) {
-    const { traits, ...stats } = slot === 'legs' ? ps.legs[i] : wipFromAc(slot, ps.ac[slot][i]);
-    const p = { ...stats, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型', wip: true };
-    if (slot === 'legs') Object.assign(p, { kind: ps.kind, traits: { ...LEG_KIND_TRAITS[ps.kind], ...traits } });
-    WIP_PARTS[slot][key] = p;
-  }
-});
-const WIP_LEGS = WIP_PARTS.legs;
+// PARTS[部位][型のキー] と PART_SERIES へ入れる。脚は kind と traits も持つ（traits は種類の基準に型の差を重ねた物）
+for (const [id, ps] of Object.entries(LEG_SERIES)) {
+  PART_SERIES[id] = { maker: ps.maker, name: ps.name, kind: ps.kind, desc: ps.desc, types: ps.types, set: ps.set };
+  ps.types.forEach((key, i) => {
+    for (const slot of PART_SLOTS) {
+      const { traits, ...stats } = slot === 'legs' ? ps.legs[i] : legSeriesFromAc(slot, ps.ac[slot][i]);
+      const p = { ...stats, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' };
+      if (slot === 'legs') Object.assign(p, { kind: ps.kind, traits: { ...LEG_KIND_TRAITS[ps.kind], ...traits } });
+      PARTS[slot][key] = p;
+    }
+  });
+}
 // 塗装。'team' はチームの色。ほかの色に塗ってもチームの色は細い帯に残る（Botはチームの色のまま）
 const PAINTS = [
   { id: 'team', name: 'チームの色', color: null }, { id: 'ash', name: 'アッシュ', color: 0xaebcc8 }, { id: 'sand', name: 'サンド', color: 0xd2b782 },
   { id: 'forest', name: 'フォレスト', color: 0x648d79 }, { id: 'violet', name: 'バイオレット', color: 0x9c82c7 }, { id: 'crimson', name: 'クリムゾン', color: 0xc76363 },
 ];
-return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS, LEG_KIND_TRAITS, WIP_SERIES, WIP_PARTS, WIP_LEGS };
+return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS, LEG_KIND_TRAITS, LEG_SERIES };
 }

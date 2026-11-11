@@ -48,7 +48,8 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             // 腰ポッド24面＋肩口8面−撤去した背面箱12面＝20三角形。
             const joints = model.rig ? 10 * 2 + 4 + 10 + 20 / 12 : 0;
             const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60) + joints;
-            check(boxes <= budget, label + ': 箱数が描画予算を超えた');
+            // 四脚は脚が4本なので、脚2本ぶん（30箱）を足す（#228）
+            check(boxes <= budget + (g.PARTS.legs[cfg.legs].kind === 'quad' ? 30 : 0), label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);
             if (slots.every(slot => cfg[slot] === head)) counts[head] = boxes;
             for (const [key, position] of Object.entries(anchors)) check(model[key].position.toArray().every((v, i) => v === position[i]), label + ': 武器の取付位置 ' + key);

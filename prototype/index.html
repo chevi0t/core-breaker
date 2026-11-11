@@ -3748,6 +3748,8 @@ function hoverPrimitive(w,h,d,shape){
 // 外装だけの寸法表。接続骨・性能・被弾形状は既存のものを使う。
 const MECH_SILHOUETTES = {
   hound:   {chest:1.86,depth:1.12,waist:.84,shoulder:.68,leg:.63,head:.86,taper:.62,sweep:.10},
+  dozer:   {chest:2.10,depth:1.36,waist:1.06,shoulder:.86,leg:.80,head:1.0,taper:.84,sweep:.04}, // #228 重量級の四脚のシリーズ
+  hopper:  {chest:1.50,depth:.92,waist:.62,shoulder:.45,leg:.45,head:.68,taper:.50,sweep:.24}, // #228 軽量級の逆脚のシリーズ
   swift:   {chest:1.46,depth:.90,waist:.62,shoulder:.43,leg:.43,head:.67,taper:.48,sweep:.22},
   harrier: {chest:1.56,depth:.94,waist:.68,shoulder:.49,leg:.47,head:.72,taper:.55,sweep:.30},
   prism:   {chest:1.70,depth:1.04,waist:.78,shoulder:.61,leg:.57,head:.84,taper:.72,sweep:.02},
@@ -3758,7 +3760,7 @@ const MECH_SILHOUETTES = {
   anchor:  {chest:2.12,depth:1.38,waist:1.08,shoulder:.86,leg:.84,head:1.0,taper:.82,sweep:.08}
 };
 // 外肩の装甲端に合わせる小さな噴射口。
-function shoulderJetX(series){return ['bulwark','bastion','anchor'].includes(series)?1.94:1.425+MECH_SILHOUETTES[series].shoulder*.5;}
+function shoulderJetX(series){return ['bulwark','bastion','anchor','dozer'].includes(series)?1.94:1.425+MECH_SILHOUETTES[series].shoulder*.5;}
 function boosterNozzle(w,h,shape){
   const pos=[],v=(i,r)=>[Math.cos(i*Math.PI/3)*w*r,Math.sin(i*Math.PI/3)*h*r,0],tri=(a,b,c)=>pos.push(...a,...b,...c);
   for(let i=1;i<5;i++)tri(v(0,.5),v(i,.5),v(i+1,.5));
@@ -3801,7 +3803,59 @@ const MECH_OUTLINES={
   tower:[[-.32,.5],[.32,.5],[.5,.10],[.25,-.5],[-.25,-.5],[-.5,.10]],
   slab:[[-.5,.28],[-.35,.5],[.35,.5],[.5,.28],[.5,-.5],[-.5,-.5]]
 };
+// ドーザー・ホッパーの頭・胴・肩（#228。下描きは media/legs-proto/body_shapes.js）。O は MECH_OUTLINES
+const SERIES_BODY_SHAPES={
+  dozer:{
+    // 頭：低い箱の上に、左右へ張り出した測距儀（両端が目）
+    head(a,p,O){const h=(w,hh,d,c,x,y,z,shape={},tilt=0)=>a(w,hh,d,c,x,y,z,'head',shape,tilt);
+      h(.30,.20,.34,'frame',0,3.3,.05,{bottom:1});
+      h(1.02,.34,.92,'armor',0,3.55,.08,{outline:O.slab,rake:.05});
+      h(1.56,.15,.24,'metal',0,3.75,-.14,{bottom:.85});
+      for(const sd of[-1,1]){h(.24,.21,.30,'armor',sd*.70,3.75,-.14,{bottom:.8});h(.15,.12,.035,'visor',sd*.70,3.75,-.31,{bottom:1});}
+      h(.44,.19,.16,'frame',0,3.55,-.43,{bottom:.8});h(.50,.085,.20,'trim',0,3.40,-.22,{bottom:1});
+      h(.12,.30,.12,'metal',.34,3.79,.34,{bottom:1});
+    },
+    // 胸：砲塔のような八角の箱、下の防盾、前の2枚の傾いた装甲
+    chest(a,p,O){const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
+      c(2.14,.62,1.34,'armor',0,2.92,.08,{outline:O.octagon,rake:.04});
+      c(1.46,.42,.96,'metal',0,2.56,.12,{bottom:.84});
+      for(const sd of[-1,1])c(.74,.46,.20,'armor',sd*.50,2.88,-.66,{bottom:.7,sweep:-.10},sd*-.10);
+      c(.30,.34,.16,'frame',0,2.86,-.66,{bottom:1});c(.56,.09,.06,'trim',0,3.08,-.70,{bottom:1});
+      c(1.60,.12,1.0,'armor',0,3.26,.10,{bottom:.9});
+    },
+    // 肩：厚い板の肩当てと、外側の当て板
+    shoulder(a,p,sd,O){const bone='arm'+(sd<0?'L':'R');
+      a(.90,.46,1.14,'armor',sd*1.47,3.02,.06,bone,{outline:O.slab,rake:.03},0);
+      a(.16,.70,.92,'metal',sd*1.87,2.74,.08,bone,{bottom:.85});
+      a(.50,.09,.10,'trim',sd*1.47,3.06,-.56,bone,{bottom:1});
+    },
+  },
+  hopper:{
+    // 頭：前へ突き出たくさび形、後ろへ流れるとさか
+    head(a,p,O){const h=(w,hh,d,c,x,y,z,shape={},tilt=0)=>a(w,hh,d,c,x,y,z,'head',shape,tilt);
+      h(.30,.20,.34,'frame',0,3.3,.05,{bottom:1});
+      h(.52,.34,.92,'armor',0,3.60,-.04,{outline:O.keel,rake:.22});
+      h(.40,.09,.14,'frame',0,3.60,-.44,{bottom:.8});h(.34,.055,.05,'visor',0,3.61,-.52,{bottom:1});
+      h(.10,.36,.62,'trim',0,3.76,.22,{top:.3,bottom:1,sweep:.26});
+      for(const sd of[-1,1])h(.13,.20,.44,'metal',sd*.31,3.55,.12,{bottom:.6},sd*-.2);
+    },
+    // 胸：前へ傾いた翼形の板と細い芯、背の小さな尾
+    chest(a,p,O){const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
+      c(1.44,.62,.86,'armor',0,2.90,.02,{outline:O.wing,rake:.20});
+      c(.48,.56,.52,'metal',0,2.62,.04,{bottom:.42,sweep:-.14});
+      for(const sd of[-1,1])c(.22,.44,.15,'metal',sd*.38,2.80,-.36,{bottom:.3},sd*-.22);
+      c(.86,.08,.08,'trim',0,3.00,-.42,{bottom:.75});
+      c(.18,.26,.5,'armor',0,3.04,.52,{top:.4,bottom:1,sweep:.3});
+    },
+    // 肩：後ろへ流れる細い羽根
+    shoulder(a,p,sd,O){const bone='arm'+(sd<0?'L':'R');
+      a(.45,.36,1.06,'armor',sd*1.41,2.99,.18,bone,{top:.85,bottom:.5,sweep:.30},sd*-.20);
+      a(.12,.30,.5,'trim',sd*1.60,2.90,.34,bone,{top:.4,bottom:1,sweep:.2},sd*-.2);
+    },
+  },
+};
 function seriesHead(a,id,p){
+  if(SERIES_BODY_SHAPES[id])return SERIES_BODY_SHAPES[id].head(a,p,MECH_OUTLINES);
   const h=(w,height,d,c,x,y,z,shape={},tilt=0)=>a(w,height,d,c,x,y,z,'head',shape,tilt);
   h(.30,.20,.34,'frame',0,3.3,.05,{bottom:1});
   if(id==='hound'){
@@ -3850,6 +3904,7 @@ function seriesHead(a,id,p){
   }
 }
 function seriesChest(a,id,p){
+  if(SERIES_BODY_SHAPES[id])return SERIES_BODY_SHAPES[id].chest(a,p,MECH_OUTLINES);
   const c=(w,h,d,col,x,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,'chest',shape,tilt);
   if(id==='hound'){
     c(p.chest,.66,p.depth,'armor',0,2.83,.02,{facet:true,top:1,bottom:p.taper,depth:.65,sweep:p.sweep});
@@ -3892,6 +3947,7 @@ function seriesChest(a,id,p){
   }
 }
 function seriesShoulder(a,id,p,sd){
+  if(SERIES_BODY_SHAPES[id])return SERIES_BODY_SHAPES[id].shoulder(a,p,sd,MECH_OUTLINES);
   const bone='arm'+(sd<0?'L':'R'),heavy=['bulwark','bastion','anchor'].includes(id),x=sd*(heavy?1.47:1.41);
   const c=(w,h,d,col,y,z,shape={},tilt=0)=>a(w,h,d,col,x,y,z,bone,shape,tilt*sd);
   if(id==='hound')c(p.shoulder,.52,.77,'armor',2.99,.03,{facet:true,top:.76,bottom:1,depth:.8,sweep:.10},-.12);
@@ -3904,13 +3960,79 @@ function seriesShoulder(a,id,p,sd){
   else if(id==='skimmer')c(.61,.29,1.15,'armor',3.04,.13,{facet:true,top:.8,bottom:1,depth:.6,sweep:.20});
   else if(id==='anchor'){c(.86,.85,.94,'armor',2.77,.12,{outline:MECH_OUTLINES.keel,rake:.12},-.08);a(.15,.68,.72,'metal',sd*1.85,2.73,.13,bone,{top:1,bottom:.5});}
 }
+// ---- 四脚と逆脚の脚（#228。下描きは media/legs-proto/leg_shapes.js。オーナーの決定 2026-11-11：四脚は重機型、逆脚は2節）----
+// 関節の基準位置（機体の基準姿勢、前は −z）。h＝付け根、k＝膝、a＝足首。骨（makeMechRig）と形（legKindParts）で同じ値を使う。
+// 四脚の脚の名前は FL・FR・BL・BR（前後×左右）。逆脚は二脚と同じ L・R。
+const QUAD_LEGS=[['FL',-1,-1],['FR',1,-1],['BL',-1,1],['BR',1,1]], QUAD_FOOT=1.04, QUAD_BRACE=[1.32,1.3], QUAD_L=[.82,1.16], REVERSE_L=[1,1.14], REVERSE_FOOT=[.64,-.08];
+function legKnee(h,a,L1,L2,pole){
+  const d=a.clone().sub(h),D=Math.min(d.length(),L1+L2-.02),u=d.clone().normalize(),x=(L1*L1-L2*L2+D*D)/(2*D),y=Math.sqrt(Math.max(0,L1*L1-x*x));
+  const p=pole.clone().addScaledVector(u,-pole.dot(u)).normalize();return h.clone().addScaledVector(u,x).addScaledVector(p,y);
+}
+function legKindJoints(kind){
+  const V=(x,y,z)=>new T.Vector3(x,y,z),out={};
+  if(kind==='quad')for(const [q,sx,sz] of QUAD_LEGS){
+    const yaw=Math.atan2(sx*.56,sz*.52),o=V(Math.sin(yaw),0,Math.cos(yaw)),h=V(sx*.62,1.5,sz*.52),a=V(sx*QUAD_FOOT,.32,sz*QUAD_FOOT);
+    out[q]={h,a,k:legKnee(h,a,QUAD_L[0],QUAD_L[1],V(o.x*.5,1,o.z*.5)),yaw,out:o,sx,sz};
+  }else for(const [q,sx] of [['L',-1],['R',1]]){
+    const h=V(sx*.6,1.8,.02),a=V(sx*REVERSE_FOOT[0],.3,REVERSE_FOOT[1]);
+    out[q]={h,a,k:legKnee(h,a,REVERSE_L[0],REVERSE_L[1],V(0,-.1,1)),sx};
+  }
+  return out;
+}
+// emit(形, 色の名前, 骨の名前)。hit は被弾用の簡単な形（脚の太さをそのまま箱にした物。四脚は横に広い）
+function legKindParts(kind,emit,hit=false){
+  const V=(x,y,z)=>new T.Vector3(x,y,z),lerp=(a,b,t)=>a.clone().lerp(b,t),J=legKindJoints(kind);
+  const basis=(a,b,fwd)=>{const y=b.clone().sub(a).normalize(),x=new T.Vector3().crossVectors(y,fwd);if(x.lengthSq()<1e-6)x.set(1,0,0);x.normalize();return{x,y,z:new T.Vector3().crossVectors(x,y)};};
+  const seg=(bone,a,b,w,d,c,fwd,o={})=>{const B=basis(a,b,fwd),geo=new T.BoxGeometry(w,a.distanceTo(b),d);
+    if(o.taper){const p=geo.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)>0){p.setX(i,p.getX(i)*o.taper);p.setZ(i,p.getZ(i)*o.taper);}geo.computeVertexNormals();}
+    geo.applyMatrix4(new T.Matrix4().makeBasis(B.x,B.y,B.z).setPosition(lerp(a,b,.5).addScaledVector(B.z,o.out||0)));emit(geo,c,bone);};
+  const box=(bone,w,h,d,p,c,pitch=0)=>{const geo=new T.BoxGeometry(w,h,d);geo.rotateX(pitch);geo.translate(p.x,p.y,p.z);emit(geo,c,bone);};
+  const cyl=(bone,r,len,p,c,axis='x',yaw=0,r2=r)=>{const geo=new T.CylinderGeometry(r2,r,len,6);if(axis==='x')geo.rotateZ(Math.PI/2);geo.rotateY(yaw);geo.translate(p.x,p.y,p.z);emit(geo,c,bone);};
+  const foot=(bone,a,yaw,parts)=>{for(const [w,h,d,x,y,z,c,px=0] of parts){const geo=new T.BoxGeometry(w,h,d);geo.rotateX(px);geo.translate(x,y,z);geo.rotateY(yaw);geo.translate(a.x,a.y,a.z);emit(geo,c,bone);}};
+  const dn=V(0,-1,0),fwd=V(0,0,-1);
+  if(kind==='quad'){
+    if(hit)box('hip',1.42,.62,1.5,V(0,1.56,0),'frame');
+    else{
+      // 胴の下の台：芯、上の装甲板、前の張り出し、後ろの短い箱、下の旋回台
+      box('hip',1.16,.44,1.24,V(0,1.5,0),'frame');box('hip',1.42,.18,1.0,V(0,1.76,0),'armor');box('hip',1.2,.1,.8,V(0,1.88,0),'armor');
+      box('hip',.96,.34,.3,V(0,1.5,-.74),'armor',-.25);box('hip',.7,.07,.3,V(0,1.6,-.79),'trim',-.25);
+      box('hip',.9,.3,.24,V(0,1.52,.7),'armor',.25);box('hip',.6,.18,.1,V(0,1.5,.84),'metal');
+      for(const sx of[-1,1])box('hip',.16,.3,.9,V(sx*.66,1.52,0),'armor');
+      cyl('hip',.46,.24,V(0,1.18,0),'metal','y',0,.3);
+    }
+    for(const [q,{h,k,a,yaw,out}] of Object.entries(J)){
+      const th='thigh'+q,sh='shin'+q,ft='foot'+q;
+      if(hit){seg(th,h,k,.56,.5,'frame',dn);seg(sh,k,a,.64,.64,'frame',out);foot(ft,a,yaw,[[.7,.3,.9,0,-.16,0,'frame']]);continue;}
+      cyl(th,.26,.34,h.clone().addScaledVector(out,.06),'metal','x',yaw+Math.PI/2);
+      seg(th,h,k,.34,.36,'frame',dn);seg(th,lerp(h,k,.08),lerp(h,k,1.02),.56,.2,'armor',dn,{out:-.2,taper:.9});seg(th,lerp(h,k,.3),lerp(h,k,.42),.6,.22,'trim',dn,{out:-.21});
+      cyl(sh,.3,.72,k,'metal','x',yaw);
+      seg(sh,k,a,.3,.3,'frame',out);seg(sh,lerp(k,a,.16),lerp(k,a,.94),.6,.6,'armor',out,{taper:1.12});seg(sh,lerp(k,a,.3),lerp(k,a,.4),.66,.66,'trim',out);
+      seg(sh,lerp(k,a,.42),lerp(k,a,.9),.46,.14,'metal',out,{out:.36});
+      foot(ft,a,yaw,[[.7,.16,.76,0,-.22,0,'metal'],[.5,.16,.5,0,-.08,0,'frame'],[.52,.18,.28,0,-.17,.45,'armor',-.35],[.46,.14,.2,0,-.2,-.42,'frame',.3]]);
+    }
+    return;
+  }
+  if(hit)box('hip',.9,.26,.5,V(0,1.72,.04),'frame');
+  else{box('hip',.9,.26,.5,V(0,1.72,.04),'frame');box('hip',.5,.2,.2,V(0,1.7,-.26),'armor',-.2);box('hip',.36,.05,.2,V(0,1.76,-.29),'trim',-.2);}
+  for(const [q,{h,k,a}] of Object.entries(J)){
+    const th='thigh'+q,sh='shin'+q,ft='foot'+q;
+    if(hit){seg(th,h,k,.6,.62,'frame',fwd);seg(sh,k,a,.38,.34,'frame',fwd);foot(ft,a,0,[[.42,.26,1.3,0,-.16,-.36,'frame']]);continue;}
+    cyl(th,.25,.5,h,'metal');
+    seg(th,h,k,.34,.4,'frame',fwd);seg(th,lerp(h,k,-.06),lerp(h,k,.5),.6,.66,'armor',fwd,{taper:.92});seg(th,lerp(h,k,.46),lerp(h,k,.86),.52,.54,'armor',fwd,{taper:.86});
+    seg(th,lerp(h,k,.3),lerp(h,k,.4),.64,.7,'trim',fwd);seg(th,lerp(h,k,.2),lerp(h,k,.62),.3,.2,'metal',fwd,{out:-.4});
+    cyl(sh,.26,.62,k,'metal');seg(sh,lerp(k,a,-.1),lerp(k,a,.16),.4,.16,'armor',fwd,{out:-.26});
+    seg(sh,k,a,.22,.26,'frame',fwd);seg(sh,lerp(k,a,.14),lerp(k,a,.8),.36,.14,'armor',fwd,{out:.18,taper:.8});seg(sh,lerp(k,a,.34),lerp(k,a,.42),.4,.16,'trim',fwd,{out:.19});
+    cyl(ft,.17,.46,a,'metal');
+    foot(ft,a,0,[[.4,.12,1.0,0,-.2,-.42,'metal'],[.32,.12,.44,0,-.1,-.5,'armor',-.2],[.24,.05,.2,0,-.05,-.36,'trim',-.2],[.15,.1,.24,-.13,-.2,-1.0,'frame'],[.15,.1,.24,.13,-.2,-1.0,'frame'],[.2,.12,.5,0,-.15,.3,'frame',.35]]);
+  }
+}
 function reworkMechParts(boxes,series,C) {
   const add=(slot,w,h,d,c,x,y,z,bone,shape={},tilt=0,pitch=0)=>boxes[slot].push([w,h,d,C[c],x,y,z,tilt,pitch,bone,{kind:'plate',...shape}]);
   for(const slot of PART_SLOTS){
     // 承認済みの膝下・外側スカート・噴射口は寸法も頂点も変えない。
-    if(slot==='legs'&&PART_SERIES[series.legs].profile)continue;
+    if(slot==='legs'&&(PART_SERIES[series.legs].profile||PART_SERIES[series.legs].kind))continue;
     boxes[slot]=[];
-    const id=series[slot],p=MECH_SILHOUETTES[id],heavy=['bulwark','bastion','anchor'].includes(id),light=['swift','harrier','wisp'].includes(id);
+    const id=series[slot],p=MECH_SILHOUETTES[id],heavy=['bulwark','bastion','anchor','dozer'].includes(id),light=['swift','harrier','wisp','hopper'].includes(id);
     const a=(w,h,d,c,x,y,z,bone,shape={},tilt=0,pitch=0)=>add(slot,w,h,d,c,x,y,z,bone,shape,tilt,pitch);
     if(slot==='body'){
       a(p.waist,.40,.68,'frame',0,1.94,0,'hip',{bottom:.78});
@@ -3954,12 +4076,13 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   const C = { armor: paint.color ?? color, frame: 0x26323d, metal: 0x71828e, trim: color, visor: 0xbdf5ff };
   const series = Object.fromEntries(PART_SLOTS.map(k => [k, PARTS[k][cfg[k]].series]));
   const W = k => series[k] === 'swift' ? 0.84 : series[k] === 'harrier' ? 0.9 : ['bulwark','bastion'].includes(series[k]) ? 1.12 : 1;
-  const boxes = { head: [], body: [], arms: [], legs: [] }, hoverHitBoxes = [];
+  const boxes = { head: [], body: [], arms: [], legs: [] }, hoverHitBoxes = [], legKind = PARTS.legs[cfg.legs].kind, shapedLegs = legKind === 'quad' || legKind === 'reverse';
   const part = (slot, w, h, d, c, x, y, z, tilt = 0, pitch = 0, bone = null, shape = null) => boxes[slot].push([w, h, d, C[c], x, y, z, tilt, pitch, bone, shape]);
   const lw = W('legs'), bw = W('body'), hw = W('head'), aw = W('arms');
   // 接続する骨格と足裏は共通。薄い斜めの装甲、標準の面構成、厚い箱型の装甲で見分ける。
   for (const sd of [-1, 1]) {
-    if (PART_SERIES[series.legs].profile) {
+    if (shapedLegs) { /* 四脚・逆脚の脚は下で legKindParts から作る */ }
+    else if (PART_SERIES[series.legs].profile) {
       const start = boxes.legs.length; // 従来の形は被弾用に残す。描画は新しいホバー脚へ。
       const heavy=PART_SERIES[series.legs].profile==='heavy', light=PART_SERIES[series.legs].profile==='light', w=heavy ? .93 : light ? .47 : .7;
       part('legs',.38,.75,.46,'frame',sd*.58,1.43,.04);
@@ -4146,6 +4269,12 @@ function buildMech(color, cfg = MECH_DEFAULT) {
   }
   const legacyBoxes = Object.fromEntries(PART_SLOTS.map(slot => [slot, boxes[slot].slice()]));
   reworkMechParts(boxes,series,C);
+  if (shapedLegs) {
+    // 形は関節の位置から直接作る（shape.kind 'geo'）。被弾用は太さだけ合わせた箱（hoverHitBoxes と同じ扱い）
+    boxes.legs = [];
+    legKindParts(legKind, (geo, c, bone) => boxes.legs.push([0, 0, 0, C[c], 0, 0, 0, 0, 0, bone, { kind: 'geo', geo }]));
+    legKindParts(legKind, (geo, c, bone) => hoverHitBoxes.push([0, 0, 0, C[c], 0, 0, 0, 0, 0, bone, { kind: 'geo', geo }]), true);
+  }
   const rig = makeMechRig(PARTS.legs[cfg.legs].kind,series.arms), skin = new T.MeshLambertMaterial({ vertexColors: true });
   rig.legKind=PARTS.legs[cfg.legs].kind || 'biped';
   const armorMesh = (slot, records, hitOnly = false) => {
@@ -4163,7 +4292,7 @@ function buildMech(color, cfg = MECH_DEFAULT) {
         : slot === 'legs' ? (y < .36 ? 'foot' : y < 1.15 ? 'shin' : 'thigh') + side
         : (y < 1.4 ? 'hand' : y < 2.5 ? 'forearm' : 'arm') + side);
       const box = (height, offset, name) => {
-        const b = shape?.kind?.startsWith('nozzle') ? boosterNozzle(w,height,shape) : shape?.kind === 'plate' ? mechPlate(w,height,d,shape) : shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); if(shape?.booster){const colors=[],base=new T.Color(c),end=new T.Color(C.frame),n=b.attributes.normal;for(let i=0;i<n.count;i++){const color=Math.abs(n.getZ(i))>.8?end:base;colors.push(color.r,color.g,color.b);}b.setAttribute('color',new T.Float32BufferAttribute(colors,3));} b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
+        const b = shape?.kind === 'geo' ? shape.geo.clone() : shape?.kind?.startsWith('nozzle') ? boosterNozzle(w,height,shape) : shape?.kind === 'plate' ? mechPlate(w,height,d,shape) : shape ? hoverPrimitive(w, height, d, shape) : new T.BoxGeometry(w, height, d); if(shape?.booster){const colors=[],base=new T.Color(c),end=new T.Color(C.frame),n=b.attributes.normal;for(let i=0;i<n.count;i++){const color=Math.abs(n.getZ(i))>.8?end:base;colors.push(color.r,color.g,color.b);}b.setAttribute('color',new T.Float32BufferAttribute(colors,3));} b.translate(0, offset, 0); b.rotateX(pitch); b.rotateZ(tilt); b.translate(x, y, z); merge(b, c, name);
       };
       // 下端を含むブーツは足首側に残す。元の箱を同じ面で割るので、直立時の外形は変わらない。
       if (bone === 'shin' + side && !shape) {
@@ -4288,10 +4417,17 @@ function makeMechRig(kind = 'biped', arms = 'hound') {
     bones[name] = { node, rest, home: node.position.clone(), axis: node.position.clone().normalize(), length: node.position.length(), slot, joint, bind: null, matrix: new T.Matrix4(), previous: new Float64Array(16), changed: true };
   };
   add('hip', null, [0, 1.85, 0], 'body'); add('chest', 'hip', [0, 2.15, 0], 'body'); add('head', 'chest', [0, 3.3, .05], 'head');
+  const shaped = kind === 'quad' || kind === 'reverse';
+  // 四脚・逆脚：関節の軸受は形に入っているので joint は 0（自動の軸受を足さない）
+  if (shaped) for (const [q, { h, k, a }] of Object.entries(legKindJoints(kind))) {
+    add('thigh' + q, 'hip', h.toArray(), 'legs'); add('shin' + q, 'thigh' + q, k.toArray(), 'legs'); add('foot' + q, 'shin' + q, a.toArray(), 'legs');
+  }
   for (const [side, sd] of [['L', -1], ['R', 1]]) {
+    if (!shaped) {
     add('thigh' + side, 'hip', [sd * .58, 1.8, .04], 'legs', .2);
     add('shin' + side, 'thigh' + side, [sd * .62, .98, .04], 'legs', .2);
     add('foot' + side, 'shin' + side, [sd * .62, .3, .04], 'legs', .17);
+    }
     if (kind === 'hover') add('brake' + side, 'foot' + side, [sd * .62, .85, .35], 'legs');
     add('arm' + side, 'chest', [sd * 1.28, 3.05, 0], 'arms', .22);
     add('forearm' + side, 'arm' + side, [sd * 1.48, 2.12, -.1], 'arms', .18);
@@ -4306,7 +4442,7 @@ function makeMechRig(kind = 'biped', arms = 'hound') {
 // 関節計算は直列で行う。作業用のベクトル・回転・行列は全機で再利用する。
 const poseZero = new T.Vector3(), poseTarget = new T.Vector3(), poseDir = new T.Vector3(), poseAcross = new T.Vector3(), poseElbow = new T.Vector3(), poseLocal = new T.Vector3();
 const poseParentQ = new T.Quaternion(), poseInverseQ = new T.Quaternion(), poseChestQ = new T.Quaternion(), poseAimQ = new T.Quaternion(), poseEuler = new T.Euler(), poseChest = new T.Matrix4();
-const poseHands = [new T.Vector3(), new T.Vector3()], poseFoot = new T.Vector3(), poseKnee = new T.Vector3(0, 0, -1), posePole = new T.Vector3();
+const poseHands = [new T.Vector3(), new T.Vector3()], poseFoot = new T.Vector3(), poseKnee = new T.Vector3(0, 0, -1), poseKneeBack = new T.Vector3(0, -.1, 1), posePole = new T.Vector3();
 const poseSides = ['L', 'R'], gunRightGrip = [0, -.28, .2], gunLeftGrip = [-.3, -.22, -.15], gunHeavyGrip = [-.4, -.2, -.15];
 function posePoint(out, x, y, z) { return out.set(x, y, z).applyMatrix4(poseChest); }
 function poseGrip(out, mesh, grip) { return out.fromArray(grip).applyQuaternion(mesh.quaternion).add(mesh.position); }
@@ -4412,7 +4548,7 @@ function mechPose(u, dt) {
   r.move += ((walking ? 1 : 0) - r.move) * (1 - Math.exp(-dt * 18));
   if (walking) {
     const before = Math.floor(r.phase / Math.PI);
-    r.phase += Math.min(distance, dt * 9) / 3.6 * Math.PI * 2;
+    r.phase += Math.min(distance, dt * 9) / (r.legKind === 'quad' ? 2.4 : 3.6) * Math.PI * 2; // 四脚は歩幅が短く、歩調が速い
     if (Math.floor(r.phase / Math.PI) > before) movementStep(u, Math.floor(r.phase / Math.PI) % 2 ? -1 : 1);
   }
   const yaw = u.yaw || 0, cs = Math.cos(yaw), sn = Math.sin(yaw), speed = Math.max(1, Math.hypot(velocity.x, velocity.z));
@@ -4486,11 +4622,31 @@ function mechPose(u, dt) {
       if(action.id==='kick' && sd===1){foot.z=-1.65*actionPose;foot.y=.3+1.3*actionPose;}
       else if(action.id==='tackle'){foot.z+=(sd===1?-.7:.55)*actionPose;foot.x+=sd*.1*actionPose;foot.y=.3;}
     }
-    limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, poseKnee);
+    if (r.legKind === 'reverse') {
+      // 逆脚：膝は後ろへ曲がる。空中では脚を伸ばして後ろへ流し、着地に備える
+      foot.z -= .12;
+      if (!grounded && !action) { foot.y = sd === 1 ? .1 : -.02; foot.z = sd === 1 ? .34 : .5; }
+    }
+    if (r.legKind !== 'quad') limbPose(r, 'thigh' + s, 'shin' + s, 'foot' + s, foot, r.legKind === 'reverse' ? poseKneeBack : poseKnee);
     if (floating && B['brake'+s]) B['brake'+s].node.rotation.z=hoverActive(u) && !grounded && velocity.y<=0 && u.boost>0 && !u.overheat && !u.charging ? sd*.65 : 0;
     limbPose(r, 'arm' + s, 'forearm' + s, 'hand' + s, poseHands[i], posePole.set(sd, -.3, .8));
     const held = cur.type === 'sword' && (s === 'R' ? u.blade : u.blade2);
     if (held?.visible) B['hand' + s].node.quaternion.multiply(held.quaternion);
+  }
+  if (r.legKind === 'quad') {
+    // 四脚：対角の2本ずつで歩く。踏ん張り（しゃがみ）は足を外へ広げる。空中では脚を畳む
+    const brace = Math.min(1, r.crouch / ACTIONS.crouch.lower), fx = QUAD_FOOT + (QUAD_BRACE[0] - QUAD_FOOT) * brace, fz = QUAD_FOOT + (QUAD_BRACE[1] - QUAD_FOOT) * brace;
+    for (const [q, sx, sz] of QUAD_LEGS) {
+      const phase = r.phase + (sx * sz > 0 ? 0 : Math.PI), stride = Math.cos(phase) * .36 * r.move, foot = poseFoot.set(sx * fx + side * stride * .6, .32, sz * fz - forward * stride);
+      if (!grounded) foot.set(sx * .96, .62, sz * .94);
+      else {
+        foot.y += Math.max(0, Math.sin(phase)) * .2 * r.move;
+        if (dash) foot.z += .16;
+        if (action?.id === 'kick' && q === 'FR') { foot.z = -fz - .9 * actionPose; foot.y = .32 + .9 * actionPose; foot.x = .7; }
+        else if (action?.id === 'tackle') foot.z += (sz < 0 ? -.2 : .25) * actionPose;
+      }
+      limbPose(r, 'thigh' + q, 'shin' + q, 'foot' + q, foot, posePole.set(sx * .28, 1, sz * .26));
+    }
   }
   // 噴射口は親の傾きを打ち消すジンバル。浮上中だけ腰の後口を下へ向ける。
   for(const side of poseSides)for(const name of ['boostWaist','boostShoulder']){
@@ -4735,15 +4891,19 @@ const ACTIONS = Object.freeze({
   kick: { name: '蹴り', dashDistance: .5, time: .35, reach: 3, angle: Math.PI / 2, windup: .2, boost: 15, damage: 800, staggerTime: 1.35, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .6, landRecovery: .6, cooldown: 1.8 },
 });
 const DEFAULT_ACTION = 'crouch';
-// #228 は脚の kind に対応する行を足す。既存の脚・格闘武器の性能は変えない。
+// 四脚・逆脚の倍率は脚の型の traits.action に持つ（parts.js。#228）。airReach は空中の蹴りの届く距離の倍率。
 const ACTION_LEG_MUL = Object.freeze({ hover: { tackle: { distance: 1.3, damage: .8 }, kick: { damage: .8 } } });
 const ACTION_HOLD_DIVE = .25, ACTION_BOT_RATE = .8;
 function normalizeAction(id) { return Object.hasOwn(ACTIONS, id) ? id : DEFAULT_ACTION; }
-function actionScale(u, id) { return { distance: 1, damage: 1, ...ACTION_LEG_MUL[PARTS.legs[u.mech?.legs]?.kind || u.stats?.P.legs.kind]?.[id] }; }
+function actionScale(u, id, air = false) {
+  const legs = PARTS.legs[u.mech?.legs] || u.stats?.P.legs, m = { distance: 1, damage: 1, ...ACTION_LEG_MUL[legs?.kind]?.[id], ...legs?.traits?.action?.[id] };
+  if (air && m.airReach) m.distance *= m.airReach;
+  return m;
+}
 // 通常クイックブースト1回は、その機体のdashV×SHORT_TIME（既存のパイクと同じ基準）。
 function actionDistance(u, id, air = false) {
   const a=ACTIONS[id], distance=air ? a.airDistance : a.dashDistance ? u.dashV*SHORT_TIME*a.dashDistance : a.distance;
-  return distance*actionScale(u,id).distance;
+  return distance*actionScale(u,id,air).distance;
 }
 function actionBusy(u) { return !!u.actionMove || u.actionRecoverT > 0; }
 function actionCanStart(u) {
@@ -4782,6 +4942,10 @@ function actionUpdate(u, held, boost, jump, dt = 0, movementOnly = false) {
     u.boostIdle = .5;
   }
   u.crouching = !!(held && eligible && (!boost || u.actionBlockBoost));
+  // 溜め（逆脚のしゃがみ）：time 秒以上しゃがんでから離すかジャンプすると、0.2秒だけ溜めジャンプができる
+  u.chargeJumpT = Math.max(0, (u.chargeJumpT || 0) - dt);
+  if (u.crouching) u.crouchT = (u.crouchT || 0) + dt;
+  else { const c = legTraits(u).crouch; if (c?.type === 'charge' && u.crouchT >= c.time - 1e-8) u.chargeJumpT = .2; u.crouchT = 0; }
   if (!u.crouching || !u.onGround) u.kneeSlideT = 0;
 }
 // 攻撃の線は壁・地面で遮る。味方・施設を攻撃対象にしない（味方越しの蹴りも可）。
@@ -4819,7 +4983,7 @@ function actionMoveHit(u) {
     const down = m.id === 'tackle' ? ratio >= a.downRatio || e.electricT > 0 || e.shockT > 0 : m.air;
     if (!damage(e,u,dmg,false,true,null,u.pos,true,true,a.name)) continue;
     m.hit = true; u.actionHitUnits.add(e);
-    jolt(e,u.pos,down ? DOWN_MELEE : STAGGER_MELEE,true);
+    jolt(e,u.pos,down ? DOWN_MELEE : STAGGER_MELEE,true,true); // タックルと蹴りは脚の特性に関わらず崩す
     // 威力とは別によろけを取る。ポッド・射出保護・既存のダウンはjoltの結果を尊重する。
     if (e.alive && !e.repairing && !launchStaggerProtected(e) && e.stun === 'stagger') e.stunT = Math.max(e.stunT,a.staggerTime);
     if (e.alive && m.id === 'kick' && !e.repairing && !launchStaggerProtected(e)) {
@@ -4848,7 +5012,7 @@ function actionMoveTick(u, dt) {
   }
   let left = dt;
   while (left > 1e-8 && u.actionMove) {
-    const m = u.actionMove, a = ACTIONS[m.id], mul = actionScale(u,m.id), windup = m.phase === 'windup';
+    const m = u.actionMove, a = ACTIONS[m.id], mul = actionScale(u,m.id,m.air), windup = m.phase === 'windup';
     const duration = windup ? a.windup : m.air ? a.airTime : a.time;
     const step = Math.min(left,1/120,Math.max(0,duration-m.elapsed));
     u.yaw = m.yaw;
@@ -4993,6 +5157,12 @@ const STAGGER_TIME = 0.65, STAGGER_PUSH = 9, DOWN_PUSH = 14, DOWN_UP = 12, DOWN_
 // 着地硬直：着地したときの落ちる速さが LAND_SPEED を超えると（約12mの落下。普通のジャンプや高台の崖を降りるだけなら出ない）、その場で屈んで動けない（0.5〜1秒。仮置き）。
 // 着地の直前（0.3秒以内）にSpaceを押していれば出ない（wiki：着地直前のジャンプで消せる）。滞空で降下を緩めても出ない
 const LAND_SPEED = 28, LAND_TIME = [0.5, 1.0];
+// 脚の特性（#228。値と意味は parts.js の LEG_KIND_TRAITS）。二脚・ホバーは持たないので、下の基準（今までどおり）になる。動きは kind ではなくこの値で分ける。
+const LEG_TRAITS_BASE = Object.freeze({ spread: 1, recoil: 1, stagger: 1, hoverCost: 1, jump: 1, landSpeed: LAND_SPEED, landTime: 1, plantTime: 1 });
+function legTraits(u) { return u.stats?.P.legs.traits || LEG_TRAITS_BASE; }
+// 踏ん張り（四脚のしゃがみ）：止まり、ばらつきが減り、射撃・爆発ではよろけにくく押されない。格闘には効かない
+function legBraced(u) { return !!u.crouching && legTraits(u).crouch?.type === 'brace'; }
+function aimSpread(u) { const t = legTraits(u); return u.aimMul * t.spread * (legBraced(u) ? t.crouch.spread : 1); }
 function fwdOf(u) { return new T.Vector3(-Math.sin(u.yaw), 0, -Math.cos(u.yaw)); }
 const STOP = new T.Vector3();
 const MELEE_CANCEL_WAIT = 0.3; // ダッシュ近接を振り終え、硬直が始まってから横ダッシュで消せるまで（ユーザー指定）。
@@ -5080,7 +5250,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movement
   if (!movementOnly && charging && !u.charging) sfx('charge', u.pos, u);
   u.charging = charging;
   let speed = u.walkV, dir = wish, accel = floating ? wish.lengthSq()>.01 ? HOVER_ACCEL : HOVER_BRAKE : u.onGround ? 10 : 3, grav = GRAV;
-  if (u.crouching) speed *= ACTIONS.crouch.walkScale;
+  if (u.crouching) speed *= legBraced(u) ? 0 : ACTIONS.crouch.walkScale;
   if (actionRecovering) speed=0;
   if (water) speed *= .8; // 水上通常移動の低下率は原表で不明。本作の初期調整。
   u.dashState = '';
@@ -5175,8 +5345,9 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movement
   const vx=u.vel.x,vz=u.vel.z, k = 1 - Math.exp(-accel * dt);
   u.vel.x += (dir.x * speed - u.vel.x) * k;
   u.vel.z += (dir.z * speed - u.vel.z) * k;
-  if (jumpPressed && u.onGround && !u.overheat && u.boost >= JUMP_COST) {
-    u.vel.y = JUMP; u.onGround = false; u.boost -= JUMP_COST; u.boostIdle = 0;
+  const legT = legTraits(u), chargedJump = u.chargeJumpT > 0 && legT.crouch?.type === 'charge' && u.boost >= JUMP_COST * legT.crouch.cost, jumpCost = JUMP_COST * (chargedJump ? legT.crouch.cost : 1);
+  if (jumpPressed && u.onGround && !u.overheat && u.boost >= jumpCost) {
+    u.vel.y = JUMP * (chargedJump ? legT.crouch.jump : legT.jump); u.onGround = false; u.boost -= jumpCost; u.boostIdle = 0; u.chargeJumpT = 0;
     if (!movementOnly) sfx('jump', u.pos, u);
   }
   if(catFlight)grav=GRAV;
@@ -5185,7 +5356,7 @@ function physics(u, wish, boostHeld, jumpPressed, dt, jumpHeld = false, movement
   if (hover) {
     const hoverFallBefore=u.vel.y;
     u.vel.y = Math.max(u.vel.y, floating ? -HOVER_SINK_RATE : -HOVER_SINK);
-    u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1); u.boostIdle = 0;
+    u.boost -= HOVER_COST * dt * (floating ? HOVER_DRAIN : 1) * legT.hoverCost; u.boostIdle = 0;
     if (u.boost <= 0) { u.boost = 0; u.overheat = true; if(floating)u.vel.y=hoverFallBefore; }
   }
   if (!catFlight && floating && !hoverDive && hoverActive(u) && u.ctrlLockT<=0 && !charging && !u.swing?.hopped && !u.overheat && u.boost>0 && u.vel.y<0) u.vel.y=Math.max(u.vel.y,-HOVER_FALL);
@@ -5238,14 +5409,17 @@ function land(u, v, movementOnly = false) {
   }
   if (u.actionLandMiss) { u.actionLandMiss=false; u.actionRecoverT=Math.max(u.actionRecoverT || 0,ACTIONS.kick.landRecovery); u.vel.x=u.vel.z=0; }
   if (u.stun === 'down') return;
-  if (v < LAND_SPEED || u.stun || u.jumpBuf > 0) return;
-  u.stun = 'land'; u.stunT = Math.min(LAND_TIME[1], LAND_TIME[0] + (v - LAND_SPEED) * 0.05);
+  const legT = legTraits(u);
+  if (v < legT.landSpeed || u.stun || u.jumpBuf > 0) return;
+  u.stun = 'land'; u.stunT = Math.min(LAND_TIME[1], LAND_TIME[0] + (v - legT.landSpeed) * 0.05) * legT.landTime;
   u.dashT = 0; u.lungeT = 0;
 }
 // よろけ・ダウン：1回の攻撃のダメージ（amount）で決まる。from は押される元（爆心か撃った機体の位置）
-function jolt(u, from, amount, melee) {
+function jolt(u, from, amount, melee, force = false) {
   if (!u.alive || u.repairing || launchStaggerProtected(u)) return; // リペアポッドの使用中と、カタパルトの射出上昇中は崩れない（移動ロックとは別）
-  const resistance=hoverLegs(u) ? 5/6 : 1; // AC：3000/6000→2500/5000。既存二脚の閾値との比を保持。
+  // 脚の特性：閾値の倍率。踏ん張り中は射撃・爆発にさらに強い（格闘には効かない）。force（タックル・蹴り）は特性を無視する
+  const legT = legTraits(u), braced = legBraced(u) && !melee;
+  const resistance=(hoverLegs(u) ? 5/6 : 1) * (force ? 1 : legT.stagger * (braced ? legT.crouch.stagger : 1)); // AC：3000/6000→2500/5000。既存二脚の閾値との比を保持。
   const down = amount >= (melee ? DOWN_MELEE : DOWN_DMG)*resistance;
   if (!down && (amount < (melee ? STAGGER_MELEE : STAGGER_DMG)*resistance || u.stun === 'down')) return;
   if (u.beamFire) stopBeamCannon(u,true);
@@ -5260,7 +5434,7 @@ function jolt(u, from, amount, melee) {
     u.vel.set(away.x * DOWN_PUSH, DOWN_UP, away.z * DOWN_PUSH);
   } else {
     u.stun = 'stagger'; u.stunT = STAGGER_TIME;
-    if (!u.planted) { u.vel.x = away.x * STAGGER_PUSH; u.vel.z = away.z * STAGGER_PUSH; } // 屈んでいれば押されない（wiki）
+    if (!u.planted && !braced) { u.vel.x = away.x * STAGGER_PUSH; u.vel.z = away.z * STAGGER_PUSH; } // 屈んでいれば押されない（wiki）
   }
 }
 
@@ -6566,6 +6740,11 @@ function botUpdate(u, dt) {
   const fallSave = !!u.fallTry && u.vel.y < -LAND_SPEED * 0.8 && u.pos.y - terrainH(u.pos.x, u.pos.z) < 5;
   const ukemi = u.stun === 'down' && u.ukemiTry && !u.onGround && u.vel.y < 0;
   botActionMove(u, dt);
+  // 四脚の Bot：撃ち合いでは踏ん張る（しゃがみを選んだ機体）。近づかれた・横や後ろへ回られた・相手が見えないときは解く
+  if (legTraits(u).crouch?.type === 'brace' && normalizeAction(u.actionId) === 'crouch') {
+    const e = u.target, dx = e ? e.pos.x - u.pos.x : 0, dz = e ? e.pos.z - u.pos.z : 0, d = Math.hypot(dx, dz);
+    u.actionHeld = !!e?.alive && e.kind === 'unit' && u.tReach && u.onGround && !dodge && !busy && u.weapon !== 'aux' && d > 14 && d < 70 && Math.abs(wrapAngle(Math.atan2(-dx, -dz) - u.yaw)) < 1;
+  }
   physics(u, wish, wantLong || chargeGo || ukemi, dodge || fallSave || (u.sideT > 0.9 && Math.random() < 0.05), dt, dodge || ukemi || hoverLegs(u) && !u.onGround && !!u.target && u.boost>35 && u.vel.y<0);
   // 照準と射撃
   const tracking = u.target && u.target.alive;
@@ -7416,7 +7595,7 @@ function selectWeapon(u, w) {
   if (u.slots[u.weapon].w.chargeWave) u.slots[u.weapon].chargeT = 0;
   u.wheelSp = false;
   u.prevWeapon = u.weapon;
-  u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul; u.scoped = false; u.scopeStep = 0;
+  u.weapon = w; u.switchT = SWITCH_TIME * u.swapMul * (u.slots[w].w.plant ? legTraits(u).plantTime : 1); u.scoped = false; u.scopeStep = 0; // 構える武器は脚の特性で構えが速くなる
   if (isLocalView(u) && !lockAllowed(u)) releaseLock();
   if(u.slots[w].w.type==='radarTool')u.radarHeading=u.yaw;
   u.planted = !!u.slots[w].w.plant;
@@ -7716,7 +7895,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
     for (const [hand, from] of (w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)]).entries()) { // 二丁蓄積銃の光弾は左右から（v0.15）
       let v = P.grav ? lobTo(from, aim, P.speed, P.grav).vel : aim.clone().sub(from).normalize();
       if (!P.grav) {
-        const ws = (w.spread || 0) * u.aimMul;
+        const ws = (w.spread || 0) * aimSpread(u);
         if (ws) { v.x += (Math.random() - 0.5) * ws; v.y += (Math.random() - 0.5) * ws; v.z += (Math.random() - 0.5) * ws; v.normalize(); } // 連射ロケットはばらけて飛ぶ
         v.multiplyScalar(P.speed);
       }
@@ -7732,7 +7911,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
   }
   let sp = spread + w.spread;
   if (w.scope) sp += u.scoped ? w.sway * (1 - sl.conv) : w.hip * (Math.hypot(u.vel.x, u.vel.z) > 3 || !u.onGround ? w.hipMove || 1 : 1);
-  sp *= u.aimMul; // 頭部の射撃補正
+  sp *= aimSpread(u); // 頭部の射撃補正と脚の特性
   if (w.settle) sl.conv = Math.min(sl.conv, 0.15); // 撃つと照準が乱れる
   // 二丁拳銃は1回で左右から1発ずつ
   const froms = w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)];
@@ -7765,7 +7944,7 @@ function recoilRecover(u, dt) {
   u.recoilYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - step);
 }
 function recoilKick(u, w) {
-  const kick = baseKick(w), sideways = w.recoilH || 0, absorb = u.recoilAbsorb || 1;
+  const kick = baseKick(w), sideways = w.recoilH || 0, absorb = (u.recoilAbsorb || 1) / legTraits(u).recoil;
   if (!kick && !sideways) return;
   // ユーザー指定：基本しゃがみに主武器の反動抑制。30%軽減は本作の初期調整。
   const stance = u.crouching && primaryShot(u, w) ? ACTIONS.crouch.primaryRecoilScale : 1;
@@ -9157,7 +9336,7 @@ function cannonTick(u, sl, dt, trigger, aim, on, cancel) {
   cancelSpawnInvul(u);
   sl.cd = 60 / w.rpm;
   const from = muzzle(u), v = lobTo(from, aim, w.proj.speed, w.proj.grav).vel;
-  v.x += (Math.random() - 0.5) * w.spread * u.aimMul * w.proj.speed; v.z += (Math.random() - 0.5) * w.spread * u.aimMul * w.proj.speed; // 弾道は少し揺れる（頭部の射撃補正）
+  v.x += (Math.random() - 0.5) * w.spread * aimSpread(u) * w.proj.speed; v.z += (Math.random() - 0.5) * w.spread * aimSpread(u) * w.proj.speed; // 弾道は少し揺れる（頭部の射撃補正）
   shoot(u, from, v, w.proj, false, '', w.name);
   sfx(w.sfx, u.pos, u, w.sfxRate);
   flash(from, 0xffc080, 2.6, 0.1);
@@ -11076,6 +11255,8 @@ function itemNums(sl, key) {
     if (sl === 'arms') r.push(['リロード時間', x.reload, pct, false], ['持ち替え', SWITCH_TIME / x.swap, v => v.toFixed(2) + '秒', false], ['反動', 1 / x.recoil, pct, false], ['主・副武器の弾', x.ammo, pct, true]);
     if (sl === 'legs') r.push([x.kind==='hover' ? '通常移動' : '歩行', x.walk, u('m/s'), true], [x.kind==='hover' ? '高速移動' : 'ダッシュ', x.dash, u('m/s'), true], ['巡航', x.cruise, u('m/s'), true], ['重量耐性', x.cap, u('kg'), true]);
     if (sl==='legs' && x.kind==='hover') r.push(['巡航加速',x.accelTime,u('秒'),false]);
+    // 四脚・逆脚の特性（#228）。ジャンプは高さ（初速の2乗）で出す
+    if (sl==='legs' && x.traits) r.push(['ジャンプの高さ', x.traits.jump ** 2, pct, true], ['脚：弾のばらつき', x.traits.spread, pct, false], ['脚：反動', x.traits.recoil, pct, false], ['よろけにくさ', x.traits.stagger, pct, true]);
     r.push(['重量', x.weight, u('kg'), false]);
     return r;
   }
@@ -11251,6 +11432,8 @@ $('cuSeries').addEventListener('keydown', e => {
   const k = i < 0 ? 0 : Math.max(0, Math.min(bs.length - 1, i + (e.code === 'ArrowDown' ? 1 : -1)));
   if (bs[k]) { bs[k].focus(); e.preventDefault(); }
 });
+// 脚の種類の説明（#228）。しゃがみ（Cアクション）の中身が変わる
+const LEG_KIND_NOTES = { quad: '四脚（踏ん張り：しゃがみで止まり、射撃が安定してよろけにくい。跳躍は低い）', reverse: '逆脚（溜め：しゃがんでからジャンプで大ジャンプ。着地の隙が短い）' };
 // パーツの数値（v0.12。古いパーツのカードと renderMech は v0.13 で消した）
 function partStats(slot, p) {
   const a = [`重量 ${p.weight}kg`, `被ダメージ ${pct(p.armor)}`];
@@ -11258,6 +11441,7 @@ function partStats(slot, p) {
   if (slot === 'body') a.push(`ブースト ${p.boost}`, `SP回復 ${pct(p.sp/100*p.supply)}`);
   if (slot === 'arms') a.push(`リロード時間 ${pct(p.reload)}`, `持ち替え ${(SWITCH_TIME / p.swap).toFixed(2)}秒`, `反動 ${pct(1 / p.recoil)}`, `主・副武器の弾 ${pct(p.ammo)}`);
   if (slot === 'legs' && p.kind==='hover') a.push('ホバー脚（水上移動・慣性あり）');
+  if (slot === 'legs' && LEG_KIND_NOTES[p.kind]) a.push(LEG_KIND_NOTES[p.kind]);
   if (slot === 'legs') a.push(`歩行 ${pct(p.walk / 6)}`, `ダッシュ ${pct(p.dash / 21.8)}`, `巡航 ${pct(p.cruise / 19.7)}`, `重量耐性 ${p.cap}kg`);
   return a;
 }
@@ -12122,7 +12306,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.crouching) centerEl.textContent = 'しゃがみ：C を離すと立ち上がる';
+  else if (p.crouching) centerEl.textContent = legBraced(p) ? '踏ん張り：射撃が安定（動けない）。C を離すと歩ける' : legTraits(p).crouch?.type === 'charge' ? (p.crouchT >= legTraits(p).crouch.time ? '溜め：ジャンプで大ジャンプ' : '溜め中…') : 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。光はカーソルを追う。左クリックを離すと終了` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射まで ${Math.max(0, p.reflect.t).toFixed(1)}秒。離すと中止` : `${p.slots.sp.w.name}：マップで左クリックを押している間、照射（最長${reflectTime(p.slots.sp.w).toFixed(1)}秒）。右クリックで構えを解く`;
