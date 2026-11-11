@@ -9,6 +9,7 @@ function weaponModels() {
 // 部品を頂点カラー付きの1つの形にまとめ、同じ形はキャッシュして使い回す。性能とは関係なく、機体の手の武器・背中の装置・投げた物・設置物・カードの画像で同じ形を使う。
 // MODEL_OF：武器のキー → [形の系統, 型（0・1・2。色と細部が変わる）]。spear・sonar・sentry・remote・fmine・field は本作で足した形
 const MODEL_OF = {
+  wire: ['wire', 0],
   mirage: ['mirage', 0], mirageH: ['mirage', 1], mirageL: ['mirage', 2], mirageD: ['mirage', 2],
   missile: ['missileRack', 0], mlrs: ['missileRack', 1],
   waveSword: ['waveSword', 0],
@@ -420,6 +421,10 @@ function buildWeaponGeo(id, part) {
     for(let i=0;i<n;i++) { const x=(i-(n-1)/2)*.65; cyl(v===1?.35:.27,v===1?1.35:.85,dark,x,0,.25); cyl(.2,.1,accent,x,0,v===1?.98:.72); }
     if(v===1) for(const x of [-.85,.85]) box(.27,.7,.65,steel,x,0,-.1);
     if(v===2) box(1.8,.1,.45,accent,0,.43,0);
+  } else if (f === 'wire') {
+    // ワイヤーアンカー（本作オリジナル）：背中の巻き取り機と、肩の上へ向けた射出口と錨
+    box(1.15,.6,.5,shell); cyl(.34,.5,dark,0,0,.05,'x'); cyl(.36,.06,accent,-.27,0,.05,'x'); cyl(.36,.06,accent,.27,0,.05,'x');
+    box(.26,.26,.9,steel,-.68,.18,-.25); add(new T.ConeGeometry(.16,.4,6),accent,-.68,.18,-.82,-Math.PI/2);
   } else if (f === 'mirage') {
     // 本作オリジナル：左右の投影レンズと扇状アンテナ。
     box(1.2,.55,.5,shell);
@@ -477,7 +482,7 @@ return { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat };
 // 武器の表：重量・武器・兵装・機体カスタマイズの一覧・シリーズ・型・主武器の反動。本体の「兵装と武器」の位置で呼ぶ
 function weaponTables() {
 // 武器の重量（kg、wiki の強化前。元の武器名は research/weapons/*.md）
-const WEAPON_KG = { mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, seeker: 470, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, optSniper: 280, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
+const WEAPON_KG = { wire: 250, mirage: 300, mirageH: 420, mirageL: 240, mirageD: 330, missile: 350, mlrs: 500, seeker: 470, waveSword: 230, stunner: 260, sabre: 180, rod: 190, claw: 200, pike: 210, jammer: 140, airTurret: 410, flyTurret: 490, stunGrenade: 210, planeSensor: 340, ammoBox: 300, radarTool: 370, flare: 170, chain: 140, dart: 340, charge: 490, zoom: 220, blastSniper: 350, lightSniper: 260, optSniper: 280, jumpMine: 150, delayMine: 170, detonator: 260, ar: 140, burst: 240, marks: 250, grenade: 100, timed: 90, gl: 220, sword: 230, blade: 320, spear: 200, charger: 270, chargerD: 310, chargerS: 320, gatling: 360, mg: 290, acannon: 400, rocket: 490, scrum: 520, plasma: 460, weaken: 180, impactb: 140, hsg: 200, cannon: 800, cannonH: 870, cannonM: 980, pistols: 180, dualmg: 290, coyote: 250, sniper: 240, battle: 230, lzsniper: 290, drone: 370, sonar: 230, sentry: 350, camo: 240, camoD: 320, camoH: 300, shotgun: 220, autosg: 190, nail: 140, mine: 240, fmine: 160, remote: 280, sensor: 260, airsensor: 380, fansensor: 380, repair: 580, repairG: 600, field: 550,
   carbine: 320, gale: 160, vulcan: 280, margay: 190, gemini: 280, haggard: 210, aurora: 270,
   wave: 330, lec: 340, explo: 440, wide: 230, glint: 340, cls: 260, omni: 240,
   beamCannon: 700, rail: 280, pulse: 190, coil: 410, barrier: 710, escort: 310, repairPost: 480, artillery: 900, reflector: 900 }; // 型の重さは WEAPON_TYPES から足す（v0.14）
@@ -551,6 +556,9 @@ const WEAPONS = {
   // AC NeLIS-T1（pages/694）：700kg・接触2700×2・毎秒7200×2・175m・回復40/35秒。
   // 本作調整：照射5秒はオーナー指定。準備.5秒・旋回毎秒5度・半径.6mは初期調整値。
   beamCannon: {name:'双肩照射砲',type:'beamCannon',dps:7200,contact:2700,range:175,use:5,warmup:.5,beamRadius:.6,turnRate:Math.PI/36,charge:40,chargeKeep:35,plant:true,desc:'両肩から極太ビームを最大5秒照射。構え中は移動不可、照射中は少しだけ旋回。機体と防御膜を貫通する。'},
+  // ワイヤーアンカー（オーナーの発案 2026-11-11、操作は案A）。アーケード版に無いので数値は本作オリジナルの仮置き。
+  // use：1回撃つごとのSP（%）、range：届く距離（m）、pull：巻き取りの最高速（m/秒）、pullStart：巻き始めの速さ、pullAccel：毎秒の加速
+  wire: { name: 'ワイヤーアンカー', type: 'wire', use: 25, range: 60, pull: 42, pullStart: 18, pullAccel: 70, charge: 30, chargeKeep: 20, desc: '照準の先へワイヤーを撃ち、巻き取って飛ぶ。ロック中の敵へ撃つと、その敵の前まで寄る。もう一度選ぶかジャンプ・ダッシュで外れ、勢いは残る。' },
   // ユーザー発案のオリジナル装備。調整値と根拠は research/weapons/mirage.md。
   mirage: { name: 'ミラージュデバイス', type: 'mirage', decoyHp: 1800, decoyLife: 12, decoyCost: 25, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
   mirageH: { name: 'ミラージュデバイス・堅牢型', type: 'mirage', decoyHp: 3200, decoyLife: 12, decoyCost: 40, decoyOpacity: 1, hologram: false, charge: 40, chargeKeep: 30, desc: '作動中のクイックブーストで静止デコイを残す。受けていたロックを移し、最大4体。' },
@@ -866,7 +874,7 @@ const CLASSES = {
 const CLASS_KEYS = ['assault', 'heavy', 'raid', 'support'];
 // 機体カスタマイズで選べる武器（v0.11、ユーザー指定）。各枠の先頭が初期装備（CLASSES と同じ）。最初から全部選べる
 const ARMORY = {
-  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD'] },
+  assault: { main: ['ar', 'burst', 'marks', 'carbine', 'gale', 'wave', 'rail', 'pulse'], sub: ['grenade', 'timed', 'gl', 'flare', 'chain', 'dart', 'missile'], aux: ['sword', 'blade', 'spear', 'sabre', 'rod', 'claw', 'waveSword'], sp: ['charger', 'chargerD', 'chargerS', 'omni', 'mirage', 'mirageH', 'mirageL', 'mirageD', 'wire'] },
   heavy: { main: ['gatling', 'mg', 'acannon', 'vulcan', 'lec', 'explo', 'coil'], sub: ['rocket', 'scrum', 'plasma', 'charge', 'mlrs', 'seeker'], aux: ['weaken', 'impactb', 'hsg', 'pike', 'jammer'], sp: ['cannon', 'cannonH', 'cannonM', 'barrier', 'artillery', 'reflector', 'beamCannon'] },
   raid: { main: ['pistols', 'dualmg', 'coyote', 'margay', 'gemini', 'wide', 'glint'], sub: ['sniper', 'battle', 'lzsniper', 'zoom', 'blastSniper', 'lightSniper', 'optSniper', 'jumpMine'], aux: ['drone', 'sonar', 'sentry', 'airTurret', 'flyTurret', 'stunGrenade', 'radarTool'], sp: ['camo', 'camoD', 'camoH', 'escort'] },
   support: { main: ['shotgun', 'autosg', 'nail', 'haggard', 'aurora', 'cls'], sub: ['mine', 'fmine', 'remote', 'delayMine', 'detonator'], aux: ['sensor', 'airsensor', 'fansensor', 'planeSensor', 'ammoBox', 'stunner'], sp: ['repair', 'repairG', 'field', 'repairPost'] },
@@ -894,6 +902,7 @@ for (const [k, w] of Object.entries(WEAPONS)) { w.key = k; w.kg = WEAPON_KG[k] |
 // 名前は「型番＋武器の名前」（例：SR-7 アサルトライフル）。型番とメーカーはオリジナル。今の48種のうち、特別装備の同じ仕組みの物（加速装置・重砲・光学迷彩・リペアユニット）は1つのシリーズの型
 const SERIES = {
   li: { maker:'lumina', types:[['beamCannon','LI-5']] },
+  wa: { maker: 'gard', types: [['wire', 'WA-2']] },
   mirage: { maker: 'iris', types: [['mirage', 'IM-7'], ['mirageH', 'IM-7H'], ['mirageL', 'IM-7L'], ['mirageD', 'IM-7D']] },
   vp: { maker: 'volca', types: [['missile', 'VP-4']] },
   gq: { maker: 'gard', types: [['mlrs', 'GQ-6']] },

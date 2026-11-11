@@ -1461,7 +1461,7 @@
       classSelection:{ack:u.onlineClassChoiceAck||0,pending:u.nextCls||'',transferEpoch:u.onlineTransferEpoch||0,transferActionSeq:u.onlineTransferActionSeq||0,processedHSeq:u.onlineProcessedHSeq||0},
       ...safe(u,scalarKeys),pos:u.pos.toArray(),vel:u.vel.toArray(),predictionBlocked:typeof movementPredictionBlockReason==='function'?movementPredictionBlockReason(u):'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,u[k]?.toArray()||null])),
-      healTarget:equipmentRef(u.healTarget),equipment:packEquipmentUnit(u),catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,
+      healTarget:equipmentRef(u.healTarget),equipment:packEquipmentUnit(u),catLaunch:u.catLaunch?{...u.catLaunch}:null,jumpPadIndex:u.jumpPad?jumpPads.indexOf(u.jumpPad):-1,sc:{...u.sc},zipLine:u.zip?ziplines.indexOf(u.zip.line):-1,wire:u.wire?u.wire.p.toArray():null,
       actionMove:u.actionMove?safe(u.actionMove,['id','phase','elapsed','yaw','air','hit','distance']):null,
       actionPush:u.actionPush?safe(u.actionPush,['x','z','left','time']):null,
       swing:u.swing ? {a:u.swing.a,...safe(u.swing,['t','phi','yaw0','aimed','tilt','slope','pike','chargeStage','chargeRatio','dashAttack','stopped','queued'])} : null,
@@ -1510,7 +1510,7 @@
       mech:hidden?null:v.mech||null,motionEpoch:hidden?0:v.motionEpoch||0,lagEpoch:hidden?0:v.lagEpoch||0,renderCrouch:hidden?0:v.renderCrouch||0,
       pos:hidden?[0,0,0]:v.pos,vel:hidden?[0,0,0]:v.vel,predictionBlocked:hidden?'':v.predictionBlocked||'',
       motionVectors:Object.fromEntries(['dashDir','boostVisualDir','catMomentum','lungeDir'].map(k=>[k,hidden?null:v.motionVectors?.[k]||null])),
-      healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,
+      healTarget:hidden?null:v.healTarget||null,equipment:hidden?null:v.equipment||null,catLaunch:hidden?null:v.catLaunch||null,jumpPadIndex:hidden?-1:v.jumpPadIndex??-1,zipLine:hidden?-1:v.zipLine??-1,wire:hidden?null:v.wire||null,
       actionMove:hidden?null:v.actionMove||null,actionPush:hidden?null:v.actionPush||null,
       swing:hidden?null:v.swing||null,transfer:hidden?null:v.transfer||null,classSelection:hidden||!own?null:v.classSelection||{ack:0,pending:'',transferEpoch:0,transferActionSeq:0,processedHSeq:0},
       slots:Object.fromEntries(SLOTS.map(k=>[k,{key:hidden?'':v.slots?.[k]?.key||'',...Object.fromEntries((own?slotKeys:remoteSlotKeys[k]).map(f=>[f,hidden?null:v.slots?.[k]?.[f]??null]))}]))};
@@ -1749,6 +1749,7 @@
     if (u === player && !prediction.enabled) {u.yaw=localYaw; u.pitch=localPitch;} // 比較試験で予測を切った場合も視点は即時。
     u.swing=s.swing?{...s.swing,hit:new Set()}:null;
     u.zip=Number.isInteger(s.zipLine)&&s.zipLine>=0&&ziplines[s.zipLine]?{line:ziplines[s.zipLine]}:null;
+    u.wire=Array.isArray(s.wire)&&s.wire.length===3&&s.wire.every(Number.isFinite)?{p:new T.Vector3(...s.wire)}:null; // ワイヤーアンカー：刺さった所（描画と先読みの停止だけ）
     if(s.name!==undefined)u.name=s.name; u.group.visible=u.alive || u.downT>0; u.transfer=s.transfer?{...s.transfer}:null;
     for (const k of SLOTS) if (s.slots[k]) {for(const field of slotKeys)if(s.slots[k][field]==null)delete u.slots[k][field];Object.assign(u.slots[k],safe(Object.fromEntries(Object.entries(s.slots[k]).filter(([,v])=>v!==null)),slotKeys));}
   }

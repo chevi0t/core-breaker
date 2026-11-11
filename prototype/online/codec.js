@@ -27,7 +27,7 @@
     if(type==='s')return typeof value==='string';
     return type==='j'&&validValue(value);
   }
-  const atoms=new Set(['shells','spotted','spotSrc','swing','transfer','equipmentObjects']);
+  const atoms=new Set(['shells','spotted','spotSrc','swing','transfer','equipmentObjects','wire']);
   const facilities=new Set(['plants','turrets','radars','barricades']);
   const facilityNumbers=new Set(['gauge','hp','yaw','revive','headYaw']);
   const facilityFlags=new Set(['alive','contested']);
