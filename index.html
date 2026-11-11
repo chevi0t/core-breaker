@@ -63,7 +63,41 @@
 <div class="hud" id="headMark"><i></i><i></i><i></i><i></i></div>
 <div class="hud" id="headTxt">HEADSHOT</div>
 <div class="hud" id="scorePop"></div>
-<div class="hud" id="scope" hidden></div>
+<div class="hud" id="scope" hidden>
+  <svg id="scopeReticle" aria-label="狙撃銃の照準と散布範囲の目安">
+    <defs>
+      <clipPath id="scopeLensClip"><circle id="scopeClip"/></clipPath>
+      <linearGradient id="scopeMetal" x1="0" y1="0" x2=".85" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#727c89"/><stop offset=".18" stop-color="#252b35"/><stop offset=".48" stop-color="#11171f"/><stop offset=".72" stop-color="#525763"/><stop offset="1" stop-color="#1b222d"/></linearGradient>
+      <linearGradient id="scopeBevel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c1c5c8"/><stop offset=".25" stop-color="#525c66"/><stop offset=".5" stop-color="#10151d"/><stop offset=".74" stop-color="#7e8590"/><stop offset="1" stop-color="#252d39"/></linearGradient>
+      <linearGradient id="scopePlate" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#717882"/><stop offset=".12" stop-color="#444b55"/><stop offset=".55" stop-color="#272e37"/><stop offset="1" stop-color="#121820"/></linearGradient>
+    </defs>
+    <g id="scopeBody" aria-hidden="true">
+      <circle class="scope-shell" r="474"/><circle class="scope-shell-bevel" r="489"/>
+      <path id="scopePlates" class="scope-plates"/><path id="scopeSeams" class="scope-seams"/>
+      <circle class="scope-seat" r="445"/><circle class="scope-bevel" r="432"/>
+      <circle class="scope-groove" r="439"/><circle class="scope-inner-rim" r="421"/>
+      <path id="scopeScrews" class="scope-screws"/><path id="scopeScrewSlots" class="scope-screw-slots"/>
+      <path id="scopeHousingMarks" class="scope-housing-marks"/>
+      <path class="scope-led-seat" d="M-51 -494L-38 -476H38L51 -494Z M-51 494L-38 476H38L51 494Z"/>
+      <path class="scope-led" d="M-29 -487H29L24 -481H-24Z M-29 487H29L24 481H-24Z"/>
+      <path id="scopeLaserRings" class="scope-laser-rings"/><path id="scopeLaserCircuit" class="scope-laser-circuit"/>
+    </g>
+    <circle id="scopeRim" class="scope-rim"/><path id="scopeIndex" class="scope-index"/>
+    <g id="scopeOptics" clip-path="url(#scopeLensClip)">
+      <path id="scopeLines" class="scope-lines"/><path id="scopeTicks" class="scope-ticks"/>
+      <path id="scopeOverflow" class="scope-overflow"/><path id="scopeSpreadEdge" class="scope-spread-edge"/><path id="scopeSpread" class="scope-spread"/>
+      <path class="scope-laser-center" d="M-7 -3L-7 -7L-3 -7 M3 -7L7 -7L7 -3 M7 3L7 7L3 7 M-3 7L-7 7L-7 3"/><circle class="scope-dot" r="1.2"/>
+    </g>
+  </svg>
+  <div class="scope-top"><span id="scopeLabel">精密照準</span><b id="scopeZoom"></b></div>
+  <div class="scope-side scope-range"><span>照準距離</span><b id="scopeDistance">—</b><small>地形・標的まで</small></div>
+  <div class="scope-side scope-ammo"><span>装填 / 予備</span><b id="scopeAmmo">—</b><small id="scopeWeaponKind">実弾</small></div>
+  <div class="scope-readout">
+    <div class="scope-state"><span id="scopeState">収束中</span><b id="scopePercent">0%</b></div>
+    <div id="scopeMeter" role="meter" aria-label="照準の収束" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+    <small id="scopeHint">散布範囲の目安</small>
+  </div>
+</div>
 <div class="hud" id="seekRet" hidden><i></i><b></b></div>
 <div class="hud" id="qchat" hidden></div>
 <div class="hud" id="wsel" hidden><div class="opt" id="ws-main"></div><div class="mid"><div class="opt" id="ws-aux"></div><div class="opt" id="ws-sub"></div></div><div class="opt" id="ws-sp"></div><div class="hint">マウスを上下左右に動かして選び、ボタンを離して決定</div></div>
@@ -7958,9 +7992,7 @@ function shot(u, sl, aim, spread, missileTarget = null) {
     recoilKick(u, w);
     return false;
   }
-  let sp = spread + w.spread;
-  if (w.scope) sp += u.scoped ? w.sway * (1 - sl.conv) : w.hip * (Math.hypot(u.vel.x, u.vel.z) > 3 || !u.onGround ? w.hipMove || 1 : 1);
-  sp *= aimSpread(u); // 頭部の射撃補正と脚の特性
+  const sp = shotSpread(u, sl, spread);
   if (w.settle) sl.conv = Math.min(sl.conv, 0.15); // 撃つと照準が乱れる
   // 二丁拳銃は1回で左右から1発ずつ
   const froms = w.dual ? [muzzle(u), muzzle(u, true)] : [muzzle(u)];
@@ -9666,6 +9698,119 @@ function pingHud(p) {
     const t = `${g.text}　${Math.round(g.pos.distanceTo(p.pos))}m`;
     if (g.el.textContent !== t) g.el.textContent = t;
   }
+}
+
+// 発射とスコープ表示で共有する散布計算。武器・移動・頭部と脚の補正順序を維持する。
+function shotSpread(u, sl, spread) {
+  const w = sl.w;
+  let sp = spread + w.spread;
+  if (w.scope) sp += u.scoped ? w.sway * (1 - sl.conv) : w.hip * (Math.hypot(u.vel.x, u.vel.z) > 3 || !u.onGround ? w.hipMove || 1 : 1);
+  return sp * aimSpread(u); // 最新mainの脚の特性・踏ん張り補正も維持する。
+}
+// fire の乱数は方向ベクトルの各成分へ ±spread/2 を加える立方体。
+// その8頂点を照準点と同じ奥行きの面へ投影して外周を取る。単純な円の半径や
+// 収束率から推測せず、向き・画角・倍率・頭部・移動・銃口との差を反映する。
+// 遮蔽物・射程・弾着先の凹凸は含めない「目安」。ゲームの乱数は消費しない。
+function scopeSpreadOutline(from, aim, spread, view = camera, width = innerWidth, height = innerHeight) {
+  const forward = new T.Vector3(); view.getWorldDirection(forward);
+  const dir = aim.clone().sub(from).normalize(), depth = forward.dot(aim.clone().sub(from));
+  const points = [];
+  for (let i = 0; i < 8; i++) {
+    const d = dir.clone().add(new T.Vector3(i & 1 ? spread / 2 : -spread / 2, i & 2 ? spread / 2 : -spread / 2, i & 4 ? spread / 2 : -spread / 2));
+    const denom = forward.dot(d);
+    if (depth <= 0 || denom <= 1e-6) return [];
+    const p = from.clone().addScaledVector(d, depth / denom).project(view);
+    points.push({ x: p.x * width / 2, y: -p.y * height / 2 });
+  }
+  points.sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (a, b, c) => (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+  const half = list => { const h = []; for (const p of list) { while (h.length > 1 && cross(h[h.length-2], h[h.length-1], p) <= 0) h.pop(); h.push(p); } h.pop(); return h; };
+  return half(points).concat(half([...points].reverse()));
+}
+// 実際の投影外周を含む、照準中心の菱形。単に四角を45度回すと角の散りを隠すため、
+// |x|+|y| の最大値を半径にする。見やすさの最低幅は足さず、収束とともに縮める。
+function scopeSpreadDiamond(points) {
+  if (!points.length) return [];
+  const r = Math.max(...points.map(p => Math.abs(p.x) + Math.abs(p.y)));
+  return [{x:0,y:-r}, {x:r,y:0}, {x:0,y:r}, {x:-r,y:0}];
+}
+let scopeLayout = '';
+function scopeHud(p) {
+  const root = $('scope'), sl = p.slots[p.weapon], w = sl.w;
+  root.hidden = !(p.alive && !(p.downT > 0) && p.scoped && w.scope);
+  if (root.hidden) return;
+  const laser = w.laserFade > 0;
+  root.dataset.optic = laser ? 'laser' : 'ballistic';
+  const width = innerWidth, height = innerHeight, r = Math.min(width, height) * .42;
+  const layout = `${width}/${height}/${camera.fov.toFixed(5)}/${laser}`;
+  if (layout !== scopeLayout) {
+    scopeLayout = layout;
+    $('scopeReticle').setAttribute('viewBox', `${-width/2} ${-height/2} ${width} ${height}`);
+    $('scopeClip').setAttribute('r', r-3); $('scopeRim').setAttribute('r', r);
+    $('scopeBody').setAttribute('transform', `scale(${r/420})`);
+    const at = (radius, angle) => `${(Math.cos(angle)*radius).toFixed(2)} ${(Math.sin(angle)*radius).toFixed(2)}`;
+    const arc = (radius, a, b) => `M${at(radius,a)}A${radius} ${radius} 0 0 1 ${at(radius,b)}`;
+    let plates = '', seams = '', screws = '', slots = '', marks = '', rings = '', circuit = '';
+    for (let i=0; i<8; i++) {
+      const a=i*Math.PI/4+.045, b=(i+1)*Math.PI/4-.045, mid=(a+b)/2;
+      plates += `M${at(484,a)}A484 484 0 0 1 ${at(484,b)}L${at(456,b)}A456 456 0 0 0 ${at(456,a)}Z `;
+      seams += arc(481,a+.02,b-.02)+' ';
+      const x=Math.cos(mid)*471,y=Math.sin(mid)*471;
+      screws += `M${x-8} ${y}a8 8 0 1 0 16 0a8 8 0 1 0 -16 0 `;
+      slots += `M${x-3} ${y-3}l6 6 `;
+      marks += `M${at(425,i*Math.PI/4)}L${at(435,i*Math.PI/4)} `;
+      rings += arc(443,a+.07,b-.13)+' ';
+      circuit += arc(407,a+.09,b-.08)+' ';
+    }
+    for (let i=-10;i<=10;i++) {
+      const a=-Math.PI/2+i*.055;
+      marks += `M${at(396,a)}L${at(i%5?403:410,a)} `;
+      if(i%5===0)marks+=`M${at(396,-a)}L${at(403,-a)} `;
+    }
+    $('scopePlates').setAttribute('d',plates); $('scopeSeams').setAttribute('d',seams);
+    $('scopeScrews').setAttribute('d',screws); $('scopeScrewSlots').setAttribute('d',slots);
+    $('scopeHousingMarks').setAttribute('d',marks); $('scopeLaserRings').setAttribute('d',rings); $('scopeLaserCircuit').setAttribute('d',circuit);
+    const reach = r*.85, gap = 9;
+    $('scopeLines').setAttribute('d', `M${-reach} 0H${-gap} M${gap} 0H${reach} M0 ${-reach}V${-gap} M0 ${gap}V${reach}`);
+    let ticks = '', index = '';
+    const focal = height / (2 * Math.tan(camera.fov * Math.PI / 360));
+    for (let i = 1; i <= 24; i++) {
+      const d = focal * Math.tan(i * .005), len = i % 2 ? 3 : 5;
+      if (d > r * .7) break;
+      if (d < (laser ? 24 : 15)) continue;
+      for (const sign of [-1, 1]) ticks += `M${sign*d} ${-len}v${len*2} M${-len} ${sign*d}h${len*2} `;
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2, x = Math.cos(a), y = Math.sin(a);
+      index += `M${x*(r+3)} ${y*(r+3)}L${x*(r+11)} ${y*(r+11)} `;
+    }
+    $('scopeTicks').setAttribute('d', ticks); $('scopeIndex').setAttribute('d', index);
+    let overflow = '';
+    for (const sign of [-1,1]) overflow += `M-7 ${sign*r*.89}L0 ${sign*r*.93}L7 ${sign*r*.89} M${sign*r*.89} -7L${sign*r*.93} 0L${sign*r*.89} 7 `;
+    $('scopeOverflow').setAttribute('d', overflow);
+  }
+  const movement = movementSpread(p), spread = shotSpread(p, sl, movement);
+  const forward = new T.Vector3(); camera.getWorldDirection(forward);
+  const rayFrom = camera.position.clone().addScaledVector(forward, CAM.back-1);
+  const hit = castFrom(rayFrom, forward, p), aim = hit ? hit.point : rayFrom.addScaledVector(forward, 300);
+  const from = muzzle(p), points = scopeSpreadDiamond(scopeSpreadOutline(from, aim, spread));
+  const path = points.length ? points.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(3)} ${q.y.toFixed(3)}`).join(' ')+'Z' : '';
+  $('scopeSpread').setAttribute('d', path); $('scopeSpreadEdge').setAttribute('d', path);
+  const conv = Math.max(0, Math.min(1, sl.conv)), percent = Math.floor(conv*100+1e-7);
+  const settled = conv >= 1 && movement === 0;
+  const overflow = points.length && points[1].x / Math.SQRT2 >= r-3;
+  root.dataset.overflow = String(!!overflow);
+  const scatterHint = !points.length ? '散布範囲を表示できません' : overflow ? '散布範囲は視野外' : '散布範囲の目安';
+  root.dataset.settled = String(settled);
+  $('scopeLabel').textContent = laser ? '光学照準' : '精密照準';
+  $('scopeZoom').textContent = `×${scopePower(p).toFixed(1)}`;
+  $('scopeDistance').textContent = hit ? `${Math.round(from.distanceTo(hit.point))} m` : '—';
+  $('scopeAmmo').textContent = `${sl.ammo} / ${sl.reserve}`;
+  $('scopeWeaponKind').textContent = laser ? '光学 / 即着弾' : '実弾 / 即着弾';
+  $('scopePercent').textContent = `${percent}%`;
+  $('scopeMeter').setAttribute('aria-valuenow', percent); $('scopeMeter').firstElementChild.style.width = `${conv*100}%`;
+  $('scopeState').textContent = movement > 0 ? (p.onGround ? 'ダッシュで拡散' : '空中で拡散') : Math.hypot(p.vel.x,p.vel.z) >= 3 ? '移動で収束低下' : settled ? '収束完了' : '収束中';
+  $('scopeHint').textContent = sl.reloadT > 0 ? `再装填 ${sl.reloadT.toFixed(1)}秒 · ${scatterHint}` : sl.ammo <= 0 ? `弾切れ · ${scatterHint}` : scatterHint;
 }
 
 function scopePower(u) {
@@ -12304,8 +12449,7 @@ function hud(timeLeft, dt) {
     });
   }
   $('jamView').hidden = !(p.alive && p.jamT>0);
-  $('scope').hidden = !p.scoped;
-  $('scope').textContent = p.scoped && cw.scopeHigh ? `×${scopePower(p).toFixed(1)}` : '';
+  scopeHud(p);
   crossEl.style.visibility = p.scoped || p.seekMode ? 'hidden' : '';
   $('seekRet').hidden = !(p.alive && p.seekMode);
   $('lockRing').style.visibility = cw.noLock ? 'hidden' : '';
