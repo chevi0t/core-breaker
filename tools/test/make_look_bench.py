@@ -67,7 +67,7 @@ DRIVER = r"""<script>
     for(const row of state.rows)lines.push(`${row.name}\t${row.ms.map((v,i)=>row===state.rows[0]?v.toFixed(1):`${v.toFixed(1)}（${v-base[i]>=0?'+':''}${(v-base[i]).toFixed(1)}）`).join('\t')}`);
     panel.textContent='';
     const title=document.createElement('div');title.textContent='計測が終わりました。下の文字を全部コピーして、マップ製作のスレッドに貼ってください。';
-    const text=document.createElement('textarea');text.readOnly=true;text.value=lines.join('\n');text.style.cssText='display:block;width:min(820px,88vw);height:330px;margin:8px 0;font:14px/1.5 monospace;background:#0b141e;color:#dfe9f2;border:1px solid #456;padding:8px';
+    const text=document.createElement('textarea');text.id='lookBenchText';text.readOnly=true;text.value=lines.join('\n');text.style.cssText='display:block;width:min(820px,88vw);height:330px;margin:8px 0;font:14px/1.5 monospace;background:#0b141e;color:#dfe9f2;border:1px solid #456;padding:8px';
     const copy=document.createElement('button');copy.textContent='コピー';copy.style.cssText='font:16px sans-serif;padding:6px 18px';
     copy.onclick=()=>{text.select();try{document.execCommand('copy');copy.textContent='コピーしました';}catch(_){}};
     panel.append(title,text,copy);
