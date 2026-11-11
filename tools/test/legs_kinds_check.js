@@ -55,7 +55,7 @@ check('四脚と逆脚の動き', async ({ ev, step, ok, sortie, page, dir }) =>
       g.jolt(u, new T.Vector3(u.pos.x, u.pos.y, u.pos.z - 10), amount, !!o.melee, !!o.force);
       const out = { stun: u.stun, push: +Math.hypot(u.vel.x, u.vel.z).toFixed(2) }; u.stun = ''; u.crouching = false; return out;
     };
-    // 要塞化：踏ん張り中は射撃・爆発のダメージが半分（格闘は減らない）。よろけは減らす前の値で決まる
+    // 要塞化：踏ん張り中は射撃・爆発のダメージが 0.6倍（4割カット）（格闘は減らない）。よろけは減らす前の値で決まる
     const shooter = g.units.find(x => x.team !== u.team), taken = (legs, o = {}) => {
       fit(legs); u.crouching = !!o.crouch; u.crouchT = o.t ?? 1; u.invulT = 0; u.hp = u.maxHp = 1e6; u.stun = ''; const a0 = g.armorMult(u, 'body');
       g.damage(u, shooter, o.amount || 1000, false, !!o.melee, 'body', shooter.pos, false);
@@ -118,10 +118,10 @@ check('四脚と逆脚の動き', async ({ ev, step, ok, sortie, page, dir }) =>
   ok(Q.brace6000.stun === '' && Q.brace7000.stun === 'stagger' && Q.brace7000.push === 0, '踏ん張り中は 6825 からよろけ、押されない');
   ok(Q.braceDown.stun === 'down', '踏ん張り中も 13650 以上でダウンする');
   const F = r.fort;
-  ok(F.stand.lost === 1000 && F.brace.lost === 500 && F.std.lost === 1000, `要塞化：踏ん張って1秒たった四脚は射撃のダメージが半分（立ち ${F.stand.lost}、踏ん張り ${F.brace.lost}、二脚のしゃがみ ${F.std.lost}）`);
+  ok(F.stand.lost === 1000 && F.brace.lost === 600 && F.std.lost === 1000, `要塞化：踏ん張って1秒たった四脚は射撃のダメージが4割減（立ち ${F.stand.lost}、踏ん張り ${F.brace.lost}、二脚のしゃがみ ${F.std.lost}）`);
   ok(F.melee.lost === 1000, '要塞化は格闘には効かない');
   ok(F.early.lost === 1000, '要塞化は踏ん張って1秒たつまで効かない（0.9秒では減らない）');
-  ok(F.big.lost === 6000 && F.big.stun === 'stagger' && F.small.stun === '', 'よろけは減らす前のダメージで決まる（12000 でよろけ、6000 ではよろけない）');
+  ok(F.big.lost === 7200 && F.big.stun === 'stagger' && F.small.stun === '', 'よろけは減らす前のダメージで決まる（12000 でよろけ、6000 ではよろけない）');
   ok(Q.braceMelee.stun === 'stagger' && Q.braceMelee.push > 5, '踏ん張りは格闘には効かない（3900 からよろけて押される）');
   ok(Q.force.stun === 'stagger', 'タックルと蹴りは四脚もよろける');
   ok(Q.stdCrouch.stun === 'stagger' && Q.stdCrouch.push > 5, '二脚のしゃがみは今までどおり押される');

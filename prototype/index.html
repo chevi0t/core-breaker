@@ -5799,13 +5799,32 @@ function downBurst(u) {
   sparkBurst(at, 0xffc070, 20, 20, 0.45);
   for (let i = 0; i < 5; i++) puff(at.x + (Math.random() - 0.5) * 2, at.y, at.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3, 2.2, 5, 1.8, 0x2a2622, 0.7);
 }
+// 要塞化の見た目（2026-11-12、オーナー「要塞化時のエフェクトを作成」）：足元に琥珀色の六角の輪と低い光の壁、装甲がうっすら琥珀色に光る。
+// 効き始めた瞬間は輪が外から縮んで閉じ、短い光と音が出る。見た目だけで、判定（legFortified）は変えない。形と材質は全機で共通（disposeMech に渡さない）
+const FORT_COLOR = 0xffb040, FORT_R = 3.1, FORT_IN = .3;
+const fortRingGeo = new T.RingGeometry(FORT_R - .22, FORT_R, 6, 1).rotateX(-Math.PI / 2), fortWallGeo = new T.CylinderGeometry(FORT_R, FORT_R, 1, 6, 1, true).rotateY(Math.PI / 6).translate(0, .5, 0);
+const fortRingMat = new T.MeshBasicMaterial({ color: FORT_COLOR, transparent: true, opacity: .85, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+const fortWallMat = new T.MeshBasicMaterial({ color: FORT_COLOR, transparent: true, opacity: .16, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+function fortLook(u, dt, now) {
+  const on = u.alive && !(u.downT > 0) && !u.cloak && u.group.visible && legFortified(u);
+  if (!on) { if (u.fortFx) u.fortFx.visible = false; u.fortOn = false; return; }
+  if (!u.fortFx) { u.fortFx = new T.Group(); u.fortFx.add(new T.Mesh(fortRingGeo, fortRingMat), new T.Mesh(fortWallGeo, fortWallMat)); scene.add(u.fortFx); }
+  if (!u.fortOn) { // 効き始め
+    u.fortOn = true; u.fortT = 0;
+    if (running) { flash(new T.Vector3(u.pos.x, u.pos.y + 1.6, u.pos.z), FORT_COLOR, 5, .22); sfx('switch', u.pos, u, .6); }
+  }
+  u.fortT += dt;
+  const k = Math.min(1, u.fortT / FORT_IN), ease = 1 - (1 - k) * (1 - k), pulse = 1 + Math.sin(now / 420) * .025;
+  u.fortFx.visible = true; u.fortFx.position.set(u.pos.x, u.pos.y + .08, u.pos.z); u.fortFx.rotation.y = u.yaw;
+  u.fortFx.scale.set((1.6 - .6 * ease) * pulse, .25 + 1.05 * ease, (1.6 - .6 * ease) * pulse);
+}
 // 毎フレーム（描画の前）：装甲の色と光り方、損傷の煙・火・火花
 function damageLook(u, dt, now) {
   const down = u.downT > 0;
   if (u.hurtT > 0) u.hurtT -= dt;
   if (u.burnt !== down) { u.burnt = down; u.armorMat.color.setHex(down ? 0x4a4440 : 0xffffff); } // 行動不能は焦げた色
   // 行動不能は赤く点滅、当たった瞬間は白っぽく、弱化グレネードを浴びている間は紫に光る
-  u.armorMat.emissive.setHex(down ? (Math.floor(now / 350) % 2 ? 0x3a0c0c : 0) : u.hurtT > 0 ? 0x6a5a48 : u.weakT > 0 ? 0x4a1c78 : 0);
+  u.armorMat.emissive.setHex(down ? (Math.floor(now / 350) % 2 ? 0x3a0c0c : 0) : u.hurtT > 0 ? 0x6a5a48 : u.weakT > 0 ? 0x4a1c78 : u.fortOn ? 0x3a2608 : 0);
   if (!running || (!u.alive && !down) || u.cloak) return;
   const f = u.hp / u.maxHp;
   if (!down && f > DMG_SMOKE) return;
@@ -6029,7 +6048,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (r.kind === 'radar') { r.hp -= dmg; if (r.hp <= 0) destroyRadar(r, by); return true; }
   if (r.invulT > 0) return false; // 出撃直後の無敵
   if (!melee && shieldTest && origin && barrierAbsorb(r, dmg, origin)) return false;
-  // 要塞化（四脚が踏ん張って1秒たった後。オーナーの指定 2026-11-11）：射撃・爆発のダメージを crouch.damage 倍（半分）にする。格闘・タックル・蹴りには効かない。よろけ・ダウンは減らす前の値で決める
+  // 要塞化（四脚が踏ん張って1秒たった後。オーナーの指定 2026-11-11）：射撃・爆発のダメージを crouch.damage 倍（0.6＝4割カット。2026-11-12 オーナー「ダメージカット率を4割に変更」。前は半分）にする。格闘・タックル・蹴りには効かない。よろけ・ダウンは減らす前の値で決める
   const fort = !melee && legFortified(r) ? legTraits(r).crouch.damage : 1, real = dmg * armorMult(r, slot) * fort;
   r.hp -= real;
   noteDmg(r, by, real);
@@ -11651,7 +11670,7 @@ $('cuSeries').addEventListener('keydown', e => {
   if (bs[k]) { bs[k].focus(); e.preventDefault(); }
 });
 // 脚の種類の説明（#228）。しゃがみ（Cアクション）の中身が変わる
-const LEG_KIND_NOTES = { quad: '四脚（踏ん張りで要塞化：しゃがみで止まり、1秒後から射撃・爆発のダメージ半減、射撃が安定してよろけにくい。跳躍は低い）', reverse: '逆脚（溜め：しゃがんでからジャンプで大ジャンプ。着地の隙が短い）' };
+const LEG_KIND_NOTES = { quad: '四脚（踏ん張りで要塞化：しゃがみで止まり、1秒後から射撃・爆発のダメージ4割減、射撃が安定してよろけにくい。跳躍は低い）', reverse: '逆脚（溜め：しゃがんでからジャンプで大ジャンプ。着地の隙が短い）' };
 // パーツの数値（v0.12。古いパーツのカードと renderMech は v0.13 で消した）
 function partStats(slot, p) {
   const a = [`重量 ${p.weight}kg`, `被ダメージ ${pct(p.armor)}`];
@@ -11792,7 +11811,7 @@ function selectMap(id, persist = true) {
     clearArtillery();
     clearBeamCannons();
     clearSecondaryEffects();
-    for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
+    for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; if (u.fortFx) scene.remove(u.fortFx); scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
     units.length = 0; player = null; ended = false;
     for (const sh of shells) scene.remove(sh.mesh);
     shells.length = 0;
@@ -12523,7 +12542,7 @@ function hud(timeLeft, dt) {
   else if (p.lift) centerEl.textContent = p.lift.blocked ? 'リフト停止：進路の障害物を確認' : 'リフト乗車中：移動・ジャンプで降りる';
   else if (p.zip) centerEl.textContent = `ジップライン：${keyName('Space か E', '× か ○', '「ジャンプ」か「アクション」')} で手を離す`;
   else if (ziplines.length && zipCan(p) && zipNear(p)) centerEl.textContent = `${keyName('E', '○', '「アクション」')}：ジップラインで上へ`;
-  else if (p.crouching) centerEl.textContent = legBraced(p) ? (legFortified(p) ? '要塞化：被ダメージ半減・' : '踏ん張り（1秒で要塞化）：') + '射撃が安定（動けない）。C を離すと歩ける' : legTraits(p).crouch?.type === 'charge' ? (p.crouchT >= legTraits(p).crouch.time ? '溜め：ジャンプで大ジャンプ' : '溜め中…') : 'しゃがみ：C を離すと立ち上がる';
+  else if (p.crouching) centerEl.textContent = legBraced(p) ? (legFortified(p) ? '要塞化：被ダメージ4割減・' : '踏ん張り（1秒で要塞化）：') + '射撃が安定（動けない）。C を離すと歩ける' : legTraits(p).crouch?.type === 'charge' ? (p.crouchT >= legTraits(p).crouch.time ? '溜め：ジャンプで大ジャンプ' : '溜め中…') : 'しゃがみ：C を離すと立ち上がる';
   else if (p.flying) centerEl.textContent = p.jumpPad ? 'ジャンプパッド射出：空中操作で高所へ' : p.ctrlLockT > 0 ? 'カタパルト射出：飛距離60%まで操作固定' : p.catLaunch ? 'カタパルト：前噴射で勢い維持／逆噴射で制動' : `空中：${keyName('Shift', 'L1', '「ダッシュ」')}で空中ダッシュ／${keyName('Space', '×', '「ジャンプ」')}長押しで降下を緩める`;
   else if (p.repairing) centerEl.textContent = cw.type === 'repair' ? `リペア中：リペアユニットは使えます（${keyName('移動キー', '左スティック', 'スティック')}で中断）` : `リペア中：撃てません（${keyName('移動キー', '左スティック', 'スティック')}で中断）`;
   else if (isArtilleryMode(p) && p.slots.sp.w.type === 'reflector') centerEl.textContent = p.reflect?.phase === 'fire' ? `${p.slots.sp.w.name}：照射中（動けない）。光はカーソルを追う。左クリックを離すと終了` : p.reflect?.phase === 'warn' ? `${p.slots.sp.w.name}：照射まで ${Math.max(0, p.reflect.t).toFixed(1)}秒。離すと中止` : `${p.slots.sp.w.name}：マップで左クリックを押している間、照射（最長${reflectTime(p.slots.sp.w).toFixed(1)}秒）。右クリックで構えを解く`;
@@ -12868,7 +12887,7 @@ function setup() {
   clearArtillery();
   clearBeamCannons();
   clearSecondaryEffects();
-  for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
+  for (const u of units) { if (u.postFlight) scene.remove(u.postFlight.mesh); u.postFlight = null; if (u.fortFx) scene.remove(u.fortFx); scene.remove(u.group, u.beam, u.fieldMesh, u.barrierMesh); disposeMech(u.group); u.beam.material.dispose(); if (u.tagEl) u.tagEl.remove(); }
   units.length = 0;
   for (let i = hittables.length - 1; i >= 0; i--) if (refOf(hittables[i])?.kind === 'unit') hittables.splice(i, 1);
   cores.B.hp = cores.R.hp = coreMax;
@@ -13040,7 +13059,7 @@ function gameFrame(now) {
     // guestの省略機は描画・音・独立meshを作らない。alive値はスコア等へ流用せずそのまま保つ。
     if(u.onlineHidden){
       u.group.visible=false;stopMovementSound(u);
-      for(const mesh of [u.barrierMesh,u.fieldMesh,u.beam,u.shockFx?.root])if(mesh)mesh.visible=false;
+      for(const mesh of [u.barrierMesh,u.fieldMesh,u.beam,u.shockFx?.root,u.fortFx])if(mesh)mesh.visible=false;
       continue;
     }
     if (u.alive) u.group.visible = !(u.invulT > 0 && Math.floor(u.invulT * 12) % 2); // 出撃直後の無敵中は点滅
@@ -13060,6 +13079,7 @@ function gameFrame(now) {
     shockLook(u, dt);
     mainMuzzleUpdate(u, dt);
     boosterFlameUpdate(u, running ? dt : 0);
+    fortLook(u, dt, now);
     u.barrierMesh.visible = barrierReady(u);
     if (u.barrierMesh.visible) {
       const w = u.slots.sp.w; u.barrierMesh.geometry = w.arc === 360 ? barrierSphere : barrierHalf;
