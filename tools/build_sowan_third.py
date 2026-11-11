@@ -32,7 +32,11 @@ HALF = math.ceil(max(abs(_b[0]), abs(_b[2]), (_b[3] - _b[1]) / 2) + 5)  # 格子
 # 旧1/2案の提示図の基地・プラント（ユーザー図）を原本v1の座標へ写した点。
 # 旧座標×2/3＋(-33, 5) で、科学館・門状ビル・会議棟の3点が3m以内で一致する。
 BASE_SITES = {"B": [-420.0, 166.0], "R": [344.0, 155.0]}
-PLANT_SITES = [["A", [-380, -105]], ["B", [-86, -168]], ["C", [194, -142]], ["D", [448, -95]]]
+# プラントは6つ（オーナーの決定 2026-11-12：カードで「数を増やす」。4つを5〜6つにし、南側や橋のたもとにも置く）。
+# 北の道すじ（A・C・E・F）は前の4つ（旧 A・B・C・D）のまま。南の道すじに B（西の島の南の道沿い）と D（南の橋を東へ渡った先）を足した。
+# 名前は青の基地に近い順（RULES 4章）。南の2つは、占拠円（半径14mの空き地）が取れる所のうち、橋の入口に近い所。
+PLANT_SITES = [["A", [-380, -105]], ["B", [-185, -19.4]], ["C", [-86, -168]], ["D", [150, -44.4]], ["E", [194, -142]], ["F", [448, -95]]]
+PLANT_CATAPULTS = [("A", "C"), ("F", "E")]  # 両端のプラントから、北の道すじの次のプラントへ
 BASE_RADIUS = 34
 
 
@@ -202,6 +206,41 @@ def ribbon(tris, pts, h, width, kind):
     return left, right
 
 
+# 遊歩道の大きな橋（オーナーが開発者用ページで指した「夢の大橋こうやねん」、2026-11-12）の、円い広場2つ。
+# 中心と半径は PLATEAU の橋梁モデル LOD2（江東区、2025年度版、CC BY 4.0）の床の輪郭に円を当てはめた値
+# （mapdesign/sowan/deck-plazas.json、ゲームの座標。実寸の半径は約30m）。東京都の点群は海の上の橋に点が無く、形を取れない。
+# 入れるのはこの数字だけで、PLATEAU の形そのものは入れない。写真の地面を作る tools/sowan_photo.py も同じファイルを読む。
+DECK_PLAZAS = [(e["at"], e["radius"]) for e in json.loads((OUT / "deck-plazas.json").read_text())["plazas"]]
+
+
+def deck_plazas(tris, strip, xy, h):
+    """床の帯に円い広場を足す（帯からはみ出す弓形だけを作り、上面が重ならないようにする）。足した後の床の輪郭を返す。"""
+    for (cx, cz), r in DECK_PLAZAS:
+        centre = Point(cx, cz)
+        if LineString(xy).distance(centre) > 1.5:
+            continue
+        disc = centre.buffer(r, quad_segs=8)
+        for piece in parts(disc.difference(strip)):
+            if piece.area < 0.5:
+                continue
+            top = codec.floor(piece, 0).reshape(-1, 3, 3)
+            for t in top:
+                t[:, 1] = [deck_height(xy, h, q[[0, 2]]) for q in t]
+            tris.extend(top.reshape(-1, 3).tolist())
+            under = top[:, [0, 2, 1]].copy()
+            under[:, :, 1] -= DECK
+            tris.extend(under.reshape(-1, 3).tolist())
+            ring = np.asarray(piece.exterior.coords)
+            for a, b in zip(ring, ring[1:]):
+                if disc.exterior.distance(Point(*(a + b) / 2)) > 1e-6:
+                    continue  # 帯に接する辺（帯の側面がある）
+                ya, yb = deck_height(xy, h, a), deck_height(xy, h, b)
+                quad = [[a[0], ya - DECK, a[1]], [b[0], yb - DECK, b[1]], [b[0], yb, b[1]], [a[0], ya, a[1]]]
+                tris.extend([quad[0], quad[1], quad[2], quad[0], quad[2], quad[3], quad[0], quad[2], quad[1], quad[0], quad[3], quad[2]])
+        strip = strip.union(disc).buffer(0)
+    return strip
+
+
 def transport(land):
     routes = SRC_DATA["transport"]["routes"]
     tris, footprints, walk, piers, stats = [], [], [], [], {}
@@ -222,6 +261,8 @@ def transport(land):
             continue
         left, right = ribbon(tris, pts, h, width, kind)
         strip = Polygon([*left, *right[::-1]]).buffer(0)
+        if kind == "promenade":
+            strip = deck_plazas(tris, strip, pts[:, [0, 2]], h)
         footprints.append((kind, strip))
         if kind in WALKABLE and width >= 4:
             walk.append((strip, pts[:, [0, 2]].copy(), h.copy()))
@@ -240,9 +281,80 @@ def transport(land):
     return tris, footprints, walk, piers, stats
 
 
+# ---- 目印の建物（手で組む。オーナー 2026-11-12「あとはランドマークの色と形状」）----
+# 点群は真上からの形しか無く、PLATEAU の LOD2 も壁をまっすぐ下ろした箱（門の穴や格子のすき間は埋まっている）なので、
+# 目印の建物だけは、位置・向き・幅・奥行き・高さを点群と PLATEAU（どちらも CC BY 4.0）から測り、横から見た形
+# （門の四角い穴、塔をつなぐ渡り廊下の格子と球）は、広く知られた姿をもとに箱を組んで作る。写真や地図の画像はなぞっていない。
+# 寸法はゲームの m（実寸の1/3）。s は建物の長い向き、t は奥行き、高さは地面から。色は本体へ渡す色（日なたで約0.8倍に見える）。
+LANDMARK_SILVER = "#dfe3e6"  # 球（チタンの銀色）。測った色ではなく選んだ色
+LANDMARK_GLASS = "#8fb4c8"  # 門の下のガラスの吹き抜け。測った色ではなく選んだ色
+
+
+def sphere_slices(s, t, y, r, n=7, sides=14):
+    """球を、高さごとの多角柱の重ねで表す（本体の建物は柱の形だけなので）。"""
+    out = []
+    for k in range(n):
+        lo, hi = y - r + 2 * r * k / n, y - r + 2 * r * (k + 1) / n
+        rr = math.sqrt(max(0.0, r * r - ((lo + hi) / 2 - y) ** 2))
+        ring = [(s + rr * math.cos(2 * math.pi * j / sides), t + rr * math.sin(2 * math.pi * j / sides)) for j in range(sides)]
+        out.append((ring, lo, hi, LANDMARK_SILVER))
+    return out
+
+
+def landmark_parts():
+    """[(名前, 中心, 長い向きの単位ベクトル, 取り除く範囲 (s0,s1,t0,t1), 色を借りる元の箱の番号, [(輪郭か (s0,s1,t0,t1), 下, 上, 色か None)])]"""
+    box4 = lambda s0, s1, t0, t1, lo, hi, color=None: ((s0, s1, t0, t1), lo, hi, color)
+    # 球のある放送局：中心と向きは PLATEAU の建物の外形、高さと格子のすき間・球の位置は点群の真上からの高さ。
+    levels = [(17, 19.2), (25.5, 27.7), (34, 36.2)]  # 渡り廊下の3段（いちばん上は点群の高さ36、下の2段は等間隔に置いた）
+    studio = [
+        box4(-36, 34, -8, 6, 0, 10),  # 低層の棟（屋上の庭が点群で高さ10）
+        box4(19, 34, -10, -8, 0, 10), box4(19, 34, 6, 8, 0, 10),  # 東の塔の足元
+        box4(-14, 18, -13, -8, 0, 6),  # 正面の大階段の段
+        box4(-8, 34, 8, 11, 0, 6),  # 裏の低い段
+        box4(-36, -13, -8, 4, 10, 38), box4(19, 34, -10, 8, 10, 39.5),  # 西の塔、東の塔
+        *[box4(-13, 19, t0, t1, lo, hi) for lo, hi in levels[:2] for t0, t1 in [(-7, -4), (1, 4)]],  # 渡り廊下（手前と奥）の下の2段
+        box4(-13, 19, 1, 4, *levels[2]), box4(-13, 4, -7, -4, *levels[2]), box4(15.5, 19, -7, -4, *levels[2]),  # いちばん上の段。球の前は開ける
+        *[box4(s0, s0 + 2, -4, 1, 34, 36.2) for s0 in (-7, 2)],  # いちばん上の段の、手前と奥をつなぐ廊下
+        *[box4(s0, s0 + 2, t0, t0 + 2, 10, 34) for s0 in (-7, 2, 16) for t0 in (-7, 2)],  # 格子の柱
+        box4(6.5, 12.5, -4.8, 1.2, 27.7, 31.4),  # 球の受け台
+        *sphere_slices(9.5, -1.8, 35.7, 5.3),  # 球：実寸で直径約32m、頂上は点群で高さ41
+    ]
+    # 門の形の建物：外形・向き・高さ33は点群の屋上。穴は広く知られた姿（四角い穴、下にガラスの吹き抜け）で、幅と高さは見積もり。
+    gate = [
+        box4(-21.65, -9.5, -9.7, 9.7, 4.67, 33.2), box4(9.5, 21.65, -9.7, 9.7, 4.67, 33.2),  # 左右の脚
+        box4(-9.5, 9.5, -9.7, 9.7, 25.5, 33.2),  # 上でつなぐ棟
+        box4(-9.5, 9.5, -7, 7, 4.67, 9, LANDMARK_GLASS),  # 穴の下の吹き抜け
+    ]
+    return [
+        ("studio", (-237.57, -196.89), (0.9998, 0.0223), (-39, 37, -16, 13), 58, studio),
+        ("gate", (-344.03, 181.88), (0.9923, 0.1239), (-22.5, 22.5, -10.5, 10.5), 738, gate),
+    ]
+
+
+def landmark_volumes(volumes, walls):
+    """目印の建物の場所にある元の箱の番号（使わない物）と、代わりに置く箱 [(輪郭, 下, 上, 色)]。"""
+    skip, rows = set(), []
+    for name, centre, u, clear, donor, shapes in landmark_parts():
+        c, u = np.array(centre), np.array(u)
+        v = np.array([-u[1], u[0]])
+        place = lambda pts: Polygon([c + u * a + v * b for a, b in pts])
+        corners = lambda s0, s1, t0, t1: [(s0, t0), (s1, t0), (s1, t1), (s0, t1)]
+        site = place(corners(*clear))
+        for k, (lo, hi, ring, paint, kind) in enumerate(volumes):
+            p = shapely.make_valid(Polygon(decode2(ring)))
+            # 門の建物は土台（下の広い箱）を残す。ほかは範囲に半分以上入る箱を取り除く
+            if p.intersection(site).area > 0.5 * p.area and not (name == "gate" and hi < 6):
+                skip.add(k)
+        for shape, lo, hi, color in shapes:
+            rows.append((place(corners(*shape) if len(shape) == 4 and not isinstance(shape[0], tuple) else shape), lo, hi, color or walls[donor]))
+    return skip, rows
+
+
 def landmark_meshes():
     tris = []
     for paint, pts, faces, name in SRC_DATA["meshes"]:
+        if name.startswith("gate-"):
+            continue  # 門の建物は箱で組む（landmark_parts）。丸いアーチの形はやめた
         p = np.frombuffer(base64.b64decode(pts), dtype="<i2").reshape(-1, 3) * IN_STEP
         p = p.astype(float)
         p[:, 2] += DZ
@@ -372,12 +484,17 @@ def terrain():
             solids.append((q, lo, hi, meta))
 
     walls = wall_colors(d["volumes"], d["palette"])
-    for (lo, hi, ring, paint, kind), wall in zip(d["volumes"], walls):
+    replaced, landmark_rows = landmark_volumes(d["volumes"], walls)
+    for k, ((lo, hi, ring, paint, kind), wall) in enumerate(zip(d["volumes"], walls)):
+        if k in replaced:
+            continue
         p = Polygon(decode2(ring))
         if not p.is_valid:
             p = shapely.make_valid(p)
         if lo < 0.3:
             p = p.difference(clearings)
+        emit(p, lo, hi, {"landmarkColor": wall, "facade": "plain"})
+    for p, lo, hi, wall in landmark_rows:
         emit(p, lo, hi, {"landmarkColor": wall, "facade": "plain"})
 
     tris, footprints, walk, piers, tstats = transport(ground)
@@ -672,12 +789,14 @@ def battle(data, solids, walkable, boundary, footprints, walk):
     for pid, x, z, _ in plants:
         anchors.append((pid, [x + 4, z + 3]))
 
-    # プラントのリペアポッド。両端（A・D）は敵陣側から見えない建物の陰を選ぶ。
+    # プラントのリペアポッド。両端（いちばん自軍寄り・敵寄り）は敵陣側から見えない建物の陰を選ぶ。
+    ends = [plants[0][0], plants[-1][0]]
+    blue_side = [p[0] for p in plants[:len(plants) // 2]]
     pods = []
     enemy_eyes = {}
     added_cover = False
     for pid, x, z, _ in plants:
-        own = "B" if pid in ["A", "B"] else "R"
+        own = "B" if pid in blue_side else "R"
         enemy = "R" if own == "B" else "B"
         bx, bz = bases[own]
         # map_check と同じ見方：プラントの中心を通り、自軍ベースと反対側の半分（横も含む）。
@@ -704,14 +823,14 @@ def battle(data, solids, walkable, boundary, footprints, walk):
                 p = [round(x + rr * math.cos(toward + dlt), 2), round(z + rr * math.sin(toward + dlt), 2)]
                 if not streets.free(p, 2.5):
                     continue
-                seen = sum(1 for e in eyes if seen_from(tree, solids, e, p)) if pid in ["A", "D"] else 0
-                score = (seen if pid in ["A", "D"] else 0, rr)
+                seen = sum(1 for e in eyes if seen_from(tree, solids, e, p)) if pid in ends else 0
+                score = (seen if pid in ends else 0, rr)
                 if best is None or score < best[0]:
                     best = (score, p, seen)
-            if best and best[0][0] == 0 and pid in ["A", "D"]:
+            if best and best[0][0] == 0 and pid in ends:
                 break
         assert best, ("ポッドの置き場なし", pid)
-        if pid in ["A", "D"] and best[2] > 0:
+        if pid in ends and best[2] > 0:
             # 建物の陰だけで隠れないときは、敵陣側に高さ5.2mの塀を置いて隠す（RULES の土手の代わり）。
             tree = cover_pod(data, solids, tree, eyes, best[1], [x, z], [q for _, q in anchors])
             added_cover = True
@@ -719,7 +838,8 @@ def battle(data, solids, walkable, boundary, footprints, walk):
         anchors.append((f"pod-{pid}", best[1]))
 
     routes = []
-    for start, end in [(plants[0], plants[1]), (plants[3], plants[2])]:
+    by_id = {p[0]: p for p in plants}
+    for start, end in [(by_id[a], by_id[b]) for a, b in PLANT_CATAPULTS]:
         at = locate([start[1], start[2] - 26], 4)
         to = locate([end[1], end[2] + 26], 6)
         if tuple(at) in CAT_FIT:
@@ -763,7 +883,7 @@ def battle(data, solids, walkable, boundary, footprints, walk):
         "time": 600,
         "baseZ": base_z,
         "baseLine": 240,
-        "desc": "湾を囲む展示場と研究街の4プラント戦。基地から前線へカタパルトで展開する。",
+        "desc": "湾を囲む展示場と研究街の6プラント戦。基地から前線へカタパルトで展開する。",
         "terrain": [],
         "layout": [],
         "plants": plants,

@@ -189,6 +189,10 @@ def structure_masks():
         c = cells(decode3(pts)[:, [0, 2]])
         for t in np.frombuffer(base64.b64decode(faces), dtype="<u2").reshape(-1, 3):
             d.polygon([c[i] for i in t], fill=1)
+    for e in json.loads((OUT / "deck-plazas.json").read_text())["plazas"]:  # 橋の円い広場（ゲームの座標）
+        x, y = game_to_real(*e["at"])
+        cx, cy, r = (x - X0) / STEP, (y - Y0) / STEP, e["radius"] * SCALE / STEP
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=1)
     return buildings, np.array(img, bool)
 
 
@@ -305,12 +309,24 @@ PHOTO_SIZE = (2048, 1024)  # 4分の1の細かさ（実寸約2m、ゲームで�
 PHOTO_QUALITY = 75  # WebP の品質
 
 
-def write_photo(rgb, valid, structures):
+def write_photo(rgb, valid, structures, decks):
     from PIL import Image, ImageEnhance
     from scipy import ndimage as ndi
 
+    measured = rgb
     idx = ndi.distance_transform_edt(~valid, return_distances=False, return_indices=True)
     rgb = rgb[idx[0], idx[1]]  # 点の無い所（海など）は最寄りの色で埋める（岸の縁がにじまないように）
+    # 海の上の橋の床には点が無い（東京都の点群は水面の上を落としている）。そのままだと岸や海の色の筋になるので、
+    # 同じ橋の、点のある所（陸の上の床）の色をならして、最寄りの値で埋める。
+    hole, source = decks & ~valid, ndi.binary_erosion(decks & valid, iterations=3)
+    if hole.any() and source.any():
+        weight = ndi.gaussian_filter(source.astype(np.float32), 16)
+        near = ndi.distance_transform_edt(~source, return_distances=False, return_indices=True)
+        near = (near[0][hole], near[1][hole])
+        rgb = rgb.copy()
+        for k in range(3):
+            smooth = ndi.gaussian_filter(np.where(source, measured[..., k], 0).astype(np.float32), 16) / np.maximum(weight, 1e-6)
+            rgb[..., k][hole] = smooth[near]
     bx0, bz0, bx1, bz1 = PHOTO_BOUNDS
     tw, th = PHOTO_SIZE
     xs = bx0 + (np.arange(tw) + 0.5) * (bx1 - bx0) / tw
@@ -378,7 +394,7 @@ def main():
         return fit_sun(g, valid, z)
     buildings, transport = structure_masks()
     rgb = remove_shadows(g, valid, ground, z, above, multi_ratio, buildings, transport)
-    write_photo(rgb, valid, buildings | transport)
+    write_photo(rgb, valid, buildings | transport, transport)
     write_trees(rgb, valid, above, multi_ratio, buildings, transport)
 
 

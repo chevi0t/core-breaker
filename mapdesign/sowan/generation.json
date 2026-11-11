@@ -2,7 +2,7 @@
   "source": "mapdesign/sowan/pointcloud-third/terrain.json",
   "zShift": 44.44,
   "half": 671,
-  "volumes": 1133,
+  "volumes": 1156,
   "transport": {
     "footbridge": 22,
     "expresswayGround": 18,
@@ -12,30 +12,34 @@
     "promenade": 1
   },
   "piers": 406,
-  "bridTriangles": 5942,
+  "bridTriangles": 5628,
   "plantGeometryCuts": 0,
-  "mapFileBytes": 978737,
+  "mapFileBytes": 976908,
   "nav": {
-    "nodes": 1582,
-    "links": 2283,
+    "nodes": 1617,
+    "links": 2390,
     "gridStep": 4,
-    "freeCells": 20558,
+    "freeCells": 20577,
     "deckNodes": {
-      "lifted": 39,
+      "lifted": 40,
       "added": 199
     }
   },
   "podVisibleFromEnemyEyes": {
     "A": 0,
-    "B": 60,
-    "C": 68,
-    "D": 0
+    "B": 40,
+    "C": 60,
+    "D": 58,
+    "E": 68,
+    "F": 0
   },
   "enemyEyes": {
-    "A": 241,
-    "B": 178,
-    "C": 152,
-    "D": 182
+    "A": 242,
+    "B": 205,
+    "C": 178,
+    "D": 217,
+    "E": 152,
+    "F": 182
   },
   "plants": [
     [
@@ -46,18 +50,30 @@
     ],
     [
       "B",
+      -185.0,
+      25.04,
+      null
+    ],
+    [
+      "C",
       -80.0,
       -123.56,
       null
     ],
     [
-      "C",
+      "D",
+      150.0,
+      0.04,
+      null
+    ],
+    [
+      "E",
       188.91,
       -136.23,
       null
     ],
     [
-      "D",
+      "F",
       454.0,
       -50.56,
       null
@@ -71,16 +87,26 @@
     ],
     [
       "B",
+      -177.3,
+      34.24
+    ],
+    [
+      "C",
       -71.34,
       -115.25
     ],
     [
-      "C",
+      "D",
+      158.35,
+      -8.58
+    ],
+    [
+      "E",
       199.65,
       -141.58
     ],
     [
-      "D",
+      "F",
       403.08,
       -47.69
     ]
@@ -170,7 +196,7 @@
         -97.56
       ],
       "plant": "A",
-      "targetPlant": "B",
+      "targetPlant": "C",
       "angle": 30
     },
     {
@@ -182,8 +208,8 @@
         186.56,
         -128.08
       ],
-      "plant": "D",
-      "targetPlant": "C",
+      "plant": "F",
+      "targetPlant": "E",
       "angle": 30
     }
   ]
