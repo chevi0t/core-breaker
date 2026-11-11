@@ -115,7 +115,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver188</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver189</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <header class="menuHead">
@@ -4895,10 +4895,11 @@ function ceilingAt(x, z, y) {
 
 // ホバーの浮遊は脚だけで決まる。構え・転送・吹き飛びでは下向き噴射を止める。OHだけでは水没させない。
 // ---- アクション（入力・装備と動作を分離。数値は本作オリジナルの仮置き） ----
+// 当たり判定（オーナーの希望 2026-11-11「小さ過ぎる」→ 約1.5倍）：タックルは前 hitRange m・左右 hitWidth m（前は 2R=2.6・R=1.3）、蹴りは reach m・前 angle の扇（前は 3m・90度）
 const ACTIONS = Object.freeze({
   crouch: { name: 'しゃがみ', lower: .6, walkScale: .35, primaryRecoilScale: .7 },
-  tackle: { name: 'タックル', distance: 8, time: .8, hitStart: .18, boost: 20, damage: 600, staggerTime: 1.15, minWeight: .7, maxWeight: 1.4, downRatio: 1.25, hitRecovery: .3, missRecovery: .3, cooldown: 1.5 },
-  kick: { name: '蹴り', dashDistance: .5, time: .35, reach: 3, angle: Math.PI / 2, windup: .2, boost: 15, damage: 800, staggerTime: 1.35, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .6, landRecovery: .6, cooldown: 1.8 },
+  tackle: { name: 'タックル', distance: 8, time: .8, hitStart: .18, hitRange: 4, hitWidth: 2, boost: 20, damage: 600, staggerTime: 1.15, minWeight: .7, maxWeight: 1.4, downRatio: 1.25, hitRecovery: .3, missRecovery: .3, cooldown: 1.5 },
+  kick: { name: '蹴り', dashDistance: .5, time: .35, reach: 4.2, angle: Math.PI * 2 / 3, windup: .2, boost: 15, damage: 800, staggerTime: 1.35, push: 6, pushTime: .3, airDistance: 6, airTime: .25, recovery: .6, landRecovery: .6, cooldown: 1.8 },
 });
 const DEFAULT_ACTION = 'crouch';
 // 四脚・逆脚の倍率は脚の型の traits.action に持つ（parts.js。#228）。airReach は空中の蹴りの届く距離の倍率。
@@ -4986,7 +4987,7 @@ function actionMoveHit(u) {
     if (u.actionHitUnits.has(e) || e.invulT > 0) continue;
     const dx = e.pos.x-u.pos.x, dz = e.pos.z-u.pos.z, d = Math.hypot(dx,dz), forward = dx*fx+dz*fz;
     if (e.pos.y + UNIT_H < u.pos.y + .5 || e.pos.y > u.pos.y + UNIT_H - .5 || forward < 0) continue;
-    if (m.id === 'tackle' ? d > 2*R || Math.abs(dx*fz-dz*fx) > R : d > a.reach || d > 1e-6 && forward / d < Math.cos(a.angle / 2) - 1e-9) continue;
+    if (m.id === 'tackle' ? d > a.hitRange || Math.abs(dx*fz-dz*fx) > a.hitWidth : d > a.reach || d > 1e-6 && forward / d < Math.cos(a.angle / 2) - 1e-9) continue;
     if (!actionClear(u,e)) continue;
     const ratio = Math.max(1, u.stats.weight) / Math.max(1, e.stats.weight);
     const dmg = a.damage * mul.damage * (m.id === 'tackle' ? Math.max(a.minWeight, Math.min(a.maxWeight, Math.sqrt(ratio))) : 1);
@@ -5079,7 +5080,7 @@ function botActionMove(u, dt) {
   const e=u.target, id=normalizeAction(u.actionId), a=ACTIONS[id];
   if (id==='crouch' || !e?.alive || e.kind!=='unit' || e.team===u.team || !actionCanStart(u) || u.actionCd>0) return false;
   if (!(e.planted || e.stun || e.electricT>0 || e.shockT>0 || e.recoverT>0 || e.actionRecoverT>0)) return false;
-  const dx=e.pos.x-u.pos.x,dz=e.pos.z-u.pos.z,d=Math.hypot(dx,dz),range=id==='tackle'?a.distance*actionScale(u,id).distance+2*R:actionDistance(u,id,!u.onGround)/(u.onGround?1:Math.SQRT2)+a.reach;
+  const dx=e.pos.x-u.pos.x,dz=e.pos.z-u.pos.z,d=Math.hypot(dx,dz),range=id==='tackle'?a.distance*actionScale(u,id).distance+a.hitRange:actionDistance(u,id,!u.onGround)/(u.onGround?1:Math.SQRT2)+a.reach;
   if (d>range || Math.abs(e.pos.y-u.pos.y)>UNIT_H || !actionClear(u,e) || Math.abs(wrapAngle(Math.atan2(-dx,-dz)-u.yaw))>.3) return false;
   return Math.random()<1-Math.exp(-ACTION_BOT_RATE*dt) && actionMoveStart(u);
 }
