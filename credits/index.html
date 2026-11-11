@@ -200,6 +200,64 @@ Three.js r128はMIT Licenseで、[ライセンス全文](../../vendor/three-r128
 
 
 1/2試作版：街の全軸を半分にし、立体通路の天井・施設空間・射出設備・経路を現行機体向けに補正しました。現実の構造を厳密に表すものではありません。
+</pre></section><section><h2>mapdesign/sowan/CREDITS.md</h2><pre># 双湾展示区の出典・加工・謝辞
+
+ゲームの「双湾展示区」（`prototype/maps/sowan.js`）は、[点群による実寸1/3の地形確認版](pointcloud-third/README.md)を遊べる形へ変換したものです。
+
+## 地理データ
+
+東京都デジタルサービス局、国土地理院、東京都・江東区・港区および国土交通省 Project PLATEAU の皆さまに、心から感謝します。点群・地図・都市モデルの整備、測量、公開に携わる皆さまのデータのおかげで、現実の湾岸の街をゲームの戦場として組み立てることができました。
+
+- <a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000029d0000000024" target="_blank" rel="noopener noreferrer">東京都デジタルツイン実現プロジェクト 区部点群データ2024</a>（CC BY 4.0表記。<a href="https://gic-tokyo.s3.ap-northeast-1.amazonaws.com/2023/dig/doc/license.pdf" target="_blank" rel="noopener noreferrer">点群配布元の利用規程</a>）
+- <a href="https://maps.gsi.go.jp/development/vt.html" target="_blank" rel="noopener noreferrer">地理院地図ベクトルタイル</a>（<a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>、CC BY 4.0互換）
+- <a href="https://www.mlit.go.jp/plateau/opendata/" target="_blank" rel="noopener noreferrer">Project PLATEAU</a>（<a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">利用条件</a>、CC BY 4.0互換）
+  - 点群で高さを測れない建物1件の補助
+  - 建物の壁の色：国土交通省 3D都市モデル 建築物モデル LOD2 テクスチャ付き（東京都 港区・江東区・品川区、2025年度版、3D Tiles）。目録は <a href="https://api.plateauview.mlit.go.jp/datacatalog/plateau-datasets" target="_blank" rel="noopener noreferrer">PLATEAU VIEW のデータカタログ</a>（`13103_bldg_lod2`・`13108_bldg_lod2`・`13109_bldg_lod2`）
+  - 大きな遊歩道の橋の円い広場の中心と半径、目印の建物の位置・向き・外形の寸法：同じ建築物モデルと、橋梁モデル LOD2（東京都 江東区、2025年度版、3D Tiles、`13108_brid_lod2`）から測った数字
+
+原データのURL・SHA256は `research/maps/odaiba-pointcloud-third.json` にあります。
+
+## 加工
+
+対象区画の切り出し、回転、実寸1/3への縮小、標高と撮影色の格子化、撮影色の正射画像化と影の補正、木の抽出、建物の外形と屋根の段差の再構築、地面の平坦化、橋・高架・新交通の単純化と通れる高さへの補正、岸壁、配色、ゲーム用の基地・プラント・カタパルト・リペアポッド・遮蔽用の塀・Botの通り道の追加。変換は `tools/build_sowan_third.py`。
+
+地面・屋上・橋の床の色は、点群の撮影色を真上から見た画像（`photo.webp`）にして貼っています。撮影時の影は、点群の高さから計算した太陽の向きで明るさを戻し、彩度と明暗を少し上げています。木の位置・高さ・枝の広がりも点群から取りました（`trees.npz`）。作るのは `tools/sowan_photo.py` です。
+
+建物の壁の色は点群に入っていないので、PLATEAU の建築物モデルに貼られた航空写真から、建物ごとに色を1つ取りました（`walls.json`、作るのは `tools/sowan_walls.py`）。日の当たった壁の面だけを選び、かすみと青かぶりを直して平均し、色味の差を強めています（濃さは独自に調整）。ゲームに入れたのは色の値だけで、PLATEAU の形や写真そのものは同梱していません。斜めの写真を1棟ずつ壁へ貼るという大変な整備のおかげで、真上からの点群だけでは分からなかった街の横顔の色を知ることができました。重ねてお礼申し上げます。PLATEAU に写真付きの形が無い建物は、点群の屋根の色から決めています。窓の模様は入れていません。木の緑、桜の色、海と空の色は独自に選びました。
+
+現実の安全な通行範囲や現況を正確に示すものではなく、各施設・団体による公認や提携を示すものでもありません。会議棟の逆四角錐、門状のビル、球のある局舎などは、測れた主要寸法（位置・向き・幅・奥行き・高さ）に合わせ、広く知られた姿をもとに箱を組んだ独自の簡易形状です（門の穴の大きさや渡り廊下の段の高さは見積もり）。公式の写真・画像・ロゴは同梱していません。
+
+橋・新交通システムの構造は、日本橋梁建設協会の紹介情報、Wikipedia の橋の写真、<a href="https://www.yurikamome.co.jp/feature/comfortable/system.html" target="_blank" rel="noopener noreferrer">ゆりかもめ公式・システムの説明</a>を参考にしました（[参照範囲](../../research/maps/odaiba-transport-reference.md)）。分かりやすい資料を公開してくださった皆さまに感謝します。
+</pre></section><section><h2>mapdesign/sowan/baselines/odaiba-third-v1/CREDITS.md</h2><pre># 地形確認版の出典と謝辞
+
+東京都デジタルサービス局、国土地理院、東京都・江東区・港区および国土交通省 Project PLATEAUの皆さまに感謝します。点群と地図・都市モデルの整備、測量、公開に携わる皆さまのデータを、現実の街をゲーム用の形状へ再構築するための資料として利用させていただきました。
+
+- <a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000029d0000000024" target="_blank" rel="noopener noreferrer">東京都デジタルツイン実現プロジェクト 区部点群データ2024</a>：CC BY 4.0表記。対象区画を抽出し、標高・色の格子化、形状の再構築、回転・1/3縮尺を行いました。
+- <a href="https://gic-tokyo.s3.ap-northeast-1.amazonaws.com/2023/dig/doc/license.pdf" target="_blank" rel="noopener noreferrer">点群配布元の利用規程</a>
+- <a href="https://maps.gsi.go.jp/development/vt.html" target="_blank" rel="noopener noreferrer">地理院地図ベクトルタイル</a>：<a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>（CC BY 4.0互換）。建物・道路・鉄道・水域の輪郭を加工しています。
+- <a href="https://www.mlit.go.jp/plateau/opendata/" target="_blank" rel="noopener noreferrer">Project PLATEAU</a>：<a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">利用条件</a>（CC BY 4.0互換）。点群で高さを観測できない1件の補助資料として利用しています。
+- 原データのURL・SHA256と補助資料の建物IDは この原本の `sources.json`。現況を正確に測量した完成品や、各施設による公認を示すものではありません。
+
+会議棟の逆四角錐と門状ビルの開口部は、観測できた主要寸法と外観写真の情報を合わせた独自の簡易形状です。公式の写真・画像・ロゴは同梱していません。
+
+表示にはthree.js r128（MITライセンス）を使用しています。著作権表示は既存の 固定タグ内の `vendor/three-r128/three.min.js`（MIT全文はこの原本の `THREE-LICENSE.txt`） と生成HTMLへ保持しています。比較用の機体モデルは本リポジトリのゲームから取り出しています。
+
+橋・新交通システムの外観・構造について、日本橋梁建設協会の紹介情報、Wikipediaの橋の外観写真、<a href="https://www.yurikamome.co.jp/feature/comfortable/system.html" target="_blank" rel="noopener noreferrer">ゆりかもめ公式・システムの説明</a>を参考にしました。資料を公開してくださった皆さまに感謝します。[参照範囲と補完方法](REFERENCES.md)のとおり形状は独自に作成し、参照写真や公式画像を素材として同梱していません。舗装・芝生などのテクスチャはコードによる独自生成です。
+</pre></section><section><h2>mapdesign/sowan/pointcloud-third/CREDITS.md</h2><pre># 地形確認版の出典と謝辞
+
+東京都デジタルサービス局、国土地理院、東京都・江東区・港区および国土交通省 Project PLATEAUの皆さまに感謝します。点群と地図・都市モデルの整備、測量、公開に携わる皆さまのデータを、現実の街をゲーム用の形状へ再構築するための資料として利用させていただきました。
+
+- <a href="https://catalog.data.metro.tokyo.lg.jp/dataset/t000029d0000000024" target="_blank" rel="noopener noreferrer">東京都デジタルツイン実現プロジェクト 区部点群データ2024</a>：CC BY 4.0表記。対象区画を抽出し、標高・色の格子化、形状の再構築、回転・1/3縮尺を行いました。
+- <a href="https://gic-tokyo.s3.ap-northeast-1.amazonaws.com/2023/dig/doc/license.pdf" target="_blank" rel="noopener noreferrer">点群配布元の利用規程</a>
+- <a href="https://maps.gsi.go.jp/development/vt.html" target="_blank" rel="noopener noreferrer">地理院地図ベクトルタイル</a>：<a href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank" rel="noopener noreferrer">国土地理院コンテンツ利用規約</a>（CC BY 4.0互換）。建物・道路・鉄道・水域の輪郭を加工しています。
+- <a href="https://www.mlit.go.jp/plateau/opendata/" target="_blank" rel="noopener noreferrer">Project PLATEAU</a>：<a href="https://www.mlit.go.jp/plateau/site-policy/" target="_blank" rel="noopener noreferrer">利用条件</a>（CC BY 4.0互換）。点群で高さを観測できない1件の補助資料として利用しています。
+- 原データのURL・SHA256と補助資料の建物IDは `research/maps/odaiba-pointcloud-third.json`。現況を正確に測量した完成品や、各施設による公認を示すものではありません。
+
+会議棟の逆四角錐と門状ビルの開口部は、観測できた主要寸法と外観写真の情報を合わせた独自の簡易形状です。公式の写真・画像・ロゴは同梱していません。
+
+表示にはthree.js r128（MITライセンス）を使用しています。著作権表示は既存の `vendor/three-r128/three.min.js` と生成HTMLへ保持しています。比較用の機体モデルは本リポジトリのゲームから取り出しています。
+
+橋・新交通システムの外観・構造について、日本橋梁建設協会の紹介情報、Wikipediaの橋の外観写真、<a href="https://www.yurikamome.co.jp/feature/comfortable/system.html" target="_blank" rel="noopener noreferrer">ゆりかもめ公式・システムの説明</a>を参考にしました。資料を公開してくださった皆さまに感謝します。[参照範囲と補完方法](../../../research/maps/odaiba-transport-reference.md)のとおり形状は独自に作成し、参照写真や公式画像を素材として同梱していません。舗装・芝生などのテクスチャはコードによる独自生成です。
 </pre></section><section><h2>Three.js r128 — MIT License</h2><pre>The MIT License
 
 Copyright © 2010-2021 three.js authors
