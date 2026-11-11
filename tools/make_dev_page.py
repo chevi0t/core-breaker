@@ -4,12 +4,15 @@
   python3 tools/test/make_dbg.py dbg
   python3 tools/make_dev_page.py dbg          # dbg/dev.html を書く（dbg.html と同じフォルダに置いて開く）
 
-dev.html はゲームそのもの（dbg.html）に調査の部品を足した物。都市マップへ出撃して使う。
-  - 照準を建物に合わせると、左上に建物の番号・高さ・大きさ・今の外壁が出る。
+dev.html はゲームそのもの（dbg.html）に調査の部品を足した物。出撃すると、敵も味方もいない散策になる。
+  - 敵味方の機体と砲台の攻撃は無く、試合の時間も減らない。機体は撃破されにくい（耐久を戻し続ける）。
+  - T：飛行の入り切り。飛行中は W A S D で見ている向きへ進み、Space で上、C で下、Shift で速く（壁は通り抜ける）。
+    視点は真上・真下近くまで向く。もう一度 T で、その場から機体に戻って歩ける。
+  - 照準を建物に合わせると、左上に建物の番号・高さ・大きさ・今の外壁が出る（都市マップ）。
   - B：その建物を記録する。場所（ゲームの座標、実際の緯度経度）と、見ていた位置から建物を向いた
     ストリートビューのリンクが、メモ帳に足される。メモ帳にそのまま「実物はこう」を書ける。
-  - L：メモ帳を開く。「コピー」で全部をコピーして、マップ製作のスレッドに貼る。
-  - 機体は撃破されにくくしてある（耐久を戻し続ける）。記録はブラウザに残る（localStorage の cbSurvey）。
+  - L：メモ帳を開く。「コピー」で全部をコピーして、マップ製作のスレッドに貼る。記録はブラウザに残る（localStorage の cbSurvey）。
+  - 時間は実際の速さで進む（dbg.html は試験のために1コマ0.05秒で固定だが、dev.html は画面の速さに合わせる）。
 
 緯度経度は、点群から作ったマップ（下の GEO にあるマップ）だけ出る。ゲームの座標 → 平面直角座標（EPSG:6677、
 第IX系）→ 緯度経度。ストリートビューは利用者が自分のブラウザで見るための物で、このページは画像を取得しない。
@@ -114,13 +117,61 @@ DRIVER = r"""<script>
     if(e.code==='KeyB'){record();e.preventDefault();e.stopPropagation();}
     if(e.code==='KeyL'){open();e.preventDefault();e.stopPropagation();}
   },true);
+  // ---- 散策：敵味方なし・実際の速さ・飛行（本体の関数を包む。本体は書き換えない）----
+  // 本体の行頭の function は window の物なので、包んだ物に差し替えられる。let・const は名前でそのまま読める
+  const fly={on:false,pitch:0,speed:30,fast:4,eye:3},clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const solo=()=>!tutorial&&!range;
+  let prevNow=0;const frame0=window.gameFrame;
+  window.gameFrame=function(now){window.__dt=clamp((now-prevNow)/1000,.001,.05);prevNow=now;return frame0(now);}; // dbg.html の固定の刻みを、実際の時間に戻す
+  const setup0=window.setup;
+  window.setup=function(){
+    const r=setup0.apply(this,arguments);fly.on=false;if(!solo())return r;
+    for(const u of units){if(u===player)continue;if(u.postFlight)scene.remove(u.postFlight.mesh);scene.remove(u.group,u.beam,u.fieldMesh,u.barrierMesh);disposeMech(u.group);u.beam.material.dispose();if(u.tagEl)u.tagEl.remove();}
+    units.length=0;units.push(player);
+    for(let i=hittables.length-1;i>=0;i--){const ref=refOf(hittables[i]);if(ref&&ref.kind==='unit'&&ref!==player)hittables.splice(i,1);}
+    return r;
+  };
+  const turret0=window.turretUpdate;window.turretUpdate=function(tu,dt){if(!solo())return turret0(tu,dt);}; // 砲台は撃たない
+  const flyDir=u=>{const c=Math.cos(fly.pitch);return new T.Vector3(-Math.sin(u.yaw)*c,Math.sin(fly.pitch),-Math.cos(u.yaw)*c);};
+  const player0=window.playerUpdate;
+  window.playerUpdate=function(u,dt){
+    if(!fly.on)return player0(u,dt);
+    const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),s=(keys.KeyD?1:0)-(keys.KeyA?1:0),v=(keys.Space?1:0)-(keys.KeyC?1:0);
+    const move=flyDir(u).multiplyScalar(f).addScaledVector(new T.Vector3(Math.cos(u.yaw),0,-Math.sin(u.yaw)),s);move.y+=v;if(move.lengthSq()>1)move.normalize();
+    u.pos.addScaledVector(move,fly.speed*(keys.ShiftLeft||keys.ShiftRight?fly.fast:1)*dt);
+    u.pos.x=clamp(u.pos.x,-MAP_X-200,MAP_X+200);u.pos.z=clamp(u.pos.z,-MAP_Z-200,MAP_Z+200);u.pos.y=clamp(u.pos.y,terrainH(u.pos.x,u.pos.z),600);
+    u.vel.set(0,0,0);u.onGround=false;u.moveInput=false;u.dashState='';u.scoped=false;
+  };
+  const camera0=window.updateCamera;
+  window.updateCamera=function(u,dt){
+    if(!fly.on||u!==player)return camera0(u,dt);
+    camera.fov+=(gameOptions.fov-camera.fov)*Math.min(1,dt*10);camera.updateProjectionMatrix();
+    camera.position.copy(u.pos);camera.position.y+=fly.eye;camera.lookAt(camera.position.clone().addScaledVector(flyDir(u),50));camera.updateMatrixWorld();
+    u.group.visible=false; // 飛行中は自分の機体を描かない（目の位置から見る）
+  };
+  function setFly(on){
+    if(!player||!player.alive||on===fly.on)return;
+    if(on){fly.pitch=player.pitch;player.vel.set(0,0,0);releaseLock();}else player.pitch=clamp(fly.pitch,-.9,.7);
+    fly.on=on;
+  }
+  addEventListener('mousemove',e=>{ // 飛行中は真上・真下近くまで向ける（左右は本体が回す）
+    if(!fly.on||!running||!player||mapOpen||document.pointerLockElement!==canvas||Math.abs(e.movementX)>250||Math.abs(e.movementY)>250)return;
+    fly.pitch=clamp(fly.pitch-e.movementY*.0025*camera.fov/70,-1.5,1.5);
+  });
+  addEventListener('keydown',e=>{
+    if(e.code!=='KeyT'||e.repeat||e.ctrlKey||e.metaKey||e.altKey||isOpen()||!running||/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;
+    setFly(!fly.on);e.preventDefault();
+  });
   setInterval(()=>{
-    const playing=!!(g.cityMap&&g.curMap&&g.player&&g.player.alive);
+    const playing=!!(g.curMap&&g.player&&g.player.alive&&running);
     strip.style.display=playing&&!isOpen()?'block':'none';if(!playing)return;
     if(g.player.maxHp)g.player.hp=g.player.maxHp; // 調査中に撃破されにくくする
-    target=look();strip.textContent='調査モード　B：照準の建物を記録　L：メモ帳\n'+describe(target);strip.style.whiteSpace='pre-line';
+    if(solo())timeLeft=MATCH; // 散策は時間で終わらない
+    target=look();strip.style.whiteSpace='pre-line';
+    strip.textContent='調査モード（敵味方なし）　T：'+(fly.on?'歩く':'飛ぶ')+'　B：照準の建物を記録　L：メモ帳\n'
+      +(fly.on?'飛行中　W A S D：見ている向きへ　Space：上　C：下　Shift：速く\n':'')+(g.cityMap?describe(target):'');
   },200);
-  Object.assign(window.__survey,{look,describe,record});
+  Object.assign(window.__survey,{look,describe,record,fly,setFly});
 })();
 </script>"""
 
