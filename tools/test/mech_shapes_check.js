@@ -47,8 +47,9 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             const legacy=slots.every(slot=>legacyTypes.includes(cfg[slot]));
             // 腰ポッド24面＋肩口8面−撤去した背面箱12面＝20三角形。
             const joints = model.rig ? 10 * 2 + 4 + 10 + 20 / 12 : 0;
-            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 60) + joints;
-            check(boxes <= budget, label + ': 箱数が描画予算を超えた');
+            const budget = (legacy ? slots.reduce((sum, slot) => sum + original[slot][legacyTypes.indexOf(cfg[slot])], 0) * 1.5 : 70) + joints; // ドーザーの頭・胴・腕が入った混成のぶん、60 から 70 へ（#228。胴の正面を塊で作ったぶんを含む）
+            // 四脚は脚が4本なので、脚2本ぶん（30箱）を足す（#228）
+            check(boxes <= budget + (g.PARTS.legs[cfg.legs].kind === 'quad' ? 30 : 0), label + ': 箱数が描画予算を超えた');
             maxBoxes = Math.max(maxBoxes, boxes);
             if (slots.every(slot => cfg[slot] === head)) counts[head] = boxes;
             for (const [key, position] of Object.entries(anchors)) check(model[key].position.toArray().every((v, i) => v === position[i]), label + ': 武器の取付位置 ' + key);
@@ -71,7 +72,7 @@ const output = path.resolve(process.argv[3] || path.join(dir, 'mech-shapes'));
             const stats = g.mechStats(cfg, g.loadout.assault);
             Object.assign(target, { hp: 1e6, maxHp: 1e6, invulT: 0, weakT: 0, partArmor: stats.armor, armorAvg: stats.avg });
             target.pos.set(0, 20, 0);
-            for (const [slot, x, y] of [['head', 0, 3.7], ['body', 0, 2.65], ['arms', 1.48, 2.24], ['legs', 0.62, 0.67], ['arms', 1.35, 3.1]]) {
+            for (const [slot, x, y] of [['head', 0, 3.7], ['body', 0, 2.65], ['arms', 1.48, 2.24], ['legs', g.PARTS.legs[cfg.legs].kind === 'quad' ? 1.0 : 0.62, 0.67], ['arms', 1.35, 3.1]]) { // 四脚の脚は外へ張っている（#228）
               const from = new T.Vector3(x, 20 + y, -10), aim = new T.Vector3(x, 20 + y, 0);
               const hit = g.castFrom(from, aim.clone().sub(from).normalize(), shooter, 20);
               check(hit && hit.ref === target && hit.slot === slot, label + ': 命中部位 ' + slot + '/' + y);

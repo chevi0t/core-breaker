@@ -22,7 +22,7 @@ function createCameraSuite(revision='working'){
     for(const u of h.units)Object.assign(u,{recoil:0,recoilYaw:0,cameraRecoil:0,cameraRecoilYaw:0});
     Object.assign(c,{qc:{open:false},wsel:{open:false},mapOpen:false,pressed:{},pad:{fwd:0,side:0},touch:{fwd:0,side:0},
       mouseDown:false,rightDown:false,camera:new T.PerspectiveCamera(70,16/9,.1,1000),
-      CAM:{back:8,up:4.6,side:2.2},SEEK_ZOOM:1.1,SEEK_EYE:3.4,LOCK_ZOOM:1.3,LOCK_ZOOM_RATE:9,
+      CAM:{back:8,up:4.6,side:2.2},SEEK_ZOOM:1.1,SEEK_EYE:3.4,LOCK_ZOOM:1.3,LOCK_ZOOM_SEMI:1.5,LOCK_ZOOM_RATE:9,
       gameOptions:{fov:70},lockUpdate:()=>{},castFrom:()=>null,cameraFade:()=>{},cityMap:null,
       terrainH:()=>-1000,ceilingAt:()=>Infinity,actionLower:()=>0,isArtilleryMode:()=>false});
     vm.runInContext(viewSource,c);c.updateCamera(c.player,0);

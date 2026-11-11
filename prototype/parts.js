@@ -157,10 +157,89 @@ const PART_SERIES = {
   bulwark: { maker: 'gard', name: 'ブルワーク', desc: '重く硬いが遅い', types: ['heavy', 'heavy2', 'heavy3'], set: { text: '装甲 +3%（各部位の被ダメージ −3%）', fx: PART_SLOTS.map(k => [k, 'armor', 'add', -0.03]) } },
 };
 for (const [id, ps] of Object.entries(PART_SERIES)) ps.types.forEach((t, i) => { for (const k of PART_SLOTS) Object.assign(PARTS[k][t], { series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' }); });
+// ---- 四脚ドーザーと逆脚ホッパー（性能の定義 #227、ゲームに入れたのは #228。2026-11-11）----
+// 脚はアーケード版に無い本作オリジナルで、脚の数値はオリジナルの仮置き（オーナーの了承 2026-11-10。採用記録 research/parts/types/leg-kinds.json）。
+// 下の LEG_SERIES から PARTS と PART_SERIES へ入れる（PART_SERIES の kind は脚の種類。profile はホバーの形の印なので付けない）。
+// LEG_KIND_TRAITS は脚の種類ごとの特性の基準。型ごとの traits は、基準に型の差を重ねた物（動きは kind ではなく型の traits を読む）。
+//   spread：射撃のばらつきの倍率、recoil：反動の倍率（腕の反動吸収に掛ける）、stagger：よろけ・ダウンの閾値の倍率、hoverCost：空中で浮くブースト消費の倍率
+//   jump：ジャンプの初速の倍率（高さは2乗。1.15 で約6.8m → 約9m）、landSpeed：着地硬直が出る落下の速さ（二脚は LAND_SPEED 28）、landTime：着地硬直の長さの倍率
+//   plantTime：構える武器の構えにかかる時間の倍率、action：タックル・蹴りの倍率（ACTION_LEG_MUL と同じ形。airReach は空中の蹴りの届く距離）
+//   crouch：しゃがみの中身。brace＝踏ん張り（止まる、ばらつき spread 倍、押されない、閾値 stagger 倍）、charge＝溜め（time 秒以上しゃがんでからジャンプで初速 jump 倍、ジャンプのブースト cost 倍）
+const LEG_KIND_TRAITS = {
+  quad: { spread: 0.8, recoil: 0.7, stagger: 1.3, hoverCost: 0.6, jump: 0.8, landSpeed: 28, landTime: 1, plantTime: 0.6,
+    action: { tackle: { distance: 0.6, damage: 1.5 }, kick: { damage: 1.2 } }, crouch: { type: 'brace', spread: 0.6, stagger: 1.5, damage: 0.6, damageAfter: 1 } },
+  reverse: { spread: 1, recoil: 1, stagger: 0.9, hoverCost: 1, jump: 1.15, landSpeed: 34, landTime: 0.5, plantTime: 1,
+    action: { tackle: { damage: 0.8 }, kick: { damage: 1.5, airReach: 2 } }, crouch: { type: 'charge', time: 0.3, jump: 1.33, cost: 2 } }, // 溜め：1.33²×約6.8m ≒ 12m
+};
+// 全身のシリーズ（オーナーの指定 2026-11-11「全身作って」）：頭・胴・腕も各4型。セットボーナスは PART_SERIES と同じ形。
+// 頭・胴・腕の数値はアーケード版 wiki の表を換算した物（オーナーの指定 2026-11-11：ドーザー＝ランドバルク、ホッパー＝フォーミュラ。「脚性能はオリジナルで」）。
+// 換算はホバーと同じ：本作の標準Ⅰ型 × AC の値 ÷ AC クーガーⅠ型（HOVER_PART_BASE）。SP の基準値は AC の表に無いので標準のまま。
+// ac は AC 原表（並びは HOVER_PART_FIELDS：頭＝重量・装甲・射撃補正・ロックオン、胴＝重量・装甲・ブースター・SP供給率、腕＝重量・装甲・反動吸収・リロード・武器変更・予備弾数）。
+// 採用記録：research/parts/types/leg-kinds.json、原表：research/arcade/parts/quad-reverse-sources.md。
+// 脚はオリジナル（Ⅰ基準、Ⅱ〜Ⅳ は1つ良くして1つ悪くする、各値は Ⅰ型の ±10% くらいまで）。特別な動きは脚の traits だけ。
+const LEG_SERIES = {
+  // ドーザー：重量級の四脚。止まって当てる移動砲台。形は重機型（media/legs-proto/）
+  // 頭・胴・腕の原表はランドバルク Ⅰ型・Ⅱ型・Ⅳ型・AT：https://w.atwiki.jp/borderbreak/pages/501.html （頭 https://w.atwiki.jp/borderbreak/pages/495.html ）
+  // セットボーナスも原表（重量耐性UP +150）
+  dozer: { name: 'ドーザー', maker: 'gard', kind: 'quad', profileNote: 'heavy',
+    desc: '重量級の四脚。射撃が安定し、よろけにくい。しゃがみで踏ん張る。遅く、脚が横に広い。上半身はⅡがブースト、Ⅲが反動吸収、Ⅳが装甲を優先。脚はⅡが積載、Ⅲが機動、Ⅳが砲撃',
+    set: { text: '重量耐性 +150kg', fx: [['legs', 'cap', 'add', 150]] },
+    types: ['dozer', 'dozer2', 'dozer3', 'dozer4'],
+    ac: {
+      head: [[710, 0.90, 0.96, 80], [700, 0.90, 1.00, 100], [750, 0.90, 1.08, 60], [800, 0.71, 0.96, 50]],
+      body: [[1340, 0.90, 115, 1.0], [1370, 0.90, 125, 0.65], [1400, 0.85, 90, 1.1], [1460, 0.78, 105, 1.0]],
+      arms: [[930, 0.90, 1.00, 0.86, 0.95, 1.41], [900, 0.90, 0.85, 0.86, 1.05, 1.41], [950, 0.90, 1.30, 0.86, 0.80, 1.45], [1030, 0.82, 1.05, 0.82, 0.94, 1.41]],
+    },
+    legs: [
+      { weight: 1350, armor: 0.80, walk: 4.6, dash: 18.0, cruise: 17.0, cap: 6800 },
+      { weight: 1420, armor: 0.80, walk: 4.4, dash: 17.4, cruise: 16.6, cap: 7300 }, // 積載：重く遅い代わりに重量耐性
+      { weight: 1290, armor: 0.86, walk: 5.0, dash: 19.0, cruise: 17.8, cap: 6400 }, // 機動：速い代わりに装甲と重量耐性
+      { weight: 1400, armor: 0.78, walk: 4.3, dash: 17.6, cruise: 16.8, cap: 6800, traits: { spread: 0.74, recoil: 0.64, jump: 0.75 } }, // 砲撃：ばらつきと反動をさらに抑える代わりに遅く、跳べない
+    ] },
+  // ホッパー：軽量級の逆脚。縦に動く。形は2節の逆関節（media/legs-proto/）
+  // 頭・胴・腕の原表はフォーミュラ Ⅱ型・Ⅱ型C・F型・MST：https://w.atwiki.jp/borderbreak/pages/550.html （頭 https://w.atwiki.jp/borderbreak/pages/551.html ）
+  // セットボーナスは原表の「高速移動UP +0.72m/s、加速UP −0.27秒」のうち高速移動だけ（加速の時間はホバーの脚だけが持つ）
+  hopper: { name: 'ホッパー', maker: 'sylph', kind: 'reverse', profileNote: 'light',
+    desc: '軽量級の逆脚。高く跳び、着地の隙が短い。しゃがみで溜めて大ジャンプ。装甲が薄く、積めない。上半身はⅡがブーストとロック、ⅢがSP回復と持ち替え、Ⅳが射撃補正とリロードを優先。脚はⅡが跳躍、Ⅲが積載、Ⅳが疾走',
+    set: { text: 'ダッシュ +0.72m/s', fx: [['legs', 'dash', 'add', 0.72]] },
+    types: ['hopper', 'hopper2', 'hopper3', 'hopper4'],
+    ac: {
+      head: [[530, 1.25, 1.12, 100], [510, 1.25, 1.16, 110], [550, 1.25, 1.16, 80], [540, 1.19, 1.25, 85]],
+      body: [[1090, 1.25, 90, 1.35], [1120, 1.25, 110, 1.00], [1170, 1.13, 75, 1.60], [1180, 1.13, 115, 1.00]],
+      arms: [[700, 1.19, 0.90, 0.82, 1.10, 1.23], [750, 1.13, 1.15, 0.91, 1.05, 1.27], [710, 1.25, 0.85, 0.82, 1.30, 1.27], [730, 1.13, 0.90, 0.78, 1.20, 1.14]],
+    },
+    legs: [
+      { weight: 800, armor: 1.15, walk: 6.8, dash: 22.0, cruise: 19.0, cap: 4000 },
+      { weight: 780, armor: 1.20, walk: 6.6, dash: 21.6, cruise: 18.8, cap: 3850, traits: { jump: 1.22 } }, // 跳躍：約10m。装甲と重量耐性を削る
+      { weight: 860, armor: 1.10, walk: 6.4, dash: 21.2, cruise: 18.6, cap: 4350, traits: { jump: 1.10 } }, // 積載：重量耐性と装甲の代わりに速さと跳躍
+      { weight: 790, armor: 1.18, walk: 7.2, dash: 23.2, cruise: 20.0, cap: 3800, traits: { jump: 1.12, landTime: 0.6 } }, // 疾走：横に速い代わりに跳躍・装甲・重量耐性
+    ] },
+};
+// AC 原表の1行を本作の値にする（PART_VARIANTS と同じ桁の丸め）
+const legSeriesFromAc = (slot, row) => {
+  const p = { ...PARTS[slot].standard };
+  HOVER_PART_FIELDS[slot].forEach((field, j) => {
+    const digits = field === 'weight' ? 0 : ['lock', 'boost'].includes(field) ? 1 : 4;
+    p[field] = +(p[field] * row[j] / HOVER_PART_BASE[slot][j]).toFixed(digits);
+  });
+  return p;
+};
+// PARTS[部位][型のキー] と PART_SERIES へ入れる。脚は kind と traits も持つ（traits は種類の基準に型の差を重ねた物）
+for (const [id, ps] of Object.entries(LEG_SERIES)) {
+  PART_SERIES[id] = { maker: ps.maker, name: ps.name, kind: ps.kind, desc: ps.desc, types: ps.types, set: ps.set };
+  ps.types.forEach((key, i) => {
+    for (const slot of PART_SLOTS) {
+      const { traits, ...stats } = slot === 'legs' ? ps.legs[i] : legSeriesFromAc(slot, ps.ac[slot][i]);
+      const p = { ...stats, series: id, model: ps.name + 'ⅠⅡⅢⅣ'[i], label: 'ⅠⅡⅢⅣ'[i] + '型' };
+      if (slot === 'legs') Object.assign(p, { kind: ps.kind, traits: { ...LEG_KIND_TRAITS[ps.kind], ...traits } });
+      PARTS[slot][key] = p;
+    }
+  });
+}
 // 塗装。'team' はチームの色。ほかの色に塗ってもチームの色は細い帯に残る（Botはチームの色のまま）
 const PAINTS = [
   { id: 'team', name: 'チームの色', color: null }, { id: 'ash', name: 'アッシュ', color: 0xaebcc8 }, { id: 'sand', name: 'サンド', color: 0xd2b782 },
   { id: 'forest', name: 'フォレスト', color: 0x648d79 }, { id: 'violet', name: 'バイオレット', color: 0x9c82c7 }, { id: 'crimson', name: 'クリムゾン', color: 0xc76363 },
 ];
-return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS };
+return { MAKERS, PART_SLOTS, PART_NAMES, PARTS, PART_VARIANTS, HOVER_PART_TYPES, HOVER_PART_FIELDS, HOVER_PART_BASE, PART_SERIES, PAINTS, LEG_KIND_TRAITS, LEG_SERIES };
 }

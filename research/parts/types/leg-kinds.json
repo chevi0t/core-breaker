@@ -1,0 +1,918 @@
+{
+  "date": "2026-11-11",
+  "issue": "#227",
+  "source": "脚は本作オリジナル（アーケード版 wiki に四脚・逆脚は無い。オーナーの了承 2026-11-10 で仮置き）。頭・胴・腕はアーケード版 wiki の表を換算（オーナーの指定 2026-11-11：ドーザー＝ランドバルク https://w.atwiki.jp/borderbreak/pages/501.html 、ホッパー＝フォーミュラ https://w.atwiki.jp/borderbreak/pages/550.html 。原表 research/arcade/parts/quad-reverse-sources.md）",
+  "status": "ゲームに入っている（#228）。prototype/parts.js の LEG_SERIES から PARTS・PART_SERIES へ入れる",
+  "compare": {
+    "dozer": {
+      "series": "bulwark",
+      "key": "heavy",
+      "rows": {
+        "head": {
+          "weight": 830,
+          "armor": 0.77,
+          "lock": 40,
+          "aim": 0.8
+        },
+        "body": {
+          "weight": 1480,
+          "armor": 0.81,
+          "boost": 80,
+          "sp": 120,
+          "supply": 1.1
+        },
+        "arms": {
+          "weight": 1030,
+          "armor": 0.77,
+          "reload": 1.18,
+          "swap": 0.8,
+          "recoil": 1.25,
+          "ammo": 1.25
+        },
+        "legs": {
+          "weight": 1340,
+          "armor": 0.77,
+          "walk": 4.8,
+          "dash": 19.4,
+          "cruise": 17.2,
+          "cap": 6450
+        }
+      }
+    },
+    "hopper": {
+      "series": "swift",
+      "key": "light",
+      "rows": {
+        "head": {
+          "weight": 460,
+          "armor": 1.24,
+          "lock": 60,
+          "aim": 1.2
+        },
+        "body": {
+          "weight": 1010,
+          "armor": 1.24,
+          "boost": 120,
+          "sp": 80,
+          "supply": 1
+        },
+        "arms": {
+          "weight": 680,
+          "armor": 1.17,
+          "reload": 0.91,
+          "swap": 1.1,
+          "recoil": 0.75,
+          "ammo": 0.75
+        },
+        "legs": {
+          "weight": 770,
+          "armor": 1.17,
+          "walk": 7.6,
+          "dash": 24.8,
+          "cruise": 21.4,
+          "cap": 3700
+        }
+      }
+    }
+  },
+  "rule": "頭・胴・腕：本作の標準Ⅰ型 × AC の値 ÷ AC クーガーⅠ型（ホバーと同じ換算。SP の基準値は標準のまま）。脚：Ⅱ〜Ⅳ型は Ⅰ型から1つ良くして1つ悪くし、各値は Ⅰ型の ±10% くらいまで。特別な動き（traits）は脚だけ",
+  "kindTraits": {
+    "quad": {
+      "spread": 0.8,
+      "recoil": 0.7,
+      "stagger": 1.3,
+      "hoverCost": 0.6,
+      "jump": 0.8,
+      "landSpeed": 28,
+      "landTime": 1,
+      "plantTime": 0.6,
+      "action": {
+        "tackle": {
+          "distance": 0.6,
+          "damage": 1.5
+        },
+        "kick": {
+          "damage": 1.2
+        }
+      },
+      "crouch": {
+        "type": "brace",
+        "spread": 0.6,
+        "stagger": 1.5
+      }
+    },
+    "reverse": {
+      "spread": 1,
+      "recoil": 1,
+      "stagger": 0.9,
+      "hoverCost": 1,
+      "jump": 1.15,
+      "landSpeed": 34,
+      "landTime": 0.5,
+      "plantTime": 1,
+      "action": {
+        "tackle": {
+          "damage": 0.8
+        },
+        "kick": {
+          "damage": 1.5,
+          "airReach": 2
+        }
+      },
+      "crouch": {
+        "type": "charge",
+        "time": 0.3,
+        "jump": 1.33,
+        "cost": 2
+      }
+    }
+  },
+  "series": {
+    "dozer": {
+      "name": "ドーザー",
+      "maker": "gard",
+      "kind": "quad",
+      "weightClass": "heavy",
+      "set": {
+        "text": "重量耐性 +150kg",
+        "fx": [
+          [
+            "legs",
+            "cap",
+            "add",
+            150
+          ]
+        ]
+      },
+      "shape": "media/legs-proto/（leg_shapes.js・body_shapes.js）",
+      "parts": {
+        "head": {
+          "dozer": {
+            "weight": 722,
+            "armor": 0.9,
+            "lock": 50,
+            "aim": 0.96,
+            "series": "dozer",
+            "model": "ドーザーⅠ",
+            "label": "Ⅰ型"
+          },
+          "dozer2": {
+            "weight": 712,
+            "armor": 0.9,
+            "lock": 62.5,
+            "aim": 1,
+            "series": "dozer",
+            "model": "ドーザーⅡ",
+            "label": "Ⅱ型"
+          },
+          "dozer3": {
+            "weight": 763,
+            "armor": 0.9,
+            "lock": 37.5,
+            "aim": 1.08,
+            "series": "dozer",
+            "model": "ドーザーⅢ",
+            "label": "Ⅲ型"
+          },
+          "dozer4": {
+            "weight": 813,
+            "armor": 0.71,
+            "lock": 31.3,
+            "aim": 0.96,
+            "series": "dozer",
+            "model": "ドーザーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "body": {
+          "dozer": {
+            "weight": 1394,
+            "armor": 0.9,
+            "boost": 115,
+            "sp": 100,
+            "supply": 1,
+            "series": "dozer",
+            "model": "ドーザーⅠ",
+            "label": "Ⅰ型"
+          },
+          "dozer2": {
+            "weight": 1425,
+            "armor": 0.9,
+            "boost": 125,
+            "sp": 100,
+            "supply": 0.65,
+            "series": "dozer",
+            "model": "ドーザーⅡ",
+            "label": "Ⅱ型"
+          },
+          "dozer3": {
+            "weight": 1456,
+            "armor": 0.85,
+            "boost": 90,
+            "sp": 100,
+            "supply": 1.1,
+            "series": "dozer",
+            "model": "ドーザーⅢ",
+            "label": "Ⅲ型"
+          },
+          "dozer4": {
+            "weight": 1518,
+            "armor": 0.78,
+            "boost": 105,
+            "sp": 100,
+            "supply": 1,
+            "series": "dozer",
+            "model": "ドーザーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "arms": {
+          "dozer": {
+            "weight": 919,
+            "armor": 0.9,
+            "reload": 0.86,
+            "swap": 0.95,
+            "recoil": 1,
+            "ammo": 1.41,
+            "series": "dozer",
+            "model": "ドーザーⅠ",
+            "label": "Ⅰ型"
+          },
+          "dozer2": {
+            "weight": 889,
+            "armor": 0.9,
+            "reload": 0.86,
+            "swap": 1.05,
+            "recoil": 0.85,
+            "ammo": 1.41,
+            "series": "dozer",
+            "model": "ドーザーⅡ",
+            "label": "Ⅱ型"
+          },
+          "dozer3": {
+            "weight": 939,
+            "armor": 0.9,
+            "reload": 0.86,
+            "swap": 0.8,
+            "recoil": 1.3,
+            "ammo": 1.45,
+            "series": "dozer",
+            "model": "ドーザーⅢ",
+            "label": "Ⅲ型"
+          },
+          "dozer4": {
+            "weight": 1018,
+            "armor": 0.82,
+            "reload": 0.82,
+            "swap": 0.94,
+            "recoil": 1.05,
+            "ammo": 1.41,
+            "series": "dozer",
+            "model": "ドーザーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "legs": {
+          "dozer": {
+            "weight": 1350,
+            "armor": 0.8,
+            "walk": 4.6,
+            "dash": 18,
+            "cruise": 17,
+            "cap": 6800,
+            "series": "dozer",
+            "model": "ドーザーⅠ",
+            "label": "Ⅰ型",
+            "kind": "quad",
+            "traits": {
+              "spread": 0.8,
+              "recoil": 0.7,
+              "stagger": 1.3,
+              "hoverCost": 0.6,
+              "jump": 0.8,
+              "landSpeed": 28,
+              "landTime": 1,
+              "plantTime": 0.6,
+              "action": {
+                "tackle": {
+                  "distance": 0.6,
+                  "damage": 1.5
+                },
+                "kick": {
+                  "damage": 1.2
+                }
+              },
+              "crouch": {
+                "type": "brace",
+                "spread": 0.6,
+                "stagger": 1.5
+              }
+            }
+          },
+          "dozer2": {
+            "weight": 1420,
+            "armor": 0.8,
+            "walk": 4.4,
+            "dash": 17.4,
+            "cruise": 16.6,
+            "cap": 7300,
+            "series": "dozer",
+            "model": "ドーザーⅡ",
+            "label": "Ⅱ型",
+            "kind": "quad",
+            "traits": {
+              "spread": 0.8,
+              "recoil": 0.7,
+              "stagger": 1.3,
+              "hoverCost": 0.6,
+              "jump": 0.8,
+              "landSpeed": 28,
+              "landTime": 1,
+              "plantTime": 0.6,
+              "action": {
+                "tackle": {
+                  "distance": 0.6,
+                  "damage": 1.5
+                },
+                "kick": {
+                  "damage": 1.2
+                }
+              },
+              "crouch": {
+                "type": "brace",
+                "spread": 0.6,
+                "stagger": 1.5
+              }
+            }
+          },
+          "dozer3": {
+            "weight": 1290,
+            "armor": 0.86,
+            "walk": 5,
+            "dash": 19,
+            "cruise": 17.8,
+            "cap": 6400,
+            "series": "dozer",
+            "model": "ドーザーⅢ",
+            "label": "Ⅲ型",
+            "kind": "quad",
+            "traits": {
+              "spread": 0.8,
+              "recoil": 0.7,
+              "stagger": 1.3,
+              "hoverCost": 0.6,
+              "jump": 0.8,
+              "landSpeed": 28,
+              "landTime": 1,
+              "plantTime": 0.6,
+              "action": {
+                "tackle": {
+                  "distance": 0.6,
+                  "damage": 1.5
+                },
+                "kick": {
+                  "damage": 1.2
+                }
+              },
+              "crouch": {
+                "type": "brace",
+                "spread": 0.6,
+                "stagger": 1.5
+              }
+            }
+          },
+          "dozer4": {
+            "weight": 1400,
+            "armor": 0.78,
+            "walk": 4.3,
+            "dash": 17.6,
+            "cruise": 16.8,
+            "cap": 6800,
+            "series": "dozer",
+            "model": "ドーザーⅣ",
+            "label": "Ⅳ型",
+            "kind": "quad",
+            "traits": {
+              "spread": 0.74,
+              "recoil": 0.64,
+              "stagger": 1.3,
+              "hoverCost": 0.6,
+              "jump": 0.75,
+              "landSpeed": 28,
+              "landTime": 1,
+              "plantTime": 0.6,
+              "action": {
+                "tackle": {
+                  "distance": 0.6,
+                  "damage": 1.5
+                },
+                "kick": {
+                  "damage": 1.2
+                }
+              },
+              "crouch": {
+                "type": "brace",
+                "spread": 0.6,
+                "stagger": 1.5
+              }
+            }
+          }
+        }
+      },
+      "acSource": [
+        "ランドバルクI型",
+        "ランドバルクII型",
+        "ランドバルクIV型",
+        "ランドバルクAT"
+      ],
+      "ac": {
+        "head": [
+          [
+            710,
+            0.9,
+            0.96,
+            80
+          ],
+          [
+            700,
+            0.9,
+            1,
+            100
+          ],
+          [
+            750,
+            0.9,
+            1.08,
+            60
+          ],
+          [
+            800,
+            0.71,
+            0.96,
+            50
+          ]
+        ],
+        "body": [
+          [
+            1340,
+            0.9,
+            115,
+            1
+          ],
+          [
+            1370,
+            0.9,
+            125,
+            0.65
+          ],
+          [
+            1400,
+            0.85,
+            90,
+            1.1
+          ],
+          [
+            1460,
+            0.78,
+            105,
+            1
+          ]
+        ],
+        "arms": [
+          [
+            930,
+            0.9,
+            1,
+            0.86,
+            0.95,
+            1.41
+          ],
+          [
+            900,
+            0.9,
+            0.85,
+            0.86,
+            1.05,
+            1.41
+          ],
+          [
+            950,
+            0.9,
+            1.3,
+            0.86,
+            0.8,
+            1.45
+          ],
+          [
+            1030,
+            0.82,
+            1.05,
+            0.82,
+            0.94,
+            1.41
+          ]
+        ]
+      }
+    },
+    "hopper": {
+      "name": "ホッパー",
+      "maker": "sylph",
+      "kind": "reverse",
+      "weightClass": "light",
+      "set": {
+        "text": "ダッシュ +0.72m/s",
+        "fx": [
+          [
+            "legs",
+            "dash",
+            "add",
+            0.72
+          ]
+        ]
+      },
+      "shape": "media/legs-proto/（leg_shapes.js・body_shapes.js）",
+      "parts": {
+        "head": {
+          "hopper": {
+            "weight": 539,
+            "armor": 1.25,
+            "lock": 62.5,
+            "aim": 1.12,
+            "series": "hopper",
+            "model": "ホッパーⅠ",
+            "label": "Ⅰ型"
+          },
+          "hopper2": {
+            "weight": 519,
+            "armor": 1.25,
+            "lock": 68.8,
+            "aim": 1.16,
+            "series": "hopper",
+            "model": "ホッパーⅡ",
+            "label": "Ⅱ型"
+          },
+          "hopper3": {
+            "weight": 559,
+            "armor": 1.25,
+            "lock": 50,
+            "aim": 1.16,
+            "series": "hopper",
+            "model": "ホッパーⅢ",
+            "label": "Ⅲ型"
+          },
+          "hopper4": {
+            "weight": 549,
+            "armor": 1.19,
+            "lock": 53.1,
+            "aim": 1.25,
+            "series": "hopper",
+            "model": "ホッパーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "body": {
+          "hopper": {
+            "weight": 1134,
+            "armor": 1.25,
+            "boost": 90,
+            "sp": 100,
+            "supply": 1.35,
+            "series": "hopper",
+            "model": "ホッパーⅠ",
+            "label": "Ⅰ型"
+          },
+          "hopper2": {
+            "weight": 1165,
+            "armor": 1.25,
+            "boost": 110,
+            "sp": 100,
+            "supply": 1,
+            "series": "hopper",
+            "model": "ホッパーⅡ",
+            "label": "Ⅱ型"
+          },
+          "hopper3": {
+            "weight": 1217,
+            "armor": 1.13,
+            "boost": 75,
+            "sp": 100,
+            "supply": 1.6,
+            "series": "hopper",
+            "model": "ホッパーⅢ",
+            "label": "Ⅲ型"
+          },
+          "hopper4": {
+            "weight": 1227,
+            "armor": 1.13,
+            "boost": 115,
+            "sp": 100,
+            "supply": 1,
+            "series": "hopper",
+            "model": "ホッパーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "arms": {
+          "hopper": {
+            "weight": 692,
+            "armor": 1.19,
+            "reload": 0.82,
+            "swap": 1.1,
+            "recoil": 0.9,
+            "ammo": 1.23,
+            "series": "hopper",
+            "model": "ホッパーⅠ",
+            "label": "Ⅰ型"
+          },
+          "hopper2": {
+            "weight": 741,
+            "armor": 1.13,
+            "reload": 0.91,
+            "swap": 1.05,
+            "recoil": 1.15,
+            "ammo": 1.27,
+            "series": "hopper",
+            "model": "ホッパーⅡ",
+            "label": "Ⅱ型"
+          },
+          "hopper3": {
+            "weight": 702,
+            "armor": 1.25,
+            "reload": 0.82,
+            "swap": 1.3,
+            "recoil": 0.85,
+            "ammo": 1.27,
+            "series": "hopper",
+            "model": "ホッパーⅢ",
+            "label": "Ⅲ型"
+          },
+          "hopper4": {
+            "weight": 721,
+            "armor": 1.13,
+            "reload": 0.78,
+            "swap": 1.2,
+            "recoil": 0.9,
+            "ammo": 1.14,
+            "series": "hopper",
+            "model": "ホッパーⅣ",
+            "label": "Ⅳ型"
+          }
+        },
+        "legs": {
+          "hopper": {
+            "weight": 800,
+            "armor": 1.15,
+            "walk": 6.8,
+            "dash": 22,
+            "cruise": 19,
+            "cap": 4000,
+            "series": "hopper",
+            "model": "ホッパーⅠ",
+            "label": "Ⅰ型",
+            "kind": "reverse",
+            "traits": {
+              "spread": 1,
+              "recoil": 1,
+              "stagger": 0.9,
+              "hoverCost": 1,
+              "jump": 1.15,
+              "landSpeed": 34,
+              "landTime": 0.5,
+              "plantTime": 1,
+              "action": {
+                "tackle": {
+                  "damage": 0.8
+                },
+                "kick": {
+                  "damage": 1.5,
+                  "airReach": 2
+                }
+              },
+              "crouch": {
+                "type": "charge",
+                "time": 0.3,
+                "jump": 1.33,
+                "cost": 2
+              }
+            }
+          },
+          "hopper2": {
+            "weight": 780,
+            "armor": 1.2,
+            "walk": 6.6,
+            "dash": 21.6,
+            "cruise": 18.8,
+            "cap": 3850,
+            "series": "hopper",
+            "model": "ホッパーⅡ",
+            "label": "Ⅱ型",
+            "kind": "reverse",
+            "traits": {
+              "spread": 1,
+              "recoil": 1,
+              "stagger": 0.9,
+              "hoverCost": 1,
+              "jump": 1.22,
+              "landSpeed": 34,
+              "landTime": 0.5,
+              "plantTime": 1,
+              "action": {
+                "tackle": {
+                  "damage": 0.8
+                },
+                "kick": {
+                  "damage": 1.5,
+                  "airReach": 2
+                }
+              },
+              "crouch": {
+                "type": "charge",
+                "time": 0.3,
+                "jump": 1.33,
+                "cost": 2
+              }
+            }
+          },
+          "hopper3": {
+            "weight": 860,
+            "armor": 1.1,
+            "walk": 6.4,
+            "dash": 21.2,
+            "cruise": 18.6,
+            "cap": 4350,
+            "series": "hopper",
+            "model": "ホッパーⅢ",
+            "label": "Ⅲ型",
+            "kind": "reverse",
+            "traits": {
+              "spread": 1,
+              "recoil": 1,
+              "stagger": 0.9,
+              "hoverCost": 1,
+              "jump": 1.1,
+              "landSpeed": 34,
+              "landTime": 0.5,
+              "plantTime": 1,
+              "action": {
+                "tackle": {
+                  "damage": 0.8
+                },
+                "kick": {
+                  "damage": 1.5,
+                  "airReach": 2
+                }
+              },
+              "crouch": {
+                "type": "charge",
+                "time": 0.3,
+                "jump": 1.33,
+                "cost": 2
+              }
+            }
+          },
+          "hopper4": {
+            "weight": 790,
+            "armor": 1.18,
+            "walk": 7.2,
+            "dash": 23.2,
+            "cruise": 20,
+            "cap": 3800,
+            "series": "hopper",
+            "model": "ホッパーⅣ",
+            "label": "Ⅳ型",
+            "kind": "reverse",
+            "traits": {
+              "spread": 1,
+              "recoil": 1,
+              "stagger": 0.9,
+              "hoverCost": 1,
+              "jump": 1.12,
+              "landSpeed": 34,
+              "landTime": 0.6,
+              "plantTime": 1,
+              "action": {
+                "tackle": {
+                  "damage": 0.8
+                },
+                "kick": {
+                  "damage": 1.5,
+                  "airReach": 2
+                }
+              },
+              "crouch": {
+                "type": "charge",
+                "time": 0.3,
+                "jump": 1.33,
+                "cost": 2
+              }
+            }
+          }
+        }
+      },
+      "acSource": [
+        "フォーミュラII型",
+        "フォーミュラII型C",
+        "フォーミュラF型",
+        "フォーミュラMST"
+      ],
+      "ac": {
+        "head": [
+          [
+            530,
+            1.25,
+            1.12,
+            100
+          ],
+          [
+            510,
+            1.25,
+            1.16,
+            110
+          ],
+          [
+            550,
+            1.25,
+            1.16,
+            80
+          ],
+          [
+            540,
+            1.19,
+            1.25,
+            85
+          ]
+        ],
+        "body": [
+          [
+            1090,
+            1.25,
+            90,
+            1.35
+          ],
+          [
+            1120,
+            1.25,
+            110,
+            1
+          ],
+          [
+            1170,
+            1.13,
+            75,
+            1.6
+          ],
+          [
+            1180,
+            1.13,
+            115,
+            1
+          ]
+        ],
+        "arms": [
+          [
+            700,
+            1.19,
+            0.9,
+            0.82,
+            1.1,
+            1.23
+          ],
+          [
+            750,
+            1.13,
+            1.15,
+            0.91,
+            1.05,
+            1.27
+          ],
+          [
+            710,
+            1.25,
+            0.85,
+            0.82,
+            1.3,
+            1.27
+          ],
+          [
+            730,
+            1.13,
+            0.9,
+            0.78,
+            1.2,
+            1.14
+          ]
+        ]
+      }
+    }
+  },
+  "later": {
+    "軽量の四脚": "形は media/legs-proto/quadA.png（蜘蛛型）。性能は未定",
+    "中量の逆脚": "形は media/legs-proto/revB.png（鳥の脚・3節）。性能は未定"
+  },
+  "skipped": [
+    {
+      "name": "キャタピラ",
+      "reason": "2026-11-10 の改訂で今回の検討から外した（docs/legs-plan.md）"
+    }
+  ]
+}
