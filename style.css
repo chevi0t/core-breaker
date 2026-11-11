@@ -903,28 +903,6 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 #rangeHud b { font-size: 18px; } #rangeHud small { display: block; color: #d8c9a0; line-height: 1.5; }
 #rangeHud dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; } #rangeHud dt { color: #d8c9a0; } #rangeHud dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .pghBtns { display: flex; gap: 10px; align-items: center; }
-/* メニューは2列（2026-10-27、ユーザーが選んだ「2列にまとめる」）：左に出撃の準備、右にほかの画面へのボタン。設定はオプションへ */
-.card.menuWide { max-width: 1060px; }
-.menuHead { display: grid; gap: 6px; }
-#pgMenu { gap: 14px; }
-#pgMenu .menuHead h1 { font-size: clamp(28px, calc(4 * var(--vw, 1vw)), 42px); }
-.menuMain > button { white-space: nowrap; }
-.menuMain > button small { white-space: normal; }
-.menuCols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
-.colHead { margin: 0; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .16); font: 600 13px var(--body); letter-spacing: .14em; color: var(--dim); }
-.menuSide button { flex-direction: column; align-items: flex-start; gap: 3px; }
-.menuSide button small { text-align: left; }
-#changelogLink { display: block; padding: 12px; min-height: 44px; box-sizing: border-box; color: var(--hud); border: 1px solid rgba(255,255,255,.25); text-decoration: underline; text-underline-offset: 3px; }
-#changelogLink:hover, #changelogLink:focus-visible { border-color: var(--blue); outline: 2px solid var(--blue); outline-offset: 2px; }
-#changelogLink small { display: block; margin-top: 4px; color: var(--dim); font-size: 12px; }
-.menuMain #start { justify-self: stretch; margin-top: 4px; }
-#ovCls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-#battleSizeControl { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 8px 10px; }
-#battleSizeControl label { display: flex; align-items: center; gap: 10px; }
-#battleSizeControl label select { flex: 1; }
-#battleSizeControl #resetBattleSize { grid-column: auto; padding: 7px 12px; font: inherit; font-size: 13px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
-#resetBattleSize:hover { border-color: var(--blue); } #resetBattleSize:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
-.teamChoice legend small { margin-left: 10px; font-size: 12px; color: var(--dim); }
 .optCols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; align-items: start; }
 .optCol { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .optCol .optionSliders { margin: 4px 0; }
@@ -932,8 +910,7 @@ body[data-console="arcade"] #pilotCls { grid-row: 3; justify-self: center; }
 .optActions { display: flex; flex-wrap: wrap; gap: 12px; }
 #consoleList .consoleCard { padding: 10px; }
 #consoleList .consoleMini { height: 96px; }
-@media (max-width: 760px) { .menuCols, .optCols { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 480px) { #ovCls { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .optCols { grid-template-columns: minmax(0, 1fr); } }
 #rangeStart { font: inherit; font-size: 14px; padding: 6px 16px; background: rgba(255, 211, 77, .14); color: #ffe7a3; border: 1px solid #ffd34d; cursor: pointer; }
 #rangeStart:hover { background: rgba(255, 211, 77, .26); } #rangeStart:focus-visible { outline: 2px solid var(--hud); outline-offset: 2px; }
 @media (max-height: 600px) { #tutorialHud { top: 83px; left: 12px; padding: 8px 12px; width: 290px; font-size: 12px; } #tutorialHud h2 { font-size: 16px; } #tutorialHud p { margin: 5px 0; } }
@@ -1184,3 +1161,202 @@ body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(-
 
 /* Cアクションは照準ゲージの外、画面下端の小さな表示にまとめる。 */
 #actionCooldown{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font-size:12px;padding:4px 9px;background:#071522cc;border:1px solid #8fcbd866;border-radius:4px;pointer-events:none;white-space:nowrap}
+
+/* ===== メニュー（2026-11-12 作り直し）=====
+   オーナーが選んだ「A 格納庫」をスイス風に清書：大きな兵装名、左右非対称の誌面の組み、広い余白、蛍光オレンジの差し色、
+   細い罫線と目盛り・トンボ、案内標識のような番号（1 マップ → 2 兵装 → 3 出撃）。光らせる飾り・ぼかし・動き続けるアニメは使わない（軽く動かす）。
+   全画面で、スクロールなしに1画面へ収める。スマホ横向きでも「出撃する」が見える */
+:root { --mx-bg: #0b0d10; --mx-ink: #eef1f3; --mx-dim: #76828c; --mx-faint: rgba(238, 241, 243, .14); --mx-fl: #ff5b1f; --mx-flt: #0b0d10;
+  --mx-mono: "IBM Plex Mono", ui-monospace, monospace; --mx-anton: "Anton", "Impact", sans-serif; }
+#overlay:has(#pgMenu:not([hidden])) { padding: 0; background: var(--mx-bg); overflow: hidden; }
+#overlay > .card.menuWide { max-width: none; width: 100%; height: 100%; margin: 0; display: block; }
+#overlay:has(#pgMenu:not([hidden])) #appVersion { font: 600 11px var(--mx-mono); color: var(--mx-ink); background: none; border: 1px solid var(--mx-ink); border-radius: 0; padding: 2px 7px; top: max(20px, env(safe-area-inset-top, 0px)); right: max(32px, env(safe-area-inset-right, 0px)); }
+#pgMenu { height: 100%; }
+#pgMenu button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: left; padding: 0; }
+#pgMenu :focus-visible { outline: 2px solid var(--mx-fl); outline-offset: 2px; }
+.mx { position: relative; height: 100%; display: grid; grid-template-columns: 200px minmax(0, 1fr) 330px; grid-template-rows: 64px minmax(0, 1fr) 40px; color: var(--mx-ink);
+  padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.mxM { font: 400 10px/1.4 var(--mx-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mx-dim); }
+.mxM b { color: var(--mx-ink); font-weight: 600; }
+.mxHead { grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; padding: 0 130px 0 32px; position: relative; }
+.mxHead::after { content: ""; position: absolute; left: 32px; right: 32px; bottom: 0; height: 1px; background: var(--mx-faint); }
+.mxBrand { display: flex; align-items: baseline; gap: 14px; flex: 1; min-width: 0; }
+.mxBrand b { font: 400 18px var(--impact); letter-spacing: .02em; white-space: nowrap; }
+.mxBrand em { font-style: normal; color: var(--mx-fl); }
+#pgMenu .mxPilot { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.mxPilot i { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #c08a52, #6b4a2c); }
+.mxNav { grid-column: 1; grid-row: 2 / 4; padding: 36px 0 0 32px; display: flex; flex-direction: column; gap: 2px; counter-reset: mxn; z-index: 3; min-height: 0; }
+.mxNav .mxGrp { margin: 20px 0 4px; }
+#pgMenu .mxNav > button, .mxNav > a { counter-increment: mxn; display: flex; align-items: baseline; gap: 8px; padding: 6px 0; font: 700 14px var(--body); color: #aeb8c0; text-decoration: none; white-space: nowrap; }
+.mxNav > button::before, .mxNav > a::before { content: counter(mxn, decimal-leading-zero); font: 600 10px var(--mx-mono); color: var(--mx-dim); width: 20px; text-align: center; flex: none; }
+#pgMenu .mxNav > button:hover, .mxNav > a:hover { color: var(--mx-ink); }
+#pgMenu .mxNav > button.on { color: var(--mx-ink); }
+.mxNav > button.on::before { color: var(--mx-flt); background: var(--mx-fl); }
+#pgMenu .mxNav > button small, .mxNav > a small { display: none; }
+/* 真ん中：大きな兵装名・機体・注釈・数値 */
+.mxStage { grid-column: 2; grid-row: 2; position: relative; overflow: hidden; container-type: size; }
+.mxKey, .mxResult { position: absolute; inset: 0; }
+.mxMega { position: absolute; left: -6px; top: -3cqh; font: 400 min(38cqh, calc(92cqw / var(--n, 2))) / 1 var(--impact); letter-spacing: -.02em; white-space: nowrap; z-index: 1; pointer-events: none; }
+.mxSub { position: absolute; left: 2px; top: 35cqh; z-index: 3; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 80px); }
+.mxSub .mxM { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mxChip { flex: none; background: var(--mx-fl); color: var(--mx-flt); font: 600 10px var(--mx-mono); letter-spacing: .14em; padding: 3px 7px; }
+#pgMenu .mxBuilds { position: absolute; left: 2px; top: calc(35cqh + 30px); z-index: 3; gap: 0; border: 1px solid var(--mx-faint); }
+.mxBuilds .lbl { display: none; }
+#pgMenu .mxBuilds button { font: 600 11px var(--mx-mono); padding: 6px 14px; color: var(--mx-dim); border-right: 1px solid var(--mx-faint); }
+#pgMenu .mxBuilds button:last-of-type { border-right: 0; }
+#pgMenu .mxBuilds button[aria-pressed="true"] { background: var(--mx-ink); color: var(--mx-bg); }
+.mxVert { position: absolute; right: 14px; top: 16px; writing-mode: vertical-rl; font: 400 min(68px, 11cqh) / 1 var(--mx-anton); letter-spacing: .02em; color: transparent; -webkit-text-stroke: 1px rgba(238, 241, 243, .35); z-index: 1; pointer-events: none; }
+#menuMech { position: absolute; left: 30%; top: 12cqh; width: calc(70% - 230px); height: 86cqh; z-index: 2; cursor: grab; touch-action: none; }
+.mxCalls { position: absolute; left: 30%; top: 12cqh; width: calc(70% - 230px); height: 86cqh; z-index: 3; pointer-events: none; }
+.mxCalls .ln { position: absolute; height: 1px; background: var(--mx-ink); transform-origin: 0 0; }
+.mxCalls .ln::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; background: var(--mx-fl); }
+.mxCalls .lb { position: absolute; transform: translateY(-50%); font: 400 10px/1.35 var(--mx-mono); letter-spacing: .06em; color: var(--mx-dim); background: var(--mx-bg); padding: 1px 4px; white-space: nowrap; }
+.mxCalls .lb b { display: block; color: var(--mx-ink); font-weight: 600; }
+.mxStats { position: absolute; left: 2px; bottom: 18px; z-index: 3; display: flex; gap: 22px; }
+.mxStats > div { border-left: 1px solid var(--mx-ink); padding-left: 10px; }
+.mxStats b { display: block; font: 400 34px/1.05 var(--mx-anton); letter-spacing: .01em; }
+.mxStats small { font-size: 15px; margin-left: 2px; }
+.mxStats .over b { color: var(--mx-fl); }
+/* 試合の結果（勝利・敗北）と通信の知らせは真ん中に大きく */
+.mxResult { display: none; overflow-y: auto; padding: 8px 24px 16px 2px; z-index: 4; }
+#pgMenu.hasResult .mxResult { display: block; }
+#pgMenu.hasResult .mxKey { display: none; }
+#pgMenu .mxResult h1 { font: 400 min(24cqh, 150px) / 1.05 var(--impact); margin: 0 0 6px; letter-spacing: 0; }
+#pgMenu .mxResult h1 span { color: var(--mx-fl); }
+#pgMenu .mxResult p { color: var(--mx-dim); margin: 0 0 12px; }
+#pgMenu .mxResult > button { font: 700 14px var(--body); padding: 8px 14px; margin: 10px 8px 0 0; border: 1px solid var(--mx-ink); }
+/* 右：1 マップ → 2 兵装 → 3 出撃 */
+.mxSortie { grid-column: 3; grid-row: 2 / 4; display: flex; flex-direction: column; gap: 10px; padding: 26px 32px 24px 0; z-index: 3; min-height: 0; }
+#pgMenu .mxSign { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; background: var(--mx-ink); color: var(--mx-bg); height: 34px; flex: none; }
+.mxSign .n { height: 100%; display: grid; place-items: center; background: var(--mx-bg); color: var(--mx-ink); border: 1px solid var(--mx-ink); font: 400 18px var(--mx-anton); }
+.mxSign b { font: 800 14px var(--body); padding-left: 12px; letter-spacing: .04em; }
+.mxSign .ar { font: 400 20px var(--mx-anton); padding-right: 12px; }
+#pgMenu .mxMap { display: grid; gap: 10px; padding: 0; flex: none; }
+#mapNow { display: block; }
+#mapNow b { display: block; font: 800 18px var(--body); }
+#mapNow small { font: 400 10px var(--mx-mono); color: var(--mx-dim); letter-spacing: .04em; }
+#pgMenu .mxMap:hover #mapNow b { color: var(--mx-fl); }
+#pgMenu .mxMap:hover .mxSign .ar { color: var(--mx-fl); }
+.mxKv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; align-items: center; }
+#pgMenu .mxSeg { display: flex; border: 1px solid var(--mx-faint); margin: 0; padding: 0; min-width: 0; }
+#pgMenu .mxSeg > button, .mxSeg > label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font: 600 11px var(--mx-mono); padding: 6px 0; color: var(--mx-dim); border: 0; border-right: 1px solid var(--mx-faint); cursor: pointer; position: relative; min-height: 30px; }
+.mxSeg > :last-child { border-right: 0 !important; }
+.mxSeg > [hidden] { display: none !important; }
+#pgMenu .mxSeg > button[aria-pressed="true"], .mxSeg > label:has(input:checked), .mxSeg > .mxFree.on { background: var(--mx-ink); color: var(--mx-bg); }
+.mxSeg .rec::after { content: ""; position: absolute; right: 3px; top: 3px; width: 5px; height: 5px; background: var(--mx-fl); }
+.mxSeg input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+.mxSeg label:has(input:focus-visible) { outline: 2px solid var(--mx-fl); outline-offset: -2px; }
+.mxFree input { width: 3.2em; font: 600 11px var(--mx-mono); color: inherit; background: transparent; border: 0; border-bottom: 1px solid currentColor; padding: 1px 0; text-align: center; -moz-appearance: textfield; }
+.mxFree input::-webkit-inner-spin-button, .mxFree input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.mxHint { font: 400 10px var(--mx-mono); color: var(--mx-dim); margin-top: -4px; }
+#pgMenu .arenaWeapon { padding: 0; font-size: 12px; }
+#pgMenu #ovCls { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--mx-faint); border: 1px solid var(--mx-faint); counter-reset: mxc; min-height: 0; }
+#pgMenu #ovCls button { counter-increment: mxc; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-content: start; background: var(--mx-bg); color: var(--mx-ink); padding: 8px 10px 9px; font: 800 15px var(--body); min-width: 0; }
+#pgMenu #ovCls button::before { content: counter(mxc); grid-row: 1; font: 400 26px/0.9 var(--mx-anton); color: var(--mx-dim); align-self: end; }
+#pgMenu #ovCls .classMark { display: none; }
+#pgMenu #ovCls .toCu { position: absolute; right: 0; top: 0; font-size: 0; font-style: normal; color: var(--mx-dim); padding: 4px 6px; }
+#pgMenu #ovCls .toCu::after { content: "EDIT ›"; font: 600 9px var(--mx-mono); letter-spacing: .06em; }
+#pgMenu #ovCls .toCu:hover { color: var(--mx-fl); }
+#pgMenu #ovCls small { grid-column: 1 / -1; display: grid; gap: 0; margin-top: 4px; font: 400 9.5px/1.45 var(--mx-mono); color: var(--mx-dim); }
+#pgMenu #ovCls small span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pgMenu #ovCls small.over { display: block; color: var(--mx-fl); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pgMenu #ovCls button.sel { background: var(--mx-ink); color: var(--mx-bg); }
+#pgMenu #ovCls button.sel::before, #pgMenu #ovCls button.sel small:not(.over), #pgMenu #ovCls button.sel .toCu { color: #4b555d; }
+#pgMenu #ovCls button.sel small.over { color: #d0400c; }
+#pgMenu #start { margin-top: auto; flex: none; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr; background: var(--mx-fl); color: var(--mx-flt); height: 84px; padding: 8px 14px 6px; letter-spacing: 0; font-weight: 400; }
+#pgMenu #start .mxM { color: var(--mx-flt); grid-column: 1 / -1; }
+#pgMenu #start b { font: 400 34px/1 var(--impact); align-self: end; white-space: nowrap; }
+#pgMenu #start .ar { font: 400 60px/0.8 var(--mx-anton); align-self: end; }
+#pgMenu #start:hover { filter: brightness(1.08); }
+#pgMenu #start:disabled { filter: grayscale(1); opacity: .6; cursor: default; }
+.mxFoot { grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 22px; position: relative; min-width: 0; padding-right: 20px; }
+.mxFoot::before { content: ""; position: absolute; left: 0; right: 20px; top: 0; height: 6px; background: repeating-linear-gradient(90deg, var(--mx-faint) 0 1px, transparent 1px 8px); }
+#pgMenu .mxFoot .note { margin: 0 0 0 auto; font-size: 10px; color: var(--mx-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* 中くらいの画面：右の列を少し細く */
+@media (max-width: 1100px) { .mx { grid-template-columns: 170px minmax(0, 1fr) 300px; } .mxNav { padding-left: 24px; } .mxFoot .mxM:nth-child(n+2) { display: none; } }
+/* 縦長（スマホ縦・狭い窓）：上から順に並べ、縦にスクロール */
+@media (max-width: 760px) and (min-height: 501px) {
+  #overlay:has(#pgMenu:not([hidden])) { overflow-y: auto; }
+  .mx { height: auto; min-height: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px auto 46vh auto auto; }
+  .mxHead { padding: 0 110px 0 16px; } .mxHead::after { left: 16px; right: 16px; }
+  .mxNav { grid-row: 2; flex-direction: row; flex-wrap: wrap; gap: 4px 16px; padding: 12px 16px; } .mxNav .mxM { display: none; }
+  .mxStage { grid-column: 1; grid-row: 3; } .mxSortie { grid-column: 1; grid-row: 4; padding: 12px 16px 24px; } .mxFoot { grid-column: 1; grid-row: 5; padding: 8px 16px; }
+}
+/* 横向きのスマホ（高さが低い）：目次は番号だけ、文字を小さく、出撃ボタンはいつも見える */
+@media (max-height: 500px) {
+  .mx { grid-template-columns: 52px minmax(0, 1fr) 290px; grid-template-rows: 40px minmax(0, 1fr); }
+  .mxHead { padding: 0 100px 0 14px; gap: 12px; } .mxHead::after { left: 14px; right: 14px; } .mxBrand .mxM { display: none; } .mxBrand b { font-size: 15px; }
+  #overlay:has(#pgMenu:not([hidden])) #appVersion { top: max(9px, env(safe-area-inset-top, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); }
+  .mxNav { grid-row: 2; padding: 6px 0 0 10px; gap: 0; } .mxNav .mxM { display: none; }
+  #pgMenu .mxNav > button, .mxNav > a { font-size: 0; padding: 5px 0; } .mxNav > button::before, .mxNav > a::before { font-size: 11px; width: 26px; padding: 2px 0; }
+  .mxSub .mxM, .mxVert, .mxFoot { display: none; }
+  .mxStats { bottom: 8px; gap: 12px; } .mxStats b { font-size: 20px; } .mxStats small { font-size: 11px; } .mxStats .mxM { font-size: 8px; }
+  .mxCalls .lb { font-size: 8px; } .mxCalls .lb b { font-size: 9px; }
+  .mxSortie { grid-row: 2; padding: 8px 14px 8px 0; gap: 6px; }
+  #pgMenu .mxSign { display: none; }
+  #pgMenu .mxMap { border: 1px solid var(--mx-faint); padding: 3px 8px; gap: 0; } #mapNow b { font-size: 13px; display: inline; margin-right: 8px; }
+  .mxKv { gap: 4px 8px; } #pgMenu .mxSeg > button, .mxSeg > label { min-height: 26px; padding: 3px 0; }
+  .mxHint { display: none; }
+  #pgMenu #ovCls button { padding: 5px 8px 6px; font-size: 13px; } #pgMenu #ovCls button::before { font-size: 18px; }
+  #pgMenu #ovCls small { font-size: 8.5px; line-height: 1.3; margin-top: 2px; } #pgMenu #ovCls .toCu { padding: 3px 5px; }
+  #pgMenu #start { height: 54px; padding: 4px 12px; } #pgMenu #start .mxM { display: none; } #pgMenu #start b { font-size: 24px; } #pgMenu #start .ar { font-size: 34px; }
+}
+
+/* 前の形（オプション「メニューの見た目」、オーナー 2026-11-12「現行のメニュー画面もオプションで選べるように」）。
+   同じ部品を2列（左に出撃の準備、右にメニュー）へ並べ直す。後ろに戦闘画面が透けて見える。人数は新しい 5・10・自由入力のまま */
+body.menuClassic #overlay:has(#pgMenu:not([hidden])) { padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); background: rgba(5, 9, 13, .82); overflow-y: auto; }
+body.menuClassic #overlay > .card.menuWide { max-width: 1060px; height: auto; margin: auto; }
+body.menuClassic #overlay:has(#pgMenu:not([hidden])) #appVersion { font: 600 13px/1.2 system-ui, sans-serif; color: rgba(214, 228, 240, .75); background: rgba(5, 9, 13, .6); border: 1px solid rgba(214, 228, 240, .25); border-radius: 4px; padding: 3px 8px; top: max(8px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); }
+body.menuClassic .mx { height: auto; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: repeat(8, auto) minmax(0, 1fr) auto; gap: 10px 24px; padding: 0; color: var(--hud); }
+body.menuClassic :is(.mxHead, .mxSign, .mxMega, .mxSub, .mxVert, #menuMech, .mxCalls, .mxStats, .mxNav .mxM, .mxFoot .mxM) { display: none !important; }
+body.menuClassic :is(.mxStage, .mxKey, .mxSortie) { display: contents; }
+body.menuClassic .mxResult { display: grid !important; position: static; grid-column: 1 / -1; gap: 6px; padding: 0; overflow: visible; }
+body.menuClassic #pgMenu .mxResult h1 { font: 700 clamp(28px, calc(4 * var(--vw, 1vw)), 42px) var(--display); letter-spacing: .04em; margin: 0; }
+body.menuClassic #pgMenu .mxResult h1 span { color: var(--orange); }
+body.menuClassic #pgMenu .mxResult > button { font-family: var(--display); padding: 10px 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); }
+body.menuClassic .mxSortie > *, body.menuClassic #ovBuild { grid-column: 1; }
+body.menuClassic .mxResult { grid-row: 1; } body.menuClassic .mxMap { grid-row: 2; } body.menuClassic #arenaWeaponControl { grid-row: 3; } body.menuClassic .mxKv { grid-row: 4; } body.menuClassic .mxHint { grid-row: 5; }
+body.menuClassic #ovBuild { grid-row: 6; } body.menuClassic #ovCls { grid-row: 7; } body.menuClassic #pgMenu #start { grid-row: 8; align-self: start; }
+body.menuClassic .mxNav { grid-column: 2; grid-row: 2 / span 8; padding: 0; gap: 8px; display: grid; align-content: start; }
+body.menuClassic .mxNav::before { content: "メニュー"; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .16); font: 600 13px var(--body); letter-spacing: .14em; color: var(--dim); }
+body.menuClassic .mxMap::before { content: "出撃の準備"; display: block; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .16); font: 600 13px var(--body); letter-spacing: .14em; color: var(--dim); }
+body.menuClassic #pgMenu .mxNav > button, body.menuClassic .mxNav > a { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 14px; font: 400 17px var(--display); letter-spacing: .1em; color: var(--hud); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); white-space: normal; }
+body.menuClassic .mxNav > button::before, body.menuClassic .mxNav > a::before { display: none; }
+body.menuClassic #pgMenu .mxNav > button small, body.menuClassic .mxNav > a small { display: block; font: 400 12px var(--body); letter-spacing: 0; color: var(--dim); }
+body.menuClassic #pgMenu .mxNav > button:hover, body.menuClassic .mxNav > a:hover { border-color: var(--blue); }
+body.menuClassic #pgMenu .mxNav > #menuSortie { display: none; }
+body.menuClassic #pgMenu .mxMap { padding: 10px 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); }
+body.menuClassic #pgMenu .mxMap:hover { border-color: var(--blue); }
+body.menuClassic #mapNow b { font: 400 17px var(--display); letter-spacing: .1em; display: inline; margin-right: 12px; }
+body.menuClassic #mapNow small { font: 400 12px var(--body); color: var(--dim); }
+body.menuClassic .mxKv { grid-template-columns: auto minmax(0, 1fr); }
+body.menuClassic .mxKv .mxM { display: block !important; font: 400 13px var(--body); letter-spacing: 0; color: var(--hud); text-transform: none; }
+body.menuClassic #pgMenu .mxSeg { border-color: rgba(255, 255, 255, .25); }
+body.menuClassic #pgMenu .mxSeg > button, body.menuClassic .mxSeg > label { font: 400 14px var(--body); color: var(--hud); border-right-color: rgba(255, 255, 255, .25); min-height: 36px; }
+body.menuClassic #pgMenu .mxSeg > button[aria-pressed="true"], body.menuClassic .mxSeg > label:has(input:checked), body.menuClassic .mxSeg > .mxFree.on { background: rgba(62, 166, 255, .22); color: var(--hud); box-shadow: inset 0 0 0 1px var(--blue); }
+body.menuClassic .mxFree input { font: 400 14px var(--body); }
+body.menuClassic .mxHint { font: 400 12px var(--body); margin: 0; }
+body.menuClassic #pgMenu .mxBuilds { position: static; border: 0; gap: 6px; }
+body.menuClassic .mxBuilds .lbl { display: inline; }
+body.menuClassic #pgMenu .mxBuilds button { font: 400 16px var(--display); letter-spacing: .08em; padding: 6px 16px; background: rgba(255, 255, 255, .06); color: var(--hud); border: 1px solid rgba(255, 255, 255, .25); }
+body.menuClassic #pgMenu .mxBuilds button[aria-pressed="true"] { border-color: var(--blue); background: rgba(62, 166, 255, .22); color: var(--hud); }
+body.menuClassic #pgMenu #ovCls { gap: 8px; background: none; border: 0; }
+body.menuClassic #pgMenu #ovCls button { display: block; padding: 6px 12px; font: 400 15px var(--display); color: var(--hud); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .25); }
+body.menuClassic #pgMenu #ovCls button::before { display: none; }
+body.menuClassic #pgMenu #ovCls .classMark { display: inline; }
+body.menuClassic #pgMenu #ovCls button.sel { border-color: var(--blue); background: rgba(62, 166, 255, .22); color: var(--hud); }
+body.menuClassic #pgMenu #ovCls .toCu { position: static; float: right; font: 400 11px var(--body); color: var(--dim); padding: 0; }
+body.menuClassic #pgMenu #ovCls .toCu::after { content: none; }
+body.menuClassic #pgMenu #ovCls small { display: block; font: 400 11px var(--body); color: var(--dim); margin-top: 2px; }
+body.menuClassic #pgMenu #ovCls small span { white-space: normal; }
+body.menuClassic #pgMenu #ovCls small span + span::before { content: "／"; }
+body.menuClassic #pgMenu #ovCls small.over { color: var(--warn); white-space: normal; }
+body.menuClassic #pgMenu #start { display: block; height: auto; padding: 12px 18px; background: var(--blue); color: #04121f; margin-top: 4px; }
+body.menuClassic #pgMenu #start :is(.mxM, .ar) { display: none; }
+body.menuClassic #pgMenu #start b { font: 700 18px var(--display); letter-spacing: .14em; }
+body.menuClassic .mxFoot { display: block; grid-column: 1 / -1; grid-row: 10; padding: 0; }
+body.menuClassic .mxFoot::before { display: none; }
+body.menuClassic #pgMenu .mxFoot .note { margin: 0; white-space: normal; font-size: 13px; }
+@media (max-width: 760px) { body.menuClassic .mx { grid-template-columns: minmax(0, 1fr); } body.menuClassic .mxNav { grid-column: 1; grid-row: 9; } }
+body.menuClassic #pgMenu #start { width: 100%; text-align: left; }
+body.menuClassic #pgMenu #ovCls button.sel small:not(.over), body.menuClassic #pgMenu #ovCls button.sel .toCu { color: var(--dim); }
