@@ -6,7 +6,7 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
   const log = await ev(() => {
     const g = __g, T = g.T, u = g.player, e = g.units.find(q => q.team !== u.team), a = g.units.find(q => q.team === u.team && q !== u), out = [];
     const yes = (v, m) => { if (!v) throw new Error(m); out.push(m); };
-    const want = { reflector: [12000, 4, 6.7, 4, 300], reflectorW: [10000, 8.3, 4.8, 3, 250], reflectorG: [15000, 2, 6.7, 7, 250], reflectorF: [9000, 3.3, 6, 4, 500] };
+    const want = { reflector: [12000, 6, 6.7, 6, 300], reflectorW: [10000, 12.45, 4.8, 4.5, 250], reflectorG: [15000, 3, 6.7, 10.5, 250], reflectorF: [9000, 4.95, 6, 6, 500] }; // 2026-11-12 に速さと半径を1.5倍
     for (const [k, [dps, speed, fireTime, radius, range]] of Object.entries(want)) {
       const w = g.WEAPONS[k];
       yes(w && w.type === 'reflector' && w.dps === dps && w.speed === speed && w.fireTime === fireTime && w.radius === radius && w.range === range && g.ARMORY.heavy.sp.includes(k), `${w?.name}：毎秒${dps}・毎秒${speed}m・照射${fireTime}秒・半径${radius}m・射程${range}m`);
@@ -50,7 +50,7 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     yes(Math.hypot(u.reflect.at.x - P(0).x, u.reflect.at.z - P(0).z) < .01, 'カーソルを動かさなければ、同じ所を照射し続ける');
     yes(Math.abs(h0 - sl.heat - rate / 2) < .6, `SPは照射した時間の分だけ減る（0.5秒で${(h0 - sl.heat).toFixed(1)}、最長${T0.toFixed(1)}秒で全部）`);
     // カーソルを遠くへ動かすと、光は最大の速さで追う
-    e.pos.copy(P(10)); a.pos.copy(P(14)); a.pos.x += .5; sync();
+    e.pos.copy(P(20)); a.pos.copy(P(24)); a.pos.x += .5; sync(); // 最初の1秒で光が届かない所（速さと半径を1.5倍にした 2026-11-12 に 10・14m から離した）
     const at0 = u.reflect.at.clone(); step(1, P(70), true);
     const moved = Math.hypot(u.reflect.at.x - at0.x, u.reflect.at.z - at0.z);
     yes(Math.abs(moved - w.speed) < .3, `光はカーソルを毎秒${w.speed}mまでの速さで追う（1秒で${moved.toFixed(1)}m）`);
@@ -59,6 +59,13 @@ check('反射衛星砲', async ({ page, ev, step, ok, sortie }) => {
     const got = hp0 - e.hp, expect = w.dps * g.armorMult(e) * (2 * (w.radius + g.R)) / w.speed; // 装甲の倍率込み
     yes(got > expect * .8 && got < expect * 1.2, `光が通った敵機に約${Math.round(expect)}のダメージ（${Math.round(got)}）`);
     yes(a.hp === ahp0, '光が通った味方には当たらない');
+    // 光の色（2026-11-12 オーナー）：プレイヤーから見て自軍は青白、敵軍は橙白
+    g.reflectorUpdate();
+    const esp = e.slots.sp; e.slots.sp = u.slots.sp; e.reflect = { ...u.reflect, at: u.reflect.at.clone().add(new T.Vector3(30, 0, 0)), ground: u.reflect.ground.clone() }; g.reflectorUpdate();
+    const hex = m => m.material.color.getHex(), mv = u.reflectVisual, ev2 = e.reflectVisual;
+    yes(hex(mv.upGlow) === 0x8fdcff && hex(mv.downCore) === 0xf2fbff && hex(mv.ring) === 0xbfeaff, '自軍（自機）の光は青白');
+    yes(hex(ev2.upGlow) === 0xffa04a && hex(ev2.downCore) === 0xfff6ec && hex(ev2.ring) === 0xffd2a0, '敵軍の光は橙白');
+    e.reflect = null; e.slots.sp = esp; g.reflectorUpdate();
     yes(u.pos.distanceTo(pos0) < .01 && u.planted && g.isArtilleryMode(u), '照射中は構えたまま動けない');
     const hMid = sl.heat;
     step(.02, P(70), false);
