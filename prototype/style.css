@@ -1102,7 +1102,7 @@ body:not(.aimClassic) :is(#lockRing, #aimGauge, #aimSp, #mechAim) { display:none
    標準・アーケード・フライトは照準円の弧（左が残弾、右が耐久、外側が熱とブースト）と捕捉円、メカニカルは照準の4枠。ロックは四隅の形。三角ゲージと充填・熱の輪は隠す */
 body.aimClassic :is(#triangleAim, #thermalReticle) { display:none!important; }
 #triangleAim { left:50%; top:50%; transform:translate(-50%,-50%) scale(var(--hud-triangle-scale,1)); overflow:visible; filter:drop-shadow(0 1px 2px #000); }
-#triangleAim[hidden], #triangleAim [hidden], #trOh[hidden] { display:none; }
+#triangleAim[hidden], #triangleAim [hidden], #weaponAlert[hidden] { display:none; }
 #triangleAim path { fill:none; stroke-width:5; stroke-linecap:butt; }
 #triangleAim .ta-track { stroke:var(--ta-track); }
 #taAmmoFill { stroke:var(--ta-ammo); } #taHpFill { stroke:var(--ta-hp); }
@@ -1122,8 +1122,18 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
 #thermalReticle .heat-arc { fill:none; stroke:var(--ta-heat); stroke-width:4; stroke-linecap:butt; }
 #thermalReticle text { fill:var(--ta-text); font-size:10px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
 #thermalReticle.charging #trHeatText { fill:#7dffb0; }
-#thermalReticle .oh-panel { fill:#461c28e8; }
-#thermalReticle .oh-text { fill:var(--ta-heat); font-size:24px; font-weight:700; letter-spacing:.04em; }
+/* 武器の状態の札（2026-11-12）：過熱・充填中・満充填を同じ位置（照準の三角の上）・同じ大きさで。下の棒は冷却の残り・充填の進み・保持の残り */
+#weaponAlert { left:50%; top:50%; width:216px; box-sizing:border-box; padding:5px 10px 7px; border-radius:4px; text-align:center; pointer-events:none;
+  transform:translate(-50%, calc(-100% - var(--wa-y,150px) * var(--hud-triangle-scale,1))) scale(calc(var(--hud-triangle-scale,1) * var(--ta-mark-scale,1))); transform-origin:50% 100%;
+  --wa:#7dffb0; background:#12382ae0; color:var(--wa); font-family:var(--display); filter:drop-shadow(0 1px 2px #000); }
+#weaponAlert b { display:block; font-size:24px; font-weight:700; line-height:1.1; letter-spacing:.04em; white-space:nowrap; }
+#weaponAlert span { display:block; margin-top:1px; font-size:15px; font-weight:600; line-height:1.2; color:var(--ta-text); font-variant-numeric:tabular-nums; }
+#weaponAlert .wa-bar { height:4px; margin-top:4px; background:#ffffff26; border-radius:2px; overflow:hidden; }
+#weaponAlert .wa-bar i { display:block; height:100%; background:var(--wa); }
+#weaponAlert[data-state="oh"] { --wa:#ff5a5a; background:#461c28e8; }
+#weaponAlert[data-state="full"] { box-shadow:0 0 0 1.5px var(--wa) inset; }
+#weaponAlert[data-state="full"].hot { --wa:#ffb04a; }
+body.aimClassic #weaponAlert { display:none!important; }
 body:not(.aimClassic) :is(.preLockMark, #lockMark) { width:64px; height:64px; --c:var(--ta-cursor); }
 body:not(.aimClassic) #lockMark { --c:var(--ta-lock); }
 body:not(.aimClassic) :is(.preLockMark, #lockMark) .br { background:none; overflow:visible; transform:scale(var(--ta-mark-scale)); }
