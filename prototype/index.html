@@ -143,7 +143,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver195</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver196</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -9494,8 +9494,16 @@ function artilleryUpdate(dt) {
 // SPは満タンで使い始め、照射の間だけ毎秒 100÷fireTime 減る（fireTime 秒で全部。オーナー「照射時間に応じてSP消費してほしい」）。尽きると照射が終わる。
 const REFLECT_SKY = 320; // 衛星の高さ（見た目）
 const reflectOwners = new Set();
-const reflectCoreMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: .92, depthWrite: false, fog: false }));
-const reflectGlowMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0x8fdcff, transparent: true, opacity: .32, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }));
+// 光の色はプレイヤーから見て、自軍（自機を含む）が撃ったものは青白、敵軍が撃ったものは橙白（2026-11-12 オーナー「自軍は青白く、敵軍は橙白く」）。
+// core = 芯、glow = まわりの光、ring = 地上の輪と火花
+const REFLECT_TINT = { ally: { core: 0xf2fbff, glow: 0x8fdcff, ring: 0xbfeaff }, enemy: { core: 0xfff6ec, glow: 0xffa04a, ring: 0xffd2a0 } };
+const reflectMats = {};
+for (const [side, c] of Object.entries(REFLECT_TINT)) reflectMats[side] = visualAlloc(() => ({
+  core: new T.MeshBasicMaterial({ color: c.core, transparent: true, opacity: .92, depthWrite: false, fog: false }),
+  glow: new T.MeshBasicMaterial({ color: c.glow, transparent: true, opacity: .32, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }),
+  ring: new T.MeshBasicMaterial({ color: c.ring, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: false }),
+}));
+const reflectSide = u => !player || u.team === player.team ? 'ally' : 'enemy';
 const reflectTargetMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xff2a14, transparent: true, opacity: .9, depthWrite: false, side: T.DoubleSide, fog: false }));
 // 地面の照準マーカー（外の輪・内の輪・十字の目盛り。XZ 平面、半径 1）
 const reflectReticleGeo = visualAlloc(() => {
@@ -9508,7 +9516,6 @@ const reflectReticleGeo = visualAlloc(() => {
   }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); return g;
 });
-const reflectRingMat = visualAlloc(() => new T.MeshBasicMaterial({ color: 0xbfeaff, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
 // 射程の円の中に収めた点（光が追う先）
 function reflectGoal(u, p) {
   const r = u.slots.sp.w.range, dx = p.x - u.pos.x, dz = p.z - u.pos.z, d = Math.hypot(dx, dz), k = d > r ? (r - .01) / d : 1;
@@ -9567,7 +9574,7 @@ function reflectorTick(u, sl, dt, trigger, aim, on) {
   const ref = surface.ref;
   if (ref && ref.team && ref.team !== u.team && ['core', 'turret', 'radar', 'barricade'].includes(ref.kind) && (ref.kind === 'core' ? ref.hp > 0 : ref.alive !== false)) { damage(ref, u, amount, false, false, null, f.at, false, true, w.name); hit = true; }
   sfx('beam', f.at, u);
-  if ((f.sparkT = (f.sparkT || 0) - dt) <= 0) { f.sparkT = .06; flash(f.at.clone().add(new T.Vector3((Math.random() - .5) * w.radius, .4, (Math.random() - .5) * w.radius)), 0xbfeaff, 1.2, .2); }
+  if ((f.sparkT = (f.sparkT || 0) - dt) <= 0) { f.sparkT = .06; flash(f.at.clone().add(new T.Vector3((Math.random() - .5) * w.radius, .4, (Math.random() - .5) * w.radius)), REFLECT_TINT[reflectSide(u)].ring, 1.2, .2); }
   spUse(sl, Math.min(sl.heat, 100 / reflectTime(w) * dt)); // 照射した時間の分だけ
   if (sl.overheat) stopArtillery(u); // SPが尽きたら終わる
   return hit;
@@ -9577,7 +9584,7 @@ function reflectorVisual(u) {
   return visualAlloc(() => {
     const root = new T.Group(); root.name = 'reflector-beam'; root.userData.visualOnly = true;
     const part = mat => { const m = new T.Mesh(beamCannonGeo, mat); root.add(m); return m; };
-    const v = { root, upCore: part(reflectCoreMat), upGlow: part(reflectGlowMat), downCore: part(reflectCoreMat), downGlow: part(reflectGlowMat), ring: new T.Mesh(beamCannonRingGeo, reflectRingMat), ret: new T.Mesh(reflectReticleGeo, reflectTargetMat) };
+    const M = reflectMats.ally, v = { root, upCore: part(M.core), upGlow: part(M.glow), downCore: part(M.core), downGlow: part(M.glow), ring: new T.Mesh(beamCannonRingGeo, M.ring), ret: new T.Mesh(reflectReticleGeo, reflectTargetMat) };
     root.add(v.ring, v.ret); scene.add(root); reflectOwners.add(u);
     return u.reflectVisual = v;
   });
@@ -9588,6 +9595,8 @@ function reflectorUpdate() {
     if (!f) { if (u.reflectVisual) u.reflectVisual.root.visible = false; continue; }
     const v = reflectorVisual(u), w = u.slots.sp.w, fire = f.phase === 'fire', thin = f.phase === 'aim', t = playT;
     v.root.visible = true;
+    const side = reflectSide(u);
+    if (v.side !== side) { const M = reflectMats[side]; v.side = side; v.upCore.material = v.downCore.material = M.core; v.upGlow.material = v.downGlow.material = M.glow; v.ring.material = M.ring; } // 自軍は青白、敵軍は橙白
     // 自機から真上へ伸びる光の柱（始点を決めた時から。始点だけの間は細い）
     const top = muzzle(u), sky = u.pos.y + REFLECT_SKY;
     for (const [m, r] of [[v.upCore, f.phase === 'aim' ? .12 : .35], [v.upGlow, f.phase === 'aim' ? .45 : 1.4 + .25 * Math.sin(t * 30)]]) { m.position.copy(top); m.quaternion.identity(); m.scale.set(r, Math.max(1, sky - top.y), r); }
