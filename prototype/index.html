@@ -10,6 +10,7 @@
 <div class="hud" id="jamView" hidden aria-hidden="true">
   <canvas id="jamNoise" width="64" height="36"></canvas>
   <div id="jamEmp" hidden><pre id="jamLog"></pre><b id="jamBackup">BACKUP SYSTEM ACTIVE</b><small>AUX POWER // MANUAL AIM ONLY</small></div>
+  <div id="jamTerms"></div>
   <div id="jamBoot" hidden><b>SYSTEM CHECK &amp; REBOOT</b><div class="bar"><i id="jamBootBar"></i></div><ul id="jamChecks"><li>FCS LINK</li><li>LOCK-ON SENSOR</li><li>IFF TRANSPONDER</li><li>TACTICAL DATALINK</li></ul></div>
   <div id="jamDone" hidden><b>SYSTEM RESTORED</b><small>ALL SYSTEMS ONLINE</small></div>
 </div>
@@ -12785,10 +12786,47 @@ function jamHud(p) {
     const hex = () => Array.from({ length: 6 }, () => (Math.random() * 65536 | 0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
     $('jamLog').textContent = JAM_LOG.slice(0, n).join('\n') + '\n' + hex() + '\n' + hex();
   }
+  jamTerms(ph === 3, k);
   if (ph === 3) {
     $('jamBootBar').style.width = (k * 100).toFixed(1) + '%';
     $('jamChecks').querySelectorAll('li').forEach((li, i, all) => li.classList.toggle('ok', k >= (i + 1) / (all.length + .5)));
   }
+}
+// ③の間、画面を埋めるほどターミナル風の窓が次々に開き、文字列が流れては閉じる（2026-11-13 オーナー「CUIっぽいウインドウがついて文字列ガガーって流れて消えたり」）。
+// 窓は ③の終わり近く（85%）で開くのをやめ、④に入る前に閉じきる。
+const JAM_TERM_TITLES = ['root@bb-unit:~# fcs_diag --full', 'C:\\SYS\\LOCKON\\SELFTEST.EXE', 'IFF_TRANSPONDER // RESYNC', 'DATALINK.SYS - REBUILD', 'BIOS POST // CORE-UNIT', 'sensor_cal --channel=ALL', 'MEM CHECK 0x0000-0xFFFF', 'kernel: emp_recover.ko'];
+const JAM_TERM_WORDS = ['FCS', 'LOCK', 'IFF', 'DLNK', 'RADAR', 'SERVO', 'GYRO', 'BOOST', 'AUX', 'CORE', 'OPT', 'ECM'];
+const jamTerm = { wins: [], next: 0 };
+function jamTermLine() {
+  const r = Math.random(), hx = n => (Math.random() * 16 ** n | 0).toString(16).toUpperCase().padStart(n, '0'), w = JAM_TERM_WORDS[Math.random() * JAM_TERM_WORDS.length | 0];
+  if (r < .3) return `${hx(8)}: ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)}`;
+  if (r < .5) return `[ ${Math.random() < .8 ? ' OK ' : 'FAIL'} ] ${w}_${hx(2)} ${['init', 'reset', 'verify', 'mount', 'handshake'][Math.random() * 5 | 0]}`;
+  if (r < .65) return `CHK ${w.padEnd(5, '.')}........ ${Math.random() < .85 ? 'PASS' : 'RETRY'}  ${(Math.random() * 999 | 0)}ms`;
+  if (r < .8) return `loading ${w.toLowerCase()}_ctrl.ko ${'#'.repeat(Math.random() * 18 | 0)}`;
+  if (r < .9) return `> ${w} SIGNAL ${(Math.random() * 100).toFixed(1)}% ... ${Math.random() < .5 ? 'RECOVERING' : 'STABLE'}`;
+  return `0x${hx(6)} >> ${hx(2)}${hx(2)}${hx(2)}${hx(2)} ${'.'.repeat(Math.random() * 12 | 0)}`;
+}
+function jamTerms(on, k) {
+  const box = $('jamTerms'), now = performance.now(), W = innerWidth, H = innerHeight;
+  if (!on) { if (jamTerm.wins.length) { box.textContent = ''; jamTerm.wins = []; } return; }
+  if (k < .85 && now >= jamTerm.next && jamTerm.wins.length < 9) {
+    const w = W * (.26 + Math.random() * .24), h = H * (.24 + Math.random() * .26);
+    const el = document.createElement('div'); el.className = 'jt';
+    el.style.cssText = `left:${(Math.random() * (W - w)).toFixed(0)}px;top:${(Math.random() * (H - h)).toFixed(0)}px;width:${w.toFixed(0)}px;height:${h.toFixed(0)}px`;
+    el.innerHTML = '<header></header><pre></pre>';
+    el.firstChild.textContent = JAM_TERM_TITLES[Math.random() * JAM_TERM_TITLES.length | 0];
+    box.appendChild(el);
+    jamTerm.wins.push({ el, pre: el.lastChild, lines: [], max: Math.max(3, Math.floor((h - 18) / 13)), die: now + 450 + Math.random() * 900 });
+    jamTerm.next = now + 50 + Math.random() * 110;
+  }
+  jamTerm.wins = jamTerm.wins.filter(t => {
+    if (now > t.die + 140) { t.el.remove(); return false; }
+    if (now > t.die) { t.el.classList.add('close'); return true; }
+    for (let n = 1 + (Math.random() * 4 | 0); n--;) t.lines.push(jamTermLine());
+    if (t.lines.length > t.max) t.lines.splice(0, t.lines.length - t.max);
+    t.pre.textContent = t.lines.join('\n');
+    return true;
+  });
 }
 // 妨害中（①〜③）に隠す照準周りのHUD。照準の点（#cross）は残して手で狙えるようにする。
 const JAM_RETICLE = ['aimGauge', 'triangleAim', 'thermalReticle', 'mechAim', 'lockRing', 'weaponAlert', 'aimSp'];

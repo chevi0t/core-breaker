@@ -9,7 +9,7 @@ check('電子妨害の被弾演出', async ({ page, ev, step, ok, sortie, out })
   const hit = s => ev(s => { const p = __g.player; p.jamT = Math.max(p.jamT || 0, s); }, s);
   const look = () => ev(() => ({ ph: +document.getElementById('jamView').dataset.ph || 0, shown: !document.getElementById('jamView').hidden,
     gauge: getComputedStyle(document.getElementById('aimGauge')).visibility, cross: getComputedStyle(document.getElementById('cross')).visibility,
-    locked: __g.player.locked, jamT: __g.player.jamT }));
+    locked: __g.player.locked, jamT: __g.player.jamT, terms: document.querySelectorAll('#jamTerms .jt').length }));
   const run = async (sec, expect) => {
     await hit(sec);
     let t = 0;
@@ -20,6 +20,8 @@ check('電子妨害の被弾演出', async ({ page, ev, step, ok, sortie, out })
       ok(ph < 4 ? s.gauge === 'hidden' : s.gauge !== 'hidden', `${sec}秒：段${ph}で照準周りのHUDが${ph < 4 ? '消える' : '戻る'}`);
       ok(s.cross !== 'hidden', `${sec}秒：段${ph}でも照準の点は残る`);
       ok(!s.locked, `${sec}秒：段${ph}でもロックオンしない`);
+      if (ph === 3) ok(s.terms > 0, `${sec}秒：段3でターミナルの窓が開く（${s.terms}枚）`);
+      if (ph === 4) ok(s.terms === 0, `${sec}秒：段4ではターミナルの窓が閉じている`);
       if (shots) await page.screenshot({ path: path.join(out, `jam-${sec}-${ph}.png`), timeout: 180000 });
     }
     await step(Math.round((sec - t) / .05) + 4);

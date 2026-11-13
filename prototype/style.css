@@ -258,7 +258,15 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #jamLog { margin:0 auto; text-align:left; display:inline-block; font-size:clamp(10px,1.6vmin,14px); line-height:1.45; color:rgba(185,225,255,.5); text-shadow:0 0 6px rgba(90,170,255,.6); white-space:pre; animation:jamJitter .12s steps(2,end) infinite; }
 #jamEmp b { display:block; margin-top:calc(min(30vh,240px)); font-size:clamp(16px,3.4vmin,30px); letter-spacing:.18em; color:rgba(255,196,92,.82); text-shadow:0 0 10px rgba(255,150,40,.7); animation:jamBlink .5s steps(2,end) infinite; }
 #jamEmp small, #jamDone small { display:block; margin-top:4px; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:rgba(200,225,255,.55); }
-#jamBoot { position:absolute; left:50%; top:18%; transform:translateX(-50%); width:min(80vw,360px); }
+#jamTerms { position:absolute; inset:0; overflow:hidden; }
+#jamTerms .jt { position:absolute; display:flex; flex-direction:column; background:rgba(2,12,22,.6); border:1px solid rgba(120,220,255,.55); box-shadow:0 0 12px rgba(60,180,255,.25); transform-origin:center; animation:jtOpen .12s ease-out; }
+#jamTerms .jt.close { animation:jtClose .14s ease-in forwards; }
+#jamTerms header { flex:none; padding:1px 6px; font-size:10px; line-height:16px; white-space:nowrap; overflow:hidden; background:rgba(120,220,255,.42); color:#021018; }
+#jamTerms pre { flex:1; margin:0; padding:2px 6px; overflow:hidden; font-size:10.5px; line-height:13px; color:rgba(150,255,185,.85); text-shadow:0 0 4px rgba(80,255,150,.5); white-space:pre; }
+@keyframes jtOpen { from { transform:scale(.6,.05); opacity:0; } }
+@keyframes jtClose { to { transform:scale(1,.02); opacity:0; } }
+body.jamHud #cross { z-index:5; }
+#jamBoot { position:absolute; z-index:1; left:50%; top:18%; transform:translateX(-50%); width:min(80vw,360px); padding:10px 14px; background:rgba(0,8,16,.82); border:1px solid rgba(150,215,255,.5); }
 #jamBoot b { display:block; text-align:center; font-size:clamp(14px,2.8vmin,24px); letter-spacing:.14em; color:rgba(150,235,255,.88); text-shadow:0 0 8px rgba(60,190,255,.7); }
 #jamBoot .bar { height:5px; margin:8px 0 6px; background:rgba(120,190,255,.18); border:1px solid rgba(150,215,255,.4); }
 #jamBoot .bar i { display:block; height:100%; width:0; background:rgba(150,235,255,.85); box-shadow:0 0 8px rgba(80,200,255,.8); }
