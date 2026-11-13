@@ -54,14 +54,14 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
       Object.assign(u.slots.main,{temp:99,spin:1,cd:0});g.weaponsTick(u,.05,true,new g.T.Vector3(0,200,-100),0);draw();
       yes(u.slots.main.overheat&&['trHeat0','trHeat1','trHeat2'].every(id=>+$(id).dataset.degrees===120)&&!$('weaponAlert').hidden&&$('waLabel').textContent==='OVERHEAT','実過熱で120度×3の円が完成しOVERHEAT');
       const alertBox=()=>$('weaponAlert').getBoundingClientRect(),ohBox=alertBox(),ringBox=$('thermalReticle').getBoundingClientRect();
-      yes(getComputedStyle($('trHeat0')).stroke==='rgb(255, 48, 48)'&&getComputedStyle($('waLabel')).fontSize==='24px'&&ohBox.bottom<ringBox.top-40,'実過熱は赤、OVERHEATの札は24pxで照準の円より上');
+      yes(getComputedStyle($('trHeat0')).stroke==='rgb(255, 48, 48)'&&getComputedStyle($('waLabel')).fontSize==='16px'&&ohBox.bottom<ringBox.top-40,'実過熱は赤、OVERHEATの札は16pxで照準の円より上');
       const cool=+$('waSub').textContent.match(/COOLING ([\d.]+)s/)[1];g.weaponsTick(u,1,false,new g.T.Vector3(0,200,-100),0);draw();
       yes(Math.abs(cool-1-+$('waSub').textContent.match(/COOLING ([\d.]+)s/)[1])<.11&&parseFloat($('waBar').style.width)<100,'冷却の残り秒が減り、棒も減る');
       g.weaponsTick(u,u.slots.main.w.ohTime+.1,false,new g.T.Vector3(0,200,-100),0);draw();yes(!u.slots.main.overheat&&$('weaponAlert').hidden,'実冷却完了で過熱表示が消える');
       u.slots.main=g.slotOf('glint');u.weapon='main';
       const chargeIds=['trCharge0','trCharge1','trCharge2'],heatIds=['trHeat0','trHeat1','trHeat2'],aim=new g.T.Vector3(0,200,-100);
       g.weaponsTick(u,u.slots.main.w.chargeTime/2,true,aim,0);draw();
-      yes(!$('thermalReticle').hidden&&chargeIds.every(id=>+$(id).dataset.degrees===60)&&heatIds.every(id=>+$(id).dataset.degrees===0)&&$('waLabel').textContent==='CHARGING'&&$('waSub').textContent==='50%','過熱しない充填銃も実充填50%で共有円の三本が各60度、札はCHARGING 50%');
+      yes(!$('thermalReticle').hidden&&chargeIds.every(id=>+$(id).dataset.degrees===60)&&heatIds.every(id=>+$(id).dataset.degrees===0)&&$('waLabel').textContent==='CHARGING'&&!/\d/.test($('waSub').textContent)&&parseFloat($('waBar').style.width)===50,'過熱しない充填銃も実充填50%で共有円の三本が各60度、札はCHARGINGと棒だけ（％の数字は出さない）');
       const chargeBox=alertBox();yes(['left','top','width','height'].every(k=>Math.abs(chargeBox[k]-ohBox[k])<.5),'CHARGINGの札はOVERHEATと同じ位置・同じ大きさ');
       for(const mode of ['standard','arcade','flight','mechanical','retro']){document.querySelector(`[data-console-choice="${mode}"]`).click();draw();yes(chargeIds.every(id=>getComputedStyle($(id)).stroke==='rgb(125, 255, 176)'),mode+'のチャージは緑色');}
       g.weaponsTick(u,u.slots.main.w.chargeTime/2,true,aim,0);draw();

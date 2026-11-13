@@ -12601,10 +12601,10 @@ function weaponAlert(sl,w,charge,iai) {
   const el=$('weaponAlert');let state='',label='',sub='',bar=0;
   if(sl.overheat){const total=w.ohTime||1,left=Math.max(0,sl.ohT);state='oh';label='OVERHEAT';sub='COOLING '+left.toFixed(1)+'s';bar=triClamp(left/total);}
   else if(charge>=1){state='full';label='FULL CHARGE';if(w.chargeHold&&!iai){const left=Math.max(0,w.chargeHold-(sl.holdT||0));sub='HOLD '+left.toFixed(1)+'s';bar=triClamp(left/w.chargeHold);el.classList.toggle('hot',left/w.chargeHold<=.34);}else{sub='READY';bar=1;}}
-  else if(charge>0){state='charge';label='CHARGING';sub=Math.floor(charge*100)+'%';bar=charge;}
+  else if(charge>0){state='charge';label='CHARGING';sub='\u00a0';bar=charge;} // 充填の％は照準の輪で分かるので出さない（2026-11-13 オーナー）。行の高さは残して札の大きさを揃える
   el.hidden=!state;if(!state)return;
   el.dataset.state=state;if(state!=='full')el.classList.remove('hot');
-  $('waLabel').textContent=label;$('waSub').textContent=sub;$('waBar').style.width=(bar*100).toFixed(1)+'%';
+  $('waLabel').textContent=label;$('waSub').textContent=sub;$('waBar').style.width=(bar*100).toFixed(1)+'%';el.style.setProperty('--wa-p',(bar*100).toFixed(1)+'%'); // 過熱は札の地そのものが冷却の残りの棒
 }
 function triangleThermal(p) {
   const sl=p.slots[p.weapon],w=sl.w,iai=!!(w.iai&&sl.sheathed),enabled=!!(w.heat||w.chargeHold||w.chargeTime||iai); // 斬馬刀は納刀中に居合の溜めの円

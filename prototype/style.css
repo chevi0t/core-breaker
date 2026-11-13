@@ -1122,16 +1122,18 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
 #thermalReticle .heat-arc { fill:none; stroke:var(--ta-heat); stroke-width:4; stroke-linecap:butt; }
 #thermalReticle text { fill:var(--ta-text); font-size:10px; font-family:var(--display); text-anchor:middle; stroke:#06121de6; stroke-width:3; paint-order:stroke fill; }
 #thermalReticle.charging #trHeatText { fill:#7dffb0; }
-/* 武器の状態の札（2026-11-12）：過熱・充填中・満充填を同じ位置（照準の三角の上）・同じ大きさで。下の棒は冷却の残り・充填の進み・保持の残り */
-#weaponAlert { left:50%; top:50%; width:216px; box-sizing:border-box; padding:5px 10px 7px; border-radius:4px; text-align:center; pointer-events:none;
+/* 武器の状態の札（2026-11-12）：過熱・充填中・満充填を同じ位置（照準の三角の上）・同じ大きさで。
+   2026-11-13 オーナー「記載がデカい」「オーバーヒート以外は背景透明」「オーバーヒート背景はゲージに」：小さくし、充填は文字と細い棒だけ、過熱は札の地が冷却の残りの棒になる */
+#weaponAlert { left:50%; top:50%; width:150px; box-sizing:border-box; padding:3px 8px 4px; border-radius:3px; text-align:center; pointer-events:none;
   transform:translate(-50%, calc(-100% - var(--wa-y,150px) * var(--hud-triangle-scale,1))) scale(calc(var(--hud-triangle-scale,1) * var(--ta-mark-scale,1))); transform-origin:50% 100%;
-  --wa:#7dffb0; background:#12382ae0; color:var(--wa); font-family:var(--display); filter:drop-shadow(0 1px 2px #000); }
-#weaponAlert b { display:block; font-size:24px; font-weight:700; line-height:1.1; letter-spacing:.04em; white-space:nowrap; }
-#weaponAlert span { display:block; margin-top:1px; font-size:15px; font-weight:600; line-height:1.2; color:var(--ta-text); font-variant-numeric:tabular-nums; }
-#weaponAlert .wa-bar { height:4px; margin-top:4px; background:#ffffff26; border-radius:2px; overflow:hidden; }
+  --wa:#7dffb0; --wa-p:0%; background:none; color:var(--wa); font-family:var(--display); text-shadow:0 0 2px #06121d, 0 1px 2px #06121d, 0 0 4px #06121dcc; }
+#weaponAlert b { display:block; font-size:16px; font-weight:700; line-height:1.1; letter-spacing:.04em; white-space:nowrap; }
+#weaponAlert span { display:block; font-size:11px; font-weight:600; line-height:1.25; color:var(--ta-text); font-variant-numeric:tabular-nums; }
+#weaponAlert .wa-bar { height:3px; margin-top:2px; background:#ffffff2e; border-radius:2px; overflow:hidden; box-shadow:0 0 2px #06121d; }
 #weaponAlert .wa-bar i { display:block; height:100%; background:var(--wa); }
-#weaponAlert[data-state="oh"] { --wa:#ff5a5a; background:#461c28e8; }
-#weaponAlert[data-state="full"] { box-shadow:0 0 0 1.5px var(--wa) inset; }
+#weaponAlert[data-state="oh"] { --wa:#ffd0d0; color:#fff; background:linear-gradient(90deg, #d8303ae8 var(--wa-p), #3a141ce0 var(--wa-p)); box-shadow:0 0 0 1px #ff5a5a inset; filter:drop-shadow(0 1px 2px #000); }
+#weaponAlert[data-state="oh"] span { color:#fff; }
+#weaponAlert[data-state="oh"] .wa-bar { visibility:hidden; }
 #weaponAlert[data-state="full"].hot { --wa:#ffb04a; }
 body.aimClassic #weaponAlert { display:none!important; }
 body:not(.aimClassic) :is(.preLockMark, #lockMark) { width:64px; height:64px; --c:var(--ta-cursor); }
