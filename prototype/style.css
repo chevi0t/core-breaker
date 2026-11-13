@@ -275,11 +275,11 @@ body.jamHud #cross { z-index:5; }
 #jamChecks li::after { content:'CHECKING'; animation:jamBlink .3s steps(2,end) infinite; }
 #jamChecks li.ok { color:rgba(190,255,215,.8); }
 #jamChecks li.ok::after { content:'OK'; animation:none; }
-#jamDone { position:absolute; left:50%; top:22%; transform:translateX(-50%); text-align:center; animation:jamFade .6s ease-in forwards; }
+#jamDone { position:absolute; left:50%; top:22%; transform:translateX(-50%); text-align:center; animation:jamFade 1.2s ease-in forwards; }
 #jamDone b { font-size:clamp(14px,2.8vmin,24px); letter-spacing:.16em; color:rgba(170,255,200,.9); text-shadow:0 0 8px rgba(70,230,140,.7); }
-/* ①〜③は照準周りのHUDを消し、④でちらつきながら戻す（点の照準 #cross は残す） */
-body.jamHud :is(#aimGauge,#triangleAim,#thermalReticle,#mechAim,#lockRing,#weaponAlert,#aimSp) { visibility:hidden !important; }
-body.jamBack :is(#aimGauge,#triangleAim,#thermalReticle,#mechAim,#lockRing,#weaponAlert,#aimSp) { animation:jamReturn .6s steps(1,end); }
+/* ①〜③はHUDを消し（jamGroups()）、④で順にちらつきながら戻す（点の照準 #cross は残す） */
+.jamOff { visibility:hidden !important; }
+.jamOn { animation:jamReturn .45s steps(1,end); }
 @keyframes jamBlink { 50% { opacity:.25; } }
 @keyframes jamJitter { 50% { transform:translateX(2px); } }
 @keyframes jamFade { 0%,60% { opacity:1; } 100% { opacity:0; } }
