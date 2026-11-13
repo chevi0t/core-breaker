@@ -12632,6 +12632,8 @@ function triangleThermal(p) {
     const a=triPoint(r*Math.cos(angle),r*Math.sin(angle)),b=triPoint(r*Math.cos(angle+sweep),r*Math.sin(angle+sweep));
     $(prefix+i).setAttribute('d',sweep>0?`M${a.x},${a.y} A${r},${r} 0 0 1 ${b.x},${b.y}`:'');$(prefix+i).dataset.degrees=(triClamp(value)*120).toFixed(2);
   }
+  // 過熱中の赤い円は冷えるにつれ薄くなり、冷却完了で消える（2026-11-13 オーナー）
+  const ohFade=sl.overheat?triClamp(Math.max(0,sl.ohT)/(w.ohTime||1)).toFixed(3):'';for(let i=0;i<3;i++)$('trHeat'+i).style.opacity=ohFade;
 }
 function triangleHud(p) {
   const svg=$('triangleAim'),on=!!((running||hudPreview)&&(p.alive||hudPreview)&&$('overlay').hidden&&!mapOpen&&!wsel.open&&!(touchPlay&&innerHeight>innerWidth));

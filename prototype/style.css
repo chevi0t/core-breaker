@@ -1129,7 +1129,7 @@ body[data-console="retro"] :is(#triangleAim,#thermalReticle) text { font-family:
   --wa:#7dffb0; --wa-p:0%; background:none; color:var(--wa); font-family:var(--display); text-shadow:0 0 2px #06121d, 0 1px 2px #06121d, 0 0 4px #06121dcc; }
 #weaponAlert b { display:block; font-size:16px; font-weight:700; line-height:1.1; letter-spacing:.04em; white-space:nowrap; }
 #weaponAlert span { display:block; font-size:11px; font-weight:600; line-height:1.25; color:var(--ta-text); font-variant-numeric:tabular-nums; }
-#weaponAlert[data-state="oh"] { color:#fff; background:linear-gradient(90deg, #d8303ae0 var(--wa-p), transparent var(--wa-p)); box-shadow:0 0 0 1px #ff5a5acc inset; }
+#weaponAlert[data-state="oh"] { color:#fff; background:linear-gradient(90deg, #d8303ae0 var(--wa-p), transparent var(--wa-p)); }
 #weaponAlert[data-state="oh"] span { color:#fff; }
 #weaponAlert[data-state="full"].hot { --wa:#ffb04a; }
 body.aimClassic #weaponAlert { display:none!important; }
