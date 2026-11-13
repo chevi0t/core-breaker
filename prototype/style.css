@@ -258,7 +258,7 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #jamLog { margin:0 auto; text-align:left; display:inline-block; font-size:clamp(10px,1.6vmin,14px); line-height:1.45; color:rgba(185,225,255,.5); text-shadow:0 0 6px rgba(90,170,255,.6); white-space:pre; animation:jamJitter .12s steps(2,end) infinite; }
 #jamEmp b { display:block; margin-top:calc(min(30vh,240px)); font-size:clamp(16px,3.4vmin,30px); letter-spacing:.18em; color:rgba(255,196,92,.82); text-shadow:0 0 10px rgba(255,150,40,.7); animation:jamBlink .5s steps(2,end) infinite; }
 #jamEmp small, #jamDone small { display:block; margin-top:4px; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:rgba(200,225,255,.55); }
-#jamBoot { position:absolute; left:50%; top:62%; transform:translateX(-50%); width:min(80vw,360px); }
+#jamBoot { position:absolute; left:50%; top:18%; transform:translateX(-50%); width:min(80vw,360px); }
 #jamBoot b { display:block; text-align:center; font-size:clamp(14px,2.8vmin,24px); letter-spacing:.14em; color:rgba(150,235,255,.88); text-shadow:0 0 8px rgba(60,190,255,.7); }
 #jamBoot .bar { height:5px; margin:8px 0 6px; background:rgba(120,190,255,.18); border:1px solid rgba(150,215,255,.4); }
 #jamBoot .bar i { display:block; height:100%; width:0; background:rgba(150,235,255,.85); box-shadow:0 0 8px rgba(80,200,255,.8); }
@@ -267,7 +267,7 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #jamChecks li::after { content:'CHECKING'; animation:jamBlink .3s steps(2,end) infinite; }
 #jamChecks li.ok { color:rgba(190,255,215,.8); }
 #jamChecks li.ok::after { content:'OK'; animation:none; }
-#jamDone { position:absolute; left:50%; top:62%; transform:translateX(-50%); text-align:center; animation:jamFade .6s ease-in forwards; }
+#jamDone { position:absolute; left:50%; top:22%; transform:translateX(-50%); text-align:center; animation:jamFade .6s ease-in forwards; }
 #jamDone b { font-size:clamp(14px,2.8vmin,24px); letter-spacing:.16em; color:rgba(170,255,200,.9); text-shadow:0 0 8px rgba(70,230,140,.7); }
 /* ①〜③は照準周りのHUDを消し、④でちらつきながら戻す（点の照準 #cross は残す） */
 body.jamHud :is(#aimGauge,#triangleAim,#thermalReticle,#mechAim,#lockRing,#weaponAlert,#aimSp) { visibility:hidden !important; }
