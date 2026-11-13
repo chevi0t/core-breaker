@@ -248,8 +248,34 @@ body[data-console="mechanical"] #damageDirections { --damage-warning-size: var(-
 #damageDirections .border { fill: none; stroke: #250a04; stroke-width: 7; }
 #damageDirections .arc { fill: none; stroke: #ff6845; stroke-width: 4; }
 #damageDirections .tip { fill: #ffe0c9; stroke: #7a1d0c; stroke-width: 1; }
-#jamView { inset:0; background:repeating-linear-gradient(3deg,rgba(80,110,190,.25) 0 2px,rgba(145,170,220,.12) 3px 5px); pointer-events:none; }
-#jamView b { position:absolute; top:24%; left:50%; transform:translateX(-50%); color:#d8e4ff; letter-spacing:.2em; }
+/* 電子妨害の被弾演出（2026-11-13）：jamHud() が段階（data-ph）を切り替える */
+#jamView { inset:0; pointer-events:none; z-index:4; font-family:'IBM Plex Mono',ui-monospace,monospace; color:#bfe6ff; }
+#jamView[hidden], #jamView [hidden] { display:none; }
+#jamView::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,rgba(120,170,255,.07) 0 1px,transparent 1px 3px); }
+#jamView[data-ph="4"]::before { opacity:0; transition:opacity .5s; }
+#jamNoise { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; opacity:0; mix-blend-mode:screen; }
+#jamEmp { position:absolute; left:50%; top:16%; transform:translateX(-50%); width:min(92vw,560px); text-align:center; }
+#jamLog { margin:0 auto; text-align:left; display:inline-block; font-size:clamp(10px,1.6vmin,14px); line-height:1.45; color:rgba(185,225,255,.5); text-shadow:0 0 6px rgba(90,170,255,.6); white-space:pre; animation:jamJitter .12s steps(2,end) infinite; }
+#jamEmp b { display:block; margin-top:calc(min(30vh,240px)); font-size:clamp(16px,3.4vmin,30px); letter-spacing:.18em; color:rgba(255,196,92,.82); text-shadow:0 0 10px rgba(255,150,40,.7); animation:jamBlink .5s steps(2,end) infinite; }
+#jamEmp small, #jamDone small { display:block; margin-top:4px; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:rgba(200,225,255,.55); }
+#jamBoot { position:absolute; left:50%; top:62%; transform:translateX(-50%); width:min(80vw,360px); }
+#jamBoot b { display:block; text-align:center; font-size:clamp(14px,2.8vmin,24px); letter-spacing:.14em; color:rgba(150,235,255,.88); text-shadow:0 0 8px rgba(60,190,255,.7); }
+#jamBoot .bar { height:5px; margin:8px 0 6px; background:rgba(120,190,255,.18); border:1px solid rgba(150,215,255,.4); }
+#jamBoot .bar i { display:block; height:100%; width:0; background:rgba(150,235,255,.85); box-shadow:0 0 8px rgba(80,200,255,.8); }
+#jamChecks { list-style:none; margin:0; padding:0; font-size:clamp(9px,1.4vmin,12px); line-height:1.5; color:rgba(190,220,255,.5); }
+#jamChecks li { display:flex; justify-content:space-between; }
+#jamChecks li::after { content:'CHECKING'; animation:jamBlink .3s steps(2,end) infinite; }
+#jamChecks li.ok { color:rgba(190,255,215,.8); }
+#jamChecks li.ok::after { content:'OK'; animation:none; }
+#jamDone { position:absolute; left:50%; top:62%; transform:translateX(-50%); text-align:center; animation:jamFade .6s ease-in forwards; }
+#jamDone b { font-size:clamp(14px,2.8vmin,24px); letter-spacing:.16em; color:rgba(170,255,200,.9); text-shadow:0 0 8px rgba(70,230,140,.7); }
+/* ①〜③は照準周りのHUDを消し、④でちらつきながら戻す（点の照準 #cross は残す） */
+body.jamHud :is(#aimGauge,#triangleAim,#thermalReticle,#mechAim,#lockRing,#weaponAlert,#aimSp) { visibility:hidden !important; }
+body.jamBack :is(#aimGauge,#triangleAim,#thermalReticle,#mechAim,#lockRing,#weaponAlert,#aimSp) { animation:jamReturn .6s steps(1,end); }
+@keyframes jamBlink { 50% { opacity:.25; } }
+@keyframes jamJitter { 50% { transform:translateX(2px); } }
+@keyframes jamFade { 0%,60% { opacity:1; } 100% { opacity:0; } }
+@keyframes jamReturn { 0% { opacity:0; } 15% { opacity:.8; } 25% { opacity:0; } 40% { opacity:1; } 50% { opacity:.2; } 65%,100% { opacity:1; } }
 /* 狙撃照準：金属製の光学筐体。照準の中央は無着色、実際の散りだけを細い輪郭で示す。 */
 #scope { --scope-ink: #ffd18b; --scope-accent: #ffbb53; --scope-muted: #d6c7ab; inset: 0; background: none; }
 #scope[hidden] { display: none; }

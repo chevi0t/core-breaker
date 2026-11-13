@@ -6,7 +6,13 @@
 
 <div id="game"><canvas id="view"></canvas></div>
 
-<div class="hud" id="jamView" hidden><b>電子妨害</b></div>
+<!-- 電子妨害の被弾演出（2026-11-13 オーナー指定）：①ブロックノイズ ②EMPの英文と BACKUP SYSTEM ACTIVE ③SYSTEM CHECK & REBOOT ④照準周りのHUDが戻る。効果時間に合わせて伸び縮みし、短い型（3秒未満）は③④だけ。中身は jamHud() -->
+<div class="hud" id="jamView" hidden aria-hidden="true">
+  <canvas id="jamNoise" width="64" height="36"></canvas>
+  <div id="jamEmp" hidden><pre id="jamLog"></pre><b id="jamBackup">BACKUP SYSTEM ACTIVE</b><small>AUX POWER // MANUAL AIM ONLY</small></div>
+  <div id="jamBoot" hidden><b>SYSTEM CHECK &amp; REBOOT</b><div class="bar"><i id="jamBootBar"></i></div><ul id="jamChecks"><li>FCS LINK</li><li>LOCK-ON SENSOR</li><li>IFF TRANSPONDER</li><li>TACTICAL DATALINK</li></ul></div>
+  <div id="jamDone" hidden><b>SYSTEM RESTORED</b><small>ALL SYSTEMS ONLINE</small></div>
+</div>
 <div class="hud" id="top">
   <div class="core"><div class="lbl"><span id="coreBn">自軍コア</span><span id="coreBt">100%</span></div><div class="bar" id="coreB"><i></i></div></div>
   <div id="timer">5:00</div>
@@ -145,7 +151,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver197</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver198</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -11535,7 +11541,7 @@ function showPage(id) {
 let optionsPaused = false;
 function openOptions() {
   if ((tutorial || range) && !running) (tutorial || range).optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
-  $('missileHud').hidden = true; $('shockScreen').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true; $('jamView').hidden = true; document.body.classList.remove('jamHud', 'jamBack');
   optionsPaused = running;
   if (optionsPaused) {
     running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = false;
@@ -12722,6 +12728,70 @@ function lockHud(p, dt) {
   for(const arm of br.querySelectorAll('.lock-arm'))if(arm.getAttribute('d')!==d)arm.setAttribute('d',d);
   mk.dataset.progress=progress.toFixed(4);
 }
+// ---- 電子妨害の被弾演出（2026-11-13 オーナー指定） ----
+// 妨害の効果（ロックオン不可・敵名表示なし・他者への修理不可）は jamT の間ずっと続き、ここは見た目だけ。
+// 効果時間 T を4段に割る：①ノイズ 0.35秒 → ②EMPの英文と BACKUP SYSTEM ACTIVE（T の半分まで）→ ③SYSTEM CHECK & REBOOT → ④最後の0.6秒で照準周りのHUDが戻る。
+// T が JAM_SHORT 秒未満（即応型 2.5秒）は①②を飛ばして③④だけ。jamT が増えたら（新しく喰らったら）頭からやり直す。オンラインの写しでも同じに動くよう、始まりは jamT の増え方で見る。
+const JAM_NOISE = .35, JAM_BACK = .6, JAM_SHORT = 3;
+const JAM_LOG = ['!! EMP INTERFERENCE DETECTED','> FCS LINK ............ LOST','> LOCK-ON SENSOR ....... NO SIGNAL','> IFF TRANSPONDER ...... ERR 0x3F','> TACTICAL DATALINK .... TIMEOUT','> SWITCHING TO AUXILIARY POWER'];
+const jamFx = { dur: 0, last: 0, ph: 0, noiseAt: 0 };
+function jamPhase(T, e) {
+  const t3 = Math.max(0, T - JAM_BACK);
+  if (T < JAM_SHORT) return e < t3 ? [3, e / t3] : [4, (e - t3) / JAM_BACK];
+  const t2 = Math.max(JAM_NOISE, T * .5);
+  return e < JAM_NOISE ? [1, e / JAM_NOISE] : e < t2 ? [2, (e - JAM_NOISE) / (t2 - JAM_NOISE)] : e < t3 ? [3, (e - t2) / (t3 - t2)] : [4, Math.min(1, (e - t3) / JAM_BACK)];
+}
+function jamNoise(alpha) {
+  const cv = $('jamNoise'), now = performance.now();
+  cv.style.opacity = alpha.toFixed(2);
+  if (now - jamFx.noiseAt < 40) return; // 25コマ/秒で描き直す
+  jamFx.noiseAt = now;
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height, img = g.createImageData(w, h), d = img.data;
+  let tear = -1, shift = 0;
+  for (let y = 0; y < h; y++) {
+    if (Math.random() < .12) { tear = y + 1 + (Math.random() * 3 | 0); shift = (Math.random() * 12 | 0) - 6; } // 横に裂けた帯
+    const band = y < tear;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, r = Math.random(), sx = band ? (x + shift + w) % w : x;
+      const v = band ? 40 + ((sx * 37 + y * 11) % 90) : 30 + r * 200;
+      const tint = r < .08 ? [255, 60, 200] : r < .16 ? [60, 230, 255] : r < .2 ? [255, 255, 255] : null; // 色の飛んだブロック
+      d[i] = tint ? tint[0] : v * .55; d[i + 1] = tint ? tint[1] : v * .7; d[i + 2] = tint ? tint[2] : v;
+      d[i + 3] = band ? 230 : r < .35 ? 0 : 200;
+    }
+  }
+  g.putImageData(img, 0, 0);
+}
+function jamHud(p) {
+  const T0 = p.alive ? p.jamT || 0 : 0;
+  if (T0 > jamFx.last + .05) jamFx.dur = T0; // 新しく喰らった（効果時間が延びた）
+  jamFx.last = T0;
+  const on = T0 > 0, el = $('jamView');
+  el.hidden = !on;
+  if (!on) { jamFx.ph = 0; document.body.classList.remove('jamHud', 'jamBack'); return; }
+  const T = Math.max(jamFx.dur, T0), e = T - T0, [ph, k] = jamPhase(T, e);
+  if (ph !== jamFx.ph) {
+    jamFx.ph = ph;
+    $('jamEmp').hidden = ph !== 2; $('jamBoot').hidden = ph !== 3; $('jamDone').hidden = ph !== 4;
+    el.dataset.ph = ph;
+    document.body.classList.toggle('jamHud', ph < 4); document.body.classList.toggle('jamBack', ph === 4);
+    if (ph === 4) for (const id of JAM_RETICLE) { const r = $(id); r.style.animation = 'none'; r.getBoundingClientRect(); r.style.animation = ''; } // 戻る時のちらつきを頭から
+  }
+  if (ph === 1) jamNoise(.92);
+  else if (ph === 2 && e - JAM_NOISE < .3) jamNoise(.92 * (1 - (e - JAM_NOISE) / .3) + .1);
+  else if (ph === 2 && Math.random() < .06) jamNoise(.18); // ②の間もときどき走る弱いノイズ
+  else $('jamNoise').style.opacity = '0';
+  if (ph === 2) {
+    const n = Math.min(JAM_LOG.length, Math.floor(k * 1.6 * JAM_LOG.length) + 1);
+    const hex = () => Array.from({ length: 6 }, () => (Math.random() * 65536 | 0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+    $('jamLog').textContent = JAM_LOG.slice(0, n).join('\n') + '\n' + hex() + '\n' + hex();
+  }
+  if (ph === 3) {
+    $('jamBootBar').style.width = (k * 100).toFixed(1) + '%';
+    $('jamChecks').querySelectorAll('li').forEach((li, i, all) => li.classList.toggle('ok', k >= (i + 1) / (all.length + .5)));
+  }
+}
+// 妨害中（①〜③）に隠す照準周りのHUD。照準の点（#cross）は残して手で狙えるようにする。
+const JAM_RETICLE = ['aimGauge', 'triangleAim', 'thermalReticle', 'mechAim', 'lockRing', 'weaponAlert', 'aimSp'];
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
@@ -12844,7 +12914,7 @@ function hud(timeLeft, dt) {
       el.innerHTML = `${'▲▶◀▼'[i]} ${SLOT_NAMES[k]}　${sl.w.name}<small>${sl.w.mag ? `${sl.ammo} / 予備 ${sl.reserve}` : sl.w.type === 'sword' ? '弾数制限なし' : `SP ${Math.round(sl.heat)}%`}${p.weapon === k ? '　使用中' : ''}</small>`;
     });
   }
-  $('jamView').hidden = !(p.alive && p.jamT>0);
+  jamHud(p);
   scopeHud(p);
   crossEl.style.visibility = p.scoped || p.seekMode ? 'hidden' : '';
   $('seekRet').hidden = !(p.alive && p.seekMode);
@@ -13300,7 +13370,7 @@ function setup() {
   $('scorePop').innerHTML = $('ovBoard').innerHTML = '';
 }
 function finish() {
-  $('missileHud').hidden = true; $('shockScreen').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true; $('jamView').hidden = true; document.body.classList.remove('jamHud', 'jamBack');
   ended = true; running = false; mapOpen = false;
   stopMovementSounds();
   document.exitPointerLock?.();
