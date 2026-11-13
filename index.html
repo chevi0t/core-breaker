@@ -34,8 +34,10 @@
 </svg>
 <div class="hud" id="thermalReticle" hidden><svg viewBox="-64 -64 128 128" aria-label="武器の充填と熱・オーバーヒート">
   <circle class="heat-track" r="44"/><path class="charge-arc" id="trCharge0"/><path class="charge-arc" id="trCharge1"/><path class="charge-arc" id="trCharge2"/><path class="heat-arc" id="trHeat0"/><path class="heat-arc" id="trHeat1"/><path class="heat-arc" id="trHeat2"/>
-  <g id="trOh" hidden><rect class="oh-panel" x="-108" y="-22" width="216" height="44" rx="4"/><text class="oh-text" y="10">OVERHEAT</text></g><text id="trHeatText" y="-54"/>
+  <text id="trHeatText" y="-54"/>
 </svg></div>
+<!-- 武器の状態の札（2026-11-12 オーナー「オーバーヒート表記を上にズラせない？」「冷却完了までの秒数」「CHARGINGやFULL CHARGEも同じ位置同じサイズで」）：照準の三角の上に、過熱・充填・満充填を同じ大きさで出す -->
+<div class="hud" id="weaponAlert" hidden><b id="waLabel"></b><span id="waSub"></span></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
 <div id="mechanicalHud" hidden>
@@ -149,7 +151,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver196</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver197</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -12577,6 +12579,7 @@ function xAimResize() {
   const k=gameOptions.hudTriangle/100,score=triMix(triPoint((rc+gap)*c,(rc+gap)*s),triPoint(out*c,out*s),.45);
   document.body.style.setProperty('--xs-x',Math.round(score.x*k)+'px');document.body.style.setProperty('--xs-y',Math.round((out*s+16)*k)+'px'); // 棒の外の端より下
   document.documentElement.style.setProperty('--aim-sp-base',(out*s+30)+'px');
+  document.documentElement.style.setProperty('--wa-y',Math.round(out*s+12)+'px'); // 武器の状態の札は上の2本の端より上
 }
 function triangleAimResize() {
   $('taRing').style.display='none';
@@ -12593,29 +12596,51 @@ function triangleAimResize() {
   }
   for(const [id,y]of [['taBoostValue',clearance],['taSpValue',clearance+32]]){$(id).removeAttribute('transform');$(id).setAttribute('x',0);$(id).setAttribute('y',y-9);$(id).setAttribute('text-anchor','middle');}
   document.documentElement.style.setProperty('--aim-sp-base',(clearance+52)+'px');
+  document.documentElement.style.setProperty('--wa-y',Math.round(r+offset/2+10)+'px'); // 武器の状態の札は三角の頂点より上
   applyHudScale();
   document.body.style.setProperty('--ta-mark-scale',Math.max(.75,Math.min(1,innerHeight/600)));
 }
 function triangleSpecialActive(p) {
   return !!(!p.slots.sp.overheat && (p.mirageOn||p.chargerOn||p.cloak||p.fieldOn||p.barrierOn||p.escortOn||p.post||p.postFlight||p.bombard||p.beamFire||p.healTarget||p.weapon==='sp'&&p.planted));
 }
+// 照準の上の札：過熱は OVERHEAT と冷却の残り秒（赤い地が減って透明になる）、充填中は CHARGING の文字だけ、満充填は FULL CHARGE を点滅。
+// 2026-11-13 オーナー「chargingは棒ゲージ不要、照準部ゲージとの重複」「フルチャージも棒不要、早よ打てやは点滅間隔で」「赤背景→透明背景に」。
+// 保持で過熱する武器は、過熱までの残りが減るほど点滅が速くなる（毎秒1.2回→7回）。保持の制限がない武器はゆっくり点滅。
+let waBlinkPhase=0,waBlinkLast=0;
+const waReduceMotion=matchMedia?.('(prefers-reduced-motion: reduce)');
+function weaponAlert(sl,w,charge,iai) {
+  const el=$('weaponAlert');let state='',label='',sub='',bar=0,blink=0;
+  if(sl.overheat){const total=w.ohTime||1,left=Math.max(0,sl.ohT);state='oh';label='OVERHEAT';sub='COOLING '+left.toFixed(1)+'s';bar=triClamp(left/total);}
+  else if(charge>=1){state='full';label='FULL CHARGE';if(w.chargeHold&&!iai){const left=Math.max(0,w.chargeHold-(sl.holdT||0)),k=triClamp(1-left/w.chargeHold);sub='HOLD '+left.toFixed(1)+'s';blink=1.2+5.8*k*k;el.classList.toggle('hot',k>=.66);}else{sub='READY';blink=1;}}
+  else if(charge>0){state='charge';label='CHARGING';sub='\u00a0';}
+  el.hidden=!state;if(!state)return;
+  el.dataset.state=state;if(state!=='full')el.classList.remove('hot');
+  $('waLabel').textContent=label;$('waSub').textContent=sub;el.style.setProperty('--wa-p',(bar*100).toFixed(1)+'%');
+  const now=performance.now(),dt=Math.min(.1,Math.max(0,(now-waBlinkLast)/1000));waBlinkLast=now;
+  el.dataset.blink=blink.toFixed(2);
+  if(!blink||waReduceMotion?.matches){waBlinkPhase=0;$('waLabel').style.opacity='';return;}
+  waBlinkPhase=(waBlinkPhase+dt*blink)%1;$('waLabel').style.opacity=waBlinkPhase<.6?'':'.2';
+}
 function triangleThermal(p) {
   const sl=p.slots[p.weapon],w=sl.w,iai=!!(w.iai&&sl.sheathed),enabled=!!(w.heat||w.chargeHold||w.chargeTime||iai); // 斬馬刀は納刀中に居合の溜めの円
   const heat=iai?0:sl.overheat?1:w.heat?sl.temp/100:w.chargeHold?sl.holdT/w.chargeHold:0;
   const charge=iai?triClamp((sl.chargeT||0)/w.iai.charge):w.chargeTime&&!sl.overheat&&sl.reloadT<=0?triClamp(sl.chargeT/w.chargeTime):0,charging=iai||!!(w.chargeTime&&!sl.overheat&&heat<=0);
   const layer=$('thermalReticle');layer.hidden=!enabled||!p.alive||!running||!$('overlay').hidden||mapOpen||wsel.open||touchPlay&&innerHeight>innerWidth;
-  if(layer.hidden)return;
+  if(layer.hidden){$('weaponAlert').hidden=true;return;}
   const target=lock.target?.alive&&!$('lockMark').hidden?screenOf(lock.target):null;
   layer.style.left=(target?(target.x+1)/2*innerWidth:innerWidth/2)+'px';layer.style.top=(target?(1-target.y)/2*innerHeight:innerHeight/2)+'px';
   const warmth=triClamp(heat);layer.style.setProperty('--ta-heat',`rgb(255, ${Math.round(182-134*warmth)}, ${Math.round(213-165*warmth)})`);
-  layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);layer.classList.toggle('charging',charging);$('trOh').toggleAttribute('hidden',!sl.overheat);
-  $('trHeatText').textContent=sl.overheat?'COOLING '+Math.max(0,sl.ohT).toFixed(1)+'s':charging?'CHARGE '+Math.round(charge*100)+'%':'HEAT '+Math.round(triClamp(heat)*100)+'%';
+  layer.classList.toggle('oh',!!sl.overheat);layer.classList.toggle('hot',heat>=.75);layer.classList.toggle('charging',charging);
+  weaponAlert(sl,w,charge,iai);
+  $('trHeatText').textContent=sl.overheat||charging||charge>0?'':'HEAT '+Math.round(triClamp(heat)*100)+'%'; // 過熱と充填は上の札に出す
   // 充填と熱は同じ半径・太さの3弧を共有。満充填の緑へ保持過熱の色を重ねる。
   for(const [prefix,value]of [['trCharge',charge],['trHeat',heat]])for(let i=0;i<3;i++){
     const angle=-Math.PI/2+i*Math.PI*2/3,sweep=triClamp(value)*Math.PI*2/3,r=44;
     const a=triPoint(r*Math.cos(angle),r*Math.sin(angle)),b=triPoint(r*Math.cos(angle+sweep),r*Math.sin(angle+sweep));
     $(prefix+i).setAttribute('d',sweep>0?`M${a.x},${a.y} A${r},${r} 0 0 1 ${b.x},${b.y}`:'');$(prefix+i).dataset.degrees=(triClamp(value)*120).toFixed(2);
   }
+  // 過熱中の赤い円は冷えるにつれ薄くなり、冷却完了で消える（2026-11-13 オーナー）
+  const ohFade=sl.overheat?triClamp(Math.max(0,sl.ohT)/(w.ohTime||1)).toFixed(3):'';for(let i=0;i<3;i++)$('trHeat'+i).style.opacity=ohFade;
 }
 function triangleHud(p) {
   const svg=$('triangleAim'),on=!!((running||hudPreview)&&(p.alive||hudPreview)&&$('overlay').hidden&&!mapOpen&&!wsel.open&&!(touchPlay&&innerHeight>innerWidth));
