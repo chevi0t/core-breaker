@@ -33,7 +33,16 @@ check('メニューの画面', async ({ page, ev, step, ok, out, open }) => {
 
   await ev(() => { document.getElementById('ovTitle').textContent = '勝利'; document.getElementById('ovBoard').innerHTML = '<p>表</p>'; });
   await step(1);
-  ok(await ev(() => document.getElementById('pgMenu').classList.contains('hasResult') && getComputedStyle(document.querySelector('.mxResult')).display !== 'none'), '試合の結果は真ん中に出る');
+  ok(await ev(() => document.getElementById('pgMenu').classList.contains('hasResult') && getComputedStyle(document.querySelector('.mxResult')).display !== 'none'), '試合の結果を出せる');
+  // 結果は結果だけで画面いっぱい、下へスクロールするとトップと同じメニュー（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）
+  ok(await ev(() => { const r = document.getElementById('mxResult').getBoundingClientRect(), m = document.querySelector('#pgMenu .mx').getBoundingClientRect(); return r.top >= -1 && r.height >= innerHeight - 1 && m.top >= r.bottom - 1 && Math.abs(m.height - innerHeight) <= 1; }), '結果は画面いっぱいで、メニューはその下');
+  ok(!(await inView(page, '#start')), '結果の画面に出撃ボタンは出ない');
+  await ev(() => { document.getElementById('mxResNext').click(); document.querySelector('#pgMenu .mx').scrollIntoView(); });
+  await step(1);
+  ok(await inView(page, '#start') && await inView(page, '#menuMech'), '「メニューへ」で下のメニュー（機体と出撃）が出る');
+  await ev(() => { document.getElementById('start').textContent = 'もう一度出撃する'; });
+  ok(await ev(() => getComputedStyle(document.getElementById('start'), '::before').content.includes('SORTIE')), '出撃ボタンの文言を変えても小さな文字は残る');
+  await ev(() => { document.getElementById('start').textContent = '出撃する'; document.getElementById('overlay').scrollTop = 0; });
   await ev(() => { document.getElementById('ovTitle').innerHTML = 'コア<span>ブレイカー</span> 試作'; document.getElementById('ovBoard').innerHTML = ''; });
   await step(1);
   ok(await ev(() => !document.getElementById('pgMenu').classList.contains('hasResult')), '結果を消すと機体の表示へ戻る');
