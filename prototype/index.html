@@ -31,7 +31,7 @@
   <text id="trHeatText" y="-54"/>
 </svg></div>
 <!-- 武器の状態の札（2026-11-12 オーナー「オーバーヒート表記を上にズラせない？」「冷却完了までの秒数」「CHARGINGやFULL CHARGEも同じ位置同じサイズで」）：照準の三角の上に、過熱・充填・満充填を同じ大きさで出す -->
-<div class="hud" id="weaponAlert" hidden><b id="waLabel"></b><span id="waSub"></span><div class="wa-bar"><i id="waBar"></i></div></div>
+<div class="hud" id="weaponAlert" hidden><b id="waLabel"></b><span id="waSub"></span></div>
 <svg class="hud" id="aimGauge"><path class="bg" id="agAmmoBg"/><path id="agAmmo" pathLength="100"/><path class="bg" id="agHpBg"/><path id="agHp" pathLength="100"/><path class="bg" id="agHeatBg"/><path id="agHeat" pathLength="100"/><path class="bg" id="agBoostBg"/><path id="agBoost" pathLength="100"/></svg>
 <div class="hud" id="aimSp" hidden><div class="bar" id="aimSpBar" role="meter" aria-label="SP残量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
 <div id="mechanicalHud" hidden>
@@ -12596,15 +12596,23 @@ function triangleAimResize() {
 function triangleSpecialActive(p) {
   return !!(!p.slots.sp.overheat && (p.mirageOn||p.chargerOn||p.cloak||p.fieldOn||p.barrierOn||p.escortOn||p.post||p.postFlight||p.bombard||p.beamFire||p.healTarget||p.weapon==='sp'&&p.planted));
 }
-// 照準の上の札：過熱は OVERHEAT と冷却の残り秒（棒が減る）、充填中は CHARGING と％（棒が伸びる）、満充填は FULL CHARGE（保持で過熱する武器は過熱までの残り秒）。
+// 照準の上の札：過熱は OVERHEAT と冷却の残り秒（赤い地が減って透明になる）、充填中は CHARGING の文字だけ、満充填は FULL CHARGE を点滅。
+// 2026-11-13 オーナー「chargingは棒ゲージ不要、照準部ゲージとの重複」「フルチャージも棒不要、早よ打てやは点滅間隔で」「赤背景→透明背景に」。
+// 保持で過熱する武器は、過熱までの残りが減るほど点滅が速くなる（毎秒1.2回→7回）。保持の制限がない武器はゆっくり点滅。
+let waBlinkPhase=0,waBlinkLast=0;
+const waReduceMotion=matchMedia?.('(prefers-reduced-motion: reduce)');
 function weaponAlert(sl,w,charge,iai) {
-  const el=$('weaponAlert');let state='',label='',sub='',bar=0;
+  const el=$('weaponAlert');let state='',label='',sub='',bar=0,blink=0;
   if(sl.overheat){const total=w.ohTime||1,left=Math.max(0,sl.ohT);state='oh';label='OVERHEAT';sub='COOLING '+left.toFixed(1)+'s';bar=triClamp(left/total);}
-  else if(charge>=1){state='full';label='FULL CHARGE';if(w.chargeHold&&!iai){const left=Math.max(0,w.chargeHold-(sl.holdT||0));sub='HOLD '+left.toFixed(1)+'s';bar=triClamp(left/w.chargeHold);el.classList.toggle('hot',left/w.chargeHold<=.34);}else{sub='READY';bar=1;}}
-  else if(charge>0){state='charge';label='CHARGING';sub='\u00a0';bar=charge;} // 充填の％は照準の輪で分かるので出さない（2026-11-13 オーナー）。行の高さは残して札の大きさを揃える
+  else if(charge>=1){state='full';label='FULL CHARGE';if(w.chargeHold&&!iai){const left=Math.max(0,w.chargeHold-(sl.holdT||0)),k=triClamp(1-left/w.chargeHold);sub='HOLD '+left.toFixed(1)+'s';blink=1.2+5.8*k*k;el.classList.toggle('hot',k>=.66);}else{sub='READY';blink=1;}}
+  else if(charge>0){state='charge';label='CHARGING';sub='\u00a0';}
   el.hidden=!state;if(!state)return;
   el.dataset.state=state;if(state!=='full')el.classList.remove('hot');
-  $('waLabel').textContent=label;$('waSub').textContent=sub;$('waBar').style.width=(bar*100).toFixed(1)+'%';el.style.setProperty('--wa-p',(bar*100).toFixed(1)+'%'); // 過熱は札の地そのものが冷却の残りの棒
+  $('waLabel').textContent=label;$('waSub').textContent=sub;el.style.setProperty('--wa-p',(bar*100).toFixed(1)+'%');
+  const now=performance.now(),dt=Math.min(.1,Math.max(0,(now-waBlinkLast)/1000));waBlinkLast=now;
+  el.dataset.blink=blink.toFixed(2);
+  if(!blink||waReduceMotion?.matches){waBlinkPhase=0;$('waLabel').style.opacity='';return;}
+  waBlinkPhase=(waBlinkPhase+dt*blink)%1;$('waLabel').style.opacity=waBlinkPhase<.6?'':'.2';
 }
 function triangleThermal(p) {
   const sl=p.slots[p.weapon],w=sl.w,iai=!!(w.iai&&sl.sheathed),enabled=!!(w.heat||w.chargeHold||w.chargeTime||iai); // 斬馬刀は納刀中に居合の溜めの円
