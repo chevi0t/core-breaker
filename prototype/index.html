@@ -6858,7 +6858,7 @@ function nearestEnemy(u, range) {
   for (const e of [...units, ...mirages]) {
     if (!e.alive || e.team === u.team) continue;
     const d = e.pos.distanceTo(u.pos);
-    if (d < bd && d < range * spotMul(u.team, e) && noticed(e, d)) { bd = d; best = e; }
+    if (d < bd && d < range * (u.jamT > 0 ? 1 : spotMul(u.team, e)) && noticed(e, d)) { bd = d; best = e; } // 電子妨害中は味方の索敵の情報が届かない（プレイヤーの索敵マーカーが消えるのと同じ）
   }
   return best;
 }
@@ -6961,7 +6961,7 @@ function botUpdate(u, dt) {
     u.think = 0.3 + Math.random() * 0.2;
     u.target = nearestEnemy(u, Math.max(70, u.slots.sub.w.missile ? u.lockRange * u.slots.sub.w.missile.rangeMul : 0));
     if (u.target && !canSee(u, u.target, tmp.copy(u.target.pos).setY(u.target.pos.y + 2.5))) u.target = null;
-    if (baseTask?.threat && baseTask.threat.pos.distanceTo(u.pos) < 70 * spotMul(u.team, baseTask.threat) && noticed(baseTask.threat, baseTask.threat.pos.distanceTo(u.pos)) && canSee(u, baseTask.threat, tmp.copy(baseTask.threat.pos).setY(baseTask.threat.pos.y + 2.5))) u.target = baseTask.threat;
+    if (baseTask?.threat && baseTask.threat.pos.distanceTo(u.pos) < 70 * (u.jamT > 0 ? 1 : spotMul(u.team, baseTask.threat)) && noticed(baseTask.threat, baseTask.threat.pos.distanceTo(u.pos)) && canSee(u, baseTask.threat, tmp.copy(baseTask.threat.pos).setY(baseTask.threat.pos.y + 2.5))) u.target = baseTask.threat;
     u.tReach = !!u.target && u.target.kind === 'unit' && clearPath(u.pos.x, u.pos.z, u.target.pos.x, u.target.pos.z, u.pos.y,u);
     // 自分を撃っている自動砲台が、狙っている敵機より近ければ先に壊す（v0.11.2）
     const sentry = botGadget(u, true);
@@ -7095,7 +7095,7 @@ function botUpdate(u, dt) {
   const tracking = u.target && u.target.alive;
   const locked = trackAim(u, dt, muzzle(u, false, false));
   const healer = u.slots.sp.w.type === 'repair' ? u.slots.sp : null;
-  const ally = !tracking && healer ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null;
+  const ally = !tracking && healer && !(u.jamT > 0) ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null; // 電子妨害中は他者を修理できないので味方へ向かわない（自分の回復はできる）
   const selfHeal = !!healer && !tracking && !ally && u.hp < u.maxHp * 0.6;
   // 装備を使う行動（投げる、置く、打ち上げる、構えて撃つ）。botAct が決め、done か時間切れで終わる
   u.actCd -= dt;
@@ -7238,8 +7238,8 @@ function botAct(u, tracking, enemyCore) {
     if (!s.sub.w.missile && tracking && td > Math.max(15, (s.sub.w.proj ? s.sub.w.proj.blast : 0) + 4) && td < 40 && s.sub.ammo > 0 && Math.random() < 0.4) return { slot: 'sub', t: 2.5, done: used(s.sub) };
     if (s.sp.w.type === 'charger' && !tracking && !u.chargerOn && !s.sp.overheat && Math.random() < 0.5) return { slot: 'sp', aim: ahead(10), t: 2.5, done: () => u.chargerOn };
   } else if (u.cls === 'heavy') {
-    // 40m以内の敵機へ弱化・衝撃グレネード（衝撃散弾銃は15m以内）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
-    if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
+    // 40m以内の敵機へ弱化・衝撃・電子妨害グレネード（衝撃散弾銃は15m以内。電子妨害は相手がまだ1秒より長く妨害中なら投げない）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
+    if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && !(s.aux.w.proj?.jamSeconds && (u.target.jamT || 0) > 1) && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
     const sp = s.sp, cost = 100 / sp.w.shots;
     if(sp.w.type==='beamCannon' && tracking && !sp.overheat && sp.heat>=50 && u.onGround && td>20 && td<sp.w.range && canSee(u,u.target,targetPoint(u.target))){
       const fired=u.beamFired||0;return {slot:'sp',t:sp.w.use+sp.w.warmup+2,done:()=>!u.target?.alive||((u.beamFired||0)>fired&&!u.beamFire)};
