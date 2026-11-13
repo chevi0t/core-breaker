@@ -6,7 +6,14 @@
 
 <div id="game"><canvas id="view"></canvas></div>
 
-<div class="hud" id="jamView" hidden><b>電子妨害</b></div>
+<!-- 電子妨害の被弾演出（2026-11-13 オーナー指定）：①ブロックノイズ ②EMPの英文と BACKUP SYSTEM ACTIVE ③SYSTEM CHECK & REBOOT ④消していたHUDが順に戻る。効果時間に合わせて伸び縮みし、短い型（3秒未満）は③④だけ。中身は jamHud() -->
+<div class="hud" id="jamView" hidden aria-hidden="true">
+  <canvas id="jamNoise" width="64" height="36"></canvas>
+  <div id="jamEmp" hidden><pre id="jamLog"></pre><b id="jamBackup">BACKUP SYSTEM ACTIVE</b><small>AUX POWER // MANUAL AIM ONLY</small></div>
+  <div id="jamTerms"></div>
+  <div id="jamBoot" hidden><b>SYSTEM CHECK &amp; REBOOT</b><div class="bar"><i id="jamBootBar"></i></div><ul id="jamChecks"><li>FCS LINK</li><li>LOCK-ON SENSOR</li><li>IFF TRANSPONDER</li><li>TACTICAL DATALINK</li></ul></div>
+  <div id="jamDone" hidden><b>SYSTEM RESTORED</b><small>ALL SYSTEMS ONLINE</small></div>
+</div>
 <div class="hud" id="top">
   <div class="core"><div class="lbl"><span id="coreBn">自軍コア</span><span id="coreBt">100%</span></div><div class="bar" id="coreB"><i></i></div></div>
   <div id="timer">5:00</div>
@@ -145,7 +152,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver197</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver198</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -6851,7 +6858,7 @@ function nearestEnemy(u, range) {
   for (const e of [...units, ...mirages]) {
     if (!e.alive || e.team === u.team) continue;
     const d = e.pos.distanceTo(u.pos);
-    if (d < bd && d < range * spotMul(u.team, e) && noticed(e, d)) { bd = d; best = e; }
+    if (d < bd && d < range * (u.jamT > 0 ? 1 : spotMul(u.team, e)) && noticed(e, d)) { bd = d; best = e; } // 電子妨害中は味方の索敵の情報が届かない（プレイヤーの索敵マーカーが消えるのと同じ）
   }
   return best;
 }
@@ -6954,7 +6961,7 @@ function botUpdate(u, dt) {
     u.think = 0.3 + Math.random() * 0.2;
     u.target = nearestEnemy(u, Math.max(70, u.slots.sub.w.missile ? u.lockRange * u.slots.sub.w.missile.rangeMul : 0));
     if (u.target && !canSee(u, u.target, tmp.copy(u.target.pos).setY(u.target.pos.y + 2.5))) u.target = null;
-    if (baseTask?.threat && baseTask.threat.pos.distanceTo(u.pos) < 70 * spotMul(u.team, baseTask.threat) && noticed(baseTask.threat, baseTask.threat.pos.distanceTo(u.pos)) && canSee(u, baseTask.threat, tmp.copy(baseTask.threat.pos).setY(baseTask.threat.pos.y + 2.5))) u.target = baseTask.threat;
+    if (baseTask?.threat && baseTask.threat.pos.distanceTo(u.pos) < 70 * (u.jamT > 0 ? 1 : spotMul(u.team, baseTask.threat)) && noticed(baseTask.threat, baseTask.threat.pos.distanceTo(u.pos)) && canSee(u, baseTask.threat, tmp.copy(baseTask.threat.pos).setY(baseTask.threat.pos.y + 2.5))) u.target = baseTask.threat;
     u.tReach = !!u.target && u.target.kind === 'unit' && clearPath(u.pos.x, u.pos.z, u.target.pos.x, u.target.pos.z, u.pos.y,u);
     // 自分を撃っている自動砲台が、狙っている敵機より近ければ先に壊す（v0.11.2）
     const sentry = botGadget(u, true);
@@ -7088,7 +7095,7 @@ function botUpdate(u, dt) {
   const tracking = u.target && u.target.alive;
   const locked = trackAim(u, dt, muzzle(u, false, false));
   const healer = u.slots.sp.w.type === 'repair' ? u.slots.sp : null;
-  const ally = !tracking && healer ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null;
+  const ally = !tracking && healer && !(u.jamT > 0) ? downedAlly(u, healer.w.range) || hurtAlly(u, healer.w.range) : null; // 電子妨害中は他者を修理できないので味方へ向かわない（自分の回復はできる）
   const selfHeal = !!healer && !tracking && !ally && u.hp < u.maxHp * 0.6;
   // 装備を使う行動（投げる、置く、打ち上げる、構えて撃つ）。botAct が決め、done か時間切れで終わる
   u.actCd -= dt;
@@ -7231,8 +7238,8 @@ function botAct(u, tracking, enemyCore) {
     if (!s.sub.w.missile && tracking && td > Math.max(15, (s.sub.w.proj ? s.sub.w.proj.blast : 0) + 4) && td < 40 && s.sub.ammo > 0 && Math.random() < 0.4) return { slot: 'sub', t: 2.5, done: used(s.sub) };
     if (s.sp.w.type === 'charger' && !tracking && !u.chargerOn && !s.sp.overheat && Math.random() < 0.5) return { slot: 'sp', aim: ahead(10), t: 2.5, done: () => u.chargerOn };
   } else if (u.cls === 'heavy') {
-    // 40m以内の敵機へ弱化・衝撃グレネード（衝撃散弾銃は15m以内）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
-    if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
+    // 40m以内の敵機へ弱化・衝撃・電子妨害グレネード（衝撃散弾銃は15m以内。電子妨害は相手がまだ1秒より長く妨害中なら投げない）。30m以上離れた目標へは、SPが満タンなら重砲を撃ち切る
+    if (s.aux.w.type!=='sword' && unit && td < (s.aux.w.pellets ? 15 : 40) && s.aux.ammo > 0 && !(s.aux.w.proj?.jamSeconds && (u.target.jamT || 0) > 1) && Math.random() < 0.3) return { slot: 'aux', t: 2.5, done: used(s.aux) };
     const sp = s.sp, cost = 100 / sp.w.shots;
     if(sp.w.type==='beamCannon' && tracking && !sp.overheat && sp.heat>=50 && u.onGround && td>20 && td<sp.w.range && canSee(u,u.target,targetPoint(u.target))){
       const fired=u.beamFired||0;return {slot:'sp',t:sp.w.use+sp.w.warmup+2,done:()=>!u.target?.alive||((u.beamFired||0)>fired&&!u.beamFire)};
@@ -11535,7 +11542,7 @@ function showPage(id) {
 let optionsPaused = false;
 function openOptions() {
   if ((tutorial || range) && !running) (tutorial || range).optionsPage = [...document.querySelectorAll('#overlay .page')].find(pg => !pg.hidden)?.id;
-  $('missileHud').hidden = true; $('shockScreen').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true; $('jamView').hidden = true; jamGroups(-1);
   optionsPaused = running;
   if (optionsPaused) {
     running = false; mouseDown = rightDown = false; mapOpen = false; wsel.open = false;
@@ -12722,6 +12729,128 @@ function lockHud(p, dt) {
   for(const arm of br.querySelectorAll('.lock-arm'))if(arm.getAttribute('d')!==d)arm.setAttribute('d',d);
   mk.dataset.progress=progress.toFixed(4);
 }
+// ---- 電子妨害の被弾演出（2026-11-13 オーナー指定） ----
+// 妨害の効果（ロックオン不可・敵名表示なし・他者への修理不可）は jamT の間ずっと続き、ここは見た目だけ。
+// 効果時間 T を4段に割る：①ノイズ 0.35秒 → ②EMPの英文と BACKUP SYSTEM ACTIVE（T の半分まで）→ ③SYSTEM CHECK & REBOOT → ④最後の1.2秒でHUDが JAM_GROUPS の順に戻る。
+// ①〜③の間は照準周り・機体の状態と武器・コアと時間と占拠・マップ・パイロットと撃破の記録を全部消す（2026-11-13 オーナー「占拠状態やコア状況やマップ、武器メニューなども不可視化し、フェーズ④で順番に復帰」）。照準の点だけは残す。
+// T が JAM_SHORT 秒未満（即応型 2.5秒）は①②を飛ばして③④だけ。jamT が増えたら（新しく喰らったら）頭からやり直す。オンラインの写しでも同じに動くよう、始まりは jamT の増え方で見る。
+const JAM_NOISE = .35, JAM_BACK = 1.2, JAM_SHORT = 3;
+const JAM_LOG = ['!! EMP INTERFERENCE DETECTED','> FCS LINK ............ LOST','> LOCK-ON SENSOR ....... NO SIGNAL','> IFF TRANSPONDER ...... ERR 0x3F','> TACTICAL DATALINK .... TIMEOUT','> SWITCHING TO AUXILIARY POWER'];
+const jamFx = { dur: 0, last: 0, ph: 0, noiseAt: 0 };
+function jamPhase(T, e) {
+  const t3 = Math.max(0, T - JAM_BACK);
+  if (T < JAM_SHORT) return e < t3 ? [3, e / t3] : [4, (e - t3) / JAM_BACK];
+  const t2 = Math.max(JAM_NOISE, T * .5);
+  return e < JAM_NOISE ? [1, e / JAM_NOISE] : e < t2 ? [2, (e - JAM_NOISE) / (t2 - JAM_NOISE)] : e < t3 ? [3, (e - t2) / (t3 - t2)] : [4, Math.min(1, (e - t3) / JAM_BACK)];
+}
+function jamNoise(alpha) {
+  const cv = $('jamNoise'), now = performance.now();
+  cv.style.opacity = alpha.toFixed(2);
+  if (now - jamFx.noiseAt < 40) return; // 25コマ/秒で描き直す
+  jamFx.noiseAt = now;
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height, img = g.createImageData(w, h), d = img.data;
+  let tear = -1, shift = 0;
+  for (let y = 0; y < h; y++) {
+    if (Math.random() < .12) { tear = y + 1 + (Math.random() * 3 | 0); shift = (Math.random() * 12 | 0) - 6; } // 横に裂けた帯
+    const band = y < tear;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, r = Math.random(), sx = band ? (x + shift + w) % w : x;
+      const v = band ? 40 + ((sx * 37 + y * 11) % 90) : 30 + r * 200;
+      const tint = r < .08 ? [255, 60, 200] : r < .16 ? [60, 230, 255] : r < .2 ? [255, 255, 255] : null; // 色の飛んだブロック
+      d[i] = tint ? tint[0] : v * .55; d[i + 1] = tint ? tint[1] : v * .7; d[i + 2] = tint ? tint[2] : v;
+      d[i + 3] = band ? 230 : r < .35 ? 0 : 200;
+    }
+  }
+  g.putImageData(img, 0, 0);
+}
+function jamHud(p) {
+  const T0 = p.alive ? p.jamT || 0 : 0;
+  if (T0 > jamFx.last + .05) jamFx.dur = T0; // 新しく喰らった（効果時間が延びた）
+  jamFx.last = T0;
+  const on = T0 > 0, el = $('jamView');
+  el.hidden = !on;
+  if (!on) { jamFx.ph = 0; jamGroups(-1); return; }
+  const T = Math.max(jamFx.dur, T0), e = T - T0, [ph, k] = jamPhase(T, e);
+  if (ph !== jamFx.ph) {
+    jamFx.ph = ph;
+    $('jamEmp').hidden = ph !== 2; $('jamBoot').hidden = ph !== 3; $('jamDone').hidden = ph !== 4;
+    el.dataset.ph = ph;
+    document.body.classList.toggle('jamHud', ph < 4);
+  }
+  if (ph === 1) jamNoise(.92);
+  else if (ph === 2 && e - JAM_NOISE < .3) jamNoise(.92 * (1 - (e - JAM_NOISE) / .3) + .1);
+  else if (ph === 2 && Math.random() < .06) jamNoise(.18); // ②の間もときどき走る弱いノイズ
+  else $('jamNoise').style.opacity = '0';
+  if (ph === 2) {
+    const n = Math.min(JAM_LOG.length, Math.floor(k * 1.6 * JAM_LOG.length) + 1);
+    const hex = () => Array.from({ length: 6 }, () => (Math.random() * 65536 | 0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+    $('jamLog').textContent = JAM_LOG.slice(0, n).join('\n') + '\n' + hex() + '\n' + hex();
+  }
+  jamTerms(ph === 3, k);
+  jamGroups(ph < 4 ? 0 : Math.min(JAM_GROUPS.length, 1 + Math.floor(k / .8 * JAM_GROUPS.length))); // ④の8割までに全部戻す
+  if (ph === 3) {
+    $('jamBootBar').style.width = (k * 100).toFixed(1) + '%';
+    $('jamChecks').querySelectorAll('li').forEach((li, i, all) => li.classList.toggle('ok', k >= (i + 1) / (all.length + .5)));
+  }
+}
+// ③の間、画面を埋めるほどターミナル風の窓が次々に開き、文字列が流れては閉じる（2026-11-13 オーナー「CUIっぽいウインドウがついて文字列ガガーって流れて消えたり」）。
+// 窓は ③の終わり近く（85%）で開くのをやめ、④に入る前に閉じきる。
+const JAM_TERM_TITLES = ['root@bb-unit:~# fcs_diag --full', 'C:\\SYS\\LOCKON\\SELFTEST.EXE', 'IFF_TRANSPONDER // RESYNC', 'DATALINK.SYS - REBUILD', 'BIOS POST // CORE-UNIT', 'sensor_cal --channel=ALL', 'MEM CHECK 0x0000-0xFFFF', 'kernel: emp_recover.ko'];
+const JAM_TERM_WORDS = ['FCS', 'LOCK', 'IFF', 'DLNK', 'RADAR', 'SERVO', 'GYRO', 'BOOST', 'AUX', 'CORE', 'OPT', 'ECM'];
+const jamTerm = { wins: [], next: 0 };
+function jamTermLine() {
+  const r = Math.random(), hx = n => (Math.random() * 16 ** n | 0).toString(16).toUpperCase().padStart(n, '0'), w = JAM_TERM_WORDS[Math.random() * JAM_TERM_WORDS.length | 0];
+  if (r < .3) return `${hx(8)}: ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)} ${hx(4)}`;
+  if (r < .5) return `[ ${Math.random() < .8 ? ' OK ' : 'FAIL'} ] ${w}_${hx(2)} ${['init', 'reset', 'verify', 'mount', 'handshake'][Math.random() * 5 | 0]}`;
+  if (r < .65) return `CHK ${w.padEnd(5, '.')}........ ${Math.random() < .85 ? 'PASS' : 'RETRY'}  ${(Math.random() * 999 | 0)}ms`;
+  if (r < .8) return `loading ${w.toLowerCase()}_ctrl.ko ${'#'.repeat(Math.random() * 18 | 0)}`;
+  if (r < .9) return `> ${w} SIGNAL ${(Math.random() * 100).toFixed(1)}% ... ${Math.random() < .5 ? 'RECOVERING' : 'STABLE'}`;
+  return `0x${hx(6)} >> ${hx(2)}${hx(2)}${hx(2)}${hx(2)} ${'.'.repeat(Math.random() * 12 | 0)}`;
+}
+function jamTerms(on, k) {
+  const box = $('jamTerms'), now = performance.now(), W = innerWidth, H = innerHeight;
+  if (!on) { if (jamTerm.wins.length) { box.textContent = ''; jamTerm.wins = []; } return; }
+  if (k < .85 && now >= jamTerm.next && jamTerm.wins.length < 9) {
+    const w = W * (.26 + Math.random() * .24), h = H * (.24 + Math.random() * .26);
+    const el = document.createElement('div'); el.className = 'jt';
+    el.style.cssText = `left:${(Math.random() * (W - w)).toFixed(0)}px;top:${(Math.random() * (H - h)).toFixed(0)}px;width:${w.toFixed(0)}px;height:${h.toFixed(0)}px`;
+    el.innerHTML = '<header></header><pre></pre>';
+    el.firstChild.textContent = JAM_TERM_TITLES[Math.random() * JAM_TERM_TITLES.length | 0];
+    box.appendChild(el);
+    jamTerm.wins.push({ el, pre: el.lastChild, lines: [], max: Math.max(3, Math.floor((h - 18) / 13)), die: now + 450 + Math.random() * 900 });
+    jamTerm.next = now + 50 + Math.random() * 110;
+  }
+  jamTerm.wins = jamTerm.wins.filter(t => {
+    if (now > t.die + 140) { t.el.remove(); return false; }
+    if (now > t.die) { t.el.classList.add('close'); return true; }
+    for (let n = 1 + (Math.random() * 4 | 0); n--;) t.lines.push(jamTermLine());
+    if (t.lines.length > t.max) t.lines.splice(0, t.lines.length - t.max);
+    t.pre.textContent = t.lines.join('\n');
+    return true;
+  });
+}
+// 妨害中に消すHUDと、④で戻す順番。照準の点（#cross）は消さずに手で狙えるようにする。
+const JAM_GROUPS = [
+  ['aimGauge', 'triangleAim', 'thermalReticle', 'mechAim', 'lockRing', 'weaponAlert', 'aimSp'], // 照準周り
+  ['status', 'ammoBox', 'mechBoost', 'consoleTelemetry'], // 耐久・ブースト・SP と武器の欄
+  ['top', 'plantBar'], // コアと残り時間、占拠の状態
+  ['mapHud'], // マップ（被索敵の札を含む）
+  ['pilot', 'feed'], // パイロットの札と撃破の記録
+];
+let jamShown = -1; // 戻したグループの数（-1 は妨害なし）
+function jamGroups(n) {
+  if (n === jamShown) return;
+  JAM_GROUPS.forEach((ids, i) => {
+    const off = n >= 0 && i >= n, back = jamShown >= 0 && i >= jamShown && i < n;
+    for (const id of ids) {
+      const el = $(id); if (!el) continue;
+      el.classList.toggle('jamOff', off);
+      if (back) { el.classList.remove('jamOn'); el.getBoundingClientRect(); el.classList.add('jamOn'); } // 戻る時にちらつく
+      if (n < 0) el.classList.remove('jamOn');
+    }
+  });
+  jamShown = n;
+}
 function hud(timeLeft, dt) {
   const showBoard = !!keys.Tab && running;
   $('board').hidden = !showBoard;
@@ -12844,7 +12973,7 @@ function hud(timeLeft, dt) {
       el.innerHTML = `${'▲▶◀▼'[i]} ${SLOT_NAMES[k]}　${sl.w.name}<small>${sl.w.mag ? `${sl.ammo} / 予備 ${sl.reserve}` : sl.w.type === 'sword' ? '弾数制限なし' : `SP ${Math.round(sl.heat)}%`}${p.weapon === k ? '　使用中' : ''}</small>`;
     });
   }
-  $('jamView').hidden = !(p.alive && p.jamT>0);
+  jamHud(p);
   scopeHud(p);
   crossEl.style.visibility = p.scoped || p.seekMode ? 'hidden' : '';
   $('seekRet').hidden = !(p.alive && p.seekMode);
@@ -13300,7 +13429,7 @@ function setup() {
   $('scorePop').innerHTML = $('ovBoard').innerHTML = '';
 }
 function finish() {
-  $('missileHud').hidden = true; $('shockScreen').hidden = true;
+  $('missileHud').hidden = true; $('shockScreen').hidden = true; $('jamView').hidden = true; jamGroups(-1);
   ended = true; running = false; mapOpen = false;
   stopMovementSounds();
   document.exitPointerLock?.();
