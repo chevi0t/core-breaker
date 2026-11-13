@@ -152,11 +152,20 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver198</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver199</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
            左に目次、真ん中に大きな兵装名と機体と注釈、右に「1 マップ → 2 兵装 → 3 出撃」。試合の結果は真ん中に出す -->
+      <!-- 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを画面いっぱいに出し、
+           下へスクロールするとトップと同じメニュー（機体と出撃の準備）が出る -->
+      <div class="mxResult" id="mxResult">
+        <div class="mxResTop"><span class="mxM" id="mxResMap"></span></div>
+        <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
+        <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
+        <div id="ovBoard"></div>
+        <button type="button" class="mxResNext" id="mxResNext"><span class="mxM">NEXT ／ 下へスクロール</span><b>メニューへ</b><span class="ar" aria-hidden="true">↓</span></button>
+      </div>
       <div class="mx">
         <header class="mxHead">
           <div class="mxBrand"><b>コア<em>ブレイカー</em></b><span class="mxM">CORE BREAKER ／ 試作</span></div>
@@ -176,11 +185,6 @@
           <a id="changelogLink" href="https://github.com/chevi0t/core-breaker/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">アップデート履歴 ↗<small>変更点をGitHubで読む（別タブ）</small></a>
         </nav>
         <main class="mxStage">
-          <div class="mxResult">
-            <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
-            <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
-            <div id="ovBoard"></div>
-          </div>
           <div class="mxKey">
             <div class="mxMega" id="mxMega" aria-hidden="true"></div>
             <div class="mxSub"><span class="mxChip" id="mxChip"></span><span class="mxM" id="mxLoadout"></span></div>
@@ -209,7 +213,7 @@
           <small class="mxHint" id="battleSizeHint" aria-live="polite"></small>
           <div class="mxSign"><span class="n">2</span><b>兵装</b><span class="ar">↓</span></div>
           <div class="cls" id="ovCls" role="group" aria-label="兵装"></div>
-          <button id="start" type="button"><span class="mxM">3 — SORTIE ／ ENTER</span><b>出撃する</b><span class="ar" aria-hidden="true">→</span></button>
+          <button id="start" type="button">出撃する</button>
         </div>
         <footer class="mxFoot">
           <span class="mxM">GRID 04-B ／ <b>交戦規定 B-2</b></span><span class="mxM">SEC 7F-3A</span><span class="mxM">UNIT CB-07</span>
@@ -11988,7 +11992,9 @@ let menuRig = null, menuRigKey = '', menuRigDirty = true;
 function menuResultMode() {
   // 試合の結果・通信の知らせ（ovTitle と ovText が初めの文と違う、または表がある）は真ん中に出す
   const t = $('ovTitle').textContent, x = $('ovText').textContent;
-  $('pgMenu').classList.toggle('hasResult', !!$('ovBoard').children.length || t !== 'コアブレイカー 試作' || !x.startsWith('ボーダーブレイクの遊びを再現する'));
+  const on = !!$('ovBoard').children.length || t !== 'コアブレイカー 試作' || !x.startsWith('ボーダーブレイクの遊びを再現する');
+  $('pgMenu').classList.toggle('hasResult', on);
+  if (on && curMap) { const n = battleTeamSize(); $('mxResMap').textContent = `RESULT ／ ${curMap.name} ／ ${n}対${n}`; }
   menuRigDirty = true;
 }
 { const mo = new MutationObserver(menuResultMode); for (const id of ['ovTitle', 'ovText', 'ovBoard']) mo.observe($(id), { childList: true, subtree: true, characterData: true }); }
@@ -12003,7 +12009,7 @@ function menuKeyText() {
 }
 function menuMechTick() {
   const cv = $('menuMech');
-  if ($('overlay').hidden || $('pgMenu').hidden || $('pgMenu').classList.contains('hasResult') || !cv.offsetWidth) return;
+  if ($('overlay').hidden || $('pgMenu').hidden || !cv.offsetWidth) return; // 結果の下のメニューにも機体を出す
   try {
     const w = cv.clientWidth, h = cv.clientHeight, pr = Math.min(2, devicePixelRatio || 1);
     if (!menuRig) {
@@ -12165,6 +12171,7 @@ $('battleSizeControl').addEventListener('click',e=>{
   else if(e.target.closest('.mxFree')&&e.target.tagName!=='INPUT')$('teamSize').focus();
 });
 $('menuSortie').addEventListener('click',()=>$('start').focus());
+$('mxResNext').addEventListener('click',()=>document.querySelector('#pgMenu .mx').scrollIntoView({behavior:'smooth'}));
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id, persist = true) {
