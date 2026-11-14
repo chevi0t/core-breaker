@@ -1446,3 +1446,14 @@ body.menuClassic #pgMenu .mxFoot .note { margin: 0; white-space: normal; font-si
 @media (max-width: 760px) { body.menuClassic .mx { grid-template-columns: minmax(0, 1fr); } body.menuClassic .mxNav { grid-column: 1; grid-row: 9; } }
 body.menuClassic #pgMenu #start { width: 100%; text-align: left; }
 body.menuClassic #pgMenu #ovCls button.sel small:not(.over), body.menuClassic #pgMenu #ovCls button.sel .toCu { color: var(--dim); }
+
+/* 降下演出（試作 2026-11-13）：降りている間はほかの HUD を隠し、降りた瞬間にちらつきながら起動する */
+#dropHud { top: 17%; left: 50%; transform: translateX(-50%); z-index: 8; display: grid; justify-items: center; gap: 2px; padding: 8px 26px 10px; background: linear-gradient(90deg, transparent, var(--panel, #0b1620cc) 18%, var(--panel, #0b1620cc) 82%, transparent); color: #e6f2f8; text-shadow: 0 0 8px #000; font-family: var(--display); letter-spacing: .14em; }
+#dropHud[hidden] { display: none; }
+#dropHud small { font-size: 12px; color: #a9c3d2; letter-spacing: .3em; }
+#dropHud b { font-size: 40px; font-weight: 800; line-height: 1.1; color: #fff; }
+#dropHud span { font-size: 15px; }
+#dropHud em { font-style: normal; font-size: 11px; color: #8fa6b4; margin-top: 4px; letter-spacing: .1em; }
+body.dropping .hud:not(#dropHud):not(#announce) { visibility: hidden; }
+body.hudBoot .hud:not(#dropHud) { animation: hudBoot .9s steps(1, end); }
+@keyframes hudBoot { 0% { opacity: 0; } 12% { opacity: .7; } 20% { opacity: .1; } 34% { opacity: .9; } 44% { opacity: .3; } 60%, 100% { opacity: 1; } }

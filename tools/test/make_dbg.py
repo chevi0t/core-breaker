@@ -26,6 +26,7 @@ EXTRA = [
 SETTERS = [
     "timeLeft",
     "running",
+    "selectedTeamSize",
 ]
 ID = r"[A-Za-z_$][\w$]*"
 
@@ -139,6 +140,8 @@ def main():
     s = rep(s, "spawn(u, at);\n  // ベースから出た攻撃役", "spawn(u, at);\n  window.__botFixturePhase?.(u.team, u.idx, 2);\n  // ベースから出た攻撃役")
     s = rep(s, "\nrequestAnimationFrame(loop);\n", "\nrequestAnimationFrame(loop);\n" + EXPOSE + "\n")
     s = rep(s, EXPOSE, EXPOSE + "\nwindow.__allBotSetupVersion = 1;")
+    # 試合の始めの降下演出（2026-11-13）は、試験では切っておく（今までの試験は出撃した瞬間から動ける前提）。drop_check.js は false にして試す
+    s = rep(s, EXPOSE, EXPOSE + "\nif (window.__noDrop === undefined) window.__noDrop = true;")
     if trace:
         # 元の代入をそのまま残し、前後の実測差と機体の位置だけを読む。
         s = rep(s,

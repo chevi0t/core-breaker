@@ -107,6 +107,7 @@
 <div class="hud" id="center"></div>
 <div class="hud" id="actionCooldown" hidden aria-label="アクション再使用"></div>
 <div class="hud" id="announce" role="status" aria-live="polite"></div>
+<div class="hud" id="dropHud" hidden></div>
 <div class="hud" id="lockDirections" hidden></div>
 <div class="hud" id="baseAlert" hidden></div>
 <div class="hud" id="board" hidden><div class="sbh"><span>スコア</span><span>Tab を離すと閉じる</span></div><div id="boardBody"></div></div>
@@ -3151,7 +3152,7 @@ function blast(sh, at, ref) {
     // 自分の爆発物は自分にも効く（威力のある爆風だけ。v0.11.3、ユーザー指定）。
     // 味方にはダメージが無いが、よろけ・ダウンはダメージがあったものとして判定し、誤射として数える（v0.13.1、ユーザー指定）。弱化の霧は味方に効かない
     const self = u === sh.owner, ally = !self && u.team === sh.team;
-    if (u === sh.skip || !u.alive || u.invulT > 0 || (ally && S.weak) || (self && !S.dmg)) continue;
+    if (u === sh.skip || !u.alive || u.invulT > 0 || u.drop || (ally && S.weak) || (self && !S.dmg)) continue;
     const d = bodyDist(u, at);
     if (d > S.blast || !blastVisible(at,targetPoint(u),u)) continue;
     if (!self && !ally) hitAny = true;
@@ -6297,7 +6298,7 @@ function damage(r, by, dmg, head = false, melee = false, slot = null, origin = b
   if (r.kind === 'barricade') { damageBarricade(r, dmg, by); return true; }
   if (r.kind === 'turret') { r.hp -= dmg; if (r.hp <= 0) destroyTurret(r, by); return true; }
   if (r.kind === 'radar') { r.hp -= dmg; if (r.hp <= 0) destroyRadar(r, by); return true; }
-  if (r.invulT > 0) return false; // 出撃直後の無敵
+  if (r.invulT > 0 || r.drop) return false; // 出撃直後の無敵と降下中
   if (!melee && shieldTest && origin && barrierAbsorb(r, dmg, origin)) return false;
   // 要塞化（四脚が踏ん張って1秒たった後。オーナーの指定 2026-11-11）：射撃・爆発のダメージを crouch.damage 倍（0.6＝4割カット。2026-11-12 オーナー「ダメージカット率を4割に変更」。前は半分）にする。格闘・タックル・蹴りには効かない。よろけ・ダウンは減らす前の値で決める
   const fort = !melee && legFortified(r) ? legTraits(r).crouch.damage : 1, real = dmg * armorMult(r, slot) * fort;
@@ -10957,7 +10958,7 @@ function updateCamera(u, dt) {
     return;
   }
   if(cityMap){const pose=cityMap.cameraPose(u,camera,dir,dt);camera.position.copy(pose.position);camera.lookAt(pose.target);camera.updateMatrixWorld();return;}
-  camera.position.copy(pivot).addScaledVector(dir, -CAM.back);
+  camera.position.copy(pivot).addScaledVector(dir, -CAM.back - dropCam.back); // dropCam：降下演出の間だけ後ろへ引く
   camera.position.y = Math.max(terrainH(camera.position.x, camera.position.z) + 0.8, camera.position.y);
   camera.position.y = Math.min(camera.position.y, ceilingAt(camera.position.x, camera.position.z, u.pos.y) - 0.3); // 橋の下では床の下から見る
   camera.lookAt(pivot.clone().addScaledVector(dir, 50));
@@ -13114,6 +13115,202 @@ function hud(timeLeft, dt) {
   drawMini();
 }
 
+// ---- 降下演出（試作 2026-11-13、オーナー「輸送機からの一斉投下演出良いかも」） ----
+// 試合の始めだけ、両軍の輸送機がベースの上を前へ飛び、腹に吊った機体を順に切り離す。機体は落ちてから逆噴射で減速し、
+// 出撃と同じ場所（spawnPos で決めた所）へ降りる。降りた機体から動ける。全機が降りるまで試合の時間は進まない。
+// Space・Enter・画面のタップで飛ばせる。再出撃・チュートリアル・射撃場・オンライン対戦では使わない。数値はどれも仮置き（Claude）。
+// 試験（dbg.html）では window.__noDrop が true なので、今までどおり出撃した瞬間から動ける（drop_check.js は false にして試す）
+const DROP = {
+  alt: 46,       // 輸送機の高さ（降りる場所の一番高い所から m）
+  speed: 30,     // 輸送機の速さ（m/s）
+  release: 2.1,  // 最初の切り離しの時刻（秒）。それまで「DROP 3・2・1」
+  gap: 0.22,     // 同じ輸送機の中の切り離しの間（秒）
+  fall: 26, brake: 62, // 落ちる加速度と、逆噴射の減速度（m/s²）。噴射は高さの約3割から
+  per: 5, perLarge: 8, // 1機の輸送機に積む機体の数（11機以上の軍は perLarge）
+  slot: 3.4,     // 腹に吊る間隔（m）
+};
+let dropState = null, dropCam = { back: 0 };
+const dropPlaneParts = (() => {
+  const M = c => new T.MeshLambertMaterial({ color: c });
+  return {
+    hull: M(0x4c5560), dark: M(0x262c33), light: M(0x7c8792),
+    jet: new T.MeshBasicMaterial(glow(0x9fdcff)),
+    box: new T.BoxGeometry(1, 1, 1), cyl: new T.CylinderGeometry(1, 1, 1, 14, 1, true), disc: new T.CircleGeometry(1, 14),
+  };
+})();
+// 本作オリジナルの形：四角い胴、高い翼、翼端の4つのダクトファン、2枚の尾翼。胴の横に陣営の色の帯
+function buildDropPlane(team) {
+  const P = dropPlaneParts, g = new T.Group(), stripe = new T.MeshLambertMaterial({ color: TEAM[team].color, emissive: TEAM[team].color, emissiveIntensity: .25 });
+  const box = (m, sx, sy, sz, x, y, z, rx = 0) => { const o = new T.Mesh(P.box, m); o.scale.set(sx, sy, sz); o.position.set(x, y, z); o.rotation.x = rx; g.add(o); return o; };
+  box(P.hull, 5.2, 3.6, 26, 0, 0, 0);                  // 胴（前が -z）
+  box(P.hull, 4.4, 2.6, 5, 0, .35, -15, -.28);         // 機首
+  box(P.dark, 3.6, 1.0, 2.2, 0, 1.25, -15.6, -.28);    // 操縦席の窓
+  box(P.light, 3.2, 2.2, 7, 0, .7, 15, .22);           // 尾の絞り
+  box(P.dark, 4.2, .5, 24, 0, -1.9, 0);                // 腹の吊り具のレール
+  box(stripe, 5.3, .5, 18, 0, .5, 0);                  // 陣営の色の帯
+  box(P.hull, 30, .55, 5.5, 0, 1.6, -2);               // 翼
+  for (const s of [-1, 1]) {
+    box(P.light, .5, 4.2, 3.6, s * 2.1, 3.2, 16.5);    // 尾翼
+    for (const z of [-5.2, 1.2]) {                     // 翼端のダクトファン（輪と光る噴き出し口）
+      const duct = new T.Mesh(P.cyl, P.dark); duct.scale.set(2.3, 1.4, 2.3); duct.position.set(s * 15.5, 1.4, z); g.add(duct);
+      const jet = new T.Mesh(P.disc, P.jet); jet.scale.setScalar(2.1); jet.rotation.x = Math.PI / 2; jet.position.set(s * 15.5, .55, z); g.add(jet);
+    }
+  }
+  g.traverse(o => { o.userData.visualOnly = true; if (o.isMesh) o.raycast = () => {}; }); // 弾も視線も止めない（見た目だけ）
+  g.userData.stripe = stripe;
+  return g;
+}
+function dropEligible() {
+  return !tutorial && !range && !window.__noDrop && simulationRole === 'offline' && !window.CBOnlineGame?.active?.() && units.length > 0;
+}
+// 試合の始めに1回だけ呼ぶ。もう始めていれば何もしない（true を返す＝「作戦開始」は降りたときに出す）
+function dropBegin() {
+  if (dropState) return true;
+  if (!dropEligible()) return false;
+  const st = dropState = { t: 0, planes: [], units: [], done: false, skipHint: true };
+  for (const team of ['B', 'R']) {
+    const list = units.filter(u => u.team === team && u.alive);
+    if (!list.length) continue;
+    const dir = TEAM[team].dir, per = list.length > 10 ? DROP.perLarge : DROP.per;
+    // 横（x）の並びで輸送機に分ける。自分の乗る輸送機は一番後ろにして、前を行く僚機の降下が見えるようにする
+    list.sort((a, b) => a.pos.x - b.pos.x);
+    const groups = [];
+    for (let i = 0; i < list.length; i += per) groups.push(list.slice(i, i + per));
+    // 輸送機の通り道（x）は積んだ機体の平均。コアの塔の真上を通ると塔が視界をふさぐので、塔から横へ26m以上離し、
+    // 翼がぶつからないよう塔から外へ向かって34mずつ空ける
+    const coreX = baseAt(team)[0], lats = groups.map(gr => gr.reduce((s, u) => s + u.pos.x, 0) / gr.length).map(x => Math.abs(x - coreX) < 26 ? coreX + (x >= coreX ? 26 : -26) : x);
+    for (const sgn of [1, -1]) {
+      const side = lats.map((x, i) => i).filter(i => sgn * (lats[i] - coreX) > 0).sort((a, b) => sgn * (lats[a] - lats[b]));
+      for (let k = 1; k < side.length; k++) lats[side[k]] = coreX + sgn * Math.max(sgn * (lats[side[k]] - coreX), sgn * (lats[side[k - 1]] - coreX) + 34);
+    }
+    const zc = list.reduce((s, u) => s + u.pos.z, 0) / list.length, top = Math.max(...list.map(u => u.pos.y));
+    const order = groups.map((_, i) => i).sort((a, b) => groups[a].some(isLocalView) - groups[b].some(isLocalView) || a - b); // 自分の輸送機を最後（一番後ろ）に
+    order.forEach((gi, rank) => {
+      const gr = groups[gi].sort((a, b) => (isLocalView(b) - isLocalView(a)) || dir * (a.pos.z - b.pos.z)); // 腹の後ろから順に切り離す。自分は一番後ろで最初（前の輸送機と僚機が見える）
+      const mesh = buildDropPlane(team);
+      mesh.rotation.y = dir > 0 ? Math.PI : 0;
+      scene.add(mesh);
+      const lead = groups.length - 1 - rank; // 0 が一番後ろ
+      const plane = { team, dir, mesh, x: lats[gi], y: top + DROP.alt + rank * 2.5, z0: zc - dir * (DROP.speed * (DROP.release + .4) + DROP.speed * 1.1) + dir * lead * 22, n: gr.length };
+      st.planes.push(plane);
+      gr.forEach((u, j) => {
+        const L = u.pos.clone(), covered = ceilingAt(L.x, L.z, L.y) < plane.y; // 屋根の下に出る機体は、吊らずに降りる時刻まで待つ
+        // 前を行く輸送機は同じ所の上を早く通るので、そのぶん早く切り離す（自分の輸送機は一番後ろなので、前の僚機が先に降りるのが見える）
+        u.drop = { plane, j, L, tr: Math.max(.5, DROP.release + j * DROP.gap - lead * 22 / DROP.speed), covered, braking: false };
+        u.invulT = 0; u.vel.set(0, 0, 0); u.onGround = covered; u.dashState = '';
+        st.units.push(u);
+        dropPlace(u, 0);
+      });
+    });
+  }
+  if (!st.units.length) { dropState = null; return false; }
+  document.body.classList.add('dropping');
+  releaseLock();
+  dropHud();
+  return true;
+}
+function dropPlanePos(p, t, out) { return out.set(p.x, p.y, p.z0 + p.dir * DROP.speed * t); }
+const dropTmp = new T.Vector3();
+// 吊られている間・落ちている間の位置。返す値は「降りた」かどうか
+function dropPlace(u, t) {
+  const d = u.drop, p = d.plane;
+  if (d.covered) { u.pos.copy(d.L); return t >= d.tr + 2.2; }
+  const fwd = p.dir, hang = (j, at) => dropPlanePos(p, at, dropTmp).add(new T.Vector3(0, -2.3 - UNIT_H - .2, -fwd * ((p.n - 1) / 2 - j) * DROP.slot));
+  if (t < d.tr) { u.pos.copy(hang(d.j, t)); u.vel.set(0, 0, fwd * DROP.speed); return false; }
+  if (!d.R) { d.R = hang(d.j, d.tr).clone(); const H = Math.max(1, d.R.y - d.L.y), g = DROP.fall, a = DROP.brake; d.hb = H * g / (g + a); d.v = Math.sqrt(2 * g * (H - d.hb)); d.t1 = d.v / g; d.F = d.t1 + d.v / a; }
+  const s = Math.min(t - d.tr, d.F), k = s / d.F, ss = k * k * (3 - 2 * k);
+  // 縦：落ちてから逆噴射で止まる。前へは輸送機の速さが落ちながら残り、ずれは姿勢制御で寄せる（見た目だけの軌道）
+  const y = s < d.t1 ? d.R.y - .5 * DROP.fall * s * s : d.L.y + d.hb - (d.v * (s - d.t1) - .5 * DROP.brake * (s - d.t1) ** 2);
+  const f = DROP.speed * (s - s * s / (2 * d.F)), cx = d.L.x - d.R.x, cz = d.L.z - (d.R.z + fwd * DROP.speed * d.F / 2);
+  const prev = u.pos.clone();
+  u.pos.set(d.R.x + cx * ss, Math.max(d.L.y, y), d.R.z + fwd * f + cz * ss);
+  u.vel.copy(u.pos).sub(prev).multiplyScalar(1 / Math.max(1e-3, dropState.dt || .05));
+  d.braking = s >= d.t1;
+  return s >= d.F;
+}
+function dropLand(u, quiet = false) {
+  const d = u.drop;
+  u.drop = null;
+  u.pos.copy(d.L); u.vel.set(0, 0, 0); u.onGround = true; u.dashState = '';
+  u.invulT = SPAWN_INVUL; u.invulCancelOnAttack = true;
+  if (!quiet && !d.covered) {
+    sfx('land', u.pos, u);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; puff(u.pos.x, u.pos.y + .3, u.pos.z, Math.cos(a) * 7, .6, Math.sin(a) * 7, 1.6, 2.2, .9, 0xb8ad98, .55); }
+  }
+  if (isLocalView(u)) {
+    u.pitch = 0; dropCam.back = 0;
+    document.body.classList.remove('dropping'); document.body.classList.add('hudBoot');
+    setTimeout(() => document.body.classList.remove('hudBoot'), 900);
+    $('dropHud').hidden = true;
+    announce('作戦開始', 'info');
+  }
+}
+// 降下中は true（試合の時間を止める）。シミュレーション側から毎コマ呼ぶ
+function dropActive() { return !!dropState && !dropState.done; }
+function dropTick(dt) {
+  const st = dropState;
+  st.t += dt; st.dt = dt;
+  if (pressed.Space || pressed.Enter || pressed.NumpadEnter || st.tapped) { dropSkip(); return; }
+  for (const u of st.units) {
+    if (!u.drop) continue;
+    if (!u.alive) { u.drop = null; continue; }
+    const was = u.drop.R;
+    if (dropPlace(u, st.t)) { dropLand(u); continue; }
+    if (!was && u.drop.R && isLocalView(u)) sfx('catapult', u.pos, u, .8, .7); // 切り離し
+    if (u.drop.braking && !u.drop.brakeSfx) { u.drop.brakeSfx = true; u.dashState = 'hover'; if (isLocalView(u)) sfx('jump', u.pos, u); }
+    if (u.drop.braking && Math.random() < .5) { const h = u.pos.y - u.drop.L.y; if (h < 9) puff(u.pos.x + (Math.random() - .5) * 3, u.drop.L.y + .3, u.pos.z + (Math.random() - .5) * 3, (Math.random() - .5) * 6, .5, (Math.random() - .5) * 6, 1.4, 2, .6, 0xb8ad98, .4 * (1 - h / 9)); }
+    if (isLocalView(u)) dropCamTick(u, dt);
+  }
+  if (st.units.every(u => !u.drop)) st.done = true;
+  dropHud();
+}
+function dropCamTick(u, dt) {
+  const d = u.drop, t = dropState.t;
+  // 吊られている間は後ろの下から輸送機と僚機を見上げ、落ちるにつれて下を見て、降りる直前にいつもの視点へ戻す
+  let pitch = .08, back = 14;
+  if (d.R && !d.covered) { const k = Math.min(1, (t - d.tr) / d.F); pitch = k < .55 ? .08 - .62 * (k / .55) : -.54 * (1 - (k - .55) / .45); back = 14 * (1 - k) ** 1.5; }
+  u.pitch += (pitch - u.pitch) * Math.min(1, dt * 5);
+  dropCam.back += (back - dropCam.back) * Math.min(1, dt * 5);
+}
+function dropSkip() {
+  const st = dropState;
+  for (const k in pressed) delete pressed[k]; // 飛ばしたキーで跳んだり撃ったりしない
+  keys.Space = keys.Enter = keys.NumpadEnter = false; mouseDown = false;
+  for (const u of st.units) if (u.drop) dropLand(u, true);
+  st.done = true;
+  for (const p of st.planes) scene.remove(p.mesh);
+  st.planes.length = 0;
+}
+// 輸送機の動き（見た目だけ）。降りた後もしばらく飛び去るのを見せ、遠くへ行ったら消す
+function dropVisualTick() {
+  const st = dropState;
+  if (!st) return;
+  for (let i = st.planes.length - 1; i >= 0; i--) {
+    const p = st.planes[i];
+    dropPlanePos(p, st.t, p.mesh.position);
+    if (st.t > DROP.release + 12) { scene.remove(p.mesh); st.planes.splice(i, 1); }
+  }
+  if (st.done && running) st.t += st.dt || 0; // 降りた後も飛び去る
+}
+function dropHud() {
+  const el = $('dropHud'), u = player, d = u?.drop;
+  if (!d) return;
+  const t = dropState.t, left = d.tr - t;
+  let big, sub;
+  if (d.covered) { big = 'STANDBY'; sub = '出撃位置で待機'; }
+  else if (left > 0) { big = 'DROP ' + Math.max(1, Math.ceil(left / .7)); sub = '降下準備　切り離しまで ' + left.toFixed(1) + ' 秒'; }
+  else { big = d.braking ? 'RETRO' : 'DROP'; sub = '対地高度 ' + Math.max(0, Math.round(u.pos.y - d.L.y)) + ' m'; }
+  el.hidden = false;
+  el.innerHTML = `<small>${TEAM[u.team].name}　降下展開</small><b>${big}</b><span>${sub}</span><em>${TOUCH ? '画面をタップ' : 'Space'}：スキップ</em>`;
+}
+function clearDrop() {
+  if (dropState) for (const p of dropState.planes) scene.remove(p.mesh);
+  for (const u of units) u.drop = null;
+  dropState = null; dropCam.back = 0;
+  document.body.classList.remove('dropping', 'hudBoot');
+  $('dropHud').hidden = true;
+}
+addEventListener('pointerdown', () => { if (dropActive() && running && $("overlay").hidden) dropState.tapped = true; });
 // ---- 進行 ----
 let MATCH = 300; // 試合の秒（マップで決まる）
 let timeLeft = MATCH;
@@ -13430,6 +13627,7 @@ addEventListener('keydown', e => {
 addEventListener('blur', () => { if (range) rangePause(); });
 
 function setup() {
+  clearDrop();
   resetCombatFeedback();
   clearBooms();
   clearDeathEnergy();
@@ -13497,7 +13695,7 @@ $('start').addEventListener('click', () => {
   if (ended || !player) setup();
   $('overlay').hidden = true;
   running = true;
-  if (timeLeft >= MATCH - 0.01) { annReset(); announce('作戦開始', 'info'); }
+  if (timeLeft >= MATCH - 0.01 && !dropState) { annReset(); if (!dropBegin()) announce('作戦開始', 'info'); } // 降下演出のときは、降りたときに出す
   grabPointer();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -13577,10 +13775,13 @@ function gameFrame(now) {
   if (menuIdle()) { if (menuDrawn) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } menuDrawn = true; }
   else menuDrawn = false;
   if (running && isSimulationAuthority()) {
-    if (!tutorial && !range) timeLeft -= dt;
+    const dropping = dropActive();
+    if (dropping) dropTick(dt); // 降下演出（全機が降りるまで時間を止める）
+    if (!tutorial && !range && !dropping) timeLeft -= dt;
     playT += dt;
     liftUpdate(dt);
     for (const u of units) {
+      if (u.drop) continue; // 降下中の機体は dropTick が動かす
       if (tutorial && u === tutorial.target || range && !isLocalView(u)) continue; // 静止標的（射撃場の動く標的は rangeTick が動かす）。対戦BotのAI・物理は変えない。
       if (!u.alive) {
         if (u.downT > 0) { downTick(u, dt); continue; }
@@ -13660,6 +13861,7 @@ function gameFrame(now) {
       u.beam.material.opacity = 0.6 + 0.3 * Math.sin(now / 50);
     }
   }
+  dropVisualTick();
   fxUpdate(dt);
   reconPulseUpdate(running ? dt : 0);
   puffUpdate(dt);
