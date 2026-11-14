@@ -158,7 +158,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver200</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver201</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -12046,8 +12046,8 @@ function menuMechTick() {
     if (!menuRigDirty) return;
     menuRigDirty = false;
     r.m.g.rotation.y = r.yaw; r.m.g.updateMatrixWorld(true);
-    const MENU_MECH_SCALE = 1.6;
-    // 機体の大きさ：前の作り（舞台の高さ86%・幅70%−230pxの絵に、高さの8割ほどで収める）の1.6倍（オーナー 2026-11-14「機体を倍に」→「ちょいデカい」で1.6倍）。
+    const MENU_MECH_SCALE = 1.3;
+    // 機体の大きさ：前の作り（舞台の高さ86%・幅70%−230pxの絵に、高さの8割ほどで収める）の1.3倍（オーナー 2026-11-14「機体を倍に」→「ちょいデカい」で1.6倍→「まだでかい」で1.3倍）。
     // 舞台いっぱいの絵の真ん中に置き、はみ出すときは高さの9割までに抑える
     const st = $('menuMech').parentElement, sw = st.clientWidth, sh = st.clientHeight, tn = Math.tan(r.cam.fov * Math.PI / 360);
     const oh = sh * .86, od = r.height * .54 / tn / Math.min(1, Math.max(.1, (sw * .7 - 230) / oh)) + 3, px = Math.min(h * .9, MENU_MECH_SCALE * r.height / (2 * od * tn) * oh);
