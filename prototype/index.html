@@ -151,20 +151,21 @@
   <div id="hudPreviewControls"></div>
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
+<div id="sortieFx" hidden aria-live="polite"><div class="sfxScan"></div><span class="mxM">SORTIE ／ 出撃準備</span><b id="sfxMap"></b><span class="mxM" id="sfxCls"></span><div class="sfxBar"><i></i></div></div>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver201</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver202</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
            左に目次、真ん中に大きな兵装名と機体と注釈、右に「1 マップ → 2 兵装 → 3 出撃」。試合の結果は真ん中に出す -->
-      <!-- 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを画面いっぱいに出し、
-           下へスクロールするとトップと同じメニュー（機体と出撃の準備）が出る -->
+      <!-- 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを1画面に収めて出し、
+           「メニューに戻る」（オンラインは「ルームに戻る」）でトップと同じメニューへ（2026-11-14 オーナー） -->
       <div class="mxResult" id="mxResult">
         <div class="mxResTop"><span class="mxM" id="mxResMap"></span></div>
         <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
         <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
         <div id="ovBoard"></div>
-        <button type="button" class="mxResNext" id="mxResNext"><span class="mxM">NEXT ／ 下へスクロール</span><b>メニューへ</b><span class="ar" aria-hidden="true">↓</span></button>
+        <button type="button" class="mxResNext" id="mxResNext"><span class="mxM">BACK ／ 戻る</span><b id="mxResLabel">メニューに戻る</b><span class="ar" aria-hidden="true">→</span></button>
       </div>
       <div class="mx">
         <header class="mxHead">
@@ -190,8 +191,7 @@
             <div class="mxSub"><span class="mxChip" id="mxChip"></span><span class="mxM" id="mxLoadout"></span></div>
             <div class="ctabs mxBuilds" id="ovBuild" role="group" aria-label="保存した構成"></div>
             <div class="mxVert" id="mxVert" aria-hidden="true"></div>
-            <canvas id="menuMech" aria-label="選んでいる兵装の機体。ドラッグで回せます"></canvas>
-            <div class="mxCalls" id="mxCalls" aria-hidden="true"></div>
+            <div class="mxLoad" id="mxLoad" aria-label="選んでいる兵装の装備"></div>
             <div class="mxStats" id="mxStats"></div>
           </div>
         </main>
@@ -3751,7 +3751,17 @@ function buildMapNow(id) {
   sun.shadow.camera.updateProjectionMatrix();
   miniBg = bigBg = null;
   MATCH = timeLeft = def.time; // 出撃前の画面の時計もこのマップの長さに
+  mapBuiltId = mapId;
 }
+// 戦場（地形・施設）は出撃を押したときに組み立てる。起動時に組み立てると1秒ほど待たせていた（2026-11-14 オーナー「起動長すぎる」→「出撃時に、演出を挟んでごまかす」）。
+// 起動時とマップ選択では、名前・大きさ・時間などの情報だけを入れておく
+let mapBuiltId = null;
+function setMapMeta(id) {
+  const def = MAPS[id] || MAPS[FIRST_MAP];
+  curMap = def; mapId = MAPS[id] ? id : FIRST_MAP;
+  MATCH = timeLeft = def.time;
+}
+function ensureMap() { if (mapBuiltId !== mapId) { buildMap(mapId); renderPlantBar(); } }
 
 // ---- 武器のモデル：weapons.js の weaponModels()（MODEL_OF・buildWeaponGeo など。2026-11-04 リファクタで分けた）----
 const { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat } = weaponModels();
@@ -11645,7 +11655,7 @@ $('overlay').addEventListener('click', e => {
     const g = b.dataset.mapGroup;
     if (mapGroupsOpen.has(g)) mapGroupsOpen.delete(g); else mapGroupsOpen.add(g);
     renderMapList(); $('mapList').querySelector(`[data-map-group="${g}"]`)?.focus();
-  } else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
+  } else if (b.dataset.map) { selectMap(b.dataset.map, true, true); showPage('pgMenu'); }
 });
 addEventListener('keydown', e => {
   if (hudPreview && (e.code === 'F3' || e.code === 'Escape')) { e.preventDefault(); if (!e.repeat) closeHudPreview(); return; }
@@ -11985,15 +11995,17 @@ function mechPreview(dt) {
   } catch (_) {}
 }
 // ---- メニューの機体と注釈（2026-11-12 メニューの作り直し） ----
-// 選んでいる兵装の機体を真ん中に描き、頭・胴・腕・主武器・脚へ引き出し線で名前と重さを添える。
-// 軽く動かすため、描くのは中身（兵装・構成・パーツ）か画面の大きさが変わったときと、ドラッグで回したときだけ
+// メニューの真ん中：選んでいる兵装の装備表（左に武装 01〜04 と武器の平らな絵、右に機体 05〜08）。
+// 2026-11-14 オーナー「機体をメニュー画面に出したらあかん」「A（仕様書）で」「平面で Weapons Loadout Display、現行デザイン合わせで2D」。
+// 3D の描画は使わない。作り直すのは中身（兵装・構成・パーツ）が変わったときだけ
 const CLASS_EN = { assault: 'ASSAULT', heavy: 'HEAVY', raid: 'RAID', support: 'SUPPORT' };
-let menuRig = null, menuRigKey = '', menuRigDirty = true;
+let menuRigKey = '', menuRigDirty = true;
 function menuResultMode() {
   // 試合の結果・通信の知らせ（ovTitle と ovText が初めの文と違う、または表がある）は真ん中に出す
   const t = $('ovTitle').textContent, x = $('ovText').textContent;
   const on = !!$('ovBoard').children.length || t !== 'コアブレイカー 試作' || !x.startsWith('ボーダーブレイクの遊びを再現する');
   $('pgMenu').classList.toggle('hasResult', on);
+  $('pgMenu').classList.remove('resSeen'); // 新しい結果・知らせは、戻った後でももう一度出す
   if (on && curMap) { const n = battleTeamSize(); $('mxResMap').textContent = `RESULT ／ ${curMap.name} ／ ${n}対${n}`; }
   menuRigDirty = true;
 }
@@ -12008,117 +12020,58 @@ function menuKeyText() {
   $('mxStats').innerHTML = `<div><span class="mxM">ARMOR 耐久</span><b>${c.hp || 10000}</b></div><div${over}><span class="mxM">WEIGHT 重量</span><b>${st.weight}<small>/${st.cap}</small></b></div><div><span class="mxM">DASH ダッシュ</span><b>${(st.P.legs.dash * (1 - st.slow)).toFixed(1)}<small>km/h</small></b></div>`;
 }
 function menuMechTick() {
-  const cv = $('menuMech');
-  if ($('overlay').hidden || $('pgMenu').hidden || !cv.offsetWidth) return; // 結果の下のメニューにも機体を出す
-  try {
-    const w = cv.clientWidth, h = cv.clientHeight, pr = Math.min(2, devicePixelRatio || 1);
-    if (!menuRig) {
-      const ren = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
-      const sc = new T.Scene(), cam = new T.PerspectiveCamera(26, 1, 0.1, 80);
-      sc.add(new T.HemisphereLight(0xe8f8ff, 0x344555, 1.3));
-      const light = new T.DirectionalLight(0xffffff, 1.1); light.position.set(-3, 6, -5); sc.add(light);
-      const floor = new T.Mesh(new T.CircleGeometry(2.1, 48), new T.MeshBasicMaterial({ color: 0x3ea6ff, transparent: true, opacity: 0.16 }));
-      floor.rotation.x = -Math.PI / 2; sc.add(floor);
-      const r = menuRig = { ren, sc, cam, m: null, yaw: -0.5, drag: null, w: 0, h: 0 };
-      cv.addEventListener('pointerdown', e => { r.drag = e.clientX; cv.setPointerCapture(e.pointerId); });
-      cv.addEventListener('pointermove', e => { if (r.drag === null) return; r.yaw += (e.clientX - r.drag) * 0.012; r.drag = e.clientX; menuRigDirty = true; });
-      for (const ev of ['pointerup', 'pointercancel']) cv.addEventListener(ev, () => { r.drag = null; });
-    }
-    const r = menuRig, ld = loadout[chosenCls], key = JSON.stringify([mechCfg, ld, chosenCls, builds.cur, meleeOnly() && arenaMeleeKey]);
-    if (key !== menuRigKey) {
-      menuRigKey = key; menuRigDirty = true; menuKeyText();
-      if (r.m) { r.sc.remove(r.m.g); disposeMech(r.m.g); }
-      r.m = buildMech(ALLY_COLORS.color, mechCfg);
-      weaponLook({ ...r.m, slots: Object.fromEntries(SLOTS.map(k => [k, slotOf(ld[k])])), weapon: 'main', isPlayer: false, recoil: 0, cannonDeploy: 0, swing: null }, 0);
-      r.sc.add(r.m.g); r.m.g.rotation.y = 0; r.m.g.updateMatrixWorld(true);
-      const b = new T.Box3();
-      r.m.g.traverse(m => { if (m.isMesh && m.visible) { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } });
-      r.center = b.getCenter(new T.Vector3()); r.height = b.getSize(new T.Vector3()).y;
-    }
-    if (w !== r.w || h !== r.h) { r.w = w; r.h = h; r.ren.setPixelRatio(pr); r.ren.setSize(w, h, false); r.cam.aspect = w / h; r.cam.updateProjectionMatrix(); menuRigDirty = true; }
-    if (!menuRigDirty) return;
-    menuRigDirty = false;
-    r.m.g.rotation.y = r.yaw; r.m.g.updateMatrixWorld(true);
-    const MENU_MECH_SCALE = 1.3;
-    // 機体の大きさ：前の作り（舞台の高さ86%・幅70%−230pxの絵に、高さの8割ほどで収める）の1.3倍（オーナー 2026-11-14「機体を倍に」→「ちょいデカい」で1.6倍→「まだでかい」で1.3倍）。
-    // 舞台いっぱいの絵の真ん中に置き、はみ出すときは高さの9割までに抑える
-    const st = $('menuMech').parentElement, sw = st.clientWidth, sh = st.clientHeight, tn = Math.tan(r.cam.fov * Math.PI / 360);
-    const oh = sh * .86, od = r.height * .54 / tn / Math.min(1, Math.max(.1, (sw * .7 - 230) / oh)) + 3, px = Math.min(h * .9, MENU_MECH_SCALE * r.height / (2 * od * tn) * oh);
-    const dist = r.height * h / (2 * tn * px);
-    // 足が下の数値（耐久・重量・ダッシュ）にかからない高さへ。収まらなければ上を兵装名に重ねる（機体が手前）
-    const sb = ($('mxStats').offsetHeight || 0) + 26, down = Math.max(-(h - px) / 2, Math.min(h * .08, h - sb - (h + px) / 2));
-    r.cam.setViewOffset(w, h, 0, -down, w, h);
-    r.cam.position.set(r.center.x, r.center.y + 1.2, r.center.z - dist); r.cam.lookAt(r.center.x, r.center.y - 0.15, r.center.z);
-    r.cam.updateMatrixWorld();
-    // 武器まで入れた左右の幅の真ん中を舞台の真ん中へ（重火力のガトリングなどで左へ寄りすぎないように）
-    const [x0, x1] = menuScreenX(r, menuBoxes(r), w), dx = Math.max(-w * .15, Math.min(w * .15, w / 2 - (x0 + x1) / 2));
-    r.cam.setViewOffset(w, h, -dx, -down, w, h);
-    r.cam.updateMatrixWorld();
-    r.ren.render(r.sc, r.cam);
-    menuCallouts(r, w, h);
-  } catch (e) { console.warn('メニューの機体', e); }
+  if ($('overlay').hidden || $('pgMenu').hidden) return;
+  resNextLabel();
+  const ld = loadout[chosenCls], key = JSON.stringify([mechCfg, ld, chosenCls, builds.cur, meleeOnly() && arenaMeleeKey]);
+  if (key === menuRigKey && !menuRigDirty) return;
+  menuRigKey = key; menuRigDirty = false;
+  try { menuKeyText(); menuLoadout(); } catch (e) { console.warn('メニューの装備表', e); }
 }
-// 注釈：右に機体のパーツ（頭・胴・腕・脚）、左に武器の4つ（主・副・補助・特別）。オーナー 2026-11-14「右側に機体パーツ、左側に武器4種」。
-// 部位の箱の、画面でその側にある端の近くを画面に写し、横へ引き出し線を伸ばす。形の無い武器（手榴弾など）は胴・腕・脚の左の端を指す
-function menuBoxes(r) {
-  const box = {};
-  // 部位（頭・胴・腕・脚）と、見えている武器の形（w_main・w_aux・w_sp）の箱
-  const add = (k, m) => { if (!m.geometry) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); (box[k] ||= new T.Box3()).union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); };
-  const visibleUp = m => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
-  r.m.g.traverse(m => {
-    if (!m.isMesh || !visibleUp(m)) return;
-    if (m.userData.armorSlot && m.userData.own && !m.userData.weaponModel) add(m.userData.armorSlot, m);
-  });
-  const wm = { main: [r.m.gun, r.m.gun2], aux: [r.m.blade, r.m.blade2], sp: [r.m.pack, r.m.mount] };
-  for (const [k, list] of Object.entries(wm)) for (const o of list) if (o && visibleUp(o)) o.traverse(m => { if (m.isMesh && visibleUp(m)) add('w_' + k, m); });
-  return box;
+const MENU_SLOT = { main: ['MAIN', '主武器'], sub: ['SUB', '副武器'], aux: ['AUX', '補助装備'], sp: ['SP', '特別装備'] };
+const MENU_PART = [['head', 'HEAD', '頭部'], ['body', 'BODY', '胴部'], ['arms', 'ARMS', '腕部'], ['legs', 'LEGS', '脚部']];
+function menuLoadout() {
+  const melee = meleeOnly(), ld = loadout[chosenCls], P = mechStats(mechCfg, melee ? { aux: arenaMeleeKey } : ld).P;
+  const ws = melee ? [['aux', arenaMeleeKey]] : SLOTS.map(s => [s, ld[s]]);
+  const wkg = ws.reduce((a, [, k]) => a + (WEAPON_KG[k] || 0), 0), pkg = MENU_PART.reduce((a, [p]) => a + P[p].weight, 0);
+  $('mxLoad').innerHTML = `<div class="mxLdW"><h4><span>ARMAMENT 武装</span><span>${wkg}KG</span></h4>`
+    + ws.map(([s, k], i) => `<div class="r w${i === 0 ? ' hot' : ''}"><i>0${i + 1}</i><span><span class="mxM">${MENU_SLOT[s][0]} ${MENU_SLOT[s][1]}</span><b>${WEAPONS[k].name}</b></span><canvas data-w="${k}" aria-hidden="true"></canvas><em>${WEAPON_KG[k] || 0}KG</em></div>`).join('')
+    + `</div><div class="mxLdF"><h4><span>FRAME 機体</span><span>${pkg}KG</span></h4>`
+    + MENU_PART.map(([p, en, ja], i) => `<div class="r"><i>0${i + 5}</i><span><span class="mxM">${en} ${ja}</span><b>${P[p].model || P[p].name}</b></span><em>${P[p].weight}KG</em></div>`).join('') + '</div>';
+  for (const cv of $('mxLoad').querySelectorAll('canvas[data-w]')) weaponFlat(cv, cv.dataset.w);
 }
-function menuScreenX(r, box, w) {
-  let x0 = 1e9, x1 = -1e9; const v = new T.Vector3();
-  for (const b of Object.values(box)) for (let i = 0; i < 8; i++) {
-    v.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).project(r.cam);
-    const x = (v.x + 1) / 2 * w; x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+// 武器の形（weaponGeo の三角形）を真横から平らに描く。WebGL は使わず 2D の canvas に、奥から順に面を塗るだけ。
+// 色はメニューに合わせて白〜灰の濃淡、型ごとの差し色（palette）は蛍光オレンジ。銃口が右
+const weaponFlatCache = new Map();
+function weaponFlat(cv, key) {
+  const pr = Math.min(2, devicePixelRatio || 1), W = Math.max(1, Math.round(cv.clientWidth * pr)), H = Math.max(1, Math.round(cv.clientHeight * pr));
+  cv.width = W; cv.height = H;
+  const ck = `${key}|${W}x${H}`;
+  let img = weaponFlatCache.get(ck);
+  if (!img) {
+    img = document.createElement('canvas'); img.width = W; img.height = H;
+    const g = img.getContext('2d'), geo = weaponGeo(key), pos = geo.attributes.position.array, col = geo.attributes.color?.array, nor = geo.attributes.normal.array;
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    const bb = geo.boundingBox, sw = bb.max.z - bb.min.z || 1, sh = bb.max.y - bb.min.y || 1, sc = Math.min((W - 4) / sw, (H - 4) / sh);
+    const ox = (W - sw * sc) / 2, oy = (H - sh * sc) / 2;
+    const accents = palette.map(c => new T.Color(c)), tris = [];
+    for (let i = 0; i < pos.length; i += 9) {
+      const nx = (nor[i] + nor[i + 3] + nor[i + 6]) / 3, ny = (nor[i + 1] + nor[i + 4] + nor[i + 7]) / 3, nz = (nor[i + 2] + nor[i + 5] + nor[i + 8]) / 3;
+      if (nx < -0.05) continue; // 向こう向きの面は描かない（手前は +x の側）
+      const r = col ? col[i] : .7, gg = col ? col[i + 1] : .7, b = col ? col[i + 2] : .7;
+      const acc = accents.some(c => Math.abs(c.r - r) + Math.abs(c.g - gg) + Math.abs(c.b - b) < .02);
+      const lum = .3 * r + .59 * gg + .11 * b, lit = .55 + .3 * Math.max(0, ny) + .15 * Math.max(0, nx) - .1 * Math.max(0, -nz);
+      const v = Math.round(Math.min(1, (.5 + .6 * lum) * lit) * 255);
+      tris.push([(pos[i] + pos[i + 3] + pos[i + 6]) / 3, acc ? '#ff5b1f' : `rgb(${v - 8},${v - 3},${v})`, i]);
+    }
+    tris.sort((a, b) => a[0] - b[0]);
+    const X = z => ox + (bb.max.z - z) * sc, Y = y => oy + (bb.max.y - y) * sc;
+    for (const [, c, i] of tris) {
+      g.fillStyle = g.strokeStyle = c; g.lineWidth = .6; g.beginPath();
+      g.moveTo(X(pos[i + 2]), Y(pos[i + 1])); g.lineTo(X(pos[i + 5]), Y(pos[i + 4])); g.lineTo(X(pos[i + 8]), Y(pos[i + 7])); g.closePath(); g.fill(); g.stroke();
+    }
+    weaponFlatCache.set(ck, img);
   }
-  return [x0, x1];
-}
-function menuCallouts(r, w, h) {
-  const box = menuBoxes(r), v = new T.Vector3(), ld = loadout[chosenCls], melee = meleeOnly();
-  const scr = p => { v.copy(p).project(r.cam); return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h }; };
-  // side 1 = 画面の右寄りの端、-1 = 左寄りの端。fy は高さ（0 = 下、1 = 上）
-  const edge = (b, side, fy = .5) => {
-    const c = b.getCenter(new T.Vector3()), y = b.min.y + (b.max.y - b.min.y) * fy;
-    const a = scr(new T.Vector3(b.min.x * .8 + c.x * .2, y, c.z)), d = scr(new T.Vector3(b.max.x * .8 + c.x * .2, y, c.z));
-    return (a.x > d.x) === (side > 0) ? a : d;
-  };
-  const center = b => scr(b.getCenter(new T.Vector3()));
-  const P = mechStats(mechCfg, melee ? { aux: arenaMeleeKey } : ld).P;
-  const parts = [['head', 'HEAD 頭部', P.head], ['body', 'BODY 胴部', P.body], ['arms', 'ARMS 腕部', P.arms], ['legs', 'LEGS 脚部', P.legs]]
-    .filter(([k]) => box[k]).map(([k, label, x]) => ({ label, name: x.model || x.name, kg: x.weight, ...(k === 'head' || k === 'body' ? center(box[k]) : edge(box[k], 1)) }));
-  const fallback = { main: ['arms', .5], sub: ['body', .3], aux: ['arms', .7], sp: ['body', .85] };
-  const wKeys = melee ? [['aux', arenaMeleeKey]] : SLOTS.map(s => [s, ld[s]]);
-  const SLOT_LABEL = { main: 'MAIN 主武器', sub: 'SUB 副武器', aux: 'AUX 補助装備', sp: 'SP 特別装備' };
-  const weapons = wKeys.map(([s, key]) => {
-    const b = box['w_' + s], [fk, fy] = fallback[s], fb = box[fk] || box.body;
-    const at = b ? edge(b, -1) : fb ? edge(fb, -1, fy) : null;
-    return at && { label: SLOT_LABEL[s], name: WEAPONS[key].name, kg: WEAPON_KG[key] || 0, ...at };
-  }).filter(Boolean);
-  const gap = Math.max(30, Math.min(44, h / 12));
-  // 左の列は、上の構成のボタンより下、下の数値（耐久・重量・ダッシュ）より上に並べる
-  const bl = $('ovBuild'), sb = $('mxStats');
-  const lay = (rows, lx, dir, top = 14, bottom = h - 20) => {
-    rows.sort((a, b) => a.y - b.y);
-    let y = -1e9;
-    for (const o of rows) { o.ly = Math.max(o.y, y + gap, top); y = o.ly; }
-    const over = y - bottom; if (over > 0) for (const o of rows) o.ly = Math.max(top, o.ly - over);
-    return rows.map(o => {
-      const dx = lx - o.x, dy = o.ly - o.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
-      return `<i class="ln" style="left:${o.x.toFixed(1)}px;top:${o.y.toFixed(1)}px;width:${len.toFixed(1)}px;transform:rotate(${ang.toFixed(2)}deg)"></i>`
-        + `<span class="lb${dir < 0 ? ' l' : ''}" style="${dir < 0 ? 'right' : 'left'}:${(dir < 0 ? w - lx + 6 : lx + 6).toFixed(1)}px;top:${o.ly.toFixed(1)}px">${o.label}<b>${o.name} ${o.kg}KG</b></span>`;
-    }).join('');
-  };
-  // 文字の列は機体（武器も含めた全体）の左右の端の少し外。舞台からはみ出さないよう、端から文字の幅ほどは空ける
-  const [x0, x1] = menuScreenX(r, box, w), lw = Math.min(170, w * .22), rx = Math.min(w - lw, x1 + 24), lx = Math.max(lw, x0 - 24);
-  $('mxCalls').innerHTML = lay(parts, rx, 1) + lay(weapons, lx, -1, bl.offsetTop + bl.offsetHeight + 18, h - sb.offsetHeight - 40);
+  cv.getContext('2d').drawImage(img, 0, 0);
 }
 addEventListener('resize', () => { menuRigDirty = true; });
 const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
@@ -12191,12 +12144,33 @@ function renderMapList() {
       + (open ? `<div class="mapVariants">${ids.map(k => mapCardHtml(k, MAPS[k], MAPS[k].variant)).join('')}</div>` : '') + '</div>');
   }
   $('mapList').innerHTML = rows.join('');
-  for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map || b.dataset.preview]);
+  // 見取り図は、マップ選択を開いているときだけ描く。起動時に全マップの見取り図を描くと1秒ほどかかっていた（2026-11-14 オーナー「ロード時間長すぎる」）。
+  // マップ選択を開くと renderMapList がもう一度呼ばれて描く
+  if (!$('pgMap').hidden) for (const b of $('mapList').querySelectorAll('.mapCard')) mapPreviewCached(b.querySelector('canvas'), b.dataset.map || b.dataset.preview);
   $('mapNow').innerHTML = `<b>${curMap.name}</b><small>${mapInfo(curMap)}</small>`;
   $('arenaWeaponControl').hidden = !meleeOnly();
   $('arenaWeapon').innerHTML = MELEE_WEAPONS.map(key => `<option value="${key}"${key === arenaMeleeKey ? ' selected' : ''}>${WEAPONS[key].name}</option>`).join('');
   renderClsButtons();
 }
+// 見取り図は、マップと両軍の色が同じなら前に描いた絵を写すだけ（人数を変えるたびに描き直していた）
+const mapPreviewCache = new Map();
+function mapPreviewImage(id, w, h) {
+  const key = `${id}|${sideColors('B').css}|${sideColors('R').css}|${w}x${h}`;
+  let img = mapPreviewCache.get(key);
+  if (!img) { img = document.createElement('canvas'); img.width = w; img.height = h; drawMapPreview(img, MAPS[id]); mapPreviewCache.set(key, img); }
+  return img;
+}
+function mapPreviewCached(cv, id) { cv.getContext('2d').drawImage(mapPreviewImage(id, cv.width, cv.height), 0, 0); }
+// 起動の後、メニューを見ている間の空き時間に、見取り図を1枚ずつ先に描いておく（マップ選択を初めて開いたときに待たせない）。戦闘中は描かない
+function warmMapPreviews() {
+  const next = () => (window.requestIdleCallback || (f => setTimeout(f, 200)))(warmMapPreviews, { timeout: 2000 });
+  if (running || $('overlay').hidden) { setTimeout(warmMapPreviews, 3000); return; }
+  const id = Object.keys(MAPS).find(k => !MAPS[k].testOnly && mobileOk(MAPS[k]) && !mapPreviewCache.has(`${k}|${sideColors('B').css}|${sideColors('R').css}|90x${Math.round(90 * MAPS[k].size[1] / MAPS[k].size[0])}`));
+  if (!id) return;
+  try { mapPreviewImage(id, 90, Math.round(90 * MAPS[id].size[1] / MAPS[id].size[0])); } catch (e) { console.warn('見取り図', id, e); return; }
+  next();
+}
+setTimeout(warmMapPreviews, 1500);
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
 $('teamSize').addEventListener('change',e=>{
   const n=Math.round(Number(e.target.value));
@@ -12209,10 +12183,21 @@ $('battleSizeControl').addEventListener('click',e=>{
   else if(e.target.closest('.mxFree')&&e.target.tagName!=='INPUT')$('teamSize').focus();
 });
 $('menuSortie').addEventListener('click',()=>$('start').focus());
-$('mxResNext').addEventListener('click',()=>document.querySelector('#pgMenu .mx').scrollIntoView({behavior:'smooth'}));
+function resNextLabel() {
+  const room = !!$('onlineReturn') && !$('onlineReturn').hidden, lab = !room ? 'メニューに戻る' : window.CBOnlineGame?.state?.phase === 'lobby' ? 'ルームに戻る' : 'オンラインに戻る'; // 部屋から外れた後（中断など）は「オンラインに戻る」
+  if ($('mxResLabel').textContent !== lab) $('mxResLabel').textContent = lab;
+}
+// オンラインの戻るボタン（online/ui.js が結果の中に足す）の表示と文言が変わったら合わせる
+new MutationObserver(resNextLabel).observe($('mxResult'), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden'] });
+// 結果の「メニューに戻る」は結果を閉じてトップのメニューへ。オンラインの試合の後は「ルームに戻る」で、部屋の画面（#onlineReturn と同じ）を開く
+$('mxResNext').addEventListener('click', () => {
+  const room = $('onlineReturn');
+  if (room && !room.hidden) { room.click(); return; }
+  $('pgMenu').classList.add('resSeen'); $('overlay').scrollTop = 0; $('start').focus({ preventScroll: true });
+});
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
-function selectMap(id, persist = true) {
+function selectMap(id, persist = true, lazy = false) {
   if (id !== mapId) {
     resetBlastShake();
     stopMovementSounds();
@@ -12225,8 +12210,7 @@ function selectMap(id, persist = true) {
     shells.length = 0;
     clearGadgets();
     releaseLock();
-    buildMap(id);
-    renderPlantBar();
+    if (lazy) setMapMeta(id); else { buildMap(id); renderPlantBar(); } // メニューのマップ選択（lazy）は出撃のときに組み立てる
     if (persist) try { localStorage.setItem(MAP_KEY, id); } catch (_) {}
     // 前の試合の結果は消す
     $('ovTitle').innerHTML = 'コア<span>ブレイカー</span> 試作';
@@ -12234,6 +12218,7 @@ function selectMap(id, persist = true) {
     $('ovBoard').innerHTML = '';
     $('start').textContent = '出撃する';
   }
+  if (!lazy) ensureMap();
   renderMapList();
 }
 function respawnPanel(p) {
@@ -13430,6 +13415,7 @@ addEventListener('keydown', e => {
 addEventListener('blur', () => { if (range) rangePause(); });
 
 function setup() {
+  ensureMap(); // メニューでマップを選んだだけなら、まだ組み立てていない
   resetCombatFeedback();
   clearBooms();
   clearDeathEnergy();
@@ -13493,11 +13479,30 @@ function finish() {
   $('overlay').hidden = false;
   $('overlay').scrollTop = 0; // 出撃ボタンまで下げたままだと勝敗と表彰が隠れる
 }
-$('start').addEventListener('click', () => {
+function startSortie() {
+  ensureMap();
   if (ended || !player) setup();
   $('overlay').hidden = true;
   running = true;
   if (timeLeft >= MATCH - 0.01) { annReset(); announce('作戦開始', 'info'); }
+}
+$('start').addEventListener('click', e => {
+  // 戦場がまだ無いときは、先に出撃の演出（#sortieFx）を出し、描かれてから組み立てる。組み立ての間も演出の線は動く（CSS の transform）。
+  // 試験などのスクリプトからの click（isTrusted でない）は、今までどおりその場で組み立てる
+  const fx = $('sortieFx');
+  if (mapBuiltId !== mapId && e.isTrusted && !fx.classList.contains('on')) {
+    $('sfxMap').textContent = curMap.name; $('sfxCls').textContent = `${CLASSES[chosenCls].name} ／ ${CLASS_EN[chosenCls] || ''}`;
+    fx.hidden = false; fx.classList.remove('out'); void fx.offsetWidth; fx.classList.add('on');
+    grabPointer();
+    let done = false;
+    const go = () => {
+      if (done) return; done = true;
+      try { startSortie(); } finally { fx.classList.add('out'); setTimeout(() => { fx.classList.remove('on', 'out'); fx.hidden = true; }, 450); }
+    };
+    requestAnimationFrame(() => setTimeout(go, 30)); setTimeout(go, 400);
+    return;
+  }
+  startSortie();
   grabPointer();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -13574,6 +13579,7 @@ function gameFrame(now) {
   // メニューを開いている間（一人用で試合が止まっているとき）は、裏の戦闘画面を描かない（2026-11-11 メニューの再設計：軽く動かす）。
   // 画面には最後に描いたコマが残る。機体カスタマイズの小さなプレビューだけは動かす
   // 開いた直後とマップを作り直した後は1コマだけ描く（menuDrawn）
+  if (mapBuiltId === null) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } // 戦場をまだ組み立てていない（起動直後のメニュー）
   if (menuIdle()) { if (menuDrawn) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } menuDrawn = true; }
   else menuDrawn = false;
   if (running && isSimulationAuthority()) {
@@ -13687,7 +13693,7 @@ if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('start').disabled = true;
   throw new Error('マップがありません');
 }
-{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; buildMap(saved); renderPlantBar(); renderMapList(); }
+{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; setMapMeta(saved); renderMapList(); }
 requestAnimationFrame(loop);
 </script>
 

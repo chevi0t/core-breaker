@@ -14,10 +14,14 @@ const {openMap} = require('../mapgen_browser');
         await page.check(`input[name="team"][value="${team}"]`);
         assert(!/青基地|橙基地/.test(await page.locator('#mapList').innerText()), 'マップ説明が固定の色で場所を指している');
         const preview = await page.evaluate(team => {
+          // 見取り図はマップ選択を開いたときに描く（2026-11-14、起動を速くするため）
+          document.querySelector('[data-page="pgMap"]').click();
           const g = __g, cv = document.querySelector('[data-preview="tidal"] canvas, [data-map="tidal"] canvas');
           const pixel = k => Array.from(cv.getContext('2d').getImageData(Math.floor(cv.width / 2), Math.floor(((k === 'B' ? 1 : -1) * g.curMap.baseZ + g.curMap.size[1]) / (g.curMap.size[1] * 2) * cv.height), 1, 1).data).slice(0,3);
           window.__staticFixture = {core:g.cores.B.group,obstacles:JSON.stringify(g.obstacles),nav:JSON.stringify(g.curMap.nav)};
-          return {own:pixel(team),enemy:pixel(team === 'B' ? 'R' : 'B')};
+          const res = {own:pixel(team),enemy:pixel(team === 'B' ? 'R' : 'B')};
+          g.showPage('pgMenu');
+          return res;
         }, team);
         assert.deepEqual(preview, {own:[62,166,255],enemy:[255,138,42]}, '出撃先の見取り図の色が逆');
         await page.evaluate(() => document.getElementById('start').click());

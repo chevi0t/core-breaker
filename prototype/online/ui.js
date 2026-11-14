@@ -229,7 +229,7 @@
   // 確認のEscapeは確認だけを閉じる。背後のロビー・下書き・ゲーム入力へ伝えない。
   for(const type of ['keydown','keyup'])leaveDialog.addEventListener(type,e=>e.stopPropagation());
   // 通常のマップ変更・射撃場・チュートリアルへ対戦中のまま入らない。
-  document.addEventListener('click', e => { if (CBOnlineGame.active() && e.target.closest?.('#overlay') && !e.target.closest?.('#onlineReturn,#onlineLogResult,#menuOnlineLog')) {
+  document.addEventListener('click', e => { if (CBOnlineGame.active() && e.target.closest?.('#overlay') && !e.target.closest?.('#onlineReturn,#mxResNext,#onlineLogResult,#menuOnlineLog')) {
     // 表彰/スコアを触っただけで窓を開かない。結果から戻る操作は専用ボタンだけ。
     if (!e.target.closest?.('button,a,input,select')) return;
     e.stopImmediatePropagation(); e.preventDefault();
