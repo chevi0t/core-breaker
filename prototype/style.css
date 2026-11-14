@@ -1267,37 +1267,36 @@ body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(-
 .mxStats .over b { color: var(--mx-fl); }
 /* 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを画面いっぱいに出し、下へスクロールするとトップと同じメニュー */
 .mxResult { display: none; }
-#pgMenu.hasResult { height: auto; }
-body:not(.menuClassic) #overlay:has(#pgMenu.hasResult:not([hidden])) { overflow-y: auto; scroll-snap-type: y proximity; }
-body:not(.menuClassic) #overlay > .card.menuWide:has(#pgMenu.hasResult:not([hidden])) { height: auto; }
-body:not(.menuClassic) #pgMenu.hasResult .mxResult { display: flex; flex-direction: column; box-sizing: border-box; min-height: 100vh; min-height: 100dvh; padding: 22px 32px 28px; color: var(--mx-ink); scroll-snap-align: start; }
-body:not(.menuClassic) #pgMenu.hasResult .mx { height: 100vh; height: 100dvh; scroll-snap-align: start; border-top: 1px solid var(--mx-faint); }
-.mxResTop { padding: 0 110px 14px 0; border-bottom: 1px solid var(--mx-faint); min-height: 15px; }
-#pgMenu .mxResult h1 { font: 400 clamp(56px, 14vh, 128px) / 1 var(--impact); margin: 18px 0 6px; letter-spacing: 0; }
+/* 試合の結果は1画面（#ovCard の高さ。カードは zoom で画面に合わせてある）に収め、「メニューに戻る」（オンラインは「ルームに戻る」）で消す（2026-11-14 オーナー）。
+   表が収まらないとき（50対50やスマホ）は、表の中だけをスクロールする */
+body:not(.menuClassic) #pgMenu.hasResult:not(.resSeen) .mx { display: none; }
+body:not(.menuClassic) #pgMenu.hasResult:not(.resSeen) .mxResult { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; box-sizing: border-box; height: 100%; padding: 18px 32px 18px; color: var(--mx-ink); overflow: hidden; }
+body:not(.menuClassic) #pgMenu .mxResult #onlineReturn { display: none; } /* 「ルームに戻る」（#mxResNext）が代わりに押す */
+.mxResTop { grid-column: 1 / -1; padding: 0 110px 10px 0; border-bottom: 1px solid var(--mx-faint); min-height: 15px; }
+#pgMenu .mxResult h1 { grid-column: 1; font: 400 clamp(44px, 10vh, 104px) / 1 var(--impact); margin: 12px 28px 10px 0; letter-spacing: 0; }
 #pgMenu .mxResult h1 span { color: var(--mx-fl); }
-#pgMenu .mxResult p { font: 400 13px/1.5 var(--mx-mono); color: var(--mx-dim); margin: 0 0 20px; }
-#pgMenu .mxResult #ovBoard { display: flex; flex-direction: column; gap: 22px; }
-/* スコア表を先に、表彰はその下に小さく */
-#pgMenu .mxResult .sb { order: 1; gap: 32px; }
-#pgMenu .mxResult .medals { order: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0; border-top: 1px solid var(--mx-faint); }
-#pgMenu .mxResult .medal { background: none; border: 0; border-right: 1px solid var(--mx-faint); padding: 10px 12px 4px; }
+#pgMenu .mxResult p { grid-column: 2; align-self: end; font: 400 13px/1.5 var(--mx-mono); color: var(--mx-dim); margin: 0 0 14px; }
+#pgMenu .mxResult #ovBoard { grid-column: 1 / -1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+/* スコア表を先に、表彰はその下に1行 */
+#pgMenu .mxResult .sb { order: 1; flex: 0 1 auto; min-height: 0; overflow-y: auto; align-items: start; gap: 32px; padding-top: 14px; scrollbar-width: thin; }
+#pgMenu .mxResult .medals { order: 2; flex: none; display: flex; gap: 0; margin: 0; border-top: 1px solid var(--mx-faint); overflow-x: auto; scrollbar-width: thin; }
+#pgMenu .mxResult .medal { flex: 1 0 130px; background: none; border: 0; border-right: 1px solid var(--mx-faint); padding: 8px 12px 4px; }
 #pgMenu .mxResult .medal:last-child { border-right: 0; }
 #pgMenu .mxResult .medal small { font: 400 10px var(--mx-mono); letter-spacing: .06em; }
 #pgMenu .mxResult .medal b { font-size: 15px; }
 #pgMenu .mxResult .medal.mvp { grid-column: auto; background: none; border-top: 3px solid #ffd34d; margin-top: -2px; }
 #pgMenu .mxResult .medal.mvp b { font-size: 18px; }
 #pgMenu .mxResult .medal.me { box-shadow: none; background: rgba(255, 211, 77, .1); }
-#pgMenu .mxResult .sb caption { font: 800 15px var(--body); letter-spacing: .1em; padding-bottom: 6px; border-bottom: 2px solid currentColor; }
+#pgMenu .mxResult .sb caption { font: 800 15px var(--body); letter-spacing: .1em; padding-bottom: 4px; border-bottom: 2px solid currentColor; }
 #pgMenu .mxResult .sb caption b { font: 400 30px/0.9 var(--mx-anton); margin-top: -12px; }
-#pgMenu .mxResult .sb th { font: 400 10px var(--mx-mono); color: var(--mx-dim); border-bottom-color: var(--mx-faint); padding: 6px 4px; }
-#pgMenu .mxResult .sb td { color: var(--mx-ink); padding: 5px 4px; border-bottom-color: var(--mx-faint); font-size: 13px; }
+#pgMenu .mxResult .sb th { position: sticky; top: 0; background: var(--mx-bg); font: 400 10px var(--mx-mono); color: var(--mx-dim); border-bottom-color: var(--mx-faint); padding: 5px 4px; }
+#pgMenu .mxResult .sb td { color: var(--mx-ink); padding: clamp(1px, .45vh, 5px) 4px; border-bottom-color: var(--mx-faint); font-size: 13px; }
 #pgMenu .mxResult .sb td.tot { font: 400 17px var(--mx-anton); }
 #pgMenu .mxResult .sb tr.me td { background: rgba(255, 91, 31, .16); }
 #pgMenu .mxResult .sb tr.me td:first-child { box-shadow: inset 3px 0 var(--mx-fl); }
-#pgMenu .mxResult > button:not(.mxResNext) { align-self: flex-start; font: 700 14px var(--body); padding: 8px 14px; margin: 10px 8px 0 0; border: 1px solid var(--mx-ink); } /* オンラインの「戻る」など */
-/* 下のメニューへ（スクロールしなくても押せる） */
-#pgMenu .mxResNext { margin: 20px 0 0 auto; padding: 6px 14px 8px; width: 330px; max-width: 100%; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr; border: 1px solid var(--mx-ink); color: var(--mx-ink); }
-body:not(.menuClassic) #pgMenu .mxResNext { margin-top: auto; }
+#pgMenu .mxResult > button:not(.mxResNext) { align-self: flex-start; font: 700 14px var(--body); padding: 8px 14px; margin: 10px 8px 0 0; border: 1px solid var(--mx-ink); } /* 前の形（menuClassic）のオンラインの「戻る」 */
+/* メニューに戻る／ルームに戻る（右下、いつも画面の中） */
+#pgMenu .mxResNext { grid-column: 1 / -1; justify-self: end; margin: 12px 0 0; padding: 6px 14px 8px; width: 330px; max-width: 100%; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr; border: 1px solid var(--mx-ink); color: var(--mx-ink); }
 #pgMenu .mxResNext .mxM { grid-column: 1 / -1; }
 #pgMenu .mxResNext b { font: 400 22px/1 var(--impact); align-self: end; }
 #pgMenu .mxResNext .ar { font: 400 30px/0.8 var(--mx-anton); align-self: end; }
@@ -1305,15 +1304,18 @@ body:not(.menuClassic) #pgMenu .mxResNext { margin-top: auto; }
 #pgMenu .mxResNext:hover .mxM { color: var(--mx-bg); }
 body.menuClassic #pgMenu .mxResNext { display: none; }
 @media (max-height: 500px) {
-  body:not(.menuClassic) #pgMenu.hasResult .mxResult { padding: 12px 16px 16px; }
-  .mxResTop { padding: 0 90px 8px 0; }
-  #pgMenu .mxResult h1 { font-size: 52px; margin: 10px 0 2px; }
-  #pgMenu .mxResult p { font-size: 11px; margin-bottom: 10px; }
+  body:not(.menuClassic) #pgMenu.hasResult:not(.resSeen) .mxResult { padding: 12px 20px 14px; }
+  .mxResTop { padding: 0 90px 6px 0; }
+  #pgMenu .mxResult h1 { font-size: 56px; margin: 8px 20px 6px 0; }
+  #pgMenu .mxResult p { font-size: 12px; margin-bottom: 8px; }
+  #pgMenu .mxResult #ovBoard { gap: 6px; }
   #pgMenu .mxResult .sb { gap: 16px; }
-  #pgMenu .mxResult .sb th { font-size: 9px; padding: 3px 2px; } #pgMenu .mxResult .sb td { font-size: 11px; padding: 3px 2px; }
-  #pgMenu .mxResult .sb caption b { font-size: 22px; margin-top: -6px; }
+  #pgMenu .mxResult .sb caption { font-size: 14px; }
+  #pgMenu .mxResult .sb th { font-size: 10px; padding: 2px 3px; } #pgMenu .mxResult .sb td { font-size: 15px; padding: 3px 3px; } #pgMenu .mxResult .sb td.tot { font-size: 17px; }
+  #pgMenu .mxResult .sb caption b { font-size: 24px; margin-top: -8px; }
   #pgMenu .mxResult .sbName .catFace { display: none; }
-  #pgMenu .mxResNext { margin-top: 16px; padding: 4px 12px 6px; width: 290px; } #pgMenu .mxResNext b { font-size: 20px; } #pgMenu .mxResNext .ar { font-size: 28px; }
+  #pgMenu .mxResult .medal { flex-basis: 120px; padding: 6px 10px 3px; } #pgMenu .mxResult .medal b, #pgMenu .mxResult .medal.mvp b { font-size: 14px; }
+  #pgMenu .mxResNext { margin-top: 8px; padding: 4px 12px 6px; width: 280px; } #pgMenu .mxResNext b { font-size: 20px; } #pgMenu .mxResNext .ar { font-size: 26px; }
 }
 /* 右：1 マップ → 2 兵装 → 3 出撃 */
 .mxSortie { grid-column: 3; grid-row: 2 / 4; display: flex; flex-direction: column; gap: 10px; padding: 26px 32px 24px 0; z-index: 3; min-height: 0; }

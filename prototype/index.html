@@ -158,14 +158,14 @@
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
            左に目次、真ん中に大きな兵装名と機体と注釈、右に「1 マップ → 2 兵装 → 3 出撃」。試合の結果は真ん中に出す -->
-      <!-- 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを画面いっぱいに出し、
-           下へスクロールするとトップと同じメニュー（機体と出撃の準備）が出る -->
+      <!-- 試合の結果（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）：結果だけを1画面に収めて出し、
+           「メニューに戻る」（オンラインは「ルームに戻る」）でトップと同じメニューへ（2026-11-14 オーナー） -->
       <div class="mxResult" id="mxResult">
         <div class="mxResTop"><span class="mxM" id="mxResMap"></span></div>
         <h1 id="ovTitle">コア<span>ブレイカー</span> 試作</h1>
         <p id="ovText">ボーダーブレイクの遊びを再現するための試作です。出撃の準備をして「出撃する」を押してください。</p>
         <div id="ovBoard"></div>
-        <button type="button" class="mxResNext" id="mxResNext"><span class="mxM">NEXT ／ 下へスクロール</span><b>メニューへ</b><span class="ar" aria-hidden="true">↓</span></button>
+        <button type="button" class="mxResNext" id="mxResNext"><span class="mxM">BACK ／ 戻る</span><b id="mxResLabel">メニューに戻る</b><span class="ar" aria-hidden="true">→</span></button>
       </div>
       <div class="mx">
         <header class="mxHead">
@@ -12005,6 +12005,7 @@ function menuResultMode() {
   const t = $('ovTitle').textContent, x = $('ovText').textContent;
   const on = !!$('ovBoard').children.length || t !== 'コアブレイカー 試作' || !x.startsWith('ボーダーブレイクの遊びを再現する');
   $('pgMenu').classList.toggle('hasResult', on);
+  $('pgMenu').classList.remove('resSeen'); // 新しい結果・知らせは、戻った後でももう一度出す
   if (on && curMap) { const n = battleTeamSize(); $('mxResMap').textContent = `RESULT ／ ${curMap.name} ／ ${n}対${n}`; }
   menuRigDirty = true;
 }
@@ -12020,6 +12021,7 @@ function menuKeyText() {
 }
 function menuMechTick() {
   if ($('overlay').hidden || $('pgMenu').hidden) return;
+  resNextLabel();
   const ld = loadout[chosenCls], key = JSON.stringify([mechCfg, ld, chosenCls, builds.cur, meleeOnly() && arenaMeleeKey]);
   if (key === menuRigKey && !menuRigDirty) return;
   menuRigKey = key; menuRigDirty = false;
@@ -12181,7 +12183,18 @@ $('battleSizeControl').addEventListener('click',e=>{
   else if(e.target.closest('.mxFree')&&e.target.tagName!=='INPUT')$('teamSize').focus();
 });
 $('menuSortie').addEventListener('click',()=>$('start').focus());
-$('mxResNext').addEventListener('click',()=>document.querySelector('#pgMenu .mx').scrollIntoView({behavior:'smooth'}));
+function resNextLabel() {
+  const room = !!$('onlineReturn') && !$('onlineReturn').hidden, lab = !room ? 'メニューに戻る' : window.CBOnlineGame?.state?.phase === 'lobby' ? 'ルームに戻る' : 'オンラインに戻る'; // 部屋から外れた後（中断など）は「オンラインに戻る」
+  if ($('mxResLabel').textContent !== lab) $('mxResLabel').textContent = lab;
+}
+// オンラインの戻るボタン（online/ui.js が結果の中に足す）の表示と文言が変わったら合わせる
+new MutationObserver(resNextLabel).observe($('mxResult'), { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden'] });
+// 結果の「メニューに戻る」は結果を閉じてトップのメニューへ。オンラインの試合の後は「ルームに戻る」で、部屋の画面（#onlineReturn と同じ）を開く
+$('mxResNext').addEventListener('click', () => {
+  const room = $('onlineReturn');
+  if (room && !room.hidden) { room.click(); return; }
+  $('pgMenu').classList.add('resSeen'); $('overlay').scrollTop = 0; $('start').focus({ preventScroll: true });
+});
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
 function selectMap(id, persist = true, lazy = false) {

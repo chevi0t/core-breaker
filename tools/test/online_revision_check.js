@@ -157,9 +157,9 @@ async function uiRoom(browser,h,errors,ok){
   ok(await host.locator('[data-action="kickGuest"]').count()===1,'入室後は参加者とロビー退出ボタンを表示');
   await host.locator('[data-action="kickGuest"]').click();
   await host.waitForFunction(()=>CBOnlineGame.state.peers.size===0,{},{polling:20});
-  await guest.locator('#onlineReturn').waitFor({state:'visible'});
+  await guest.locator('#mxResNext').waitFor({state:'visible'}); // 結果の右下の「戻る」が #onlineReturn を押す（2026-11-14）
   ok(await guest.locator('#onlinePanel').evaluate(e=>e.hidden),'ロビー退出で中断理由をオンラインパネルに隠さない');
-  await guest.locator('#onlineReturn').click();
+  await guest.locator('#mxResNext').click();
   ok(!await guest.locator('#onlinePanel').evaluate(e=>e.hidden)&&await guest.locator('#onlineJoin').isEnabled(),'ロビー退出後の戻るボタンから入り直せる');
   await join();
   return {host,guest,pages,close:async()=>{for(const p of pages)if(!p.isClosed()){await p.evaluate(()=>CBOnlineGame.leave('試験終了')).catch(()=>{});await p.close();}}};
@@ -324,7 +324,8 @@ check('オンライン開始・終了・圧縮同期',async({browser,dir,out,ok,
       await p.locator('#ovTitle').click();ok(await p.locator('#onlinePanel').evaluate(e=>e.hidden),'結果内のクリックではパネルを開かない');
       await p.keyboard.press('Escape');ok(await p.locator('#onlinePanel').evaluate(e=>e.hidden),'結果中のEscapeではパネルを開かない');
     }
-    await host.locator('#onlineReturn').click();
+    ok(await host.locator('#mxResLabel').textContent()==='ルームに戻る','試合後の結果の戻るボタンは「ルームに戻る」');
+    await host.locator('#mxResNext').click();
     ok(await host.evaluate(()=>!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.role==='host'&&CBOnlineGame.state.phase==='lobby'),'戻るボタンで同じ部屋のロビーを開く（試合後も部屋に残る。#218）');
     await active.close();active=null;
 

@@ -38,12 +38,19 @@ check('メニューの画面', async ({ page, ev, step, ok, out, open }) => {
   await ev(() => { document.getElementById('ovTitle').textContent = '勝利'; document.getElementById('ovBoard').innerHTML = '<p>表</p>'; });
   await step(1);
   ok(await ev(() => document.getElementById('pgMenu').classList.contains('hasResult') && getComputedStyle(document.querySelector('.mxResult')).display !== 'none'), '試合の結果を出せる');
-  // 結果は結果だけで画面いっぱい、下へスクロールするとトップと同じメニュー（2026-11-13 オーナー「結果は結果、再出撃は再出撃で別に」）
-  ok(await ev(() => { const r = document.getElementById('mxResult').getBoundingClientRect(), m = document.querySelector('#pgMenu .mx').getBoundingClientRect(); return r.top >= -1 && r.height >= innerHeight - 1 && m.top >= r.bottom - 1 && Math.abs(m.height - innerHeight) <= 1; }), '結果は画面いっぱいで、メニューはその下');
+  // 結果は1画面に収め、「メニューに戻る」で閉じる。オンラインの試合の後は「ルームに戻る」（2026-11-14 オーナー）
+  ok(await ev(() => { const o = document.getElementById('overlay'), n = document.getElementById('mxResNext').getBoundingClientRect(); return o.scrollHeight <= innerHeight + 1 && n.bottom <= innerHeight + 1 && n.top >= 0; }), '結果は1画面に収まり、戻るボタンも画面の中');
   ok(!(await inView(page, '#start')), '結果の画面に出撃ボタンは出ない');
-  await ev(() => { document.getElementById('mxResNext').click(); document.querySelector('#pgMenu .mx').scrollIntoView(); });
+  ok(await ev(() => document.getElementById('mxResLabel').textContent === 'メニューに戻る'), 'オフラインは「メニューに戻る」');
+  const room = await ev(() => { const r = document.getElementById('onlineReturn'); if (!r || !window.CBOnlineGame) return null; r.hidden = false; window.__phase = CBOnlineGame.state.phase; CBOnlineGame.state.phase = 'lobby'; return true; });
+  if (room) {
+    await step(1);
+    ok(await ev(() => document.getElementById('mxResLabel').textContent === 'ルームに戻る' && getComputedStyle(document.getElementById('onlineReturn')).display === 'none'), 'オンラインの試合の後は「ルームに戻る」（前のボタンは出さない）');
+    await ev(() => { document.getElementById('onlineReturn').hidden = true; CBOnlineGame.state.phase = window.__phase; }); await step(1);
+  }
+  await ev(() => document.getElementById('mxResNext').click());
   await step(1);
-  ok(await inView(page, '#start') && await inView(page, '#mxLoad'), '「メニューへ」で下のメニュー（装備表と出撃）が出る');
+  ok(await inView(page, '#start') && await inView(page, '#mxLoad') && await ev(() => getComputedStyle(document.getElementById('mxResult')).display === 'none'), '「メニューに戻る」で結果を閉じ、メニュー（装備表と出撃）が出る');
   await ev(() => { document.getElementById('start').textContent = 'もう一度出撃する'; });
   ok(await ev(() => getComputedStyle(document.getElementById('start'), '::before').content.includes('SORTIE')), '出撃ボタンの文言を変えても小さな文字は残る');
   await ev(() => { document.getElementById('start').textContent = '出撃する'; document.getElementById('overlay').scrollTop = 0; });
