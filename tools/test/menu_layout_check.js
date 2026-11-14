@@ -10,13 +10,17 @@ check('メニューの画面', async ({ page, ev, step, ok, out, open }) => {
   ok(await inView(page, '#ovCls'), 'PC で兵装の4つが見える');
   ok(await ev(() => document.getElementById('mxMega').textContent) === '強襲', '大きな兵装名が出る');
   const labels = await ev(() => [...document.querySelectorAll('#mxCalls .lb')].map(e => e.textContent));
-  ok(['HEAD', 'BODY', 'ARMS', 'MAIN', 'LEGS'].every(k => labels.some(t => t.startsWith(k))), '頭・胴・腕・主武器・脚の注釈が出る：' + labels.length + '個');
+  ok(['HEAD', 'BODY', 'ARMS', 'LEGS', 'MAIN', 'SUB', 'AUX', 'SP'].every(k => labels.some(t => t.startsWith(k))), '頭・胴・腕・脚と、4つの武器の注釈が出る：' + labels.length + '個');
+  // 2026-11-14 オーナー「右側に機体パーツ、左側に武器4種」「機体を倍に」「兵装種別を文字サイズ半分に」
+  ok(await ev(() => { const m = document.getElementById('menuMech').getBoundingClientRect().left + document.getElementById('menuMech').getBoundingClientRect().width / 2;
+    return [...document.querySelectorAll('#mxCalls .lb')].every(e => { const r = e.getBoundingClientRect(), w = /^(MAIN|SUB|AUX|SP)/.test(e.textContent); return w ? r.right < m : r.left > m; }); }), '武器の注釈は機体の左、パーツの注釈は右');
+  ok(await ev(() => { const r = document.getElementById('mxMega').getBoundingClientRect(), s = document.querySelector('.mxStage').getBoundingClientRect(); return r.height < s.height * .25; }), '大きな兵装名は舞台の高さの4分の1より小さい');
   ok(await ev(() => [...document.querySelectorAll('#ovCls button')].every(b => b.querySelectorAll('small span').length === 4)), '兵装ごとに主・副・補助・特別の4つの武器名が出る');
   await page.screenshot({ path: path.join(out, 'menu-pc.png') });
 
   await ev(() => document.querySelector('#ovCls [data-cls="heavy"]').click()); await step(2);
   ok(await ev(() => document.getElementById('mxMega').textContent) === '重火力', '兵装を選ぶと大きな兵装名が変わる');
-  ok(await ev(() => document.querySelectorAll('#mxCalls .lb').length) === 5, '兵装を変えても注釈は5つ');
+  ok(await ev(() => document.querySelectorAll('#mxCalls .lb').length) === 8, '兵装を変えても注釈は8つ');
 
   await ev(() => document.querySelector('#battleSizeControl [data-size="10"]').click());
   ok(await ev(() => __g.battleTeamSize() === 10 && document.getElementById('teamSize').value === '10'), '人数の「10」で10対10');
