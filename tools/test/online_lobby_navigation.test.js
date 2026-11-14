@@ -74,3 +74,27 @@ test('ゲストの装備確認待ちは固定保存/破棄を無効化し、保�
   const h=setup();await h.open();h.game.state.role='guest';h.click('onlineEquipment');h.weapon('alternate');h.click('onlineEquipmentSave');
   assert(h.game.state.equipmentPending);assert(h.e('onlineEquipmentEditor').hidden);assert(h.e('onlineReady').disabled);assert.equal(h.doc.activeElement.id,'onlineStatus');assert(!h.e('onlinePanel').hidden);h.game.leave();
 });
+// 実capture listenerと本体のスクロールhandlerを、DOM代役のcapture→target順で通す。
+for(const role of ['host','guest'])test(role+'：結果のメニューへは部屋を維持するスクロールだけ',async()=>{
+  const h=setup();await h.open();h.game.state.role=role;h.options.onLobbyReturn();
+  const overlay=h.doc.createElement('div');overlay.id='overlay';h.doc.body.append(overlay);
+  const button=h.doc.createElement('button');button.id='mxResNext';overlay.append(button);
+  const label=h.doc.createElement('b');button.append(label);
+  const menu=h.doc.createElement('div');menu.className='mx';overlay.append(menu);
+  const oldQuery=h.doc.querySelector;h.doc.querySelector=s=>s==='#pgMenu .mx'?menu:oldQuery(s);
+  let scrolls=0;menu.scrollIntoView=o=>{assert.equal(o.behavior,'smooth');scrolls++;};
+  const html=fs.readFileSync(require.resolve('../../prototype/index.html'),'utf8');
+  const handler=html.split('\n').find(s=>s.startsWith("$('mxResNext').addEventListener('click'"));assert(handler);
+  const oldDollar=h.c.$;h.c.$=id=>h.e(id);vm.runInContext(handler,h.c);h.c.$=oldDollar;
+  const before=JSON.stringify({room:h.game.state.roomId,roster:h.game.state.roster});
+  const status=h.e('onlineStatus').textContent;
+  for(const target of [button,label]){
+    const e={target,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;}};
+    for(const f of h.events.get('doc:click')||[]){f(e);if(e.stopped)break;}
+    if(!e.stopped)for(const f of button.handlers.click||[])f(e);
+    assert(!e.stopped&&!e.prevented,'スクロール用クリックを遮断しない');
+    assert(h.e('onlinePanel').hidden);assert.equal(h.e('onlineStatus').textContent,status);
+    assert.equal(h.game.state.phase,'lobby');assert.equal(JSON.stringify({room:h.game.state.roomId,roster:h.game.state.roster}),before);
+  }
+  assert.equal(scrolls,2);h.game.leave();
+});
