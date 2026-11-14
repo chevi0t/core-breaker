@@ -1249,13 +1249,17 @@ body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(-
 #pgMenu .mxBuilds button:last-of-type { border-right: 0; }
 #pgMenu .mxBuilds button[aria-pressed="true"] { background: var(--mx-ink); color: var(--mx-bg); }
 .mxVert { position: absolute; right: 14px; top: 16px; writing-mode: vertical-rl; font: 400 min(68px, 11cqh) / 1 var(--mx-anton); letter-spacing: .02em; color: transparent; -webkit-text-stroke: 1px rgba(238, 241, 243, .35); z-index: 1; pointer-events: none; }
-#menuMech { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; cursor: grab; touch-action: none; }
-.mxCalls { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
-.mxCalls .ln { position: absolute; height: 1px; background: var(--mx-ink); transform-origin: 0 0; }
-.mxCalls .ln::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; background: var(--mx-fl); }
-.mxCalls .lb { position: absolute; transform: translateY(-50%); font: 400 10px/1.35 var(--mx-mono); letter-spacing: .06em; color: var(--mx-dim); background: var(--mx-bg); padding: 1px 4px; white-space: nowrap; }
-.mxCalls .lb b { display: block; color: var(--mx-ink); font-weight: 600; }
-.mxCalls .lb.l { text-align: right; }
+/* 装備表（2026-11-14、メニューの機体の代わり）：左に武装 01〜04 と武器の平らな絵、右に機体 05〜08 */
+.mxLoad { position: absolute; left: 2px; right: min(110px, 12cqw); top: calc(18cqh + 88px); bottom: 118px; z-index: 3; display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 0 36px; align-content: start; }
+.mxLoad h4 { display: flex; justify-content: space-between; margin: 0 0 4px; padding: 0 0 6px; border-bottom: 1px solid var(--mx-ink); font: 400 10px var(--mx-mono); letter-spacing: .12em; color: var(--mx-dim); }
+.mxLoad .r { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 0 10px; border-bottom: 1px solid var(--mx-faint); height: min(9cqh, 74px); }
+.mxLoad .r.w { grid-template-columns: 52px minmax(0, 1fr) minmax(0, .8fr) 58px; }
+.mxLoad .r i { font: 400 min(5.4cqh, 44px)/.9 var(--mx-anton); font-style: normal; color: transparent; -webkit-text-stroke: 1px var(--mx-ink); }
+.mxLoad .r.hot i { -webkit-text-stroke: 0; color: var(--mx-fl); }
+.mxLoad .r .mxM { display: block; }
+.mxLoad .r b { display: block; font: 800 min(2.5cqh, 19px)/1.25 var(--body); color: var(--mx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mxLoad .r em { font: 600 11px var(--mx-mono); font-style: normal; color: var(--mx-dim); text-align: right; }
+.mxLoad canvas { width: 100%; height: 72%; display: block; }
 .mxStats { position: absolute; left: 2px; bottom: 18px; z-index: 3; display: flex; gap: 22px; }
 .mxStats > div { border-left: 1px solid var(--mx-ink); padding-left: 10px; }
 .mxStats b { display: block; font: 400 34px/1.05 var(--mx-anton); letter-spacing: .01em; }
@@ -1378,7 +1382,8 @@ body.menuClassic #pgMenu .mxResNext { display: none; }
   #pgMenu .mxNav > button, .mxNav > a { font-size: 10px; padding: 4px 0; gap: 5px; overflow: hidden; text-overflow: ellipsis; display: block; } .mxNav > button::before, .mxNav > a::before { font-size: 9px; width: 18px; padding: 2px 0; margin-right: 5px; display: inline-block; }
   .mxSub .mxM, .mxVert, .mxFoot { display: none; }
   .mxStats { bottom: 8px; gap: 12px; } .mxStats b { font-size: 20px; } .mxStats small { font-size: 11px; } .mxStats .mxM { font-size: 8px; }
-  .mxCalls .lb { font-size: 8px; } .mxCalls .lb b { font-size: 9px; }
+  .mxLoad { top: calc(18cqh + 70px); bottom: 66px; right: 8px; gap: 0 16px; } .mxLoad h4 { font-size: 8px; padding-bottom: 3px; }
+  .mxLoad .r, .mxLoad .r.w { grid-template-columns: 22px minmax(0, 1fr) auto; height: auto; padding: 3px 0; gap: 0 6px; } .mxLoad .r.w { grid-template-columns: 22px minmax(0, 1fr) 64px 40px; } .mxLoad .r i { font-size: 18px; } .mxLoad .r b { font-size: 11px; } .mxLoad .r .mxM { font-size: 7.5px; } .mxLoad .r em { font-size: 8px; } .mxLoad canvas { height: 22px; }
   .mxSortie { grid-row: 2; padding: 8px 14px 8px 0; gap: 6px; }
   #pgMenu .mxSign { display: none; }
   #pgMenu .mxMap { border: 1px solid var(--mx-faint); padding: 3px 8px; gap: 0; } #mapNow b { font-size: 13px; display: inline; margin-right: 8px; }
@@ -1395,7 +1400,7 @@ body.menuClassic #overlay:has(#pgMenu:not([hidden])) { padding: 24px max(16px, e
 body.menuClassic #overlay > .card.menuWide { max-width: 1060px; height: auto; margin: auto; }
 body.menuClassic #overlay:has(#pgMenu:not([hidden])) #appVersion { font: 600 13px/1.2 system-ui, sans-serif; color: rgba(214, 228, 240, .75); background: rgba(5, 9, 13, .6); border: 1px solid rgba(214, 228, 240, .25); border-radius: 4px; padding: 3px 8px; top: max(8px, env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); }
 body.menuClassic .mx { height: auto; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: repeat(8, auto) minmax(0, 1fr) auto; gap: 10px 24px; padding: 0; color: var(--hud); }
-body.menuClassic :is(.mxHead, .mxSign, .mxMega, .mxSub, .mxVert, #menuMech, .mxCalls, .mxStats, .mxNav .mxM, .mxFoot .mxM) { display: none !important; }
+body.menuClassic :is(.mxHead, .mxSign, .mxMega, .mxSub, .mxVert, #mxLoad, .mxStats, .mxNav .mxM, .mxFoot .mxM) { display: none !important; }
 body.menuClassic :is(.mxStage, .mxKey, .mxSortie) { display: contents; }
 body.menuClassic .mxResult { display: grid !important; position: static; grid-column: 1 / -1; gap: 6px; padding: 0; overflow: visible; }
 body.menuClassic #pgMenu .mxResult h1 { font: 700 clamp(28px, calc(4 * var(--vw, 1vw)), 42px) var(--display); letter-spacing: .04em; margin: 0; }
