@@ -152,7 +152,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver201</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver202</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -12191,12 +12191,33 @@ function renderMapList() {
       + (open ? `<div class="mapVariants">${ids.map(k => mapCardHtml(k, MAPS[k], MAPS[k].variant)).join('')}</div>` : '') + '</div>');
   }
   $('mapList').innerHTML = rows.join('');
-  for (const b of $('mapList').querySelectorAll('.mapCard')) drawMapPreview(b.querySelector('canvas'), MAPS[b.dataset.map || b.dataset.preview]);
+  // 見取り図は、マップ選択を開いているときだけ描く。起動時に全マップの見取り図を描くと1秒ほどかかっていた（2026-11-14 オーナー「ロード時間長すぎる」）。
+  // マップ選択を開くと renderMapList がもう一度呼ばれて描く
+  if (!$('pgMap').hidden) for (const b of $('mapList').querySelectorAll('.mapCard')) mapPreviewCached(b.querySelector('canvas'), b.dataset.map || b.dataset.preview);
   $('mapNow').innerHTML = `<b>${curMap.name}</b><small>${mapInfo(curMap)}</small>`;
   $('arenaWeaponControl').hidden = !meleeOnly();
   $('arenaWeapon').innerHTML = MELEE_WEAPONS.map(key => `<option value="${key}"${key === arenaMeleeKey ? ' selected' : ''}>${WEAPONS[key].name}</option>`).join('');
   renderClsButtons();
 }
+// 見取り図は、マップと両軍の色が同じなら前に描いた絵を写すだけ（人数を変えるたびに描き直していた）
+const mapPreviewCache = new Map();
+function mapPreviewImage(id, w, h) {
+  const key = `${id}|${sideColors('B').css}|${sideColors('R').css}|${w}x${h}`;
+  let img = mapPreviewCache.get(key);
+  if (!img) { img = document.createElement('canvas'); img.width = w; img.height = h; drawMapPreview(img, MAPS[id]); mapPreviewCache.set(key, img); }
+  return img;
+}
+function mapPreviewCached(cv, id) { cv.getContext('2d').drawImage(mapPreviewImage(id, cv.width, cv.height), 0, 0); }
+// 起動の後、メニューを見ている間の空き時間に、見取り図を1枚ずつ先に描いておく（マップ選択を初めて開いたときに待たせない）。戦闘中は描かない
+function warmMapPreviews() {
+  const next = () => (window.requestIdleCallback || (f => setTimeout(f, 200)))(warmMapPreviews, { timeout: 2000 });
+  if (running || $('overlay').hidden) { setTimeout(warmMapPreviews, 3000); return; }
+  const id = Object.keys(MAPS).find(k => !MAPS[k].testOnly && mobileOk(MAPS[k]) && !mapPreviewCache.has(`${k}|${sideColors('B').css}|${sideColors('R').css}|90x${Math.round(90 * MAPS[k].size[1] / MAPS[k].size[0])}`));
+  if (!id) return;
+  try { mapPreviewImage(id, 90, Math.round(90 * MAPS[id].size[1] / MAPS[id].size[0])); } catch (e) { console.warn('見取り図', id, e); return; }
+  next();
+}
+setTimeout(warmMapPreviews, 1500);
 $('arenaWeapon').addEventListener('change', e => { if (MELEE_WEAPONS.includes(e.target.value)) { arenaMeleeKey = e.target.value; renderClsButtons(); } });
 $('teamSize').addEventListener('change',e=>{
   const n=Math.round(Number(e.target.value));
