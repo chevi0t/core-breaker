@@ -1370,11 +1370,12 @@ body.menuClassic #pgMenu .mxResNext { display: none; }
 }
 /* 横向きのスマホ（高さが低い）：目次は番号だけ、文字を小さく、出撃ボタンはいつも見える */
 @media (max-height: 500px) {
-  .mx { grid-template-columns: 52px minmax(0, 1fr) 290px; grid-template-rows: 40px minmax(0, 1fr); }
+  .mx { grid-template-columns: 130px minmax(0, 1fr) 290px; grid-template-rows: 40px minmax(0, 1fr); }
   .mxHead { padding: 0 100px 0 14px; gap: 12px; } .mxHead::after { left: 14px; right: 14px; } .mxBrand .mxM { display: none; } .mxBrand b { font-size: 15px; }
   #overlay:has(#pgMenu:not([hidden])) #appVersion { top: max(9px, env(safe-area-inset-top, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); }
-  .mxNav { grid-row: 2; padding: 6px 0 0 10px; gap: 0; } .mxNav .mxM { display: none; }
-  #pgMenu .mxNav > button, .mxNav > a { font-size: 0; padding: 5px 0; } .mxNav > button::before, .mxNav > a::before { font-size: 11px; width: 26px; padding: 2px 0; }
+  .mxNav { grid-row: 2; padding: 6px 6px 0 10px; gap: 0; min-width: 0; overflow: hidden; } .mxNav .mxM { display: none; }
+  /* 番号だけでは分からない（オーナー 2026-11-14「数字だけだとなんのこっちゃら」）ので、名前も小さく出す */
+  #pgMenu .mxNav > button, .mxNav > a { font-size: 10px; padding: 4px 0; gap: 5px; overflow: hidden; text-overflow: ellipsis; display: block; } .mxNav > button::before, .mxNav > a::before { font-size: 9px; width: 18px; padding: 2px 0; margin-right: 5px; display: inline-block; }
   .mxSub .mxM, .mxVert, .mxFoot { display: none; }
   .mxStats { bottom: 8px; gap: 12px; } .mxStats b { font-size: 20px; } .mxStats small { font-size: 11px; } .mxStats .mxM { font-size: 8px; }
   .mxCalls .lb { font-size: 8px; } .mxCalls .lb b { font-size: 9px; }
