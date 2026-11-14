@@ -151,6 +151,7 @@
   <div id="hudPreviewControls"></div>
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
+<div id="sortieFx" hidden aria-live="polite"><div class="sfxScan"></div><span class="mxM">SORTIE ／ 出撃準備</span><b id="sfxMap"></b><span class="mxM" id="sfxCls"></span><div class="sfxBar"><i></i></div></div>
 <div id="overlay">
   <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver202</div>
   <div class="card menuWide" id="ovCard">
@@ -3750,7 +3751,17 @@ function buildMapNow(id) {
   sun.shadow.camera.updateProjectionMatrix();
   miniBg = bigBg = null;
   MATCH = timeLeft = def.time; // 出撃前の画面の時計もこのマップの長さに
+  mapBuiltId = mapId;
 }
+// 戦場（地形・施設）は出撃を押したときに組み立てる。起動時に組み立てると1秒ほど待たせていた（2026-11-14 オーナー「起動長すぎる」→「出撃時に、演出を挟んでごまかす」）。
+// 起動時とマップ選択では、名前・大きさ・時間などの情報だけを入れておく
+let mapBuiltId = null;
+function setMapMeta(id) {
+  const def = MAPS[id] || MAPS[FIRST_MAP];
+  curMap = def; mapId = MAPS[id] ? id : FIRST_MAP;
+  MATCH = timeLeft = def.time;
+}
+function ensureMap() { if (mapBuiltId !== mapId) { buildMap(mapId); renderPlantBar(); } }
 
 // ---- 武器のモデル：weapons.js の weaponModels()（MODEL_OF・buildWeaponGeo など。2026-11-04 リファクタで分けた）----
 const { MODEL_OF, palette, buildWeaponGeo, weaponGeoBank, weaponGeo, toolMat } = weaponModels();
@@ -11644,7 +11655,7 @@ $('overlay').addEventListener('click', e => {
     const g = b.dataset.mapGroup;
     if (mapGroupsOpen.has(g)) mapGroupsOpen.delete(g); else mapGroupsOpen.add(g);
     renderMapList(); $('mapList').querySelector(`[data-map-group="${g}"]`)?.focus();
-  } else if (b.dataset.map) { selectMap(b.dataset.map); showPage('pgMenu'); }
+  } else if (b.dataset.map) { selectMap(b.dataset.map, true, true); showPage('pgMenu'); }
 });
 addEventListener('keydown', e => {
   if (hudPreview && (e.code === 'F3' || e.code === 'Escape')) { e.preventDefault(); if (!e.repeat) closeHudPreview(); return; }
@@ -12173,7 +12184,7 @@ $('menuSortie').addEventListener('click',()=>$('start').focus());
 $('mxResNext').addEventListener('click',()=>document.querySelector('#pgMenu .mx').scrollIntoView({behavior:'smooth'}));
 const MAP_KEY = 'coreBreakerMap';
 // マップを替える：今の試合の機体・弾・設置物を片づけ、地形と施設を作り直す。次の出撃で新しい試合になる
-function selectMap(id, persist = true) {
+function selectMap(id, persist = true, lazy = false) {
   if (id !== mapId) {
     resetBlastShake();
     stopMovementSounds();
@@ -12186,8 +12197,7 @@ function selectMap(id, persist = true) {
     shells.length = 0;
     clearGadgets();
     releaseLock();
-    buildMap(id);
-    renderPlantBar();
+    if (lazy) setMapMeta(id); else { buildMap(id); renderPlantBar(); } // メニューのマップ選択（lazy）は出撃のときに組み立てる
     if (persist) try { localStorage.setItem(MAP_KEY, id); } catch (_) {}
     // 前の試合の結果は消す
     $('ovTitle').innerHTML = 'コア<span>ブレイカー</span> 試作';
@@ -12195,6 +12205,7 @@ function selectMap(id, persist = true) {
     $('ovBoard').innerHTML = '';
     $('start').textContent = '出撃する';
   }
+  if (!lazy) ensureMap();
   renderMapList();
 }
 function respawnPanel(p) {
@@ -13391,6 +13402,7 @@ addEventListener('keydown', e => {
 addEventListener('blur', () => { if (range) rangePause(); });
 
 function setup() {
+  ensureMap(); // メニューでマップを選んだだけなら、まだ組み立てていない
   resetCombatFeedback();
   clearBooms();
   clearDeathEnergy();
@@ -13454,11 +13466,30 @@ function finish() {
   $('overlay').hidden = false;
   $('overlay').scrollTop = 0; // 出撃ボタンまで下げたままだと勝敗と表彰が隠れる
 }
-$('start').addEventListener('click', () => {
+function startSortie() {
+  ensureMap();
   if (ended || !player) setup();
   $('overlay').hidden = true;
   running = true;
   if (timeLeft >= MATCH - 0.01) { annReset(); announce('作戦開始', 'info'); }
+}
+$('start').addEventListener('click', e => {
+  // 戦場がまだ無いときは、先に出撃の演出（#sortieFx）を出し、描かれてから組み立てる。組み立ての間も演出の線は動く（CSS の transform）。
+  // 試験などのスクリプトからの click（isTrusted でない）は、今までどおりその場で組み立てる
+  const fx = $('sortieFx');
+  if (mapBuiltId !== mapId && e.isTrusted && !fx.classList.contains('on')) {
+    $('sfxMap').textContent = curMap.name; $('sfxCls').textContent = `${CLASSES[chosenCls].name} ／ ${CLASS_EN[chosenCls] || ''}`;
+    fx.hidden = false; fx.classList.remove('out'); void fx.offsetWidth; fx.classList.add('on');
+    grabPointer();
+    let done = false;
+    const go = () => {
+      if (done) return; done = true;
+      try { startSortie(); } finally { fx.classList.add('out'); setTimeout(() => { fx.classList.remove('on', 'out'); fx.hidden = true; }, 450); }
+    };
+    requestAnimationFrame(() => setTimeout(go, 30)); setTimeout(go, 400);
+    return;
+  }
+  startSortie();
   grabPointer();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -13535,6 +13566,7 @@ function gameFrame(now) {
   // メニューを開いている間（一人用で試合が止まっているとき）は、裏の戦闘画面を描かない（2026-11-11 メニューの再設計：軽く動かす）。
   // 画面には最後に描いたコマが残る。機体カスタマイズの小さなプレビューだけは動かす
   // 開いた直後とマップを作り直した後は1コマだけ描く（menuDrawn）
+  if (mapBuiltId === null) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } // 戦場をまだ組み立てていない（起動直後のメニュー）
   if (menuIdle()) { if (menuDrawn) { for (const k in pressed) delete pressed[k]; mechPreview(dt); menuMechTick(); return; } menuDrawn = true; }
   else menuDrawn = false;
   if (running && isSimulationAuthority()) {
@@ -13648,7 +13680,7 @@ if (!FIRST_MAP) { // maps.js が無いか、使えるマップが1つも無い
   $('start').disabled = true;
   throw new Error('マップがありません');
 }
-{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; buildMap(saved); renderPlantBar(); renderMapList(); }
+{ let saved = FIRST_MAP; try { saved = localStorage.getItem(MAP_KEY) || FIRST_MAP; } catch (_) {} if (TOUCH && !(MAPS[saved] && mobileOk(MAPS[saved]))) saved = FIRST_MAP; setMapMeta(saved); renderMapList(); }
 requestAnimationFrame(loop);
 </script>
 

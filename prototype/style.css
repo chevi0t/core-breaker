@@ -1452,3 +1452,16 @@ body.menuClassic #pgMenu .mxFoot .note { margin: 0; white-space: normal; font-si
 @media (max-width: 760px) { body.menuClassic .mx { grid-template-columns: minmax(0, 1fr); } body.menuClassic .mxNav { grid-column: 1; grid-row: 9; } }
 body.menuClassic #pgMenu #start { width: 100%; text-align: left; }
 body.menuClassic #pgMenu #ovCls button.sel small:not(.over), body.menuClassic #pgMenu #ovCls button.sel .toCu { color: var(--dim); }
+
+/* 出撃の演出（2026-11-14）：戦場をまだ組み立てていないときに出撃を押すと、組み立ての間これを出す。
+   組み立て中は JavaScript が止まるので、動きは CSS の transform だけで付ける */
+#sortieFx { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; padding: 0 12vw; background: var(--mx-bg); color: var(--mx-ink); opacity: 0; transition: opacity .12s; overflow: hidden; pointer-events: none; }
+#sortieFx[hidden] { display: none; }
+#sortieFx.on { opacity: 1; } #sortieFx.on.out { opacity: 0; transition: opacity .4s; }
+#sortieFx .mxM { font-size: 12px; } #sortieFx .mxM:first-of-type { color: var(--mx-fl); }
+#sortieFx b { font: 400 min(12vw, 110px)/1 var(--impact); letter-spacing: -.01em; }
+.sfxBar { position: relative; width: min(60vw, 560px); height: 4px; margin-top: 10px; background: var(--mx-faint); overflow: hidden; }
+.sfxBar i { position: absolute; inset: 0 auto 0 0; width: 35%; background: var(--mx-fl); animation: sfxBar .9s linear infinite; will-change: transform; }
+.sfxScan { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: rgba(255, 91, 31, .55); box-shadow: 0 0 12px rgba(255, 91, 31, .5); animation: sfxScan 1.4s linear infinite; will-change: transform; }
+@keyframes sfxBar { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+@keyframes sfxScan { from { transform: translateY(0); } to { transform: translateY(100vh); } }
