@@ -23,6 +23,19 @@ check('オンライン結果画面のボタン',async({browser,dir,ok,errors})=>
     ok((await Promise.all(pages.map(p=>p.evaluate(()=>CBOnlineGame.state.phase+'/'+!document.getElementById('overlay').hidden)))).every(x=>x==='lobby/true'),label+'：試合が終わると結果画面のまま、両方とも同じ部屋の待機へ戻る');
   };
   await playAndEnd('1試合目',[host,g]);
+  // クリック以外で目的地へスクロールしない。親ボタンと内側の文字の両方を調べる。
+  for(const [role,p] of [['host',host],['guest',g]]){
+    const before=await p.evaluate(()=>JSON.stringify({room:CBOnlineGame.state.roomId,roster:CBOnlineGame.state.roster}));
+    for(const target of ['#mxResNext','#mxResNext b']){
+      await p.evaluate(()=>{document.getElementById('overlay').scrollTop=0;});
+      await p.locator(target).click();
+      await p.waitForFunction(()=>{
+        const r=document.querySelector('#pgMenu .mx').getBoundingClientRect();
+        return Math.abs(r.top)<2;
+      },{},{polling:20,timeout:5000});
+      ok(await p.evaluate(before=>document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.phase==='lobby'&&JSON.stringify({room:CBOnlineGame.state.roomId,roster:CBOnlineGame.state.roster})===before,before),role+'：'+target+'で下のメニューへ移動し、警告を出さず部屋・参加者を保持');
+    }
+  }
   ok(await host.locator('#start').textContent()==='ロビーへ戻る（同じメンバー）','結果画面の出撃ボタンはロビーへ戻る表示');
   await host.locator('#start').click();await frames([host],2);
   ok(await host.evaluate(()=>CBOnlineGame.state.phase==='lobby'&&!document.getElementById('onlinePanel').hidden&&CBOnlineGame.state.roster.length===2&&document.getElementById('onlineStart').disabled),'ホスト：出撃ボタンでロビーを開き、さっきのゲストが残っていてReadyをリセットして次の試合の準備を待つ');
@@ -40,4 +53,4 @@ check('オンライン結果画面のボタン',async({browser,dir,ok,errors})=>
   await host.locator('#start').click();await frames([host],2);
   await playAndEnd('3試合目（入れ替わったメンバー）',[host,g2]);
   }finally{for(const p of pages)if(!p.isClosed())await p.evaluate(()=>CBOnlineGame.leave('試験終了')).catch(()=>{});await h.close();}
-});
+},{page:false});
