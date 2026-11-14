@@ -1239,22 +1239,23 @@ body.aimX #scorePop { left: calc(50% + var(--xs-x, 96px)); top: calc(50% + var(-
 /* 真ん中：大きな兵装名・機体・注釈・数値 */
 .mxStage { grid-column: 2; grid-row: 2; position: relative; overflow: hidden; container-type: size; }
 .mxKey { position: absolute; inset: 0; }
-.mxMega { position: absolute; left: -6px; top: -3cqh; font: 400 min(38cqh, calc(92cqw / var(--n, 2))) / 1 var(--impact); letter-spacing: -.02em; white-space: nowrap; z-index: 1; pointer-events: none; }
-.mxSub { position: absolute; left: 2px; top: 35cqh; z-index: 3; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 80px); }
+.mxMega { position: absolute; left: -3px; top: -1.5cqh; font: 400 min(19cqh, calc(46cqw / var(--n, 2))) / 1 var(--impact); letter-spacing: -.02em; white-space: nowrap; z-index: 1; pointer-events: none; }
+.mxSub { position: absolute; left: 2px; top: 18cqh; z-index: 3; display: flex; gap: 14px; align-items: center; max-width: calc(100% - 80px); }
 .mxSub .mxM { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mxChip { flex: none; background: var(--mx-fl); color: var(--mx-flt); font: 600 10px var(--mx-mono); letter-spacing: .14em; padding: 3px 7px; }
-#pgMenu .mxBuilds { position: absolute; left: 2px; top: calc(35cqh + 30px); z-index: 3; gap: 0; border: 1px solid var(--mx-faint); }
+#pgMenu .mxBuilds { position: absolute; left: 2px; top: calc(18cqh + 30px); z-index: 3; gap: 0; border: 1px solid var(--mx-faint); }
 .mxBuilds .lbl { display: none; }
 #pgMenu .mxBuilds button { font: 600 11px var(--mx-mono); padding: 6px 14px; color: var(--mx-dim); border-right: 1px solid var(--mx-faint); }
 #pgMenu .mxBuilds button:last-of-type { border-right: 0; }
 #pgMenu .mxBuilds button[aria-pressed="true"] { background: var(--mx-ink); color: var(--mx-bg); }
 .mxVert { position: absolute; right: 14px; top: 16px; writing-mode: vertical-rl; font: 400 min(68px, 11cqh) / 1 var(--mx-anton); letter-spacing: .02em; color: transparent; -webkit-text-stroke: 1px rgba(238, 241, 243, .35); z-index: 1; pointer-events: none; }
-#menuMech { position: absolute; left: 30%; top: 12cqh; width: calc(70% - 230px); height: 86cqh; z-index: 2; cursor: grab; touch-action: none; }
-.mxCalls { position: absolute; left: 30%; top: 12cqh; width: calc(70% - 230px); height: 86cqh; z-index: 3; pointer-events: none; }
+#menuMech { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; cursor: grab; touch-action: none; }
+.mxCalls { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
 .mxCalls .ln { position: absolute; height: 1px; background: var(--mx-ink); transform-origin: 0 0; }
 .mxCalls .ln::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; background: var(--mx-fl); }
 .mxCalls .lb { position: absolute; transform: translateY(-50%); font: 400 10px/1.35 var(--mx-mono); letter-spacing: .06em; color: var(--mx-dim); background: var(--mx-bg); padding: 1px 4px; white-space: nowrap; }
 .mxCalls .lb b { display: block; color: var(--mx-ink); font-weight: 600; }
+.mxCalls .lb.l { text-align: right; }
 .mxStats { position: absolute; left: 2px; bottom: 18px; z-index: 3; display: flex; gap: 22px; }
 .mxStats > div { border-left: 1px solid var(--mx-ink); padding-left: 10px; }
 .mxStats b { display: block; font: 400 34px/1.05 var(--mx-anton); letter-spacing: .01em; }
