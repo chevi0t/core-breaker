@@ -158,7 +158,7 @@
   <button type="button" id="hudSizeReset">両方100%に戻す</button>
 </aside>
 <div id="overlay">
-  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver199</div>
+  <div id="appVersion" title="公開版の番号。更新が入ったかの目安">Ver200</div>
   <div class="card menuWide" id="ovCard">
     <section class="page" id="pgMenu">
       <!-- メニュー（2026-11-12 作り直し、オーナーが選んだ「A 格納庫」をスイス風に清書した形・差し色は蛍光オレンジ）。
@@ -12024,7 +12024,7 @@ function menuMechTick() {
       const sc = new T.Scene(), cam = new T.PerspectiveCamera(26, 1, 0.1, 80);
       sc.add(new T.HemisphereLight(0xe8f8ff, 0x344555, 1.3));
       const light = new T.DirectionalLight(0xffffff, 1.1); light.position.set(-3, 6, -5); sc.add(light);
-      const floor = new T.Mesh(new T.CircleGeometry(2.6, 48), new T.MeshBasicMaterial({ color: 0x3ea6ff, transparent: true, opacity: 0.16 }));
+      const floor = new T.Mesh(new T.CircleGeometry(2.1, 48), new T.MeshBasicMaterial({ color: 0x3ea6ff, transparent: true, opacity: 0.16 }));
       floor.rotation.x = -Math.PI / 2; sc.add(floor);
       const r = menuRig = { ren, sc, cam, m: null, yaw: -0.5, drag: null, w: 0, h: 0 };
       cv.addEventListener('pointerdown', e => { r.drag = e.clientX; cv.setPointerCapture(e.pointerId); });
@@ -12046,48 +12046,86 @@ function menuMechTick() {
     if (!menuRigDirty) return;
     menuRigDirty = false;
     r.m.g.rotation.y = r.yaw; r.m.g.updateMatrixWorld(true);
-    // 機体の高さが画面の8割ほどに収まる距離。上を少し空ける
-    const dist = r.height * 0.54 / Math.tan(r.cam.fov * Math.PI / 360) / Math.min(1, r.cam.aspect) + 3;
+    const MENU_MECH_SCALE = 1.6;
+    // 機体の大きさ：前の作り（舞台の高さ86%・幅70%−230pxの絵に、高さの8割ほどで収める）の1.6倍（オーナー 2026-11-14「機体を倍に」→「ちょいデカい」で1.6倍）。
+    // 舞台いっぱいの絵の真ん中に置き、はみ出すときは高さの9割までに抑える
+    const st = $('menuMech').parentElement, sw = st.clientWidth, sh = st.clientHeight, tn = Math.tan(r.cam.fov * Math.PI / 360);
+    const oh = sh * .86, od = r.height * .54 / tn / Math.min(1, Math.max(.1, (sw * .7 - 230) / oh)) + 3, px = Math.min(h * .9, MENU_MECH_SCALE * r.height / (2 * od * tn) * oh);
+    const dist = r.height * h / (2 * tn * px);
+    // 足が下の数値（耐久・重量・ダッシュ）にかからない高さへ。収まらなければ上を兵装名に重ねる（機体が手前）
+    const sb = ($('mxStats').offsetHeight || 0) + 26, down = Math.max(-(h - px) / 2, Math.min(h * .08, h - sb - (h + px) / 2));
+    r.cam.setViewOffset(w, h, 0, -down, w, h);
     r.cam.position.set(r.center.x, r.center.y + 1.2, r.center.z - dist); r.cam.lookAt(r.center.x, r.center.y - 0.15, r.center.z);
+    r.cam.updateMatrixWorld();
+    // 武器まで入れた左右の幅の真ん中を舞台の真ん中へ（重火力のガトリングなどで左へ寄りすぎないように）
+    const [x0, x1] = menuScreenX(r, menuBoxes(r), w), dx = Math.max(-w * .15, Math.min(w * .15, w / 2 - (x0 + x1) / 2));
+    r.cam.setViewOffset(w, h, -dx, -down, w, h);
     r.cam.updateMatrixWorld();
     r.ren.render(r.sc, r.cam);
     menuCallouts(r, w, h);
   } catch (e) { console.warn('メニューの機体', e); }
 }
-// 部位の箱の中心（腕と脚は画面の右寄りの側）を画面に写し、右へ引き出し線を伸ばす
-function menuCallouts(r, w, h) {
-  const box = {}, v = new T.Vector3(), mainKey = loadout[chosenCls].main;
+// 注釈：右に機体のパーツ（頭・胴・腕・脚）、左に武器の4つ（主・副・補助・特別）。オーナー 2026-11-14「右側に機体パーツ、左側に武器4種」。
+// 部位の箱の、画面でその側にある端の近くを画面に写し、横へ引き出し線を伸ばす。形の無い武器（手榴弾など）は胴・腕・脚の左の端を指す
+function menuBoxes(r) {
+  const box = {};
+  // 部位（頭・胴・腕・脚）と、見えている武器の形（w_main・w_aux・w_sp）の箱
+  const add = (k, m) => { if (!m.geometry) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); (box[k] ||= new T.Box3()).union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); };
+  const visibleUp = m => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return true; };
   r.m.g.traverse(m => {
-    if (!m.isMesh || !m.visible || !m.geometry) return;
-    const slot = m === r.m.gun ? 'main' : m.userData.weaponModel ? null : m.userData.armorSlot && m.userData.own ? m.userData.armorSlot : null;
-    if (!slot) return;
-    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
-    (box[slot] ||= new T.Box3()).union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld));
+    if (!m.isMesh || !visibleUp(m)) return;
+    if (m.userData.armorSlot && m.userData.own && !m.userData.weaponModel) add(m.userData.armorSlot, m);
   });
+  const wm = { main: [r.m.gun, r.m.gun2], aux: [r.m.blade, r.m.blade2], sp: [r.m.pack, r.m.mount] };
+  for (const [k, list] of Object.entries(wm)) for (const o of list) if (o && visibleUp(o)) o.traverse(m => { if (m.isMesh && visibleUp(m)) add('w_' + k, m); });
+  return box;
+}
+function menuScreenX(r, box, w) {
+  let x0 = 1e9, x1 = -1e9; const v = new T.Vector3();
+  for (const b of Object.values(box)) for (let i = 0; i < 8; i++) {
+    v.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).project(r.cam);
+    const x = (v.x + 1) / 2 * w; x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+  }
+  return [x0, x1];
+}
+function menuCallouts(r, w, h) {
+  const box = menuBoxes(r), v = new T.Vector3(), ld = loadout[chosenCls], melee = meleeOnly();
   const scr = p => { v.copy(p).project(r.cam); return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h }; };
-  const anchor = (b, k) => {
-    const c = b.getCenter(new T.Vector3());
-    if (k !== 'arms' && k !== 'legs') return scr(c);
-    // 左右の端のうち、画面で右にある方の真ん中あたり
-    const a = scr(new T.Vector3(b.min.x * .8 + c.x * .2, c.y, c.z)), d = scr(new T.Vector3(b.max.x * .8 + c.x * .2, c.y, c.z));
-    return a.x > d.x ? a : d;
+  // side 1 = 画面の右寄りの端、-1 = 左寄りの端。fy は高さ（0 = 下、1 = 上）
+  const edge = (b, side, fy = .5) => {
+    const c = b.getCenter(new T.Vector3()), y = b.min.y + (b.max.y - b.min.y) * fy;
+    const a = scr(new T.Vector3(b.min.x * .8 + c.x * .2, y, c.z)), d = scr(new T.Vector3(b.max.x * .8 + c.x * .2, y, c.z));
+    return (a.x > d.x) === (side > 0) ? a : d;
   };
-  const P = mechStats(mechCfg, loadout[chosenCls]).P;
-  const rows = [
-    ['head', 'HEAD 頭部', P.head], ['body', 'BODY 胴部', P.body], ['arms', 'ARMS 腕部', P.arms],
-    ['main', 'MAIN 主武器', { model: WEAPONS[mainKey].name, weight: WEAPON_KG[mainKey] || 0 }], ['legs', 'LEGS 脚部', P.legs],
-  ].filter(([k]) => box[k]).map(([k, label, x]) => ({ k, label, name: x.model || x.name, kg: x.weight, ...anchor(box[k], k) }));
-  rows.sort((a, b) => a.y - b.y);
-  // ラベルは機体の右の列にそろえ、重ならないよう縦に間をあける
-  const right = Math.max(...rows.map(o => o.x)), lx = Math.min(w + 60, right + 40), gap = Math.max(30, Math.min(44, h / 12));
-  let y = -1e9;
-  for (const o of rows) { o.ly = Math.max(o.y, y + gap); y = o.ly; }
-  const over = y - (h - 20); if (over > 0) for (const o of rows) o.ly -= over;
-  $('mxCalls').innerHTML = rows.map(o => {
-    const dx = lx - o.x, dy = o.ly - o.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
-    return `<i class="ln" style="left:${o.x.toFixed(1)}px;top:${o.y.toFixed(1)}px;width:${len.toFixed(1)}px;transform:rotate(${ang.toFixed(2)}deg)"></i>`
-      + `<span class="lb" style="left:${(lx + 6).toFixed(1)}px;top:${o.ly.toFixed(1)}px">${o.label}<b>${o.name} ${o.kg}KG</b></span>`;
-  }).join('');
+  const center = b => scr(b.getCenter(new T.Vector3()));
+  const P = mechStats(mechCfg, melee ? { aux: arenaMeleeKey } : ld).P;
+  const parts = [['head', 'HEAD 頭部', P.head], ['body', 'BODY 胴部', P.body], ['arms', 'ARMS 腕部', P.arms], ['legs', 'LEGS 脚部', P.legs]]
+    .filter(([k]) => box[k]).map(([k, label, x]) => ({ label, name: x.model || x.name, kg: x.weight, ...(k === 'head' || k === 'body' ? center(box[k]) : edge(box[k], 1)) }));
+  const fallback = { main: ['arms', .5], sub: ['body', .3], aux: ['arms', .7], sp: ['body', .85] };
+  const wKeys = melee ? [['aux', arenaMeleeKey]] : SLOTS.map(s => [s, ld[s]]);
+  const SLOT_LABEL = { main: 'MAIN 主武器', sub: 'SUB 副武器', aux: 'AUX 補助装備', sp: 'SP 特別装備' };
+  const weapons = wKeys.map(([s, key]) => {
+    const b = box['w_' + s], [fk, fy] = fallback[s], fb = box[fk] || box.body;
+    const at = b ? edge(b, -1) : fb ? edge(fb, -1, fy) : null;
+    return at && { label: SLOT_LABEL[s], name: WEAPONS[key].name, kg: WEAPON_KG[key] || 0, ...at };
+  }).filter(Boolean);
+  const gap = Math.max(30, Math.min(44, h / 12));
+  // 左の列は、上の構成のボタンより下、下の数値（耐久・重量・ダッシュ）より上に並べる
+  const bl = $('ovBuild'), sb = $('mxStats');
+  const lay = (rows, lx, dir, top = 14, bottom = h - 20) => {
+    rows.sort((a, b) => a.y - b.y);
+    let y = -1e9;
+    for (const o of rows) { o.ly = Math.max(o.y, y + gap, top); y = o.ly; }
+    const over = y - bottom; if (over > 0) for (const o of rows) o.ly = Math.max(top, o.ly - over);
+    return rows.map(o => {
+      const dx = lx - o.x, dy = o.ly - o.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      return `<i class="ln" style="left:${o.x.toFixed(1)}px;top:${o.y.toFixed(1)}px;width:${len.toFixed(1)}px;transform:rotate(${ang.toFixed(2)}deg)"></i>`
+        + `<span class="lb${dir < 0 ? ' l' : ''}" style="${dir < 0 ? 'right' : 'left'}:${(dir < 0 ? w - lx + 6 : lx + 6).toFixed(1)}px;top:${o.ly.toFixed(1)}px">${o.label}<b>${o.name} ${o.kg}KG</b></span>`;
+    }).join('');
+  };
+  // 文字の列は機体（武器も含めた全体）の左右の端の少し外。舞台からはみ出さないよう、端から文字の幅ほどは空ける
+  const [x0, x1] = menuScreenX(r, box, w), lw = Math.min(170, w * .22), rx = Math.min(w - lw, x1 + 24), lx = Math.max(lw, x0 - 24);
+  $('mxCalls').innerHTML = lay(parts, rx, 1) + lay(weapons, lx, -1, bl.offsetTop + bl.offsetHeight + 18, h - sb.offsetHeight - 40);
 }
 addEventListener('resize', () => { menuRigDirty = true; });
 const mapInfo = d => `${battleTeamSize(d)}対${battleTeamSize(d)}・${d.vs ? `コスト制（戦力${d.vs.cost}、撃破1回で−${d.vs.death}）` : `プラント${d.plants.length}`}・${d.time / 60}分・${d.size[0] * 2}×${d.size[1] * 2}m`;
